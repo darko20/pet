@@ -225,7 +225,7 @@ rule_and_passive_task::execute()
     if(opt_packing && _passive->blocked())
         return 0;
     
-    item *result = build_rule_item(_C, _A, _R, _passive);
+    item *result = build_rule_item(_Chart, _A, _R, _passive);
     if(result) result->score(priority());
     return result;
 }
@@ -266,7 +266,7 @@ active_and_passive_task::execute()
     if(opt_packing && (_passive->blocked() || _active->blocked()))
         return 0;
     
-    item *result = build_combined_item(_C, _active, _passive);
+    item *result = build_combined_item(_Chart, _active, _passive);
     if(result) result->score(priority());
     return result;
 }
