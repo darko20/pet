@@ -27,7 +27,7 @@
 class chart
 {
  public:
-  chart(int, auto_ptr<item_owner>);
+  chart(int);
   ~chart();
 
   void add(tItem *);
@@ -58,8 +58,6 @@ class chart
   vector< list<tItem *> > _Cp_start, _Cp_end;
   vector< list<tItem *> > _Ca_start, _Ca_end;
   vector< vector < list<tItem*> > > _Cp_span;
-
-  auto_ptr<item_owner> _item_owner;
 
   friend class chart_iter;
   friend class chart_iter_span_passive;

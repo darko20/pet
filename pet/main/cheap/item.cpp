@@ -36,11 +36,10 @@
 //#define DEBUG
 //#define DEBUGPOS
 
-item_owner *tItem::_default_owner = 0;
-int tItem::_next_id = 1;
+int tItem::_nextId = 1;
 
 tItem::tItem(int start, int end, const tPaths &paths)
-    : _id(_next_id++),
+    : _id(_nextId++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
@@ -48,7 +47,6 @@ tItem::tItem(int start, int end, const tPaths &paths)
       _score(0.0),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
-    if(_default_owner) _default_owner->add(this);
 }
 
 tItem::~tItem()

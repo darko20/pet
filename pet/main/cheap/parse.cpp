@@ -414,9 +414,6 @@ analyze(input_chart &i_chart, string input, chart *&C,
     stats.reset();
     stats.id = id;
 
-    auto_ptr<item_owner> owner(new item_owner);
-    tItem::default_owner(owner.get());
-
 #ifdef YY
     if(opt_yy)
         i_chart.populate(new yy_tokenizer(input));
@@ -442,7 +439,7 @@ analyze(input_chart &i_chart, string input, chart *&C,
     if (!missing.empty()) 
         throw tError("no lexicon entries for " + missing) ;
 
-    C = Chart = new chart(max_pos, owner);
+    C = Chart = new chart(max_pos);
 
     parse(*Chart, tLexItems, FSAS, errors);
 }

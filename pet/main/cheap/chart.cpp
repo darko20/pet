@@ -26,12 +26,11 @@
 
 //#define DEBUG
 
-chart::chart(int len, auto_ptr<item_owner> owner)
+chart::chart(int len)
     : _Chart(), _trees(), _readings(), _pedges(0),
       _Cp_start(len + 1), _Cp_end(len + 1),
       _Ca_start(len + 1), _Ca_end(len + 1),
-      _Cp_span(len + 1),
-      _item_owner(owner)
+      _Cp_span(len + 1)
 {
     for(int i = 0; i <= len; i++)
     {

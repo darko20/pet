@@ -39,6 +39,19 @@ class tItem
 {
  public:
 
+    /** Constructor. */
+    tItem(int start, int end, const tPaths &paths);
+
+    /** Destructor. */
+    virtual ~tItem();
+
+    /** Unique identifier for this item. */
+    inline int
+    id()
+    {
+        return _id;
+    }
+
     /** A string suitable for printing as a name for this item */
     virtual const string
     printName() = 0;
@@ -76,29 +89,7 @@ class tItem
     // Old stuff
     //
 
-#if 0    
-  tItem(int start, int end, const tPaths &paths, fs &f);
-#endif
-  tItem(int start, int end, const tPaths &paths);
 
-  virtual ~tItem();
-
-  virtual tItem &operator=(const tItem &li)
-  {
-    throw tError("unexpected call to copy constructor of tItem");
-  }
-
-  tItem()
-  {
-    throw tError("unexpected call to constructor of tItem");
-  }
-
-  static void default_owner(class item_owner *o) { _default_owner = o; }
-  static class item_owner *default_owner() { return _default_owner; }
-
-  static void reset_ids() { _next_id = 1; }
-
-  inline int id() { return _id; }
   inline tItemTrait trait() { return _trait; }
 
   inline int start() const { return _start; }
@@ -110,15 +101,6 @@ class tItem
   bool
   root(class tGrammar *G, int length, type_t &rule);
   
-#if 0
-  virtual fs get_fs(bool full = false)
-  {
-      if(_fs.temp() && _fs.temp() != unify_generation)
-          recreate_fs();
-      return _fs;
-  }
-#endif
-
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
   virtual void print_packed(FILE *f);
@@ -143,10 +125,6 @@ class tItem
 
   virtual void recreate_fs() = 0;
 
-#if 0
-  virtual int identity() = 0;
-#endif
-
   double
   score()
   {
@@ -170,10 +148,15 @@ class tItem
   virtual list<tItem *> unpack1(int limit) = 0;
 
  private:
-  static class item_owner *_default_owner;
+  
+  /** Disabled copy constructor; no definition. */
+  tItem(const tItem &);
 
-  static int _next_id;
+  /** Disabled assignment operator; no definition. */
+  void
+  operator=(const tItem &);
 
+  static int _nextId;
   int _id;
 
   tItemTrait _trait;
@@ -205,6 +188,7 @@ class tItem
 
   friend class tLexItem;
   friend class tPhrasalItem;
+  
 };
 
 /** Represent the combination requirements of an item. Note that passive
@@ -344,17 +328,6 @@ class tLexItem : public tItem, private tActive
 
   ~tLexItem() { delete[] _dtrs; }
 
-  virtual tLexItem &operator=(const tItem &li)
-  {
-    throw tError("unexpected call to assignment operator of tLexItem");
-  }
-
-  tLexItem(const tLexItem &li)
-      : tActive(0, 0)
-  {
-    throw tError("unexpected call to copy constructor of tLexItem");
-  }
-
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) {}
 
@@ -379,12 +352,6 @@ class tLexItem : public tItem, private tActive
   string description();
   string orth();
 
-#if 0
-  virtual inline int startposition() { return _dtrs[0]->startposition() ; }
-  virtual inline int endposition() { 
-    return _dtrs[_ndtrs - 1]->endposition() ; }
-#endif
-
   inline const postags &get_in_postags()
   { return _dtrs[_keydtr]->get_in_postags(); }
   inline const postags &get_supplied_postags()
@@ -393,13 +360,6 @@ class tLexItem : public tItem, private tActive
   bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
 
   friend bool same_lexitems(const tLexItem &a, const tLexItem &b);
-
-#if 0
-  virtual int identity()
-  {
-      return _dtrs[_keydtr]->identity();
-  }
-#endif
 
   virtual list<tItem *> unpack1(int limit);
 
@@ -497,21 +457,6 @@ class tPhrasalItem : public tItem, private tActive, private tFSItem
 
   virtual void recreate_fs();
 
-#if 0
-  virtual int startposition() { return _daughters.front()->startposition() ; }
-  virtual int endposition() { return _daughters.back()->endposition() ; }
-#endif
-
-#if 0
-  virtual int identity()
-  {
-      if(_adaughter)
-          return _adaughter->type();
-      else
-          return 0;
-  }
-#endif
-
   virtual list<tItem *> unpack1(int limit);
   void unpack_cross(vector<list<tItem *> > &dtrs,
                     int index, vector<tItem *> &config,
@@ -541,23 +486,5 @@ public:
     tSM *_sm;
 };
 #endif
-
-class item_owner
-// allow proper release of memory
-{
- public:
-  item_owner() {}
-  ~item_owner()
-    {
-      for(list<tItem *>::iterator curr = _list.begin(); 
-	  curr != _list.end(); 
-	  ++curr)
-	delete *curr;
-      tItem::reset_ids();
-    }
-  void add(tItem *it) { _list.push_back(it); }
- private:
-  list<tItem *> _list;
-};
 
 #endif
