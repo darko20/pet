@@ -234,7 +234,7 @@ tGrammarRule::print(FILE *f)
     list_int *l = _toFill;
     while(l)
     {
-        fprintf(f, " %d", first(l));
+        fprintf(f, "%d%s", first(l), rest(l) ? " " : "");
         l = rest(l);
     }
     
@@ -244,9 +244,7 @@ tGrammarRule::print(FILE *f)
 fs 
 tGrammarRule::getFS()
 {
-    fs f;
-    // _fix_me_
-    return f;
+    return fs(type());
 }
 
 tPhrasalItem *
@@ -254,6 +252,10 @@ tGrammarRule::instantiate()
 {
     return new tPhrasalItem(this);
 }
+
+//
+// tGrammar methods
+//
 
 bool
 tGrammar::punctuationp(const string &s)
@@ -756,28 +758,26 @@ tGrammar::initialize_filter()
     {
         fs_alloc_state S1;
         tGrammarRule *daughter = daughters.current();
-        tPhrasalItem *daughterItem = daughter->instantiate();
-        fs daughterFs = copy(daughterItem->get_fs());
+        fs daughterFS = copy(daughter->getFS());
       
         for(rule_iter mothers(this); mothers.valid(); mothers++)
         {
             tGrammarRule *mother = mothers.current();
-            tPhrasalItem *motherItem = mother->instantiate();
 
             _filter[daughter->id() + _nrules * mother->id()] = 0;
 
             for(int arg = 1; arg <= mother->remainingArity(); arg++)
             {
                 fs_alloc_state S2;
-                fs motherFs = motherItem->get_fs();
+                fs motherFS = mother->getFS();
                 
                 if(arg == 1)
                 {
                     bool forward = true, backward = false;
-                    fs a = packing_partial_copy(daughterFs,
+                    fs a = packing_partial_copy(daughterFS,
                                                 Grammar->deleted_daughters(),
                                                 false);
-                    fs b = packing_partial_copy(motherFs,
+                    fs b = packing_partial_copy(motherFS,
                                                 Grammar->deleted_daughters(),
                                                 false);
                     
@@ -792,16 +792,14 @@ tGrammar::initialize_filter()
 #endif
                 }
                 
-                fs argFs = motherFs.nth_arg(arg);
+                fs argFS = motherFS.nth_arg(arg);
 
-                if(unify(motherFs, daughterFs, argFs).valid())
+                if(unify(motherFS, daughterFS, argFS).valid())
                 {
                     _filter[daughter->id() + _nrules * mother->id()] |= (1 << (arg - 1));
                 }
             }
-            delete motherItem;
         }
-        delete daughterItem;
     }
 
     S0.clear_stats();
