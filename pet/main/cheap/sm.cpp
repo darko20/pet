@@ -242,6 +242,17 @@ tMEM::~tMEM()
     delete _map;
 }
 
+string
+tMEM::description()
+{
+    string desc;
+    ostringstream os(desc);
+    os << "MEM[" << string(fileName()) << "] "
+       << _weights.size() << "/" << _ctxts;
+
+    return desc;
+}
+
 void
 tMEM::readModel(const char *fileName)
 {
@@ -261,12 +272,12 @@ tMEM::parseModel()
          :begin :mem 42.
          *maxent-frequency-threshold* := 10.
          :begin :features 3.
-         :end :features.
          [2 hspec hcomp] 0.1556260000
          [1 hcomp p_temp_le hspec] -1.8462600000
          [2 hcomp p_temp_le] 0.7750630000
+         :end :features.
          :end :mem.
-         
+
     */
 
     char *tmp;
@@ -280,7 +291,9 @@ tMEM::parseModel()
         syntax_error("expecting `mem' section", LA(0));
     }
     free(tmp);
-    match(T_ID, "number of contexts", true);
+    tmp = match(T_ID, "number of contexts", false);
+    _ctxts = string(tmp);
+    free(tmp);
     match(T_DOT, "`.' after section opening", true);
     
     parseOptions();

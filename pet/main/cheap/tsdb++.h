@@ -93,7 +93,7 @@ class tsdb_result
   tsdb_result() :
     parse_id(-1), result_id(-1), time(-1), r_ctasks(-1), r_ftasks(-1),
     r_etasks(-1), r_stasks(-1), size(-1), r_aedges(-1), r_pedges(-1),
-    derivation(), tree(), mrs()
+    derivation(), tree(), mrs(), scored(false)
     {
     }    
 
@@ -116,6 +116,8 @@ class tsdb_result
   string derivation;                // derivation tree for this reading
   string tree;                      // phrase structure tree (CSLI labels)
   string mrs;                       // mrs for this reading
+  bool scored;                      // has a score been assigned?
+  double score;                     // score assigned by stochastic model
 };
 
 class tsdb_rule_stat

@@ -166,12 +166,14 @@ void initialize_version()
     }
 
   sprintf(CHEAP_VERSION,
-          "PET(%s cheap) [%d] %sPA(%d) RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
+          "PET(%s cheap) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
           "%s %s {ns %d} (%s/%s) <%s>",
           da,
           pedgelimit,
           opt_packing ? "+" : "-",
           opt_packing,
+          Grammar->sm() ? "+" : "-",
+          Grammar->sm() ? Grammar->sm()->description().c_str() : "",
           opt_key == 0 ? "key" : (opt_key == 1 ? "l-r" : (opt_key == 2 ? "r-l" : (opt_key == 3 ? "head" : "unknown"))),
           opt_hyper ? "+HA" : "-HA",
           Grammar->nhyperrules(),
@@ -322,6 +324,8 @@ void tsdb_result::capi_print()
 {
   capi_printf(" (");
   capi_printf("(:result-id . %d) ", result_id);
+  if(scored)
+      capi_printf("(:score . %.g) ", score);
   capi_printf("(:derivation . \"%s\") ",  escape_string(derivation).c_str());
   if(!mrs.empty())
     capi_printf("(:mrs . \"%s\") ", escape_string(mrs).c_str());
@@ -459,6 +463,11 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
 
         R.parse_id = tsdb_unique_id;
         R.result_id = nres;
+        if(Grammar->sm())
+        {
+            R.scored = true;
+            R.score = (*iter)->score(Grammar->sm());
+        }
         R.derivation = (*iter)->tsdb_derivation();
 
 #ifdef YY
