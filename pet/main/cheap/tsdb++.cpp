@@ -273,7 +273,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
 
         tsdb_parse T;
         if(!errors.empty())
-            cheap_tsdb_summarize_error(errors.front(), treal, T);
+            cheap_tsdb_summarize_error(errors, treal, T);
         
         cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
                                   nderivations, T);
@@ -294,7 +294,9 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         TotalParseTime.restore();
         
         tsdb_parse T;
-        cheap_tsdb_summarize_error(e, treal, T);
+        list<error> errors;
+        errors.push_back(e);
+        cheap_tsdb_summarize_error(errors, treal, T);
         T.capi_print();
         
     }
@@ -650,7 +652,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
 }
 
 void
-cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
+cheap_tsdb_summarize_error(list<error> &conditions, int treal, tsdb_parse &T)
 {
     T.run_id = 1;
     T.parse_id = tsdb_unique_id;
@@ -691,7 +693,9 @@ cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
     
-    T.err = condition.msg();
+    for(list<error>::iterator it = conditions.begin(); it != conditions.end();
+        ++it)
+        T.err += string((it == conditions.begin() ? "" : " ")) + it->msg();
 }
 
 string

@@ -412,6 +412,8 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 	int nres = 0;
         stats.trees = 0; // We want to recount the trees in case some
                          // are blocked or don't unpack.
+        int upedgelimit = 0;
+
         for(vector<item *>::iterator tree = Chart->trees().begin();
             tree != Chart->trees().end(); ++tree)
         {
@@ -421,7 +423,11 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
             stats.trees++;
 
             list<item *> results;
-            int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+
+            if(pedgelimit && Chart->pedges() >= pedgelimit)
+                break;
+            upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+
             results = (*tree)->unpack(upedgelimit);
             
             for(list<item *>::iterator res = results.begin();
@@ -442,16 +448,19 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
                 }
             }
             if(upedgelimit > 0 && stats.p_upedges > upedgelimit)
-            {
-                ostringstream s;
-
-                s << "unpack edge limit exhausted (" << upedgelimit 
-                  << " pedges)";
-
-                errors.push_back(s.str());
                 break;
-            }
         }
+        
+        if(upedgelimit > 0 && stats.p_upedges > upedgelimit)
+        {
+            ostringstream s;
+            
+            s << "unpack edge limit exhausted (" << upedgelimit 
+              << " pedges)";
+            
+            errors.push_back(s.str());
+        }
+
         stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
         stats.p_dyn_bytes = FSAS.dynamic_usage();
         stats.p_stat_bytes = FSAS.static_usage();
