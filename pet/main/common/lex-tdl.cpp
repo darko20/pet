@@ -28,10 +28,9 @@
 #include "options.h"
 #endif
 
-
 char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
-"end", "end!", "errorp", "expand-all-instances", "include", "leval", "sort",
+"end", "end!", "errorp", "expand-all-instances", "include", "leval",
 "sorts", "status" };
 
 char *lexer_idchars = "_+-*?";
