@@ -366,7 +366,14 @@ grammar_rule::grammar_rule(type_t t)
 
     dag = dag_get_path_value(typedag[t],
                              cheap_settings->req_value("rule-args-path"));
-    
+   
+    if(dag == FAIL)
+    {
+        throw error("Feature structure of rule " + string(typenames[t])
+                    + " does not contain "
+                    + string(cheap_settings->req_value("rule-args-path")));
+    }	    
+
     argslist = dag_get_list(dag);
     
     _arity = argslist.size();
