@@ -21,6 +21,8 @@
 
 #include <LEDA/graph_alg.h>
 
+#include "flop.h"
+
 class compare_edges : public leda_cmp_base<leda_edge>
 {
   const leda_graph& G;
@@ -57,7 +59,22 @@ void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in
   E.sort(cmp);
 
   leda_edge e;
+  leda_node v;
 
+#ifdef DEBUG
+  std::ofstream f0("old.top");
+
+  forall_nodes(v, G)
+  {
+      f0 << "T " << hierarchy.inf(v) << ": " << ord[v] << std::endl;
+  }
+
+  forall(e, E)
+  {
+      f0 << "(" << ord[G.source(e)] << "," << ord[G.target(e)] << ") [" << hierarchy.inf(G.source(e)) << "," << hierarchy.inf(G.target(e)) << "]" << std::endl;
+  }
+#endif
+  
   leda_node_array<leda_list<leda_node> > closure(G);
 
   forall_edges(e,G) in_reduction[e] = false;
@@ -65,8 +82,11 @@ void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in
   leda_node_array<bool> reached(G,false);
   leda_node previous_v = nil;
 
-  leda_node v;
   forall_nodes(v,G) closure[v].append(v);
+
+#ifdef DEBUG
+  std::ofstream f1("old.red");
+#endif
 
   forall(e,E) 
     {
@@ -82,9 +102,17 @@ void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in
       
       leda_node w = G.target(e);
 
+#ifdef DEBUG
+      f1 << hierarchy.inf(v) << " - " << hierarchy.inf(w);
+#endif
+
       if ( ! reached[w] )
 	{ // e is an edge of the transitive reduction
-    
+   
+#ifdef DEBUG 
+         f1 << " R";
+#endif
+
 	  in_reduction[e] = true;
 
 	  leda_node z;
@@ -100,5 +128,8 @@ void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in
 		}
 	    }
 	}
+#ifdef DEBUG
+      f1 << endl;
+#endif 
     }
 }
