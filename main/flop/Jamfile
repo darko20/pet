@@ -1,5 +1,6 @@
 C++ = g++ ;
 C++FLAGS += -g -Wall -DNew=new ;
+LINK = g++ ;
 LINKFLAGS += ;
 OPTIM = -O3 ;
 
