@@ -180,7 +180,7 @@ fundamental_for_active(phrasal_item *active)
         // avoid processing tasks already done in the `excursion'
         for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
             if(it.current()->stamp() > active->done())
-                if(opt_packing == 0 || it.current()->frozen() == 0)
+                if(opt_packing == 0 || !it.current()->blocked())
                     if(it.current()->compatible(active, Chart->rightmost()))
                         if(filter_combine_task(active, it.current()))
                             Agenda->push(New
@@ -190,41 +190,12 @@ fundamental_for_active(phrasal_item *active)
     else
     {
         for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
-            if(opt_packing == 0 || it.current()->frozen() == 0)
+            if(opt_packing == 0 || !it.current()->blocked())
                 if(it.current()->compatible(active, Chart->rightmost()))
                     if(filter_combine_task(active, it.current()))
                         Agenda->push(New
                             active_and_passive_task(Chart, Agenda,
                                                     active, it.current()));
-    }
-}
-
-void
-block(item *it, int mark)
-{
-    if(verbosity > 4)
-    {
-        fprintf(ferr, "%sing ", mark == 1 ? "frost" : "freez");
-        it->print(ferr);
-        fprintf(ferr, "\n");
-    }
-    //
-    // _fix_me_
-    // it would seem that we should block() active edges too, otherwise there
-    // should be potential of spurious ambiguity; curios.  (27-may-03; uc & oe)
-    //
-    if(it->passive() && (it->frozen() == 0 || mark == 2))
-    {
-        if(mark == 2) 
-            stats.p_frozen++;
-
-        it->freeze(mark);
-    }  
-
-    for(list<item *>::iterator parent = it->parents.begin();
-        parent != it->parents.end(); ++parent)
-    {
-      block(*parent, 2);
     }
 }
 
@@ -246,7 +217,7 @@ packed_edge(item *newitem)
 
         subsumes(olditem->get_fs(), newitem->get_fs(), forward, backward);
 
-        if(forward && olditem->frozen() == 0)
+        if(forward && !olditem->blocked())
         {
             if((!backward && (opt_packing & PACKING_PRO))
                || (backward && (opt_packing & PACKING_EQUI)))
@@ -284,13 +255,13 @@ packed_edge(item *newitem)
 
 	    newitem->packed.splice(newitem->packed.begin(), olditem->packed);
 
-            if(olditem->frozen() == 0)
+            if(!olditem->blocked())
             {
                 stats.p_retroactive++;
                 newitem->packed.push_back(olditem);
             }
 
-            block(olditem, 1);
+            olditem->frost();
 
             // delete (old, chart)
         }
@@ -329,8 +300,9 @@ add_root(item *it)
 void
 add_item(item *it)
 {
-    if(opt_packing && it->frozen())
+    if(opt_packing && it->blocked())
     {
+        assert("This cannot happen" == 0);
         if(verbosity > 9)
         {
             fprintf(ferr, "ignoring ");

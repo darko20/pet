@@ -222,8 +222,12 @@ class item
   virtual int identity() = 0;
   virtual double score(tSM *) = 0;
 
-  inline int frozen() { return _frozen; }
-  inline void freeze(int mark) { _frozen = mark; }
+  void block(int mark);
+  inline void frost() { block(1); }
+  inline void freeze() { block(2); }
+  inline bool blocked() { return _blocked != 0; }
+  inline bool frosted() { return _blocked == 1; }
+  inline bool frozen() { return _blocked == 2; }
 
   list<item *> unpack();
   virtual list<item *> unpack1() = 0;
@@ -271,7 +275,7 @@ class item
 
   int _done;
 
-  int _frozen;
+  int _blocked;
 
  public:
   list<item *> parents;
