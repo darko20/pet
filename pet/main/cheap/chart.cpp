@@ -77,20 +77,6 @@ void chart::print(FILE *f)
     }
 }
 
-// #define LINGO_LKB_COMPAT_HACK
-
-#ifdef LINGO_LKB_COMPAT_HACK
-bool inflectedp(item *it)
-{
-  dag_node *dag = dag_get_path_value(it->get_fs().dag(), "INFLECTED");
-  if(dag != FAIL && dag_type(dag) ==
-     lookup_type(cheap_settings->req_value("true-type")))
-    return true;
-
-  return false;
-}
-#endif
-
 void chart::get_statistics()
 {
   // calculate aedges, pedges, raedges, rpedges
@@ -102,11 +88,7 @@ void chart::get_statistics()
     {
       item *it = iter.current();
 
-      if(it->trait() == INFL_TRAIT
-#ifdef LINGO_LKB_COMPAT_HACK
-	 || (it->trait() == LEX_TRAIT && !inflectedp(it))
-#endif
-	 )
+      if(it->trait() == INFL_TRAIT)
 	{
 	  stats.medges++;
 	}
