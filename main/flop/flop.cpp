@@ -326,8 +326,6 @@ void process_types()
   compute_feat_sets(opt_minimal);
 }
 
-#ifdef MORPH_STUFF
-
 void
 print_morph_info(FILE *f)
 {
@@ -335,7 +333,7 @@ print_morph_info(FILE *f)
     // find all infl rules 
     for(int i = 0; i < ntypes; i++)
     {
-        if(cheap_settings->statusmember("infl-rule-status-values",
+        if(flop_settings->statusmember("infl-rule-status-values",
 					typestatus[i]))
 	{
   	    fprintf(f, "%s:\n", typenames[i]);
@@ -345,10 +343,8 @@ print_morph_info(FILE *f)
 	    fprintf(f, "\n");
 	}
     }
-    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
+    //    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
 }
-
-#endif
 
 char *parse_version()
 {
@@ -519,6 +515,16 @@ void process(char *ofname)
       
       fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
 	      (clock() - t_start) / (float) CLOCKS_PER_SEC);
+      
+      if(opt_cmi)
+      {
+          char *moifile = output_name(fname, TDL_EXT, ".moi");
+          FILE *moif = fopen(moifile, "wb");
+          fprintf(fstatus, "Extracting morphological information into `%s'...", moifile);
+          print_morph_info(moif);
+          fclose(moif);
+          fprintf(fstatus, "\n");
+      }
     }
   else
     {
