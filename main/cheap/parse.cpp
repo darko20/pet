@@ -37,8 +37,6 @@
 #include "k2y.h"
 #endif
 
-//#define DEBUG_DEFER
-
 //
 // global variables for parsing
 //
@@ -300,33 +298,13 @@ add_root(item *it)
 void
 add_item(item *it)
 {
-    if(opt_packing && it->blocked())
-    {
-        assert("This cannot happen" == 0);
-        if(verbosity > 9)
-        {
-            fprintf(ferr, "ignoring ");
-            it->print(ferr);
-            fprintf(ferr, "\n");
-        }
-        return;
-    }
+    assert(!(opt_packing && it->blocked()));
 
 #ifdef DEBUG
     fprintf(ferr, "add_item ");
     it->print(ferr);
     fprintf(ferr, "\n");
 #endif
-
-    if(it->in_chart())
-    {
-        // item is already in chart -> this is a deferred root node
-#ifdef DEBUG_DEFER
-        fprintf(ferr, " -> deferred root item\n");
-#endif
-        add_root(it);
-        return;
-    }
 
     if(it->passive())
     {
@@ -336,27 +314,11 @@ add_item(item *it)
         Chart->add(it);
 
         type_t rule;
-        int maxp; 
-        if(it->root(Grammar, Chart->rightmost(), rule, maxp))
+        if(it->root(Grammar, Chart->rightmost(), rule))
         {
-            it->rriority(maxp);
             it->set_result_root(rule);
-            // we found a root item - it might be too early
-            if(maxp != 0 && it->priority() > maxp)
-            {
-#ifdef DEBUG_DEFER
-                fprintf(ferr, " -> root, but it's too early\n");
-#endif
-                Agenda->push(New item_task(Chart, Agenda, it, maxp));
-            }
-            else
-            {
-#ifdef DEBUG_DEFER
-                fprintf(ferr, " -> root on time\n");
-#endif
-                if(add_root(it))
-                    return;
-            }
+            if(add_root(it))
+                return;
         }
 
         postulate(it);
@@ -367,9 +329,6 @@ add_item(item *it)
         Chart->add(it);
         fundamental_for_active(dynamic_cast<phrasal_item *> (it));
     }
-#ifdef DEBUG_DEFER
-    fprintf(ferr, "\n");
-#endif
 }
 
 inline bool
@@ -465,8 +424,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
                 res != results.end(); ++res)
             {
                 type_t rule;
-                int maxp; 
-                if((*res)->root(Grammar, Chart->rightmost(), rule, maxp))
+                if((*res)->root(Grammar, Chart->rightmost(), rule))
                 {
                     Chart->readings().push_back(*res);
 		    stats.readings++;

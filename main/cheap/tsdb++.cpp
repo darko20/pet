@@ -155,16 +155,6 @@ void initialize_version()
         }                 
     }
 
-  if((set = cheap_settings->lookup("weighted-start-symbols")) != 0)
-    {
-      for(int i = 0; i < set->n; i += 2)
-        {
-          if(i!=0) sts += string(", ");
-          sts += string(set->values[i]);
-          sts += string(" [") + string(set->values[i + 1]) + string("]");
-        }                 
-    }
-
   sprintf(CHEAP_VERSION,
           "PET(%s cheap) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
           "%s %s {ns %d} (%s/%s) <%s>",

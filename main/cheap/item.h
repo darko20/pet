@@ -153,13 +153,13 @@ class item
               : (_end == passive->_start));
   }
 
-  inline bool root(class grammar *G, int length, type_t &rule, int &maxp)
+  inline bool root(class grammar *G, int length, type_t &rule)
   {
       if(_trait == INFL_TRAIT)
           return false;
       
       if(_start == 0 && _end == length)
-          return G->root(_fs, rule, maxp);
+          return G->root(_fs, rule);
       else
           return false;
   }
@@ -214,10 +214,8 @@ class item
   inline int done() { return _done; }
 
   inline int priority() { return _p; }
-  inline int qriority() { return _q; }
 
   inline void priority(int p) { _p = p; }
-  inline void rriority(int r) { _r = r; }
 
   virtual int identity() = 0;
   virtual double score(tSM *) = 0;
@@ -266,7 +264,7 @@ class item
 
   type_t *_qc_vector;
 
-  int _p, _q, _r;
+  int _p;
   
   tSM *_score_model;
   double _score;

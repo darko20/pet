@@ -202,16 +202,16 @@ item *build_combined_item(chart *C, item *active, item *passive)
 
 item *item_task::execute()
 {
-    // _fixme_ this will go anyway, and may be wrong
-  if(opt_packing && _item->blocked())
-    return 0;
+    // There should be no way this item (which must be a lex_item)
+    // has been blocked.
+    assert(!(opt_packing && _item->blocked()));
 
-  return _item;
+    return _item;
 }
 
 item *rule_and_passive_task::execute()
 {
-  if(opt_packing && _passive->frozen())
+  if(opt_packing && _passive->blocked())
     return 0;
 
   return build_rule_item(_C, _A, _R, _passive);
@@ -219,7 +219,7 @@ item *rule_and_passive_task::execute()
 
 item *active_and_passive_task::execute()
 {
-  if(opt_packing && (_passive->frozen() || _active->frozen()))
+  if(opt_packing && (_passive->blocked() || _active->blocked()))
     return 0;
 
   return build_combined_item(_C, _active, _passive);
@@ -227,14 +227,14 @@ item *active_and_passive_task::execute()
 
 void basic_task::print(FILE *f)
 {
-  fprintf(f, "task #%d (%d [%d %d %d %d])", _id, _p, _q, _r, _s, _t);
+  fprintf(f, "task #%d (%d)", _id, _p);
 }
 
 void rule_and_passive_task::print(FILE *f)
 {
   fprintf(f,
-          "task #%d {%s + %d} (%d [%d %d %d %d])",
+          "task #%d {%s + %d} (%d)",
           _id,
           _R->printname(), _passive->id(),
-          _p, _q, _r, _s, _t);
+          _p);
 }

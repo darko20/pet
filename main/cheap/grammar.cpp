@@ -626,7 +626,7 @@ free_constraint_cache()
 
 // Construct a grammar object from binary representation in a file
 grammar::grammar(const char * filename)
-    : _nrules(0), _weighted_roots(false), _root_insts(0), _generics(0),
+    : _nrules(0), _root_insts(0), _generics(0),
       _filter(0), _qc_inst(0), _deleted_daughters(0), _packing_restrictor(0),
       _sm(0)
 {
@@ -893,23 +893,7 @@ grammar::init_parameters()
     char *v;
 
     struct setting *set;
-    if((set = cheap_settings->lookup("weighted-start-symbols")) != 0)
-    {
-        _root_insts = 0;
-        for(int i = set->n - 2; i >= 0; i -= 2)
-        {
-            _root_insts = cons(lookup_type(set->values[i]), _root_insts);
-            if(first(_root_insts) == -1)
-                throw error(string("undefined start symbol `") +
-                            string(set->values[i]) + string("'"));
-
-            int weight = strtoint(set->values[i+1], "in weighted-start-symbols");
-            _root_weight[first(_root_insts)] = weight;
-            if(weight != 0)
-                _weighted_roots = true;
-        }
-    }
-    else if((set = cheap_settings->lookup("start-symbols")) != 0)
+    if((set = cheap_settings->lookup("start-symbols")) != 0)
     {
         _root_insts = 0;
         for(int i = set->n-1; i >= 0; i--)
@@ -918,7 +902,6 @@ grammar::init_parameters()
             if(first(_root_insts) == -1)
                 throw error(string("undefined start symbol `") +
                             string(set->values[i]) + string("'"));
-            _root_weight[first(_root_insts)] = 0;
         }
     }
     else
@@ -1084,29 +1067,18 @@ grammar::nhyperrules()
 }
 
 bool
-grammar::root(fs &candidate, type_t &rule, int &maxp)
+grammar::root(fs &candidate, type_t &rule)
 {
-    list_int *r; bool good = false;
-    for(r = _root_insts, maxp = 0, rule = -1; r != 0; r = rest(r))
+    list_int *r;
+    for(r = _root_insts, rule = -1; r != 0; r = rest(r))
     {
         if(compatible(fs(first(r)), candidate))
         {
-            if(_weighted_roots == false)
-            {
-                rule = first(r);
-                return true;
-            }
-
-            good = true;
-            int weight = _root_weight[first(r)];
-            if(weight > maxp)
-            {
-                rule = first(r);
-                maxp = weight;
-            }
+            rule = first(r);
+            return true;
         }
     }
-    return good;
+    return false;
 }
 
 lex_stem *
