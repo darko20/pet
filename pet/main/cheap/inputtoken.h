@@ -78,7 +78,7 @@ class input_token
   void print(FILE *f);
 
   void print_derivation(FILE *f, bool quoted, int id,
-			int p, int q, list_int *l, string orth);
+			int p, list_int *l, string orth);
   void print_yield(FILE *f, list_int *l, list<string> &orth);
   string tsdb_derivation(int id, string orth);
   void getTagSequence(list_int *l, list<string> &orth,

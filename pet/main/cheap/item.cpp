@@ -44,7 +44,7 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _q(0), _r(0), _score_model(0), _printname(printname), _done(0),
+      _p(p), _score_model(0), _printname(printname), _done(0),
       _blocked(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
@@ -56,7 +56,7 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _q(0), _r(0), _score_model(0), _printname(printname), _done(0),
+      _p(p), _score_model(0), _printname(printname), _done(0),
       _blocked(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
@@ -156,8 +156,6 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
             _qc_vector = get_qc_vector(nextarg(f));
     }
 
-    _q = pasv->priority();
-
     // rule stuff
     if(passive())
         R->passives++;
@@ -206,8 +204,6 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
             _qc_vector = get_qc_vector(nextarg(f));
     }
 
-    _q = pasv->priority();
-  
     // rule stuff
     if(passive())
         active->rule()->passives++;
@@ -384,7 +380,7 @@ void lex_item::print_derivation(FILE *f, bool quoted)
         orth += _dtrs[i]->orth();
     }
 
-    _dtrs[_keydtr]->print_derivation(f, quoted, _id, _p, _q, _inflrs_todo,
+    _dtrs[_keydtr]->print_derivation(f, quoted, _id, _p, _inflrs_todo,
                                      orth);
 }
 
@@ -443,7 +439,7 @@ void phrasal_item::print_derivation(FILE *f, bool quoted)
 
     if(_result_root != -1)
     {
-        fprintf(f, " [%s %d]", printnames[_result_root], _r);
+        fprintf(f, " [%s]", printnames[_result_root]);
     }
   
     if(_inflrs_todo)

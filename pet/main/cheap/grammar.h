@@ -255,7 +255,7 @@ class grammar
   grammar(const char *filename);
   ~grammar();
 
-  bool root(fs &, type_t &rule, int &maxp);
+  bool root(fs &, type_t &rule);
 
   list_int *deleted_daughters() { return _deleted_daughters; }
   list_int *packing_restrictor() { return _packing_restrictor; }
@@ -330,9 +330,7 @@ class grammar
   list<grammar_rule *> _rules;
   map<type_t, grammar_rule *> _rule_dict;
 
-  bool _weighted_roots;
   list_int *_root_insts;
-  map<type_t, int> _root_weight;
 
   list_int *_generics;
   
