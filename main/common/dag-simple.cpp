@@ -66,6 +66,7 @@ struct dag_node *current_base = 0;
 
 inline bool dag_current(dag_node *dag)
 {
+  // fixme: this doesn't work unless mmap is available
   return dag >= current_base && dag <= p_alloc.current_base();
 }
 
