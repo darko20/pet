@@ -88,6 +88,7 @@ class statistics
 
 extern statistics stats;
 
+extern char CHEAP_VERSION[];
 void initialize_version();
 
 // Representation of tsdb++ relations

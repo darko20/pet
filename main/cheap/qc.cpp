@@ -197,7 +197,7 @@ choose_paths(FILE *f,
 extern int next_failure_id;
 
 void
-compute_qc_sets(FILE *f, char *tname,
+compute_qc_sets(FILE *f, const char *tname,
                 map<list_int *, int, list_int_compare> &sets,
                 double threshold)
 {
@@ -302,7 +302,7 @@ compute_qc_sets(FILE *f, char *tname,
     set<int> selected;
     set<int> covered;
     minimal = choose_paths(f, fail_sets, path_covers, selected, covered,
-                           0, n, t + 8*60*60);
+                           0, n, t + 30*60);
     
     t = time(NULL);
     fprintf(f, "; %s solution (%d paths) found on %s;  ",
@@ -357,7 +357,7 @@ compute_qc_sets(FILE *f, char *tname,
 }
 
 void
-compute_qc_traditional(FILE *f, char *tname,
+compute_qc_traditional(FILE *f, const char *tname,
                        map<int, double> &paths,
                        int max)
 {
@@ -402,8 +402,9 @@ compute_qc_paths(FILE *f)
 {
     time_t t = time(NULL);
     fprintf(f, ";;;\n;;; Quickcheck paths for %s, generated"
-            " on %d items on %s;;;\n\n",
-            Grammar->property("version").c_str(), stats.id, ctime(&t));
+            " on %d items on %s;;; %s\n;;;\n\n",
+            Grammar->property("version").c_str(), stats.id, ctime(&t),
+            CHEAP_VERSION);
 
     fprintf(f, ";; %d total failing paths:\n;;\n", next_failure_id);
     for(int i = 0; i < next_failure_id; i++)
@@ -415,14 +416,22 @@ compute_qc_paths(FILE *f)
     fprintf(f, "\n");
 
     fprintf(f, ";;\n;; quickcheck paths (unification)\n;;\n\n");
-    compute_qc_traditional(f, "qc_unif_trad", failing_paths_unif, 10000);
+    compute_qc_traditional(f, opt_packing ? "qc_unif_trad_pack"
+                                          : "qc_unif_trad",
+                           failing_paths_unif, 10000);
     fflush(f);
-    compute_qc_sets(f, "qc_unif_set", failing_sets_unif, 99.0);
+    compute_qc_sets(f, opt_packing ? "qc_unif_set_pack" : "qc_unif_set",
+                    failing_sets_unif, 99.0);
 
-    fprintf(f, ";;\n;; quickcheck paths (subsumption)\n;;\n\n");
-    compute_qc_traditional(f, "qc_subs_trad", failing_paths_subs, 10000);
-    fflush(f);
-    compute_qc_sets(f, "qc_subs_set", failing_sets_subs, 95.0);
+    if(opt_packing)
+    {
+        fprintf(f, ";;\n;; quickcheck paths (subsumption)\n;;\n\n");
+        compute_qc_traditional(f, "qc_subs_trad_pack", failing_paths_subs,
+                               10000);
+        fflush(f);
+        compute_qc_sets(f, "qc_subs_set_pack", failing_sets_subs, 90.0);
+    }
 }
+
 
 #endif
