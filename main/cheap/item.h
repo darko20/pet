@@ -185,7 +185,7 @@ class item
   virtual int age() = 0;
 
   virtual void print(FILE *f, bool compact = false);
-  virtual void print_daughters(FILE *f) = 0;
+  virtual void print_family(FILE *f) = 0;
   virtual void print_derivation(FILE *f, bool quoted) = 0;
   
   virtual void print_yield(FILE *f) = 0;
@@ -293,7 +293,7 @@ class lex_item : public item
   }
 
   virtual void print(FILE *f, bool compact = false);
-  virtual void print_daughters(FILE *f) {}
+  virtual void print_family(FILE *f) {}
   virtual void print_derivation(FILE *f, bool quoted);
   virtual void print_yield(FILE *f);
   virtual string tsdb_derivation();
@@ -342,7 +342,7 @@ class phrasal_item : public item
   phrasal_item(class phrasal_item *, class item *, fs &);
   
   virtual void print(FILE *f, bool compact = false);
-  virtual void print_daughters(FILE *f);
+  virtual void print_family(FILE *f);
   virtual void print_derivation(FILE *f, bool quoted);
   virtual void print_yield(FILE *f);
   virtual string tsdb_derivation();
