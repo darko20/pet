@@ -165,6 +165,12 @@ item *build_combined_item(chart *C, item *active, item *passive)
     }
 }
 
+double 
+basic_task::score(grammar_rule *rule, list<item *> &daughters, tSM *model) {
+    return 0.0;
+}
+
+
 item *item_task::execute()
 {
     // There should be no way this item (which must be a lex_item)
@@ -179,7 +185,10 @@ item *rule_and_passive_task::execute()
   if(opt_packing && _passive->blocked())
     return 0;
 
-  return build_rule_item(_C, _A, _R, _passive);
+  item *result = build_rule_item(_C, _A, _R, _passive);
+  if(result) result->priority(priority());
+  return result;
+
 }
 
 item *active_and_passive_task::execute()
@@ -187,18 +196,20 @@ item *active_and_passive_task::execute()
   if(opt_packing && (_passive->blocked() || _active->blocked()))
     return 0;
 
-  return build_combined_item(_C, _active, _passive);
+  item *result = build_combined_item(_C, _active, _passive);
+  if(result) result->priority(priority());
+  return result;
 }
 
 void basic_task::print(FILE *f)
 {
-  fprintf(f, "task #%d (%d)", _id, _p);
+  fprintf(f, "task #%d (%.2f)", _id, _p);
 }
 
 void rule_and_passive_task::print(FILE *f)
 {
   fprintf(f,
-          "task #%d {%s + %d} (%d)",
+          "task #%d {%s + %d} (%.2f)",
           _id,
           _R->printname(), _passive->id(),
           _p);

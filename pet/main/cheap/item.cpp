@@ -39,24 +39,24 @@ item_owner *item::_default_owner = 0;
 int item::_next_id = 1;
 
 item::item(int start, int end, const tPaths &paths,
-           int p, fs &f, const char *printname)
+           fs &f, const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _score_model(0), _score(0.0), _printname(printname),
+      _p(0.0), _score_model(0), _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
 
 item::item(int start, int end, const tPaths &paths,
-           int p, const char *printname)
+           const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _score_model(0), _score(0.0), _printname(printname),
+      _p(0.0), _score_model(0), _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
@@ -71,10 +71,13 @@ item::~item()
 
 lex_item::lex_item(int start, int end, const tPaths &paths,
                    int ndtrs, int keydtr, input_token **dtrs, 
-                   int p, fs &f, const char *printname)
-    : item(start, end, paths, p, f, printname),
+                   fs &f, const char *printname)
+    : item(start, end, paths, f, printname),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
+    // _fix_me_
+    // compute _p score for lexical items
+
     // _fix_me_
     // Not nice to overwrite the _fs field.
     if(opt_packing)
@@ -131,7 +134,7 @@ same_lexitems(const lex_item &a, const lex_item &b)
 
 phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
     : item(pasv->_start, pasv->_end, pasv->_paths,
-           R->priority(pasv->priority()), f, R->printname()),
+           f, R->printname()),
     _daughters(), _adaughter(0), _rule(R)
 {
     _tofill = R->restargs();
@@ -177,7 +180,7 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
 
 phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
     : item(-1, -1, active->_paths.common(pasv->_paths),
-           active->priority(), f, active->printname()),
+           f, active->printname()),
     _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
 {
     if(active->left_extending())
@@ -228,7 +231,7 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 
 phrasal_item::phrasal_item(phrasal_item *sponsor, vector<item *> &dtrs, fs &f)
     : item(sponsor->start(), sponsor->end(), sponsor->_paths,
-           sponsor->id(), f, sponsor->printname()),
+           f, sponsor->printname()),
       _daughters(),
       _adaughter(0), _rule(sponsor->rule())
 {
@@ -277,7 +280,7 @@ item::print(FILE *f, bool compact)
     }
     else
     {
-        fprintf(f, "%d", _p);
+        fprintf(f, "%.2f", _p);
     }
 
     fprintf(f, " {");
@@ -455,7 +458,7 @@ phrasal_item::print_derivation(FILE *f, bool quoted)
         fprintf(f, "%*s", derivation_indentation, "");
 
     fprintf(f, 
-            "(%d %s %d %d %d", 
+            "(%d %s %.2f %d %d", 
             _id, printname(), _p, _start, _end);
 
     if(packed.size())
@@ -607,39 +610,6 @@ void phrasal_item::recreate_fs()
         fprintf(ferr, "\n");
     }
 #endif
-}
-
-void
-lex_item::adjust_priority(const char *settingname)
-{
-    setting *set = cheap_settings->lookup(settingname);
-    if(set == 0)
-        return;
-    
-    for(int i = 0; i < set->n; i+=3)
-    {
-        if(i+2 > set->n)
-        {
-            fprintf(ferr, "warning: incomplete last entry "
-                    "in POS mapping `%s' - ignored\n", settingname);
-            break;
-        }
-        
-        char *lhs = set->values[i],
-             *rhs = set->values[i+1];
-        
-        int prio = strtoint(rhs, "as priority value in POS mapping");
-
-        if(get_in_postags().contains(lhs))
-        {
-            if(verbosity > 4)
-            {
-                fprintf(ferr, "Adjusting (%s/%d) ", lhs, prio);
-                print(ferr);
-            }
-            adjust_priority(prio);
-        }
-    }
 }
 
 //

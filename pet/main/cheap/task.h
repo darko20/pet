@@ -24,21 +24,23 @@
 
 #include "grammar.h"
 #include "item.h"
-
-#define MAX_TASK_PRIORITY 64000
+// _fix_me_ required for global Grammar only
+#include "parse.h"
 
 class basic_task
 {
  public:
   static int next_id;
-  basic_task(class chart *C, class agenda *A, int p) 
-    : _id(next_id++), _C(C), _A(A), _p(p)
+  basic_task(class chart *C, class agenda *A) 
+    : _id(next_id++), _C(C), _A(A), _p(0.0)
     {}
 
   virtual item *execute() = 0;
 
-  inline int priority() { return _p; }
-  inline void priority(int p) { _p = p; }
+  double score(grammar_rule *rule, list<item *> &daughters, tSM *model);
+
+  inline double priority() { return _p; }
+  inline void priority(double p) { _p = p; }
 
   virtual void print(FILE *f);
 
@@ -49,7 +51,7 @@ class basic_task
   class agenda *_A;
   
   // priority
-  int _p;
+  double _p;
 
   friend class task_priority_less;
 };
@@ -58,9 +60,7 @@ class item_task : public basic_task
 {
  public:
   inline item_task(class chart *C, class agenda *A, item *it)
-    : basic_task(C, A, it->priority()), _item(it) {}
-  inline item_task(class chart *C, class agenda *A, item *it, int p)
-    : basic_task(C, A, p), _item(it) {}
+    : basic_task(C, A), _item(it) { _p = it->priority(); }
   virtual item *execute();
  private:
   item *_item;
@@ -71,8 +71,12 @@ class rule_and_passive_task : public basic_task
  public:
   inline rule_and_passive_task(class chart *C, class agenda *A,
 			       grammar_rule *R, item *passive)
-    : basic_task(C, A, R->priority(passive->priority())), 
-      _R(R), _passive(passive) {}
+    : basic_task(C, A), _R(R), _passive(passive) {
+
+      list<item *> daughters;
+      daughters.push_back(passive);
+      score(R, daughters, Grammar->sm());
+  }
   virtual item *execute();
   virtual void print(FILE *f);
 
@@ -86,8 +90,12 @@ class active_and_passive_task : public basic_task
  public:
   inline active_and_passive_task(class chart *C, class agenda *A,
 				 item *active, item *passive)
-    : basic_task(C, A, active->priority()),
-      _active(active), _passive(passive) {}
+    : basic_task(C, A), _active(active), _passive(passive) {
+
+      list<item *> daughters(dynamic_cast<phrasal_item *>(active)->_daughters);
+      daughters.push_back(passive);
+      score(active->rule(), daughters, Grammar->sm());
+  }
   virtual item *execute();
  private:
   item *_active;

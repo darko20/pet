@@ -431,6 +431,10 @@ grammar_rule::grammar_rule(type_t t)
     // are filled. The opt_key option determines the strategy:
     // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
     //
+
+    // _fix me_
+    // this is wrong for more than binary branching rules, 
+    // since adjacency is not guarantueed.
     
     if(opt_key == 0)
     {

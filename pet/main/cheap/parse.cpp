@@ -476,14 +476,6 @@ analyze(input_chart &i_chart, string input, chart *&C,
     // multiword lexical item.
     i_chart.discount_covered_items(lex_items);
 
-    // Perform final adjustment of lexical item priorities for
-    // special postags (like SpellCorrected)
-    for(list<lex_item *>::iterator lex_it = lex_items.begin();
-        lex_it != lex_items.end(); ++lex_it)
-    {
-        (*lex_it)->adjust_priority("posdiscount");
-    }
-
     if(verbosity > 9)
         i_chart.print(ferr);
 

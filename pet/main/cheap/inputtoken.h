@@ -35,7 +35,7 @@ class input_token
 {
  public:
   input_token(int id, int s, int e, class full_form ff, string o,
-              int p, const postags &pos, const tPaths &paths,
+              double p, const postags &pos, const tPaths &paths,
               input_chart *cont, bool synthesized = false);
 
   ~input_token()
@@ -56,7 +56,7 @@ class input_token
 
   inline string orth() { return _orth; }
 
-  inline int priority() { return _p; }
+  inline double priority() { return _p; }
 
   inline int identity()
   {
@@ -78,7 +78,7 @@ class input_token
   void print(FILE *f);
 
   void print_derivation(FILE *f, bool quoted, int id,
-			int p, list_int *l, string orth);
+			double p, list_int *l, string orth);
   void print_yield(FILE *f, list_int *l, list<string> &orth);
   string tsdb_derivation(int id, string orth);
   void getTagSequence(list_int *l, list<string> &orth,
@@ -98,7 +98,7 @@ private:
 
   postags _in_pos, _supplied_pos;
 
-  int _p;
+  double _p;
 
   full_form _form;
 

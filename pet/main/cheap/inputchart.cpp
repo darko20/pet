@@ -201,7 +201,7 @@ input_chart::add_token(const string &tokenstring)
         list_int *affixes = cons(affix_nr, 0);
         input_token *new_token =
             New input_token(0, start, end, full_form(stem, *mods, affixes),
-                            orth, int(prob), postags(), tPaths(),
+                            orth, prob, postags(), tPaths(),
                             this);
         free_list(affixes);
 
@@ -604,7 +604,11 @@ discount_covered_items(list<class lex_item *> &lex_items)
                     (*lex_it2)->print(ferr);
                 }
 
-                (*lex_it1)->adjust_priority(discount);
+                //
+                // _fix_me_
+                // this should probably just go, but uc is cautious (2-jun-03).
+                //
+                // (*lex_it1)->adjust_priority(discount);
 
                 // Adjust each item only once.
                 break; 

@@ -32,9 +32,9 @@
 class item
 {
  public:
-  item(int start, int end, const tPaths &paths, int p, fs &f,
+  item(int start, int end, const tPaths &paths, fs &f,
        const char *printname);
-  item(int start, int end, const tPaths &paths, int p,
+  item(int start, int end, const tPaths &paths, 
        const char *printname);
 
   virtual ~item();
@@ -205,9 +205,9 @@ class item
 
   virtual void recreate_fs() = 0;
 
-  inline int priority() { return _p; }
+  inline double priority() { return _p; }
 
-  inline void priority(int p) { _p = p; }
+  inline void priority(double p) { _p = p; }
 
   virtual int identity() = 0;
   virtual double score(tSM *) = 0;
@@ -254,7 +254,7 @@ class item
 
   type_t *_qc_vector;
 
-  int _p;
+  double _p;
   
   tSM *_score_model;
   double _score;
@@ -277,7 +277,7 @@ class lex_item : public item
  public:
   lex_item(int start, int end, const tPaths &paths,
            int ndtrs, int keydtr, class input_token **dtrs,
-           int priority, fs &f, const char *name);
+           fs &f, const char *name);
 
   ~lex_item() { delete[] _dtrs; }
 
@@ -331,12 +331,6 @@ class lex_item : public item
   bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
 
   friend bool same_lexitems(const lex_item &a, const lex_item &b);
-  
-  void
-  adjust_priority(int adjustment)
-  { _p += adjustment; }
-  
-  void adjust_priority(const char *setting);
 
   virtual int identity()
   {
@@ -404,6 +398,8 @@ class phrasal_item : public item
   list<item *> _daughters;
   item * _adaughter;
   grammar_rule *_rule;
+
+  friend class active_and_passive_task;
 };
 
 class greater_than_score
