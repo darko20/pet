@@ -27,15 +27,15 @@ class chart
   unsigned int length() { return (unsigned int) _Cp_start.size() ; }
   unsigned int rightmost() { return length() - 1; }
 
-  list<item *> &Roots() { return _Roots; }
+  vector<item *> &Roots() { return _Roots; }
 
   void shortest_path(list <item *> &);
 
  private:
   static int _next_stamp;
 
-  list<item *> _Chart;
-  list<item *> _Roots;
+  vector<item *> _Chart;
+  vector<item *> _Roots;
 
   int _pedges;
 
@@ -55,33 +55,60 @@ class chart
 class chart_iter
 {
  public:
-  inline chart_iter(chart *C) : _LI(C->_Chart) { _curr = _LI.begin(); }
-  inline chart_iter(chart &C) : _LI(C._Chart) { _curr = _LI.begin(); }
+  inline chart_iter(chart *C) : _LI(C->_Chart)
+    { _curr = _LI.begin(); filter(); }
 
-  inline chart_iter &operator++(int) { ++_curr; return *this; }
-  inline bool valid() {   return _curr != _LI.end(); }
-  inline item *current() { if(valid()) return *_curr; else return 0; }
+  inline chart_iter(chart &C) : _LI(C._Chart)
+    { _curr = _LI.begin(); filter(); }
+
+  inline chart_iter &operator++(int)
+    { ++_curr; filter(); return *this; }
+
+  inline bool valid()
+    { return _curr != _LI.end(); }
+
+  inline item *current()
+    { if(valid()) return *_curr; else return 0; }
+
+  inline void filter()
+    { 
+    }
 
  private:
-  list<class item *> &_LI;
-  list<class item *>::iterator _curr;
+  vector<class item *> &_LI;
+  vector<class item *>::iterator _curr;
 };
 
 class chart_iter_span
 {
  public:
-  inline chart_iter_span(chart *C, int i1, int i2) : _LI(C->_Chart), _begin(i1), _end(i2) { _curr = _LI.begin(); filter(); }
-  inline chart_iter_span(chart &C, int i1, int i2) : _LI(C._Chart), _begin(i1), _end(i2) { _curr = _LI.begin(); filter(); }
+  inline chart_iter_span(chart *C, int i1, int i2) :
+    _LI(C->_Chart), _begin(i1), _end(i2)
+    { _curr = _LI.begin(); filter(); }
 
-  inline chart_iter_span &operator++(int) { ++_curr; filter(); return *this; }
-  inline bool valid() {   return _curr != _LI.end(); }
-  inline item *current() { if(valid()) return *_curr; else return 0; }
+  inline chart_iter_span(chart &C, int i1, int i2) :
+    _LI(C._Chart), _begin(i1), _end(i2)
+    { _curr = _LI.begin(); filter(); }
 
-  inline void filter() { while(valid() && ((*_curr)->start() != _begin || (*_curr)->end() != _end)) ++_curr; }
+  inline chart_iter_span &operator++(int)
+    { ++_curr; filter(); return *this; }
+
+  inline bool valid()
+    { return _curr != _LI.end(); }
+
+  inline item *current()
+    { if(valid()) return *_curr; else return 0; }
+
+  inline void filter()
+    { 
+      while(valid() && ((*_curr)->start() != _begin ||
+			(*_curr)->end() != _end))
+	++_curr;
+    }
 
  private:
-  list<item *> &_LI;
-  list<item *>::iterator _curr;
+  vector<item *> &_LI;
+  vector<item *>::iterator _curr;
   int _begin, _end;
 };
 

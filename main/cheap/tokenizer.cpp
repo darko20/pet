@@ -134,7 +134,7 @@ void lingo_tokenizer::add_tokens(input_chart *i_chart)
   if(verbosity > 4)
     fprintf(ferr, "lingo_tokenizer:");
 
-  int i = 0;
+  int i = 0, id = 0;
   for(list<string>::iterator pos = tokens.begin();
       pos != tokens.end(); ++pos)
     {
@@ -145,16 +145,15 @@ void lingo_tokenizer::add_tokens(input_chart *i_chart)
 
       if(forms.empty())
 	{
-	  i_chart->add_token(i, i+1, full_form(), *pos,
-			     0, postags());
+	  i_chart->add_token(id++, i, i+1, full_form(), *pos, 0, postags());
 	}
       else
 	{
 	  for(list<full_form>::iterator currf = forms.begin();
 	      currf != forms.end(); ++currf)
 	    {
-	      i_chart->add_token(i, i+1, *currf, *pos,
-				 currf->priority(), postags());
+	      i_chart->add_token(id++, i, i+1, *currf, *pos, currf->priority(),
+				 postags());
 	    }
 	}
       i++;

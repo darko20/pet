@@ -1,6 +1,11 @@
 /* =========================================================== */
 /* ================== file is l2lib.h  ======================= */
 /* =========================================================== */
+#ifndef _L2LIB_H
+#define _L2LIB_H
+
+#include <string.h>
+#include <vector.h>
 
 /*	The entire contents of this file, in printed or electronic form, are
 	(c) Copyright YY Technologies, Mountain View, CA 1999,2000,2001
@@ -16,7 +21,7 @@
 */
 
 // Error conditions are communicated to the caller by throwing an exception
-// of type l2_error; no other exceptions are thrown. When using any of the 
+// of type l2_error; no other exceptions are thrown. When using any of the
 // functions provided here, the caller should catch exceptions of type
 // l2_error.
 
@@ -42,7 +47,7 @@ class l2_morph_analysis
 
 // initialize parser with specified grammar
 extern void l2_parser_init(const string& grammar_path,
-                           const string& log_file_path, 
+                           const string& log_file_path,
                            int k2y_segregation_p);
 
 // parse one input item; return string of K2Y's. Optionally, skip first n
@@ -55,5 +60,10 @@ extern vector<l2_morph_analysis> l2_morph_analyse(const string& form);
 // write tsdb profiling information, including roletable
 extern void l2_tsdb_write(FILE *f_parse, FILE *f_result, FILE *f_item, const string &rt);
 
+// is the input string enirely made up of punctuation?
+extern bool l2_parser_punctuationp(const string &input);
+
 // free resources of parser
 extern void l2_parser_exit();
+
+#endif // _L2LIB_H

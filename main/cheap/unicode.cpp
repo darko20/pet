@@ -13,6 +13,7 @@
 #include "unicode.h"
 
 EncodingConverter *Conv = 0;
+EncodingConverter *ConvUTF8 = 0;
 
 EncodingConverter::EncodingConverter(string encodingname) :
   _status(U_ZERO_ERROR), _conv(encodingname.c_str(), _status),
@@ -55,4 +56,6 @@ void initialize_encoding_converter(string encoding)
 {
   if(Conv) delete Conv;
   Conv = new EncodingConverter(encoding);
+  if(ConvUTF8 == 0)
+    ConvUTF8 = new EncodingConverter("utf8");
 }

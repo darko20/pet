@@ -25,16 +25,16 @@ class mrs_rel
   mrs_rel(mrs *, fs f);
   mrs_rel(mrs *, int type, int pred = 0);
 
-  inline mrs_rel() : _fs(), _mrs(0), _id(0), _label() { }
+  inline mrs_rel() : _fs(), _mrs(0), _id(0), _labels(), _senses() { }
 
   inline mrs_rel(const mrs_rel &f) { 
     _fs = f._fs; _mrs = f._mrs; _id = f._id; _rel = f._rel; _pred = f._pred;
-    _label = f._label; _cvalue = f._cvalue;
+    _labels = f._labels; _senses = f._senses; _cvalue = f._cvalue;
   }
 
   inline mrs_rel &operator=(const mrs_rel &f) { 
     _fs = f._fs; _mrs = f._mrs; _id = f._id; _rel = f._rel; _pred = f._pred;
-    _label = f._label; _cvalue = f._cvalue;
+    _labels = f._labels; _senses = f._senses;  _cvalue = f._cvalue;
     return *this; 
   }
 
@@ -53,8 +53,8 @@ class mrs_rel
   inline fs &get_fs() { return _fs; }
   inline int cvalue() {return _cvalue; }
 
-  list<int> &label() { return _label; };
-  inline int span() { return _label.size(); }
+  list<int> &labels() { return _labels; }
+  list<string> &senses() { return _senses; }
 
   list<int> id_list(char *path);
   list<int> id_list_by_roles(char **paths);
@@ -69,7 +69,8 @@ class mrs_rel
   int _id;
   int _rel;
   int _pred;
-  list<int> _label;
+  list<int> _labels;
+  list<string> _senses;
   int _cvalue;
 };
 
@@ -135,14 +136,25 @@ class mrs
   
 };
 
-// keep LEDA happy
-
 extern char *k2y_type_name(char *);
 extern char *k2y_pred_name(char *);
 extern char *k2y_role_name(char *);
 
-inline istream &operator>>(istream &I, mrs_rel &) { return I; }
-inline ostream &operator<<(ostream &O, const mrs_rel &) { return O; }
+//
+// stamp id information into fs
+//
+
+void mrs_stamp_fs(fs &f, int id);
+
+//
+// inform k2y module of mapping so it can get back to the external ids from
+// the ids in the relations
+//
+
+void mrs_map_id(int item_id, int ls_id);
+void mrs_map_sense(int item_id, string sense);
+
+void mrs_reset_mappings();
 
 #endif
 

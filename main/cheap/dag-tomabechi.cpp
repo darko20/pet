@@ -1433,7 +1433,7 @@ dag_node *dag_expand_rec(dag_node *dag)
 
   int new_type = dag_get_new_type(dag);
 
-  if(typedag[new_type]->arcs)
+  if(typedag[new_type]->arcs && typedag[new_type]->type == new_type)
     if(dag_unify1(dag, cached_constraint_of(new_type)) == FAIL)
       {
 	fprintf(ferr, "expansion failed @ 0x%x for `%s'\n",

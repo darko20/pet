@@ -36,6 +36,8 @@ class item
   static void default_owner(class item_owner *o) { _default_owner = o; }
   static class item_owner *default_owner() { return _default_owner; }
 
+  static void reset_ids() { _next_id = 1; }
+
   inline int id() { return _id; }
   inline rule_trait trait() { return _trait; }
 
@@ -43,10 +45,10 @@ class item
   inline void stamp(int t) { _stamp = t; }
   inline bool in_chart() { return _stamp != -1; }
 
-  inline bool passive() { return _tofill == 0; }
-  inline int start() { return _start; }
-  inline int end() { return _end; }
-  inline int span() { return (_end - _start); }
+  inline bool passive() const { return _tofill == 0; }
+  inline int start() const { return _start; }
+  inline int end() const { return _end; }
+  inline int span() const { return (_end - _start); }
 
   bool spanningonly() { return _spanningonly; }
 
@@ -111,7 +113,7 @@ class item
 	      if(_start != 0)
 		return false;
 	    }
-	  else if(active->nextarg() == active->arity())
+	  else if(active->nextarg() == active->arity() + active->nfilled())
 	    {
 	      if(_end != length)
 		return false;
@@ -153,6 +155,7 @@ class item
   inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
   inline list_int *restargs() { return rest(_tofill); }
   inline int arity() { return length(_tofill); }
+  inline int nfilled() { return _nfilled; }
 
   virtual int startposition() = 0;
   virtual int endposition() = 0;
@@ -160,8 +163,15 @@ class item
   virtual int age() = 0;
 
   virtual void print(FILE *f, bool compact = false);
-  virtual void print_derivation(FILE *f, bool quoted, int offset = 0) = 0;
-  virtual string tsdb_derivation(int offset = 0) = 0;
+  virtual void print_derivation(FILE *f, bool quoted) = 0;
+
+  //
+  // on 14-jan-02, the UDF steering committee (with consultation from EMB)
+  // once and for all unanimously voted to drop the foolish (PAGE-style)
+  // offset computation; for once, it makes comparison of complete charts
+  // impossible and, secondly, it breaks the fine tree comparison tool.
+  //
+  virtual string tsdb_derivation() = 0;
 
   inline type_t result_root() { return _result_root; }
   inline bool result_contrib() { return _result_contrib; }
@@ -207,6 +217,8 @@ class item
 
   list_int *_tofill;
 
+  int _nfilled;
+
   list_int *_inflrs_todo;
 
   type_t _result_root;
@@ -250,20 +262,9 @@ class lex_item : public item
     throw error("unexpected call to copy constructor of lex_item");
   }
 
-  bool same_dtrs(int ndtrs, input_token **dtrs) const;
-  bool operator==(const lex_item &l) const
-  {
-    return same_dtrs(l._ndtrs, l._dtrs);
-  }
-
-  bool operator<(const lex_item &l) const
-  {
-    return _dtrs[_keydtr] < l._dtrs[l._keydtr];
-  }
-
   virtual void print(FILE *f, bool compact = false);
-  virtual void print_derivation(FILE *f, bool quoted, int offset = 0);
-  virtual string tsdb_derivation(int offset = 0);
+  virtual void print_derivation(FILE *f, bool quoted);
+  virtual string tsdb_derivation();
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
@@ -286,7 +287,15 @@ class lex_item : public item
   { return _dtrs[_keydtr]->get_supplied_postags(); }
 
   bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
+
+  friend bool same_lexitems(const lex_item &a, const lex_item &b);
   
+  void
+  adjust_priority(int adjustment)
+  { _p += adjustment; }
+  
+  void adjust_priority(const char *setting);
+
  private:
   int _ndtrs, _keydtr;
   class input_token **_dtrs;
@@ -299,8 +308,8 @@ class phrasal_item : public item
   phrasal_item(class phrasal_item *, class item *, fs &);
   
   virtual void print(FILE *f, bool compact = false);
-  virtual void print_derivation(FILE *f, bool quoted, int offset = 0);
-  virtual string tsdb_derivation(int offset = 0);
+  virtual void print_derivation(FILE *f, bool quoted);
+  virtual string tsdb_derivation();
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
@@ -331,6 +340,7 @@ class item_owner
 	  curr != _list.end(); 
 	  ++curr)
 	delete *curr;
+      item::reset_ids();
     }
   void add(item *it) { _list.push_back(it); }
  private:

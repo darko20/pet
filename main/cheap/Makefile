@@ -3,19 +3,20 @@
 
 RM = rm
 OBJ = o
-CXX = g++
-CC = gcc
+CXX = /opt/gnu/bin/g++
+CC = /opt/gnu/bin/gcc
 # CC = KCC --
 # CXX = KCC
 
 ITSDBPATH = /home/oe/src/itsdb
 INCLUDE = -I. -I../common  -I$(ITSDBPATH)/include -I$(ICUDIR)/include
 
-ICUDIR = /usr/local
+#ICUDIR = /usr/local
+ICUDIR = /lt
 
 # for Unix/gcc
-CPPFLAGS1 = -Wall -g -fno-inline -DHASH_MAP_AVAIL -DUSEMMAP -DYY $(INCLUDE) \
-  -DTSDBAPI -DSOCKET_INTERFACE -DONLINEMORPH -DICU -DQC_PATH_COMP
+CPPFLAGS1 = -Wall -g -O3 -DHASH_MAP_AVAIL -DUSEMMAP -DYY $(INCLUDE) \
+  -DTSDBAPI -DSOCKET_INTERFACE -DONLINEMORPH -DICU
 # for Unix/KCC
 # CPPFLAGS1 = -DKCC -DCRASHES_ON_DYNAMIC_CASTS +K3 -DUSEMMAP -DTSDBAPI $(INCLUDE)
 # for CygWin
@@ -26,7 +27,7 @@ CPPFLAGS1 = -Wall -g -fno-inline -DHASH_MAP_AVAIL -DUSEMMAP -DYY $(INCLUDE) \
 #
 
 # CPPFLAGS = -DDAG_SIMPLE -DWROBLEWSKI2 $(CPPFLAGS1)
-CPPFLAGS = -DDAG_TOMABECHI $(CPPFLAGS1) # -DPACKING
+CPPFLAGS = -DDAG_TOMABECHI $(CPPFLAGS1) -DQC_PATH_COMP # -DPACKING
 # CPPFLAGS = -DDAG_FIXED $(CPPFLAGS1) -DNO_CAST
 # CPPFLAGS = -DDAG_SYNTH1 $(CPPFLAGS1)
 
@@ -51,7 +52,8 @@ ITSDBLIBS = -L$(ITSDBPATH)/lib/linux $(ITSDBPATH)/lib/linux/libitsdb.a -lpvm3 -l
 # cygwin (no itsdb available)
 # ITSDBLIBS =
 
-ICULIBS = -L$(ICUDIR)/lib -licuuc -licui18n -lpthread -ldl
+#ICULIBS = -L$(ICUDIR)/lib -licuuc -licui18n -lpthread -ldl
+ICULIBS = -Wl,-R,$(ICUDIR)/lib -L$(ICUDIR)/lib -licuuc -licui18n -lpthread -ldl
 
 
 VPATH = .:../common

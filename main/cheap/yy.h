@@ -20,25 +20,32 @@ class yy_tokenizer : public tokenizer
 {
  public:
   yy_tokenizer(string s) :
-    tokenizer(s), _yyinput(strdup(_input.c_str())), _yyalloc(_yyinput) {} ;
+    tokenizer(s), _yyinput(s), _yypos(0) {};
 
-  virtual ~yy_tokenizer()
-  {
-     free(_yyalloc);
-  }
+  virtual ~yy_tokenizer() {};
 
   virtual void add_tokens(class input_chart *i_chart);
 
   virtual string description() { return "YY Inc tokenization"; }
 
  private:
-  char *_yyinput, *_yyalloc;
+  string _yyinput;
+  string::size_type _yypos;
+
+  bool eos();
+  char cur();
+  const char *res();
+  bool adv(int n = 1);
+
+  bool read_ws();
+  bool read_special(char);
 
   bool read_int(int &);
-  bool read_string(string &, string &);
-  bool read_comma();
-  bool read_pos(string &);
-  bool read_token(int &, int &, string &, string &, set<string> &);
+  bool read_double(double &);
+  bool read_string(string &, bool, bool = false);
+
+  bool read_pos(string &, double &);
+  class yy_token *read_token();
 };
 
 extern int cheap_server_initialize(int);
@@ -46,7 +53,7 @@ extern void cheap_server(int);
 extern int cheap_server_child(int);
 
 extern int yy_tsdb_summarize_item(class chart &, const char *,
-				  int, int, char *);
+				  int, int, const char *);
 extern int yy_tsdb_summarize_error(const char *, int, error &);
 extern int socket_write(int, char *);
 extern int socket_readline(int, char *, int);

@@ -20,7 +20,7 @@ char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "end", "end!", "errorp", "expand-all-instances", "include", "leval", "sort",
 "sorts", "status" };
 
-char *lexer_idchars = "_+-*?";
+char *lexer_idchars = "_+-*?$";
 
 int is_idchar(int c)
 {
@@ -247,7 +247,6 @@ struct lex_token *get_next_token()
       char *start;
       int i;
       bool alldigs = true;
-      bool isfloat = false;
 
       start = LMark();
 
@@ -260,8 +259,6 @@ struct lex_token *get_next_token()
 	
       if(alldigs && LLA(i) == '.' && isdigit(LLA(i+1)))
         {
-          // float
-          isfloat = true;
           i++;
           while(isdigit(LLA(i)))
             i++;

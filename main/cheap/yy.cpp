@@ -27,7 +27,7 @@
 #include "pet-system.h"
 #include "mfile.h"
 #include "../common/utility.h"
-#include "errors.h"
+#include "../common/errors.h"
 #include "lex-tdl.h"
 #include "tokenizer.h"
 #include "parse.h"
@@ -42,237 +42,387 @@
 #ifdef ONLINEMORPH
 #include "morph.h"
 #endif
+#ifdef ICU
+#include "unicode.h"
+#endif
 
-string _yyfilteredinput;
+//
+// parsing of YY input tokens
+// the form of one token is (id, start, end, path+, stem surface, ipos, irule+, {tag prob}*)
+//
 
-void yy_tokenizer::add_tokens(input_chart *i_chart)
+class yy_token
 {
+public:
+  int id;
   int start, end;
-  string word, surface;
-  set<string> tags;
+  vector<int> paths;
+  string stem;
+  string surface;
+  int inflpos;
+  vector<string> inflrs;
+  vector<string> tags;
+  vector<double> probs;
 
-  if(verbosity > 4)
-    fprintf(ferr, "yy_tokenizer:");
+  void print(FILE *f);
+};
 
-  FILE *token_output = 0;
-  if(opt_yy)
+void yy_token::print(FILE *f)
+{
+  fprintf(f, "[%d - %d] (%d) \"%s\" \"%s\" ", start, end, id, stem.c_str(), surface.c_str());
+
+  for(vector<string>::const_iterator it = inflrs.begin(); it != inflrs.end(); ++it)
+    fprintf(f, "+%s", it->c_str());
+
+  fprintf(f, "@%d", inflpos);
+}
+
+void
+yy_tokenizer::add_tokens(input_chart *i_chart)
+{
+    if(verbosity > 4)
+        fprintf(ferr, "yy_tokenizer:");
+
+    yy_token *tok = 0;
+
+    while((tok = read_token()) != 0)
     {
-      char *token_stream = getenv("CHEAP_TOKEN_STREAM");
-      if(token_stream)
-	token_output = fopen(token_stream, "a");
+        auto_ptr<yy_token> tok_owner(tok);
+
+        postags poss(tok->tags, tok->probs);
+
+        if(verbosity > 4)
+        {
+            tok->print(ferr);
+            fprintf(ferr, " {");
+            poss.print(ferr);
+            fprintf(ferr, "}");
+        }
+
+        // skip empty tokens and punctuation
+        if(tok->stem.empty() || Grammar->punctuationp(tok->stem))
+        {
+            if(verbosity > 4)
+                fprintf(ferr, " - punctuation");
+
+            continue;
+        }
+
+        // Unless signalled by a special "null" token, we expect stems and
+        // inflectional rules. If we find a "null" token, the flag
+        // `formlookup' will be set, and we do morphological analysis in house.
+        bool formlookup = false;
+
+        list_int *inflrs = 0;
+        for(vector<string>::reverse_iterator it = tok->inflrs.rbegin();
+            it != tok->inflrs.rend();
+            ++it)
+        {
+            if(*it == "zero")
+                continue;
+
+            if(*it == "null")
+            {
+                formlookup = true;
+                break;
+            }
+	  
+            int rule = lookup_type(it->c_str());
+            if(rule == -1)
+                throw error("Unknown infl rule " + *it + ".");
+
+            inflrs = cons(rule, inflrs);
+        }
+
+        if(formlookup)
+        {
+            list<full_form> forms = Grammar->lookup_form(tok->stem);
+
+            if(forms.empty())
+            {
+                i_chart->add_token(tok->id, tok->start, tok->end,
+                                   full_form(), tok->surface, 0, poss);
+            }
+            else
+            {
+                for(list<full_form>::iterator currf = forms.begin();
+                    currf != forms.end(); ++currf)
+                {
+                    i_chart->add_token(tok->id, tok->start, tok->end,
+                                       *currf, tok->surface, currf->priority(),
+                                       poss);
+                }
+            }
+        }
+        else
+        {
+            list<lex_stem *> stems = Grammar->lookup_stem(tok->stem);
+
+            if(stems.empty())
+            {
+                i_chart->add_token(tok->id, tok->start, tok->end,
+                                   full_form(0, modlist(), inflrs),
+                                   tok->surface, 0, poss);
+            }
+            else
+            {
+                for(list<lex_stem *>::iterator currs = stems.begin();
+                    currs != stems.end(); ++currs)
+                {
+                    full_form f(*currs, modlist(), inflrs);
+                    i_chart->add_token(tok->id, tok->start, tok->end,
+                                       f, tok->surface, f.priority(), poss);
+                }
+            }
+        }
+
+        free_list(inflrs);
     }
 
-  char *save; _yyfilteredinput = string();
-  while(save = _yyinput, read_token(start, end, word, surface, tags))
+    if(verbosity > 4)
     {
-      if(start < 0 || end <= start || (start % 100) != 0 || (end % 100) != 0)
-	{
-	  ostrstream msg;
-	  msg << "tokenizer(): illegal token span ("
-	      << start << " - " << end << ")";
-	  throw error(msg.str());
-	}
-
-      start /= 100; end /= 100;
-      postags poss(tags);
-
-      if(verbosity > 4)
-	{
-	  fprintf(ferr, " [%d - %d] <%s> {", start, end, word.c_str());
-	  poss.print(ferr);
-	  fprintf(ferr, "}");
-	}
-
-      // log token
-      if(token_output)
-	{
-	  fprintf(token_output, "%s\t\t", surface.c_str());
-	  poss.print(token_output);
-	  fprintf(token_output, "\n");
-	}
-
-      // skip empty tokens and punctuation
-      if(word.empty() || Grammar->punctuationp(word))
-	{
-	  _yyfilteredinput += string(save, _yyinput - save);
-	  continue;
-	}
-
-      if(i_chart->contains(start, end, word, poss))
-	{
-	  if(verbosity > 4)
-	    fprintf(ferr, " - duplicate");
-
-	  continue;
-	}
-
-      _yyfilteredinput += string(save, _yyinput - save);
-      list<full_form> forms = Grammar->lookup_form(word);
-
-      if(forms.empty())
-	{
-	  i_chart->add_token(start, end, full_form(), word, 0, poss);
-	}
-      else
-	{
-	  for(list<full_form>::iterator currf = forms.begin();
-	      currf != forms.end(); ++currf)
-	    {
-	      i_chart->add_token(start, end, *currf, word, currf->priority(),
-				 poss);
-	    }
-	}
+        fprintf(ferr, "\n");
     }
+}
 
-  if(token_output)
+bool yy_tokenizer::eos()
+{
+  return _yypos >= _yyinput.length();
+}
+
+char yy_tokenizer::cur()
+{
+  if(eos())
+    throw error("yy_tokenizer: trying to read beyond end of string");
+  return _yyinput[_yypos];
+}
+
+const char *yy_tokenizer::res()
+{
+  if(eos())
+    throw error("yy_tokenizer: trying to read beyond end of string");
+  return _yyinput.c_str() + _yypos;
+}
+
+bool yy_tokenizer::adv(int n)
+{
+  while(n > 0)
     {
-      fprintf(token_output, "\f\n");
-      fclose(token_output);
+      if(eos())
+	return false;
+      _yypos++; n--;
     }
+  return true;
+}
 
-  if(verbosity > 4)
-    {
-      fprintf(ferr, "\n");
-      fprintf(ferr, "Filtered input: <%s>\n", _yyfilteredinput.c_str());
-    }
+bool yy_tokenizer::read_ws()
+{
+  if(eos())
+    return false;
+  
+  while(!eos() && isspace(cur())) adv();
+
+  return true;
+}
+
+bool yy_tokenizer::read_special(char c)
+{
+  read_ws();
+
+  if(eos())
+    return false;
+
+  if(cur() != c)
+    return false;
+
+  adv();
+
+  return true;
 }
 
 bool yy_tokenizer::read_int(int &target)
 {
-  int n;
+  read_ws();
 
-  if(_yyinput == 0 || _yyinput[0] == '\0')
-    {
-      target = -1;
-      return false;
-    }
+  if(eos())
+    return false;
+  
+  const char *begin = res();
+  char *end;
 
-  for(; _yyinput[0] && !isdigit(_yyinput[0]); _yyinput++) ;
-
-  for(target = n = 0; _yyinput[0] && isdigit(_yyinput[0]); _yyinput++, n++)
-    {
-      target = _yyinput[0] - '0' + (10 * target);
-    }
-
-  if(!n)
-    {
-      target = -1;
-      return false;
-    }
- 
- return true;
-}
-
-bool yy_tokenizer::read_string(string &target, string &surface)
-{
-  target = "";
-  surface = "";
-
-  if(_yyinput == 0 || _yyinput[0] == '\0')
+  target = strtol(begin, &end, 10);
+  if(begin == end)
     return false;
 
-  for(; _yyinput[0] && _yyinput[0] != '"'; _yyinput++);
-  if(_yyinput[0] != '"') return false;
+  adv(end-begin);
 
-  //
-  // skip leading `#' sign in concept names, though not as an isolated token
-  //
-  if(_yyinput[1] == '#' && _yyinput[2] != '"') _yyinput++;
-
-  bool downcasep = true;
-  char last;
-  for(_yyinput++, last = 0; 
-      _yyinput[0] && (_yyinput[0] != '"' || last == '\\');
-      last = (last == '\\' ? 0 : _yyinput[0]), _yyinput++)
-    {
-      if(_yyinput[0] != '\\' || last == '\\') {
-        target += (downcasep ? tolower(_yyinput[0]) : _yyinput[0]);
-        surface += _yyinput[0];
-      } /* if */
-    }
-
-  if(_yyinput[0] == '"')
-    {
-      _yyinput++;
-      return true;
-    }
-
-  target = "";
-  surface = "";
-  return false;
-
-}
-
-bool yy_tokenizer::read_comma()
-{
-  if(_yyinput == 0 || _yyinput[0] == '\0')
-    return false;
-
-  for(; _yyinput[0] && isspace(_yyinput[0]); _yyinput++) ;
-  if(_yyinput[0] != ',') return false;
-  _yyinput++;
   return true;
 }
 
-bool yy_tokenizer::read_pos(string &target)
+bool yy_tokenizer::read_double(double &target)
 {
-  target = "";
+  read_ws();
 
-  if(_yyinput == 0 || _yyinput[0] == '\0')
+  if(eos())
+    return false;
+  
+  const char *begin = res();
+  char *end;
+
+  target = strtod(begin, &end);
+  if(begin == end)
     return false;
 
-  for(; _yyinput[0] && isspace(_yyinput[0]); _yyinput++) ;
-  if(!is_idchar(_yyinput[0])) return false;
+  adv(end-begin);
 
-  while(is_idchar(_yyinput[0]))
-    {
-      target += _yyinput[0];
-      _yyinput++;
-    }
-
-  if(isspace(_yyinput[0]))
-    {
-      _yyinput++;
-      return true;
-    }
-  else if(_yyinput[0] == ')' || _yyinput[0] == ',')
-    {
-      return true;
-    }
-
-  target = "";
-  return false;
-
+  return true;
 }
 
-bool yy_tokenizer::read_token(int &start, int &end,
-                              string &word, string &surface, set<string> &tags)
+bool yy_tokenizer::read_string(string &target, bool quotedp, bool downcasep)
 {
-  if(_yyinput == 0 || _yyinput[0] == '\0') return false;
+  target = "";
 
-  for(; _yyinput[0] && _yyinput[0] != '('; _yyinput++);
+  read_ws();
 
-  if(_yyinput[0]) _yyinput++;
+  if(eos())
+    return false;
 
-  tags.clear();
-  if(read_int(start) && read_int(end) && read_string(word, surface))
+  if(quotedp)
     {
-      // read optional POS tags
-      if(read_comma())
+      if(cur() != '"')
+	return false;
+      else
+	adv();
+
+      char last = (char)0;
+      while(!eos() && (cur() != '"' || last == '\\'))
 	{
-	  string tag;
-	  while(read_pos(tag))
-	    tags.insert(tag);
+          if(cur() != '\\' || last == '\\') {
+            if(downcasep && (unsigned char)cur() < 127)
+              target += tolower(cur());
+            else
+              target += cur();
+          } // if
+          last = (last == '\\' ? 0 : cur());
+	  adv();
 	}
-      
-      for(; _yyinput[0] != '\0' && _yyinput[0] != ')'; _yyinput++);
-      return (*_yyinput++ == ')');
+
+      if(cur() != '"')
+	return false;
+      else
+	adv();
+    }
+  else
+    {
+      while(!eos() && is_idchar(cur()))
+	{
+	  target +=
+            (downcasep && (unsigned char)cur() < 127 ? tolower(cur()) : cur());
+	  adv();
+	}
+      if(target.empty())
+	return false;
     }
 
-  return false;
+  return true;
 }
 
+bool yy_tokenizer::read_pos(string &tag, double &prob)
+{
+  tag = ""; prob = 0;
+
+  read_ws();
+
+  if(eos())
+    return false;
+
+  if(read_string(tag, true))
+    {
+      read_ws();
+
+      if(eos())
+	return false;
+
+      if(read_double(prob))
+	return true;
+      else
+	return false;
+    }
+  else
+    return false;
+}
+
+class yy_token *
+yy_tokenizer::read_token()
+{
+    auto_ptr<yy_token> res(New yy_token);
+    
+    read_ws();
+    
+    if(eos())
+        return 0;
+  
+    if(!read_special('('))
+        throw error("yy_tokenizer: ill-formed token (expected '(')");
+
+    if(!read_int(res->id) || !read_special(','))
+        throw error("yy_tokenizer: ill-formed token (expected id)");
+
+    if(!read_int(res->start) || !read_special(','))
+        throw error("yy_tokenizer: ill-formed token (expected start pos)");
+ 
+    if(!read_int(res->end) || !read_special(','))
+        throw error("yy_tokenizer: ill-formed token (expected end pos)");
+ 
+    int path;
+    while(read_int(path))
+        res->paths.push_back(path);
+
+    if(res->paths.empty() || !read_special(','))
+        throw error("yy_tokenizer: ill-formed token (expected paths)");
+
+    bool downcasep = true;
+    if(!read_string(res->stem, true, downcasep))
+        throw error("yy_tokenizer: ill-formed token (expected stem)");
+
+    // Read (optional) surface string.
+    read_string(res->surface, true);
+
+    if(!read_special(','))
+        throw error("yy_tokenizer: ill-formed token (expected , after stem)");
+
+    if(!read_int(res->inflpos) || !read_special(','))
+        throw error("yy_tokenizer: ill-formed token (expected inflpos)");
+
+    string inflr;
+    while(read_string(inflr, true))
+        res->inflrs.push_back(inflr);
+    
+    if(res->inflrs.empty())
+        throw error("yy_tokenizer: ill-formed token (expected inflrs)");
+
+    if(read_special(','))
+    {
+        string tag; double prob;
+        while(read_pos(tag, prob))
+        {
+            res->tags.push_back(tag);
+            res->probs.push_back(prob);
+        }
+    }
+    
+    if(!read_special(')'))
+        throw error("yy_tokenizer: ill-formed token (expected ')')");
+    
+    return res.release();
+}
+
+//
 // library based interface to language server
+//
+
+// all strings coming in over this interface are UTF8 encoded. Ignore this
+// for now on filenames. Do appropriate conversion for rest.
 
 #include "../l2lib.h"
 
@@ -357,10 +507,6 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
     }
 }
 
-#ifdef __BORLANDC__
-extern unsigned long int Mem_CurrUser;
-#endif
-
 extern typecache glbcache;
 extern int total_cached_constraints;
 
@@ -369,124 +515,126 @@ tsdb_parse *TsdbParse = 0;
 #endif
 
 // parse one input item; return string of K2Y's
-string l2_parser_parse(const string& input, int nskip)
+string l2_parser_parse(const string &inputUTF8, int nskip)
 {
-  static int item_id = 0;
+    static int item_id = 0;
 
-  fs_alloc_state FSAS;
+    fs_alloc_state FSAS;
 
-  fprintf(fstatus, "[%s] (%d) l2_parser_parse(\"%s\", %d)\n", current_time(),
-          stats.id, input.c_str(), nskip);
+    string input = Conv->convert(ConvUTF8->convert(inputUTF8));
 
-  fprintf(fstatus, " Permanent dag storage: %d*%dk\n Dynamic dag storage: %d*%dk\n GLB cache: %d*%dk, Constraint cache: %d entries\n",
-          p_alloc.nchunks(), p_alloc.chunksize() / 1024,
-          t_alloc.nchunks(), t_alloc.chunksize() / 1024,
-          glbcache.alloc().nchunks(), glbcache.alloc().chunksize() / 1024,
-          total_cached_constraints);
+    fprintf(fstatus, "[%s] (%d) l2_parser_parse(\"%s\", %d)\n", current_time(),
+            stats.id, input.c_str(), nskip);
 
-#ifdef __BORLANDC__
-  fprintf(fstatus, " LanguageServer storage: %lu\n", Mem_CurrUser);
-#endif
+    fprintf(fstatus, " Permanent dag storage: %d*%dk\n Dynamic dag storage: %d*%dk\n GLB cache: %d*%dk, Constraint cache: %d entries\n",
+            p_alloc.nchunks(), p_alloc.chunksize() / 1024,
+            t_alloc.nchunks(), t_alloc.chunksize() / 1024,
+            glbcache.alloc().nchunks(), glbcache.alloc().chunksize() / 1024,
+            total_cached_constraints);
 
-  opt_nth_meaning = nskip + 1;
+    opt_nth_meaning = nskip + 1;
 
-  string result;
-  chart *Chart = 0;
+    string result;
+    chart *Chart = 0;
 
 #ifdef TSDBFILEAPI
-  if(TsdbParse)
-    delete TsdbParse;
-  TsdbParse = new tsdb_parse;
-  TsdbParse->set_input(input);
+    if(TsdbParse)
+        delete TsdbParse;
+    TsdbParse = new tsdb_parse;
+    TsdbParse->set_input(input);
 #endif
 
-  try
-  {
-    item_id++;
-
-    input_chart i_chart(New end_proximity_position_map);
-
-    analyze(i_chart, input, Chart, FSAS, item_id);
-
-    fprintf(fstatus," (%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
-	    stats.id, pedgelimit, stats.readings,
-	    stats.first / 1000., stats.tcpu / 1000.,
-	    stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-	    TotalParseTime.elapsed_ts() / 10.);
-
-    if(verbosity > 1) stats.print(fstatus);
-    fflush(fstatus);
-
-#ifdef TSDBFILEAPI
-    TsdbParse->set_i_length(Chart->length());
-    cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), -1, 0, 0,
-                              *TsdbParse);
-#endif
-
-    struct MFILE *mstream = mopen();
-
-    int nres = 1, skipped = 0;
-    for(list<item *>::iterator iter = Chart->Roots().begin();
-        iter != Chart->Roots().end(); ++iter)
+    try
     {
-      mflush(mstream);
-      int n = construct_k2y(nres++, *iter, false, mstream);
-      if(n >= 0)
-      {
-        if(skipped >= nskip)
-        {
-		result += string(mstring(mstream));
-		if(skipped == nskip)
-		  break;
+        item_id++;
+
+        input_chart i_chart(New end_proximity_position_map);
+
+        analyze(i_chart, input, Chart, FSAS, item_id);
+
+        fprintf(fstatus," (%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
+                stats.id, pedgelimit, stats.readings,
+                stats.first / 1000., stats.tcpu / 1000.,
+                stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+                TotalParseTime.elapsed_ts() / 10.);
+
+        if(verbosity > 1) stats.print(fstatus);
+        fflush(fstatus);
+
+#ifdef TSDBFILEAPI
+        TsdbParse->set_i_length(Chart->length());
+        cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), -1, 0, 0,
+                                  *TsdbParse);
+#endif
+
+        struct MFILE *mstream = mopen();
+    
+        int nres = 1, skipped = 0;
+        for(vector<item *>::iterator iter = Chart->Roots().begin();
+            iter != Chart->Roots().end(); ++iter)
+        {	
+            mflush(mstream);
+            int n = construct_k2y(nres++, *iter, false, mstream);
+            if(n >= 0)
+            {
+                if(skipped >= nskip)
+                {
+                    if(verbosity > 0)
+                    {
+                        fprintf(fstatus, "syntax:");
+                        (*iter)->print_derivation(fstatus, false);
+                        fprintf(fstatus, "\nsemantics:\n%s\n",
+                                mstring(mstream));
+                        fflush(fstatus);
+                    }
+
+                    result += string(mstring(mstream));
+                    if(skipped == nskip)
+                        break;
+                }
+                else
+                    skipped++;
+            }
         }
-        else
-          skipped++;
-      }
+        mclose(mstream);
+    } /* try */
+
+    catch(error_ressource_limit &e)
+    {
+        fprintf(fstatus, " (%d) [%d] --- edge limit exceeded "
+                "(%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+                stats.id, pedgelimit,
+                stats.first / 1000., stats.tcpu / 1000.,
+                stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
+        fflush(fstatus);
+
+#ifdef TSDBFILEAPI
+        if(Chart)
+            TsdbParse->set_i_length(Chart->length());
+        cheap_tsdb_summarize_error(e, -1, *TsdbParse);
+#endif
     }
-    mclose(mstream);
-  } /* try */
 
-  catch(error_ressource_limit &e)
-  {
-    fprintf(fstatus, " (%d) [%d] --- edge limit exceeded "
-            "(%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-            stats.id, pedgelimit,
-            stats.first / 1000., stats.tcpu / 1000.,
-            stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-    fflush(fstatus);
+    catch(error &e)
+    {
+        fprintf(fstatus, " L2 error: `");
+        e.print(fstatus); fprintf(fstatus, "'.\n");
+        fflush(fstatus);
 
 #ifdef TSDBFILEAPI
-    if(Chart)
-      TsdbParse->set_i_length(Chart->length());
-    cheap_tsdb_summarize_error(e, -1, *TsdbParse);
+        if(Chart)
+            TsdbParse->set_i_length(Chart->length());
+        cheap_tsdb_summarize_error(e, -1, *TsdbParse);
 #endif
-  }
 
-  catch(error &e)
-  {
-    fprintf(fstatus, " L2 error: `");
-    e.print(fstatus); fprintf(fstatus, "'.\n");
-    fflush(fstatus);
-
-#ifdef TSDBFILEAPI
-    if(Chart)
-      TsdbParse->set_i_length(Chart->length());
-    cheap_tsdb_summarize_error(e, -1, *TsdbParse);
-#endif
+        delete Chart;
+        fflush(fstatus);
+        throw l2_error(e.msg());
+    }
 
     delete Chart;
-
-    throw l2_error(e.msg());
-  }
-
-  delete Chart;
-
-  if(verbosity > 4)
-    fprintf(fstatus, " result: %s\n", result.c_str());
-
-  fflush(fstatus);
-
-  return result;
+    fflush(fstatus);
+    return ConvUTF8->convert(Conv->convert(result));
 }
 
 void l2_tsdb_write(FILE *f_parse, FILE *f_result, FILE *f_item, const string& roletable)
@@ -503,10 +651,12 @@ void l2_tsdb_write(FILE *f_parse, FILE *f_result, FILE *f_item, const string& ro
 #endif
 }
 
-vector<l2_morph_analysis> l2_morph_analyse(const string& form)
+vector<l2_morph_analysis> l2_morph_analyse(const string& formUTF8)
 {
   vector<l2_morph_analysis> results;
-  
+
+  string form = Conv->convert(ConvUTF8->convert(formUTF8));
+
 #ifndef ONLINEMORPH
   throw l2_error("L2 morphology component not available");
 #else
@@ -514,20 +664,21 @@ vector<l2_morph_analysis> l2_morph_analyse(const string& form)
   {
     list<morph_analysis> res = Grammar->morph()->analyze(form, false);
     for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
-    {
-      l2_morph_analysis a;
-      
-      for(list<string>::iterator f = it->forms().begin(); 
-          f != it->forms().end(); 
-          ++f)
-        a.forms.push_back(*f);
-      for(list<type_t>::iterator r = it->rules().begin(); 
-          r != it->rules().end(); 
-          ++r)
-        a.rules.push_back(printnames[*r]);
-      
-      results.push_back(a);
-    }
+      {
+	l2_morph_analysis a;
+
+	for(list<string>::iterator f = it->forms().begin();
+            f != it->forms().end();
+            ++f)
+	  a.forms.push_back(ConvUTF8->convert(Conv->convert(*f)));
+
+	for(list<type_t>::iterator r = it->rules().begin();
+            r != it->rules().end();
+            ++r)
+	  a.rules.push_back(ConvUTF8->convert(Conv->convert(string(typenames[*r]))));
+
+	results.push_back(a);
+      }
   }
 
   catch(error &e)
@@ -535,18 +686,79 @@ vector<l2_morph_analysis> l2_morph_analyse(const string& form)
     fprintf(fstatus, " L2 error: `");
     e.print(fstatus); fprintf(fstatus, "'.\n");
     fflush(fstatus);
-    
+
     throw l2_error(e.msg());
   }
 #endif
-  
+
   return results;
 }
 
-// free resources of parser
-void l2_parser_exit()
+string l2_morph_analyse_imp(const string& formUTF8)
 {
-  fprintf(fstatus, "[%s] l2_parser_exit()\n", current_time());
+  string results = "";
+  string form = Conv->convert(ConvUTF8->convert(formUTF8));
+
+#ifndef ONLINEMORPH
+  throw l2_error("L2 morphology component not available");
+#else
+  try
+  {
+    list<morph_analysis> res = Grammar->morph()->analyze(form, false);
+    for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+      {
+	for(list<string>::iterator f = it->forms().begin();
+            f != it->forms().end();
+            ++f) {
+          results += ConvUTF8->convert(Conv->convert(*f));
+          results += "\f+\nF";
+        }
+
+	for(list<type_t>::iterator r = it->rules().begin();
+            r != it->rules().end();
+            ++r) {
+          results += ConvUTF8->convert(Conv->convert(string(typenames[*r])));
+          results += "\f+\nR";
+        }
+        results += "\f+\nA";
+       }
+    results += "\f+\nL";
+  }
+
+  catch(error &e)
+  {
+    fprintf(fstatus, " L2 error: `");
+    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fflush(fstatus);
+
+    throw l2_error(e.msg());
+  }
+#endif
+
+  return results;
+}
+
+bool
+l2_parser_punctuationp(const string &input)
+{
+  try
+  {
+    return Grammar->punctuationp(input);
+  }
+  catch(error &e)
+  {
+    fprintf(fstatus, " L2 error: `");
+    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fflush(fstatus);
+
+    throw l2_error(e.msg());
+  }
+}
+
+// free resources of parser
+void l2_parser_exit_imp()
+{
+  fprintf(fstatus, "[%s] l2_parser_exit_imp()\n", current_time());
 
   try // destructors should not throw, but we want to be safe
   { 
@@ -898,19 +1110,21 @@ int cheap_server_child(int socket) {
         return 0;
       } /* if */
 
+      string foo = Conv->convert(ConvUTF8->convert(string(input)));
+
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
           log++) {
         fprintf(*log,
                 "[%d] server_child(): got `%s'.\n",
-                getpid(), input);
+                getpid(), foo.c_str());
         fflush(*log);
       } /* for */
 
       if(opt_yy
          && (yy_stream = getenv("CHEAP_YY_STREAM")) != NULL
          && (yy_output = fopen(yy_stream, "a")) != NULL) {
-        fprintf(yy_output, "%s\f\n", input);
+        fprintf(yy_output, "%s\f\n", foo.c_str());
       } /* if */
 
       gettimeofday(&tstart, NULL);
@@ -918,9 +1132,8 @@ int cheap_server_child(int socket) {
       tsdbitem = New char[strlen(input) + 1];
       assert(tsdbitem != NULL);
       strcpy(tsdbitem, input);
-      _yyfilteredinput = string(tsdbitem);
 
-      analyze(i_chart, input, Chart, FSAS, ntsdbitems);
+      analyze(i_chart, foo, Chart, FSAS, ntsdbitems);
 
       gettimeofday(&tend, NULL);
       treal = (tend.tv_sec - tstart.tv_sec) * 1000 
@@ -942,7 +1155,9 @@ int cheap_server_child(int socket) {
       struct MFILE *mstream = mopen();
       int nres = 1, skipped = 0;
 
-      for(list<item *>::iterator iter = Chart->Roots().begin(); iter != Chart->Roots().end(); ++iter)
+      for(vector<item *>::iterator iter = Chart->Roots().begin();
+          iter != Chart->Roots().end(); 
+          ++iter)
 	{
 	  mflush(mstream);
 	  int n = construct_k2y(nres++, *iter, false, mstream);
@@ -979,8 +1194,7 @@ int cheap_server_child(int socket) {
       } /* for */
 #ifdef TSDBAPI
       if(opt_tsdb) 
-        yy_tsdb_summarize_error(_yyfilteredinput.c_str(), 
-                                i_chart.max_position(), e);
+        yy_tsdb_summarize_error(input, i_chart.max_position(), e);
 #endif
     } /* catch */
 
@@ -996,8 +1210,7 @@ int cheap_server_child(int socket) {
 
 #ifdef TSDBAPI
       if(opt_tsdb) 
-        yy_tsdb_summarize_error(_yyfilteredinput.c_str(), 
-                                i_chart.max_position(), e);
+        yy_tsdb_summarize_error(input, i_chart.max_position(), e);
 #endif
     } /* catch */
 
@@ -1027,8 +1240,10 @@ int cheap_server_child(int socket) {
       kaerb = true;
     } /* if */
     else {
+      string foo = Conv->convert(ConvUTF8->convert(string(input)));
+
       if(opt_yy && yy_output != NULL) {
-        fprintf(yy_output, "%s\f\n", input);
+        fprintf(yy_output, "%s\f\n", foo.c_str());
         fclose(yy_output);
       } /* if */
       for(list<FILE *>::iterator log = _log_channels.begin();
@@ -1041,18 +1256,17 @@ int cheap_server_child(int socket) {
         else
           fprintf(*log,
                   "[%d] server_child(): {RT} got `%s'.\n",
-                  getpid(), input);
+                  getpid(), foo.c_str());
         fflush(*log);
       } /* for */
-
+#ifdef TSDBAPI
+      if(!errorp && opt_tsdb && Chart != NULL) {
+        yy_tsdb_summarize_item(*Chart, tsdbitem, i_chart.max_position(), 
+                               treal, foo.c_str());
+      } /* if */
+#endif
     } /* else */
 
-#ifdef TSDBAPI
-    if(!errorp && opt_tsdb && Chart != NULL) {
-      yy_tsdb_summarize_item(*Chart, _yyfilteredinput.c_str(), 
-                             i_chart.max_position(), treal, input);
-    } /* if */
-#endif
     if(!kaerb) socket_write(socket, "\f");
 
     if(tsdbitem != 0) delete[] tsdbitem; tsdbitem = 0;
@@ -1161,7 +1375,7 @@ static void _sigchld(int foo) {
 
 #ifdef TSDBAPI
 int yy_tsdb_summarize_item(chart &Chart, const char *item,
-			   int length, int treal, char *rt) {
+			   int length, int treal, const char *rt) {
 
   if(!client_open_item_summary()) {
     capi_printf("(:run . (");

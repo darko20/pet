@@ -81,10 +81,7 @@ settings::settings(const char *name, const char *base, char *message)
     {
       push_file(_fname, message);
       free(_fname);
-      char *sv = lexer_idchars;
-      lexer_idchars = "_+-*?$";
       parse();
-      lexer_idchars = sv;
     }
   _lloc = 0;
 }
@@ -219,6 +216,43 @@ char *settings::sassoc(const char *name, int key_t, int arity, int nth)
 
   return 0;
 }
+
+#ifndef FLOP
+// subtype based map
+set<string> settings::smap(const char *name, int key_type)
+{
+  set<string> res;
+
+  setting *set = lookup(name);
+  if(set == 0) return res;
+
+  if(key_type == -1) return res;
+
+  for(int i = 0; i < set->n; i+=2)
+    {
+      if(i+2 > set->n)
+	{
+	  fprintf(ferr, "warning: incomplete last entry in "
+		  "`%s' mapping - ignored\n", name);
+	  break;
+	}
+      
+      char *lhs = set->values[i], *rhs = set->values[i+1];
+      int id = lookup_type(lhs);
+      if(id != -1)
+	{
+	  if(subtype(key_type, id))
+	    res.insert(rhs);
+	}
+      else
+	fprintf(ferr, "warning: unknown type `%s' in "
+		"`%s' mapping - ignored\n", name, lhs);
+      
+    }
+
+  return res;
+}
+#endif
 
 bool settings::statusmember(const char *name, type_t key)
 {

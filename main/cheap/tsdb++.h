@@ -20,7 +20,7 @@ void cheap_tsdb_summarize_run();
 #endif
 
 void cheap_tsdb_summarize_item(class chart &, int, int, int,
-                               char *, class tsdb_parse &);
+                               const char *, class tsdb_parse &);
 void cheap_tsdb_summarize_error(error &, int treal, class tsdb_parse &);
 
 class statistics

@@ -251,7 +251,7 @@ char *output_name(char *in, char *oldext, const char *newext)
 
 string read_line(FILE *f)
 {
-  const int ASBS = 4096; // arbitrary, small buffer size
+  const int ASBS = 131072; // arbitrary, small buffer size
   static char buff[ASBS];
 
   if(fgets(buff, ASBS, f) == NULL)

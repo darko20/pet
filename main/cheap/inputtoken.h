@@ -18,48 +18,16 @@ class input_chart;
 class input_token
 {
  public:
-  input_token(int s, int e, class full_form ff, string o,
-	      int p, const postags &pos, input_chart *cont,
-	      bool synthesized = false);
+  input_token(int id, int s, int e, class full_form ff, string o,
+              int p, const postags &pos, input_chart *cont,
+              bool synthesized = false);
 
   ~input_token()
     {}
 
-  bool operator==(input_token const &t) const
-  {
-    return (_start == t._start && _end == t._end
-	    && _form == t._form && _orth == t._orth);
-  }
-  
-  bool operator!=(input_token const &t) const
-  {
-    return !(*this == t);
-  }
-
-  bool operator<(input_token const &t) const
-  {
-    if(_start == t._start)
-      {
-	if(_end == t._end)
-	  {
-	    if(_form == t._form)
-	      {
-		if(_orth == t._orth)
-		  return false;
-		else
-		  return _orth < t._orth;
-	      }
-	    else
-	      return _form < t._form;
-	  }
-	else
-	  return _end < t._end;
-      }
-    else
-      return _start < t._start;
-  }
-
   inline bool synthesized() { return _synthesized; }
+
+  inline int id() { return _id; }
 
   inline int start() { return _start; }
   inline void start(int s) { _start = s; }
@@ -88,14 +56,16 @@ class input_token
   void print(ostream &f);
   void print(FILE *f);
 
-  void print_derivation(FILE *f, bool quoted, int offset, int id,
+  void print_derivation(FILE *f, bool quoted, int id,
 			int p, int q, list_int *l, string orth);
-  string tsdb_derivation(int offset, int id, string orth);
+  string tsdb_derivation(int id, string orth);
 
   string description();
 
 private:
   bool _synthesized;
+
+  int _id;
 
   int _start, _end;
   int _startposition, _endposition;
@@ -110,10 +80,10 @@ private:
 
   input_chart *_container;
 
-  void add_result(int start, int end, int ndtrs, int keydtr,
-		  input_token ** dtrs, list <class lex_item *> &result);
-  void expand_rec(int arg_position, int start, int end, input_token **dtrs,
-		   list <class lex_item *> &result);
+  bool add_result(int start, int end, int ndtrs, int keydtr,
+                  input_token ** dtrs, list <class lex_item *> &result);
+  bool expand_rec(int arg_position, int start, int end, input_token **dtrs,
+                  list <class lex_item *> &result);
 
 };
 

@@ -5,7 +5,7 @@ TSDB = true ;
 ITSDBDIR = /home/uc/newlkb ;
 
 ICU = true ;
-ICUDIR = /opt/icu ; 
+ICUDIR = /lt ; 
 
 IQT = true ;
 IQTDIR = /home/uc/YY/src/lib/iqtsdk/main ;
@@ -18,7 +18,7 @@ CFLAGS += -g -Wall ;
 
 LINK = g++ ;
 
-OPTIM = -O3 ;
+OPTIM = ;
 
 SEARCH_SOURCE += ../common ;
 
@@ -49,7 +49,7 @@ C++FLAGS += $(DAGFLAGS) ;
 
 if $(TSDB) = true
 {
-  C++FLAGS += -DTSDBAPI -DSOCKET_INTERFACE ;
+  C++FLAGS += -DTSDBAPI -TSDBFILEAPI -DSOCKET_INTERFACE ;
   HDRS += $(ITSDBDIR)/include ;
 }
 

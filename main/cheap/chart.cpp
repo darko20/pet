@@ -54,7 +54,9 @@ void chart::add(item *it)
 
 void chart::print(FILE *f)
 {
-  for(list<item *>::iterator pos = _Chart.begin(); pos != _Chart.end(); ++pos)
+  int i = 0;
+  for(vector<item *>::iterator pos = _Chart.begin(); pos != _Chart.end();
+      ++pos, ++i)
     {
       (*pos)->print(f);
       fprintf(f, "\n");

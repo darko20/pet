@@ -18,7 +18,7 @@
 // start; the position of the closing paren (relative to s) is returned in
 // stop
 string get_next_list(string &s, string::size_type start,
-		     string::size_type &stop)
+                     string::size_type &stop)
 {
   stop = start;
 
@@ -29,16 +29,16 @@ string get_next_list(string &s, string::size_type start,
   int plevel = 0;
   string::size_type closep;
   for(closep = openp; closep < s.length(); ++closep)
-    {
-      if(s[closep] == '(') plevel++;
-      else if(s[closep] == ')') plevel--;
-      if(plevel == 0) break;
-    }
+  {
+    if(s[closep] == '(') plevel++;
+    else if(s[closep] == ')') plevel--;
+    if(plevel == 0) break;
+  }
   
   if(plevel != 0)
-    {
-      throw error("unbalanced list");
-    }
+  {
+    throw error("unbalanced list");
+  }
 
   stop = closep;
   return s.substr(openp+1, closep-openp-1);
@@ -48,11 +48,11 @@ void print_analyses(FILE *f, list<morph_analysis> res)
 {
   int id = 0;
   for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
-    {
-      fprintf(f, "[%d]: ", id++);
-      it->print(f);
-      fprintf(f, "\n");
-    }
+  {
+    fprintf(f, "[%d]: ", id++);
+    it->print(f);
+    fprintf(f, "\n");
+  }
 }
 
 //
@@ -62,7 +62,7 @@ void print_analyses(FILE *f, list<morph_analysis> res)
 // represents one letterset, primary purpose is keeping track of bindings
 class morph_letterset
 {
- public:
+public:
   morph_letterset() :
     _bound(0) {};
 
@@ -77,7 +77,7 @@ class morph_letterset
   
   void print(FILE *f);
 
- private:
+private:
   string _name;
   set<UChar32> _elems;
   UChar32 _bound;
@@ -105,13 +105,13 @@ class morph_subrule
 {
 public:
   morph_subrule(morph_analyzer *a, type_t rule,
-		UnicodeString left, UnicodeString right)
+                UnicodeString left, UnicodeString right)
     : _analyzer(a), _rule(rule), _left(left), _right(right) {}
   
   type_t rule() { return _rule; }
 
   bool base_form(UnicodeString matched, UnicodeString rest,
-		 UnicodeString &result);
+                 UnicodeString &result);
 
   void print(FILE *f);
 
@@ -151,7 +151,7 @@ private:
 
 class morph_trie
 {
- public:
+public:
   morph_trie(morph_analyzer *a, bool suffix) :
     _analyzer(a), _suffix(suffix), _root(_analyzer)
   {};
@@ -162,7 +162,7 @@ class morph_trie
 
   void print(FILE *f);
 
- private:
+private:
   morph_analyzer *_analyzer;
   bool _suffix;
   trie_node _root;
@@ -185,10 +185,10 @@ morph_letterset::morph_letterset(string name, string elems_u8) :
 
   UChar32 c;
   while(it.hasNext())
-    {
-      c = it.next32PostInc();
-      _elems.insert(c);
-    }
+  {
+    c = it.next32PostInc();
+    _elems.insert(c);
+  }
 }
 
 void morph_letterset::print(FILE *f)
@@ -207,7 +207,7 @@ void morph_letterset::print(FILE *f)
 
 void morph_lettersets::add(string s)
 {
-  if(verbosity > 9)
+  if(verbosity > 14)
     fprintf(fstatus, "LETTERSET: <%s>", s.c_str());
 
   // s consists of the name and the characters making up the set
@@ -216,29 +216,29 @@ void morph_lettersets::add(string s)
   unsigned int p = 0;
   while(!isspace(s[p]) && p < s.length()) p++;
   if(p < s.length())
+  {
+    string name = s.substr(1, p - 1);
+    while(isspace(s[p]) && p < s.length()) p++;
+    if(p < s.length())
     {
-      string name = s.substr(1, p - 1);
-      while(isspace(s[p]) && p < s.length()) p++;
-      if(p < s.length())
-	{
-	  string elems = s.substr(p, s.length() - p); 
-	  if(verbosity > 9)
-	    fprintf(fstatus, " -> <%s> <%s>\n", name.c_str(), elems.c_str());
+      string elems = s.substr(p, s.length() - p); 
+      if(verbosity > 14)
+        fprintf(fstatus, " -> <%s> <%s>\n", name.c_str(), elems.c_str());
 	  
-	  morph_letterset *ls = New morph_letterset(name, elems);
-	  _m[name] = ls;
-	}
-      else
-	{
-	  fprintf(ferr, "Ignoring ill-formed letterset definition: %s\n",
-		  s.c_str());
-	}
+      morph_letterset *ls = New morph_letterset(name, elems);
+      _m[name] = ls;
     }
-  else
+    else
     {
       fprintf(ferr, "Ignoring ill-formed letterset definition: %s\n",
-	      s.c_str());
+              s.c_str());
     }
+  }
+  else
+  {
+    fprintf(ferr, "Ignoring ill-formed letterset definition: %s\n",
+            s.c_str());
+  }
 }
 
 morph_letterset *morph_lettersets::get(string name)
@@ -263,11 +263,11 @@ void morph_lettersets::print(FILE *f)
   fprintf(f, "--- morph_lettersets[%x]:\n", (int) this);
   for(map<string, morph_letterset*>::iterator it = _m.begin();
       it != _m.end(); ++it)
-    {
-      fprintf(f, "  ");
-      it->second->print(f);
-      fprintf(f, "\n");
-    }
+  {
+    fprintf(f, "  ");
+    it->second->print(f);
+    fprintf(f, "\n");
+  }
 }
 
 //
@@ -283,32 +283,32 @@ bool morph_subrule::establish_and_check_bindings(UnicodeString matched)
   _analyzer->undo_letterset_bindings();
 
   while(it1.hasNext())
+  {
+    c1 = it1.next32PostInc();
+    c2 = it2.next32PostInc();
+    if(c1 == '!')
     {
       c1 = it1.next32PostInc();
-      c2 = it2.next32PostInc();
-      if(c1 == '!')
-	{
-	  c1 = it1.next32PostInc();
-	  morph_letterset *ls = _analyzer->letterset(string(1, (char) c1));
-	  if(ls == 0)
-	    throw error("Referencing undefined letterset !" + string(1, (char) c1));
-	  if(ls->bound() == 0 || ls->bound() == c2)
-	    ls->bind(c2);
-	  else
-	    return false;
-	}
+      morph_letterset *ls = _analyzer->letterset(string(1, (char) c1));
+      if(ls == 0)
+        throw error("Referencing undefined letterset !" + string(1, (char) c1));
+      if(ls->bound() == 0 || ls->bound() == c2)
+        ls->bind(c2);
       else
-	{
-	  if(c1 != c2)
-	    throw error("Conception error in morphology");
-	}
+        return false;
     }
+    else
+    {
+      if(c1 != c2)
+        throw error("Conception error in morphology");
+    }
+  }
   return true;
 }
 
 bool morph_subrule::base_form(UnicodeString matched,
-			      UnicodeString rest,
-			      UnicodeString &result)
+                              UnicodeString rest,
+                              UnicodeString &result)
 {
   if(establish_and_check_bindings(matched) == false)
     return false;
@@ -321,19 +321,19 @@ bool morph_subrule::base_form(UnicodeString matched,
 
   UChar32 c;
   while(it.hasNext())
+  {
+    c = it.next32PostInc();
+    if(c == '!')
     {
       c = it.next32PostInc();
-      if(c == '!')
-	{
-	  c = it.next32PostInc();
-	  morph_letterset *ls = _analyzer->letterset(string(1, (char) c));
-	  if(ls == 0)
-	    throw error("Referencing undefined letterset !" + string(1, (char) c));
-	  result.append(ls->bound());
-	}
-      else
-	result.append(c);
+      morph_letterset *ls = _analyzer->letterset(string(1, (char) c));
+      if(ls == 0)
+        throw error("Referencing undefined letterset !" + string(1, (char) c));
+      result.append(ls->bound());
     }
+    else
+      result.append(c);
+  }
 
   result.append(rest);
 
@@ -343,8 +343,8 @@ bool morph_subrule::base_form(UnicodeString matched,
 void morph_subrule::print(FILE *f)
 {
   fprintf(f, "morph_subrule[%x] %s: %s->%s",
-	  (int) this, printnames[_rule],
-	  Conv->convert(_left).c_str(), Conv->convert(_right).c_str());
+          (int) this, printnames[_rule],
+          Conv->convert(_left).c_str(), Conv->convert(_right).c_str());
 }
 
 //
@@ -356,16 +356,16 @@ trie_node *trie_node::get_node(UChar32 c, bool add)
   map<UChar32, trie_node *>::iterator it = _s.find(c);
 
   if(it == _s.end())
+  {
+    if(add) 
     {
-      if(add) 
-	{
-	  trie_node *n = New trie_node(_analyzer);
-	  _s[c] = n;
-	  return n;
-	}
-      else
-	return 0;
+      trie_node *n = New trie_node(_analyzer);
+      _s[c] = n;
+      return n;
     }
+    else
+      return 0;
+  }
   else
     return it->second;
 }
@@ -373,45 +373,45 @@ trie_node *trie_node::get_node(UChar32 c, bool add)
 void trie_node::add_path(UnicodeString path, morph_subrule *rule)
 {
   if(path.length() == 0)
-    {
-      // base case, add rule to this node
-      _rules.push_back(rule);
-    }
+  {
+    // base case, add rule to this node
+    _rules.push_back(rule);
+  }
   else
+  {
+    // recursive case, treat first element in path
+    if(path.char32At(0) != '!')
     {
-      // recursive case, treat first element in path
-      if(path.char32At(0) != '!')
-	{
-	  // it's not a letterset
-	  UChar32 c = path.char32At(0);
-	  UnicodeString rest(path);
-	  rest.remove(0, 1);
+      // it's not a letterset
+      UChar32 c = path.char32At(0);
+      UnicodeString rest(path);
+      rest.remove(0, 1);
 
-	  trie_node *n = get_node(c, true);
-	  n->add_path(rest, rule);
-	}
-      else
-	{
-	  // it's a letterset
-	  UChar32 c = path.char32At(1);
-	  UnicodeString rest(path);
-	  rest.remove(0, 2);
-
-	  string lsname = string(1, (char) c);
-	  morph_letterset *ls = _analyzer->letterset(lsname);
-
-	  if(ls == 0)
-	    throw error("Referencing undefined letterset !" + lsname);
-
-	  const set<UChar32> &elems = ls->elems();
-	  for(set<UChar32>::const_iterator it = elems.begin();
-	      it != elems.end(); ++it)
-	    {
-	      trie_node *n = get_node(*it, true);
-	      n->add_path(rest, rule);
-	    }
-	}
+      trie_node *n = get_node(c, true);
+      n->add_path(rest, rule);
     }
+    else
+    {
+      // it's a letterset
+      UChar32 c = path.char32At(1);
+      UnicodeString rest(path);
+      rest.remove(0, 2);
+
+      string lsname = string(1, (char) c);
+      morph_letterset *ls = _analyzer->letterset(lsname);
+
+      if(ls == 0)
+        throw error("Referencing undefined letterset !" + lsname);
+
+      const set<UChar32> &elems = ls->elems();
+      for(set<UChar32>::const_iterator it = elems.begin();
+          it != elems.end(); ++it)
+      {
+        trie_node *n = get_node(*it, true);
+        n->add_path(rest, rule);
+      }
+    }
+  }
 }
 
 void trie_node::print(FILE *f, int depth)
@@ -422,21 +422,21 @@ void trie_node::print(FILE *f, int depth)
   
   for(vector<morph_subrule *>::iterator it = _rules.begin();
       it != _rules.end(); ++it)
-    {
-      (*it)->print(f);
-      fprintf(f, " ");
-    }
+  {
+    (*it)->print(f);
+    fprintf(f, " ");
+  }
   fprintf(f, ")\n");
 
   for(map<UChar32, trie_node *>::iterator it = _s.begin();
       it != _s.end(); ++it)
-    {
-      fprintf(f, "%*s", depth, "");
+  {
+    fprintf(f, "%*s", depth, "");
 
-      fprintf(f, "[%s]\n", Conv->convert(it->first).c_str());
+    fprintf(f, "[%s]\n", Conv->convert(it->first).c_str());
 
-      it->second->print(f, depth+2);
-    }
+    it->second->print(f, depth+2);
+  }
 }
 
 //
@@ -444,7 +444,7 @@ void trie_node::print(FILE *f, int depth)
 //
 
 void reverse_subrule(UnicodeString &s)
-// basically just a reverse, but restoring !-sequences 
+  // basically just a reverse, but restoring !-sequences 
 {
   s.reverse();
   
@@ -478,15 +478,15 @@ void morph_trie::add_subrule(type_t rule, string subrule)
   UnicodeString right = Conv->convert(right_u8);
 
   if(_suffix)
-    {
-      reverse_subrule(left);
-      reverse_subrule(right);
-    }
+  {
+    reverse_subrule(left);
+    reverse_subrule(right);
+  }
 
-  if(verbosity > 9)
+  if(verbosity > 14)
     fprintf(fstatus, "INFLSUBRULE<%s>: %s (`%s' -> `%s')\n",
-	    printnames[rule], subrule.c_str(),
-	    Conv->convert(left).c_str(), Conv->convert(right).c_str());
+            printnames[rule], subrule.c_str(),
+            Conv->convert(left).c_str(), Conv->convert(right).c_str());
 
   morph_subrule *sr = New morph_subrule(_analyzer, rule, left, right);
   _analyzer->add_subrule(sr);
@@ -506,59 +506,68 @@ list<morph_analysis> morph_trie::analyze(morph_analysis a)
   trie_node *n = &_root;
 
   while(s.length() > 0)
+  {
+    UChar32 c = s.char32At(0);
+    s.remove(0, 1);
+    matched.append(c);
+
+    n = n->get_node(c);
+    if(n == 0) return res;
+
+    for(vector<morph_subrule *>::iterator r = n->rules().begin();
+        r != n->rules().end(); ++r)
     {
-      UChar32 c = s.char32At(0);
-      s.remove(0, 1);
-      matched.append(c);
-
-      n = n->get_node(c);
-      if(n == 0) return res;
-
-      for(vector<morph_subrule *>::iterator r = n->rules().begin();
-	  r != n->rules().end(); ++r)
-	{
-	  UnicodeString base;
-	  if((*r)->base_form(matched, s, base) == false)
-	    continue;
+      UnicodeString base;
+      if((*r)->base_form(matched, s, base) == false)
+        continue;
 	  
-	  if(_suffix) base.reverse();
+      if(_suffix) base.reverse();
 
-	  string st = Conv->convert(base);
+      string st = Conv->convert(base);
 
-	  if(a.forms().size() >= 1 && st == a.forms().front())
-	  // check for valid application of epsilon rule
-	  // a given epsilon rule can only be applied once in each run of 
-	  // rule applications that result in no change in spelling
-	    {
-	      bool good = true;
-	      list<string>::iterator it_f = a.forms().begin(); ++it_f;
-	      list<type_t>::iterator it_r = a.rules().begin();
-	      while(it_f != a.forms().end() && it_r != a.rules().end())
-		{
-		  if(*it_f != st) // end of no-change run
-		    break;
+      type_t candidate = (*r)->rule();
+      list<type_t> rules = a.rules();
+      list<string> forms = a.forms();
+      list<type_t>::iterator rule;
+      list<string>::iterator form;
 
-		  if(*it_r == (*r)->rule()) // rule has been applied
-		    {
-		      good = false;
-		      break;
-		    }
-		}
-	      if(!good)
-		continue;
-	    }
+      //
+      // See if sequence of rule applications is compatible with
+      // the rule filter.
+      //
+      if(rules.size() > 0 && 
+         !_analyzer->_grammar->filter_compatible(rules.front(), 1, candidate))
+      {
+        continue;
+      }
 
-	  list<lex_stem *> stems = _analyzer->_grammar->lookup_stem(st);
+      //
+      // now test for potentially cyclic rule applications: if this rule
+      // has been used on the same form before, re-applying it here must
+      // take us into a cyclic derivation.  ERB assures us, it is fully
+      // undesirable anyway, not even for German or Japanese.
+      //
+      bool cyclep = false;
+      for(rule = rules.begin(), form = forms.begin();
+          rule != rules.end() && form != forms.end();
+          ++rule, ++form) 
+      {
+        if(*rule == candidate && *form == st) 
+        {
+          cyclep = true;
+          break;
+        }
+      }
+      if(cyclep) continue;
 
-	  list<type_t> rules = a.rules();
-	  rules.push_front((*r)->rule());
+      list<lex_stem *> stems = _analyzer->_grammar->lookup_stem(st);
+
+      rules.push_front(candidate);
+      forms.push_front(st);
 	  
-	  list<string> forms = a.forms();
-	  forms.push_front(st);
-	  
-	  res.push_back(morph_analysis(forms, rules, stems));
-	}
+      res.push_back(morph_analysis(forms, rules, stems));
     }
+  }
 
   return res;
 }
@@ -566,7 +575,7 @@ list<morph_analysis> morph_trie::analyze(morph_analysis a)
 void morph_trie::print(FILE *f)
 {
   fprintf(f, "--- morph_trie[%x] (%s)\n", (int) this,
-	  _suffix ? "suffix" : "prefix");
+          _suffix ? "suffix" : "prefix");
   _root.print(f);
 }
 
@@ -581,7 +590,7 @@ void morph_trie::print(FILE *f)
 void morph_analysis::print(FILE *f)
 {
   fprintf(f, "%s = %s (%d stem%s", complex().c_str(), base().c_str(),
-	  _stems.size(), _stems.size() == 1 ? "" : "s");
+          _stems.size(), _stems.size() == 1 ? "" : "s");
 
 #ifdef DEBUG
   for(list<lex_stem *>::iterator it = _stems.begin(); it != _stems.end(); ++it)
@@ -604,10 +613,10 @@ void morph_analysis::print_lkb(FILE *f)
   list<type_t>::iterator rule = _rules.begin(); 
 
   while(form != _forms.end() && rule != _rules.end())
-    {
-      fprintf(f, " (%s %s)", printnames[*rule], form->c_str());
-      ++form; ++rule;
-    }
+  {
+    fprintf(f, " (%s %s)", printnames[*rule], form->c_str());
+    ++form; ++rule;
+  }
 
   fprintf(f, ")");
 }
@@ -632,7 +641,7 @@ morph_analyzer::~morph_analyzer()
     delete *it;
 
   for(multimap<string, morph_analysis *>::iterator it =
-	_irregs_by_stem.begin(); it != _irregs_by_stem.end(); ++it)
+        _irregs_by_stem.begin(); it != _irregs_by_stem.end(); ++it)
     delete it->second;
 
   delete _prefixrules;
@@ -649,27 +658,27 @@ void morph_analyzer::add_global(string rule)
   
   start = 0; stop = 1;
   while(start != stop)
+  {
+    string s = get_next_list(rule, start, stop);
+    if(start != stop)
     {
-      string s = get_next_list(rule, start, stop);
-      if(start != stop)
-	{
-	  if(s.substr(0, 10) == string("letter-set"))
-	    {
-	      string::size_type stop;
-	      string ls = get_next_list(s, 0, stop);
-	      if(stop != 0)
-		{
-		  _lettersets->add(ls);
-		}
-	    }
-	  else
-	    {
-	      fprintf(ferr, "ignoring unknown type of inflr <%s>\n",
+      if(s.substr(0, 10) == string("letter-set"))
+      {
+        string::size_type stop;
+        string ls = get_next_list(s, 0, stop);
+        if(stop != 0)
+        {
+          _lettersets->add(ls);
+        }
+      }
+      else
+      {
+        fprintf(ferr, "ignoring unknown type of inflr <%s>\n",
 		      s.c_str());
-	    }
-	  start = stop; stop = 1;
-	}
+      }
+      start = stop; stop = 1;
     }
+  }
 }
 
 void morph_analyzer::parse_rule(type_t t, string rule, bool suffix)
@@ -678,19 +687,19 @@ void morph_analyzer::parse_rule(type_t t, string rule, bool suffix)
   
   start = 0; stop = start + 1;
   while(start != stop)
+  {
+    string subrule = get_next_list(rule, start, stop);
+    if(start != stop)
     {
-      string subrule = get_next_list(rule, start, stop);
-      if(start != stop)
-	{
-	  if(suffix)
-	    _suffixrules->add_subrule(t, subrule);
-	  else
-	    _prefixrules->add_subrule(t, subrule);
+      if(suffix)
+        _suffixrules->add_subrule(t, subrule);
+      else
+        _prefixrules->add_subrule(t, subrule);
 
-	  start = stop;
-	  stop = start + 1;
-	}
+      start = stop;
+      stop = start + 1;
     }
+  }
 }
 
 void morph_analyzer::add_rule(type_t t, string rule)
@@ -708,17 +717,17 @@ void morph_analyzer::add_rule(type_t t, string rule)
 
 void morph_analyzer::add_irreg(string stem, type_t t, string form)
 {
-  if(verbosity > 9)
+  if(verbosity > 14)
     fprintf(fstatus, "IRREG: %s + %s = %s\n",
-	    stem.c_str(), printnames[t], form.c_str());
+            stem.c_str(), printnames[t], form.c_str());
 
   list<lex_stem *> stems = _grammar->lookup_stem(stem);
   if(stems.empty())
-    {
-      fprintf(ferr, "Ignoring entry with unknown stem `%s' "
-	      "in irregular forms\n", stem.c_str());
-      return;
-    }
+  {
+    fprintf(ferr, "Ignoring entry with unknown stem `%s' "
+            "in irregular forms\n", stem.c_str());
+    return;
+  }
 
   list<type_t> rules;
   rules.push_front(t);
@@ -766,7 +775,7 @@ list<morph_analysis> morph_analyzer::analyze1(morph_analysis form)
 bool morph_analyzer::matching_irreg_form(morph_analysis a)
 {
   pair<multimap<string, morph_analysis *>::iterator,
-       multimap<string, morph_analysis *>::iterator> eq =
+    multimap<string, morph_analysis *>::iterator> eq =
     _irregs_by_stem.equal_range(a.base());
 
   if(a.rules().size() == 0)
@@ -776,21 +785,21 @@ bool morph_analyzer::matching_irreg_form(morph_analysis a)
 
   for(multimap<string, morph_analysis *>::iterator it = eq.first;
       it != eq.second; ++it)
+  {
+    if(it->second->rules().front() == first)
     {
-      if(it->second->rules().front() == first)
-	{
-	  if(verbosity > 4)
-	    {
-	      fprintf(fstatus, "filtering ");
-	      a.print(fstatus);
-	      fprintf(fstatus, " [irreg ");
-	      it->second->print(fstatus);
-	      fprintf(fstatus, "]\n");
-	    }
+      if(verbosity > 4)
+      {
+        fprintf(fstatus, "filtering ");
+        a.print(fstatus);
+        fprintf(fstatus, " [irreg ");
+        it->second->print(fstatus);
+        fprintf(fstatus, "]\n");
+      }
 
-	  return true;
-	}
+      return true;
     }
+  }
 
   return false;
 }
@@ -816,47 +825,47 @@ list<morph_analysis> morph_analyzer::analyze(string form, bool lexfilter)
   prev_results.push_back(morph_analysis(forms, list<type_t>(), stems));
   
   while(prev_results.size() > 0)
+  {
+    if(verbosity > 9)
     {
-      if(verbosity > 9)
-	{
-	  fprintf(fstatus, "morph_analyzer working on:\n");
-	  print_analyses(fstatus, prev_results);
-	  fprintf(fstatus, "--------------------------\n");
-	}
-
-      list<morph_analysis> current_results;
-      for(list<morph_analysis>::iterator it = prev_results.begin();
-	  it != prev_results.end(); ++it)
-	{
-	  list<morph_analysis> r = analyze1(*it);
-	  current_results.splice(current_results.end(), r);
-	  if(!lexfilter || it->valid())
-	    final_results.push_back(*it);
-	}
-
-      prev_results.clear();
-      prev_results.splice(prev_results.end(), current_results);
+      fprintf(fstatus, "morph_analyzer working on:\n");
+      print_analyses(fstatus, prev_results);
+      fprintf(fstatus, "--------------------------\n");
     }
+
+    list<morph_analysis> current_results;
+    for(list<morph_analysis>::iterator it = prev_results.begin();
+        it != prev_results.end(); ++it)
+    {
+      list<morph_analysis> r = analyze1(*it);
+      current_results.splice(current_results.end(), r);
+      if(!lexfilter || it->valid())
+        final_results.push_back(*it);
+    }
+
+    prev_results.clear();
+    prev_results.splice(prev_results.end(), current_results);
+  }
 
   // handle irregular forms
 
   // 1) filter regular results if desired
 
   if(_irregs_only)
-    {
-      prev_results.clear();
-      prev_results.splice(prev_results.end(), final_results);
+  {
+    prev_results.clear();
+    prev_results.splice(prev_results.end(), final_results);
 
-      for(list<morph_analysis>::iterator it = prev_results.begin();
-	  it != prev_results.end(); ++it)
-	if(!matching_irreg_form(*it))
-	  final_results.push_back(*it);
-    }
+    for(list<morph_analysis>::iterator it = prev_results.begin();
+        it != prev_results.end(); ++it)
+      if(!matching_irreg_form(*it))
+        final_results.push_back(*it);
+  }
 
   // 2) add irregular analyses from table
 
   pair<multimap<string, morph_analysis *>::iterator,
-       multimap<string, morph_analysis *>::iterator> eq =
+    multimap<string, morph_analysis *>::iterator> eq =
     _irregs_by_form.equal_range(form);
 
   for(multimap<string, morph_analysis *>::iterator it = eq.first;
