@@ -157,10 +157,9 @@ map<int, double> failing_paths;
 map<list_int *, int, list_int_compare> failing_sets;
 
 void
-record_failures(dag_node *root, dag_node *a, dag_node *b)
+record_failures(list<unification_failure *> fails, bool unification,
+                dag_node *root = 0, dag_node *a = 0, dag_node *b = 0)
 {
-    list<unification_failure *> fails = dag_unify_get_failures(a, b, true);
-    
     unification_failure *f;
     list_int *sf = 0;
     
@@ -171,10 +170,6 @@ record_failures(dag_node *root, dag_node *a, dag_node *b)
         int i = 0;
         int id;
         
-        if(opt_hyper)
-            throw error("quickcheck computation doesn't work "
-                        "in hyperactive mode");
-
         for(list<unification_failure *>::iterator iter = fails.begin();
             iter != fails.end(); ++iter)
         {
@@ -182,46 +177,56 @@ record_failures(dag_node *root, dag_node *a, dag_node *b)
             value[i] = 0;
             if(f->type() == unification_failure::CLASH)
             {
-                // let's see if the quickcheck could have filtered this
+                bool good = true;
+                if(unification)
+                {
+                    // let's see if the quickcheck could have filtered this
 
-              dag_node *d1, *d2;
+                    dag_node *d1, *d2;
 
-              d1 = dag_get_path_value_l(a, f->path());
-              d2 = dag_get_path_value_l(b, f->path());
-
-              int s1 = BI_TOP, s2 = BI_TOP;
-
-              if(d1 != FAIL) s1 = dag_type(d1);
-              if(d2 != FAIL) s2 = dag_type(d2);
+                    d1 = dag_get_path_value_l(a, f->path());
+                    d2 = dag_get_path_value_l(b, f->path());
+                    
+                    int s1 = BI_TOP, s2 = BI_TOP;
+                    
+                    if(d1 != FAIL) s1 = dag_type(d1);
+                    if(d2 != FAIL) s2 = dag_type(d2);
               
-              if(glb(s1, s2) == -1)
-                  
-              {
-                  value[i] = f->cost();
-                  price += f->cost();
-                  
-                  if(failure_id.find(*f) == failure_id.end())
-                  {
-                      id = failure_id[*f] = next_failure_id++;
-                      id_failure[id] = *f;
-                  }
-                  else
-                      id = failure_id[*f];
-                  
-                  list_int *p = sf, *q = 0;
-                  
-                  while(p && first(p) < id)
-                      q = p, p = rest(p);
-                  
-                  if(q == 0)
-                      sf = cons(id, sf);
-                  else
-                      q -> next = cons(id, p);
-              }
+                    if(glb(s1, s2) != -1)
+                        good = false;
+                }
+
+                if(good)
+                {
+                    value[i] = f->cost();
+                    price += f->cost();
+                    
+                    if(failure_id.find(*f) == failure_id.end())
+                    {
+                        // This is a new failure. Assign an id.
+                        id = failure_id[*f] = next_failure_id++;
+                        id_failure[id] = *f;
+                    }
+                    else
+                        id = failure_id[*f];
+                    
+                    // Insert id into sorted list of failure ids for this
+                    // configuration.
+                    list_int *p = sf, *q = 0;
+                    
+                    while(p && first(p) < id)
+                        q = p, p = rest(p);
+                    
+                    if(q == 0)
+                        sf = cons(id, sf);
+                    else
+                        q -> next = cons(id, p);
+                }
             }
             i++;
         }
         
+        // If this is not a new failure set, free it.
         if(sf)
             if(failing_sets[sf]++ > 0)
                 free_list(sf);
@@ -243,7 +248,7 @@ record_failures(dag_node *root, dag_node *a, dag_node *b)
     
     if(opt_print_failure)
     {
-        fprintf(ferr, "failure at\n");
+        fprintf(ferr, "failure (%s) at\n", unification ? "unif" : "subs");
         for(list<unification_failure *>::iterator iter = fails.begin();
             iter != fails.end(); ++iter)
         {
@@ -277,7 +282,12 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
         
 #ifdef QC_PATH_COMP
         if(opt_compute_qc || opt_print_failure)
-            record_failures(root._dag, a._dag, b._dag);
+        {
+            list<unification_failure *> fails =
+                dag_unify_get_failures(a._dag, b._dag, true);
+
+            record_failures(fails, true, root._dag, a._dag, b._dag);
+        }
 #endif
         
         dag_alloc_release(s);
@@ -312,12 +322,17 @@ unify_np(fs &root, const fs &a, fs &b)
     
     if(res == FAIL)
     {
+        // We really don't expect failures, except in unpacking, or in
+        // error conditions. No failure recording, thus.
         total_cost_fail += unification_cost;
         stats.unifications_fail++;
         
 #ifdef QC_PATH_COMP
-        if(opt_compute_qc || opt_print_failure)
-            record_failures(root._dag, a._dag, b._dag);
+        if(opt_print_failure)
+        {   
+            fprintf(ferr, "unification failure: unexpected failure in non"
+                    " permanent unification\n");
+        }
 #endif
     }
     else
@@ -335,7 +350,18 @@ unify_np(fs &root, const fs &a, fs &b)
 void
 subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 {
+#ifdef QC_PATH_COMP
+    if(opt_compute_qc || opt_print_failure)
+    {
+        list<unification_failure *> failures =
+            dag_subsumes_get_failures(a._dag, b._dag, forward, backward,
+                                      true); 
+        record_failures(failures, false);
+    }
+    else
+#endif
     dag_subsumes(a._dag, b._dag, forward, backward);
+
     if(forward || backward)
         stats.subsumptions_succ++;
     else

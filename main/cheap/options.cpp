@@ -146,7 +146,7 @@ void init_options()
   opt_compute_qc = 0;
   opt_print_failure = false;
   opt_key = 0;
-  opt_hyper = 1;
+  opt_hyper = true;
   opt_derivation = true;
   opt_rulestatistics = false;
   opt_default_les = false;
@@ -370,6 +370,13 @@ bool parse_options(int argc, char* argv[])
       return false;
     }
   grammar_file_name = argv[optind];
+
+  if(opt_hyper && opt_compute_qc)
+  {
+      fprintf(ferr, "quickcheck computation doesn't work "
+              "in hyperactive mode, disabling hyperactive mode.");
+      opt_hyper = false;
+  }
 
   return true;
 }
