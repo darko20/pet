@@ -11,7 +11,7 @@
 #include "grammar.h"
 #include "item.h"
 
-#define MAX_PRIORITY 64000
+#define MAX_TASK_PRIORITY 64000
 
 class basic_task
 {
@@ -50,9 +50,9 @@ class item_task : public basic_task
 {
  public:
   inline item_task(class chart *C, class agenda *A, item *it)
-    : basic_task(C, A, it->priority(), MAX_PRIORITY, it->age()), _item(it) {}
+    : basic_task(C, A, it->priority(), MAX_TASK_PRIORITY, it->age()), _item(it) {}
   inline item_task(class chart *C, class agenda *A, item *it, int p)
-    : basic_task(C, A, p, MAX_PRIORITY, it->age()), _item(it) {}
+    : basic_task(C, A, p, MAX_TASK_PRIORITY, it->age()), _item(it) {}
   virtual item *execute();
   virtual bool plateau() { return true; }
  private:

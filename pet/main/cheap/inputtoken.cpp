@@ -77,20 +77,27 @@ input_token::print_derivation(FILE *f, bool quoted, int offset,
   fprintf(f, ")");
 }
 
-#ifdef TSDBAPI
-void
-input_token::tsdb_print_derivation(int offset, int id, string orth)
+string
+input_token::tsdb_derivation(int offset, int id, string orth)
 {
+  string res;
+  
   // offset is used to print positions relative to the mother node
   int start = _start - offset; 
   int end = _end - offset;
 
-  capi_printf("(%d %s %d %d %d (", id, _form.stemprintname(), _p,
-	      start, end);
-  capi_putstr(orth.c_str(), true);
-  capi_printf(" %d %d))", start, end);
+  res = string("(") +
+    inttostr(id) + string(" ") +
+    string(_form.stemprintname()) + string(" ") +
+    inttostr(_p) + string(" ") +
+    inttostr(start) + string(" ") +
+    inttostr(end) + string(" (\"") +
+    orth + string("\" ") +
+    inttostr(start) + string(" ") +
+    inttostr(end) + string("))");
+
+  return res;
 }
-#endif
 
 fs
 input_token::instantiate()

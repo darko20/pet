@@ -23,8 +23,13 @@ void strtoupper(char *s);
 // convert string to integer, throw error msg if invalid
 extern int strtoint(const char *s, const char *errloc, bool = false);
 
+extern string inttostr(int i);
+
 // convert standard C string mnemonic escape sequences
-string convert_escapes(string s);
+string convert_escapes(const string &s);
+
+// escape all '"' and '\' in a string using '\'
+string escape_string(const string &s);
 
 void translate_iso_chars(string &s);
 
@@ -33,6 +38,10 @@ char *current_time(void);
 
 char *find_file(char *orig, char *extension, bool ext_req = false);
 char *output_name(char *in, char *oldextension, const char *newextension);
+
+// Read one line from specified file. Returns empty string when no line
+// can be read.
+string read_line(FILE *f);
 
 struct cstr_eq
 {

@@ -290,20 +290,17 @@ void lex_item::print_derivation(FILE *f, bool quoted, int offset)
   _dtrs[_keydtr]->print_derivation(f, quoted, offset, _id, _p, _q, _inflrs_todo, orth);
 }
 
-#ifdef TSDBAPI
-void lex_item::tsdb_print_derivation(int offset)
+string lex_item::tsdb_derivation(int offset)
 {
   string orth;
-
   for(int i = 0; i < _ndtrs; i++)
     {
-      if(i != 0) orth += " ";
+      if(i != 0) orth += string(" ");
       orth += _dtrs[i]->orth();
     }
 
-  _dtrs[_keydtr]->tsdb_print_derivation(offset, _id, orth);
+  return _dtrs[_keydtr]->tsdb_derivation(offset, _id, orth);
 }
-#endif
 
 void phrasal_item::print_derivation(FILE *f, bool quoted, int offset)
 {
@@ -344,22 +341,28 @@ void phrasal_item::print_derivation(FILE *f, bool quoted, int offset)
   fprintf(f, ")");
 }
 
-#ifdef TSDBAPI
-void phrasal_item::tsdb_print_derivation(int offset)
+string phrasal_item::tsdb_derivation(int offset)
 {
-  capi_printf("(%d %s %d %d %d", 
-              _id, printname(), _p, _start - offset, _end - offset);
+  string result;
+
+  result = string("(") +
+    inttostr(_id) + string(" ") +
+    string(printname()) + string(" ") +
+    inttostr(_p) + string(" ") +
+    inttostr(_start - offset) + string(" ") +
+    inttostr(_end - offset);
 
   for(list<item *>::iterator pos = _daughters.begin();
       pos != _daughters.end(); ++pos)
     {
-      capi_printf(" ");
-      (*pos)->tsdb_print_derivation(_start);
+      result += string(" ");
+      result += (*pos)->tsdb_derivation(_start);
     }
 
-  capi_printf(")");
+  result += string(")");
+
+  return result;
 }
-#endif
 
 grammar_rule *lex_item::rule()
 {

@@ -156,6 +156,8 @@ class fs_alloc_state
   bool _auto;
 };
 
+#ifdef QC_PATH_COMP
+
 //
 // computing of failure paths for the quickcheck
 // only supported with tomabechi unifier
@@ -167,5 +169,7 @@ extern map<unification_failure, int> failure_id;
 extern map<int, unification_failure> id_failure;
 extern map<int, double> failing_paths;
 extern map<list_int *, int, list_int_compare> failing_sets;
+
+#endif
 
 #endif

@@ -430,78 +430,100 @@ void input_chart::add_generics(list<lex_item *> &input)
   assign_positions();
 }
 
-#define DEBUG_DEP
-
 void
-dependency_filter(list <lex_item *> &result, struct setting *deps)
+dependency_filter(list <lex_item *> &result, struct setting *deps, bool unidirectional)
 {
   if(deps == 0 || opt_chart_man == false)
     return;
 
-  vector <set <int> > satisfied(deps->n);
-  map <lex_item *, pair <int, int> > requires;
+  vector<set <int> > satisfied(deps->n);
+  multimap<lex_item *, pair <int, int> > requires;
 
   lex_item *lex;
   fs f;
 
   for(list < lex_item * >::iterator it = result.begin();
-       it != result.end(); it++)
+      it != result.end(); it++)
+  {
+    lex = *it;
+    f = lex->get_fs();
+    
+    if(verbosity > 4)
+      fprintf(fstatus, "dependency information for %s:\n",
+              lex->description().c_str());
+    
+    for(int j = 0; j < deps->n; j++)
     {
-      lex = *it;
-      f = lex->get_fs();
+      fs v = f.get_path_value(deps->values[j]);
+      if(v.valid())
+      {
+        if(verbosity > 4)
+          fprintf(fstatus, "  %s : %s\n", deps->values[j], v.name());
 
-#ifdef DEBUG_DEP
-      fprintf(stderr, "dependency information for %s:\n",
-	      lex->description().c_str());
-#endif
-
-      for(int j = 0; j < deps->n; j++)
-	{
-	  fs v = f.get_path_value(deps->values[j]);
-	  if(v.valid())
-	    {
-#ifdef DEBUG_DEP
-	      fprintf(stderr, "  %s : %s\n", deps->values[j], v.name());
-#endif
-	      satisfied[j].insert(v.type());
-	      requires[lex].first =(j % 2 == 0) ? j + 1 : j - 1;
-	      requires[lex].second = v.type();
-	    }
-	}
+        if(!unidirectional || j % 2 != 0)
+        {
+          satisfied[j].insert(v.type());
+        }
+        
+        if(!unidirectional || j % 2 == 0)
+        {
+          requires.insert(make_pair(lex,
+                                    make_pair((j % 2 == 0) ? j + 1 : j - 1,
+                                              v.type())));
+        }
+      }
     }
-
+  }
+  
   list<lex_item *> filtered;
+  
+  for(list<lex_item *>::iterator it = result.begin();
+      it != result.end(); ++it)
+  {
+    lex = *it;
 
-  for(list < lex_item * >::iterator it = result.begin();
-       it != result.end(); ++it)
+    pair<multimap<lex_item *, pair<int, int> >::iterator,
+      multimap<lex_item *, pair<int, int> >::iterator> eq =
+      requires.equal_range(lex);
+
+    bool ok = true;
+    for(multimap<lex_item *, pair<int, int> >::iterator dep = eq.first;
+        ok && dep != eq.second; ++dep)
     {
-      lex = *it;
+      // we have to resolve a required dependency
+	  pair<int, int> req = dep->second;
+	  if(verbosity > 4)
+	    fprintf(fstatus, "`%s' requires %s at %d -> ",
+                 lex->description().c_str(),
+                 typenames[req.second], req.first);
+       
+       bool found = false;
+       for(set<int>::iterator it2 = satisfied[req.first].begin();
+           it2 != satisfied[req.first].end(); ++it2)
+       {
+         if(glb(*it2, req.second) != -1)
+         {
+           if(verbosity > 4)
+             fprintf(fstatus, "[%s]", typenames[*it2]);
+           found = true;
+           break;
+         }
+       }
+       
+       if(!found)
+       {
+         ok = false;
+         stats.words_pruned++;
+       }
 
-      if(requires.find(lex) != requires.end())
-	{
-	  // we have to resolve a required dependency
-	  pair < int, int >req = requires[lex];
-	  if(verbosity > 2)
-	    fprintf(stderr, "`%s' requires %s at %d -> ",
-		     lex->description().c_str(),
-		     typenames[req.second], req.first);
-
-	  if(satisfied[req.first].find(req.second) ==
-	      satisfied[req.first].end())
-	    {
-	      lex = 0;
-	      stats.words_pruned++;
-	    }
-	  else
-	    filtered.push_back(lex);
-
-	  if(verbosity > 2)
-	    fprintf(stderr, "%s satisfied\n", lex == 0 ? "not" : "");
-	}
-      else
-	filtered.push_back(lex);
+	  if(verbosity > 4)
+	    fprintf(fstatus, "%s satisfied\n", ok ? "" : "not");
     }
-
+    
+    if(ok)
+      filtered.push_back(lex);
+  }
+  
   result = filtered;
 }
 

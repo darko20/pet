@@ -34,7 +34,7 @@ struct lex_location *new_location(char *fname, int linenr, int colnr);
 
 extern FILE *ferr, *fstatus;
 
-void push_file(char *fname, char *info);
+void push_file(const char *fname, char *info);
 int pop_file();
 
 int curr_line();

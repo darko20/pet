@@ -38,7 +38,7 @@ struct lex_location *new_location(char *fname, int linenr, int colnr)
   return loc;
 }
 
-void push_file(char *fname, char *info)
+void push_file(const char *fname, char *info)
 {
   lex_file f;
   struct stat statbuf;

@@ -97,43 +97,65 @@ bool lexentry_status(type_t t)
   return cheap_settings->statusmember("lexentry-status-values", typestatus[t]);
 }
 
-lex_stem::lex_stem(type_t t) :
-  _id(next_id++), _type(t), _orth(0), _p(0)
+lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths,
+                   int discount) :
+  _id(next_id++), _type(t), _mods(mods), _orth(0), _p(0)
 {
-  vector<string> orth = get_stems();
-  _nwords = orth.size();
-
-  if(_nwords == 0) // invalid entry
-    return;
-
-  _orth = New char*[_nwords];
-
-  for(int j = 0; j < _nwords; j++)
+  if(orths.size() == 0)
+  {
+    vector<string> orth = get_stems();
+    _nwords = orth.size();
+  
+    if(_nwords == 0) // invalid entry
+      return;
+  
+    _orth = New char*[_nwords];
+    
+    for(int j = 0; j < _nwords; j++)
     {
       _orth[j] = strdup(orth[j].c_str());
       strtolower(_orth[j]);
     }
+  }
+  else
+  {
+    _nwords = orths.size();
+    _orth = New char *[_nwords];
+    int j = 0;
+    for(list<string>::const_iterator it = orths.begin(); it != orths.end();
+        ++it, ++j)
+    {
+      _orth[j] = strdup(it->c_str());
+      strtolower(_orth[j]);
+    }
+  }
 
   char *v;
   if((v = cheap_settings->value("default-le-priority")) != 0)
-    {
-      _p = strtoint(v, "as value of default-le-priority");
-    }
-
+  {
+    _p = strtoint(v, "as value of default-le-priority");
+  }
+  if((v = cheap_settings->value("default-le-priority")) != 0)
+  {
+    _p = strtoint(v, "as value of default-le-priority");
+  }
+  
   if((v = cheap_settings->sassoc("likely-le-types", _type)) != 0)
-    {
-      _p = strtoint(v, "in value of likely-le-types");
-    }
-
+  {
+    _p = strtoint(v, "in value of likely-le-types");
+  }
+  
   if((v = cheap_settings->sassoc("unlikely-le-types", _type)) != 0)
-    {
-      _p = strtoint(v, "in value of unlikely-le-types");
-    }
+  {
+    _p = strtoint(v, "in value of unlikely-le-types");
+  }
 
+  _p -= discount;
+  
   if(verbosity > 14)
-    {
-      print(fstatus); fprintf(fstatus, "\n");
-    }
+  {
+    print(fstatus); fprintf(fstatus, "\n");
+  }
 }
 
 lex_stem::lex_stem(const lex_stem &le)
@@ -169,6 +191,18 @@ fs lex_stem::instantiate()
 
   if(!expanded.valid())
     throw error(string("invalid lex_stem `") + printname() + "' (cannot expand)");
+
+  if(!_mods.empty())
+    {
+      if(!expanded.modify(_mods))
+        {
+          string m;
+          for(modlist::iterator mod = _mods.begin(); mod != _mods.end(); ++mod)
+            m += string("[") + mod->first + string(" : ")
+              + typenames[mod->second] + string("]");
+          throw error(string("invalid lex_stem `") + printname() + "' (cannot apply mods " + m + ")");
+        }
+    }
 
 #ifdef PACKING
   return packing_partial_copy(expanded);
@@ -505,7 +539,7 @@ void undump_dags(dumper *f, int qc_inst)
     {
       if(i == qc_inst)
 	{
-	  if(verbosity > 4) fprintf(fstatus, "qc structure `%s' ",
+	  if(verbosity > 4) fprintf(fstatus, "[qc structure `%s'] ",
 				    printnames[qc_inst]);
 	  qc_paths = dag_read_qc_paths(f, opt_nqc, qc_len);
 	  dag = 0;
@@ -547,7 +581,8 @@ grammar::grammar(const char * filename)
 
   dumper dmp(filename);
 
-  char *s = undump_header(&dmp);
+  int version;
+  char *s = undump_header(&dmp, version);
   if(s) fprintf(fstatus, "(%s) ", s);
 
   dump_toc toc(&dmp);
@@ -601,7 +636,7 @@ grammar::grammar(const char * filename)
 	}
     }
   _nrules = _rules.size();
-  if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules ", nstems(), 
+  if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules", nstems(), 
 			    length(_generics), _nrules);
 
   // full forms
@@ -617,7 +652,7 @@ grammar::grammar(const char * filename)
 	    delete ff;
 	}
 
-      if(verbosity > 4) fprintf(fstatus, "%d full form entries ", nffs);
+      if(verbosity > 4) fprintf(fstatus, ", %d full form entries", nffs);
     }
 
 #ifdef ONLINEMORPH
@@ -666,7 +701,7 @@ grammar::grammar(const char * filename)
 
 	  delete[] r;
 	}
-      if(verbosity > 4) fprintf(fstatus, "%d infl rules ", ninflrs);
+      if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
       if(verbosity >14) _morph->print(fstatus);
     }
   // irregular forms
@@ -728,6 +763,31 @@ grammar::grammar(const char * filename)
   _punctuation_characters = Conv->convert(pcs);
 #endif  
 
+#ifdef IQT
+  try
+  {
+    _iqt_discount = 0;
+    
+    char *v;
+    if((v = cheap_settings->value("iqt-discount")) != 0)
+    {
+      _iqt_discount = strtoint(v, "as value of iqt-discount");
+    }
+
+    char *iqtpath = cheap_settings->value("iqt-path");
+    char *mappath = cheap_settings->value("iqt-mapping");
+    if(iqtpath != 0 && mappath)
+    {
+      fprintf(fstatus, "\n");
+      _iqtDict = new iqtDictionary(iqtpath, mappath);
+    }
+  }
+  catch(error &e)
+  {
+    fprintf(fstatus, "IQT disabled: %s\n", e.msg().c_str());
+    _iqtDict = 0;
+  }
+#endif
 
   get_unifier_stats();
 }
@@ -886,6 +946,10 @@ grammar::~grammar()
   free_list(_deleted_daughters);
   free_type_tables();
 
+#ifdef IQT
+  clear_dynamic_stems();
+#endif
+
   fs_alloc_state FSAS;
   FSAS.reset();
 }
@@ -936,39 +1000,107 @@ lex_stem *grammar::lookup_stem(type_t inst_key)
 list<lex_stem *> grammar::lookup_stem(string s)
 {
   list<lex_stem *> results;
- 
+#ifdef IQT
+  set<type_t> native_types;
+#endif
+  
   pair<multimap<string, lex_stem *>::iterator,
-       multimap<string, lex_stem *>::iterator> eq =
+    multimap<string, lex_stem *>::iterator> eq =
     _stemlexicon.equal_range(s);
-
+  
   for(multimap<string, lex_stem *>::iterator it = eq.first;
       it != eq.second; ++it)
+  {
+    results.push_back(it->second);
+#ifdef IQT
+    if(_iqtDict)
     {
-      results.push_back(it->second);
+      native_types.insert(_iqtDict->equiv_rep(leaftype_parent(it->second->type())));
     }
+#endif
+  }
+  
+#ifdef IQT
+  if(!_iqtDict)
+    return results;
+
+  list<iqtMapEntry> iqtMapped;
+  _iqtDict->getMapped(s, iqtMapped);
+
+  if(verbosity > 2)
+    fprintf(fstatus, "[IQT] %s:", s.c_str());
+
+  for(list<iqtMapEntry>::iterator it = iqtMapped.begin(); it != iqtMapped.end(); ++it)
+  {
+    type_t t = it->type();
+
+    // Create stem if not blocked by entry from native lexicon.
+    if(native_types.find(_iqtDict->equiv_rep(t)) != native_types.end())
+    {
+      if(verbosity > 2)
+        fprintf(fstatus, " (%s)", typenames[t]);
+      continue;
+    }
+    else
+    {
+      if(verbosity > 2)
+        fprintf(fstatus, " %s", typenames[t]);
+    }
+
+    modlist mods;
+    for(list<pair<string, string> >::const_iterator m = it->paths().begin();
+        m != it->paths().end(); ++m)
+    {
+      type_t v = lookup_type(m->second.c_str());
+      mods.push_back(make_pair(m->first, v));
+    }
+
+    list<string> orths;
+    orths.push_back(s);
+
+    lex_stem *st = new lex_stem(t, mods, orths, _iqt_discount);
+    _dynamicstems.push_back(st);
+
+    results.push_back(st);
+  }
+
+  if(verbosity > 2)
+    fprintf(fstatus, "\n");
+#endif
 
   return results;
 }
 
+#ifdef IQT
+void grammar::clear_dynamic_stems()
+{
+  for(list<lex_stem *>::iterator it = _dynamicstems.begin();
+      it != _dynamicstems.end(); ++it)
+    delete *it;
+
+  _dynamicstems.clear();
+}
+#endif
+
 list<full_form> grammar::lookup_form(const string form)
 {
   list<full_form> result;
-
+  
 #ifdef ONLINEMORPH
   list<morph_analysis> m = _morph->analyze(form);
   for(list<morph_analysis>::iterator it = m.begin(); it != m.end(); ++it)
-    {
-      for(list<lex_stem *>::iterator st_it = it->stems().begin();
-	  st_it != it->stems().end(); ++st_it)
-	result.push_back(full_form(*st_it, *it));
-    }
+  {
+    for(list<lex_stem *>::iterator st_it = it->stems().begin();
+        st_it != it->stems().end(); ++st_it)
+      result.push_back(full_form(*st_it, *it));
+  }
 #else
   pair<ffdict::iterator,ffdict::iterator> p = _fullforms.equal_range(form);
   for(ffdict::iterator it = p.first; it != p.second; ++it)
-    {
-      result.push_back(*it->second);
-    }
+  {
+    result.push_back(*it->second);
+  }
 #endif
-
+  
   return result;
 }

@@ -42,7 +42,7 @@
 // number of sections in arbitrary order
 
 void dump_header(dumper *f, char *desc);
-char *undump_header(dumper *f);
+char *undump_header(dumper *f, int &version);
 
 // section type identifiers
 enum sectiontype { SEC_NOSECTION, SEC_SYMTAB, SEC_PRINTNAMES, SEC_HIERARCHY,

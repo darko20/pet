@@ -17,7 +17,7 @@
 // construct an MRS from a given feature structure
 // we expect the MRS under the path specified in mrs-path
 mrs::mrs(fs root)
-  : _next_id(dummy_id + 1), _used_rels()
+  : _next_id(dummy_id + 1), _pseudorels(0), _used_rels()
 {
   root.expand();
 
@@ -197,6 +197,14 @@ void mrs::print(FILE *f)
 // class mrs_rel
 //
 
+#define K2Y_MAX_PSEUDORELS 50
+
+void mrs::countpseudorel()
+{
+  if(++_pseudorels > K2Y_MAX_PSEUDORELS)
+    throw error("too many pseudorels in K2Y");
+}
+
 // construct an MRS REL from a feature structure
 mrs_rel::mrs_rel(mrs *m, fs f)
   : _fs(f), _mrs(m), _rel(f.type()), _label(0), _cvalue(-1)
@@ -243,10 +251,9 @@ mrs_rel::mrs_rel(mrs *m, fs f)
 mrs_rel::mrs_rel(mrs *m, int type, int pred)
   : _fs(copy(fs(type))), _mrs(m), _rel(type), _label(0), _cvalue(-1)
 {
-
   _pred = (pred ? pred : type);
   _id = _mrs->id(_fs);
-
+  _mrs->countpseudorel();
 }
 
 int mrs_rel::value(char *attr)
@@ -260,13 +267,13 @@ int mrs_rel::value(char *attr)
   return _mrs->id(f);
 }
 
-list<int> mrs_rel::id_list_by_paths(char **paths)
+list<int> mrs_rel::id_list_by_roles(char **paths)
 {
   list<int> ids;
 
   for(int i = 0; paths[i] != 0; i++)
     {
-      fs foo = _fs.get_path_value(paths[i]);
+      fs foo = _fs.get_path_value(k2y_role_name(paths[i]));
       if(foo.valid()) ids.push_front(_mrs->id(foo));
     }
  
@@ -306,7 +313,7 @@ bool mrs_rel::number_convert(void) {
 
   if(_cvalue >= 0) return true;
 
-  if(!strcmp(name(), k2y_pred_name("k2y_quantity_rel"))) {
+  if(subtype(_rel, lookup_type(k2y_pred_name("k2y_quantity_rel")))) {
     int foo = value(k2y_role_name("k2y_amount"));
     if(foo) {
       mrs_rel amount 
@@ -321,7 +328,7 @@ bool mrs_rel::number_convert(void) {
     return false;
   } // if
 
-  if(!strcmp(name(), k2y_pred_name("k2y_card_rel"))) {
+  if(subtype(_rel, lookup_type(k2y_pred_name("k2y_const_rel")))) {
     fs fs = get_fs().get_path_value(k2y_role_name("k2y_const_value"));
     if(!fs.valid()) {
       //
@@ -341,11 +348,11 @@ bool mrs_rel::number_convert(void) {
 
   int term1 = 0;
   int term2 = 0;
-  if(!strcmp(name(), k2y_pred_name("K2y_plus_rel"))) {
+  if(subtype(_rel, lookup_type(k2y_pred_name("k2y_plus_rel")))) {
     term1 = value(k2y_role_name("k2y_term1"));
     term2 = value(k2y_role_name("k2y_term2"));
   } /* if */
-  else if(!strcmp(name(), k2y_pred_name("k2y_times_rel"))) {
+  else if(subtype(_rel, lookup_type(k2y_pred_name("k2y_times_rel")))) {
     term1 = value(k2y_role_name("k2y_factor1"));
     term2 = value(k2y_role_name("k2y_factor2"));
   } /* if */
@@ -370,8 +377,10 @@ bool mrs_rel::number_convert(void) {
   _mrs->use_rel(operand1.id());
   _mrs->use_rel(operand2.id());
 
-  if(!strcmp(name(), k2y_pred_name("k2y_plus_rel"))) _cvalue = value1 + value2;
-  else _cvalue = value1 * value2;
+  if(subtype(_rel, lookup_type(k2y_pred_name("k2y_plus_rel"))))
+    _cvalue = value1 + value2;
+  else 
+    _cvalue = value1 * value2;
 
   //
   // collect raw atoms from both operands into operator

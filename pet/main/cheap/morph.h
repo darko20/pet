@@ -56,7 +56,7 @@ class morph_analyzer
   class morph_letterset *letterset(string name);
   void undo_letterset_bindings();
 
-  list<morph_analysis> analyze(string form);
+  list<morph_analysis> analyze(string form, bool lexfilter = true);
   string generate(morph_analysis);
 
   void print(FILE *f);
@@ -76,7 +76,7 @@ class morph_analyzer
   class morph_trie *_suffixrules;
   class morph_trie *_prefixrules;
 
-  list<class morph_subrule *> _subrules;
+  vector<class morph_subrule *> _subrules;
 
   bool _irregs_only;
 

@@ -69,7 +69,19 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   return val;
 }
 
-string convert_escapes(string s)
+string inttostr(int i)
+{
+  char buff[255];
+  
+  int l = snprintf(buff, 254, "%d", i);
+  
+  if(l <= 0)
+    throw error(string("could not convert number to string"));
+
+  return string(buff);
+}
+
+string convert_escapes(const string &s)
 // convert standard C string mnemonic escape sequences
 {
   string res = "";
@@ -126,6 +138,22 @@ string convert_escapes(string s)
   return res;
 }
 
+string escape_string(const string &s)
+{
+  string res;
+  
+  for(string::const_iterator it = s.begin(); it != s.end(); ++it)
+  {
+    if(*it == '"' || *it == '\\')
+    {
+      res += string("\\");
+    }
+    res += string(1, *it);
+  }
+
+  return res;
+}
+
 void translate_iso_chars(string &s)
 {
   for(string::size_type i = 0; i < s.length(); i++)
@@ -161,7 +189,7 @@ char *current_time(void)
     return "now";
 
   if(foo > 0 && now != 0)
-    strftime(result, 80, "%c", now);
+    strftime(result, 80, "%d-%m-%Y (%H:%M:%S)", now);
   else
     sprintf(result, "now");
 
@@ -219,6 +247,22 @@ char *output_name(char *in, char *oldext, const char *newext)
     }
 
   return out;
+}
+
+string read_line(FILE *f)
+{
+  const int ASBS = 4096; // arbitrary, small buffer size
+  static char buff[ASBS];
+
+  if(fgets(buff, ASBS, f) == NULL)
+    return string();
+  
+  if(buff[0] == '\0' || buff[0] == '\n')
+    return string();
+
+  buff[strlen(buff) - 1] = '\0';
+
+  return string(buff);
 }
 
 #ifdef __BORLANDC__

@@ -161,9 +161,7 @@ class item
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_derivation(FILE *f, bool quoted, int offset = 0) = 0;
-#ifdef TSDBAPI
-  virtual void tsdb_print_derivation(int offset = 0) = 0;
-#endif
+  virtual string tsdb_derivation(int offset = 0) = 0;
 
   inline type_t result_root() { return _result_root; }
   inline bool result_contrib() { return _result_contrib; }
@@ -265,9 +263,7 @@ class lex_item : public item
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_derivation(FILE *f, bool quoted, int offset = 0);
-#ifdef TSDBAPI
-  virtual void tsdb_print_derivation(int offset = 0);
-#endif
+  virtual string tsdb_derivation(int offset = 0);
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
@@ -304,9 +300,7 @@ class phrasal_item : public item
   
   virtual void print(FILE *f, bool compact = false);
   virtual void print_derivation(FILE *f, bool quoted, int offset = 0);
-#ifdef TSDBAPI
-  virtual void tsdb_print_derivation(int offset = 0);
-#endif
+  virtual string tsdb_derivation(int offset = 0);
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }

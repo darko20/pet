@@ -17,8 +17,8 @@ extern bool opt_one_solution, opt_shrink_mem, opt_shaping, opt_default_les,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph;
 #ifdef YY
-extern bool opt_one_meaning, opt_yy, opt_k2y_segregation;
-extern unsigned int opt_k2y;
+extern bool opt_yy, opt_k2y_segregation;
+extern int opt_k2y, opt_nth_meaning;
 #endif
 extern int verbosity, pedgelimit, opt_nqc, opt_key, opt_server;
 extern long int memlimit;

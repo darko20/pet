@@ -123,6 +123,8 @@ void get_unifier_stats()
 
 }
 
+#ifdef QC_PATH_COMP
+
 // recording of failures for qc path computation
 
 int next_failure_id = 0;
@@ -225,6 +227,8 @@ void record_failures(dag_node *root, dag_node *a, dag_node *b)
     }
 }
 
+#endif
+
 fs unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
 {
   struct dag_node *res;
@@ -243,8 +247,10 @@ fs unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
 	  stats.unifications_fail++;
 	}
 
+#ifdef QC_PATH_COMP
       if(opt_compute_qc || opt_print_failure)
 	record_failures(root._dag, a._dag, b._dag);
+#endif
 
       dag_alloc_release(s);
     }
@@ -279,8 +285,10 @@ fs unify_np(fs &root, const fs &a, fs &b)
       total_cost_fail += unification_cost;
       stats.unifications_fail++;
 
+#ifdef QC_PATH_COMP
       if(opt_compute_qc || opt_print_failure)
 	record_failures(root._dag, a._dag, b._dag);
+#endif
     }
   else
     {

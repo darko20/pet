@@ -9,6 +9,7 @@
 #include "agenda.h"
 
 //#define DEBUG
+#define PLATEAU_PARSING
 
 void agenda::push(basic_task *t)
 {
@@ -18,21 +19,13 @@ void agenda::push(basic_task *t)
   fprintf(ferr, "\n");
 #endif
 
-#ifdef SIMPLE_AGENDA
-  _A.push_front(t);
-#else
   _A.push(t);
-#endif
 }
 
 basic_task *agenda::top()
 {
   basic_task *t;
-#ifdef SIMPLE_AGENDA
-  t = _A.front();
-#else
   t = _A.top();
-#endif
   return t;
 }
 
@@ -40,18 +33,16 @@ basic_task *agenda::pop()
 {
   basic_task *t = top();
 
-#ifdef SIMPLE_AGENDA
-  _A.pop_front();
-#else
   _A.pop();
-#endif
 
+#ifdef PLATEAU_PARSING
   if(t->plateau() && !empty() && top()->priority() == t->priority())
     {
       basic_task *same_plateau = pop(); // recursive
-      same_plateau->priority(MAX_PRIORITY);
+      same_plateau->priority(MAX_TASK_PRIORITY);
       push(same_plateau);
     }
+#endif
 
   return t;
 }

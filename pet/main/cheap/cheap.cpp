@@ -16,7 +16,7 @@
 #include "grammar-dump.h"
 #include "inputchart.h"
 
-#ifdef DAG_FAILURES
+#ifdef QC_PATH_COMP
 #include "qc.h"
 #endif
 
@@ -25,28 +25,7 @@
 #include "k2y.h"
 #endif
 
-string get_input(FILE *);
-void interactive();
-void process(char *);
-
 FILE *ferr, *fstatus, *flog;
-
-const int ASBS = 4096; // arbitrary, small buffer size
-
-string get_input(FILE *f)
-{
-  static char buff[ASBS];
-
-  if(fgets(buff, ASBS, f) == NULL)
-    return string();
-  
-  if(buff[0] == '\0' || buff[0] == '\n')
-    return string();
-
-  buff[strlen(buff) - 1] = '\0';
-
-  return string(buff);
-}
 
 // global variables for parsing
 
@@ -61,7 +40,7 @@ void interactive_morph()
   morph_analyzer *m = Grammar->morph();
 
   string input;
-  while(!(input = get_input(stdin)).empty())
+  while(!(input = read_line(stdin)).empty())
     {
 #if 1
       list<morph_analysis> res = m->analyze(input);
@@ -93,16 +72,15 @@ void interactive()
   string input;
   int id = 1;
 
-  while(!(input = get_input(stdin)).empty())
+  while(!(input = read_line(stdin)).empty())
     {
       chart *Chart = 0;
-      agenda *Roots = 0;
       try {
 	fs_alloc_state FSAS;
 
 	input_chart i_chart(New end_proximity_position_map);
 
-	analyze(i_chart, input, Chart, Roots, FSAS, id);
+	analyze(i_chart, input, Chart, FSAS, id);
         
 	if(verbosity == -1)
 	  fprintf(stdout, "%d\t%d\t%d\n",
@@ -127,13 +105,10 @@ void interactive()
 	    int nres = 0;
 	    struct MFILE *mstream = mopen();
 
-	    while(!Roots->empty())
+	    for(list<item *>::iterator iter = Chart->Roots().begin();
+		iter != Chart->Roots().end(); ++iter)
 	      {
-		basic_task *t = Roots->pop();
-		item *it = t->execute();
-		delete t;
-		
-		if(it == 0) continue;
+		item *it = *iter;
 
 		nres++;
 		fprintf(fstatus, "derivation[%d]: ", nres);
@@ -163,16 +138,16 @@ void interactive()
       catch(error &e)
 	{
 	  e.print(ferr); fprintf(ferr, "\n");
+	  if(verbosity > 1) stats.print(fstatus);
 	  stats.readings = -1;
 	}
 
       if(Chart != 0) delete Chart;
-      if(Roots != 0) delete Roots;
 
       id++;
     } /* while */
 
-#ifdef DAG_FAILURES
+#ifdef QC_PATH_COMP
   if(opt_compute_qc)
     {
       FILE *qc = fopen("/tmp/qc.tdl", "w");
@@ -214,6 +189,11 @@ void print_grammar(FILE *f)
     dump_glbs(f);
 
   print_symbol_tables(f);
+
+#ifdef IQTEMU
+  if(Grammar->iqtDict())
+    Grammar->iqtDict()->lookupAll();
+#endif
 }
 
 
@@ -229,14 +209,14 @@ void process(char *s)
 
   catch(error &e)
     {
-      fprintf(fstatus, "- aborted\n");
+      fprintf(fstatus, "\naborted\n");
       e.print(ferr);
       delete Grammar;
       delete cheap_settings;
       return;
     }
 
-  fprintf(fstatus, "- %d types in %0.2g s\n",
+  fprintf(fstatus, "\n%d types in %0.2g s\n",
 	  ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
   if(opt_pg)

@@ -39,6 +39,9 @@
 #include "tsdb++.h"
 #include "k2y.h"
 #include "yy.h"
+#ifdef ONLINEMORPH
+#include "morph.h"
+#endif
 
 string _yyfilteredinput;
 
@@ -50,7 +53,7 @@ void yy_tokenizer::add_tokens(input_chart *i_chart)
 
   if(verbosity > 4)
     fprintf(ferr, "yy_tokenizer:");
-  
+
   FILE *token_output = 0;
   if(opt_yy)
     {
@@ -115,7 +118,7 @@ void yy_tokenizer::add_tokens(input_chart *i_chart)
 	  for(list<full_form>::iterator currf = forms.begin();
 	      currf != forms.end(); ++currf)
 	    {
-	      i_chart->add_token(start, end, *currf, word, currf->priority(), 
+	      i_chart->add_token(start, end, *currf, word, currf->priority(),
 				 poss);
 	    }
 	}
@@ -143,7 +146,7 @@ bool yy_tokenizer::read_int(int &target)
       target = -1;
       return false;
     }
-  
+
   for(; _yyinput[0] && !isdigit(_yyinput[0]); _yyinput++) ;
 
   for(target = n = 0; _yyinput[0] && isdigit(_yyinput[0]); _yyinput++, n++)
@@ -176,13 +179,14 @@ bool yy_tokenizer::read_string(string &target, string &surface)
   //
   if(_yyinput[1] == '#' && _yyinput[2] != '"') _yyinput++;
 
+  bool downcasep = true;
   char last;
   for(_yyinput++, last = 0; 
       _yyinput[0] && (_yyinput[0] != '"' || last == '\\');
       last = (last == '\\' ? 0 : _yyinput[0]), _yyinput++)
     {
       if(_yyinput[0] != '\\' || last == '\\') {
-        target += tolower(_yyinput[0]);
+        target += (downcasep ? tolower(_yyinput[0]) : _yyinput[0]);
         surface += _yyinput[0];
       } /* if */
     }
@@ -270,91 +274,87 @@ bool yy_tokenizer::read_token(int &start, int &end,
 
 // library based interface to language server
 
+#include "../l2lib.h"
+
 // initialize parser with specified grammar
 
-string l2_parser_init(string grammar_path, int k2y_segregation_p)
+void l2_parser_init(const string& grammar_path, const string& log_file_path,
+		      int k2y_segregation_p)
 {
-  //fstatus = fopen("l2dbg.log", "w");
-  fstatus = fopen("nul", "w");
+  fstatus = fopen(log_file_path.c_str(), "w");
   if(fstatus == 0)
-    { // XXX think about error reporting
-      fstatus = stderr;
-    }
+    throw l2_error("Unable to open log file " + log_file_path);
   ferr = fstatus;
 
-  fprintf(fstatus, "[%s] l2_parser_init(\"%s\")\n", current_time(), grammar_path.c_str());
+  try {
+    fprintf(fstatus, "[%s] l2_parser_init(\"%s\", \"%s\", %d)\n",
+	    current_time(), grammar_path.c_str(), log_file_path.c_str(),
+	    k2y_segregation_p);
 
-  cheap_settings = New settings(settings::basename(grammar_path.c_str()), grammar_path.c_str(), "reading");
-  fprintf(fstatus, "\n");
+    cheap_settings = New settings(settings::basename(grammar_path.c_str()),
+				  grammar_path.c_str(), "reading");
+    fprintf(fstatus, "\n");
 
-  options_from_settings(cheap_settings);
+    options_from_settings(cheap_settings);
 
-  //
-  // only reset K2Y modifier segregation if explicity requested from language
-  // server `.ini' file (hence the three-valued logix).
-  //
-  if(k2y_segregation_p >= 0) opt_k2y_segregation = k2y_segregation_p;
+    //
+    // only reset K2Y modifier segregation if explicity requested from language
+    // server `.ini' file (hence the three-valued logix).
+    //
+    if(k2y_segregation_p >= 0) opt_k2y_segregation = k2y_segregation_p;
 
 #ifndef DONT_EDUCATE_USERS
-  if(opt_yy == false)
-    {
-      fprintf(fstatus, "you want YY mode\n");
-      opt_yy = true;
-    }
+    if(opt_yy == false)
+      {
+	fprintf(fstatus, "you want YY mode\n");
+	opt_yy = true;
+      }
 
-  if(opt_k2y == 0)
-    {
-      fprintf(fstatus, "you want k2y's - turning on opt_k2y\n");
-      opt_k2y = 50;
-    }
+    if(opt_k2y == 0)
+      {
+	fprintf(fstatus, "you want k2y's - turning on opt_k2y\n");
+	opt_k2y = 50;
+      }
 
-  if(opt_one_meaning == false)
-    {
-      fprintf(fstatus, "you want only one meaning - turning on opt_one_meaning\n");
-      opt_one_meaning = true;
-    }
+    if(opt_default_les == false)
+      {
+	fprintf(fstatus, "you want default lexical entries  - turning on opt_default_les\n");
+	opt_default_les = true;
+      }
 
-  if(opt_default_les == false)
-    {
-      fprintf(fstatus, "you want default lexical entries  - turning on opt_default_les\n");
-      opt_default_les = true;
-    }
+    if(pedgelimit == 0)
+      {
+	fprintf(fstatus, "you don't want to parse forever - setting edge limit\n");
+	pedgelimit = 10000;
+      }
 
-  if(pedgelimit == 0)
-    {
-      fprintf(fstatus, "you don't want to parse forever - setting edge limit\n");
-      pedgelimit = 10000;
-    }
-
-  if(memlimit == 0)
-    {
-      fprintf(fstatus, "you don't want to use up all memory - setting mem limit\n");
-      memlimit = 50 * 1024 * 1024;
-    }
+    if(memlimit == 0)
+      {
+	fprintf(fstatus, "you don't want to use up all memory - setting mem limit\n");
+	memlimit = 50 * 1024 * 1024;
+      }
 #endif
 
-  timer t_start;
-  fprintf(fstatus, "loading `%s' ", grammar_path.c_str());
-  try { Grammar = New grammar(grammar_path.c_str()); }
+    timer t_start;
+    fprintf(fstatus, "loading `%s' ", grammar_path.c_str());
+    Grammar = New grammar(grammar_path.c_str());
+
+    fprintf(fstatus, "\n%d types in %0.2g s\n",
+	    ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+
+    initialize_version();
+
+    fflush(fstatus);
+  }
 
   catch(error &e)
     {
-      fprintf(fstatus, "- aborted\n");
-      e.print(ferr);
-      if(e.msg().empty())
-	return string("unknown problem loading grammar");
-      else
-	return e.msg();
+      fprintf(fstatus, "\nL2 error: `");
+      e.print(fstatus); fprintf(fstatus, "'.\n");
+      fflush(fstatus);
+
+      throw l2_error(e.msg());
     }
-
-  fprintf(fstatus, "- %d types in %0.2g s\n",
-	  ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
-
-  initialize_version();
-
-  fflush(fstatus);
-
-  return string();
 }
 
 #ifdef __BORLANDC__
@@ -364,88 +364,122 @@ extern unsigned long int Mem_CurrUser;
 extern typecache glbcache;
 extern int total_cached_constraints;
 
+#ifdef TSDBFILEAPI
+tsdb_parse *TsdbParse = 0;
+#endif
+
 // parse one input item; return string of K2Y's
-string l2_parser_parse(string input)
+string l2_parser_parse(const string& input, int nskip)
 {
   static int item_id = 0;
 
-  fprintf(fstatus, "[%s] (%d) l2_parser_parse(\"%s\")\n", current_time(),
-          stats.id, input.c_str());
+  fs_alloc_state FSAS;
+
+  fprintf(fstatus, "[%s] (%d) l2_parser_parse(\"%s\", %d)\n", current_time(),
+          stats.id, input.c_str(), nskip);
 
   fprintf(fstatus, " Permanent dag storage: %d*%dk\n Dynamic dag storage: %d*%dk\n GLB cache: %d*%dk, Constraint cache: %d entries\n",
-	  p_alloc.nchunks(), p_alloc.chunksize() / 1024, 
-	  t_alloc.nchunks(), t_alloc.chunksize() / 1024,
-	  glbcache.alloc().nchunks(), glbcache.alloc().chunksize() / 1024,
-	  total_cached_constraints);
+          p_alloc.nchunks(), p_alloc.chunksize() / 1024,
+          t_alloc.nchunks(), t_alloc.chunksize() / 1024,
+          glbcache.alloc().nchunks(), glbcache.alloc().chunksize() / 1024,
+          total_cached_constraints);
 
 #ifdef __BORLANDC__
   fprintf(fstatus, " LanguageServer storage: %lu\n", Mem_CurrUser);
 #endif
 
+  opt_nth_meaning = nskip + 1;
+
   string result;
   chart *Chart = 0;
-  agenda *Roots = 0;
+
+#ifdef TSDBFILEAPI
+  if(TsdbParse)
+    delete TsdbParse;
+  TsdbParse = new tsdb_parse;
+  TsdbParse->set_input(input);
+#endif
 
   try
+  {
+    item_id++;
+
+    input_chart i_chart(New end_proximity_position_map);
+
+    analyze(i_chart, input, Chart, FSAS, item_id);
+
+    fprintf(fstatus," (%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
+	    stats.id, pedgelimit, stats.readings,
+	    stats.first / 1000., stats.tcpu / 1000.,
+	    stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+	    TotalParseTime.elapsed_ts() / 10.);
+
+    if(verbosity > 1) stats.print(fstatus);
+    fflush(fstatus);
+
+#ifdef TSDBFILEAPI
+    TsdbParse->set_i_length(Chart->length());
+    cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), -1, 0, 0,
+                              *TsdbParse);
+#endif
+
+    struct MFILE *mstream = mopen();
+
+    int nres = 1, skipped = 0;
+    for(list<item *>::iterator iter = Chart->Roots().begin();
+        iter != Chart->Roots().end(); ++iter)
     {
-      fs_alloc_state FSAS;
-
-      item_id++;
-      
-      input_chart i_chart(New end_proximity_position_map);
-
-      analyze(i_chart, input, Chart, Roots, FSAS, item_id);
-
-      fprintf(fstatus," (%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
-	      stats.id, pedgelimit, stats.readings,
-	      stats.first / 1000., stats.tcpu / 1000.,
-	      stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-	      TotalParseTime.elapsed_ts() / 10.);
-
-      if(verbosity > 1) stats.print(fstatus);
-      fflush(fstatus);
-
-      struct MFILE *mstream = mopen();
-      
-      int nres = 1;
-      while(!Roots->empty())
-	{
-	  basic_task *t = Roots->pop();
-	  item *it = t->execute();
-	  delete t;
-		
-	  if(it == 0) continue;
-	  
-	  mflush(mstream);
-	  int n = construct_k2y(nres++, it, false, mstream);
-	  if(n >= 0)
-	    {
-	      result += string(mstring(mstream));
-	      if(opt_one_meaning) break;
-	    }
-	}
-      mclose(mstream);
-    } /* try */
+      mflush(mstream);
+      int n = construct_k2y(nres++, *iter, false, mstream);
+      if(n >= 0)
+      {
+        if(skipped >= nskip)
+        {
+		result += string(mstring(mstream));
+		if(skipped == nskip)
+		  break;
+        }
+        else
+          skipped++;
+      }
+    }
+    mclose(mstream);
+  } /* try */
 
   catch(error_ressource_limit &e)
-    {
-      fprintf(fstatus, " (%d) [%d] --- edge limit exceeded "
-	      "(%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-	      stats.id, pedgelimit,
-	      stats.first / 1000., stats.tcpu / 1000.,
-	      stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-      fflush(fstatus);
-    }
+  {
+    fprintf(fstatus, " (%d) [%d] --- edge limit exceeded "
+            "(%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+            stats.id, pedgelimit,
+            stats.first / 1000., stats.tcpu / 1000.,
+            stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
+    fflush(fstatus);
 
-    catch(error &e)
-      {
-	fprintf(fstatus, " L2 error: `");
-	e.print(fstatus); fprintf(fstatus, "'.\n");
-        fflush(fstatus);
-      }
+#ifdef TSDBFILEAPI
+    if(Chart)
+      TsdbParse->set_i_length(Chart->length());
+    cheap_tsdb_summarize_error(e, -1, *TsdbParse);
+#endif
+  }
+
+  catch(error &e)
+  {
+    fprintf(fstatus, " L2 error: `");
+    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fflush(fstatus);
+
+#ifdef TSDBFILEAPI
+    if(Chart)
+      TsdbParse->set_i_length(Chart->length());
+    cheap_tsdb_summarize_error(e, -1, *TsdbParse);
+#endif
+
+    delete Chart;
+
+    throw l2_error(e.msg());
+  }
 
   delete Chart;
-  delete Roots;
 
   if(verbosity > 4)
     fprintf(fstatus, " result: %s\n", result.c_str());
@@ -455,14 +489,87 @@ string l2_parser_parse(string input)
   return result;
 }
 
+void l2_tsdb_write(FILE *f_parse, FILE *f_result, FILE *f_item, const string& roletable)
+{
+#ifdef TSDBFILEAPI
+  if(TsdbParse == 0)
+    return;
+
+  TsdbParse->set_rt(roletable);
+
+  TsdbParse->file_print(f_parse, f_result, f_item);
+  delete TsdbParse;
+  TsdbParse = 0;
+#endif
+}
+
+vector<l2_morph_analysis> l2_morph_analyse(const string& form)
+{
+  vector<l2_morph_analysis> results;
+  
+#ifndef ONLINEMORPH
+  throw l2_error("L2 morphology component not available");
+#else
+  try
+  {
+    list<morph_analysis> res = Grammar->morph()->analyze(form, false);
+    for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+    {
+      l2_morph_analysis a;
+      
+      for(list<string>::iterator f = it->forms().begin(); 
+          f != it->forms().end(); 
+          ++f)
+        a.forms.push_back(*f);
+      for(list<type_t>::iterator r = it->rules().begin(); 
+          r != it->rules().end(); 
+          ++r)
+        a.rules.push_back(printnames[*r]);
+      
+      results.push_back(a);
+    }
+  }
+
+  catch(error &e)
+  {
+    fprintf(fstatus, " L2 error: `");
+    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fflush(fstatus);
+    
+    throw l2_error(e.msg());
+  }
+#endif
+  
+  return results;
+}
+
 // free resources of parser
 void l2_parser_exit()
 {
   fprintf(fstatus, "[%s] l2_parser_exit()\n", current_time());
 
-  delete Grammar;
-  delete cheap_settings;
+  try // destructors should not throw, but we want to be safe
+  { 
+    delete Grammar;
+    delete cheap_settings;
+#ifdef TSDBFILEAPI
+    if(TsdbParse)
+    {
+      delete TsdbParse;
+      TsdbParse = 0;
+    }
+#endif
+  }
 
+  catch(error &e)
+  {
+    fprintf(fstatus, " L2 error: `");
+    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fflush(fstatus);
+    
+    throw l2_error(e.msg());
+  }
+  
   fclose(fstatus);
 }
 
@@ -751,8 +858,7 @@ int cheap_server_child(int socket) {
 
     fs_alloc_state FSAS;
     chart *Chart = 0;
-    agenda *Roots = 0;
-  
+
     input_chart i_chart(New end_proximity_position_map);
 
     try {
@@ -814,7 +920,7 @@ int cheap_server_child(int socket) {
       strcpy(tsdbitem, input);
       _yyfilteredinput = string(tsdbitem);
 
-      analyze(i_chart, input, Chart, Roots, FSAS, ntsdbitems);
+      analyze(i_chart, input, Chart, FSAS, ntsdbitems);
 
       gettimeofday(&tend, NULL);
       treal = (tend.tv_sec - tstart.tv_sec) * 1000 
@@ -834,22 +940,23 @@ int cheap_server_child(int socket) {
       } /* for */
         
       struct MFILE *mstream = mopen();
-      int nres = 1;
+      int nres = 1, skipped = 0;
 
-      while(!Roots->empty())
+      for(list<item *>::iterator iter = Chart->Roots().begin(); iter != Chart->Roots().end(); ++iter)
 	{
-	  basic_task *t = Roots->pop();
-	  item *it = t->execute();
-	  delete t;
-		
-	  if(it == 0) continue;
-	  
 	  mflush(mstream);
-	  int n = construct_k2y(nres++, it, false, mstream);
+	  int n = construct_k2y(nres++, *iter, false, mstream);
 	  if(n >= 0)
 	    {
-	      socket_write(socket, mstring(mstream));
-	      if(opt_one_meaning) break;
+	      if(skipped >= (opt_nth_meaning-1))
+		{
+		  socket_write(socket, mstring(mstream));
+		  if((opt_nth_meaning-1) != 0 &&
+		     skipped == (opt_nth_meaning-1))
+		    break;
+		}
+	      else
+		skipped++;
 	    }
 	}
       mclose(mstream);
@@ -871,7 +978,9 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 #ifdef TSDBAPI
-      if(opt_tsdb) yy_tsdb_summarize_error(_yyfilteredinput.c_str(), i_chart.max_position(), e);
+      if(opt_tsdb) 
+        yy_tsdb_summarize_error(_yyfilteredinput.c_str(), 
+                                i_chart.max_position(), e);
 #endif
     } /* catch */
 
@@ -886,7 +995,9 @@ int cheap_server_child(int socket) {
       } /* for */
 
 #ifdef TSDBAPI
-      if(opt_tsdb) yy_tsdb_summarize_error(_yyfilteredinput.c_str(), i_chart.max_position(), e);
+      if(opt_tsdb) 
+        yy_tsdb_summarize_error(_yyfilteredinput.c_str(), 
+                                i_chart.max_position(), e);
 #endif
     } /* catch */
 
@@ -912,6 +1023,7 @@ int cheap_server_child(int socket) {
                 getpid(), current_time());
         fflush(*log);
       } /* for */
+      input[0] = (char)0;
       kaerb = true;
     } /* if */
     else {
@@ -933,18 +1045,18 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 
-#ifdef TSDBAPI
-      if(!errorp && opt_tsdb && Chart != NULL) {
-        yy_tsdb_summarize_item(*Chart, Roots, _yyfilteredinput.c_str(), i_chart.max_position(), treal, input);
-      } /* if */
-#endif
-      socket_write(socket, "\f");
-
     } /* else */
+
+#ifdef TSDBAPI
+    if(!errorp && opt_tsdb && Chart != NULL) {
+      yy_tsdb_summarize_item(*Chart, _yyfilteredinput.c_str(), 
+                             i_chart.max_position(), treal, input);
+    } /* if */
+#endif
+    if(!kaerb) socket_write(socket, "\f");
 
     if(tsdbitem != 0) delete[] tsdbitem; tsdbitem = 0;
     if(Chart != 0) delete Chart; Chart = 0;
-    delete Roots;
 
   } /* for */
 
@@ -1048,17 +1160,21 @@ static void _sigchld(int foo) {
 } /* _sigchld() */
 
 #ifdef TSDBAPI
-int yy_tsdb_summarize_item(chart &Chart, agenda *Roots, const char *item,
+int yy_tsdb_summarize_item(chart &Chart, const char *item,
 			   int length, int treal, char *rt) {
 
   if(!client_open_item_summary()) {
     capi_printf("(:run . (");
     cheap_tsdb_summarize_run();
     capi_printf("))\n");
-    capi_printf("(:i-length . %d) (:i-input . ", length);
-    capi_putstr(item);
-    capi_printf(")");
-    cheap_tsdb_summarize_item(Chart, Roots, length, treal, 0, rt);
+
+    capi_printf("(:i-length . %d) (:i-input . \"%s\")", length,
+                escape_string(item == 0 ? "" : item).c_str());
+
+    tsdb_parse T;
+    cheap_tsdb_summarize_item(Chart, length, treal, 0, rt, T);
+    T.capi_print();
+    
     return client_send_item_summary();
   } /* if */
 
@@ -1078,10 +1194,13 @@ int yy_tsdb_summarize_item(chart &Chart, agenda *Roots, const char *item,
 int yy_tsdb_summarize_error(const char *item, int length, error &condition) {
 
   if(!client_open_item_summary()) {
-    capi_printf("(:i-length . %d) (:i-input . ", length);
-    capi_putstr(item);
-    capi_printf(")");
-    cheap_tsdb_summarize_error(condition, 0);
+    capi_printf("(:i-length . %d) (:i-input . \"%s\")", length,
+                escape_string(item == 0 ? "" : item).c_str());
+
+    tsdb_parse T;
+    cheap_tsdb_summarize_error(condition, 0, T);
+    T.capi_print();
+
     return client_send_item_summary();
   } /* if */
   for(list<FILE *>::iterator log = _log_channels.begin();

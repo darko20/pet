@@ -57,7 +57,7 @@ class mrs_rel
   inline int span() { return _label.size(); }
 
   list<int> id_list(char *path);
-  list<int> id_list_by_paths(char **paths);
+  list<int> id_list_by_roles(char **paths);
 
   bool number_convert(void);
 
@@ -96,7 +96,6 @@ class mrs
 
   ~mrs();
 
-
   int id(fs f);
 
   void push_rel(mrs_rel const &r);
@@ -113,6 +112,8 @@ class mrs
   inline int index() { return _index; }
 
   inline int hcons(int lhs) { return _hcons.lookup(lhs); }
+  
+  void countpseudorel();
 
   void print(FILE *f);
 
@@ -128,6 +129,7 @@ class mrs
   mrs_hcons _hcons;
   map<dag_node *, int> _id_dict;
   int _next_id;
+  int _pseudorels;
 
   map<int, list_int *> _used_rels;
   
@@ -143,17 +145,4 @@ inline istream &operator>>(istream &I, mrs_rel &) { return I; }
 inline ostream &operator<<(ostream &O, const mrs_rel &) { return O; }
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
 

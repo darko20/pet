@@ -162,6 +162,20 @@ void compute_code_topo()
     }
 }
 
+void debug_print_subtypes(bitcode *b)
+{
+  list_int *l = b->get_elements();
+  list_int *c = l;
+           
+  while(c)
+  {
+    fprintf(fstatus, " %s", types.name(idbit_type[first(c)]).c_str());
+    c = rest(c);
+  }
+           
+  free_list(l);
+}
+
 // recompute hierarchy so it's a semilattice
 // theoretical background: (Ait-Kaci et al., 1989)
 void make_semilattice()
@@ -193,7 +207,7 @@ void make_semilattice()
       for(j = i + 1; j < high; j++) if(leaftypeparent[j] == -1)
 	{
 	  // combine i's and j's bitcodes by binary and, and check
-	  // if result if all zeroes
+	  // if result is all zeroes
 	  bool empty = intersect_empty(*types[i]->bcode,
 				       *types[j]->bcode, temp);
 	  
@@ -213,6 +227,19 @@ void make_semilattice()
 	      glbtype = new_type(name, false);
 	      glbtype->def = new_location("synthesized", 0, 0);
 	      glbtype->bcode = temp;
+
+           if(opt_glbdebug)
+           {
+             fprintf(fstatus, "Introducing %s for %s and %s:\n",
+                     name, types.name(i).c_str(), types.name(j).c_str());
+             fprintf(fstatus, "  [%s]:", types.name(i).c_str());
+             debug_print_subtypes(types[i]->bcode);
+             fprintf(fstatus, "\n  [%s]:", types.name(j).c_str());
+             debug_print_subtypes(types[j]->bcode);
+             fprintf(fstatus, "\n  [%s]:", name);
+             debug_print_subtypes(temp);
+             fprintf(fstatus, "\n");
+           }
 
 	      // register the new type's bitcode in the hash table
 	      register_codetype(*temp, glbtype->id);
