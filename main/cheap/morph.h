@@ -57,7 +57,7 @@ class morph_analysis
 class morph_analyzer
 {
  public:
-  morph_analyzer(class grammar *G);
+  morph_analyzer(class tGrammar *G);
   ~morph_analyzer();
 
   void add_global(string rule);
@@ -86,7 +86,7 @@ class morph_analyzer
   void add_subrule(class morph_subrule *sr) 
     { _subrules.push_back(sr); }
 
-  class grammar *_grammar;
+  class tGrammar *_grammar;
 
   class morph_lettersets *_lettersets;
   class morph_trie *_suffixrules;

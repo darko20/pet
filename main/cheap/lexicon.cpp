@@ -198,7 +198,7 @@ lex_stem::instantiate()
     return expanded;
 }
 
-full_form::full_form(dumper *f, grammar *G)
+full_form::full_form(dumper *f, tGrammar *G)
 {
     int preterminal = f->undump_int();
     _stem = G->find_stem(preterminal);

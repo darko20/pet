@@ -42,7 +42,7 @@ FILE *ferr, *fstatus, *flog;
 
 // global variables for parsing
 
-grammar *Grammar = 0;
+tGrammar *Grammar = 0;
 settings *cheap_settings = 0;
 
 #ifdef ONLINEMORPH
@@ -272,7 +272,7 @@ void process(char *s)
       cheap_settings = new settings(settings::basename(s), s, "reading");
       fprintf(fstatus, "\n");
       fprintf(fstatus, "loading `%s' ", s);
-      Grammar = new grammar(s); 
+      Grammar = new tGrammar(s); 
     }
     
     catch(tError &e)

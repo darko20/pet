@@ -543,7 +543,7 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
 
     timer t_start;
     fprintf(fstatus, "loading `%s' ", grammar_path.c_str());
-    Grammar = new grammar(grammar_path.c_str());
+    Grammar = new tGrammar(grammar_path.c_str());
 
     fprintf(fstatus, "\n%d types in %0.2g s\n",
 	    ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
