@@ -252,10 +252,8 @@ packed_edge(item *newitem)
                     fprintf(ferr, "proactive (%s) packing:\n", backward
                             ? "equi" : "subs");
                     newitem->print(ferr);
-                    dag_print(ferr, newitem->get_fs().dag());
                     fprintf(ferr, "\n --> \n");
                     olditem->print(ferr);
-                    dag_print(ferr, olditem->get_fs().dag());
                     fprintf(ferr, "\n");
                 }
                 

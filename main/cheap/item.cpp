@@ -576,20 +576,24 @@ lex_item::adjust_priority(const char *settingname)
 // Unpacking
 //
 
+// for printing debugging output
+int unpacking_level;
+
 list<item *>
 item::unpack()
 {
     list<item *> res;
 
+    unpacking_level++;
     if(verbosity > 2)
-        fprintf(stderr, "> unpack [%d]\n", id());
+        fprintf(stderr, "%*s> unpack [%d]\n", unpacking_level * 2, "", id());
 
     // Ignore frozen items.
     if(frozen() == 2)
     {
         if(verbosity > 2)
-            fprintf(stderr, "< unpack [%d] ( )\n", id());
-        
+            fprintf(stderr, "%*s< unpack [%d] ( )\n", unpacking_level * 2, "", id());
+        unpacking_level--;
         return res;
     }
 
@@ -608,7 +612,7 @@ item::unpack()
 
     if(verbosity > 2)
     {
-        fprintf(stderr, "< unpack [%d] ( ", id());
+        fprintf(stderr, "%*s< unpack [%d] ( ", unpacking_level * 2, "", id());
         for(list<item *>::iterator i = res.begin(); i != res.end(); ++i)
             fprintf(stderr, "%d ", (*i)->id());
         fprintf(stderr, ")\n");
@@ -645,6 +649,15 @@ phrasal_item::unpack1()
     return res;
 }
 
+void
+print_config(FILE *f, int motherid, vector<item *> &config)
+{
+    fprintf(f, "%d[", motherid);
+    for(vector<item *>::iterator it = config.begin(); it != config.end(); ++it)
+        fprintf(f, "%s%d", it == config.begin() ? "" : " ", (*it)->id());
+    fprintf(f, "]");
+}
+
 // Recursively compute all configurations of dtrs, and accumulate valid
 // instantiations (wrt mother) in res.
 void
@@ -659,12 +672,26 @@ phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
         {
             if(verbosity > 9)
             {
-                fprintf(stderr, "created edge ");
+                fprintf(stderr, "%*screated edge %d from ",
+                        unpacking_level * 2, "", combined->id());
+                print_config(stderr, id(), config);
+                fprintf(stderr, "\n");
                 combined->print(stderr);
                 fprintf(stderr, "\n");
-                dag_print(stderr, combined->get_fs().dag());
+                if(verbosity > 14)
+                    dag_print(stderr, combined->get_fs().dag());
             }
             res.push_back(combined);
+        }
+        else
+        {
+            if(verbosity > 9)
+            {
+                fprintf(stderr, "%*sfailure instantiating ",
+                        unpacking_level * 2, "");
+                print_config(stderr, id(), config);
+                fprintf(stderr, "\n");
+            }
         }
 	return;
     }
