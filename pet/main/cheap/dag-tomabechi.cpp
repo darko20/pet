@@ -687,6 +687,7 @@ struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
 void
 dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
+    unification_cost = 0;
     dag_subsumes1(dag1, dag2, forward, backward);
     dag_invalidate_changes();
 }
@@ -694,26 +695,54 @@ dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 bool
 dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
+    unification_cost++;
+
     dag_node *c1 = dag_get_forward(dag1),
              *c2 = dag_get_copy(dag2);
     
     if(forward)
     {
         if(c1 == 0)
+        {
             dag_set_forward(dag1, dag2);
+        }
         else if(c1 != dag2)
+        {
             forward = false;
+#ifdef QC_PATH_COMP
+            if(unify_record_failure)
+            {
+                save_or_clear_failure();
+                failure =new unification_failure(unification_failure::COREF,
+                                                 unify_path_rev,
+                                                 unification_cost);
+            }
+#endif
+        }
     }
     
     if(backward)
     {
         if(c2 == 0)
+        {
             dag_set_copy(dag2, dag1);
+        }
         else if(c2 != dag1)
+        {
             backward = false;
+#ifdef QC_PATH_COMP
+            if(unify_record_failure)
+            {
+                save_or_clear_failure();
+                failure =new unification_failure(unification_failure::COREF,
+                                                 unify_path_rev,
+                                                 unification_cost);
+            }
+#endif
+        }
     }
     
-    if(forward == false && backward == false)
+    if(forward == false && backward == false && !unify_all_failures)
     {
         return false;
     }
@@ -723,11 +752,35 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
         bool st_12, st_21;
         subtype_bidir(dag1->type, dag2->type, st_12, st_21);
         if(!st_12)
+        {
             backward = false;
+#ifdef QC_PATH_COMP
+            if(unify_record_failure)
+            {
+                save_or_clear_failure();
+                failure =new unification_failure(unification_failure::CLASH,
+                                                 unify_path_rev,
+                                                 unification_cost,
+                                                 dag2->type, dag1->type);
+            }
+#endif
+        }
         if(!st_21)
+        {
             forward = false;
+#ifdef QC_PATH_COMP
+            if(unify_record_failure)
+            {
+                save_or_clear_failure();
+                failure =new unification_failure(unification_failure::COREF,
+                                                 unify_path_rev,
+                                                 unification_cost,
+                                                 dag1->type, dag2->type);
+            }
+#endif
+        }
 
-        if(forward == false && backward == false)
+        if(forward == false && backward == false && !unify_all_failures)
         {
             return false;
         }
@@ -735,9 +788,9 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     
     if(dag1->arcs || dag2->arcs)
     {
-        // Unfilling makes this slightly more complicated. We need to visit
-        // a structure even when the corresponding part has been unfilled so
-        // that we find all coreferences. 
+        // Partial expansion makes this slightly more complicated. We
+        // need to visit a structure even when the corresponding part
+        // has been unfilled so that we find all coreferences.
         dag_node *tmpdag1 = dag1, *tmpdag2 = dag2;
         
         if(!dag1->arcs && typedag[dag1->type]->arcs)
@@ -761,10 +814,14 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
                 if(!dag_subsumes1(arc1->val, arc2->val, forward, backward))
                 {
 #ifdef QC_PATH_COMP
+                    // We will not get here when unify_all_failures is on,
+                    // since we never return false. So we can always return
+                    // from here, unconditionally.
+                    
                     if(unify_record_failure)
                         unify_path_rev = pop_rest(unify_path_rev);
-#endif
                     return false;
+#endif
                 }
 #ifdef QC_PATH_COMP
                 if(unify_record_failure)

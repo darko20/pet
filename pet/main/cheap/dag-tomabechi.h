@@ -106,6 +106,11 @@ list<class unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_nod
 							 list_int *initial_path = 0, dag_node **result_root = 0);
 
 list<list_int *> dag_paths(dag_node *dag, dag_node *search);
+
+list<unification_failure *>
+dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
+                          bool &forward, bool &backward,
+                          bool all_failures);
 #endif
 
 // non-permanent dags (for hyperactive parsing)

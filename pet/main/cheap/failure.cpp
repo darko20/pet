@@ -17,7 +17,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* class representing a unification failure */
+/* class representing a unification/subsumption failure */
 
 #include "pet-system.h"
 #include "failure.h"
@@ -26,127 +26,156 @@
 unification_failure::unification_failure()
   : _cyclic_paths()
 {
-  _type = SUCCESS; _path = 0; _s1 = _s2 = -1; _cost = -1;
+    _type = SUCCESS;
+    _path = 0;
+    _s1 = _s2 = -1;
+    _cost = -1;
 }
 
 unification_failure::unification_failure(const unification_failure &f)
-  : _cyclic_paths()
+    : _cyclic_paths()
 {
-  _type = f._type; _path = copy_list(f._path); _s1 = f._s1; _s2 = f._s2; _cost = f._cost;
+    _type = f._type;
+    _path = copy_list(f._path);
+    _s1 = f._s1;
+    _s2 = f._s2;
+    _cost = f._cost;
   
-  for(list<list_int *>::const_iterator iter = f._cyclic_paths.begin(); iter != f._cyclic_paths.end(); ++iter)
-    _cyclic_paths.push_back(copy_list(*iter));
+    for(list<list_int *>::const_iterator iter = f._cyclic_paths.begin();
+        iter != f._cyclic_paths.end(); ++iter)
+        _cyclic_paths.push_back(copy_list(*iter));
 }
 
-unification_failure::unification_failure(failure_type t, list_int *rev_path, int cost,
-					 int s1, int s2, dag_node *cycle, dag_node *root)
-  : _cyclic_paths()
+unification_failure::unification_failure(failure_type t, list_int *rev_path,
+                                         int cost, int s1, int s2,
+                                         dag_node *cycle, dag_node *root)
+    : _cyclic_paths()
 {
-  _type = t; _path = reverse(rev_path); _s1 = s1; _s2 = s2; _cost = cost;
+    _type = t;
+    _path = reverse(rev_path);
+    _s1 = s1;
+    _s2 = s2; _cost = cost;
 #ifdef QC_PATH_COMP
-  if(cycle && root)
+    if(cycle && root)
     {
-      _cyclic_paths = dag_paths(root, cycle);
+        _cyclic_paths = dag_paths(root, cycle);
     }
 #endif
 }
 
 unification_failure::~unification_failure()
 {
-  free_list(_path);
-  for(list<list_int *>::iterator iter = _cyclic_paths.begin(); iter != _cyclic_paths.end(); ++iter)
-    free_list(*iter);
+    free_list(_path);
+    for(list<list_int *>::iterator iter = _cyclic_paths.begin();
+        iter != _cyclic_paths.end(); ++iter)
+        free_list(*iter);
 }
   
-unification_failure &unification_failure::operator=(const unification_failure &f)
+unification_failure &
+unification_failure::operator=(const unification_failure &f)
 {
-  if(_path) free_list(_path);
-  for(list<list_int *>::iterator iter = _cyclic_paths.begin(); iter != _cyclic_paths.end(); ++iter)
-    free_list(*iter);
+    if(_path)
+        free_list(_path);
+    
+    for(list<list_int *>::iterator iter = _cyclic_paths.begin();
+        iter != _cyclic_paths.end(); ++iter)
+        free_list(*iter);
 
-  _type = f._type; _path = copy_list(f._path); _s1 = f._s1; _s2 = f._s2;
+    _type = f._type;
+    _path = copy_list(f._path);
+    _s1 = f._s1;
+    _s2 = f._s2;
 
-  for(list<list_int *>::const_iterator iter = f._cyclic_paths.begin(); iter != f._cyclic_paths.end(); ++iter)
-    _cyclic_paths.push_back(copy_list(*iter));
+    for(list<list_int *>::const_iterator iter = f._cyclic_paths.begin();
+        iter != f._cyclic_paths.end(); ++iter)
+        _cyclic_paths.push_back(copy_list(*iter));
 
-  return *this;
+    return *this;
 }
 
-void print_path(FILE *f, list_int *path)
+void
+print_path(FILE *f, list_int *path)
 {
-  bool dot = false;
+    bool dot = false;
 
-  if(!path) fprintf(f, "<empty path>");
+    if(!path) fprintf(f, "<empty path>");
   
-  while(path)
+    while(path)
     {
-      fprintf(f, "%s%s", dot ? "." : "", attrname[first(path)]), dot = true;
-      path = rest(path);
+        fprintf(f, "%s%s", dot ? "." : "", attrname[first(path)]), dot = true;
+        path = rest(path);
     }
 }
 
-void unification_failure::print(FILE *f) const
+void
+unification_failure::print(FILE *f) const
 {
-  switch(_type)
+    switch(_type)
     {
     case SUCCESS:
-      fprintf(f, "success");
-      break;
+        fprintf(f, "success");
+        break;
     case CLASH:
-      fprintf(f, "type clash");
-      break;
+        fprintf(f, "type clash");
+        break;
     case CYCLE:
-      fprintf(f, "cycle");
-      break;
+        fprintf(f, "cycle");
+        break;
     case CONSTRAINT:
-      fprintf(f, "constraint clash");
-      break;
+        fprintf(f, "constraint clash");
+        break;
+    case COREF:
+        fprintf(f, "coreference clash");
+        break;
     default:
-      fprintf(f, "unknown failure");
-      break;
+        fprintf(f, "unknown failure");
+        break;
     }
 
-  if(_path == 0)
+    if(_path == 0)
     {
-      fprintf(f, " at root level");
+        fprintf(f, " at root level");
     }
-  else
+    else
     {
-      fprintf(f, " under ");
-      print_path(f);
+        fprintf(f, " under ");
+        print_path(f);
     }
 
-  if(_type == CLASH)
+    if(_type == CLASH)
     {
-      fprintf(f, ": `%s' & `%s'", typenames[_s1], typenames[_s2]);
+        fprintf(f, ": `%s' & `%s'", typenames[_s1], typenames[_s2]);
     }
-  else if(_type == CONSTRAINT)
+    else if(_type == CONSTRAINT)
     {
-      int meet = glb(_s1, _s2);
-
-      fprintf(f, ": constraint `%s' introduced by `%s' & `%s'",
-	      meet == -1 ? "bottom" : typenames[meet], typenames[_s1], typenames[_s2]);
+        int meet = glb(_s1, _s2);
+        
+        fprintf(f, ": constraint `%s' introduced by `%s' & `%s'",
+                meet == -1 ? "bottom" : typenames[meet],
+                typenames[_s1], typenames[_s2]);
     }
-  else if(_type == CYCLE)
+    else if(_type == CYCLE)
     {
-      fprintf(f, ":");
-      for(list<list_int *>::const_iterator iter = _cyclic_paths.begin(); iter != _cyclic_paths.end(); ++iter)
+        fprintf(f, ":");
+        for(list<list_int *>::const_iterator iter = _cyclic_paths.begin();
+            iter != _cyclic_paths.end(); ++iter)
 	{
-	  fprintf(f, "\n  ");
-	  ::print_path(f, *iter);
+            fprintf(f, "\n  ");
+            ::print_path(f, *iter);
 	}
     }
 }
 
-int compare(const unification_failure &a, const unification_failure &b)
+int
+compare(const unification_failure &a, const unification_failure &b)
 {
-  if(a._type < b._type)
-    return -1;
-  
-  if(b._type < a._type)
-    return 1;
-
-  // types are equal - compare paths
-
-  return compare(a._path, b._path);
+    if(a._type < b._type)
+        return -1;
+    
+    if(b._type < a._type)
+        return 1;
+    
+    // types are equal - compare paths
+    
+    return compare(a._path, b._path);
 }
