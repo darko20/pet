@@ -473,6 +473,11 @@ tMEM::parseFeature(int n)
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
+        else
+        {
+            syntax_error("expecting subfeature", LA(0));
+            consume(1);
+        }
     }
 
     match(T_RBRACKET, "end of feature vector", true);
@@ -490,7 +495,8 @@ tMEM::parseFeature(int n)
         int code = map()->featureToCode(v);
         if(verbosity > 9)
             fprintf(fstatus, " (code %d)\n", code);
-        if(code >= (int) _weights.size()) _weights.resize(code);
+        assert(code >= 0);
+        if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;
     }
 }
@@ -499,6 +505,7 @@ double
 tMEM::score(const tSMFeature &f)
 {
     int code = map()->featureToCode(f);
+    assert(code >=0);
     if(code < (int) _weights.size())
         return _weights[code];
     else
