@@ -2,7 +2,6 @@
   - option handling
   - YY references; split yy.cpp module into seperate modules
   - runtime selection of online-morphology vs full-forms
-  - remove New hack
 
 - build process
   - autoconfig
