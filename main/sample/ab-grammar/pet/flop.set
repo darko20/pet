@@ -26,10 +26,7 @@ preload-files := "".
 ;; list of files to load after everything else
 postload-files := "pet/qc-traditional".
 
-;; to complete names from irregs.tab
-lex-rule-suffix := "_INFL_RULE".
-
-affixes-are-instances.
+fullform-file := "full".
 
 ;; file that contains version information
 version-file := "Version.lisp".

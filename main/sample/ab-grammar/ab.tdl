@@ -34,7 +34,7 @@ string := symbol.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 nonterminal := *top* & [ ARGS *list*, HD *top*, NHD *top* ].
-preterminal := *top* & [ STEM *list* ].
+preterminal := *top* & [ STEM string ].
 
 phrase := nonterminal.
 front := nonterminal.
@@ -42,6 +42,10 @@ front := nonterminal.
 a-nonterminal := preterminal.
 b-nonterminal := preterminal.
 :end :type.
+
+:begin :instance :status inflrule.
+null_infl_rule := nonterminal & [ ARGS < #1 > ].
+:end :instance.
 
 :begin :instance :status nonterminal.
 phrase_rule := phrase & [ ARGS < front & #1, b-nonterminal & #2>, HD #1, NHD #2].
