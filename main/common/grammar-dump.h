@@ -27,7 +27,7 @@
 #define GRAMMAR_EXT ".grm"
 
 #define DUMP_MAGIC 0x03422711
-#define DUMP_VERSION 15
+#define DUMP_VERSION 16
 
 // version history
 // 1 -> 2 : introduced featset information for each type (2-nov-99)
@@ -51,6 +51,7 @@
 //            future without having to change the version number (19-jun-01)
 // 14 -> 15 : remove lexicon and rule section; list of rules and lexicon is
 //            now constructed in the parser using status values 
+// 15 -> 16: add new section containing grammar properties
 
 // A grammar file consists of a header, a table of contents, and a 
 // number of sections in arbitrary order
@@ -61,37 +62,37 @@ char *undump_header(dumper *f, int &version);
 // section type identifiers
 enum sectiontype { SEC_NOSECTION, SEC_SYMTAB, SEC_PRINTNAMES, SEC_HIERARCHY,
 		   SEC_FEATTABS, SEC_FULLFORMS, SEC_INFLR, SEC_CONSTRAINTS,
-                   SEC_IRREGS };
+                   SEC_IRREGS, SEC_PROPERTIES };
 
 class dump_toc
 {
  public:
-  dump_toc(dumper *dump);
-  bool goto_section(sectiontype s);
-
+    dump_toc(dumper *dump);
+    bool goto_section(sectiontype s);
+    
  private:
-  dumper *_dump;
-
-  map<sectiontype, long int> _toc;
+    dumper *_dump;
+    
+    map<sectiontype, long int> _toc;
 };
 
 class dump_toc_maker
 {
  public:
-  dump_toc_maker(dumper *dump);
-  ~dump_toc_maker();
-
-  void add_section(sectiontype s);
-  void close();
-
-  void start_section(sectiontype s);
-  
+    dump_toc_maker(dumper *dump);
+    ~dump_toc_maker();
+    
+    void add_section(sectiontype s);
+    void close();
+    
+    void start_section(sectiontype s);
+    
  private:
-  dumper *_dump;
-  bool _open;
-
-  map<sectiontype, long int> _toc;
-  map<sectiontype, long int> _where;
+    dumper *_dump;
+    bool _open;
+    
+    map<sectiontype, long int> _toc;
+    map<sectiontype, long int> _where;
 };
 
 #endif

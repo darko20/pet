@@ -460,7 +460,7 @@ int core_glb(int a, int b)
     return lookup_code(*temp_bitcode);
 }
 
-inline bool
+bool
 core_subtype(type_t a, type_t b)
 {
     if(a == b) return true;
