@@ -27,7 +27,7 @@
 chunk_allocator t_alloc(CHUNK_SIZE, false);
 chunk_allocator p_alloc(CHUNK_SIZE, true);
 
-chunk_allocator::chunk_allocator(int chunk_size, bool down        )
+chunk_allocator::chunk_allocator(int chunk_size, bool down)
 {
 #ifdef USEMMAP
   int pagesize = sysconf(_SC_PAGESIZE);
@@ -41,10 +41,14 @@ chunk_allocator::chunk_allocator(int chunk_size, bool down        )
   _nchunks = 0;
 
   _chunk = New char* [MAX_CHUNKS];
+  if(_chunk == 0)
+    throw error("alloc: out of memory"); 
 
   _init_core(down);
 
   _chunk[_nchunks++] = (char *) _core_alloc(_chunk_size);
+  if(_chunk[_curr_chunk] == 0)
+    throw error("alloc: out of memory"); 
 
   _stats_chunk_sum = _stats_chunk_n = 0;
 
@@ -73,8 +77,13 @@ void chunk_allocator::_overflow(int n)
   if(_curr_chunk >= _nchunks)
     {
       _chunk[_nchunks++] = (char *) _core_alloc(_chunk_size);
+      if(_chunk[_curr_chunk] == 0)
+      { 
+        _nchunks--;
+        reset(); 
+        throw error("alloc: out of memory"); 
+      }
     }
-  
   _chunk_pos = 0;
 }
 

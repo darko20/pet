@@ -14,6 +14,9 @@
 #include "item.h"
 #include "tsdb++.h"
 
+// Prototypes
+void k2y_deg(mrs &m, int clause, int modid, int argid);
+
 // #define JAPANESE
 
 // macro to ease conversion from L E D A to STL - can be used like the
@@ -69,6 +72,32 @@ static struct MFILE *mstream;
 // really constructing it
 //
 
+// safeguard against endless recursion
+#define K2Y_MAX_DEPTH 256
+
+
+class K2YSafeguard
+{
+public:
+  K2YSafeguard()
+  {
+    ++_depth;
+    if(_depth > K2Y_MAX_DEPTH)
+      {
+	char foo[128];
+	sprintf(foo, "apparently circular K2Y (depth %d)", _depth);
+	throw error(foo);
+      }
+  }
+  ~K2YSafeguard()
+  {
+    --_depth;
+  }
+private:
+  static int _depth;
+};
+int K2YSafeguard::_depth = 0;
+
 // if this is true, don't really construct semantics, just count objects
 bool evaluate;
 static int nrelations;
@@ -107,20 +136,11 @@ void new_k2y_object(mrs_rel &r, k2y_role role, int clause,
   mprintf(mstream, "  %s[", k2y_name[role]);
   mprintf(mstream, "ID x%d", r.id());
   if(r.cvalue() >= 0) {
-    mprintf(mstream, ", REL card_rel, CVALUE %d", r.cvalue());
+    mprintf(mstream, ", REL const_rel, CVALUE %d", r.cvalue());
   } /* if */
-#if 0
-  //
-  // this is now supported in language server; also, `ellipsis_rel' cannot be
-  // assumed to always be an instance of `be'.                (12-sep-01; oe)
-  //
-  else if(!strcmp(r.name(),"nominalize_rel")) {
-    mprintf(mstream, ", REL gerund_rel");
-  } /* else if */
-  else if(!strcmp(r.name(),"ellipsis_rel")) {
-    mprintf(mstream, ", REL support_rel");
-  } /* else if */
-#endif
+  else if(subtype(r.type(), lookup_type(k2y_pred_name("k2y_nomger_rel")))) {
+    mprintf(mstream, ", REL nominalize_rel");
+  } // else
   else {
     mprintf(mstream, ", REL %s", r.name());
     if(strcmp(r.name(), r.pred())) mprintf(mstream, ", PRED %s", r.pred());
@@ -237,6 +257,7 @@ bool k2y_nom(mrs &m, int clause, k2y_role role, int id, int argof = -1);
 // look for a verb_particle of .id (verb's handle).
 void k2y_particle(mrs &m, int clause, int id, int governor = -1)
 {
+  K2YSafeguard safeguard;
 
   list<int> particles = m.rels(k2y_role_name("k2y_hndl"), id, 
                                lookup_type(k2y_pred_name("k2y_select_rel")));
@@ -262,16 +283,21 @@ void k2y_particle(mrs &m, int clause, int id, int governor = -1)
 
 
 // look for a vcomp of .id.
-void k2y_vcomp(mrs &m, int clause, int id)
+int k2y_vcomp(mrs &m, int clause, int id)
 {
+  K2YSafeguard safeguard;
   mrs_rel vcomp;
-  vcomp = m.rel(k2y_role_name("k2y_hndl"), id, 
+  vcomp = m.rel(k2y_role_name("k2y_hndl"), m.hcons(id), 
                 lookup_type(k2y_type_name("k2y_message")));
+  if(!vcomp.valid())
+    vcomp = m.rel(k2y_role_name("k2y_hndl"), m.hcons(id), 
+                  lookup_type(k2y_pred_name("k2y_conj_rel")));
   if(vcomp.valid())
     {
       int message_id = k2y_message(m, id);
       mrs_rel message = m.rel(message_id);
       new_k2y_object(message, K2Y_VCOMP, clause, 0, true);
+      return message_id;
     }
   else
     {
@@ -294,26 +320,38 @@ void k2y_vcomp(mrs &m, int clause, int id)
       int message_id = k2y_message(m, vcomp.value(k2y_role_name("k2y_hndl")));
       mrs_rel message = m.rel(message_id);
       new_k2y_object(message, K2Y_VCOMP, clause, 0, true);
+      return message_id;
       }
+    else
+      return 0;
     }
 }
 
 // relative clauses (a special kind of modifier)
 void k2y_rc(mrs &m, int clause, int id, int arg)
 {
-  mrs_rel prop = m.rel(k2y_role_name("k2y_hndl"), id, 
-                       lookup_type(k2y_pred_name("k2y_prpstn_rel")));
-  if(prop.valid() && !m.used(prop.id()))
-  {
-    m.use_rel(prop.id());
-    new_k2y_modifier(prop, K2Y_MODIFIER, clause, arg);
-    k2y_clause(m, prop.id(), prop.value(k2y_role_name("k2y_soa")));
-  }
+  K2YSafeguard safeguard;
+  list<int> props = m.rels(k2y_role_name("k2y_hndl"), id, 
+                           lookup_type(k2y_type_name("k2y_message")));
+  int i;
+  mrs_rel prop;
+
+  forallint(i, props)
+    {
+      prop = m.rel(i);
+      if(prop.valid() && !m.used(prop.id()))
+        {
+          m.use_rel(prop.id());
+          new_k2y_modifier(prop, K2Y_MODIFIER, clause, arg);
+          k2y_clause(m, prop.id(), prop.value(k2y_role_name("k2y_soa")));
+        }
+    }
 }
 
 // reduced relative clauses (a special kind of modifier)
-void k2y_rrc(mrs &m, int clause, int id, int arg, int hid)
+void k2y_rrc(mrs &m, int clause, int id, int arg)
 {
+  K2YSafeguard safeguard;
   list<int> redprops = m.rels(k2y_role_name("k2y_hndl"), id, 
                               lookup_type(k2y_pred_name("k2y_verb_rel")));
   int i;
@@ -339,11 +377,18 @@ void k2y_rrc(mrs &m, int clause, int id, int arg, int hid)
       redprop = m.rel(i);
       fs afs;
       if(redprop.valid() && !m.used(redprop.id()) &&
-         redprop.id() != hid &&
+         redprop.id() != arg &&
          (subtype(redprop.type(), 
                   lookup_type(k2y_pred_name("k2y_nonevent_rel"))) ||
           ((afs = redprop.get_fs().get_path_value("EVENT.E.TENSE")).valid()
            && subtype(afs.type(), lookup_type(k2y_type_name("k2y_no_tense")))
+           // The check for no_aspect is needed to prevent base-VP complements
+           // of modals from acting as reduced relatives
+           && (afs = redprop.get_fs().get_path_value("EVENT.E.ASPECT")).valid()
+           && (!subtype(redprop.type(), 
+                      lookup_type(k2y_pred_name("k2y_verb_rel"))) ||
+             !subtype(lookup_type(k2y_type_name("k2y_no_aspect")), 
+                      afs.type()))
            && !subtype(redprop.type(), 
                        lookup_type(k2y_pred_name("k2y_select_rel")))
            && (!(afs = redprop.get_fs().get_path_value("ARG")).valid()
@@ -359,9 +404,82 @@ void k2y_rrc(mrs &m, int clause, int id, int arg, int hid)
     }
 }
 
+//void k2y_deg(mrs &m, int clause, int argid)
+//{
+//  mrs_rel arg = m.rel(argid);
+//  list<int> degrels = 
+//    m.rels(k2y_role_name("k2y_hndl"),
+//           arg.value(k2y_role_name("k2y_hndl")),
+//           lookup_type(k2y_pred_name("k2y_deg_rel")));
+//  int i;
+//  fs afs;
+//  forallint(i,degrels)
+//    {
+//      mrs_rel deg = m.rel(i);
+//      if(deg.valid() &&
+//         (arg.value(k2y_role_name("k2y_dim")) == 
+//          deg.value(k2y_role_name("k2y_darg"))))
+//        {
+//          mrs_rel degdim = 
+//            m.rel(k2y_role_name("k2y_inst"),
+//                  deg.value(k2y_role_name("k2y_dim")));
+//          if(!degdim.valid())
+//            new_k2y_modifier(deg, K2Y_MODIFIER, clause, arg.id());
+//          else
+//            k2y_nom(m, clause, K2Y_IOBJECT, 
+//                    deg.value(k2y_role_name("k2y_dim")));
+//        }
+//    }
+//}
+
+void k2y_deg(mrs &m, int clause, int modid, int argid)
+{
+  mrs_rel mod = m.rel(modid);
+  list<int> degrels = 
+    m.rels(k2y_role_name("k2y_hndl"),
+           mod.value(k2y_role_name("k2y_hndl")),
+           lookup_type(k2y_pred_name("k2y_deg_rel")));
+  int i;
+  fs afs;
+  forallint(i,degrels)
+    {
+      mrs_rel deg = m.rel(i);
+      if(deg.valid() &&
+         (mod.value(k2y_role_name("k2y_dim")) == 
+          deg.value(k2y_role_name("k2y_darg"))))
+        {
+          mrs_rel degdim = 
+            m.rel(k2y_role_name("k2y_inst"),
+                  deg.value(k2y_role_name("k2y_dim")));
+          if(!degdim.valid())
+            new_k2y_modifier(deg, K2Y_MODIFIER, clause, mod.id());
+          else
+            {
+              if(argid)
+                {
+                  if(opt_k2y_segregation)
+                    {
+                      mrs_rel pseudo = mrs_rel(&m, lookup_type(k2y_pred_name("k2y_prpstn_rel")));
+                      m.push_rel(pseudo);
+                      new_k2y_modifier(pseudo, K2Y_MODIFIER, clause, argid),
+                        k2y_clause(m, pseudo.id(), 0, mod.id());
+                    }
+                }
+              else
+                k2y_nom(m, clause, K2Y_IOBJECT, 
+                        deg.value(k2y_role_name("k2y_dim")));
+            }
+        }
+    }
+}
+
+
+
+
 // look for modifiers of .id.
 void k2y_mod(mrs &m, int clause, int id, int arg)
 {
+  K2YSafeguard safeguard;
   list<int> l = m.rels(k2y_role_name("k2y_arg"), id);
   mrs_rel argrel = m.rel(arg);
   int i;
@@ -384,12 +502,33 @@ void k2y_mod(mrs &m, int clause, int id, int arg)
             {
               mrs_rel dimrel = m.rel(k2y_role_name("k2y_darg"),
                                      mod.value(k2y_role_name("k2y_dim")));
-              if(!opt_k2y_segregation
-                 && (!dimrel.valid() ||
-                     !subtype(mod.type(), 
-                              lookup_type(k2y_pred_name("k2y_event_rel")))))
+              if(subtype(argrel.type(), 
+                         lookup_type(k2y_pred_name("k2y_verb_rel"))) ||
+                 // 10-Feb-02 DPF now treat numeral-adjs as reduced rels, to
+                 // allow degree modifiers as in "more than eighty percent"
+                 // subtype(mod.type(), 
+                 //         lookup_type(k2y_pred_name("k2y_const_rel"))) ||
+                 subtype(mod.type(), 
+                         lookup_type(k2y_pred_name("k2y_adv_rel"))) ||
+                 !opt_k2y_segregation)
                 {
                   new_k2y_modifier(mod, K2Y_MODIFIER, clause, arg);
+                  // hack for degree phrases without role table segregation
+                  if(dimrel.valid() && !opt_k2y_segregation)
+                    {
+                      mrs_rel nrel = m.rel(k2y_role_name("k2y_inst"),
+                                       dimrel.value(k2y_role_name("k2y_dim")));
+                      if(nrel.valid())
+                        {
+                          new_k2y_modifier(nrel, K2Y_MODIFIER, clause, arg);
+                          mrs_rel nmrel = m.rel(k2y_role_name("k2y_arg"),
+                                        nrel.value(k2y_role_name("k2y_inst")));
+                          if(nmrel.valid())
+                            new_k2y_modifier(nmrel, K2Y_MODIFIER, clause, arg);
+                        }
+                    }
+
+                  k2y_deg(m, clause, mod.id(), arg);
                   k2y_nom(m, clause, K2Y_INTARG, mod.value(k2y_role_name("k2y_arg3")), mod.id());
                   k2y_vcomp(m, clause, mod.value(k2y_role_name("k2y_arg4")));
                 }
@@ -411,6 +550,7 @@ void k2y_mod(mrs &m, int clause, int id, int arg)
 // look for a quantifier for .id.
 void k2y_quantifier(mrs &m, int clause, int id, int var)
 {
+  K2YSafeguard safeguard;
   mrs_rel quant = m.rel(k2y_role_name("k2y_bv"), id);
   if(quant.valid()) new_k2y_quantifier(quant, K2Y_QUANTIFIER, clause, var);
 }
@@ -418,6 +558,7 @@ void k2y_quantifier(mrs &m, int clause, int id, int var)
 // noun noun compounds(a special kind of modifier)
 void k2y_nn(mrs &m, int clause, int id, int arg)
 {
+  K2YSafeguard safeguard;
   list<int> nnrels = m.rels(k2y_role_name("k2y_nn_head"), id, 
                             lookup_type(k2y_pred_name("k2y_nn_rel")));
   int i;
@@ -426,16 +567,59 @@ void k2y_nn(mrs &m, int clause, int id, int arg)
       mrs_rel nnrel = m.rel(i);
       if(nnrel.valid())
         {
-          new_k2y_modifier(nnrel, K2Y_NNCMPND, clause, arg);
           mrs_rel nom = m.rel(k2y_role_name("k2y_inst"),
                               nnrel.value(k2y_role_name("k2y_nn_nonhead")));
-          if(nom.valid())
+          int arg4val = nom.value(k2y_role_name("k2y_arg4"));
+          if(arg4val)
             {
-              new_k2y_intarg(nom, K2Y_INTARG, clause, nnrel);
-              k2y_mod(m, clause, nom.value(k2y_role_name("k2y_inst")), nom.id());
-              k2y_quantifier(m, clause, nom.value(k2y_role_name("k2y_inst")), 
-                             nom.id());
-              k2y_nn(m, clause, nom.value(k2y_role_name("k2y_inst")), nom.id());
+              // This is a nominal gerund as in 'the routing list' so do hack:
+              mrs_rel hdn = m.rel(k2y_role_name("k2y_inst"),
+                                  nnrel.value(k2y_role_name("k2y_nn_head")));
+              if(hdn.valid())
+                {
+                  k2y_rc(m, clause, arg4val, hdn.id());
+                  // Add head of N-N compound as "subject" of gerund clause
+                  mrs_rel gr = m.rel(k2y_role_name("k2y_hndl"), arg4val,
+                                     lookup_type(k2y_pred_name("k2y_prpstn_rel")));
+                  if(gr.valid())
+                    k2y_nom(m, gr.id(), K2Y_SUBJECT, 
+                            nnrel.value(k2y_role_name("k2y_nn_head")));
+                }
+            }
+          else
+            {
+              if(subtype(nnrel.type(), 
+                         lookup_type(k2y_pred_name("k2y_nn_rel"))) &&
+                 !subtype(nom.type(), 
+                          lookup_type(k2y_pred_name("k2y_num_rel"))) &&
+                 opt_k2y_segregation)
+                {
+                  if(!m.used(nnrel.id()))
+                    {
+                      mrs_rel pseudo = mrs_rel(&m, lookup_type(k2y_pred_name("k2y_prpstn_rel")));
+                      m.push_rel(pseudo);
+                      new_k2y_modifier(pseudo, K2Y_MODIFIER, clause, 
+                                       m.rel(k2y_role_name("k2y_inst"), id).id());
+                      k2y_clause(m, pseudo.id(), 0, nnrel.id());
+                    }
+                }
+              else
+                {
+                  new_k2y_modifier(nnrel, K2Y_NNCMPND, clause, arg);
+                  if(nom.valid() &&
+                     !subtype(nom.type(), 
+                              lookup_type(k2y_pred_name("k2y_num_rel"))))
+                    {
+                      new_k2y_intarg(nom, K2Y_INTARG, clause, nnrel);
+                      k2y_mod(m, clause, nom.value(k2y_role_name("k2y_inst")), 
+                              nom.id());
+                      k2y_quantifier(m, clause, 
+                                     nom.value(k2y_role_name("k2y_inst")), 
+                                     nom.id());
+                      k2y_nn(m, clause, 
+                             nom.value(k2y_role_name("k2y_inst")), nom.id());
+                    }
+                }
             }
         }
     }
@@ -444,6 +628,7 @@ void k2y_nn(mrs &m, int clause, int id, int arg)
 // For narrow appositions like "number thirty", treated like compounds
 void k2y_appos(mrs &m, int clause, int id, int arg)
 {
+  K2YSafeguard safeguard;
   list<int> apprels = m.rels(k2y_role_name("k2y_arg3"), id,
                              lookup_type(k2y_pred_name("k2y_app_rel")));
   int i;
@@ -463,6 +648,7 @@ void k2y_appos(mrs &m, int clause, int id, int arg)
               k2y_quantifier(m, clause, nom.value(k2y_role_name("k2y_inst")),
                              nom.id());
               k2y_nn(m, clause, nom.value(k2y_role_name("k2y_inst")), nom.id());
+              k2y_appos(m, clause, nom.value(k2y_role_name("k2y_inst")), nom.id());
             }
         }
     }
@@ -473,6 +659,7 @@ void k2y_appos(mrs &m, int clause, int id, int arg)
 // but we say m.used(id, clause) when we should probably say m.used(nom.id()...
 bool k2y_nom(mrs &m, int clause, k2y_role role, int id, int argof)
 {
+  K2YSafeguard safeguard;
   mrs_rel nom = m.rel(k2y_role_name("k2y_inst"), id);
   if(m.used(id, clause))
   {
@@ -495,8 +682,7 @@ bool k2y_nom(mrs &m, int clause, k2y_role role, int id, int argof)
           k2y_nn(m, clause, nom.value(k2y_role_name("k2y_inst")), nom.id());
           k2y_appos(m, clause, nom.value(k2y_role_name("k2y_inst")), nom.id());
           k2y_rc(m, clause, nom.value(k2y_role_name("k2y_hndl")), nom.id());
-          k2y_rrc(m, clause, nom.value(k2y_role_name("k2y_hndl")), nom.id(), 
-                  id);
+          k2y_rrc(m, clause, nom.value(k2y_role_name("k2y_hndl")), nom.id());
           k2y_quantifier(m, clause, nom.value(k2y_role_name("k2y_inst")), 
                          nom.id());
           k2y_vcomp(m, clause, nom.value(k2y_role_name("k2y_arg4")));
@@ -505,25 +691,32 @@ bool k2y_nom(mrs &m, int clause, k2y_role role, int id, int argof)
     }
   else if(nom.valid())
     {
-      m.use_rel(id, clause);
+      k2y_mod(m, clause, nom.value(k2y_role_name("k2y_inst")), nom.id());
       mrs_rel pseudo;
-      if(!nom.value(k2y_role_name("k2y_arg4")))
+      if(!nom.value(k2y_role_name("k2y_arg4")) &&
+         !m.used(nom.id()))
         {
-          pseudo = mrs_rel(&m, lookup_type(k2y_pred_name("k2y_hypo_rel")));
+          // was k2y_hypo_rel
+          pseudo = mrs_rel(&m, lookup_type(k2y_pred_name("k2y_prpstn_rel")));
           m.push_rel(pseudo);
         }
       else pseudo = m.rel(k2y_role_name("k2y_hndl"), 
                           nom.value(k2y_role_name("k2y_arg4")));
+      m.use_rel(nom.id(), clause);
       if(argof >= 0)
         new_k2y_intarg(nom, role, clause, m.rel(argof));
       else
         new_k2y_object(nom, role, clause, 0, true);
-      new_k2y_intarg(pseudo, K2Y_VCOMP, clause, nom);
-      if(nom.value(k2y_role_name("k2y_arg4")))
-        k2y_clause(m, pseudo.id(), 
-                   m.hcons(pseudo.value(k2y_role_name("k2y_soa"))));
-      else
-        k2y_clause(m, pseudo.id(), nom.value(k2y_role_name("k2y_hndl")));
+      if(!m.used(pseudo.id()))
+        {
+          new_k2y_intarg(pseudo, K2Y_VCOMP, clause, nom);
+          if(nom.value(k2y_role_name("k2y_arg4")))
+            k2y_message(m, nom.value(k2y_role_name("k2y_arg4")));
+          else
+            k2y_clause(m, pseudo.id(), nom.value(k2y_role_name("k2y_hndl")));
+          m.use_rel(pseudo.id());
+        }
+      k2y_rrc(m, clause, nom.value(k2y_role_name("k2y_hndl")), nom.id());
       return pseudo.id();
     }
   else
@@ -548,6 +741,7 @@ bool k2y_nom(mrs &m, int clause, k2y_role role, int id, int argof)
 
 void k2y_verb(mrs &m, int clause, int id)
 {
+  K2YSafeguard safeguard;
   mrs_rel verb = m.rel(id);
 
   if(verb.valid())
@@ -566,16 +760,18 @@ void k2y_verb(mrs &m, int clause, int id)
           subjid = verb.value(k2y_role_name("k2y_arg"));
       }
     
+    // The following is needed for post-VP verbal modifiers, as in
+    // "Kim arrived laughing"
     mrs_rel subjrel = m.rel(k2y_role_name("k2y_inst"), subjid);
     if(subjrel.valid())
       k2y_rrc(m, clause, verb.value(k2y_role_name("k2y_hndl")), 
-              subjrel.id(), id);
+             subjrel.id());
 
+    k2y_vcomp(m, clause, verb.value(k2y_role_name("k2y_arg4")));
     k2y_nom(m, clause, K2Y_SUBJECT, subjid);
     k2y_nom(m, clause, K2Y_DOBJECT, verb.value(k2y_role_name("k2y_arg3")));
     k2y_nom(m, clause, K2Y_IOBJECT, verb.value(k2y_role_name("k2y_arg2")));
     k2y_particle(m, clause, verb.value(k2y_role_name("k2y_hndl")), verb.id());
-    k2y_vcomp(m, clause, verb.value(k2y_role_name("k2y_arg4")));
     fs foo;
     if((foo = verb.get_fs().get_path_value(k2y_role_name("k2y_argh"))).valid())
       {
@@ -593,6 +789,7 @@ void k2y_verb(mrs &m, int clause, int id)
 
 int k2y_clause_conjunction(mrs &m, int clause, int id, int mv_id)
 {
+  K2YSafeguard safeguard;
    mrs_rel conj = mrs_rel();
    list<int> ids;
 
@@ -602,25 +799,33 @@ int k2y_clause_conjunction(mrs &m, int clause, int id, int mv_id)
 
    if(conj.valid() && subtype(conj.type(), lookup_type(k2y_pred_name("k2y_conj_rel"))))
      {
-       char *indices[] = { "L-INDEX", "R-INDEX", NULL };
-       list<int> conjs = conj.id_list_by_paths(indices);
+       char *indices[] = { "k2y_l_index", "k2y_r_index", NULL };
+       list<int> conjs = conj.id_list_by_roles(indices);
 
       if(!conjs.empty())
-        ids = k2y_conjuncts(m, clause, k2y_role_name("k2y_inst"), conjs);
+        {
+          ids = k2y_conjuncts(m, clause, k2y_role_name("k2y_inst"), conjs);
+          if(ids.empty() &&
+             m.rel(k2y_role_name("k2y_event"), conjs.front(),
+                   lookup_type(k2y_pred_name("k2y_prep_rel"))).valid())
+            ids = k2y_conjuncts(m, clause, k2y_role_name("k2y_event"), conjs);
+        }
      }
-   if(conj.valid() && subtype(conj.type(), lookup_type(k2y_pred_name("k2y_conj_rel"))) && 
+   if(conj.valid() && 
+      subtype(conj.type(), lookup_type(k2y_pred_name("k2y_conj_rel"))) && 
       ids.empty())
    {
-      list<int> conjs = k2y_conjunction(m, clause, conj.id());
+     list<int> conjs = k2y_conjunction(m, clause, conj.id());
      fs foo;
-     if((foo = conj.get_fs().get_path_value("R-HANDEL")).valid()
+     if((foo = conj.get_fs().get_path_value(k2y_role_name("k2y_r_handel"))).valid()
         && subtype(foo.type(), lookup_type(k2y_type_name("k2y_handle"))))
        { 
 	 int i;
          forallint(i, conjs)
            {
-             mrs_rel conj = m.rel(i);
-             k2y_clause(m, clause, conj.value(k2y_role_name("k2y_hndl")), conj.id());
+             mrs_rel cnjnct = m.rel(i);
+             //if(!m.used(i))
+             //  k2y_vcomp(m, clause, cnjnct.value(k2y_role_name("k2y_hndl")));
            }
          return conj.id();
        }
@@ -633,14 +838,15 @@ int k2y_clause_conjunction(mrs &m, int clause, int id, int mv_id)
 
 int k2y_clause_subord(mrs &m, int clause, int id, int mv_id)
 {
+  K2YSafeguard safeguard;
   mrs_rel subord = mrs_rel();
   if(mv_id == 0)
     subord = m.rel(k2y_role_name("k2y_hndl"), m.hcons(id), 
                    lookup_type(k2y_pred_name("k2y_subord_rel")));
   if(subord.valid())
     {
-      char *indices[] = { "MAIN", "SUBORD", NULL };
-      list<int> subs = subord.id_list_by_paths(indices);
+      char *indices[] = { "k2y_main", "k2y_subord", NULL };
+      list<int> subs = subord.id_list_by_roles(indices);
       if(!subs.empty())
         {
           int i;
@@ -668,20 +874,25 @@ int k2y_clause_subord(mrs &m, int clause, int id, int mv_id)
 
 int k2y_clause_exclam(mrs &m, int clause, int id, int mv_id)
 {
+  K2YSafeguard safeguard;
   mrs_rel exclrel = mrs_rel();
   if(mv_id == 0)
-    exclrel = m.rel(k2y_role_name("k2y_hndl"), id, 
-                    lookup_type(k2y_pred_name("k2y_excl_rel")));
+      exclrel = m.rel(k2y_role_name("k2y_hndl"), id, 
+                      lookup_type(k2y_pred_name("k2y_excl_rel")));
+  else if(!id == 0)
+    exclrel = m.rel(mv_id);
   if(exclrel.valid())
     {
       new_k2y_object(exclrel, K2Y_MAINVERB, clause, 0, true);
-      return exclrel.id();
+      //return exclrel.id();
+      return clause;
     }
   return 0;
 }
 
 int k2y_clause(mrs &m, int clause, int id, int mv_id)
 {
+  K2YSafeguard safeguard;
   if(!k2y_clause_conjunction(m, clause, id, mv_id))
    if(!k2y_clause_subord(m, clause, id, mv_id))
     if(!k2y_clause_exclam(m, clause, id, mv_id))
@@ -720,15 +931,8 @@ int k2y_clause(mrs &m, int clause, int id, int mv_id)
          {
            fs index;
            index = mv.get_fs().get_path_value(k2y_role_name("k2y_event"));
-           if(subtype(mv.type(), lookup_type(k2y_pred_name("k2y_appos_rel"))))
-             {
-               mrs_rel newmv = mrs_rel(&m, lookup_type(k2y_pred_name("k2y_cop_rel")));
-               m.push_rel(newmv);
-               m.use_rel(newmv.id());
-               new_k2y_object(newmv, K2Y_MAINVERB, clause, index, true);
-             }
-           else
-             new_k2y_object(mv, K2Y_MAINVERB, clause, index, true);
+           new_k2y_object(mv, K2Y_MAINVERB, clause, index, true);
+           m.use_rel(mv.id());
            k2y_verb(m, clause, mv.id());
            return mv.id();
          }
@@ -761,7 +965,8 @@ int k2y_clause(mrs &m, int clause, int id, int mv_id)
              {
                fs index;
                mrs_rel newmv = mv;
-               if(!subtype(mv.type(), lookup_type(k2y_pred_name("k2y_adj_rel"))))
+               if(!subtype(mv.type(), lookup_type(k2y_pred_name("k2y_adj_rel"))) &&
+                  !subtype(mv.type(), lookup_type(k2y_pred_name("k2y_const_rel"))))
                  {
                    newmv = mrs_rel(&m, lookup_type(k2y_pred_name("k2y_cop_rel")));
                    m.push_rel(newmv);
@@ -771,52 +976,57 @@ int k2y_clause(mrs &m, int clause, int id, int mv_id)
                m.use_rel(newmv.id());
                mrs_rel argrel = m.rel(k2y_role_name("k2y_inst"), 
                                       mv.value(k2y_role_name("k2y_arg")));
-               if(subtype(mv.type(), lookup_type(k2y_pred_name("k2y_prep_rel"))))
+               if(subtype(mv.type(), lookup_type(k2y_pred_name("k2y_nn_rel")))
+                  && opt_k2y_segregation)
                  {
-                   if(!subtype(mv.type(), lookup_type(k2y_pred_name("k2y_select_rel"))))
-                     {
-                       new_k2y_modifier(mv, K2Y_MODIFIER, clause, newmv.id());
-                       k2y_nom(m, clause, K2Y_INTARG, 
-                               mv.value(k2y_role_name("k2y_arg3")), mv.id());
-                     }
+                   new_k2y_modifier(mv, K2Y_MODIFIER, clause, newmv.id());
+                   k2y_nom(m, clause, K2Y_INTARG, 
+                           mv.value(k2y_role_name("k2y_nn_nonhead")), mv.id());
                  }
                else 
                  {
-                   if(!subtype(mv.type(), 
-                               lookup_type(k2y_pred_name("k2y_adj_rel"))))
+                   if(subtype(mv.type(), 
+                              lookup_type(k2y_pred_name("k2y_prep_rel"))))
                      {
-                       new_k2y_modifier(mv, K2Y_MODIFIER, clause, argrel.id());
-                       k2y_nom(m, clause, K2Y_INTARG, 
-                               mv.value(k2y_role_name("k2y_arg3")), mv.id());
+                       if(!subtype(mv.type(), 
+                                lookup_type(k2y_pred_name("k2y_select_rel"))))
+                         {
+                           new_k2y_modifier(mv, K2Y_MODIFIER, clause, 
+                                            newmv.id());
+                           k2y_deg(m, clause, mv.id(), 0);
+                           k2y_nom(m, clause, K2Y_INTARG, 
+                                   mv.value(k2y_role_name("k2y_arg3")), 
+                                   mv.id());
+                         }
                      }
                    else 
                      {
-                       if(mv.value(k2y_role_name("k2y_dim")));
+                       if(!subtype(mv.type(), lookup_type(k2y_pred_name("k2y_adj_rel"))) &&
+                          !subtype(mv.type(), lookup_type(k2y_pred_name("k2y_const_rel"))))
                          {
-                           mrs_rel deg = m.rel(k2y_role_name("k2y_hndl"),
-                                               mv.value(k2y_role_name("k2y_hndl")),
-                                               lookup_type(k2y_pred_name("k2y_deg_rel")));
-                           if(deg.valid() &&
-                              (mv.value(k2y_role_name("k2y_dim")) == 
-                               deg.value(k2y_role_name("k2y_darg"))))
-                             {
-                               mrs_rel degdim = m.rel(k2y_role_name("k2y_inst"),
-                                                      deg.value(k2y_role_name("k2y_dim")));
-                               if(!degdim.valid())
-                                 new_k2y_modifier(deg, K2Y_MODIFIER, clause, mv.id());
-                               else
-                                 k2y_nom(m, clause, K2Y_IOBJECT, 
-                                         deg.value(k2y_role_name("k2y_dim")));
-                             }
+                           new_k2y_modifier(mv, K2Y_MODIFIER, clause, 
+                                            argrel.id());
+                           k2y_nom(m, clause, K2Y_INTARG, 
+                                 mv.value(k2y_role_name("k2y_arg3")), mv.id());
                          }
-                       k2y_nom(m, clause, K2Y_DOBJECT, 
-                               mv.value(k2y_role_name("k2y_arg3")), mv.id());
-                       k2y_particle(m, clause, 
-                                mv.value(k2y_role_name("k2y_hndl")), mv.id());
+                       else 
+                         {
+                           if(mv.value(k2y_role_name("k2y_dim")));
+                           if(opt_k2y_segregation)
+                             k2y_deg(m, clause, mv.id(), 0);
+                           k2y_nom(m, clause, K2Y_DOBJECT, 
+                                   mv.value(k2y_role_name("k2y_arg3")), 
+                                   mv.id());
+                           k2y_particle(m, clause, 
+                                        mv.value(k2y_role_name("k2y_hndl")), 
+                                        mv.id());
+                           k2y_mod(m, clause, mv.value(k2y_role_name("k2y_event")), mv.id());
+                         }
                      }
                  }
                m.use_rel(mv.id());
                k2y_nom(m, clause, K2Y_SUBJECT, mv.value(k2y_role_name("k2y_arg")));
+               k2y_nom(m, clause, K2Y_SUBJECT, mv.value(k2y_role_name("k2y_nn_head")));
                k2y_vcomp(m, clause, mv.value(k2y_role_name("k2y_arg4")));
                k2y_mod(m, clause, mv.value(k2y_role_name("k2y_event")), 
                        newmv.id());
@@ -833,6 +1043,7 @@ int k2y_clause(mrs &m, int clause, int id, int mv_id)
                       !m.used(pprel.id()))
                      {
                        new_k2y_modifier(pprel, K2Y_MODIFIER, clause, newmv.id());
+                       k2y_deg(m, clause, pprel.id(), newmv.id());
                        k2y_nom(m, clause, K2Y_INTARG, 
                                pprel.value(k2y_role_name("k2y_arg3")), pprel.id());
                        m.use_rel(pprel.id());
@@ -896,6 +1107,7 @@ int k2y_clause(mrs &m, int clause, int id, int mv_id)
 
 int k2y_message(mrs &m, int id)
 {
+  K2YSafeguard safeguard;
   mrs_rel rel = m.rel(k2y_role_name("k2y_hndl"), id, 
                       lookup_type(k2y_type_name("k2y_message")));
   if(rel.valid())
@@ -924,27 +1136,34 @@ int k2y_message(mrs &m, int id)
        forallint(i, conjs)
        {
          mrs_rel conj = m.rel(i);
-         k2y_vcomp(m, pseudo.id(), conj.value(k2y_role_name("k2y_hndl")));
+         if(!subtype(conj.type(),
+                     lookup_type(k2y_pred_name("k2y_excl_rel")))
+            && !m.used(conj.id()))
+           k2y_vcomp(m, pseudo.id(), conj.value(k2y_role_name("k2y_hndl")));
        }
      }
      else
      {
-       rel = m.rel(k2y_role_name("k2y_hndl"), id, 
-                 lookup_type(k2y_pred_name("k2y_nom_rel"))) ;
-       if(rel.valid())
-         k2y_nom(m, pseudo.id(), K2Y_DOBJECT, 
-                 rel.value(k2y_role_name("k2y_inst")));
-       else 
+       if(!k2y_clause_exclam(m, pseudo.id(), id, 0))
          {
-           rel = m.rel(k2y_role_name("k2y_inst"), m.index());
+
+           rel = m.rel(k2y_role_name("k2y_hndl"), id, 
+                       lookup_type(k2y_pred_name("k2y_nom_rel"))) ;
            if(rel.valid())
-             k2y_nom(m, pseudo.id(), K2Y_DOBJECT, m.index());
-           else
+             k2y_nom(m, pseudo.id(), K2Y_DOBJECT, 
+                     rel.value(k2y_role_name("k2y_inst")));
+           else 
              {
-               if(m.rel(id).valid())
-                 k2y_clause(m, pseudo.id(), 0, id);
+               rel = m.rel(k2y_role_name("k2y_inst"), m.index());
+               if(rel.valid())
+                 k2y_nom(m, pseudo.id(), K2Y_DOBJECT, m.index());
                else
-                 k2y_clause(m, pseudo.id(), id);
+                 {
+                   if(m.rel(id).valid())
+                     k2y_clause(m, pseudo.id(), 0, id);
+                   else
+                     k2y_clause(m, pseudo.id(), id);
+                 }
              }
          }
      }
@@ -954,6 +1173,7 @@ int k2y_message(mrs &m, int id)
 
 list<int> k2y_conjuncts(mrs &m, int clause, char *path, list<int> conjs, bool mvsearch)
 {
+  K2YSafeguard safeguard;
   list<int> ids;
   int i;
   
@@ -963,19 +1183,70 @@ list<int> k2y_conjuncts(mrs &m, int clause, char *path, list<int> conjs, bool mv
     if(mvsearch)
       r = m.rel(path, i, lookup_type(k2y_pred_name("k2y_verb_rel")));
     if(!mvsearch || !r.valid())
-      r = m.rel(path, i);
-
-    if(r.valid()) ids.push_front(r.id());
+      {
+        int rc;
+        list<int> rcands = m.rels(path,i);
+        forallint(rc, rcands)
+          if(m.rel(rc).valid()
+             && !subtype(m.rel(rc).type(), 
+                         lookup_type(k2y_pred_name("k2y_deg_rel"))))
+            {
+              if(subtype(m.rel(rc).type(),
+                         lookup_type(k2y_pred_name("k2y_excl_rel"))) ||
+                 subtype(m.rel(rc).type(),
+                         lookup_type(k2y_pred_name("k2y_conj_rel"))))
+                {
+                  int vcid = k2y_vcomp(m, clause, 
+                                       m.rel(rc).value(k2y_role_name("k2y_hndl")));
+                  m.use_rel(vcid);
+                  r = m.rel(vcid);
+                }
+              else
+                r = m.rel(rc);
+            }
+      }
+    if(r.valid()) 
+      ids.push_front(r.id());
+    else 
+      {
+        mrs_rel conjrel = m.rel(k2y_role_name("k2y_c_arg"), i);
+        list<int> newids;
+        if(conjrel.valid())
+          {
+            fs foo;
+            if((foo = (conjrel.get_fs().get_path_value("R-HANDEL"))).valid())
+              {
+                char *paths[] = { "k2y_l_handel", "k2y_r_handel", NULL };
+                list<int> conjs = conjrel.id_list_by_roles(paths);
+                newids = k2y_conjuncts(m, clause, k2y_role_name("k2y_hndl"), 
+                                       conjs);
+              }
+            else
+              {
+                char *paths[] = { "k2y_l_index", "k2y_r_index", NULL };
+                list<int> conjs = conjrel.id_list_by_roles(paths);
+                newids = k2y_conjuncts(m, clause, k2y_role_name("k2y_inst"), 
+                                       conjs);
+              }
+            if(!newids.empty())
+              {
+                int j;
+                forallint(j, newids)              
+                  ids.push_front(j);                
+              }
+          }
+      }
   }
   return ids;
 }
 
 list<int> k2y_conjunction(mrs &m, int clause, int conj_id)
 {
+  K2YSafeguard safeguard;
   list<int> ids;
   mrs_rel conj = m.rel(conj_id);
-  char *paths[] = { "L-HANDEL", "R-HANDEL", NULL };
-  list<int> conjs = conj.id_list_by_paths(paths);
+  char *paths[] = { "k2y_l_handel", "k2y_r_handel", NULL };
+  list<int> conjs = conj.id_list_by_roles(paths);
 
   if(conj.valid() && !m.used(conj.id()))
   {
@@ -984,7 +1255,12 @@ list<int> k2y_conjunction(mrs &m, int clause, int conj_id)
     if((foo = (conj.get_fs().get_path_value("R-HANDEL"))).valid()
        && subtype(foo.type(), lookup_type(k2y_type_name("k2y_handle")))
        && (bar = m.rel(k2y_role_name("k2y_hndl"), conjs.front())).valid()
-       && subtype(bar.type(), lookup_type(k2y_type_name("k2y_message"))))
+       && (subtype(bar.type(), lookup_type(k2y_type_name("k2y_message"))) ||
+           // DPF 17-Dec-01 - Commented out following line, which was
+           // blocking one conjunct for "Kim arrives and laughs and falls"
+           //subtype(bar.type(), lookup_type(k2y_pred_name("k2y_conj_rel"))) ||
+           subtype(bar.type(), lookup_type(k2y_pred_name("k2y_excl_rel")))))
+
       {
         ids = k2y_conjuncts(m, clause, k2y_role_name("k2y_hndl"), conjs);
         new_k2y_conj(conj, K2Y_CONJ, clause, ids);
@@ -992,13 +1268,17 @@ list<int> k2y_conjunction(mrs &m, int clause, int conj_id)
       }
     else
     {
-      if(conjs.empty())
+      if(conjs.empty() ||
+         ((bar = m.rel(k2y_role_name("k2y_hndl"), conjs.front())).valid() &&
+          subtype(bar.type(), lookup_type(k2y_pred_name("k2y_prep_rel")))))
         {
-        char *paths[] = { "L-INDEX", "R-INDEX", NULL };
-        conjs = conj.id_list_by_paths(paths);
+        char *paths[] = { "k2y_l_index", "k2y_r_index", NULL };
+        conjs = conj.id_list_by_roles(paths);
         if(!conjs.empty())
           {
             ids = k2y_conjuncts(m, clause, k2y_role_name("k2y_inst"), conjs);
+            if(ids.empty())
+             ids = k2y_conjuncts(m, clause, k2y_role_name("k2y_event"), conjs);
             if(!ids.empty())
               {
                 new_k2y_conj(conj, K2Y_CONJ, clause, ids);
@@ -1015,16 +1295,20 @@ list<int> k2y_conjunction(mrs &m, int clause, int conj_id)
              {
                mrs_rel conjnct = m.rel(i);
                if(conjnct.valid())
-                 {
-                   int message_id =  k2y_message(m, conjnct.id());
-                   mrs_rel message = m.rel(message_id);
-                   newconjs.push_front(message.id());
-                   new_k2y_object(message, K2Y_VCOMP, clause, 0, true);
-                   // DPF 11-Feb-01 - Next line doesn't work, but should for
-                   // 'kim is null and void for sandy'
-                   //k2y_mod(m, message_id, 
-                   //     conj.value(k2y_role_name"k2y_c_arg")), conjnct.id());
-                 }
+                 if(!m.used(conjnct.id()))
+                   {
+                     int message_id = 
+                      k2y_message(m, conjnct.value(k2y_role_name("k2y_hndl")));
+                     mrs_rel message = m.rel(message_id);
+                     newconjs.push_front(message.id());
+                     new_k2y_object(message, K2Y_VCOMP, clause, 0, true);
+                     // DPF 11-Feb-01 - Next line doesn't work, but should for
+                     // 'kim is null and void for sandy'
+                     //k2y_mod(m, message_id, 
+                     //     conj.value(k2y_role_name"k2y_c_arg")), conjnct.id());
+                   }
+                 else
+                   newconjs.push_front(conjnct.id());
              }
            new_k2y_conj(conj, K2Y_CONJ, clause, newconjs);
            ids.clear();
@@ -1038,6 +1322,7 @@ list<int> k2y_conjunction(mrs &m, int clause, int conj_id)
 
 void k2y_sentence(mrs &m)
 {
+  K2YSafeguard safeguard;
   int message_id = k2y_message(m, m.top());
   mrs_rel message = m.rel(message_id);
 
@@ -1049,7 +1334,6 @@ void k2y_sentence(mrs &m)
 // utility functions
 //
 
-//#define DEBUG_MRS
 
 int construct_k2y(int id, item *root, bool eval, struct MFILE *stream)
 {
@@ -1064,10 +1348,10 @@ int construct_k2y(int id, item *root, bool eval, struct MFILE *stream)
 
     mrs m(root->get_fs());
 
-    if(cheap_settings->lookup("debug-mrs") && !eval) {
+    if(!eval && cheap_settings->lookup("debug-mrs")) {
       m.print(ferr);
       fprintf(ferr, "\n");
-    } // if
+    } /* if */
 
     nrelations = 0; 
     raw_atoms.clear();
@@ -1129,3 +1413,5 @@ int construct_k2y(int id, item *root, bool eval, struct MFILE *stream)
     return -42;
   } /* catch */
 }
+
+

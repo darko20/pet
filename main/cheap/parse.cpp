@@ -31,7 +31,6 @@
 
 chart *Chart;
 agenda *Agenda;
-agenda *Roots;
 
 timer *Clock;
 timer TotalParseTime(false);
@@ -252,6 +251,7 @@ bool add_root(item *it)
 // deals with result item
 // return value: true -> stop parsing; false -> continue parsing
 {
+  Chart->Roots().push_back(it);
   stats.readings++;
   if(stats.first == -1)
     {
@@ -260,13 +260,14 @@ bool add_root(item *it)
 	return true;
     }
 #ifdef YY
-  if(opt_k2y && opt_one_meaning)
+  if(opt_k2y && opt_nth_meaning != 0)
     {
       int n = construct_k2y(0, it, true, 0);
       if(n >= 0)
 	{
 	  stats.nmeanings++;
-	  return true;
+	  if(stats.nmeanings >= opt_nth_meaning)
+	    return true;
 	}
     }
 #endif
@@ -315,7 +316,6 @@ void add_item(item *it)
 	{
 	  it->rriority(maxp);
 	  it->set_result_root(rule);
-	  Roots->push(New item_task(Chart, Agenda, it, maxp));
 	  // we found a root item - it might be too early
 	  if(maxp != 0 && it->priority() > maxp)
 	    {
@@ -359,19 +359,14 @@ inline bool ressources_exhausted()
 
 void get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS);
 
-void parse(chart &C, agenda *R, list<lex_item *> &initial, int id,
-	      fs_alloc_state &FSAS)
+void parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
 {
   if(initial.empty()) return;
-
-  stats.reset();
-  stats.id = id;
 
   unify_wellformed = true;
 
   Chart = &C;
   Agenda = New agenda;
-  Roots = R;
 
   TotalParseTime.start();
   Clock = New timer;
@@ -386,7 +381,7 @@ void parse(chart &C, agenda *R, list<lex_item *> &initial, int id,
   while(!Agenda->empty() &&
         (opt_one_solution == false || stats.first == -1) &&
 #ifdef YY
-        (opt_one_meaning == false || !stats.nmeanings) &&
+        (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning) &&
 #endif
         !ressources_exhausted())
     {
@@ -414,7 +409,7 @@ void parse(chart &C, agenda *R, list<lex_item *> &initial, int id,
   delete Clock;
   delete Agenda;
 
-  if(Roots->empty() && ressources_exhausted())
+  if(Chart->Roots().empty() && ressources_exhausted())
     {
       if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
 	throw error_ressource_limit("memory (MB)", memlimit / (1024 * 1024));
@@ -424,9 +419,11 @@ void parse(chart &C, agenda *R, list<lex_item *> &initial, int id,
 }
 
 void analyze(input_chart &i_chart, string input, chart *&C,
-	     agenda *&R, fs_alloc_state &FSAS, int id)
+	     fs_alloc_state &FSAS, int id)
 {
   FSAS.clear_stats();
+  stats.reset();
+  stats.id = id;
 
   auto_ptr<item_owner> owner(New item_owner);
   item::default_owner(owner.get());
@@ -442,7 +439,8 @@ void analyze(input_chart &i_chart, string input, chart *&C,
   int max_pos = i_chart.expand_all(lex_items);
 
   dependency_filter(lex_items,
-		    cheap_settings->lookup("chart-dependencies"));
+                    cheap_settings->lookup("chart-dependencies"),
+                    cheap_settings->lookup("unidirectional-chart-dependencies") != 0);
         
   if(opt_default_les)
     i_chart.add_generics(lex_items);
@@ -455,9 +453,8 @@ void analyze(input_chart &i_chart, string input, chart *&C,
     throw error("no lexicon entries for " + missing) ;
 
   C = Chart = New chart(max_pos, owner);
-  R = New agenda;
 
-  parse(*Chart, R, lex_items, id, FSAS);
+  parse(*Chart, lex_items, FSAS);
 }
 
 void get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS)

@@ -7,6 +7,9 @@ ITSDBDIR = /home/uc/newlkb ;
 ICU = true ;
 ICUDIR = /opt/icu ; 
 
+IQT = true ;
+IQTDIR = /home/uc/YY/src/lib/iqtsdk/main ;
+
 CC = gcc ;
 C++ = g++ ;
 
@@ -23,7 +26,7 @@ if $(UNIFIER) = tomabechi
 {
   DAGSOURCES = dag-io.cpp dag-common.cpp dag-arced.cpp dag-alloc.cpp
 	       dag-tomabechi.cpp failure.cpp qc.cpp ;
-  DAGFLAGS = -DDAG_TOMABECHI ;
+  DAGFLAGS = -DDAG_TOMABECHI -DQC_PATH_COMP ;
 }
 else if $(UNIFIER) = simple
 {
@@ -63,6 +66,13 @@ if $(YY) = true
   C++FLAGS += -DYY ;
 }
 
+if $(IQT) = true
+{
+  CHEAPSOURCES += iqt.cpp ;
+  HDRS += $(IQTDIR)/include ;
+  C++FLAGS += -DIQT -DIQTEMU ;
+}
+
 C++FLAGS += -DHASH_MAP_AVAIL -DUSEMMAP ;
 
 HDRS += . ;
@@ -83,3 +93,9 @@ if $(ICU) = true
 
 Main cheap : $(CHEAPSOURCES) ; 
 
+
+if $(TSDB) = false
+{
+  DUMPGRAMSOURCES = dumpgram.cpp errors.cpp grammar-dump.cpp dumper.cpp ;
+  Main dumpgram : $(DUMPGRAMSOURCES) ;
+}

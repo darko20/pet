@@ -90,9 +90,7 @@ class input_token
 
   void print_derivation(FILE *f, bool quoted, int offset, int id,
 			int p, int q, list_int *l, string orth);
-#ifdef TSDBAPI
-  void tsdb_print_derivation(int offset, int id, string orth);
-#endif
+  string tsdb_derivation(int offset, int id, string orth);
 
   string description();
 

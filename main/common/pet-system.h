@@ -9,6 +9,10 @@
 #ifndef _PET_SYSTEM_H_
 #define _PET_SYSTEM_H_
 
+#ifdef __BORLANDC__
+#define _RWSTD_CONTAINER_BUFFER_SIZE 16
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <new>

@@ -131,12 +131,14 @@ dag_node *dag_unify_np(dag_node *root, dag_node *dag1, dag_node *dag2)
     return root;
 }
 
+#ifdef QC_PATH_COMP
 static bool unify_record_failure = false;
 static bool unify_all_failures = false;
 
 unification_failure *failure = 0;
 list_int *unify_path_rev = 0;
 list<unification_failure *> failures;
+#endif
 
 bool dags_compatible(dag_node *dag1, dag_node *dag2)
 {
@@ -157,6 +159,7 @@ bool dags_compatible(dag_node *dag1, dag_node *dag2)
   return res;
 }
 
+#ifdef QC_PATH_COMP
 //
 // recording of failures
 //
@@ -183,9 +186,11 @@ void save_or_clear_failure()
   else
     clear_failure();
 }
+#endif
 
 dag_node *dag_cyclic_copy(dag_node *src, list_int *del);
 
+#ifdef QC_PATH_COMP
 list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool all_failures,
 						   list_int *initial_path, dag_node **result_root)
 {
@@ -238,6 +243,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
   unify_record_failure = false;
   return failures; // caller is responsible for free'ing the paths
 }
+#endif
 
 inline bool dag_has_arcs(dag_node *dag)
 {
@@ -255,6 +261,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
     {
       stats.cycles++;
 
+#ifdef QC_PATH_COMP
       if(unify_record_failure)
         {
           // XXX this is not right
@@ -268,6 +275,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
 	    return dag1; // continue with cyclic structure
         }
       else
+#endif
 	return FAIL;
     }
 
@@ -415,18 +423,24 @@ inline bool unify_arcs1(dag_arc *arcs, dag_arc *arcs1, dag_arc *comp_arcs1, dag_
       n = find_attr2(arcs->attr, arcs1, comp_arcs1);
       if(n != 0)
 	{
+#ifdef QC_PATH_COMP
 	  if(unify_record_failure) unify_path_rev = cons(arcs->attr, unify_path_rev);
+#endif
 	  if(dag_unify1(n, arcs->val) == FAIL)
 	    {
+#ifdef QC_PATH_COMP
 	      if(unify_record_failure)
 		{
 		  unify_path_rev = pop_rest(unify_path_rev);
 		  if(!unify_all_failures) return false;
 		}
 	      else
+#endif
 		return false;
 	    }
+#ifdef QC_PATH_COMP
 	  if(unify_record_failure) unify_path_rev = pop_rest(unify_path_rev);
+#endif
 	}
       else
 	{
@@ -467,6 +481,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 
   if(new_type == -1)
     {
+#ifdef QC_PATH_COMP
       if(unify_record_failure)
         { 
 	  save_or_clear_failure();
@@ -478,6 +493,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 	    new_type = s1;
 	}
       else
+#endif
 	return FAIL;
     }
 
@@ -515,6 +531,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
     {
       if(!dag_make_wellformed(new_type, dag1, s1, dag2, s2))
 	{
+#ifdef QC_PATH_COMP
 	  if(unify_record_failure)
             { 
 	      save_or_clear_failure();
@@ -524,6 +541,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 		return FAIL;
             }
 	  else
+#endif
 	    return FAIL;
 	}
 
@@ -676,6 +694,8 @@ bool dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward
   return true;
 }
 
+#ifdef QC_PATH_COMP
+
 static list<list_int *> paths_found;
 
 void dag_paths_rec(dag_node *dag, dag_node *search)
@@ -717,6 +737,8 @@ list<list_int *> dag_paths(dag_node *dag, dag_node *search)
   dag_invalidate_changes();
   return paths_found; // caller is responsible for free'ing paths
 }
+
+#endif
 
 /* like naive dag_copy, but copies cycles */
 
@@ -1325,15 +1347,19 @@ dag_node *dag_cyclic_arcs(dag_arc *arc)
 
   while(arc)
     {
+#ifdef QC_PATH_COMP
       if(unify_record_failure)
 	unify_path_rev = cons(arc->attr, unify_path_rev);
-	  
+#endif	  
+
       if((v = dag_cyclic_rec(arc->val)) != 0)
 	return v;
 
+#ifdef QC_PATH_COMP
       if(unify_record_failure)
 	unify_path_rev = pop_rest(unify_path_rev);
-      
+#endif      
+
       arc = arc->next;
     }
 

@@ -137,7 +137,7 @@ public:
   void add_path(UnicodeString path, morph_subrule *rule);
 
   bool has_rules() { return _rules.size() > 0; }
-  list<morph_subrule *> &rules() { return _rules; }
+  vector<morph_subrule *> &rules() { return _rules; }
 
   void print(FILE *f, int depth = 0);
   
@@ -146,7 +146,7 @@ private:
 
   map<UChar32, trie_node *> _s;
 
-  list<morph_subrule *> _rules;
+  vector<morph_subrule *> _rules;
 };
 
 class morph_trie
@@ -420,7 +420,7 @@ void trie_node::print(FILE *f, int depth)
 
   fprintf(f, "trie[%x] (", (int) this);
   
-  for(list<morph_subrule *>::iterator it = _rules.begin();
+  for(vector<morph_subrule *>::iterator it = _rules.begin();
       it != _rules.end(); ++it)
     {
       (*it)->print(f);
@@ -514,7 +514,7 @@ list<morph_analysis> morph_trie::analyze(morph_analysis a)
       n = n->get_node(c);
       if(n == 0) return res;
 
-      for(list<morph_subrule *>::iterator r = n->rules().begin();
+      for(vector<morph_subrule *>::iterator r = n->rules().begin();
 	  r != n->rules().end(); ++r)
 	{
 	  UnicodeString base;
@@ -627,7 +627,7 @@ morph_analyzer::morph_analyzer(grammar *G)
 
 morph_analyzer::~morph_analyzer()
 {
-  for(list<morph_subrule *>::iterator it = _subrules.begin();
+  for(vector<morph_subrule *>::iterator it = _subrules.begin();
       it != _subrules.end(); ++it)
     delete *it;
 
@@ -795,10 +795,10 @@ bool morph_analyzer::matching_irreg_form(morph_analysis a)
   return false;
 }
 
-list<morph_analysis> morph_analyzer::analyze(string form)
+list<morph_analysis> morph_analyzer::analyze(string form, bool lexfilter)
 {
-  if(verbosity > 4)
-    fprintf(fstatus, "morph_analyzer::analyze(%s)\n", form.c_str());
+  if(verbosity > 7)
+    fprintf(fstatus, "morph_analyzer::analyze(%s, %d)\n", form.c_str(), (int) lexfilter);
 
   // least fixpoint iteration
   
@@ -830,7 +830,7 @@ list<morph_analysis> morph_analyzer::analyze(string form)
 	{
 	  list<morph_analysis> r = analyze1(*it);
 	  current_results.splice(current_results.end(), r);
-	  if(it->valid())
+	  if(!lexfilter || it->valid())
 	    final_results.push_back(*it);
 	}
 

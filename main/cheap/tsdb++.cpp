@@ -45,7 +45,6 @@ void statistics::reset()
   dyn_bytes = 0;
   stat_bytes = 0;
   cycles = 0;
-  fssize = 0;
   nmeanings = 0;
   unify_cost_succ = 0;
   unify_cost_fail = 0;
@@ -83,8 +82,8 @@ void statistics::print(FILE *f)
 }
 
 #define ABSBS 80 /* arbitrary small buffer size */
-char CHEAP_VERSION [256];
-char CHEAP_PLATFORM [256];
+char CHEAP_VERSION [4096];
+char CHEAP_PLATFORM [1024];
 
 void initialize_version()
 {
@@ -148,7 +147,7 @@ void initialize_version()
           opt_nqc != 0 ? "+QC" : "-QC", opt_nqc, qcs,
           opt_one_solution ? "+OS" : "-OS", 
 #ifdef YY
-          (opt_one_meaning ? "+OM" : "-OM"), opt_k2y,
+          ((opt_nth_meaning != 0) ? "+OM" : "-OM"), opt_k2y,
 #endif
           opt_shrink_mem ? "+SM" : "-SM", 
           opt_shaping ? "+SH" : "-SH",
@@ -164,37 +163,6 @@ void initialize_version()
 }
 
 #ifdef TSDBAPI
-
-//
-// _hack_
-// really, capi_printf() should do appropriate escaping, depending on the
-// context; but we would need to elaborate it significantly, i guess, so 
-// hack around it for the time being                 (1-feb-01  -  oe@yy)
-//
-
-void capi_putstr(const char *s, bool strctx)
-{
-  if(strctx) capi_putc('\\');
-  capi_putc('"');
-
-  for(; s && *s; s++)
-    {
-      if(*s == '"' || *s == '\\')
-	{
-	  if(strctx)
-	    {
-	      capi_putc('\\');
-	      capi_putc('\\');
-	    }
-
-	  capi_putc('\\');
-	}
-      capi_putc(*s);
-    }
-
-  if(strctx) capi_putc('\\');
-  capi_putc('"');
-}
 
 int cheap_create_test_run(char *data, int run_id, char *comment,
                          int interactive, char *custom)
@@ -213,8 +181,11 @@ void cheap_tsdb_summarize_run(void)
   capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
   capi_printf("(:lexicon . %d) ", Grammar->nstems());
   capi_printf("(:rules . %d) ", Grammar->nrules());
+#if 0
   capi_printf("(:templates . %s) ", Grammar->info().ntemplates);
-
+#else
+  capi_printf("(:templates . -1) ");
+#endif
 } /* cheap_tsdb_summarize_run() */
 
 int nprocessed = 0;
@@ -225,7 +196,6 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
 {
   struct timeval tA, tB; int treal = 0;
   chart *Chart = 0;
-  agenda *Roots = 0;
 
   try {
     fs_alloc_state FSAS;
@@ -239,7 +209,7 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
 
     TotalParseTime.save();
 
-    analyze(i_chart, i_input, Chart, Roots, FSAS, i_id);
+    analyze(i_chart, i_input, Chart, FSAS, i_id);
  
     nprocessed++;
 
@@ -248,11 +218,12 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
     treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
       (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
 
-    cheap_tsdb_summarize_item(*Chart, Roots, i_chart.max_position(), treal,
-			      derivationp);
+    tsdb_parse T;
+    cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
+			      derivationp, 0, T);
+    T.capi_print();
 
     delete Chart;
-    delete Roots;
 
     return 0;
   } /* try */
@@ -265,196 +236,17 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
 
     TotalParseTime.restore();
 
-    cheap_tsdb_summarize_error(e, treal);
+    tsdb_parse T;
+    cheap_tsdb_summarize_error(e, treal, T);
+    T.capi_print();
+    
   } /* catch */
 
   delete Chart;
-  delete Roots;
 
   return 0;
 }
 
-
-void cheap_tsdb_summarize_item(chart &Chart, agenda *Roots, int length,
-                               int treal, int derivationp, char *meaning)
-{
-#ifdef YY
-  int k2y_status = 0;
-  string error = "";
-#endif
-
-  if(opt_derivation)
-    {
-      capi_printf("(:results\n");
-      int nres = 1;
-      stats.nmeanings = 0;
-      struct MFILE *mstream = mopen();
-      if(!derivationp) // default case, report results
-	{
-	  while(!Roots->empty())
-	    {
-	      basic_task *t = Roots->pop();
-	      item *it = t->execute();
-	      delete t;
-		
-	      if(it != 0) continue;
-	
-	      capi_printf("((:result-id . %d) ", nres);
-	      capi_printf("(:derivation . \"");
-	      it->tsdb_print_derivation();
-	      capi_printf("\")");
-        
-#ifdef YY
-	      if(opt_k2y)
-		{
-		  mflush(mstream);
-		  int nrelations 
-		    = construct_k2y(nres, it, false, mstream);
-		  if(nrelations >= 0)
-		    {
-		      stats.nmeanings++;
-		      capi_printf("(:mrs . ");
-		      capi_putstr(mstring(mstream));
-		      capi_printf(")");
-		    }
-		  else
-		    {
-		      error += 
-			string(error.empty() ? "" : " ") +
-			string(mstring(mstream));
-		      k2y_status = nrelations;
-		    }
-	  //
-          // _hack_
-          // use :tree field to record YY role table, when available; from
-          // the control strategy, we know that it must correspond to the
-          // last reading that was computed.           (6-feb-01  -  oe@yy)
-          //
-		  if(nres == stats.readings && meaning != NULL)
-		    {
-		      capi_printf("(:tree . ");
-		      capi_putstr(meaning);
-		      capi_printf(")");
-		    }
-		}
-#endif
-	      capi_printf(")");
-	      nres++;
-	    } // while
-	}
-      else // report all passive edges
-	{
-	  for(chart_iter it(Chart); it.valid(); it++)
-	    {
-	      if(it.current()->passive())
-		{
-		  capi_printf("((:result-id . %d) ", nres);
-		  capi_printf("(:derivation . \"");
-		  it.current()->tsdb_print_derivation();
-		  capi_printf("\"))");
-		  nres++;
-		}
-	    }
-	}
-      capi_printf(")");
-      mclose(mstream);
-    }
-
-#ifdef YY
-  if(!error.empty())
-    {
-      capi_printf("(:error . ");
-      capi_putstr(error.c_str());
-      capi_printf(")");
-    }
-#endif
-
-  if(opt_rulestatistics)
-    {  // slow in tsdb++, thus disabled by default
-      capi_printf("(:statistics . (");
-      for(rule_iter rule(Grammar); rule.valid(); rule++)
-	{
-	  grammar_rule *R = rule.current();
-	  capi_printf("((:rule . \"%s\") (:actives . %d) (:passives . %d))",
-		      R->printname(), R->actives, R->passives);
-	}
-      capi_printf("))\n");
-    }
-  
-  capi_printf("(:readings . %d) ", stats.readings);
-  capi_printf("(:words . %d) ", stats.words);
-  
-  capi_printf("(:first . %d) ", stats.first);
-  capi_printf("(:total . %d) ", stats.tcpu); /* total + lexicon = tcpu */
-  capi_printf("(:tcpu . %d) ", stats.tcpu); 
-  capi_printf("(:tgc . %d) ", 0); 
-  capi_printf("(:treal . %d) ", treal); 
-
-  capi_printf("(:others . %ld) ", stats.stat_bytes);
-
-  capi_printf("(:p-ftasks . %d) ", stats.ftasks_fi + stats.ftasks_qc);
-  capi_printf("(:p-etasks . %d) ", stats.etasks);
-  capi_printf("(:p-stasks . %d) ", stats.stasks);
-  capi_printf("(:aedges . %d) ", stats.aedges);
-  capi_printf("(:pedges . %d) ", stats.pedges);
-  capi_printf("(:raedges . %d) ", stats.raedges);
-  capi_printf("(:rpedges . %d) ", stats.rpedges);
-
-  capi_printf("(:unifications . %d) ", 
-              stats.unifications_succ + stats.unifications_fail);
-  capi_printf("(:copies . %d) ", stats.copies);
-  
-  capi_printf("(:comment . \"(:cycles . %d) (:fssize . %d) "
-              "(:dspace . %ld) "
-              "(:nk2ys . %d) (:nmeanings . %d) "
-#ifdef YY
-              "(:k2ystatus . %d)"
-#endif
-              "(:total . %d) (:scost . %d) (:fcost . %d) "
-              "(:failures . %d) (:pruned . %d)\")",
-              stats.cycles, stats.fssize, 
-              stats.dyn_bytes, 
-              stats.nmeanings, (meaning != NULL && *meaning ? 1 : 0),
-#ifdef YY
-              k2y_status,
-#endif
-              TotalParseTime.convert2ms(TotalParseTime.elapsed()),
-              stats.unify_cost_succ, stats.unify_cost_fail, 
-              stats.unifications_fail, stats.words_pruned);
-
-} /* cheap_tsdb_summarize_item() */
-
-void cheap_tsdb_summarize_error(error &condition, int treal) {
-
-  capi_printf("(:readings . -1) ");
-  capi_printf("(:pedges . %d) ", stats.pedges);
-  capi_printf("(:words . %d) ", stats.words);
-  
-  capi_printf("(:first . %d) ", stats.first);
-  capi_printf("(:total . %d) ", stats.tcpu); /* total + lexicon = tcpu */
-  capi_printf("(:tcpu . %d) ", stats.tcpu); 
-  capi_printf("(:tgc . %d) ", 0); 
-  capi_printf("(:treal . %d) ", treal); 
-
-  capi_printf("(:others . %ld) ", stats.stat_bytes);
-
-  capi_printf("(:p-ftasks . %d) ", stats.ftasks_fi + stats.ftasks_qc);
-  capi_printf("(:p-etasks . %d) ", stats.etasks);
-  capi_printf("(:p-stasks . %d) ", stats.stasks);
-  capi_printf("(:aedges . %d) ", stats.aedges);
-  capi_printf("(:pedges . %d) ", stats.pedges);
-  capi_printf("(:raedges . %d) ", stats.raedges);
-  capi_printf("(:rpedges . %d) ", stats.rpedges);
-
-  capi_printf("(:unifications . %d) ", 
-              stats.unifications_succ + stats.unifications_fail);
-  capi_printf("(:copies . %d) ", stats.copies);
-
-  capi_printf("(:error .\"");
-  condition.tsdb_print();
-  capi_printf("\")");
-
-} /* cheap_tsdb_summarize_error() */
 
 int cheap_complete_test_run(int run_id, char *custom)
 {
@@ -475,9 +267,363 @@ void tsdb_mode()
 {
   if(!capi_register(cheap_create_test_run, cheap_process_item, 
                     cheap_reconstruct_item, cheap_complete_test_run))
-    {
-      slave();
-    }
+  {
+    slave();
+  }
+}
+
+void tsdb_result::capi_print()
+{
+  capi_printf(" (");
+  capi_printf("(:result-id . %d) ", result_id);
+  capi_printf("(:derivation . \"%s\") ",  escape_string(derivation).c_str());
+  if(!mrs.empty())
+    capi_printf("(:mrs . \"%s\") ", escape_string(mrs).c_str());
+  if(!tree.empty())
+    capi_printf("(:tree . \"%s\") ", escape_string(tree).c_str());
+  capi_printf(")\n");
+}
+
+void tsdb_rule_stat::capi_print()
+{
+  capi_printf(" ((");
+  capi_printf("(:rule . \"%s\") ", escape_string(rule).c_str());
+  capi_printf("(:actives . %d) ", actives);
+  capi_printf("(:passives . %d) ", passives);
+  capi_printf("))\n");
+}
+
+void tsdb_parse::capi_print()
+{
+  if(!results.empty())
+  {
+    capi_printf("(:results\n");
+    for(list<tsdb_result>::iterator it = results.begin();
+        it != results.end(); ++it)
+      it->capi_print();
+    capi_printf(")\n");
+  }
+
+  if(!rule_stats.empty())
+  {
+    capi_printf("(:statistics\n");
+    for(list<tsdb_rule_stat>::iterator it = rule_stats.begin();
+        it != rule_stats.end(); ++it)
+      it->capi_print();
+    capi_printf(")\n");
+  }
+  
+  if(!err.empty())
+    capi_printf("(:error . \"%s\")", escape_string(err).c_str());
+  
+  if(readings != -1)
+    capi_printf("(:readings . %d) ", readings);
+  
+  if(words != -1)
+    capi_printf("(:words . %d) ", words);
+  
+  if(first != -1)
+    capi_printf("(:first . %d) ", first);
+
+  if(total != -1)
+    capi_printf("(:total . %d) ", total);
+
+  if(tcpu != -1)
+    capi_printf("(:tcpu . %d) ", tcpu); 
+
+  if(tgc != -1)
+    capi_printf("(:tgc . %d) ", tgc); 
+
+  if(treal != -1)
+    capi_printf("(:treal . %d) ", treal); 
+
+  if(others != -1)
+    capi_printf("(:others . %ld) ", others);
+
+  if(p_ftasks != -1)
+    capi_printf("(:p-ftasks . %d) ", p_ftasks);
+
+  if(p_etasks != -1)
+    capi_printf("(:p-etasks . %d) ", p_etasks);
+
+  if(p_stasks != -1)
+    capi_printf("(:p-stasks . %d) ", p_stasks);
+
+  if(aedges != -1)
+    capi_printf("(:aedges . %d) ", aedges);
+  
+  if(pedges != -1)
+    capi_printf("(:pedges . %d) ", pedges);
+
+  if(raedges != -1)
+    capi_printf("(:raedges . %d) ", raedges);
+
+  if(rpedges != -1)
+    capi_printf("(:rpedges . %d) ", rpedges);
+
+  if(unifications != -1)
+    capi_printf("(:unifications . %d) ", unifications);
+
+  if(copies != -1)
+    capi_printf("(:copies . %d) ", copies);
+  
+  capi_printf("(:comment . \""
+              "(:nk2ys . %d) "
+              "(:nmeanings . %d) "
+              "(:k2ystatus . %d) "
+              "(:failures . %d) "
+              "(:pruned . %d)\")",
+              nk2ys, nmeanings, k2ystatus, failures, pruned);
+  
 }
 
 #endif
+
+static int tsdb_unique_id = 1;
+
+void cheap_tsdb_summarize_item(chart &Chart, int length,
+                               int treal, int derivationp, char *meaning,
+                               tsdb_parse &T)
+{
+  if(opt_derivation)
+  {
+    int nres = 1;
+    stats.nmeanings = 0;
+    struct MFILE *mstream = mopen();
+    if(!derivationp) // default case, report results
+    {
+      for(list<item *>::iterator iter = Chart.Roots().begin();
+          iter != Chart.Roots().end(); ++iter)
+      {
+        tsdb_result R;
+
+        R.parse_id = tsdb_unique_id;
+        R.result_id = nres;
+        R.derivation = (*iter)->tsdb_derivation();
+
+#ifdef YY
+        if(opt_k2y)
+        {
+          mflush(mstream);
+          int nrelations
+            = construct_k2y(nres, *iter, false, mstream);
+          if(nrelations >= 0)
+          {
+            stats.nmeanings++;
+            R.mrs = mstring(mstream);
+          }
+          else
+          {
+            T.err +=
+              string(T.err.empty() ? "" : " ") +
+              string(mstring(mstream));
+            T.k2ystatus = nrelations;
+          }
+          //
+          // _hack_
+          // use :tree field to record YY role table, when available; from
+          // the control strategy, we know that it must correspond to the
+          // last reading that was computed.           (6-feb-01  -  oe@yy)
+          //
+          if(nres == stats.readings && meaning != NULL)
+          {
+            R.tree = string(meaning);
+		}
+#endif
+          T.push_result(R);
+          nres++;
+        } // while
+      }
+    }
+    else // report all passive edges
+    {
+      for(chart_iter it(Chart); it.valid(); it++)
+      {
+        if(it.current()->passive())
+        {
+          tsdb_result R;
+          
+          R.result_id = nres;
+          R.derivation = it.current()->tsdb_derivation();
+          
+          T.push_result(R);
+          nres++;
+        }
+      }
+    }
+    mclose(mstream);
+  }
+
+  if(opt_rulestatistics)
+  {  // slow in tsdb++, thus disabled by default
+    for(rule_iter rule(Grammar); rule.valid(); rule++)
+    {
+      tsdb_rule_stat S;
+      grammar_rule *R = rule.current();
+
+      S.rule = R->printname();
+      S.actives = R->actives;
+      S.passives = R->passives;
+
+      T.push_rule_stat(S);
+    }
+  }
+
+  T.run_id = 1;
+  T.parse_id = tsdb_unique_id;
+  T.i_id = tsdb_unique_id;
+  T.date = string(current_time());
+  tsdb_unique_id++;
+
+  T.readings = stats.readings;
+  T.words = stats.words;
+  T.first = stats.first;
+  T.total = stats.tcpu;
+  T.tcpu = stats.tcpu;
+  T.tgc = 0;
+  T.treal = treal;
+  
+  T.others = stats.stat_bytes;
+  
+  T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
+  T.p_etasks = stats.etasks;
+  T.p_stasks = stats.stasks;
+  T.aedges = stats.aedges;
+  T.pedges = stats.pedges;
+  T.raedges = stats.raedges;
+  T.rpedges = stats.rpedges;
+  
+  T.unifications = stats.unifications_succ + stats.unifications_fail;
+  T.copies = stats.copies;
+  
+  T.nk2ys = stats.nmeanings;
+  T.nmeanings = (meaning != NULL && *meaning ? 1 : 0);
+  T.failures = stats.unifications_fail;
+  T.pruned = stats.words_pruned;
+}
+
+void cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
+{
+  T.run_id = 1;
+  T.parse_id = tsdb_unique_id;
+  T.i_id = tsdb_unique_id;
+  T.date = string(current_time());
+  tsdb_unique_id++;
+
+  T.readings = -1;
+  T.pedges = stats.pedges;
+  T.words = stats.words;
+
+  T.first = stats.first;
+  T.total = stats.tcpu;
+  T.tcpu = stats.tcpu;
+  T.tgc = 0;
+  T.treal = treal;
+
+  T.others = stats.stat_bytes;
+  
+  T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
+  T.p_etasks = stats.etasks;
+  T.p_stasks = stats.stasks;
+  T.aedges = stats.aedges;
+  T.pedges = stats.pedges;
+  T.raedges = stats.raedges;
+  T.rpedges = stats.rpedges;
+  
+  T.unifications = stats.unifications_succ + stats.unifications_fail;
+  T.copies = stats.copies;
+  
+  T.err = condition.msg();
+}
+
+void tsdb_parse::set_rt(const string &rt)
+{
+  if(results.empty())
+    return;
+  
+  tsdb_result r = results.front();
+  results.pop_front();
+  
+  r.tree = rt;
+  
+  results.push_front(r);
+}
+
+string tsdb_escape_string(const string &s)
+{
+  string res;
+
+  bool lastblank = false;
+  for(string::const_iterator it = s.begin(); it != s.end(); ++it)
+  {
+    if(isspace(*it))
+    {
+      if(!lastblank)
+        res += " ";
+      lastblank = true;
+    }
+    else if(*it == '@')
+    {
+      lastblank = false;
+      res += "\\s";
+    }
+    else if(*it == '\\')
+    {
+      lastblank = false;
+      res += string("\\\\");
+    }
+    else
+    {
+      lastblank = false;
+      res += string(1, *it);
+    }
+  }
+  
+  return res;
+}
+
+void tsdb_result::file_print(FILE *f)
+{
+  fprintf(f, "%d@%d@%d@%d@%d@%d@%d@%d@%d@%d@",
+          parse_id, result_id, time,
+          r_ctasks, r_ftasks, r_etasks, r_stasks, 
+          size, r_aedges, r_pedges);
+  fprintf(f, "%s@%s@%s\n",
+          tsdb_escape_string(derivation).c_str(),
+          tsdb_escape_string(tree).c_str(),
+          tsdb_escape_string(mrs).c_str());
+}
+
+void tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
+{
+  if(!results.empty())
+  {
+    for(list<tsdb_result>::iterator it = results.begin();
+        it != results.end(); ++it)
+      it->file_print(f_result);
+  }
+
+  fprintf(f_parse,
+          "%d@%d@%d@"
+          "%d@%d@%d@%d@%d@%d@"
+          "%d@%d@%d@%d@%d@%d@"
+          "%d@%d@%d@%d@"
+          "%d@%d@%d@%d@"
+          "%ld@%d@%d@%d@",
+          parse_id, run_id, i_id,
+          readings, first, total, tcpu, tgc, treal,
+          words, l_stasks, p_ctasks, p_ftasks, p_etasks, p_stasks,
+          aedges, pedges, raedges, rpedges,
+          unifications, copies, conses, symbols, 
+          others, gcs, i_load, a_load);
+
+  fprintf(f_parse, "%s@%s@(:nk2ys . %d) (:nmeanings . %d) "
+          "(:k2ystatus . %d) (:failures . %d) (:pruned . %d)\n",
+          tsdb_escape_string(date).c_str(),
+          tsdb_escape_string(err).c_str(),
+          nk2ys, nmeanings, k2ystatus, failures, pruned);
+
+  fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
+          parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
+}
+

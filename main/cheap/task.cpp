@@ -13,7 +13,7 @@
 #include "options.h"
 #include "tsdb++.h"
 
-#define HYPERACTIVE_EXKURS
+// #define HYPERACTIVE_EXKURS
 
 int basic_task::next_id = 0;
 
@@ -81,7 +81,7 @@ item *build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
           //
           if(!opt_one_solution
 #ifdef YY
-             && !opt_one_meaning
+             && (opt_nth_meaning == 0)
 #endif
              ) {
             bool success = false;

@@ -69,12 +69,14 @@ struct dag_node *dag_partial_copy(dag_node *src, int attr);
 // for debugging
 bool dag_valid(dag_node *dag);
 
+#ifdef QC_PATH_COMP
 #include "failure.h"
 
 list<class unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool all_failures,
 							 list_int *initial_path = 0, dag_node **result_root = 0);
 
 list<list_int *> dag_paths(dag_node *dag, dag_node *search);
+#endif
 
 // non-permanent dags (for hyperactive parsing)
 

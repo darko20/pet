@@ -25,8 +25,9 @@ list<string> lingo_tokenizer::tokenize()
   string s(_input);
 
   // downcase string
-  for(string::size_type i = 0; i < s.length(); i++)
-    s[i] = tolower(s[i]);
+  if(true || !cheap_settings->lookup("trivial-tokenizer"))
+    for(string::size_type i = 0; i < s.length(); i++)
+      s[i] = tolower(s[i]);
   
   // translate iso-8859-1 german umlaut and sz
   if(cheap_settings->lookup("translate-iso-chars"))
@@ -77,6 +78,11 @@ list<string> lingo_tokenizer::tokenize()
       
       start = end + 1;
     }
+
+  //
+  // if trivial tokenization is all we need, we are done here
+  //
+  if(cheap_settings->lookup("trivial-tokenizer")) return words;
   
   // handle apostrophs
   list<string> words2;
@@ -132,7 +138,7 @@ void lingo_tokenizer::add_tokens(input_chart *i_chart)
   for(list<string>::iterator pos = tokens.begin();
       pos != tokens.end(); ++pos)
     {
-      if(verbosity > 4)
+      if(verbosity > 7)
 	fprintf(ferr, " [%d] <%s>", i, pos->c_str());
       
       list<full_form> forms = Grammar->lookup_form(*pos);

@@ -14,7 +14,7 @@
 
 bool opt_pre, opt_expand_all_instances,
   opt_full_expansion, opt_shrink, opt_minimal, opt_no_sem,
-  opt_propagate_status, opt_linebreaks;
+  opt_propagate_status, opt_linebreaks, opt_glbdebug;
 
 int verbosity;
 int errors_to;
@@ -31,6 +31,7 @@ void usage(FILE *f)
   fprintf(f, "  `-minimal' --- minimal fixed arity encoding\n");
   fprintf(f, "  `-propagate-status' --- propagate status the PAGE way\n");
   fprintf(f, "  `-no-semantics' --- remove all semantics\n");
+  fprintf(f, "  `-glbdebug' --- print information about glb types created\n");
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-errors-to=n' --- print errors to fd n\n");
 }
@@ -44,6 +45,7 @@ void usage(FILE *f)
 #define OPTION_MINIMAL 8
 #define OPTION_NO_SEM 9
 #define OPTION_PROPAGATE_STATUS 10
+#define OPTION_GLBDEBUG 11
 
 bool parse_options(int argc, char* argv[])
 {
@@ -57,6 +59,7 @@ bool parse_options(int argc, char* argv[])
     {"minimal", no_argument, 0, OPTION_MINIMAL},
     {"no-semantics", no_argument, 0, OPTION_NO_SEM},
     {"propagate-status", no_argument, 0, OPTION_PROPAGATE_STATUS},
+    {"glbdebug", no_argument, 0, OPTION_GLBDEBUG},
     {"verbose", optional_argument, 0, OPTION_VERBOSE},
     {"errors-to", required_argument, 0, OPTION_ERRORS_TO},
     {0, 0, 0, 0}
@@ -70,58 +73,62 @@ bool parse_options(int argc, char* argv[])
   opt_no_sem = false;
   opt_propagate_status = false;
   opt_linebreaks = false;
+  opt_glbdebug = false;
 
   verbosity = 0;
   errors_to = -1;
   
   while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
+  {
+    switch(c)
     {
-      switch(c)
-        {
-        case '?':
-          return false;
-          break;
-	case OPTION_PRE:
-	  opt_pre = true;
-	  break;
-        case OPTION_NO_SHRINK:
-          opt_shrink = false;
-          break;
-        case OPTION_MINIMAL:
-          opt_minimal = true;
-          break;
-        case OPTION_FULL_EXPANSION:
-          opt_full_expansion = true;
-          break;
-        case OPTION_EXPAND_ALL_INSTANCES:
-          opt_expand_all_instances = true;
-          break;
-        case OPTION_NO_SEM:
-          opt_no_sem = true;
-          break;
-	case OPTION_PROPAGATE_STATUS:
-	  opt_propagate_status = true;
-	  break;
-        case OPTION_VERBOSE:
-          if(optarg != NULL)
-	    verbosity = strtoint(optarg, "as argument to `-verbose'");
-          else
-            verbosity++;
-          break;
-        case OPTION_ERRORS_TO:
-          if(optarg != NULL)
-	    errors_to = strtoint(optarg, "as argument to `-errors-to'");
-	  break;
-        }
-    }
-
-  if(optind != argc - 1)
-    {
-      fprintf(ferr, "parse_options(): expecting name of TDL grammar to process\n");
+    case '?':
       return false;
+      break;
+    case OPTION_PRE:
+      opt_pre = true;
+      break;
+    case OPTION_NO_SHRINK:
+      opt_shrink = false;
+      break;
+    case OPTION_MINIMAL:
+      opt_minimal = true;
+      break;
+    case OPTION_FULL_EXPANSION:
+      opt_full_expansion = true;
+      break;
+    case OPTION_EXPAND_ALL_INSTANCES:
+      opt_expand_all_instances = true;
+      break;
+    case OPTION_NO_SEM:
+      opt_no_sem = true;
+      break;
+    case OPTION_PROPAGATE_STATUS:
+      opt_propagate_status = true;
+      break;
+    case OPTION_GLBDEBUG:
+      opt_glbdebug = true;
+      break;
+    case OPTION_VERBOSE:
+      if(optarg != NULL)
+        verbosity = strtoint(optarg, "as argument to `-verbose'");
+      else
+        verbosity++;
+      break;
+    case OPTION_ERRORS_TO:
+      if(optarg != NULL)
+        errors_to = strtoint(optarg, "as argument to `-errors-to'");
+      break;
     }
+  }
+  
+  if(optind != argc - 1)
+  {
+    fprintf(ferr, "parse_options(): expecting name of TDL grammar to process\n");
+    return false;
+  }
   
   grammar_file_name = argv[optind];
-
+  
   return true;
 }

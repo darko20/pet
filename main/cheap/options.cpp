@@ -18,8 +18,8 @@ bool opt_one_solution, opt_shrink_mem, opt_shaping, opt_default_les,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph;
 #ifdef YY
-bool opt_one_meaning, opt_yy, opt_k2y_segregation;
-int unsigned opt_k2y;
+bool opt_yy, opt_k2y_segregation;
+int opt_k2y, opt_nth_meaning;
 #endif
 
 int opt_nqc, verbosity, pedgelimit, opt_key, opt_server;
@@ -52,7 +52,7 @@ void usage(FILE *f)
           "output K2Y, filter at `n' %% of raw atoms (default: 50)\n");
   fprintf(f, "  `-k2y-segregation' --- "
           "pre-nominal modifiers in analogy to reduced relatives\n");
-  fprintf(f, "  `-one-meaning' --- non exhaustive search for first valid semantic formula\n");
+  fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth] valid semantic formula\n");
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
@@ -118,7 +118,7 @@ void init_options()
   opt_yy = false;
   opt_k2y = 0;
   opt_k2y_segregation = false;
-  opt_one_meaning = false;
+  opt_nth_meaning = 0;
 #endif
 }
 
@@ -148,7 +148,7 @@ bool parse_options(int argc, char* argv[])
     {"default-les", no_argument, 0, OPTION_DEFAULT_LES},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
-    {"one-meaning", no_argument, 0, OPTION_ONE_MEANING},
+    {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
     {"k2y", optional_argument, 0, OPTION_K2Y},
     {"k2y-segregation", no_argument, 0, OPTION_K2Y_SEGREGATION},
 #endif
@@ -243,7 +243,10 @@ bool parse_options(int argc, char* argv[])
           break;
 #ifdef YY
         case OPTION_ONE_MEANING:
-          opt_one_meaning = true;
+          if(optarg != NULL)
+            opt_nth_meaning = strtoint(optarg, "as argument to -one-meaning");
+          else
+            opt_nth_meaning = 1;
           break;
         case OPTION_K2Y:
           if(optarg != NULL)
@@ -304,6 +307,9 @@ void options_from_settings(settings *set)
   opt_k2y = int_setting(set, "k2y");
   opt_yy = bool_setting(set, "yy");
   opt_k2y_segregation = bool_setting(set, "k2y-segregation");
-  opt_one_meaning = bool_setting(set, "one-meaning");
+  if(bool_setting(set, "one-meaning"))
+    opt_nth_meaning = 1;
+  else
+    opt_nth_meaning = 0;
 #endif
 }

@@ -20,6 +20,6 @@ bool filter_rule_task(class grammar_rule *R, class item *passive);
 bool filter_combine_task(class item *active, class item *passive);
 
 void analyze(class input_chart &ic, string input, class chart *&C, 
-	     class agenda *&R, class fs_alloc_state &FSAS, int id = 0);
+	     class fs_alloc_state &FSAS, int id = 0);
 
 #endif

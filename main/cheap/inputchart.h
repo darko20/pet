@@ -194,6 +194,7 @@ private:
   list<input_token *> _inputtokens;
 };
 
-void dependency_filter(list<class lex_item *> &result, struct setting *deps);
+void dependency_filter(list<class lex_item *> &result, struct setting *deps,
+                       bool unidirectional);
 
 #endif

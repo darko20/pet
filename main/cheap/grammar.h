@@ -12,6 +12,9 @@
 #include "../common/utility.h"
 #include "types.h"
 #include "fs.h"
+#ifdef IQT
+#include "iqt.h"
+#endif
 
 // global variables for quick check
 extern int qc_len;
@@ -21,7 +24,7 @@ class lex_stem
 {
  public:
 
-  lex_stem(type_t t);
+  lex_stem(type_t t, const modlist &mods = modlist(), const list<string> &orths = list<string>(), int discount = 0);
   lex_stem(const lex_stem &le);
   ~lex_stem();
 
@@ -47,6 +50,8 @@ class lex_stem
   int _id;
 
   int _type;        // type index
+
+  modlist _mods;
 
   int _nwords;      // length of _orth
   char **_orth;     // array of _nwords strings
@@ -252,6 +257,11 @@ class grammar
   lex_stem *lookup_stem(int inst_key);
   list<lex_stem *> lookup_stem(string s);
 
+#ifdef IQT
+  iqtDictionary *iqtDict() { return _iqtDict; }
+  void clear_dynamic_stems();
+#endif
+  
   list<full_form> lookup_form(const string form);
 
   list_int *generics() { return _generics; }
@@ -271,7 +281,13 @@ class grammar
 
   map<type_t, lex_stem *> _lexicon;
   multimap<string, lex_stem *> _stemlexicon;
-  
+
+#ifdef IQT
+  iqtDictionary *_iqtDict;
+  list<lex_stem *> _dynamicstems;
+  int _iqt_discount;
+#endif
+
   typedef multimap<string, full_form *> ffdict;
   ffdict _fullforms;
 

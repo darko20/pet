@@ -16,6 +16,5 @@
 #include "dag-simple.h"
 #elif defined(DAG_TOMABECHI)
 # define QDESTRUCTIVE_UNIFIER
-# define DAG_FAILURES
 # include "dag-tomabechi.h"
 #endif

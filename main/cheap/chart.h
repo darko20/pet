@@ -27,12 +27,15 @@ class chart
   unsigned int length() { return (unsigned int) _Cp_start.size() ; }
   unsigned int rightmost() { return length() - 1; }
 
+  list<item *> &Roots() { return _Roots; }
+
   void shortest_path(list <item *> &);
 
  private:
   static int _next_stamp;
 
   list<item *> _Chart;
+  list<item *> _Roots;
 
   int _pedges;
 

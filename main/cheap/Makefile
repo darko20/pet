@@ -4,7 +4,8 @@
 RM = rm
 OBJ = o
 CXX = g++
-# CC = KCC --c
+CC = gcc
+# CC = KCC --
 # CXX = KCC
 
 ITSDBPATH = /home/oe/src/itsdb
@@ -13,8 +14,8 @@ INCLUDE = -I. -I../common  -I$(ITSDBPATH)/include -I$(ICUDIR)/include
 ICUDIR = /usr/local
 
 # for Unix/gcc
-CPPFLAGS1 = -Wall -g -DHASH_MAP_AVAIL -DUSEMMAP -DYY $(INCLUDE) \
-  -DTSDBAPI -DSOCKET_INTERFACE -DONLINEMORPH -DICU
+CPPFLAGS1 = -Wall -g -fno-inline -DHASH_MAP_AVAIL -DUSEMMAP -DYY $(INCLUDE) \
+  -DTSDBAPI -DSOCKET_INTERFACE -DONLINEMORPH -DICU -DQC_PATH_COMP
 # for Unix/KCC
 # CPPFLAGS1 = -DKCC -DCRASHES_ON_DYNAMIC_CASTS +K3 -DUSEMMAP -DTSDBAPI $(INCLUDE)
 # for CygWin

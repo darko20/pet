@@ -15,14 +15,13 @@ extern "C" {
 #include "itsdb.h"
 }
 
-void capi_putstr(const char *, bool strctx = false);
-
 void tsdb_mode();
 void cheap_tsdb_summarize_run();
-void cheap_tsdb_summarize_item(class chart &, class agenda *, int, int, int,
-			       char * = NULL);
-void cheap_tsdb_summarize_error(error &, int treal);
 #endif
+
+void cheap_tsdb_summarize_item(class chart &, int, int, int,
+                               char *, class tsdb_parse &);
+void cheap_tsdb_summarize_error(error &, int treal, class tsdb_parse &);
 
 class statistics
 {
@@ -60,6 +59,135 @@ class statistics
 extern statistics stats;
 
 void initialize_version();
+
+// Representation of tsdb++ relations
+
+class tsdb_result
+{
+ public:
+  tsdb_result() :
+    parse_id(-1), result_id(-1), time(-1), r_ctasks(-1), r_ftasks(-1),
+    r_etasks(-1), r_stasks(-1), size(-1), r_aedges(-1), r_pedges(-1),
+    derivation(), tree(), mrs()
+    {
+    }    
+
+  void file_print(FILE *f);
+
+#ifdef TSDBAPI
+  void capi_print();
+#endif
+
+  int parse_id;
+  int result_id;                    // unique result identifier
+  int time;                         // time to find this result (msec)
+  int r_ctasks;                     // parser contemplated tasks
+  int r_ftasks;                     // parser filtered tasks
+  int r_etasks;                     // parser executed tasks
+  int r_stasks;                     // parser succeeding tasks
+  int size;                         // size of feature structure
+  int r_aedges;                     // active items for this result
+  int r_pedges;                     // passive items in this result
+  string derivation;                // derivation tree for this reading
+  string tree;                      // phrase structure tree (CSLI labels)
+  string mrs;                       // mrs for this reading
+};
+
+class tsdb_rule_stat
+{
+ public:
+  tsdb_rule_stat()
+    : rule(), actives(-1), passives(-1)
+    {
+    }
+
+#ifdef TSDBAPI
+  void capi_print();
+#endif  
+
+  string rule;
+  int actives;
+  int passives;
+};
+
+class tsdb_parse
+{
+ public:
+  tsdb_parse() :
+    parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1), pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1), date(), err(), nk2ys(-1), nmeanings(-1), k2ystatus(-1), failures(-1), pruned(-1), results(), rule_stats(), i_input(), i_length(-1)
+    {
+    }
+
+  void push_result(class tsdb_result &r)
+    {
+      results.push_back(r);
+    }
+
+  void set_rt(const string &rt);
+
+  void push_rule_stat(class tsdb_rule_stat &r)
+    {
+      rule_stats.push_back(r);
+    }
+
+  void set_input(const string &s)
+    {
+      i_input = s;
+    }
+
+  void set_i_length(int l)
+    {
+      i_length = l;
+    }
+
+  void file_print(FILE *f_parse, FILE *f_result, FILE *f_item);
+
+#ifdef TSDBAPI
+  void capi_print();
+#endif
+
+  int parse_id;                     // unique parse identifier
+  int run_id;                       // test run for this parse
+  int i_id;                         // item parsed
+  int readings;                     // number of readings obtained
+  int first;                        // time to find first reading (msec)
+  int total;                        // total time for parsing (msec)
+  int tcpu;                         // total (cpu) processing time (msec)
+  int tgc;                          // gc time used (msec)
+  int treal;                        // overall real time (msec)
+  int words;                        // lexical entries retrieved
+  int l_stasks;                     // successful lexical rule applications
+  int p_ctasks;                     // parser contemplated tasks (LKB)
+  int p_ftasks;                     // parser filtered tasks
+  int p_etasks;                     // parser executed tasks
+  int p_stasks;                     // parser succeeding tasks
+  int aedges;                       // active items in chart (PAGE)
+  int pedges;                       // passive items in chart
+  int raedges;                      // active items contributing to result
+  int rpedges;                      // passive items contributing to result
+  int unifications;                 // number of (node) unifications
+  int copies;                       // number of (node) copy operations
+  int conses;                       // cons() cells allocated
+  int symbols;                      // symbols allocated
+  long int others;                  // bytes of memory allocated
+  int gcs;                          // number of garbage collections
+  int i_load;                       // initial load (start of parse)
+  int a_load;                       // average load
+  string date;                      // date and time of parse
+  string err;                       // error string (if applicable |:-)
+  int nk2ys;
+  int nmeanings;
+  int k2ystatus;
+  int failures;
+  int pruned;
+
+ private:
+
+  list<tsdb_result> results;
+  list<tsdb_rule_stat> rule_stats;
+  string i_input;
+  int i_length; 
+};
 
 // this class provides a clock that starts running on construction
 // elapsed() returns elapsed time since start in some unknown unit
@@ -113,4 +241,3 @@ class timer
 };
 
 #endif
-

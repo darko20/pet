@@ -16,9 +16,9 @@ void dump_header(dumper *f, char *desc)
   f->dump_string(desc);
 }
 
-char *undump_header(dumper *f)
+char *undump_header(dumper *f, int &version)
 {
-  int magic, version;
+  int magic;
   char *desc;
 
   magic = f->undump_int();
