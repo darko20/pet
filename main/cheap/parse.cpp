@@ -407,7 +407,8 @@ void
 get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS);
 
 void
-parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
+parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS, 
+      list<error> &errors)
 {
     if(initial.empty()) return;
 
@@ -457,13 +458,13 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
     delete ParseTime;
     delete Agenda;
 
-    if(Chart->trees().empty() && ressources_exhausted())
+    if(ressources_exhausted())
     {
         if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
-            throw error_ressource_limit("memory (MB)",
-                                        memlimit / (1024 * 1024));
+            errors.push_back(error_ressource_limit("memory (MB)",
+                                                   memlimit / (1024 * 1024)));
         else
-            throw error_ressource_limit("pedges", pedgelimit);
+            errors.push_back(error_ressource_limit("pedges", pedgelimit));
     }
 
     if(opt_packing)
@@ -515,7 +516,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
 
 void
 analyze(input_chart &i_chart, string input, chart *&C,
-        fs_alloc_state &FSAS, int id)
+        fs_alloc_state &FSAS, list<error> &errors, int id)
 {
     FSAS.clear_stats();
     stats.reset();
@@ -568,7 +569,7 @@ analyze(input_chart &i_chart, string input, chart *&C,
 
     C = Chart = New chart(max_pos, owner);
 
-    parse(*Chart, lex_items, FSAS);
+    parse(*Chart, lex_items, FSAS, errors);
 }
 
 void
