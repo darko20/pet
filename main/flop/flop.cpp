@@ -62,6 +62,19 @@ settings *flop_settings = 0;
 static char *grammar_version;
 
 void
+mem_checkpoint(char *where)
+{
+    static int last = 0;
+    
+    if(verbosity > 1)
+    {
+        fprintf(stderr, "Memory delta %dk (total %dk) [%s]\n",
+                ((int) sbrk(0) - last) / 1024, ((int) sbrk(0)) / 1024, where);
+    }
+    last = (int) sbrk(0);
+}
+
+void
 check_undefined_types()
 {
   for(int i = 0; i < types.number(); i++)
@@ -451,6 +464,8 @@ process(char *ofname)
     
     clock_t t_start = clock();
     
+    mem_checkpoint("start");
+
     fname = find_file(ofname, TDL_EXT);
     
     if(!fname)
@@ -504,8 +519,12 @@ process(char *ofname)
                 if(fname) push_file(fname, "preloading");
             }
         
+        mem_checkpoint("before parsing TDL files");
+
         tdl_start(1);
         fprintf(fstatus, "\n");
+
+        mem_checkpoint("after parsing TDL files");
         
         char *fffname;
         if((fffname = flop_settings->value("fullform-file")) != 0)
@@ -513,6 +532,8 @@ process(char *ofname)
             if((fffname = find_file(fffname, VOC_EXT)))
                 read_morph(fffname);
 	}
+
+        mem_checkpoint("after reading full form file");
         
         char *irregfname;
         if((irregfname = flop_settings->value("irregs-file")) != 0)
@@ -529,15 +550,20 @@ process(char *ofname)
                 syntax_errors, total_lexed_lines,
                 (clock() - t_start) / (float) CLOCKS_PER_SEC);
         
+        mem_checkpoint("before preprocessing types");
+
         fprintf(fstatus, "processing type constraints (%d types):\n",
                 types.number());
       
         t_start = clock();
         
         preprocess_types();
+        mem_checkpoint("after preprocessing types");
         
         if(!opt_pre)
             process_types();
+
+        mem_checkpoint("after processing types");
 
         fill_grammar_properties();
         
