@@ -29,6 +29,7 @@
 #include "tokenizer.h"
 #include "tsdb++.h"
 #include "mfile.h"
+#include "qc.h"
 #ifdef YY
 # include "k2y.h"
 # include "yy.h"
@@ -271,6 +272,17 @@ int cheap_complete_test_run(int run_id, char *custom)
 	  TotalParseTime.elapsed_ts() / 10.,
 	  nprocessed,
 	  (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
+
+#ifdef QC_PATH_COMP
+    if(opt_compute_qc)
+    {
+        fprintf(ferr, "computing quick check paths\n");
+        FILE *qc = fopen("/tmp/qc.tdl", "w");
+        compute_qc_paths(qc, 10000);
+        fclose(qc);
+    }
+#endif
+
   return 0;
 }
 
