@@ -147,6 +147,9 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
   
     _spanningonly = R->spanningonly();
 
+#ifdef DEBUG
+    fprintf(stderr, "A %d < %d\n", pasv->id(), id());
+#endif
     pasv->_nparents++; pasv->parents.push_back(this);
 
     if(opt_nqc != 0)
@@ -189,6 +192,9 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
         _daughters.push_back(pasv);
     }
   
+#ifdef DEBUG
+    fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
+#ifdef DEBUG
     pasv->_nparents++; pasv->parents.push_back(this);
     active->_nparents++; active->parents.push_back(this);
 
@@ -633,8 +639,10 @@ item::unpack()
         return res;
     }
 
-    if(_unpack_cache)
+    if(_unpack_cache) {
+        unpacking_level--;
         return *_unpack_cache;
+    }
 
     // Recursively unpack items that are packed into this item.
     for(list<item *>::iterator p = packed.begin();
@@ -658,6 +666,8 @@ item::unpack()
     }
 
     _unpack_cache = new list<item *>(res);
+
+    unpacking_level--;
     return res;
 }
 

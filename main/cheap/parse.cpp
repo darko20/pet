@@ -168,33 +168,15 @@ fundamental_for_passive(item *passive)
 void
 fundamental_for_active(phrasal_item *active)
 {
-    // iterate over all passive items adjacent to active and try combination
+  // iterate over all passive items adjacent to active and try combination
 
-    // when making changes here, don't forget to change the excursion for
-    // hyperactive parsing in task.cpp accordingly
-
-    if(opt_hyper)
-    {
-        // avoid processing tasks already done in the `excursion'
-        for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
-            if(it.current()->stamp() > active->done())
-                if(opt_packing == 0 || !it.current()->blocked())
-                    if(it.current()->compatible(active, Chart->rightmost()))
-                        if(filter_combine_task(active, it.current()))
-                            Agenda->push(New
-                                active_and_passive_task(Chart, Agenda,
-                                                        active, it.current()));
-    }
-    else
-    {
-        for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
-            if(opt_packing == 0 || !it.current()->blocked())
-                if(it.current()->compatible(active, Chart->rightmost()))
-                    if(filter_combine_task(active, it.current()))
-                        Agenda->push(New
-                            active_and_passive_task(Chart, Agenda,
-                                                    active, it.current()));
-    }
+  for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
+    if(opt_packing == 0 || !it.current()->blocked())
+      if(it.current()->compatible(active, Chart->rightmost()))
+        if(filter_combine_task(active, it.current()))
+          Agenda->push(New
+                       active_and_passive_task(Chart, Agenda,
+                                               active, it.current()));
 }
 
 bool

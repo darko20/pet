@@ -27,8 +27,6 @@
 #include "options.h"
 #include "tsdb++.h"
 
-// #define HYPERACTIVE_EXKURS
-
 int basic_task::next_id = 0;
 
 item *build_combined_item(chart *C, item *active, item *passive);
@@ -87,40 +85,7 @@ item *build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
 	{
 	  temporary_generation save(res.temp());
 	  it = New phrasal_item(R, passive, res);
-#ifdef HYPERACTIVE_EXKURS
-	  // try to find a passive edge to complete this right away
-          //
-          // in best-first mode, it is more important to stick to the ordering
-          // of tasks, as governed by the scoring mechanism. (9-apr-01  -  oe)
-          //
-          if(opt_nsolutions == 0
-#ifdef YY
-             && (opt_nth_meaning == 0)
-#endif
-             ) {
-            bool success = false;
-            for(chart_iter_adj_passive iter(C, it); iter.valid(); iter++)
-              {
-		if(!iter.current()->compatible(it, C->rightmost()))
-		  continue;
-                it->set_done(iter.current()->stamp());
-                if(filter_combine_task(it, iter.current()))
-                  {
-                    item *it2 = build_combined_item(C, it, iter.current());
-                    if(it2)
-                      {
-                        A->push(New item_task(C, A, it2));
-                        success = true;
-                      }
-                    
-                    break;
-                  }
-              }
-            if(!success) FSAS.release();
-          } /* if */
-#else
-	    FSAS.release();
-#endif
+          FSAS.release();
 	}
       else
 	{
