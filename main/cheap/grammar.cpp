@@ -856,6 +856,13 @@ grammar::grammar(const char * filename)
 #endif
 
     get_unifier_stats();
+
+    if(property("unfilling") == "true" && opt_packing)
+    {
+        fprintf(ferr, "warning: cannot using packing on unfilled grammar -"
+                "packing disabled\n");
+        opt_packing = 0;
+    }
 }
 
 void
