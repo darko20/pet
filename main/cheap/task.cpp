@@ -187,8 +187,8 @@ item_task::item_task(class chart *C, class agenda *A, item *it)
 {
     if(opt_packing)
         priority(packingscore(it->start(), it->end(), C->rightmost(), false));
-    else if(opt_nsolutions > 0)
-        priority(it->score());
+    else 
+      priority(it->score());
 }
 
 item *
@@ -210,7 +210,7 @@ rule_and_passive_task::rule_and_passive_task(class chart *C, class agenda *A,
         priority(packingscore(passive->start(), passive->end(),
                               C->rightmost(), R->arity() > 1));
     }
-    else if(opt_nsolutions > 0 && Grammar->sm())
+    else if(Grammar->sm())
     {
         list<item *> daughters;
         daughters.push_back(passive);
@@ -245,7 +245,7 @@ active_and_passive_task::active_and_passive_task(class chart *C,
             priority(packingscore(active->start(), passive->end(),
                                   C->rightmost(), false));
     }
-    else if(opt_nsolutions > 0 && Grammar->sm())
+    else if(Grammar->sm())
     {
         phrasal_item *active = dynamic_cast<phrasal_item *>(act); 
 
