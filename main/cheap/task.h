@@ -37,7 +37,6 @@ class basic_task
     {}
 
   virtual item *execute() = 0;
-  virtual bool plateau() = 0;
 
   inline int priority() { return _p; }
   inline void priority(int p) { _p = p; }
@@ -68,7 +67,6 @@ class item_task : public basic_task
   inline item_task(class chart *C, class agenda *A, item *it, int p)
     : basic_task(C, A, p, MAX_TASK_PRIORITY, it->age()), _item(it) {}
   virtual item *execute();
-  virtual bool plateau() { return true; }
  private:
   item *_item;
 };
@@ -83,7 +81,6 @@ class rule_and_passive_task : public basic_task
                  passive->priority(), passive->age()), 
       _R(R), _passive(passive) {}
   virtual item *execute();
-  virtual bool plateau() { return false; }
   virtual void print(FILE *f);
 
  private:
@@ -101,7 +98,6 @@ class active_and_passive_task : public basic_task
                  active->qriority(), active->age()),
       _active(active), _passive(passive) {}
   virtual item *execute();
-  virtual bool plateau() { return false; }
  private:
   item *_active;
   item *_passive;
