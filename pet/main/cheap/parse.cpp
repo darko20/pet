@@ -72,8 +72,9 @@ filter_rule_task(grammar_rule *R, item *passive)
         return false;
     }
 
-    if(opt_nqc != 0 && !qc_compatible(R->qc_vector(R->nextarg()),
-                                      passive->qc_vector()))
+    if(opt_nqc_unif != 0
+       && !qc_compatible_unif(qc_len_unif, R->qc_vector_unif(R->nextarg()),
+                              passive->qc_vector_unif()))
     {
         stats.ftasks_qc++;
 
@@ -112,8 +113,9 @@ filter_combine_task(item *active, item *passive)
         return false;
     }
 
-    if(opt_nqc != 0 && !qc_compatible(active->qc_vector(),
-                                      passive->qc_vector()))
+    if(opt_nqc_unif != 0
+       && !qc_compatible_unif(qc_len_unif, active->qc_vector_unif(),
+                              passive->qc_vector_unif()))
     {
 #ifdef DEBUG
         fprintf(ferr, "filtered (qc)\n");
@@ -206,10 +208,11 @@ packed_edge(item *newitem)
         }
         else
         {
-            if(opt_nqc != 0)
-                qc_subsumption_compatible(olditem->qc_vector(),
-                                          newitem->qc_vector(),
-                                          forward, backward);
+            if(opt_nqc_subs != 0)
+                qc_compatible_subs(qc_len_subs,
+                                   olditem->qc_vector_subs(),
+                                   newitem->qc_vector_subs(),
+                                   forward, backward);
             
             if(forward ==false && backward == false)
                 stats.fsubs_qc++;

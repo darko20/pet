@@ -32,8 +32,11 @@
 #endif
 
 // global variables for quick check
-extern int qc_len;
-extern qc_node *qc_paths;
+extern int qc_len_unif;
+extern qc_node *qc_paths_unif;
+
+extern int qc_len_subs;
+extern qc_node *qc_paths_subs;
 
 class lex_stem
 {
@@ -203,7 +206,7 @@ class grammar_rule
   inline list_int *restargs() { return rest(_tofill); }
   inline list_int *allargs() { return _tofill; }
 
-  inline type_t *qc_vector(int arg) { return _qc_vector[arg - 1]; }
+  inline type_t *qc_vector_unif(int arg) { return _qc_vector_unif[arg - 1]; }
 
   inline bool hyperactive() { return _hyper; }
   inline bool spanningonly() { return _spanningonly; }
@@ -222,8 +225,8 @@ class grammar_rule
   fs _f_restriced;  // The feature structure corresponding to this rule
                     // with the packing restrictor applied.
   
-  type_t **_qc_vector;
-  void init_qc_vector();
+  type_t **_qc_vector_unif;
+  void init_qc_vector_unif();
 
   bool _hyper;
   bool _spanningonly;
@@ -340,8 +343,9 @@ class grammar
   char *_subsumption_filter;
   void initialize_filter();
 
-  void init_rule_qc();
-  int _qc_inst;
+  void init_rule_qc_unif();
+  int _qc_inst_unif;
+  int _qc_inst_subs;
 
   list_int *_deleted_daughters;
   list_int *_packing_restrictor;

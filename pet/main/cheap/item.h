@@ -204,7 +204,8 @@ class item
   virtual void set_result_root(type_t rule ) = 0;
   virtual void set_result_contrib() = 0;
   
-  inline type_t *qc_vector() { return _qc_vector; }
+  inline type_t *qc_vector_unif() { return _qc_vector_unif; }
+  inline type_t *qc_vector_subs() { return _qc_vector_subs; }
 
   virtual grammar_rule *rule() = 0;
 
@@ -264,7 +265,8 @@ class item
 
   int _nparents;
 
-  type_t *_qc_vector;
+  type_t *_qc_vector_unif;
+  type_t *_qc_vector_subs;
 
   double _score;
 

@@ -28,8 +28,10 @@
 
 // global variables for quick check
 
-int qc_len;
-qc_node *qc_paths;
+int qc_len_unif;
+qc_node *qc_paths_unif;
+int qc_len_subs;
+qc_node *qc_paths_subs;
 
 fs::fs(int type)
 {
@@ -484,7 +486,7 @@ compare(const fs &a, const fs &b)
 }
 
 type_t *
-get_qc_vector(const fs &f)
+get_qc_vector(qc_node *qc_paths, int qc_len, const fs &f)
 {
     type_t *vector;
     
@@ -502,7 +504,7 @@ get_qc_vector(const fs &f)
 }
 
 bool
-qc_compatible(type_t *a, type_t *b)
+qc_compatible_unif(int qc_len, type_t *a, type_t *b)
 {
     for(int i = 0; i < qc_len; i++)
     {
@@ -520,7 +522,8 @@ qc_compatible(type_t *a, type_t *b)
 }
 
 void
-qc_subsumption_compatible(type_t *a, type_t *b, bool &forward, bool &backward)
+qc_compatible_subs(int qc_len, type_t *a, type_t *b,
+                   bool &forward, bool &backward)
 {
     bool st_a_b, st_b_a;
     for(int i = 0; i < qc_len; i++)

@@ -35,7 +35,7 @@ extern bool opt_shrink_mem, opt_shaping, opt_default_les,
 extern bool opt_yy, opt_k2y_segregation;
 extern int opt_k2y, opt_nth_meaning;
 #endif
-extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc, opt_key, opt_server;
+extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server;
 extern int opt_tsdb;
 extern long int memlimit;
 extern bool opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_online_morph, opt_fullform_morph;

@@ -37,7 +37,7 @@ bool opt_yy, opt_k2y_segregation;
 int opt_k2y, opt_nth_meaning;
 #endif
 
-int opt_nsolutions, opt_nqc, verbosity, pedgelimit, opt_key, opt_server;
+int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server;
 int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
@@ -61,7 +61,8 @@ void usage(FILE *f)
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
   fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n"); 
   fprintf(f, "  `-no-filter' --- disable rule filter\n"); 
-  fprintf(f, "  `-qc=n' --- use only top n quickcheck paths\n");
+  fprintf(f, "  `-qc-unif=n' --- use only top n quickcheck paths (unification)\n");
+  fprintf(f, "  `-qc-subs=n' --- use only top n quickcheck paths (subsumption)\n");
   fprintf(f, "  `-compute-qc[=file]' --- compute quickcheck paths (output to file,\n"
              "                           default /tmp/qc.tdl)\n");
   fprintf(f, "  `-key=n' --- select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)\n");
@@ -103,7 +104,7 @@ void usage(FILE *f)
 #define OPTION_LIMIT 3
 #define OPTION_NO_SHRINK_MEM 4
 #define OPTION_NO_FILTER 5
-#define OPTION_NQC 6
+#define OPTION_NQC_UNIF 6
 #define OPTION_COMPUTE_QC 7
 #define OPTION_PRINT_FAILURE 8
 #define OPTION_KEY 9
@@ -124,6 +125,7 @@ void usage(FILE *f)
 #define OPTION_NO_ONLINE_MORPH 24
 #define OPTION_NO_FULLFORM_MORPH 25
 #define OPTION_PACKING 26
+#define OPTION_NQC_SUBS 27
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -142,7 +144,8 @@ void init_options()
   opt_shrink_mem = true;
   opt_shaping = true;
   opt_filter = true;
-  opt_nqc = -1;
+  opt_nqc_unif = -1;
+  opt_nqc_subs = -1;
   opt_compute_qc = 0;
   opt_print_failure = false;
   opt_key = 0;
@@ -184,7 +187,8 @@ bool parse_options(int argc, char* argv[])
     {"memlimit", required_argument, 0, OPTION_MEMLIMIT},
     {"no-shrink-mem", no_argument, 0, OPTION_NO_SHRINK_MEM},
     {"no-filter", no_argument, 0, OPTION_NO_FILTER},
-    {"qc", required_argument, 0, OPTION_NQC},
+    {"qc-unif", required_argument, 0, OPTION_NQC_UNIF},
+    {"qc-subs", required_argument, 0, OPTION_NQC_SUBS},
     {"compute-qc", optional_argument, 0, OPTION_COMPUTE_QC},
     {"failure-print", no_argument, 0, OPTION_PRINT_FAILURE},
     {"key", required_argument, 0, OPTION_KEY},
@@ -297,9 +301,13 @@ bool parse_options(int argc, char* argv[])
           else
               verbosity++;
           break;
-      case OPTION_NQC:
+      case OPTION_NQC_UNIF:
           if(optarg != NULL)
-              opt_nqc = strtoint(optarg, "as argument to `-qc'");
+              opt_nqc_unif = strtoint(optarg, "as argument to `-qc-unif'");
+          break;
+      case OPTION_NQC_SUBS:
+          if(optarg != NULL)
+              opt_nqc_subs = strtoint(optarg, "as argument to `-qc-subs'");
           break;
       case OPTION_KEY:
           if(optarg != NULL)

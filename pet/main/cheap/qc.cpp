@@ -111,8 +111,8 @@ choose_paths(FILE *f,
 
         if(t > timeout)
         {
-            fprintf(f, "; timeout (estimated remaining search space %lld) %s",
-                    searchspace, ctime(&t));
+            fprintf(f, "; timeout (estimated remaining search space %lld) "
+                    "on %s", searchspace, ctime(&t));
             return false;
         }
 
@@ -197,7 +197,8 @@ choose_paths(FILE *f,
 extern int next_failure_id;
 
 void
-compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
+compute_qc_sets(FILE *f, char *tname,
+                map<list_int *, int, list_int_compare> &sets,
                 double threshold)
 {
     fprintf(f, ";; set based paths (threshold %.1f%%)\n\n",
@@ -301,10 +302,10 @@ compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
     set<int> selected;
     set<int> covered;
     minimal = choose_paths(f, fail_sets, path_covers, selected, covered,
-                           0, n, t + 5*60);
+                           0, n, t + 8*60*60);
     
     t = time(NULL);
-    fprintf(f, "; %s solution (%d paths) found %s;  ",
+    fprintf(f, "; %s solution (%d paths) found on %s;  ",
             minimal ? "minimal" : "maybe-minimal", min_sol_cost, ctime(&t));
 
     // compute optimal order for selected paths
@@ -327,7 +328,8 @@ compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
         top_paths.push(pq_item<int,int>(v, i));
     }
     
-    fprintf(f, "\n\n:begin :instance.\n\nqc_paths_set := *top* &\n[ ");
+    fprintf(f, "\n\n:begin :instance.\n\n%s := *top* &\n[ ",
+            tname);
     
     n = 0;
     while(!top_paths.empty())
@@ -355,7 +357,9 @@ compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
 }
 
 void
-compute_qc_traditional(FILE *f, map<int, double> &paths, int max)
+compute_qc_traditional(FILE *f, char *tname,
+                       map<int, double> &paths,
+                       int max)
 {
     priority_queue< pq_item<double, int> > top_failures;
     
@@ -368,7 +372,7 @@ compute_qc_traditional(FILE *f, map<int, double> &paths, int max)
     fprintf(f, "; traditional paths (max %d)\n\n",
             max);
     
-    fprintf(f, ":begin :instance.\n\nqc_paths_traditional := *top* &\n[ ");
+    fprintf(f, ":begin :instance.\n\n%s := *top* &\n[ ", tname);
     
     int n = 0;
     while(!top_failures.empty() && n < max)
@@ -411,14 +415,14 @@ compute_qc_paths(FILE *f)
     fprintf(f, "\n");
 
     fprintf(f, ";;\n;; quickcheck paths (unification)\n;;\n\n");
-    compute_qc_traditional(f, failing_paths_unif, 10000);
+    compute_qc_traditional(f, "qc_unif_trad", failing_paths_unif, 10000);
     fflush(f);
-    compute_qc_sets(f, failing_sets_unif, 99.0);
+    compute_qc_sets(f, "qc_unif_set", failing_sets_unif, 99.0);
 
     fprintf(f, ";;\n;; quickcheck paths (subsumption)\n;;\n\n");
-    compute_qc_traditional(f, failing_paths_subs, 10000);
+    compute_qc_traditional(f, "qc_subs_trad", failing_paths_subs, 10000);
     fflush(f);
-    compute_qc_sets(f, failing_sets_subs, 85.0);
+    compute_qc_sets(f, "qc_subs_set", failing_sets_subs, 95.0);
 }
 
 #endif
