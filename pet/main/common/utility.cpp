@@ -173,39 +173,6 @@ string escape_string(const string &s)
   return res;
 }
 
-/** Replace all german Umlaut and sz characters in \a s by their isomorphix
- *  counterparts.
- */
-void translate_iso_chars(string &s)
-{
-  for(string::size_type i = 0; i < s.length(); i++)
-    {
-      switch(s[i])
-	{
-	case 'ä':
-	  s.replace(i,1,"ae");
-	  break;
-	case 'Ä':
-	  s.replace(i,1,"Ae");
-	  break;
-	case 'ö':
-	  s.replace(i,1,"oe");
-	  break;
-	case 'Ö':
-	  s.replace(i,1,"Oe");
-	  break;
-	case 'ü':
-	  s.replace(i,1,"ue");
-	  break;
-	case 'Ü':
-	  s.replace(i,1,"Ue");
-	  break;
-	case 'ß':
-	  s.replace(i,1,"ss");
-	  break;
-	}
-    }
-}
 
 /** Return the current date and time in a static char array */
 char *current_time(void)

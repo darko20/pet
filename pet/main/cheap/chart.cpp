@@ -164,76 +164,7 @@ void chart::get_statistics()
     stats.fssize = (stats.pedges > 0) ? totalsize / stats.pedges : 0;
 }
 
-//
-// shortest path algorithm for chart 
-// Bernd Kiefer (kiefer@dfki.de)
-//
 
-// _fix_me_ this should be a method of the item, not a function
-int weight(tItem * i) {
-  // return a weight close to infinity if this is not a phrasal item
-  // thus, we guarantee that phrasal items are drastically preferred
-  if (dynamic_cast<tPhrasalItem *>(i) != NULL) return 1;
-  else if (dynamic_cast<tLexItem *>(i) != NULL) return 1000;
-  else return 1000000;
-}
-
-void chart::shortest_path (list <tItem *> &result, bool all) {
-
-  vector<tItem *>::size_type size = _Cp_start.size() ;
-  vector<tItem *>::size_type u, v ;
-
-  vector < list < unsigned int > > pred(size) ;
-
-  unsigned int *distance = new unsigned int[size + 1] ;
-  unsigned int new_dist ;
-
-  list <tItem *>::iterator curr ;
-  tItem *passive ;
-
-  // compute the minimal distance and minimal distance predecessor nodes for
-  // each node
-  for (u = 1 ; u <= size ; u++) { distance[u] = UINT_MAX ; }
-  distance[0] = 0 ;
-
-  for (u = 0 ; u < size ; u++) {
-    /* this is topologically sorted order */
-    for (curr = _Cp_start[u].begin() ; curr != _Cp_start[u].end() ; curr++) {
-      passive = *curr ;
-      v = passive->end() ; new_dist = distance[u] + weight(passive) ;
-      if (distance[v] >= new_dist) {
-        if (distance[v] > new_dist) {
-          distance[v] = new_dist ;
-          pred[v].clear() ;
-        }
-        pred[v].push_front(u) ;
-      } 
-    }
-  }
-
-  /** Extract all best paths */
-  queue < unsigned int > current ;
-  bool *unseen = new bool[size + 1] ;
-  for (u = 0 ; u <= size ; u++) unseen[u] = true ;
-
-  current.push(size - 1) ;
-  while (! current.empty()) {
-    u = current.front() ; current.pop() ;
-    for (curr = _Cp_end[u].begin() ; curr != _Cp_end[u].end() ; curr++) {
-      passive = *curr ;
-      v = passive->start() ;
-      if ((find (pred[u].begin(), pred[u].end(), v) != pred[u].end())
-          && ((int) (distance[u] - distance[v])) == weight(passive)) {
-        result.push_front(passive) ;
-        if (unseen[v]) { current.push(v) ; unseen[v] = false ; }
-        if (! all) break; // only extract one path  
-      }
-    }
-  }
-
-  delete[] distance;
-  delete[] unseen;
-}
 
 /** Return \c true if the chart is connected using only edges considered \a
  *  valid, i.e., there is a path from the first to the last node.

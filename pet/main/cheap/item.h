@@ -574,7 +574,7 @@ public:
   /** Tell me if lexicon access should be called for this token (morphological
    *  analysis is already included
    */
-  bool is_stem_token() const { return (_class == WORD_TOKEN_CLASS); }
+  bool is_stem_token() const { return (_class == STEM_TOKEN_CLASS); }
 
   /** Return the class (hopefully the type id of a valid HPSG lexical type,
    *  i.e., \c lex_stem)

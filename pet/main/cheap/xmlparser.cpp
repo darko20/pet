@@ -16,134 +16,61 @@ MemBufFormatTarget *membuf;
 XMLFormatter *utf8_formatter;
 XMLFormatter *latin_formatter;
 
+/** Convert an XMLCh string into UTF8.
+ *
+ * \attn be aware that this function always uses the same buffer, so you can
+ * not, for example, use it twice in one \c printf call because one result will
+ * be overwritten by the other. To be save, you either have to copy the result
+ * or do two \c printf calls with two calls to this function
+ */
 const char * XMLCh2UTF8(const XMLCh *in) {
   membuf->reset();
   (*utf8_formatter) << in;
   return (const char *) membuf->getRawBuffer();
 }
 
+/** Convert an XMLCh string into the latin codepage.
+ *
+ * \attn be aware that this function always uses the same buffer, so you can
+ * not, for example, use it twice in one \c printf call because one result will
+ * be overwritten by the other. To be save, you either have to copy the result
+ * or do two \c printf calls with two calls to this function
+ */
 const char * XMLCh2Latin(const XMLCh *in) {
   membuf->reset();
   (*latin_formatter) << in;
   return (const char *) membuf->getRawBuffer();
 }
 
-/******************************************************************************
- Attribute helper functions
- *****************************************************************************/
-
-const XMLCh yes_str[] = { chLatin_y,  chLatin_e,  chLatin_s, chNull };
-
-bool req_bool_attr(AttributeList& attr, char *aname) {
-  const XMLCh *str;
-  if ((str = attr.getValue(aname)) == NULL)
-    throw(XMLAttributeError("missing attribute", aname));
-  return (XMLString::compareIString(str, yes_str) == 0);
-}
-
-bool opt_bool_attr(AttributeList& attr, char *aname, bool def) {
-  const XMLCh *str;
-  if ((str = attr.getValue(aname)) == NULL) return def;
-  return (XMLString::compareIString(str, yes_str) == 0);
-}
-
-int req_int_attr(AttributeList& attr, char *aname) {
-  const XMLCh *val;
-  if ((val = attr.getValue(aname)) == NULL)
-    throw(XMLAttributeError("missing attribute", aname));
-  const char *str = XMLCh2UTF8(val);
-  char *end;
-  int res = strtol(str, &end, 10);
-  if ((*end != '\0') || (str == end))
-    throw(XMLAttributeError("wrong int value", aname));
-  return res;
-}
-
-int opt_int_attr(AttributeList& attr, char *aname, int def) {
-  const XMLCh *val;
-  if ((val = attr.getValue(aname)) == NULL) return def;
-  const char *str = XMLCh2UTF8(val);
-  char *end;
-  int res = strtol(str, &end, 10);
-  if ((*end != '\0') || (str == end))
-    throw(XMLAttributeError("wrong int value", aname));
-  return res;
-}
-
-double req_double_attr(AttributeList& attr, char *aname) {
-  const XMLCh *val;
-  if ((val = attr.getValue(aname)) == NULL) 
-    throw(XMLAttributeError("missing attribute", aname));
-  const char *str = XMLCh2UTF8(val);
-  char *end;
-  double res = strtod(str, &end);
-  if ((*end != '\0') || (str == end))
-    throw(XMLAttributeError("wrong double value", aname));
-  return res;
-}
-
-double opt_double_attr(AttributeList& attr, char *aname, double def) {
-  const XMLCh *val;
-  if ((val = attr.getValue(aname)) == NULL) return def;
-  const char *str = XMLCh2UTF8(val);
-  char *end;
-  double res = strtod(str, &end);
-  if ((*end != '\0') || (str == end))
-    throw(XMLAttributeError("wrong double value", aname));
-  return res;
-}
-
-const char *req_string_attr(AttributeList &attr, char *aname) {
-  const XMLCh *val = attr.getValue(aname);
-  if (val == NULL) throw(XMLAttributeError("missing attribute", aname));
-  return XMLCh2UTF8(val);
-}
-
-const char *opt_string_attr(AttributeList &attr, char *aname) {
-  const XMLCh *val = attr.getValue(aname);
-  return (val == NULL) ? "" : XMLCh2UTF8(val);
-}
 
 
-
-void print_sax_exception(const char * errtype, const SAXParseException& e) {
-  fprintf(ferr, "\n%s at file %s, line %d, column %d\n Message: %s\n"
-          , errtype, XMLCh2Latin(e.getSystemId())
-          , (int) e.getLineNumber(), (int) e.getColumnNumber()
-          , XMLCh2Latin(e.getMessage()));
-}
-
-void XMLAttributeError::print(FILE *f) {
-  fprintf(f, "%s : \"%s\"\n", _msg
-          , (_arg_is_char_ptr ? (char *) _arg : XMLCh2Latin(_arg)));
-}
-
-bool parse_file(const char *xmlFile, HandlerBase *docHandler){
+bool parse_file(InputSource &inp, HandlerBase *docHandler){
   SAXParser parser;
 
   parser.setValidationScheme(SAXParser::Val_Auto);
-  parser.setDoValidation(true);    // optional.
+  //parser.setDoValidation(true); // deprecated, replaced by above fn
   parser.setDoNamespaces(true);    // optional
   parser.setDoSchema(true);
   parser.setValidationSchemaFullChecking(true);
+  // parser.setValidationConstraintFatal(true);
   parser.setExitOnFirstFatalError(true);
 
   parser.setDocumentHandler(docHandler);
   parser.setErrorHandler(docHandler);
 
   try {
-    parser.parse(xmlFile);
+    parser.parse(inp);
   }
   catch (const XMLException& toCatch) {
-    fprintf(ferr, "Exception message is: %s\n"
-            , XMLCh2Latin(toCatch.getMessage()));
+    fprintf(ferr, "SAX: XMLException line %d: %s\n"
+            , toCatch.getSrcLine(), XMLCh2Latin(toCatch.getMessage()));
     return false;
   }
   catch (const SAXParseException& toCatch) {
-    fprintf(ferr, "Exception message is: %s\n"
-            , XMLCh2Latin(toCatch.getMessage()));
+    docHandler->error(toCatch);
     return false;
   }
+  // an XMLAttributeError is catched in startElement
   return true;
 }
 
@@ -156,7 +83,7 @@ bool xml_initialize() {
   }
   catch (const XMLException& toCatch) {
     // we don't know if we have an encoder available
-    fprintf(ferr, "Error during XML initialization!\n");
+    fprintf(ferr, "SAX: Error during XML initialization!\n");
     return false;
   }
   return true;

@@ -24,6 +24,7 @@
 #include "pet-system.h"
 #include "settings.h"
 #include "lingo-tokenizer.h"
+#include "utility.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
@@ -42,8 +43,22 @@ tTokenizer::tTokenizer() {
   _punctuation_characters = pcs;
 #else
   _punctuation_characters = Conv->convert(pcs);
-#endif  
+#endif
+
+  _translate_iso_chars = cheap_settings->lookup("translate-iso-chars");
 }
+
+#ifdef HAVE_ICU
+inline bool 
+punctuation_char(const UChar32 c, const UnicodeString &punctuation_chars) {
+  return (punctuation_chars.indexOf(c) != -1);
+}
+#else
+inline bool
+punctuation_char(const char c, const string &punctuation_chars) {
+  return (punctuation_chars.find(c) != STRING_NPOS);
+}
+#endif
 
 bool tTokenizer::punctuationp(const string &s)
 {
@@ -52,7 +67,7 @@ bool tTokenizer::punctuationp(const string &s)
     return false;
     
   for(string::size_type i = 0; i < s.length(); i++)
-    if(_punctuation_characters.find(s[i]) == STRING_NPOS)
+    if(! punctuation_char(s[i], _punctuation_characters))
       return false;
     
   return true;
@@ -64,13 +79,50 @@ bool tTokenizer::punctuationp(const string &s)
   while(it.hasNext())
     {
       c = it.next32PostInc();
-      if(_punctuation_characters.indexOf(c) == -1)
+      if(! punctuation_char(c, _punctuation_characters))
         return false;
     }
     
   return true;
 #endif
 }
+
+
+/** Replace all german Umlaut and sz characters in \a s by their isomorphix
+ *  counterparts.
+ */
+void tTokenizer::translate_iso(string &s) {
+  if (_translate_iso_chars) {
+    for(string::size_type i = 0; i < s.length(); i++)
+      {
+        switch(s[i])
+          {
+          case 'ä':
+            s.replace(i,1,"ae");
+            break;
+          case 'Ä':
+            s.replace(i,1,"Ae");
+            break;
+          case 'ö':
+            s.replace(i,1,"oe");
+            break;
+          case 'Ö':
+            s.replace(i,1,"Oe");
+            break;
+          case 'ü':
+            s.replace(i,1,"ue");
+            break;
+          case 'Ü':
+            s.replace(i,1,"Ue");
+            break;
+          case 'ß':
+            s.replace(i,1,"ss");
+            break;
+          }
+      }
+  }
+}
+
 
 /** Produce a set of tokens from the given string. */
 void 
@@ -106,13 +158,12 @@ tLingoTokenizer::do_it(string s) {
       s[i] = tolower(s[i]);
   
   // translate iso-8859-1 german umlaut and sz
-  if(cheap_settings->lookup("translate-iso-chars"))
-    translate_iso_chars(s);
+  translate_iso(s);
 
   // replace all punctuation characters by blanks
 #ifndef HAVE_ICU
   for(string::size_type i = 0; i < s.length(); i++)
-    if(punctuationp(string(1, s[i])))
+    if(punctuation_char(s[i], _punctuation_characters))
       s[i] = ' ';
 #else
   UnicodeString U = Conv->convert(s);
@@ -123,8 +174,7 @@ tLingoTokenizer::do_it(string s) {
   while(it.hasNext())
     {
       c = it.next32PostInc();
-      string coded = Conv->convert(UnicodeString(c));
-      if(punctuationp(coded))
+      if(punctuation_char(c, _punctuation_characters))
 	Res.append(UChar32(' '));
       else
 	Res.append(c);

@@ -1,3 +1,29 @@
+v0.99.5
+  - dump chart in jxchg format even if an error occured, e.g., exhaustion of 
+    passive edges (only if enabled)
+  - deleted inactive code in grammar.cpp (punctuationp, translate_iso_chars)
+  - fixed wrong is_stem_token predicate in item.h
+  - fixed wrong string decoding in XML mode
+  - XML tokenizing works from stream as well as from file
+  - flop returns different exit codes depending on the error
+
+v0.99.4
+  - bugfixes and additions for XML input mode: missing infl tag, translate_iso,
+    state names are static members of the state classes, state factory now
+    creates new states, exception are correctly thrown and catched and are 
+    decorated with the error location ; read XML from stdin directly rather
+    than from file.
+  - the isomorphix translation has been put completely into the tokenizers
+  - temporarily removed the error "Duplicate failure path"; it is triggered
+    when the german grammar with new restrictors is used to compute unification
+    quickcheck paths (during computation of the rule filter)
+  - chart::shortest_path is now a template function that gets an additional
+    weight function object as argument
+
+v0.99.3
+  - restrictor can specify paths mixed with features (which are paths of length
+    one anyway)
+
 v0.99.2
   - build process with automake && autoconfig && configure for flop and cheap,
     boost and dumpgram binaries may be revived if used by anybody

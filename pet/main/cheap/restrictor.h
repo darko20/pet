@@ -50,6 +50,150 @@ public:
 };
 
 
+/** Restrictor: an object implementing a functor that deletes parts of a
+ *  feature structure.
+ *
+ * Restrictor_state:
+ * A \c restrictor_state has to be a lightweight object because lots of them
+ * are created and destroyed during copy/restriction of a feature
+ * structure. So, almost no internal state and no virtual functions.
+ *
+ * This special restrictor gets paths as input specification and deletes the
+ * nodes that are at the end of the paths. 
+ */
+class path_restrictor : public restrictor {
+  class tree_node {
+    typedef pair<attr_t, tree_node> tree_arc;
+    typedef list< tree_arc > dtrs_list;
+
+    list< tree_arc > _dtrs;
+
+    tree_node *walk_arc_internal(attr_t a) {
+      for(dtrs_list::iterator it=_dtrs.begin(); it != _dtrs.end(); it++){
+        if (it->first == a) return &(it->second);
+      }
+      return NULL;
+    }
+
+    void add_path_internal(const list<int> &l, list<int>::const_iterator it) {
+      if (it != l.end()) {
+        tree_node *sub = walk_arc_internal(l.front());
+        if (sub == NULL) {
+          _dtrs.push_front(tree_arc(l.front(), tree_node()));
+          sub = &(_dtrs.front().second) ;
+        }
+        sub->add_path_internal(l, it++);
+      }
+    }
+
+  public:
+    const tree_node *walk_arc(attr_t a) const {
+      for(dtrs_list::const_iterator it=_dtrs.begin(); it != _dtrs.end(); it++){
+        if (it->first == a) return &(it->second);
+      }
+      return NULL;
+    }
+
+    inline void add_path(const list<int> &l) { 
+      add_path_internal(l, l.begin());
+    }
+
+    inline void add_path(const list_int *l) { 
+      if (l != NULL) {
+        tree_node *sub = walk_arc_internal(first(l));
+        if (sub == NULL) {
+          _dtrs.push_front(tree_arc(first(l), tree_node()));
+          sub = &(_dtrs.front().second) ;
+        }
+        sub->add_path(rest(l));
+      }
+    }
+
+    inline bool leaf_p() const { return _dtrs.empty(); }
+  };
+
+  class path_restrictor_state {
+    typedef list< const tree_node * > state_list;
+
+    const tree_node *_root;
+    state_list _states;
+
+    void add_state(const tree_node *state) { _states.push_front(state); }
+    void dead() { _states.clear(); }
+
+  public:
+    path_restrictor_state(const tree_node *root) {
+      _root = root;
+      add_state(root);
+    }
+
+    /** Return \c true if from now on all nodes should be copied */
+    inline bool full() const { return false; }
+    
+    /** Return \c true if from now on nothing should be copied 
+     * Don't call this function if \c full() did return \c true.
+     */
+    inline bool empty() const { return _states.empty(); }
+    
+    /** Return a new restrictor state corresponding to a transition via
+     *  \a attr.
+     *  Don't call this function if \c full() did return \c true.
+     */
+    inline path_restrictor_state walk_arc(attr_t attr) const {
+      // You can always start at the root state in a living restrictor state,
+      // therefore, the root state is added in the constructor
+      path_restrictor_state result(_root);
+      for(state_list::const_iterator it = _states.begin()
+            ; it != _states.end();it++){
+        const tree_node *sub = (*it)->walk_arc(attr);
+        // Did we find a subpath from that state for attr?
+        if (sub != NULL) {
+          // if *sub is a leaf, the returned restrictor shoule encode the
+          // information that this node should be deleted
+          if (sub->leaf_p()) {
+            result.dead();
+            return result; // smash it
+          } else {
+            // This is a possible sub-state for the result restrictor state
+            result.add_state(sub);
+          }
+        }
+      }
+      return result;
+    }
+  };
+
+  tree_node _paths_to_delete;
+  path_restrictor_state _root_state;
+
+public:
+  /** Create a restrictor object that is encoded in the list of paths given by
+   *  \a paths
+   */
+  path_restrictor(list< list<int> > paths) : _root_state(&_paths_to_delete) {
+    for(list< list<int> >::iterator it = paths.begin()
+          ; it != paths.end(); it++) {
+      _paths_to_delete.add_path(*it);
+    }
+  }
+
+  /** Create a restrictor object that is encoded in the list of paths given by
+   *  \a paths
+   */
+  path_restrictor(list< list_int * > paths) : _root_state(&_paths_to_delete) {
+    for(list< list_int * >::iterator it = paths.begin()
+          ; it != paths.end(); it++) {
+      _paths_to_delete.add_path(*it);
+    }
+  }
+
+  virtual ~path_restrictor() {}
+ 
+  virtual class dag_node *dag_partial_copy (class dag_node *dag) const {
+    return dag_partial_copy_state(dag, _root_state);
+  }
+};
+
 
 /** A restrictor that prunes part of a feature structure on the basis of a
  *  dag-like structure.
@@ -106,7 +250,8 @@ class dag_restrictor : public restrictor {
 public:
   /** Create a restrictor object that is encoded in the dag \a del */
   dag_restrictor(class dag_node *del) : _root_state(del) { }
-  //virtual ~dag_restrictor() { }
+
+  virtual ~dag_restrictor() { }
 
   virtual class dag_node *dag_partial_copy (class dag_node *dag) const {
     return dag_partial_copy_state(dag, _root_state);

@@ -82,6 +82,12 @@ protected:
   /** Determine if a string only consists of punctuation characters */
   bool punctuationp(const string &s);
 
+  /** \brief Translate the german ISO umlaut and sz characters in \a s by their
+   *  isomorphix (ae, ue, ss, etc.) counterparts, if \c _translate_iso_chars
+   *  is true, leave it unchanged otherwise.
+   */
+  void translate_iso(string &s);
+
   /** A string with all characters considered as punctuation.
    * May be set by the global setting \c punctuation-characters.
    */
@@ -90,6 +96,11 @@ protected:
 #else
   string _punctuation_characters;
 #endif
+
+  /** If \c true, Translate the german ISO umlaut and sz characters in stem and
+   *  surface forms.
+   */
+  bool _translate_iso_chars;
 };
 
 /** Call a Named Entity Recognizer.

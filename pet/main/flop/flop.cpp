@@ -445,10 +445,15 @@ void initialize_status()
 extern int dag_dump_grand_total_nodes, dag_dump_grand_total_atomic,
   dag_dump_grand_total_arcs;
 
-void process(char *ofname)
+#define SYNTAX_ERRORS 2
+#define FILE_NOT_FOUND 3
+
+
+int process(char *ofname)
 {
   char *fname, *outfname;
   FILE *outf;
+  int res = 0;
 
   clock_t t_start = clock();
 
@@ -459,7 +464,7 @@ void process(char *ofname)
   if(!fname)
     {
       fprintf(ferr, "file `%s' not found - skipping...\n", ofname);
-      return;
+      return FILE_NOT_FOUND ;
     }
 
   initialize_builtins();
@@ -536,7 +541,8 @@ void process(char *ofname)
               "in %0.3g s\n",
 	      syntax_errors, total_lexed_lines,
               (clock() - t_start) / (float) CLOCKS_PER_SEC);
-      
+      if (syntax_errors > 0) res = SYNTAX_ERRORS;
+
       mem_checkpoint("before preprocessing types");
 
       fprintf(fstatus, "processing type constraints (%d types):\n",
@@ -605,7 +611,9 @@ void process(char *ofname)
     {
       fprintf(ferr, "couldn't open output file `%s' for `%s' - "
               "skipping...\n", outfname, fname);
+      res = FILE_NOT_FOUND;
     }
+  return res;
 }
 
 FILE *fstatus, *ferr;
@@ -656,6 +664,7 @@ void setup_io()
 
 int main(int argc, char* argv[])
 {
+  int retval;
   // set up the streams for error and status reports
 
   ferr = fstatus = stderr; // preliminary setup
@@ -670,7 +679,7 @@ int main(int argc, char* argv[])
 
   setup_io();
 
-  try { process(grammar_file_name); }
+  try { retval = process(grammar_file_name); }
   catch(tError &e)
     {
       fprintf(ferr, "%s\n", e.getMessage().c_str());
@@ -689,5 +698,5 @@ int main(int argc, char* argv[])
       exit(1);
     }
   
-  return 0;
+  return retval;
 }

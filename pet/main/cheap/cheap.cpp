@@ -61,6 +61,67 @@ tGrammar *Grammar = 0;
 settings *cheap_settings = 0;
 bool XMLServices = false;
 
+
+struct passive_weights : public unary_function< tItem *, unsigned int > {
+  unsigned int operator()(tItem * i) {
+    // return a weight close to infinity if this is not a phrasal item
+    // thus, we guarantee that phrasal items are drastically preferred
+    if (dynamic_cast<tPhrasalItem *>(i) != NULL) return 1;
+    else if (dynamic_cast<tLexItem *>(i) != NULL) return 1000;
+    else return 1000000;
+  }
+};
+
+struct input_only_weights : public unary_function< tItem *, unsigned int > {
+  unsigned int operator()(tItem * i) {
+    // return a weight close to infinity if this is not an input item
+    // prefer shorter items over longer ones
+    if (dynamic_cast<tInputItem *>(i) != NULL)
+      return i->span();
+    else
+      return 1000000;
+  }
+};
+
+string get_surface_string(chart *ch) {
+  list< tItem * > inputs;
+  input_only_weights io;
+
+  ch->shortest_path<unsigned int>(inputs, io, false);
+  string surface;
+  for(list<tItem *>::iterator it = inputs.begin()
+        ; it != inputs.end(); it++) {
+    tInputItem *inp = dynamic_cast<tInputItem *>(*it);
+    if (inp != NULL) {
+      surface = surface + inp->orth() + " ";
+    }
+  }
+
+  int len = surface.length();
+  if (len > 0) {
+    surface.erase(surface.length() - 1);
+  }
+  return surface;
+}
+
+
+void dump_jxchg(string surface, chart *current) {
+  if (! opt_jxchg_dir.empty()) {
+    string yieldname = surface;
+    replace(yieldname.begin(), yieldname.end(), ' ', '_');
+    yieldname = opt_jxchg_dir + yieldname;
+    ofstream out(yieldname.c_str());
+    if (! out) {
+      fprintf(ferr, "Can not open file %s\n", yieldname.c_str());
+    } else {
+      out << "0 " << current->rightmost() << endl;
+      tJxchgPrinter chp(out);
+      current->print(&chp);
+    }
+  }
+}
+
+
 void interactive()
 {
     string input;
@@ -83,7 +144,7 @@ void interactive()
     {
         chart *Chart = 0;
 
-        tsdb_dump.start(input);
+        tsdb_dump.start();
 
         try {
             fs_alloc_state FSAS;
@@ -99,35 +160,25 @@ void interactive()
                 fprintf(stdout, "%d\t%d\t%d\n",
                         stats.id, stats.readings, stats.pedges);
 
+            string surface = get_surface_string(Chart);
+
             fprintf(fstatus, 
                     "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-                    stats.id, input.c_str(), pedgelimit, stats.readings, 
+                    stats.id, surface.c_str(), pedgelimit, stats.readings, 
                     stats.first/1000., stats.tcpu / 1000.,
                     stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
                     TotalParseTime.elapsed_ts() / 10.);
 
             if(verbosity > 0) stats.print(fstatus);
 
-            tsdb_dump.finish(Chart);
+            tsdb_dump.finish(Chart, surface);
 
             //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
             //tFegramedPrinter chp("/tmp/fed-", true);
             //Chart->print(&chp);
 
-            if (! opt_jxchg_dir.empty()) {
-              string yieldname = input;
-              replace(yieldname.begin(), yieldname.end(), ' ', '_');
-              yieldname = opt_jxchg_dir + yieldname;
-              ofstream out(yieldname.c_str());
-              if (! out) {
-                fprintf(ferr, "Can not open file %s\n", yieldname.c_str());
-              } else {
-                out << "0 " << Chart->rightmost() << endl;
-                tJxchgPrinter chp(out);
-                Chart->print(&chp);
-              }
-            }
-            
+            dump_jxchg(surface, Chart);
+
             if(verbosity > 1 || opt_mrs)
             {
                 int nres = 0;
@@ -177,7 +228,8 @@ void interactive()
 #ifdef HAVE_ECL
                 if(opt_partial && (Chart->readings().empty())) {
                   list< tItem * > partials;
-                  Chart->shortest_path(partials);
+                  passive_weights pass;
+                  Chart->shortest_path<unsigned int>(partials, pass, true);
                   bool rmrs_xml = (strcmp(opt_mrs, "xml") == 0);
                   if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
                   for(list<tItem *>::iterator it = partials.begin()
@@ -208,6 +260,7 @@ void interactive()
             if(verbosity > 0) stats.print(fstatus);
             stats.readings = -1;
 
+            dump_jxchg(get_surface_string(Chart), Chart);
             tsdb_dump.error(Chart, e);
 
         }

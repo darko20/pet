@@ -6,3 +6,6 @@
   :-( No clean way to implement this; in fact, characterization should be 
   implemented in the grammar, not in the processing engine.
 
+- "Duplicate failure path" is triggered when the german grammar with
+  new restrictors is used to compute unification quickcheck paths
+  (during computation of the rule filter)

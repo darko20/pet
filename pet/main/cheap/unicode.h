@@ -53,6 +53,12 @@ public:
    *  this converter, to UTF8 and return the new string
    */
   string convert(const UnicodeString from);
+  
+  /** Convert the string \a from, which has to be encoded in the encoding of
+   *  this converter, to UTF8 and return the new string
+   */
+  string convert(const UChar* from, int length);
+
   /** Convert the string \a from, which has to be encoded in UTF8, into the
    *  encoding this converter and return the new string.
    */

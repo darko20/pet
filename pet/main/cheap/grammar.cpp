@@ -35,9 +35,11 @@
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
-#ifdef ONLINEMORPH
-#include "morph.h"
-#endif
+//#ifdef ONLINEMORPH
+//#include "morph.h"
+//#endif
+
+#include "item-printer.h"
 
 int grammar_rule::next_id = 0;
 
@@ -91,6 +93,16 @@ grammar_rule::grammar_rule(type_t t)
         _f_restriced = packing_partial_copy(fs(_type),
                                             Grammar->packing_restrictor(),
                                             true);
+    /* // Code to test restriction
+      string name = (string) "/tmp/restrict/" + print_name(t);
+      tFegramedPrinter fp(name.c_str());
+      fp.print(_f_restriced.dag());
+    } else {
+      string name = (string) "/tmp/full/" + print_name(t);
+      tFegramedPrinter fp(name.c_str());
+      fp.print(fs(_type).dag());
+    }
+    */
 
     //
     // Determine arity, determine head and key daughters.
@@ -267,35 +279,6 @@ grammar_rule::init_qc_vector_unif()
     }
 }
 
-#if 0
-bool
-tGrammar::punctuationp(const string &s)
-{
-#ifndef HAVE_ICU
-    if(_punctuation_characters.empty())
-        return false;
-    
-    for(string::size_type i = 0; i < s.length(); i++)
-        if(_punctuation_characters.find(s[i]) == STRING_NPOS)
-            return false;
-    
-    return true;
-#else
-    UnicodeString U = Conv->convert(s);
-    StringCharacterIterator it(U);
-    
-    UChar32 c;
-    while(it.hasNext())
-    {
-        c = it.next32PostInc();
-        if(_punctuation_characters.indexOf(c) == -1)
-            return false;
-    }
-    
-    return true;
-#endif
-}
-#endif
 
 void
 undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
@@ -601,21 +584,6 @@ tGrammar::tGrammar(const char * filename)
       opt_compute_qc_unif = qc_unif;
     }
 
-#if 0
-    s = cheap_settings->value("punctuation-characters");
-    string pcs;
-    if(s == 0)
-        pcs = " \t?!.:;,()-+*$\n";
-    else
-        pcs = convert_escapes(string(s));
-
-#ifndef HAVE_ICU
-    _punctuation_characters = pcs;
-#else
-    _punctuation_characters = Conv->convert(pcs);
-#endif  
-#endif
-
     char *sm_file;
     if((sm_file = cheap_settings->value("sm")) != 0)
     {
@@ -761,20 +729,39 @@ tGrammar::init_parameters()
     set = cheap_settings->lookup("packing-restrictor");
     if(set)
     {
-        list_int *del_attrs = NULL;
-        for(int i = 0; i < set->n; i++)
+      list< list_int * > del_paths;
+      list_int *del_attrs = NULL;
+      // if extended is true at the end of the loop, restrictor paths of
+      // length > 1 have been specified
+      bool extended = false;
+      for(int i = 0; i < set->n; i++)
         {
-            int a;
-            if((a = lookup_attr(set->values[i])) != -1)
-              del_attrs = cons(a, del_attrs);
-            else
-            {
-              fprintf(ferr, "ignoring unknown attribute `%s' in packing_restrictor.\n",
-                      set->values[i]);
-            }
+          if((del_attrs = path_to_lpath(set->values[i])) != NULL) {
+            // is there a path with length > 1 ??
+            extended = extended || (rest(del_attrs) != NULL) ;
+            del_paths.push_front(del_attrs);
+          }
+          else {
+            fprintf(ferr, "ignoring path with unknown attribute `%s' "
+                    "in packing_restrictor.\n",
+                    set->values[i]);
+          }
+        }
+      if (extended) {
+        // use the extended iterator
+        _packing_restrictor = new path_restrictor(del_paths);
+      } else {
+        // append the lists of length one into a single list for the simple
+        // iterator
+        del_attrs = NULL;
+        for(list< list_int * >::iterator it = del_paths.begin()
+              ; it != del_paths.end(); it++) {
+          (*it)->next = del_attrs;
+          del_attrs = *it;
         }
         _packing_restrictor = new list_int_restrictor(del_attrs);
         free_list(del_attrs);
+      }
     }
     else 
     {

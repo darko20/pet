@@ -41,4 +41,5 @@ EXTRA_DIST = bitcode.cpp	\
 	utility.cpp		\
 	utility.h		\
 	vcg_print.h		\
-	version.h
+	version.h		\
+	Makefile.common

@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.2], [pet@coli.uni-saarland.de])
+AC_INIT([PET], [0.99.5], [pet@coli.uni-saarland.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
@@ -255,7 +255,7 @@ fi
 if test x$boost = xtrue ; then
     AC_LANG_PUSH(C++)
     save_CPP="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}"
+    CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
     AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
     dnl Necessary only for test binary boost:
     dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
@@ -264,7 +264,7 @@ if test x$boost = xtrue ; then
 fi
 AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
 if test x$boost = xtrue ; then
-    FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}"
+    FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
 fi
 
 
@@ -493,4 +493,38 @@ AC_CONFIG_FILES([Makefile
                  common/Makefile
                  flop/Makefile
 		 flop/Jamfile])
+echo ; echo "============================================================="
+if test x$boost = xtrue ; then
+   echo "Boost is available"
+else
+   echo "Boost is not available: flop can not be compiled"
+fi   
+if test x$tsdb = xtrue ; then
+   echo "tsdb is available"
+else
+   echo "tsdb is NOT available"
+fi   
+if test x$eclmrs = xtrue ; then
+   echo "MRS code with ecl is available"
+else
+   echo "MRS code with ecl is NOT available"
+fi   
+if test x$icu = xtrue ; then
+   echo "ICU is available"
+else
+   echo "ICU is NOT available"
+fi   
+if test x$xml = xtrue ; then
+   echo "XML input mode is available"
+else
+   echo "XML input mode is NOT available"
+fi   
+if test x$extdict = xtrue -a x$lexdb = xtrue -a x$psql = xtrue ; then
+   echo "External SQL dictionary is available"
+else
+   echo "External SQL dictionary is NOT available"
+fi   
+echo ; echo "============================================================="
+
+
 AC_OUTPUT

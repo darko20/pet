@@ -1,4 +1,5 @@
-- restrictors that are paths instead of features
+- flop returns zero even in the presence of errors like non-unique feature
+  introduction
 
 - API!!! and maybe cheap dynamic library
   - restarting a parse stopped because the first result arrived
@@ -7,10 +8,17 @@
     without reparse!)
   - set/change options/settings through API (a part of "clean up:options")
 
-- flop returns zero even in the presence of errors like non-unique feature
-  introduction
+- scoring:
+  - offline scoring
+  - simplified model for compatibility ??  What does that mean ?
+
+- What does "duplicate failure path" mean? How is it that it occurs with the 
+  new restrictors under unification
+
 - Better error handling in flop for use with external applications
 - emacs compatible error messages for flop ?
+- flop does not dump (multiply) cyclic structures
+  - test dag restrictor once this is fixed
 
 - Documentation
   - flop & cheap user doc
@@ -37,14 +45,9 @@
 
 - lsl completion - minimal ?? What does that mean ?
 
-- scoring:
-  - offline scoring
-  - simplified model for compatibility ??  What does that mean ?
-
 - packing:
   - fix & integrate subsumption quickcheck
     currently, it gives incorrect results for non-existing paths
-  +- generalise restrictor: new restrictor interface implemented
   - simplify/optimise subsume
   - subtype caching
   - re-enable unfilling as far as possible 
