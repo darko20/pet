@@ -14,7 +14,7 @@ class postags
 {
  public:
   postags() : _tags() {} ;
-  postags(const set<string> &tags) : _tags(tags) {} ;
+  postags(const vector<string> &, const vector<double> &);
   postags(const class full_form ff);
   postags(const list<class lex_item *> &les);
   postags(const postags &t) : _tags(t._tags) {} ;
@@ -40,13 +40,13 @@ class postags
   bool contains(string s) const;
   bool contains(type_t t) const;
 
-  int priority(type_t t, int initialp = 0) const;
+  int priority(const char *setting, type_t t, int initialp = 0) const;
 
   void print(FILE *) const;
 
  private:
-
   set<string> _tags;
+  map<string, double> _probs;
 };
 
 #endif

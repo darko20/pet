@@ -12,6 +12,7 @@
 #define _UNICODE_H_
 
 extern class EncodingConverter *Conv;
+extern class EncodingConverter *ConvUTF8;
 
 //
 // Encoding conversion utility class

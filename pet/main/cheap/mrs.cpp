@@ -6,9 +6,118 @@
 /* classes to represent MRS */
 
 #include "pet-system.h"
+#include "item.h"
 #include "mrs.h"
 #include "types.h"
 #include "tsdb++.h"
+
+//
+// helper functions
+//
+
+char *k2y_type_name(char *abstr_name)
+{
+  char *name = cheap_settings->assoc("k2y_type_names", abstr_name);
+  if(name == 0) name = cheap_settings->assoc("k2y-type-names", abstr_name);
+  if(name == 0)
+    throw error("undefined k2y_type_name `" + string(abstr_name) + "'.");
+  return name;
+
+}
+
+char *k2y_pred_name(char *abstr_name)
+{
+  char *name = cheap_settings->assoc("k2y_pred_names", abstr_name);
+  if(name == 0) name = cheap_settings->assoc("k2y-pred-names", abstr_name);
+  if(name == 0)
+    throw error("undefined k2y_pred_name `" + string(abstr_name) + "'.");
+  return name;
+
+}
+
+char *k2y_role_name(char *abstr_name)
+{
+  char *name = cheap_settings->assoc("k2y_role_names", abstr_name);
+  if(name == 0) name = cheap_settings->assoc("k2y-role-names", abstr_name);
+  if(name == 0)
+    throw error("undefined k2y_role_name `" + string(abstr_name) + "'.");
+  return name;
+}
+
+// stamp in id information for K2Y to link input words to K2Y clauses
+void mrs_stamp_fs(fs &f, int id)
+{
+  char *path = cheap_settings->value("label-path");
+  if(path == NULL) path = "SYNSEM.LOCAL.KEYS.KEY.LABEL";
+
+  fs label = f.get_path_value(path);
+
+  if(!label.valid())
+    label = f.get_path_value("SYNSEM.LOCAL.KEYS.ALTKEY.LABEL");
+
+  if(label.valid() && label.type() == BI_CONS)
+    {
+      list_int *ids = cons(id, 0);
+
+      fs idfs = fs(dag_listify_ints(ids));
+      free_list(ids);
+      fs result = unify(f, label, idfs);
+      if(result.valid())
+	{
+	  f = result;
+	  if(verbosity > 14)
+	    fprintf(ferr, "sucessfully stamped in k2y id %d\n", id);
+	}
+    }
+}
+
+multimap<int,int> mrs_id_map;
+
+void mrs_map_id(int item_id, int ls_id)
+{
+  mrs_id_map.insert(make_pair(item_id, ls_id));
+}
+
+list<int> mrs_map_id(int item_id)
+{
+  list<int> ls_ids;
+
+  pair<multimap<int, int>::iterator, multimap<int, int>::iterator> eq =
+    mrs_id_map.equal_range(item_id);
+
+  for(multimap<int, int>::iterator it = eq.first;
+      it != eq.second; ++it)
+      ls_ids.push_back(it->second);
+
+  return ls_ids;
+}
+
+multimap<int,string> mrs_sense_map;
+
+void mrs_map_sense(int item_id, string sense)
+{
+  mrs_sense_map.insert(make_pair(item_id, sense));
+}
+
+list<string> mrs_map_sense(int item_id)
+{
+  list<string> senses;
+
+  pair<multimap<int, string>::iterator, multimap<int, string>::iterator> eq =
+    mrs_sense_map.equal_range(item_id);
+
+  for(multimap<int, string>::iterator it = eq.first;
+      it != eq.second; ++it)
+      senses.push_back(it->second);
+
+  return senses;
+}
+
+void mrs_reset_mappings()
+{
+  mrs_id_map.clear();
+  mrs_sense_map.clear();
+}
 
 //
 // class mrs
@@ -131,7 +240,6 @@ bool mrs::used(int id, int clause)
   return contains(_used_rels[clause], id);
 }
 
-
 void mrs::sanitize(void) {
 
   for(list<mrs_rel>::iterator r = _rels.begin();
@@ -144,15 +252,27 @@ void mrs::sanitize(void) {
     // 
     int intargid = r->value(k2y_role_name("k2y_arg3"));
     mrs_rel intargrel = rel(k2y_role_name("k2y_inst"), intargid);
-    if(intargrel.valid() 
-       && subtype(intargrel.type(), lookup_type(k2y_pred_name("k2y_temp_rel")))
-       && (subtype(r->type(), lookup_type(k2y_pred_name("k2y_temploc_rel")))
-           || subtype(r->type(), lookup_type(k2y_pred_name("k2y_loc_rel")))))
-      r->name("temp_loc_rel");
-    else if(intargrel.valid() 
-            && subtype(r->type(), lookup_type(k2y_pred_name("k2y_loc_rel"))))
-      r->name("unspec_loc_rel");
-
+    if(intargrel.valid()) {
+      if(subtype(intargrel.type(), lookup_type(k2y_pred_name("k2y_temp_rel")))
+         && (subtype(r->type(), lookup_type(k2y_pred_name("k2y_temploc_rel")))
+             || subtype(r->type(), lookup_type(k2y_pred_name("k2y_loc_rel")))))
+        r->name("temp_loc_rel");
+      else if(subtype(r->type(), lookup_type(k2y_pred_name("k2y_loc_rel"))))
+        r->name("unspec_loc_rel");
+      //
+      // _fix_me_
+      // find appropriate cross-language generalization for locative relations
+      // and types of internal arguments.                (15-nov-01; erb & oe)
+      //
+      // This is causing 'overactive SentencePlace' with the Japanese
+      // grammar and bugging Monique.  We should have used k2y_pred_name
+      // here so I could toggle it in japanese.set.  Making that fix now.
+      //                                                 (28-jan-02; erb)
+      else if(subtype(intargrel.type(), lookup_type(k2y_pred_name("k2y_named_place_rel")))
+              && subtype(r->type(), lookup_type(k2y_pred_name("k2y_prep_mod_rel")))) {
+        r->name("unspec_loc_rel");
+      } // if
+    } // if
   } /* for */
 
 } // mrs::sanitize()
@@ -207,7 +327,7 @@ void mrs::countpseudorel()
 
 // construct an MRS REL from a feature structure
 mrs_rel::mrs_rel(mrs *m, fs f)
-  : _fs(f), _mrs(m), _rel(f.type()), _label(0), _cvalue(-1)
+  : _fs(f), _mrs(m), _rel(f.type()), _labels(0), _senses(), _cvalue(-1)
 {
 
   if(cheap_settings->member("k2y-disfavoured-relations", typenames[_rel]))
@@ -228,7 +348,6 @@ mrs_rel::mrs_rel(mrs *m, fs f)
     _pred = _rel;
   } // catch
 
-
   fs label = _fs.get_attr_value(path);
   if(label.valid() && label.type() == BI_CONS)
     {
@@ -237,19 +356,44 @@ mrs_rel::mrs_rel(mrs *m, fs f)
           label = label.get_attr_value(BIA_REST))
 	{
 	  fs node = label.get_attr_value(BIA_FIRST);
-	  if(node.valid())
+	  if(!node.valid()) continue;
+
+	  int type = node.type();
+	  if(type < 0) continue;
+	  
+	  if(verbosity > 14)
+	    fprintf(stderr, "ID %d ->", type);
+
+	  list<int> lsids = mrs_map_id(type);
+	  for(list<int>::iterator it = lsids.begin(); it != lsids.end(); ++it)
 	    {
-	      int type = node.type();
-	      if(type >= 0) _label.push_back(type + 1);
+	      if(verbosity > 14)
+		fprintf(stderr, " %d", *it);
+
+	      _labels.push_back(*it);
 	    }
+	  
+	  list<string> senses = mrs_map_sense(type);
+	  
+	  for(list<string>::iterator it = senses.begin(); it != senses.end(); ++it)
+	    {
+	      if(verbosity > 14)
+		fprintf(stderr, " %s", it->c_str());
+
+	      _senses.push_back(*it);
+	    }
+	  
+	  if(verbosity > 14)
+	    fprintf(stderr, "\n");
 	}
     }
+
   _id = _mrs->id(f);
 }
 
 // construct an MRS REL from whole cloth
 mrs_rel::mrs_rel(mrs *m, int type, int pred)
-  : _fs(copy(fs(type))), _mrs(m), _rel(type), _label(0), _cvalue(-1)
+  : _fs(copy(fs(type))), _mrs(m), _rel(type), _labels(0), _senses(), _cvalue(-1)
 {
   _pred = (pred ? pred : type);
   _id = _mrs->id(_fs);
@@ -319,7 +463,13 @@ bool mrs_rel::number_convert(void) {
       mrs_rel amount 
         = _mrs->rel(k2y_role_name("k2y_hndl"), foo, 
                     lookup_type(k2y_pred_name("k2y_integer_rel")));
-    
+
+      //
+      // in any case, act parasitic on labels and senses of `amount' argument
+      //
+      _labels = amount.labels();
+      _senses = amount.senses();
+
       if(amount.number_convert()) {
         _cvalue = amount.cvalue();
         return true;
@@ -383,14 +533,25 @@ bool mrs_rel::number_convert(void) {
     _cvalue = value1 * value2;
 
   //
-  // collect raw atoms from both operands into operator
+  // collect ids from both operands into operator
   //
-  copy(operand1.label().begin(), operand1.label().end(), 
-       back_inserter(_label));
-  copy(operand2.label().begin(), operand2.label().end(), 
-       back_inserter(_label));
-  _label.sort();
-  _label.unique();
+  copy(operand1.labels().begin(), operand1.labels().end(), 
+       back_inserter(_labels));
+  copy(operand2.labels().begin(), operand2.labels().end(), 
+       back_inserter(_labels));
+  _labels.sort();
+  _labels.unique();
+
+  //
+  // collect senses from both operands into operator
+  //
+  copy(operand1.senses().begin(), operand1.senses().end(), 
+       back_inserter(_senses));
+  copy(operand2.senses().begin(), operand2.senses().end(), 
+       back_inserter(_senses));
+  _senses.sort();
+  _senses.unique();
+
 
   return true;
 
@@ -403,12 +564,12 @@ void mrs_rel::print(FILE *f)
   if(handel.valid()) fprintf(f, "  HANDEL h%d\n", _mrs->id(handel));
   if(_cvalue >= 0) 
     fprintf(f, 
-            "  CVALUE %d [%d token%s]\n", 
-            _cvalue, span(), (span() > 1 ? "s" : ""));
-  if(!_label.empty()) {
-    fprintf(f, "  RA < ");
-    for(list<int>::iterator i = _label.begin(); 
-        i != _label.end();
+            "  CVALUE %d [%d id%s]\n", 
+            _cvalue, labels().size(), (labels().size() > 1 ? "s" : ""));
+  if(!_labels.empty()) {
+    fprintf(f, "  IDS < ");
+    for(list<int>::iterator i = _labels.begin(); 
+        i != _labels.end();
         i++) {
       fprintf(f, "%d ", *i);
     } /* for */
@@ -469,32 +630,3 @@ void mrs_hcons::print(FILE *f)
   fprintf(f, "}");
 }
 
-
-char *k2y_type_name(char *abstr_name)
-{
-  char *name = cheap_settings->assoc("k2y_type_names", abstr_name);
-  if(name == 0) name = cheap_settings->assoc("k2y-type-names", abstr_name);
-  if(name == 0)
-    throw error("undefined k2y_type_name `" + string(abstr_name) + "'.");
-  return name;
-
-}
-
-char *k2y_pred_name(char *abstr_name)
-{
-  char *name = cheap_settings->assoc("k2y_pred_names", abstr_name);
-  if(name == 0) name = cheap_settings->assoc("k2y-pred-names", abstr_name);
-  if(name == 0)
-    throw error("undefined k2y_pred_name `" + string(abstr_name) + "'.");
-  return name;
-
-}
-
-char *k2y_role_name(char *abstr_name)
-{
-  char *name = cheap_settings->assoc("k2y_role_names", abstr_name);
-  if(name == 0) name = cheap_settings->assoc("k2y-role-names", abstr_name);
-  if(name == 0)
-    throw error("undefined k2y_role_name `" + string(abstr_name) + "'.");
-  return name;
-}

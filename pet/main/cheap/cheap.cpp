@@ -43,6 +43,14 @@ void interactive_morph()
   while(!(input = read_line(stdin)).empty())
     {
 #if 1
+      list<morph_analysis> res = m->analyze(input, false);
+      for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+	{
+	  fprintf(stdout, "%s\t", it->base().c_str());
+	  it->print_lkb(stdout);
+	  fprintf(stdout, "\n");
+	}
+#elif 0
       list<morph_analysis> res = m->analyze(input);
       for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
 	{
@@ -105,7 +113,7 @@ void interactive()
 	    int nres = 0;
 	    struct MFILE *mstream = mopen();
 
-	    for(list<item *>::iterator iter = Chart->Roots().begin();
+	    for(vector<item *>::iterator iter = Chart->Roots().begin();
 		iter != Chart->Roots().end(); ++iter)
 	      {
 		item *it = *iter;

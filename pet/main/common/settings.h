@@ -52,6 +52,11 @@ class settings
   // subtype based assoc
   char *sassoc(const char *name, int key_type, int arity = 2, int nth = 1);
 
+#ifndef FLOP
+  // subtype based map
+  set<string> smap(const char *name, int key_type);
+#endif
+
   struct lex_location *lloc() { return _lloc; }
 
   static char *basename(const char *name);

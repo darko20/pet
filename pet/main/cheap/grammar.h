@@ -70,7 +70,8 @@ class full_form
     _stem(0), _affixes(0), _offset(0) {};
 
   full_form(lex_stem *st, modlist mods = modlist(), list_int *affixes = 0)
-    : _stem(st), _affixes(affixes), _offset(0), _mods(mods) {};
+    : _stem(st), _affixes(copy_list(affixes)), _offset(0), _mods(mods)
+    { if(st) _offset = st->inflpos(); }
 
   full_form(dumper *f, class grammar *G);
 
@@ -242,12 +243,22 @@ class grammar
   list_int *deleted_daughters() { return _deleted_daughters; }
 
   inline bool filter_compatible(grammar_rule *mother, int arg,
-				grammar_rule *daughter)
-    {
-      if(daughter == NULL) return true;
-      return _filter[daughter->id() + _nrules * mother->id()] &
-	(1 << (arg - 1));
-    }
+                                grammar_rule *daughter)
+  {
+    if(daughter == NULL) return true;
+    return _filter[daughter->id() + _nrules * mother->id()] &
+      (1 << (arg - 1));
+  }
+
+  inline bool filter_compatible(type_t mother, int arg,
+                                type_t daughter)
+  {
+    grammar_rule *mother_r = _rule_dict[mother];
+    grammar_rule *daughter_r = _rule_dict[daughter];
+    if(mother_r == 0 || daughter_r == 0)
+      throw error("Unknown rule passed to filter_compatible");
+    return filter_compatible(mother_r, arg, daughter_r);
+  }
 
   inline grammar_info &info() { return _info; }
   inline int nrules() { return _rules.size(); }
@@ -297,6 +308,7 @@ class grammar
 
   int _nrules;
   list<grammar_rule *> _rules;
+  map<type_t, grammar_rule *> _rule_dict;
 
   bool _weighted_roots;
   list_int *_root_insts;

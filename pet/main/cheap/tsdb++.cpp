@@ -382,7 +382,7 @@ void tsdb_parse::capi_print()
 static int tsdb_unique_id = 1;
 
 void cheap_tsdb_summarize_item(chart &Chart, int length,
-                               int treal, int derivationp, char *meaning,
+                               int treal, int derivationp, const char *meaning,
                                tsdb_parse &T)
 {
   if(opt_derivation)
@@ -392,7 +392,7 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
     struct MFILE *mstream = mopen();
     if(!derivationp) // default case, report results
     {
-      for(list<item *>::iterator iter = Chart.Roots().begin();
+      for(vector<item *>::iterator iter = Chart.Roots().begin();
           iter != Chart.Roots().end(); ++iter)
       {
         tsdb_result R;
@@ -429,12 +429,12 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
           {
             R.tree = string(meaning);
 		}
+        } // if
 #endif
-          T.push_result(R);
-          nres++;
-        } // while
-      }
-    }
+        T.push_result(R);
+        nres++;
+      } // for
+    } // if
     else // report all passive edges
     {
       for(chart_iter it(Chart); it.valid(); it++)

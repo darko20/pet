@@ -30,12 +30,6 @@ enum k2y_role {K2Y_SENTENCE, K2Y_MAINVERB,
 extern char *k2name[K2Y_XXX];
 
 //
-// stamp position information into fs
-//
-
-void k2y_stamp_fs(fs &f, int ndtrs, class input_token **dtrs);
-
-//
 // external entry point to this module: construct (at the moment: print)
 // k2y representation from root, if eval is true just return number of
 // relations in k2y representation built

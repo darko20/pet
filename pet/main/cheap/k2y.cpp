@@ -27,40 +27,7 @@ void k2y_deg(mrs &m, int clause, int modid, int argid);
  ++_iterator,V=*_iterator)
 
 //
-// _hack_ 
-// stamp in position information for K2Y: link input words to K2Y clauses
-//
-void k2y_stamp_fs(fs &f, int ndtrs, class input_token **dtrs)
-{
-  char *path = cheap_settings->value("label-path");
-  if(path == NULL) path = "SYNSEM.LOCAL.KEYS.KEY.LABEL";
-
-  fs label = f.get_path_value(path);
-
-  if(!label.valid())
-    label = f.get_path_value("SYNSEM.LOCAL.KEYS.ALTKEY.LABEL");
-
-  if(label.valid() && label.type() == BI_CONS)
-    {
-      list_int *span = 0;
-      for(int i = 0; i < ndtrs; i++)
-	for(int j = dtrs[i]->startposition(); j < dtrs[i]->endposition(); j++)
-	  span = cons(j, span);
-
-      fs ras = fs(dag_listify_ints(span));
-      free_list(span);
-      fs result = unify(f, label, ras);
-      if(result.valid())
-	{
-	  f = result;
-	  if(verbosity > 9)
-	    fprintf(ferr, "sucessfully stamped in k2y position information\n");
-	}
-    }
-}
-
-//
-// kludge to capture printed output in string, so we can return it to the fine
+// kluge to capture printed output in string, so we can return it to the fine
 // [incr tsdb()] system.  this file may need some reorganization and cleaning
 // sometime soon :-).                                  (27-mar-00  -  oe)
 //
@@ -101,7 +68,7 @@ int K2YSafeguard::_depth = 0;
 // if this is true, don't really construct semantics, just count objects
 bool evaluate;
 static int nrelations;
-static set<int> raw_atoms;
+static set<int> input_ids;
 
 char *k2y_name[K2Y_XXX] = { "sentence", "mainverb",
                             "subject", "dobject", "iobject",
@@ -117,19 +84,20 @@ void new_k2y_object(mrs_rel &r, k2y_role role, int clause,
   fs f;
   nrelations++;
 
-  if(nrelations > MAXIMUM_NUMBER_OF_RELS) {
-    char foo[128];
-    sprintf(foo, "apparently circular K2Y (%d relation(s))", nrelations);
-    throw error(foo);
-  } /* if */
+  if(nrelations > MAXIMUM_NUMBER_OF_RELS)
+    {
+      char foo[128];
+      sprintf(foo, "apparently circular K2Y (%d relation(s))", nrelations);
+      throw error(foo);
+    }
 
-  if(!r.label().empty()) {
-    for(list<int>::iterator i = r.label().begin(); 
-        i != r.label().end();
-        i++) {
-      raw_atoms.insert(*i);
-    } /* for */
-  } /* if */
+  if(!r.labels().empty())
+    {
+      for(list<int>::iterator i = r.labels().begin(); 
+	  i != r.labels().end();
+	  i++)
+	input_ids.insert(*i);
+    }
 
   if(evaluate) return;
 
@@ -146,37 +114,51 @@ void new_k2y_object(mrs_rel &r, k2y_role role, int clause,
     if(strcmp(r.name(), r.pred())) mprintf(mstream, ", PRED %s", r.pred());
   } /* else */
   mprintf(mstream, ", CLAUSE x%d", clause);
-  if(!r.label().empty()) {
-    mprintf(mstream, ", RA < ");
-    for(list<int>::iterator i = r.label().begin(); 
-        i != r.label().end();
-        i++) {
-      mprintf(mstream, "%d ", *i * 100);
-    } /* for */
-    mprintf(mstream, ">");
-  } /* if */
+
+  if(!r.labels().empty())
+    {
+      mprintf(mstream, ", IDS < ");
+      for(list<int>::iterator i = r.labels().begin(); 
+	  i != r.labels().end();
+	  i++)
+	mprintf(mstream, "%d ", *i);
+
+      mprintf(mstream, ">");
+    }
+
+  if(!r.senses().empty())
+    {
+      mprintf(mstream, ", SENSES < ");
+      for(list<string>::iterator s = r.senses().begin(); 
+	  s != r.senses().end();
+	  s++)
+	mprintf(mstream, "%s ", s->c_str());
+
+      mprintf(mstream, ">");
+    }
 
   if(role == K2Y_MAINVERB)
   {
-    if(index != 0 && index.valid()) {
-      f = index.get_path_value("E.TENSE");
-      if(f.valid()) mprintf(mstream, ", TENSE %s", f.name());
-      f = index.get_path_value("E.ASPECT");
-      if(f.valid()) mprintf(mstream, ", ASPECT %s", f.name());
-      f = index.get_path_value("E.MOOD");
-      if(f.valid()) mprintf(mstream, ", MOOD %s", f.name());
-    } /* if */
-
+    if(index != 0 && index.valid())
+      {
+	f = index.get_path_value("E.TENSE");
+	if(f.valid()) mprintf(mstream, ", TENSE %s", f.name());
+	f = index.get_path_value("E.ASPECT");
+	if(f.valid()) mprintf(mstream, ", ASPECT %s", f.name());
+	f = index.get_path_value("E.MOOD");
+	if(f.valid()) mprintf(mstream, ", MOOD %s", f.name());
+      }
   }
 
   if(role == K2Y_SUBJECT || role == K2Y_DOBJECT || role == K2Y_IOBJECT)
-  {
-    f = r.get_fs().get_path_value("INST.PNG.PN");
-    if(f.valid()) mprintf(mstream, ", PN %s", f.name());
-
-    f = r.get_fs().get_path_value("INST.PNG.GEN");
-    if(f.valid()) mprintf(mstream, ", GENDER %s", f.name());
-  }
+    {
+      f = r.get_fs().get_path_value("INST.PNG.PN");
+      if(f.valid()) mprintf(mstream, ", PN %s", f.name());
+      
+      f = r.get_fs().get_path_value("INST.PNG.GEN");
+      if(f.valid()) mprintf(mstream, ", GENDER %s", f.name());
+    }
+ 
   if(closep) mprintf(mstream, "]\n");
 }
 
@@ -506,9 +488,12 @@ void k2y_mod(mrs &m, int clause, int id, int arg)
                          lookup_type(k2y_pred_name("k2y_verb_rel"))) ||
                  // 10-Feb-02 DPF now treat numeral-adjs as reduced rels, to
                  // allow degree modifiers as in "more than eighty percent"
-                 // subtype(mod.type(), 
+                 // subtype(mod.type(),
                  //         lookup_type(k2y_pred_name("k2y_const_rel"))) ||
-                 subtype(mod.type(), 
+                 // 05-Jun-02 UC Don't segregate japanese integers
+                 subtype(mod.type(),
+                          lookup_type(k2y_pred_name("k2y_jconst_rel"))) ||
+                 subtype(mod.type(),
                          lookup_type(k2y_pred_name("k2y_adv_rel"))) ||
                  !opt_k2y_segregation)
                 {
@@ -784,6 +769,22 @@ void k2y_verb(mrs &m, int clause, int id)
             new_k2y_object(message, K2Y_VCOMP, clause, 0, true);
           }
       }
+    //
+    // special case for modifiers that (syntactically) attach to a nominalized
+    // projection of this verb, e.g. `atarashii yokin'
+    //
+    mrs_rel wa = m.rel(k2y_role_name("k2y_arg3"), 
+                       verb.value(k2y_role_name("k2y_event")));
+    if(wa.valid()) {
+      mrs_rel mod = m.rel(k2y_role_name("k2y_event"),
+                          wa.value(k2y_role_name("k2y_arg")));
+      if(mod.valid()) {
+        new_k2y_modifier(mod, K2Y_MODIFIER, clause, id);
+        k2y_nom(m, clause, K2Y_INTARG, 
+                mod.value(k2y_role_name("k2y_arg3")), mod.id());
+        k2y_vcomp(m, clause, mod.value(k2y_role_name("k2y_arg4")));
+      } // if 
+    } //if 
   }
 }
 
@@ -1354,35 +1355,35 @@ int construct_k2y(int id, item *root, bool eval, struct MFILE *stream)
     } /* if */
 
     nrelations = 0; 
-    raw_atoms.clear();
+    input_ids.clear();
 
     k2y_sentence(m);
 
     if(!cheap_settings->lookup("debug-mrs")
-       && (int)raw_atoms.size() < root->end() * (float)opt_k2y / 100) {
+       && (int)input_ids.size() < root->end() * (float)opt_k2y / 100) {
       if(!eval && verbosity > 1) {
         fprintf(ferr, 
                 "construct_k2y(): [%d of %d] "
-                "sparse K2Y (%d raw atoms(s)).\n",
-                id, stats.readings, raw_atoms.size());
+                "sparse K2Y (%d input id(s)).\n",
+                id, stats.readings, input_ids.size());
       } /* if */
       if(stream != NULL) {
         mprintf(stream, 
                 "([%d--%d] %d of %d: "
-                "sparse K2Y (%d raw atoms(s)))",
+                "sparse K2Y (%d input id(s)))",
                 root->start(), root->end(), 
-                id, stats.readings, raw_atoms.size());
+                id, stats.readings, input_ids.size());
       } /* if */
       status = -1;
     } /* if */
     else {
       if(stream != NULL) {
         mprintf(stream, 
-                "{%d--%d; %d of %d; [%d relation%s %d raw atom%s];\n%s}", 
+                "{%d--%d; %d of %d; [%d relation%s %d input id%s];\n%s}", 
                 root->start(), root->end(), 
                 id, stats.readings,
                 nrelations, (nrelations > 1 ? "s" : ""),
-                raw_atoms.size(), (raw_atoms.size() > 1 ? "s" : ""),
+                input_ids.size(), (input_ids.size() > 1 ? "s" : ""),
                 mstring(mstream));
       } /* if */
       status = nrelations;
@@ -1413,5 +1414,3 @@ int construct_k2y(int id, item *root, bool eval, struct MFILE *stream)
     return -42;
   } /* catch */
 }
-
-

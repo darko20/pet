@@ -74,7 +74,7 @@ private:
     while(valid() &&
 	  ((_pos != (_left_p ? (*_curr)->end() : (*_curr)->start()))
 	    || ((_orth != 0)
-		&& (strcmp(_orth, ((*_curr)->orth()).c_str()) != 0))))
+		&& (strcasecmp(_orth, ((*_curr)->orth()).c_str()) != 0))))
       _curr++;
   }
 
@@ -114,16 +114,14 @@ public:
     clear_dynamic_symbols(); // XXX does this belong here?
   }
 
-  bool contains(int start, int end, string orth, postags poss);
-
   void populate(class tokenizer *t);
   
   input_token *add_token(const string &tokenstring);
-  input_token *add_token(int start, int end, class full_form ff,
+  input_token *add_token(int id, int start, int end, class full_form ff,
 			 string orth, int p, const postags &pos,
 			 bool synthesized = false)
   {
-    return add_token(New input_token(start, end, ff, orth, p, pos, this,
+    return add_token(New input_token(id, start, end, ff, orth, p, pos, this,
 				     synthesized));
   }
 
@@ -156,6 +154,11 @@ public:
 
   // add generic entries
   void add_generics(list<class lex_item *> &input);
+
+  // Discount priorities of lexical items that are covered by a larger
+  // multiword lexical item.
+  void
+  discount_covered_items(list<class lex_item *> &lex_items);
 
   int max_position() { return _positionmap->max_chart_position(); }
 

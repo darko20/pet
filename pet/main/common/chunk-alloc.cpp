@@ -275,6 +275,7 @@ int chunk_allocator::_core_free(void *p, int size)
 #ifdef __BORLANDC__
 // Use WinAPI VirtualAlloc and VirtualFree
 
+#include <windows.h>
 #include "winbase.h"
 
 #pragma argsused
