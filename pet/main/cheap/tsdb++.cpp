@@ -31,7 +31,6 @@
 #include "mfile.h"
 #include "qc.h"
 #ifdef YY
-# include "k2y.h"
 # include "yy.h"
 #endif
 
@@ -487,35 +486,6 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         }
         R.derivation = (*iter)->tsdb_derivation();
 
-#ifdef YY
-        if(opt_k2y)
-        {
-          mflush(mstream);
-          int nrelations
-            = construct_k2y(nres, *iter, false, mstream);
-          if(nrelations >= 0)
-          {
-            stats.nmeanings++;
-            R.mrs = mstring(mstream);
-          }
-          else
-          {
-            T.err +=
-              string(T.err.empty() ? "" : " ") +
-              string(mstring(mstream));
-          }
-          //
-          // _hack_
-          // use :tree field to record YY role table, when available; from
-          // the control strategy, we know that it must correspond to the
-          // last reading that was computed.           (6-feb-01  -  oe@yy)
-          //
-          if(nres == stats.readings && meaning != NULL)
-          {
-            R.tree = string(meaning);
-          }
-        } // if
-#endif
         T.push_result(R);
         nres++;
       } // for

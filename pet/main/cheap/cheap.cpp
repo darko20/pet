@@ -36,7 +36,6 @@
 
 #ifdef YY
 #include "yy.h"
-#include "k2y.h"
 #endif
 
 FILE *ferr, *fstatus, *flog;
@@ -238,11 +237,7 @@ void interactive()
                 writeSuperTagged(fTags, fData, Chart,
                                    stats.readings);
 
-#ifdef YY
-            if(opt_k2y || verbosity > 1)
-#else
             if(verbosity > 1)
-#endif
 
             {
                 int nres = 0;
@@ -267,22 +262,6 @@ void interactive()
                         it->print_derivation(fstatus, false);
                         fprintf(fstatus, "\n");
                     }
-                    
-#ifdef YY
-                    if(opt_k2y)
-                    {
-                        mflush(mstream);
-                        int n = construct_k2y(nres, it, false, mstream);
-                        if(n >= 0)
-                            fprintf(fstatus, "\n%s\n\n", mstring(mstream));
-                        else 
-                        {
-                            fprintf(fstatus, 
-                                    "\n K2Y error:  %s .\n\n", 
-                                    mstring(mstream));
-                        }
-                    }
-#endif
                 }
                 mclose(mstream);
             }

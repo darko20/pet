@@ -34,7 +34,6 @@
 
 #ifdef YY
 #include "yy.h"
-#include "k2y.h"
 #endif
 
 //
@@ -261,18 +260,6 @@ add_root(item *it)
         if(opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
             return true;
     }
-#ifdef YY
-    if(opt_k2y && opt_nth_meaning != 0)
-    {
-        int n = construct_k2y(0, it, true, 0);
-        if(n >= 0)
-        {
-            stats.nmeanings++;
-            if(stats.nmeanings >= opt_nth_meaning)
-                return true;
-        }
-    }
-#endif
     return false;
 }
 
@@ -463,11 +450,6 @@ analyze(input_chart &i_chart, string input, chart *&C,
     FSAS.clear_stats();
     stats.reset();
     stats.id = id;
-
-#ifdef YY
-    if(opt_k2y)
-        mrs_reset_mappings();
-#endif
 
     auto_ptr<item_owner> owner(New item_owner);
     item::default_owner(owner.get());

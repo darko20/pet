@@ -48,7 +48,6 @@
 #include "inputchart.h"
 #include "typecache.h"
 #include "tsdb++.h"
-#include "k2y.h"
 #include "yy.h"
 #ifdef ONLINEMORPH
 #include "morph.h"
@@ -475,6 +474,8 @@ yy_tokenizer::read_token()
 // library based interface to language server
 //
 
+#ifdef YY_L2_INTERFACE
+
 // all strings coming in over this interface are UTF8 encoded. Ignore this
 // for now on filenames. Do appropriate conversion for rest.
 
@@ -829,6 +830,8 @@ void l2_parser_exit_imp()
   
   fclose(fstatus);
 }
+
+#endif
 
 #ifdef SOCKET_INTERFACE
 
@@ -1199,7 +1202,8 @@ int cheap_server_child(int socket) {
 		stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
 	fflush(*log);
       } /* for */
-        
+
+#if 0
       struct MFILE *mstream = mopen();
       int nres = 1, skipped = 0;
 
@@ -1223,6 +1227,7 @@ int cheap_server_child(int socket) {
 	    }
 	}
       mclose(mstream);
+#endif
     } /* try */
 
     catch(error &e) {

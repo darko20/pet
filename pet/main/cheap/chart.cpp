@@ -38,12 +38,8 @@ chart::~chart()
 {
 }
 
-int chart::_next_stamp = 1;
-
 void chart::add(item *it)
 {
-  it->stamp(_next_stamp++);
-
 #ifdef DEBUG
   it->print(ferr);
   fprintf(ferr, "\n");
