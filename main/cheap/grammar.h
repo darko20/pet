@@ -175,8 +175,6 @@ class full_form
   string description();
 
  private:
-  static char *_affix_path;
-
   lex_stem *_stem;
   list_int* _affixes;
   int _offset;

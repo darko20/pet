@@ -234,8 +234,6 @@ lex_stem::instantiate()
 #endif
 }
 
-char *full_form::_affix_path = 0;
-
 full_form::full_form(dumper *f, grammar *G)
 {
     int preterminal = f->undump_int();
@@ -903,7 +901,6 @@ grammar::init_parameters()
             }
         }
     }
-    full_form::_affix_path = cheap_settings->value("affixation-path");
 }
 
 void
