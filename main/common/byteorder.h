@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -8,7 +8,6 @@
 
 #ifndef _BYTEORDER_H_
 #define _BYTEORDER_H_
-
 
 #define swap_short(x) \
                 ((((x) & (unsigned short)0x00ffU) << 8) | \

@@ -1,15 +1,12 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* tomabechi quasi destructive graph unification  */
 /* inspired by the LKB implementation */
 
-#include <assert.h>
-
-#include <map>
-
+#include "pet-system.h"
 #include "dag.h"
 #include "types.h"
 #include "tsdb++.h"
@@ -220,7 +217,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       if((cycle = dag_cyclic_rec(*result_root)) != 0)
 	{
 	  dag_invalidate_changes();
-	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
+	  failures.push_back(New unification_failure(unification_failure::CYCLE, unify_path_rev,
 						unification_cost, -1, -1, cycle, *result_root));
 	}
     }
@@ -229,7 +226,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       // result might be cyclic
       if((cycle = dag_cyclic_rec(dag1)) != 0)
 	{
-	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
+	  failures.push_back(New unification_failure(unification_failure::CYCLE, unify_path_rev,
 						unification_cost));
 	}
     }
@@ -264,7 +261,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
 	  if(!unify_all_failures)
 	    {
 	      save_or_clear_failure();
-	      failure = new unification_failure(unification_failure::CYCLE, unify_path_rev, unification_cost);
+	      failure = New unification_failure(unification_failure::CYCLE, unify_path_rev, unification_cost);
 	      return FAIL;
 	    }
 	  else
@@ -330,6 +327,8 @@ dag_node *dag_full_p_copy(dag_node *dag)
   return copy;
 }
 
+int total_cached_constraints = 0;
+
 inline dag_node *fresh_constraint_of(int s)
 {
   temporary_generation save(++unify_generation_max);
@@ -340,7 +339,7 @@ constraint_info **constraint_cache;
 
 inline constraint_info *fresh_p_constraint(int s, constraint_info *next)
 {
-  constraint_info *c = new constraint_info;
+  constraint_info *c = New constraint_info;
   c -> next = next;
   c -> gen = 0;
 
@@ -359,6 +358,7 @@ struct dag_node *cached_constraint_of(int s)
 
   if(c == 0)
     {
+      total_cached_constraints++;
       c = constraint_cache[s] = fresh_p_constraint(s, constraint_cache[s]);
     }
 
@@ -470,7 +470,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
       if(unify_record_failure)
         { 
 	  save_or_clear_failure();
-	  failure = new unification_failure(unification_failure::CLASH, unify_path_rev, unification_cost, s1, s2);
+	  failure = New unification_failure(unification_failure::CLASH, unify_path_rev, unification_cost, s1, s2);
 
 	  if(!unify_all_failures)
 	    return FAIL;
@@ -518,7 +518,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 	  if(unify_record_failure)
             { 
 	      save_or_clear_failure();
-	      failure = new unification_failure(unification_failure::CONSTRAINT, unify_path_rev, unification_cost, s1, s2);
+	      failure = New unification_failure(unification_failure::CONSTRAINT, unify_path_rev, unification_cost, s1, s2);
 
 	      if(!unify_all_failures)
 		return FAIL;
@@ -1505,4 +1505,47 @@ bool dag_valid(dag_node *dag)
 void dag_initialize()
 {
   // nothing to do
+}
+
+void dag_print_rec_fed_safe(FILE *f, struct dag_node *dag) {
+// recursively print dag. requires `visit' field to be set up by
+// mark_coreferences. negative value in `visit' field means that node
+// is coreferenced, and already printed
+  dag_arc *arc = dag->arcs ;
+  int coref = dag_get_visit_safe(dag) - 1;
+
+  if(coref < 0) { // dag is coreferenced, already printed
+    fprintf(f, " #%d", -(coref+1)) ;
+    return;
+  }
+  else if(coref > 0) { // dag is coreferenced, not printed yet
+    coref = -dag_set_visit_safe(dag, -(coref_nr++));
+    fprintf(f, " #%d=", coref );
+  }
+
+  fprintf(f, " [ (%%TYPE %s #T )", typenames[dag->type]);
+
+  while(arc) {
+    fprintf(f, " (%s", attrname[arc->attr]) ;
+    dag_print_rec_fed_safe(f, arc->val) ;
+    fprintf(f, " )");
+    arc=arc->next;
+  }
+}
+
+void dag_print_fed_safe(FILE *f, struct dag_node *dag) {
+  if(dag == 0) {
+    fprintf(f, "NIL") ;
+    return;
+  }
+  if(dag == FAIL) {
+    fprintf(f, "FAIL") ;
+    return;
+  }
+
+  dag_mark_coreferences_safe(dag, 0);
+  
+  coref_nr = 1;
+  dag_print_rec_fed_safe(f, dag);
+  dags_visited.clear();
 }

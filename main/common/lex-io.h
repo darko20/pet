@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -7,8 +7,6 @@
 
 #ifndef _LEX_IO_H_
 #define _LEX_IO_H_
-
-#include <stdio.h>
 
 #define MAX_LEX_NEST 16 
 /* maximal nesting depth of include files */
@@ -36,8 +34,6 @@ struct lex_location *new_location(char *fname, int linenr, int colnr);
 
 extern FILE *ferr, *fstatus;
 
-char *find_file(char *orig, char *extension, bool ext_req = false);
-char *output_name(char *in, char *oldextension, const char *newextension);
 void push_file(char *fname, char *info);
 int pop_file();
 

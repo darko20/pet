@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -7,10 +7,7 @@
  * abstracts away from low level representation (byteorder etc)
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "pet-system.h"
 #include "byteorder.h"
 #include "dumper.h"
 
@@ -33,9 +30,9 @@ dumper::dumper(const char *fname, bool write)
   _f = fopen(fname, _write ? "wb" : "rb");
 
   if(_f == NULL)
-    throw error("unable to open dump file");
+    throw error("unable to open file `" + string(fname) + "'");
 
-  _buff = (char *) malloc(BUFF_SIZE);
+  _buff = New char[BUFF_SIZE];
   setvbuf(_f, _buff, _IOFBF, BUFF_SIZE);
 
   _coe = true;
@@ -47,7 +44,7 @@ dumper::~dumper()
   if(_coe)
     {
       fclose(_f);
-      if(_buff) free(_buff);
+      delete[] _buff;
     }
 }
 
@@ -103,11 +100,17 @@ int dumper::undump_int()
 
 void dumper::dump_string(const char *s)
 {
-  int len;
-  len = strlen(s) + 1;
-
   if(!_write)
     throw error("not in write mode");
+
+  if(s == 0)
+    {
+      dump_short(0);
+      return;
+    }
+
+  int len;
+  len = strlen(s) + 1;
 
   dump_short(len);
 
@@ -115,7 +118,7 @@ void dumper::dump_string(const char *s)
     throw error("error writing string to file");
 }
 
-char * dumper::undump_string()
+char *dumper::undump_string()
 {
   int len;
   char *s;
@@ -125,7 +128,10 @@ char * dumper::undump_string()
 
   len = undump_short();
 
-  s = (char *) malloc(sizeof(char) * len);
+  if(len == 0)
+    return 0;
+
+  s = New char[len];
   
   if(s == 0 || fread(s, sizeof(char), len, _f) != (unsigned int) len)
     throw error("error reading string from file");
@@ -135,14 +141,14 @@ char * dumper::undump_string()
 
 int dumper::dump_int_variable()
 {
-  int pos = tell();
+  long int pos = tell();
   dump_int(-1);
   return pos;
 }
 
-void dumper::set_int_variable(int pos, int val)
+void dumper::set_int_variable(long int pos, int val)
 {
-  int curr = tell();
+  long int curr = tell();
   seek(pos);
   dump_int(val);
   seek(curr);

@@ -1,12 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* general helper functions and classes */
 
-#include <time.h>
-
+#include "pet-system.h"
 #include "utility.h"
 #include "errors.h"
 
@@ -70,11 +69,93 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   return val;
 }
 
+string convert_escapes(string s)
+// convert standard C string mnemonic escape sequences
+{
+  string res = "";
+  for(string::size_type i = 0; i < s.length(); i++)
+    {
+      if(s[i] != '\\')
+	res += s[i];
+      else
+	{
+	  i++;
+	  if(i >= s.length())
+	    return res;
+	  switch(s[i])
+	    {
+	    case '\"':
+	      res += "\"";
+	      break;
+	    case '\'':
+	      res += "\'";
+	      break;
+	    case '?':
+	      res += "\?";
+	      break;
+	    case '\\':
+	      res += "\\";
+	      break;
+	    case 'a':
+	      res += "\a";
+	      break;
+	    case 'b':
+	      res += "\b";
+	      break;
+	    case 'f':
+	      res += "\f";
+	      break;
+	    case 'n':
+	      res += "\n";
+	      break;
+	    case 'r':
+	      res += "\r";
+	      break;
+	    case 't':
+	      res += "\t";
+	      break;
+	    case 'v':
+	      res += "\v";
+	      break;
+	    default:
+	      res += s[i];
+	      break;
+	    }
+	}
+    }
+  return res;
+}
+
+void translate_iso_chars(string &s)
+{
+  for(string::size_type i = 0; i < s.length(); i++)
+    {
+      switch(s[i])
+	{
+	case 'ä':
+	case 'Ä':
+	  s.replace(i,1,"ae");
+	  break;
+	case 'ö':
+	case 'Ö':
+	  s.replace(i,1,"oe");
+	  break;
+	case 'ü':
+	case 'Ü':
+	  s.replace(i,1,"ue");
+	  break;
+	case 'ß':
+	  s.replace(i,1,"ss");
+	  break;
+	}
+    }
+}
+
 char *current_time(void)
 {
   time_t foo = time(0);
   struct tm *now = localtime(&foo);
-  static char *result = new char[80];
+  static char *result = New char[80];
 
   if(result == 0)
     return "now";
@@ -85,6 +166,59 @@ char *current_time(void)
     sprintf(result, "now");
 
   return(result);
+}
+
+char *find_file(char *orig, char *ext, bool ext_req)
+{
+  char *newn;
+  struct stat sb;
+
+  if(orig == 0)
+    return 0;
+
+  newn = (char *) malloc(strlen(orig) + strlen(ext) + 1);
+  
+  strcpy(newn, orig);
+
+  if(ext_req == false && access(newn, R_OK) == 0)
+    {
+      stat(newn, &sb);
+      if((sb.st_mode & S_IFDIR) == 0)
+        return newn;
+    }
+
+  strcat(newn, ext);
+      
+  if(access(newn, R_OK) == 0)
+    {
+      stat(newn, &sb);
+      if((sb.st_mode & S_IFDIR) == 0)
+        return newn;
+    }
+
+  return NULL;
+}
+
+char *output_name(char *in, char *oldext, const char *newext)
+{
+  char *out, *ext;
+
+  out = (char *) malloc(strlen(in) + strlen(newext) + 1);
+
+  strcpy(out, in);
+
+  ext = strrchr(out, '.');
+
+  if(ext && strcasecmp(ext, oldext) == 0)
+    {
+      strcpy(ext, newext);
+    }
+  else
+    {
+      strcat(out, newext);
+    }
+
+  return out;
 }
 
 #ifdef __BORLANDC__

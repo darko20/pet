@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -10,7 +10,6 @@
 #ifndef _DUMPER_H_
 #define _DUMPER_H_
 
-#include <stdio.h>
 #include "errors.h"
 
 class dumper
@@ -34,7 +33,7 @@ class dumper
   char *undump_string();
 
   int dump_int_variable();
-  void set_int_variable(int pos, int val);
+  void set_int_variable(long int pos, int val);
 
   inline long int tell()
     { return ftell(_f); }

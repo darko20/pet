@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -29,7 +29,7 @@ void initialize_builtins()
   BI_TOP = new_bi_type("*top*");
 }
 
-int create_grammar_info(char *name, char *grammar_version, const char *vocabulary)
+int create_grammar_info(char *name, char *grammar_version)
 {
   struct type *t = NULL;
   struct term *T;
@@ -44,8 +44,6 @@ int create_grammar_info(char *name, char *grammar_version, const char *vocabular
 
   add_term(add_feature(T->A, "GRAMMAR_VERSION"),
 	   new_string_term(grammar_version));
-  add_term(add_feature(T->A, "GRAMMAR_VOCABULARY"),
-	   new_string_term((char *) vocabulary));
   add_term(add_feature(T->A, "GRAMMAR_NTYPES"),
 	   new_int_term(types.number()));
   add_term(add_feature(T->A, "GRAMMAR_NTEMPLATES"),

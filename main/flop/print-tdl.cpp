@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -56,7 +56,7 @@ int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_tab
     }
   else if( L -> dottedpair)
     {
-      fprintf(f, ".");
+      fprintf(f, " .");
       if(last_complex)
         {
           fprintf(f, "\n");
@@ -126,7 +126,7 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
           break;
 	case TYPE:
           {
-	    fprintf(f, "%s", types.name(C -> term[i] -> type).c_str());
+	    fprintf(f, "%s", types[C -> term[i] -> type]->printname);
             break;
           }
 	case ATOM:
@@ -223,7 +223,7 @@ void tdl_print_constraint(FILE *f, struct type *t, const char *name)
   list_int *l = t->parents;
   while(l)
     {
-      fprintf(f, " %s &", types.name(first(l)).c_str());
+      fprintf(f, " %s &", types[first(l)]->printname);
       l = rest(l);
     }
 
@@ -262,7 +262,7 @@ void write_pre(FILE *f)
       if(!t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
 	{
 	  fprintf(f, ";; type definition from %s:%d\n", t->def->fname, t->def->linenr);
-	  tdl_print_constraint(f, t, types.name(i).c_str());
+	  tdl_print_constraint(f, t, types[i]->printname);
 	  fprintf(f, "\n");
 	}
     }
@@ -275,7 +275,7 @@ void write_pre(FILE *f)
       if(t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
 	{
 	  fprintf(f, ";; instance definition from %s:%d\n", t->def->fname, t->def->linenr);
-	  tdl_print_constraint(f, t, types.name(i).c_str());
+	  tdl_print_constraint(f, t, types[i]->printname);
 	  fprintf(f, "\n");
 	}
     }

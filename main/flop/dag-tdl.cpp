@@ -1,11 +1,15 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* conversion from TDL representation to dags */
 
 #include <assert.h>
+#include <stdio.h>
+#include <vector>
+#include <string>
+
 #include "types.h"
 #include "options.h"
 #include "flop.h"
@@ -28,11 +32,14 @@ void dagify_symtabs()
   
   typenames = (char **) salloc(sizeof(char *) * ntypes);
   typestatus = (int *) salloc(sizeof(int) * ntypes);
-  
+  printnames = (char **) salloc(sizeof(char *) * ntypes);
+
   for(i = 0; i < types.number(); i ++)
     {
       typenames[i] = (char *) types.name(i).c_str();
       typestatus[i] = types[i]->status;
+      printnames[i] = types[i]->printname;
+      if(printnames[i] == 0) printnames[i] = typenames[i];
     }
 
   nattrs = attributes.number();

@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -8,25 +8,36 @@
 #ifndef _ITEM_H_
 #define _ITEM_H_
 
-#include <stdio.h>
-
-#include <list>
-
+#include <limits.h>
 #include "list-int.h"
 #include "fs.h"
-
-#include "tokenlist.h"
+#include "options.h"
 #include "grammar.h"
+#include "inputtoken.h"
 
 class item
 {
  public:
-  item(int start, int end, fs &f, char *name);
-  item(int start, int end, char *name);
+  item(int start, int end, int p, fs &f, const char *printname);
+  item(int start, int end, int p, const char *printname);
 
   virtual ~item();
 
+  virtual item &operator=(const item &li)
+  {
+    throw error("unexpected call to copy constructor of item");
+  }
+
+  item()
+  {
+    throw error("unexpected call to constructor of item");
+  }
+
+  static void default_owner(class item_owner *o) { _default_owner = o; }
+  static class item_owner *default_owner() { return _default_owner; }
+
   inline int id() { return _id; }
+  inline rule_trait trait() { return _trait; }
 
   inline int stamp() { return _stamp; }
   inline void stamp(int t) { _stamp = t; }
@@ -35,23 +46,100 @@ class item
   inline bool passive() { return _tofill == 0; }
   inline int start() { return _start; }
   inline int end() { return _end; }
+  inline int span() { return (_end - _start); }
 
-  inline bool shape_fits(class grammar_rule *R, int length)
+  bool spanningonly() { return _spanningonly; }
+
+  inline bool compatible(class grammar_rule *R, int length)
     {
-      return (R->left_extending() ? (_end + R->arity() - 1 <= length ) :
-	      (_start - (R->arity() - 1) >= 0) ) ;
+      if(R->trait() == INFL_TRAIT)
+	{
+	  if(_trait != INFL_TRAIT)
+	    return false;
+	  
+	  if(first(_inflrs_todo) != R->type())
+	    return false;
+	}
+      else if(R->trait() == LEX_TRAIT)
+	{
+	  if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
+	    return false;
+	}
+      else if(R->trait() == SYNTAX_TRAIT)
+	{
+	  if(_trait == INFL_TRAIT)
+	    return false;
+	}
+
+      if(R->spanningonly())
+	{
+	  if(R->arity() == 1)
+	    {
+	      if(span() != length)
+		return false;
+	    }
+	  else if(R->nextarg() == 1)
+	    {
+	      if(_start != 0)
+		return false;
+	    }
+	  else if(R->nextarg() == R->arity())
+	    {
+	      if(_end != length)
+		return false;
+	    }
+	}
+
+      if(opt_shaping == false)
+	return true;
+
+      if(R->left_extending())
+	return _end + R->arity() - 1 <= length;
+      else
+	return _start - (R->arity() - 1) >= 0;
+    }
+
+  inline bool compatible(item *active, int length)
+    {
+      if(_trait == INFL_TRAIT)
+	return false;
+
+      if(active->spanningonly())
+	{
+	  if(active->nextarg() == 1)
+	    {
+	      if(_start != 0)
+		return false;
+	    }
+	  else if(active->nextarg() == active->arity())
+	    {
+	      if(_end != length)
+		return false;
+	    }
+	}
+
+      return true;
     }
 
   inline bool left_extending() { return _tofill == 0 || first(_tofill) == 1; }
+
   inline bool adjacent(class item *passive) // assumes `this' is an active item
-    { return (left_extending() ? (_start == passive->_end) : (_end == passive->_start)); }
+    {
+      return (left_extending() ? (_start == passive->_end)
+	      : (_end == passive->_start));
+    }
 
-  inline bool root(class grammar *G, tokenlist *I, int &maxp)
-    { if(_start == 0 && _end == I->length() - I->offset()) 
-        return G->root(_fs, maxp); 
-      else 
-        return false; }
+  inline bool root(class grammar *G, int length, type_t &rule, int &maxp)
+    {
+      if(_trait == INFL_TRAIT)
+	return false;
 
+      if(_start == 0 && _end == length)
+	return G->root(_fs, rule, maxp);
+      else
+	return false;
+    }
+  
   inline fs get_fs()
     {
       if(_fs.temp() && _fs.temp() != unify_generation)
@@ -66,16 +154,22 @@ class item
   inline list_int *restargs() { return rest(_tofill); }
   inline int arity() { return length(_tofill); }
 
+  virtual int startposition() = 0;
+  virtual int endposition() = 0;
+
+  virtual int age() = 0;
+
   virtual void print(FILE *f, bool compact = false);
   virtual void print_derivation(FILE *f, bool quoted, int offset = 0) = 0;
 #ifdef TSDBAPI
   virtual void tsdb_print_derivation(int offset = 0) = 0;
 #endif
 
-  inline bool result_root() { return _result_root; }
+  inline type_t result_root() { return _result_root; }
   inline bool result_contrib() { return _result_contrib; }
 
-  virtual void set_result(bool root) = 0;
+  virtual void set_result_root(type_t rule ) = 0;
+  virtual void set_result_contrib() = 0;
   
   inline type_t *qc_vector() { return _qc_vector; }
 
@@ -88,66 +182,86 @@ class item
   inline int priority() { return _p; }
   inline int qriority() { return _q; }
 
-#ifdef PACKING
+  inline void priority(int p) { _p = p; }
+  inline void rriority(int r) { _r = r; }
+
   inline int frozen() { return _frozen; }
   inline void freeze(int mark) { _frozen = mark; }
-#endif
 
-  inline char *name() { return _name; }
+  inline const char *printname() { return _printname; }
 
  private:
-  static int next_id;
-  int _id;
-  int _stamp; // ascending order according to time of insertion to chart
-  // -1 for items not yet in the chart
+  static class item_owner *_default_owner;
 
+  static int _next_id;
+
+  int _id;
+  int _stamp;       // ascending order according to time of insertion to chart
+                    // -1 for items not yet in the chart
+
+  rule_trait _trait;
+  
   int _start, _end;
+
+  bool _spanningonly;
 
   fs _fs;
 
   list_int *_tofill;
 
-  int _result_root : 1;
-  int _result_contrib : 1;
+  list_int *_inflrs_todo;
+
+  type_t _result_root;
+  bool _result_contrib;
 
   int _nparents;
 
   type_t *_qc_vector;
 
-  int _p;
-  int _q;
+  int _p, _q, _r;
 
-  char *_name;
+  const char *_printname;
 
   int _done;
 
-#ifdef PACKING
   int _frozen;
-#endif
 
  public:
   list<item *> parents;
   list<item *> packed;
 
-  friend class item_priority_less;
   friend class lex_item;
-  friend class generic_le_item;
   friend class phrasal_item;
-};
-
-class item_priority_less
-{
- public:
-  inline bool operator() (const item* x, const item* y) const
-    {
-      return x->_p < y->_p;
-    }
 };
 
 class lex_item : public item
 {
  public:
-  lex_item(class lex_entry *, int pos, fs &, const postags &POS, int offset);
+  lex_item(int start, int end, int ndtrs, int keydtr, class input_token **dtrs,
+	   int priority, fs &f, const char *name);
+
+  ~lex_item() { delete[] _dtrs; }
+
+  virtual lex_item &operator=(const item &li)
+  {
+    throw error("unexpected call to assignment operator of lex_item");
+  }
+
+  lex_item(const lex_item &li)
+  {
+    throw error("unexpected call to copy constructor of lex_item");
+  }
+
+  bool same_dtrs(int ndtrs, input_token **dtrs) const;
+  bool operator==(const lex_item &l) const
+  {
+    return same_dtrs(l._ndtrs, l._dtrs);
+  }
+
+  bool operator<(const lex_item &l) const
+  {
+    return _dtrs[_keydtr] < l._dtrs[l._keydtr];
+  }
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_derivation(FILE *f, bool quoted, int offset = 0);
@@ -155,51 +269,31 @@ class lex_item : public item
   virtual void tsdb_print_derivation(int offset = 0);
 #endif
 
-  virtual void set_result(bool root);
+  virtual void set_result_root(type_t rule);
+  virtual void set_result_contrib() { _result_contrib = true; }
 
   virtual grammar_rule *rule();
 
-  void skew(int offset) { _start -= offset; _end -= offset; }
-
   virtual void recreate_fs();
 
-  inline string description()
-    { if(_le) return _le->description(); else return string(); }
+  string description();
 
-  int offset() { return _offset; }
+  virtual inline int startposition() { return _dtrs[0]->startposition() ; }
+  virtual inline int endposition() { 
+    return _dtrs[_ndtrs - 1]->endposition() ; }
 
-  string postag();
+  virtual inline int age() { return _id; }
 
+  inline const postags &get_in_postags()
+  { return _dtrs[_keydtr]->get_in_postags(); }
+  inline const postags &get_supplied_postags()
+  { return _dtrs[_keydtr]->get_supplied_postags(); }
+
+  bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
+  
  private:
-  class lex_entry *_le;
-  int _offset;
-  string _pos;
-};
-
-class generic_le_item : public item
-{
- public:
-  generic_le_item(int instance, int pos, string orth, const postags &POS, int discount = 0);
-
-  virtual void print(FILE *f, bool compact = false);
-  virtual void print_derivation(FILE *f, bool quoted, int offset = 0);
-#ifdef TSDBAPI
-  virtual void tsdb_print_derivation(int offset = 0);
-#endif
-
-  virtual void set_result(bool root);
-
-  virtual grammar_rule *rule();
-
-  void skew(int offset) { _start -= offset; _end -= offset; }
-
-  virtual void recreate_fs();
-
- private:
-  void compute_pos_priority(const postags &POS);
-
-  int _type;
-  string _orth;
+  int _ndtrs, _keydtr;
+  class input_token **_dtrs;
 };
 
 class phrasal_item : public item
@@ -214,17 +308,22 @@ class phrasal_item : public item
   virtual void tsdb_print_derivation(int offset = 0);
 #endif
 
-  virtual void set_result(bool root);
+  virtual void set_result_root(type_t rule);
+  virtual void set_result_contrib() { _result_contrib = true; }
 
   virtual grammar_rule *rule();
 
   virtual void recreate_fs();
 
+  virtual int startposition() { return _daughters.front()->startposition() ; }
+  virtual int endposition() { return _daughters.back()->endposition() ; }
+
+  virtual inline int age() { return _id; }
+
  private:
   list<item *> _daughters;
   item * _adaughter;
   grammar_rule *_rule;
-
 };
 
 class item_owner
@@ -234,10 +333,10 @@ class item_owner
   item_owner() {}
   ~item_owner()
     {
-      for(list<item *>::iterator pos = _list.begin(); 
-	  pos != _list.end(); 
-	  ++pos)
-	delete *pos;
+      for(list<item *>::iterator curr = _list.begin(); 
+	  curr != _list.end(); 
+	  ++curr)
+	delete *curr;
     }
   void add(item *it) { _list.push_back(it); }
  private:

@@ -1,0 +1,85 @@
+UNIFIER = tomabechi ;
+YY = true ;
+
+TSDB = true ;
+ITSDBDIR = /home/uc/newlkb ;
+
+ICU = true ;
+ICUDIR = /opt/icu ; 
+
+CC = gcc ;
+C++ = g++ ;
+
+C++FLAGS += -g -Wall ;
+CFLAGS += -g -Wall ;
+
+LINK = g++ ;
+
+OPTIM = -O3 ;
+
+SEARCH_SOURCE += ../common ;
+
+if $(UNIFIER) = tomabechi
+{
+  DAGSOURCES = dag-io.cpp dag-common.cpp dag-arced.cpp dag-alloc.cpp
+	       dag-tomabechi.cpp failure.cpp qc.cpp ;
+  DAGFLAGS = -DDAG_TOMABECHI ;
+}
+else if $(UNIFIER) = simple
+{
+  DAGSOURCES = dag-io.cpp dag-common.cpp dag-arced.cpp dag-alloc.cpp
+	       dag-simple.cpp ;
+  DAGFLAGS = -DDAG_SIMPLE -DWROBLEWSKI2 ;
+}
+
+COMMONSOURCES = bitcode.cpp chunk-alloc.cpp errors.cpp mfile.c
+        	lex-io.cpp lex-tdl.cpp settings.cpp fs.cpp dumper.cpp
+                grammar-dump.cpp grammar.cpp types.cpp tsdb++.cpp
+                utility.cpp ;
+
+PARSESOURCES = parse.cpp item.cpp task.cpp chart.cpp agenda.cpp tokenizer.cpp
+               options.cpp postags.cpp inputtoken.cpp inputchart.cpp mrs.cpp ;
+
+CHEAPSOURCES = cheap.cpp $(DAGSOURCES) $(COMMONSOURCES) $(PARSESOURCES) ;
+
+C++FLAGS += $(DAGFLAGS) ;
+
+if $(TSDB) = true
+{
+  C++FLAGS += -DTSDBAPI -DSOCKET_INTERFACE ;
+  HDRS += $(ITSDBDIR)/include ;
+}
+
+if $(ICU) = true
+{
+  C++FLAGS += -DICU -DONLINEMORPH ;
+  HDRS += $(ICUDIR)/include ;
+  CHEAPSOURCES += unicode.cpp morph.cpp ;
+}
+
+if $(YY) = true
+{
+  CHEAPSOURCES += k2y.cpp yy.cpp ;
+  C++FLAGS += -DYY ;
+}
+
+C++FLAGS += -DHASH_MAP_AVAIL -DUSEMMAP ;
+
+HDRS += . ;
+
+LINKLIBS on cheap = -lm -lstdc++ -liberty ;
+
+if $(TSDB) = true
+{
+  LINKFLAGS on cheap += -L$(ITSDBDIR)/lib/linux ;
+  LINKLIBS on cheap += -litsdb -lpvm3 ;
+}
+
+if $(ICU) = true
+{
+  LINKFLAGS on cheap += -L$(ICUDIR)/lib ;
+  LINKLIBS on cheap += -licuuc -licui18n -lpthread -ldl ;
+}
+
+Main cheap : $(CHEAPSOURCES) ; 
+

@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -9,6 +9,7 @@
 #define _FLOP_H_
 
 #include <stdio.h>
+#include <locale.h>
 
 #include <LEDA/list.h>
 #include <LEDA/map.h>
@@ -20,6 +21,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "utility.h"
 #include "list-int.h"
@@ -28,9 +30,11 @@
 #include "dag.h"
 #include "types.h"
 #include "lex-tdl.h"
+#include "options.h"
 #include "settings.h"
+#include "grammar-dump.h"
 
-#define FLOP_VERSION "FLO[P]P 0.2"
+#define FLOP_VERSION "FLO[P]P 1.0"
 
 /***************************/
 /* compile time parameters */
@@ -38,10 +42,8 @@
 
 #define TDL_EXT ".tdl"
 #define PRE_EXT ".pre"
-#define OSF_EXT ".osf"
-#define FFLEX_EXT ".ffl"
 #define VOC_EXT ".voc"
-#define DUMP_EXT ".grm"
+#define IRR_EXT ".tab"
 
 #define TABLE_SIZE 20
 #define COREF_TABLE_SIZE 32
@@ -70,6 +72,8 @@ extern symtab<int> statustable;
 extern symtab<struct templ *> templates;
 extern symtab<int> attributes;
 
+extern char *global_inflrs;
+
 extern int allow_redefinitions; /* will be set from lexer */
 
 extern FILE *fstatus, *ferr;
@@ -95,8 +99,8 @@ extern leda_map<int,leda_node> type_node;
 extern int *apptype;
 
 /*** full-form.cc ***/
-class morph_entry;
-extern list<morph_entry> vocabulary;
+extern list<class ff_entry> fullforms;
+extern list<class irreg_entry> irregforms;
 
 /**************************/
 /* global data structures */
@@ -175,6 +179,8 @@ struct type
 
   bool tdl_instance;
 
+  char *inflr;
+
   list_int *parents; /* parents specified in definition */
 };
 
@@ -215,54 +221,71 @@ struct coref_table
 
 /*** full-form lexicon generation ***/
 
-class morph_entry
+class ff_entry
 {
-  string preterminal;
-  
-  string form;
-  string stem;
-  string affix;
-
-  int inflpos;
-  int nstems;
-
-  string fname;
-  int line;
-
  public:
-  morph_entry(string pre, string fo, string st, string af, int ip, int ns, string fn = "unknown", int ln = 0) 
-    : preterminal(pre), form(fo), stem(st), affix(af), inflpos(ip), nstems(ns), fname(fn), line(ln) { };
+  ff_entry(string pre, string af, string fo, int ip,
+	   string fn = "unknown", int ln = 0) 
+    : _preterminal(pre), _affix(af), _form(fo), _inflpos(ip),
+    _fname(fn), _line(ln)
+    {};
   
-  morph_entry(const morph_entry &C)
-    : preterminal(C.preterminal), form(C.form), stem(C.stem), affix(C.affix), inflpos(C.inflpos),
-      nstems(C.nstems), fname(C.fname), line(C.line) { };
+  ff_entry(const ff_entry &C)
+    : _preterminal(C._preterminal), _affix(C._affix), _form(C._form),
+    _inflpos(C._inflpos), _fname(C._fname), _line(C._line)
+    {};
 
-  morph_entry(string pre)
-    : preterminal(pre), form(), stem(), affix(), inflpos(0), nstems(0), fname(), line(0) {};
+  ff_entry(string pre)
+    : _preterminal(pre)
+    {};
 
-  morph_entry() {};
+  ff_entry() {};
 
   void setdef(string fn, int ln)
     {
-      fname = fn; line = ln;
+      _fname = fn; _line = ln;
     }
 
-  const string& key() { return preterminal; }
+  const string& key() { return _preterminal; }
 
-  friend void dump_le(dumper *f, const morph_entry &);
+  void dump(dumper *f);
 
-  friend int compare(const morph_entry &, const morph_entry &);
+  friend int compare(const ff_entry &, const ff_entry &);
 
-  friend ostream& operator<<(ostream& O, const morph_entry& C); 
-  friend istream& operator>>(istream& I, morph_entry& C); 
+  friend ostream& operator<<(ostream& O, const ff_entry& C); 
+  friend istream& operator>>(istream& I, ff_entry& C); 
+
+private:
+  string _preterminal;
+  string _affix;
+  
+  string _form;
+
+  int _inflpos;
+
+  string _fname;
+  int _line;
 };
 
-inline bool operator==(const morph_entry &a, const morph_entry &b)
+inline bool operator==(const ff_entry &a, const ff_entry &b)
 {
   return compare(a,b) == 0;
 }
 
 vector<string> get_le_stems(dag_node *le);
+
+class irreg_entry
+{
+ public:
+  irreg_entry(string fo, string in, string st)
+    : _form(fo), _infl(in), _stem(st) {}
+  
+  void dump(dumper *f);
+
+ private:
+  string _form, _infl, _stem;
+
+};
 
 /********************************************************/
 /* global functions - the interface between the modules */
@@ -279,10 +302,13 @@ void indent (FILE *f, int nr);
 struct type *new_type(const string &name, bool is_inst, bool define = true);
 /* allocates memory for new type - returns pointer to initialized struct */
 
+char *add_inflr(char *old, char *add);
+
 extern int Hash(const string &s);
 
 /*** from full-form.cc ***/
-bool read_morph(string fname);
+void read_morph(string fname);
+void read_irregs(string fname);
 
 /*** from template.cc ***/
 void expand_templates();
@@ -323,7 +349,7 @@ struct conjunction *copy_conjunction(struct conjunction *C);
 
 /*** from builtins.cc ***/
 void initialize_builtins();
-int create_grammar_info(char *name, char *grammar_version, const char *vocabulary);
+int create_grammar_info(char *name, char *grammar_version);
 
 /*** from parse-tdl.cc ***/
 void tdl_start(int toplevel);

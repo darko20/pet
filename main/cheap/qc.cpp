@@ -1,21 +1,14 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* computing quick check paths */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
-#include <queue>
-#include <vector>
-#include <set>
-
+#include "pet-system.h"
 #include "qc.h"
 #include "parse.h"
+#include "grammar.h"
 #include "fs.h"
 #include "tsdb++.h"
 

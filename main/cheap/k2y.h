@@ -1,7 +1,9 @@
 //
-// The entire contents of this file, in printed or electronic form, are
-// (c) Copyright YY Software Corporation, La Honda, CA 2000, 2001.
-// Unpublished work -- all rights reserved -- proprietary, trade secret
+//      The entire contents of this file, in printed or electronic form, are
+//      (c) Copyright YY Technologies, Mountain View, CA 1991,1992,1993,1994,
+//                                                       1995,1996,1997,1998,
+//                                                       1999,2000,2001
+//      Unpublished work -- all rights reserved -- proprietary, trade secret
 //
 
 // K2Y semantics representation (dan, uc, oe)
@@ -12,10 +14,7 @@
 #include "fs.h"
 #include "item.h"
 #include "mrs.h"
-
-extern "C" {
-#  include "mfile.h"
-}
+#include "mfile.h"
 
 //
 // the roles in k2y
@@ -29,6 +28,12 @@ enum k2y_role {K2Y_SENTENCE, K2Y_MAINVERB,
                 K2Y_XXX};
 
 extern char *k2name[K2Y_XXX];
+
+//
+// stamp position information into fs
+//
+
+void k2y_stamp_fs(fs &f, int ndtrs, class input_token **dtrs);
 
 //
 // external entry point to this module: construct (at the moment: print)

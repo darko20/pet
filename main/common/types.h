@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -18,12 +18,10 @@
 //
 
 // A status value is stored for each type. predefined status values are
-// `NO_STATUS', `ATOM_STATUS', `RULE_STATUS' and `LEXENTRY_STATUS'.
+// `NO_STATUS' and `ATOM_STATUS'.
 
 #define NO_STATUS 0
 #define ATOM_STATUS 1
-#define RULE_STATUS 2
-#define LEXENTRY_STATUS 3
 
 // number of status values
 extern int nstatus;
@@ -42,13 +40,15 @@ extern char **statusnames;
 // proper types have a full bitcode representation, for leaf types only the
 // parent type is stored. a status value is stored for each type.
 
+typedef int type_t;
 
 extern int nleaftypes, ntypes;
-extern int first_leaftype;
+extern type_t first_leaftype;
 
 extern int *typestatus;
 
 extern char **typenames;
+extern char **printnames; // preferred way to print a type name
 
 //
 // attributes
@@ -58,7 +58,11 @@ extern int nattrs;
 extern char **attrname;
 extern int *attrnamelen; // for faster printing
 
-extern int *apptype; // appropriate type for feature
+extern type_t *apptype; // appropriate type for feature
+
+// name of dynamic sort
+extern vector<const char *> dynsortname;
+extern type_t last_dynamic;
 
 // 
 // codes: these are used to represent subtype relationships
@@ -66,28 +70,35 @@ extern int *apptype; // appropriate type for feature
 
 void initialize_codes(int n);
 void resize_codes(int n);
-void register_codetype(const bitcode &b, int i);
-void register_typecode(int i, bitcode *b);
-int lookup_code(const bitcode &b);
+void register_codetype(const bitcode &b, type_t i);
+void register_typecode(type_t i, bitcode *b);
+type_t lookup_code(const bitcode &b);
 
 void dump_hierarchy(dumper *f);
 
 void undump_hierarchy(dumper *f);
 void undump_tables(dumper *f);
 
-int lookup_type(const char *s);
+void free_type_tables();
+
+int lookup_status(const char *s);
 int lookup_attr(const char *s);
+type_t lookup_type(const char *s);
+
+type_t lookup_symbol(const char *s);
+void clear_dynamic_symbols () ;
 
 void dump_symbol_tables(dumper *f);
 void undump_symbol_tables(dumper *f);
+void undump_printnames(dumper *f);
 
-bool core_subtype(int a, int b);
-bool subtype(int a, int b);
-int glb(int a, int b);
+bool core_subtype(type_t a, type_t b);
+bool subtype(type_t a, type_t b);
+type_t glb(type_t a, type_t b);
 
-int leaftype_parent(int t);
+type_t leaftype_parent(type_t t);
 
-inline bool is_type(int a)
+inline bool is_type(type_t a)
 {
   return a >= 0 && a < ntypes;
 }

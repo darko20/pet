@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -9,6 +9,7 @@
 #define _SETTINGS_H_
 
 #include "lex-tdl.h"
+#include "types.h"
 
 #define SET_SUBDIRECTORY "pet"
 #define SET_EXT ".set"
@@ -35,11 +36,19 @@ class settings
   ~settings();
   
   setting *lookup(const char *name);
+
   char *value(const char *name);
   char *req_value(const char *name);
+
+  // string equality based member test
   bool member(const char *name, const char *value);
+
+  // type status based member test
+  bool statusmember(const char *name, type_t key);
+
   // string equality based assoc
   char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
+
   // subtype based assoc
   char *sassoc(const char *name, int key_type, int arity = 2, int nth = 1);
 
@@ -52,7 +61,9 @@ class settings
   setting **_set;
   char *_fname, *_prefix;
   struct lex_location *_lloc;
-  
+
+  map<string,list_int *> _li_cache; // cache for settings converted to lists
+                                    // of integers (e.g. status values)
   void parse();
   void parse_one();
 };

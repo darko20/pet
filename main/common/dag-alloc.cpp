@@ -1,10 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* memory management for dags */
 
+#include "pet-system.h"
 #include "dag.h"
 
 int allocated_nodes = 0, allocated_arcs = 0;

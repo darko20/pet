@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -444,17 +444,11 @@ int tdl_coref(struct coref_table *co, bool readonly)
   builtin_mode = 0;
   if(!readonly)
     {
-      if(LA(0)->tag == T_INT)
-	name = match(T_INT, "coreference tag", false);
-      else
-	name = match(T_ID, "coreference name", false);
+      name = match(T_ID, "coreference name", false);
     }
   else
     {
-      if(LA(0)->tag == T_INT)
-	match(T_INT, "coreference tag", true);
-      else
-	match(T_ID, "coreference name", true);
+      match(T_ID, "coreference name", true);
     }
   builtin_mode = 1;
 
@@ -596,34 +590,6 @@ struct term *tdl_term(struct coref_table *co, bool readonly)
 
       consume(1);
     }
-  else if(LA(0)->tag == T_INT)
-    {
-      int nr;
-      char *endp;
-
-      nr = strtol(LA(0)->text, &endp, 10);
-
-      if(endp == strchr(LA(0)->text, '\0'))
-	{
-	  if(!readonly)
-	    {
-	      t->tag = TYPE;
-	      t->value = LA(0)->text; LA(0)->text = NULL;
-
-	      if(types.id(t->value) == -1)
-		{
-		  struct type *ty = new_type(t->value, false);
-		  ty->def = LA(0)->loc; LA(0)->loc = NULL;
-		  ty->implicit = true;
-		}
-	    }
-	}
-      else
-	{
-	  syntax_error("invalid integer", LA(0));
-	}
-      consume(1);
-    }
   else if(LA(0)->tag == T_QUOTE)
     { // atom
       consume(1);
@@ -632,6 +598,7 @@ struct term *tdl_term(struct coref_table *co, bool readonly)
 	{
 	  t->tag = ATOM;
 	  t->value = match(T_ID, "atom expected (term)", false);
+	  char *printname = strdup(t->value);
 	  strtolower(t->value);
 
 	  string s = "'" + string(t->value);
@@ -641,7 +608,10 @@ struct term *tdl_term(struct coref_table *co, bool readonly)
 	      ty->def = LA(0)->loc; LA(0)->loc = NULL;
 	      subtype_constraint(ty->id, BI_SYMBOL);
 	      ty->status = ATOM_STATUS;
+	      ty->printname = printname; printname = 0;
 	    }
+
+	  if(printname) free(printname);
 	}
       else
 	match(T_ID, "atom expected (term)", true);
@@ -663,6 +633,7 @@ struct term *tdl_term(struct coref_table *co, bool readonly)
 	      ty->def = LA(0)->loc; LA(0)->loc = NULL;
 	      subtype_constraint(ty->id, BI_STRING);
 	      ty->status = ATOM_STATUS;
+	      ty->printname = t->value;
 	    }
 	}
 
@@ -787,7 +758,16 @@ void tdl_opt_inflr(struct type *t)
 {
   while(LA(0)->tag == T_INFLR)
     {
-      //      fprintf(stderr, "found inflr <%s>: `%s'\n", t == 0 ? "out of context" : types.name(t->id).c_str(), LA(0)->text);
+      if(verbosity > 9)
+	fprintf(stderr, "inflr <%s>: `%s'\n",
+		t == 0 ? "(global)" : types.name(t->id).c_str(),
+		LA(0)->text);
+
+      if(t == 0)
+	global_inflrs = add_inflr(global_inflrs, LA(0)->text);
+      else
+	t->inflr = add_inflr(t->inflr, LA(0)->text);
+
       consume(1);
     }
 }
@@ -858,10 +838,7 @@ void tdl_type_def()
 {
   char *name , *printname;
   
-  if(LA(0)->tag == T_INT)
-    name = match(T_INT, "type name", false);
-  else
-    name = match(T_ID, "type name", false);
+  name = match(T_ID, "type name", false);
 
   printname = strdup(name);
   strtolower(name);
@@ -889,10 +866,7 @@ void tdl_instance_def()
   char *name = NULL;
   bool readonly = false;
   
-  if(LA(0)->tag == T_INT)
-    name = match(T_INT, "instance name", false);
-  else
-    name = match(T_ID, "instance name", false);
+  name = match(T_ID, "instance name", false);
 
   char *printname = strdup(name);
   strtolower(name);
@@ -1036,7 +1010,7 @@ void tdl_block()
       match(T_DOT, "`.'", true);
 
       do
-	if(LA(0)->tag == T_ID || LA(0)->tag == T_INT)
+	if(LA(0)->tag == T_ID)
 	  {
 	    tdl_instance_def();
 	  }
@@ -1044,6 +1018,10 @@ void tdl_block()
 		(LA(0)->tag == T_COLON && is_keyword(LA(1), "end")))
 	  {
 	    break;
+	  }
+        else if(LA(0)->tag == T_INFLR)
+	  {
+	    tdl_opt_inflr(0);
 	  }
 	else if(LA(0)->tag == T_EOF)
 	  {
@@ -1143,7 +1121,7 @@ void tdl_block()
       consume(1); match(T_DOT, "`.'", true);
 
       do
-	if(LA(0)->tag == T_ID || LA(0)->tag == T_INT)
+	if(LA(0)->tag == T_ID)
 	  {
 	    tdl_type_def();
 	  }

@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -8,14 +8,11 @@
 #ifndef _FS_H_
 #define _FS_H_
 
-#include <map>
 #include "types.h"
 #include "dag.h"
-#include "dumper.h"
 
-// global variables for quick check
-extern int qc_len;
-extern qc_node *qc_paths;
+// modification list: a list of pairs (path, type)
+typedef list<pair<string, type_t> > modlist;
 
 class fs
 {
@@ -50,7 +47,7 @@ class fs
   fs get_attr_value(int attr);
   fs get_attr_value(char *attr);
 
-  fs get_path_value(char *path);
+  fs get_path_value(const char *path);
 
   inline fs nth_arg(int n) {
     if(_temp)
@@ -59,6 +56,8 @@ class fs
       return fs(dag_nth_arg(_dag, n)); }
 
   char *name();
+  char *printname();
+
   int type() { return dag_type(_dag); }
   void set_type(int s) { dag_set_type(_dag, s); }
 
@@ -72,6 +71,8 @@ class fs
   void restrict(list_int *del);
 
   void expand() { _dag = dag_expand(_dag); }
+
+  bool modify(modlist &mods);
 
   void print(FILE *f);
 
@@ -153,18 +154,6 @@ class fs_alloc_state
  private:
   struct dag_alloc_state _state;
   bool _auto;
-};
-
-//
-// feature structure factory (encapsulation of `symbol' tables etc)
-//
-
-class fs_factory
-{
- public:
-  fs_factory(dumper *f);
-
-  void initialize(dumper *f, int qc_instance);
 };
 
 //

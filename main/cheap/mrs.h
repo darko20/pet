@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -8,9 +8,6 @@
 #ifndef _MRS_H_
 #define _MRS_H_
 
-#include <stdio.h>
-#include <list>
-#include <map>
 #include "cheap.h"
 #include "fs.h"
 #include "../common/utility.h"
@@ -26,17 +23,17 @@ class mrs_rel
 {
  public:
   mrs_rel(mrs *, fs f);
-  mrs_rel(mrs *, int type);
+  mrs_rel(mrs *, int type, int pred = 0);
 
   inline mrs_rel() : _fs(), _mrs(0), _id(0), _label() { }
 
   inline mrs_rel(const mrs_rel &f) { 
-    _fs = f._fs; _mrs = f._mrs; _id = f._id; _rel = f._rel;
+    _fs = f._fs; _mrs = f._mrs; _id = f._id; _rel = f._rel; _pred = f._pred;
     _label = f._label; _cvalue = f._cvalue;
   }
 
   inline mrs_rel &operator=(const mrs_rel &f) { 
-    _fs = f._fs; _mrs = f._mrs; _id = f._id; _rel = f._rel; 
+    _fs = f._fs; _mrs = f._mrs; _id = f._id; _rel = f._rel; _pred = f._pred;
     _label = f._label; _cvalue = f._cvalue;
     return *this; 
   }
@@ -48,8 +45,10 @@ class mrs_rel
   inline int id() { return _id; }
 
   inline int type() { return _rel; }
+  inline char *printname() { return printnames[_rel]; }
   inline char *name() { return typenames[_rel]; }
   void name(char *s) { _rel = lookup_type(s); }
+  inline char *pred() { return printnames[_pred]; }
 
   inline fs &get_fs() { return _fs; }
   inline int cvalue() {return _cvalue; }
@@ -69,6 +68,7 @@ class mrs_rel
   mrs *_mrs;
   int _id;
   int _rel;
+  int _pred;
   list<int> _label;
   int _cvalue;
 };

@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -18,7 +18,7 @@
    dag_unify2 (non-destructive unification) and
    dag_unify3 (semi-destructive unification) */
 
-#include <assert.h>
+#include "pet-system.h"
 #include "dag.h"
 #include "types.h"
 

@@ -1,18 +1,20 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* main module (standalone parser) */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "pet-system.h"
 #include "cheap.h"
 #include "parse.h"
+#include "agenda.h"
+#include "chart.h"
 #include "fs.h"
 #include "tsdb++.h"
+#include "mfile.h"
+#include "grammar-dump.h"
+#include "inputchart.h"
 
 #ifdef DAG_FAILURES
 #include "qc.h"
@@ -23,7 +25,7 @@
 #include "k2y.h"
 #endif
 
-char *get_input(FILE *);
+string get_input(FILE *);
 void interactive();
 void process(char *);
 
@@ -31,19 +33,19 @@ FILE *ferr, *fstatus, *flog;
 
 const int ASBS = 4096; // arbitrary, small buffer size
 
-char *get_input(FILE *f)
+string get_input(FILE *f)
 {
-  char *buff;
-  buff = new char[ASBS];
+  static char buff[ASBS];
 
   if(fgets(buff, ASBS, f) == NULL)
-    return 0;
-
-  if(buff[0] == '\0' || buff[0] == '\n') return 0;
+    return string();
+  
+  if(buff[0] == '\0' || buff[0] == '\n')
+    return string();
 
   buff[strlen(buff) - 1] = '\0';
 
-  return buff;
+  return string(buff);
 }
 
 // global variables for parsing
@@ -51,25 +53,56 @@ char *get_input(FILE *f)
 grammar *Grammar;
 settings *cheap_settings;
 
+#ifdef ONLINEMORPH
+#include "morph.h"
+
+void interactive_morph()
+{
+  morph_analyzer *m = Grammar->morph();
+
+  string input;
+  while(!(input = get_input(stdin)).empty())
+    {
+#if 1
+      list<morph_analysis> res = m->analyze(input);
+      for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+	{
+	  fprintf(stdout, "%s: ", input.c_str());
+	  it->print_lkb(stdout);
+	  fprintf(stdout, "\n");
+	}
+#else
+      list<full_form> res = Grammar->lookup_form(input);
+      for(list<full_form>::iterator it = res.begin(); it != res.end(); ++it)
+	{
+	  if(length(it->affixes()) <= 1)
+	  fprintf(stdout, "  {\"%s\", \"%s\", NULL, %s%s%s, %d, %d},\n",
+		  it->stem()->printname(), it->key().c_str(),
+		  it->affixes() ? "\"" : "",
+		  it->affixes() ? printnames[first(it->affixes())] : "NULL",
+		  it->affixes() ? "\"" : "",
+		  it->offset() > 0 ? it->offset() + 1 : it->offset(), it->length()); 
+	}
+#endif
+    }
+}
+#endif
+
 void interactive()
 {
-  char *input = 0;
+  string input;
   int id = 1;
 
-  while((input = get_input(stdin)) != 0)
+  while(!(input = get_input(stdin)).empty())
     {
+      chart *Chart = 0;
+      agenda *Roots = 0;
       try {
-	tokenlist *Input;
-#ifdef YY
-	if(opt_yy)
-	  Input = new yy_tokenlist(input);
-	else
-#endif
-	  Input = new lingo_tokenlist(input);
-	
-        chart Chart(Input->length());
-      
-	parse(Chart, Input, id);
+	fs_alloc_state FSAS;
+
+	input_chart i_chart(New end_proximity_position_map);
+
+	analyze(i_chart, input, Chart, Roots, FSAS, id);
         
 	if(verbosity == -1)
 	  fprintf(stdout, "%d\t%d\t%d\n",
@@ -77,10 +110,10 @@ void interactive()
 
         fprintf(fstatus, 
                 "(%d) `%s' [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
-                stats.id, input, pedgelimit, stats.readings, 
+                stats.id, input.c_str(), pedgelimit, stats.readings, 
                 stats.first/1000., stats.tcpu / 1000.,
                 stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-		TotalParseTime.convert2s(TotalParseTime.elapsed()));
+		TotalParseTime.elapsed_ts() / 10.);
 
         if(verbosity > 1) stats.print(fstatus);
 
@@ -93,44 +126,49 @@ void interactive()
 	  {
 	    int nres = 0;
 	    struct MFILE *mstream = mopen();
-	    for(chart_iter it(Chart); it.valid(); it++)
+
+	    while(!Roots->empty())
 	      {
-		if(it.current()->result_root())
-		  {
-		    nres++;
-                    fprintf(fstatus, "derivation[%d]: ", nres);
-                    it.current()->print_derivation(fstatus, false);
-                    fprintf(fstatus, "\n");
+		basic_task *t = Roots->pop();
+		item *it = t->execute();
+		delete t;
+		
+		if(it == 0) continue;
+
+		nres++;
+		fprintf(fstatus, "derivation[%d]: ", nres);
+		it->print_derivation(fstatus, false);
+		fprintf(fstatus, "\n");
 #ifdef YY
-		    if(opt_k2y)
+		if(opt_k2y)
+		  {
+		    mflush(mstream);
+		    int n = construct_k2y(nres, it, false, mstream);
+		    if(n >= 0)
+		      fprintf(fstatus, "\n%s\n\n", mstring(mstream));
+		    else 
 		      {
-                        mflush(mstream);
-			int n = construct_k2y(nres, it.current(), 
-                                              false, mstream);
-			if(n >= 0)
-                          fprintf(fstatus, "\n%s\n\n", mstring(mstream));
-                        else {
-                          fprintf(fstatus, 
-                                  "\n K2Y error:  %s .\n\n", 
-                                  mstring(mstream));
-                        } /* else */
-		      } /* if */
+			fprintf(fstatus, 
+				"\n K2Y error:  %s .\n\n", 
+				mstring(mstream));
+		      }
+		  }
 #endif
-		  } /* if */
-	      } /* for */
+	      }
 	    mclose(mstream);
-	  } /* if */
+	  }
         fflush(fstatus);
-	delete Input;
-      } /* catch */
+      } /* try */
       
       catch(error &e)
 	{
 	  e.print(ferr); fprintf(ferr, "\n");
 	  stats.readings = -1;
 	}
-      
-      delete[] input;
+
+      if(Chart != 0) delete Chart;
+      if(Roots != 0) delete Roots;
+
       id++;
     } /* while */
 
@@ -157,10 +195,10 @@ void dump_glbs(FILE *f)
 
 void print_symbol_tables(FILE *f)
 {
-  fprintf(f, "type names\n");
+  fprintf(f, "type names (print names)\n");
   for(int i = 0; i < ntypes; i++)
     {
-      fprintf(f, "%d\t%s\n", i, typenames[i]);
+      fprintf(f, "%d\t%s (%s)\n", i, typenames[i], printnames[i]);
     }
 
   fprintf(f, "attribute names\n");
@@ -181,17 +219,20 @@ void print_grammar(FILE *f)
 
 void process(char *s)
 {
-  cheap_settings = new settings(settings::basename(s), s, "reading");
+  cheap_settings = New settings(settings::basename(s), s, "reading");
   fprintf(fstatus, "\n");
 
   timer t_start;
   fprintf(fstatus, "loading `%s' ", s);
-  try { Grammar = new grammar(s); }
-  
+
+  try { Grammar = New grammar(s); }
+
   catch(error &e)
     {
       fprintf(fstatus, "- aborted\n");
       e.print(ferr);
+      delete Grammar;
+      delete cheap_settings;
       return;
     }
 
@@ -216,10 +257,18 @@ void process(char *s)
 	tsdb_mode();
       else
 #endif
-        interactive();
+	{
+#ifdef ONLINEMORPH
+	  if(opt_interactive_morph)
+	    interactive_morph();
+	  else
+#endif
+	    interactive();
+	}
     }
 
   delete Grammar;
+  delete cheap_settings;
 }
 
 #ifdef __BORLANDC__
@@ -232,6 +281,8 @@ int main(int argc, char* argv[])
   fstatus = stderr;
   flog = (FILE *)NULL;
 
+  setlocale(LC_ALL, "" );
+
 #ifndef __BORLANDC__
   if(!parse_options(argc, argv))
     {
@@ -242,7 +293,7 @@ int main(int argc, char* argv[])
   if(argc > 1)
     grammar_file_name = argv[1];
   else
-    grammar_file_name = "english.gram";
+    grammar_file_name = "english";
 #endif
 
 #if defined(YY) && defined(SOCKET_INTERFACE)
@@ -252,6 +303,13 @@ int main(int argc, char* argv[])
 	exit(1);
     }
 #endif
+
+  grammar_file_name = find_file(grammar_file_name, GRAMMAR_EXT);
+  if(grammar_file_name == 0)
+    {
+      fprintf(ferr, "Grammar not found\n");
+      exit(1);
+    }
 
   try { process(grammar_file_name); }
 
