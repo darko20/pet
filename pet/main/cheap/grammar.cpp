@@ -12,7 +12,7 @@
 #endif
 
 #include "cheap.h"
-#include "utility.h"
+#include "../common/utility.h"
 #include "types.h"
 #include "fs.h"
 #include "grammar.h"
@@ -21,7 +21,7 @@
 #include "tsdb++.h"
 
 #ifdef __BORLANDC__
-#define strcasecmp strcmpi
+#define strcasecmp stricmp
 #endif
 
 int lex_entry::next_id = 0;
@@ -54,12 +54,12 @@ lex_entry::lex_entry(dumper *f)
       _p = strtoint(v, "as value of default-le-priority");
     }
 
-  if((v = cheap_settings->sassoc("likely-le-types", typenames[_base])) != 0)
+  if((v = cheap_settings->sassoc("likely-le-types", _base)) != 0)
     {
       _p = strtoint(v, "in value of likely-le-types");
     }
 
-  if((v = cheap_settings->sassoc("unlikely-le-types", typenames[_base])) != 0)
+  if((v = cheap_settings->sassoc("unlikely-le-types", _base)) != 0)
     {
       _p = strtoint(v, "in value of unlikely-le-types");
     }
@@ -278,7 +278,7 @@ grammar_rule::grammar_rule(dumper *f)
       _p = strtoint(v, "as value of default-rule-priority");
     }
 
-  if((v = cheap_settings->sassoc("rule-priorities", typenames[_type])) != 0)
+  if((v = cheap_settings->sassoc("rule-priorities", _type)) != 0)
     {
       _p = strtoint(v, "in value of rule-priorities");
     }
@@ -339,12 +339,12 @@ void undump_toc(dumper *f)
   toc_lexicon = f->undump_int();
   toc_constraints = f->undump_int();
   if(verbosity > 10)
-    fprintf(stderr, "TOC:\n  hierarchy:   %d\n  tables:      %d\n   rules:       %d\n  lexicon:     %d\n  constraints: %d\n",
+    fprintf(ferr, "TOC:\n  hierarchy:   %d\n  tables:      %d\n   rules:       %d\n  lexicon:     %d\n  constraints: %d\n",
 	    toc_hierarchy, toc_tables, toc_rules, toc_lexicon, toc_constraints);
 }
 
 // construct grammar object from binary representation in a file
-grammar::grammar(char * filename)
+grammar::grammar(const char * filename)
   : _lexicon(), _dict_lexicon(), _rules(),
     _fsf(0), _qc_inst(0), _deleted_daughters(0)
 {
@@ -390,6 +390,8 @@ grammar::grammar(char * filename)
 
   _fsf->initialize(&dmp, _qc_inst);
 
+  stop_creating_permanent_dags();
+
   if(opt_nqc && _qc_inst == 0)
     {
       fprintf(fstatus, "[ disabling quickcheck ] ");
@@ -424,7 +426,7 @@ void grammar::init_parameters()
   char *v;
 
   struct setting *set;
-  if((set = cheap_settings->lookup("weighted-start-symbols")))
+  if((set = cheap_settings->lookup("weighted-start-symbols")) != 0)
     {
       _root_insts = 0;
       for(int i = set->n - 2; i >= 0; i -= 2)
@@ -437,7 +439,7 @@ void grammar::init_parameters()
           _root_weight[first(_root_insts)] = weight;
 	}
     }
-  else if((set = cheap_settings->lookup("start-symbols")))
+  else if((set = cheap_settings->lookup("start-symbols")) != 0)
     {
       _root_insts = 0;
       for(int i = set->n-1; i >= 0; i--)
@@ -451,7 +453,7 @@ void grammar::init_parameters()
   else
     _root_insts = 0;
 
-  if((v = cheap_settings->value("qc-structure")))
+  if((v = cheap_settings->value("qc-structure")) != 0)
     {
       _qc_inst = lookup_type(v);
       if(_qc_inst == -1) _qc_inst = 0;

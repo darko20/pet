@@ -18,6 +18,8 @@
 #include <map>
 #endif
 
+#include "chunk-alloc.h"
+
 struct typecachebucket
 {
   int key; int value;
@@ -33,6 +35,9 @@ class typecache
 {
  private:
   static const int _no_key = -1;
+
+  chunk_allocator _cache_alloc;
+  chunk_alloc_state _initial_alloc;
 
   int _no_value;
 
@@ -55,20 +60,18 @@ class typecache
 #endif
     }
   
-  inline void free_bucket_chain(typecachebucket *bucket)
-    {
-      if(bucket == 0) return;
-      free_bucket_chain(bucket->next);
-      delete bucket;
-    }
-
  public:
   
   inline typecache(int no_value = 0, int nbuckets = /* 49157 */ 12289 ) :
+    _cache_alloc(CHUNK_SIZE, true),
     _no_value(no_value), _nbuckets(nbuckets), _buckets(0), _size(0),
     _overflows(0)
     {
-      _buckets = new typecachebucket[_nbuckets];
+      _buckets = (typecachebucket *)
+	_cache_alloc.allocate(sizeof(typecachebucket) * _nbuckets);
+
+      _cache_alloc.mark(_initial_alloc);
+
       for(int i = 0; i < _nbuckets; i++)
 	init_bucket(_buckets + i);
 #ifdef CACHESTATS
@@ -78,10 +81,7 @@ class typecache
 
   inline ~typecache()
     {
-      for(int i = 0; i < _nbuckets; i++)
-	free_bucket_chain(_buckets[i].next);
-
-      delete[] _buckets;
+      _cache_alloc.reset();
     }
 
   inline int hash(int key)
@@ -141,7 +141,7 @@ class typecache
       // not found, append to end of bucket chain
       _size++; _overflows++;
 
-      b -> next = new typecachebucket;
+      b -> next = (typecachebucket *) _cache_alloc.allocate(sizeof(typecachebucket));
       b = b->next;
       init_bucket(b);
 
@@ -152,18 +152,19 @@ class typecache
 
   inline void clear()
     {
+      _cache_alloc.release(_initial_alloc);
+      _cache_alloc.may_shrink();
+
       for(int i = 0; i < _nbuckets; i++)
-	{
-	  free_bucket_chain(_buckets[i].next);
-	  init_bucket(_buckets + i);
-	}
+	init_bucket(_buckets + i);
+
       _size = 0;
     }
 
   inline void prune()
     {
 #ifdef CACHESTATS
-      fprintf(stderr, "typecache: %d entries, %d overflows, %d buckets, %ld searches, %ld fast path, avg chain %g, max chain %d\n",
+      fprintf(ferr, "typecache: %d entries, %d overflows, %d buckets, %ld searches, %ld fast path, avg chain %g, max chain %d\n",
 	      _size, _overflows, _nbuckets, _totalsearches, _totalfp, double(_totalcl) / _totalsearches, _maxcl);
 
 #ifdef PRUNING
@@ -182,7 +183,7 @@ class typecache
 		}
 	    }
 	}
-      fprintf(stderr, "pruning: poss %d, done %d\n", _prune_poss, _prune_done);
+      fprintf(ferr, "pruning: poss %d, done %d\n", _prune_poss, _prune_done);
 #endif
 
       map<int, int> distr;
@@ -197,9 +198,9 @@ class typecache
 	{
 	  sum += iter->second;
 	  if(iter->second > 50)
-	    fprintf(stderr, "  %d : %d\n", iter->first, iter->second);
+	    fprintf(ferr, "  %d : %d\n", iter->first, iter->second);
 	}
-      fprintf(stderr, "  total : %d\n", sum);
+      fprintf(ferr, "  total : %d\n", sum);
 #endif
     }
 };

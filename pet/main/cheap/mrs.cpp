@@ -113,7 +113,7 @@ mrs_rel mrs::rel(char *attr, int val, int subtypeof)
   if(l.empty())
     return mrs_rel();
   else if(l.size() > 1)
-    fprintf(stderr, "mrs::rel(): at most one rel that is subtype of %s and has a %s value %d expected (found %d)\n",
+    fprintf(ferr, "mrs::rel(): at most one rel that is subtype of %s and has a %s value %d expected (found %d)\n",
 	    typenames[subtypeof], attr, val, l.size());
 
   return rel(l.front());
@@ -197,18 +197,18 @@ mrs_rel::mrs_rel(mrs *m, fs f)
   : _fs(f), _mrs(m), _rel(f.type()), _label(0), _cvalue(-1)
 {
 
-  if(cheap_settings->member("k2y-disfavoured-relations", typenames[_rel])) {
-    char foo[1024];
-    sprintf(foo, "disfavoured relation `%s' in MRS", typenames[_rel]);
-    throw error(foo);
-  } /* if */
-  
+  if(cheap_settings->member("k2y-disfavoured-relations", typenames[_rel]))
+    {
+      throw error(string("disfavoured relation `") + typenames[_rel] +
+                  string("' in MRS"));
+    }
+
   fs label = _fs.get_attr_value("LABEL");
   if(label.valid() && label.type() == BI_CONS)
     {
-      for(bool firstp = true; 
-        label.valid() && label.type() == BI_CONS; 
-        label = label.get_attr_value("REST"), firstp = false)
+      for(; 
+          label.valid() && label.type() == BI_CONS; 
+          label = label.get_attr_value("REST"))
 	{
 	  fs node = label.get_attr_value("FIRST");
 	  if(node.valid())
@@ -232,7 +232,7 @@ int mrs_rel::value(char *attr)
 {
   if(!_fs.valid())
   {
-    fprintf(stderr, "no feature structure\n");
+    fprintf(ferr, "no feature structure\n");
     return 0;
   }
   fs f = _fs.get_attr_value(attr);
@@ -259,7 +259,7 @@ list<int> mrs_rel::id_list(char *path)
   fs diff = _fs.get_path_value(path);
   if(!diff.valid())
   {
-    fprintf(stderr, "mrs_rel::id_list(): no list under %s\n", path);
+    fprintf(ferr, "mrs_rel::id_list(): no list under %s\n", path);
     return ids;
   }
 
@@ -424,31 +424,34 @@ char *k2y_type_name(char *abstr_name)
 {
   char *name = cheap_settings->assoc("k2y_type_names", abstr_name);
   if(name == NULL) name = cheap_settings->assoc("k2y-type-names", abstr_name);
-  if(name != 0)
-    return name;
+  if(name == 0) {
+    fprintf(ferr, "undefined k2y_type_name `%s'.\n", abstr_name);
+    exit(0);
+  }
+  return name;
 
-  fprintf(stderr, "undefined k2y_type_name `%s'.\n", abstr_name);
-  exit(0);
 }
 
 char *k2y_pred_name(char *abstr_name)
 {
   char *name = cheap_settings->assoc("k2y_pred_names", abstr_name);
   if(name == NULL) name = cheap_settings->assoc("k2y-pred-names", abstr_name);
-  if(name != 0)
-    return name;
+  if(name == 0) {
+    fprintf(ferr, "undefined k2y_pred_name `%s'.\n", abstr_name);
+    exit(0);
+  }
+  return name;
 
-  fprintf(stderr, "undefined k2y_pred_name `%s'.\n", abstr_name);
-  exit(0);
 }
 
 char *k2y_role_name(char *abstr_name)
 {
   char *name = cheap_settings->assoc("k2y_role_names", abstr_name);
   if(name == NULL) name = cheap_settings->assoc("k2y-role-names", abstr_name);
-  if(name != 0)
-    return name;
+  if(name == 0) {
+    fprintf(ferr, "undefined k2y_role_name `%s'.\n", abstr_name);
+    exit(0);
+  }
+  return name;
 
-  fprintf(stderr, "undefined k2y_role_name `%s'.\n", abstr_name);
-  exit(0);
 }

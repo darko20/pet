@@ -21,12 +21,12 @@ int strcount(char *s, char c)
 
   assert(c != 0);
 
-  while(s != NULL)
+  while(s != 0)
     {
-      if((s = strchr(s, (int) c)) != NULL)
+      if((s = strchr(s, (int) c)) != 0)
         {
           s++; n++;
-          if(s[0] == '\0') s = NULL;
+          if(s[0] == '\0') s = 0;
         }
     }
   
@@ -68,13 +68,15 @@ struct type *new_type(const string &name, bool is_inst, bool define = true)
 
   t -> implicit = 0;
 
-  t -> def = NULL;
+  t -> def = 0;
 
-  t -> coref = NULL;
-  t -> constraint = NULL;
+  t -> coref = 0;
+  t -> constraint = 0;
 
-  t -> bcode = NULL;
-  t -> thedag = NULL;
+  t -> bcode = 0;
+  t -> thedag = 0;
+
+  t -> printname = 0;
 
   if(define)
     {

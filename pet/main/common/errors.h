@@ -9,10 +9,7 @@
 #define _ERROR_H_
 
 #include <stdio.h>
-
-#include <new>
 #include <string>
-
 using namespace std;
 
 class error

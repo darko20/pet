@@ -24,7 +24,9 @@
 #include <sys\stat.h>
 #include <io.h>
 #endif
+#ifndef WINDOWS
 #include <unistd.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,7 +38,7 @@
 #include "options.h"
 
 #ifdef WINDOWS
-#define strcasecmp strcmpi
+#define strcasecmp stricmp
 #define R_OK 0
 #endif
 

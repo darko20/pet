@@ -12,9 +12,9 @@
 void agenda::push(basic_task *t)
 {
 #ifdef DEBUG
-  fprintf(stderr, " -> ");
-  t->print(stderr);
-  fprintf(stderr, "\n");
+  fprintf(ferr, " -> ");
+  t->print(ferr);
+  fprintf(ferr, "\n");
 #endif
 
 #ifdef SIMPLE_AGENDA

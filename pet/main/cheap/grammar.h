@@ -131,7 +131,7 @@ struct grammar_info
 class grammar
 {
  public:
-  grammar(char *filename);
+  grammar(const char *filename);
   ~grammar();
 
   bool root(fs &, int &maxp);

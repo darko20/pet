@@ -36,6 +36,7 @@ tokenlist::tokenlist(const tokenlist &tl)
 
 tokenlist::~tokenlist()
 {
+  free(stop_characters);
 }
 
 tokenlist &tokenlist::operator=(const tokenlist &tl)
@@ -43,7 +44,7 @@ tokenlist &tokenlist::operator=(const tokenlist &tl)
   throw error("unexpected call to assignment operator of tokenlist");
 }
 
-bool tokenlist::punctuatiop(int i) {
+bool tokenlist::punctuationp(int i) {
 
   if(stop_characters == NULL || !stop_characters[0]) return false;
   
@@ -157,7 +158,7 @@ lingo_tokenlist::lingo_tokenlist(const char *in)
     translate_iso_chars(s);
 
   // 1) replace all stop characters by blanks
-  string stops = convert_escapes(stop_characters);
+  string stops = string(stop_characters);
 
   s += " ";
   string::size_type pos = 0;

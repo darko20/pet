@@ -122,11 +122,11 @@ void record_failures(dag_node *root, dag_node *a, dag_node *b)
 
   if(opt_compute_qc)
     {
-      int total = fails.size(), good = 0;
+      int total = fails.size();
       int *value = new int[total], price = 0;
       int i = 0;
       int id;
-      
+
       for(list<unification_failure *>::iterator iter = fails.begin(); iter != fails.end(); ++iter)
         {
 	  f = *iter;
@@ -138,21 +138,20 @@ void record_failures(dag_node *root, dag_node *a, dag_node *b)
                 throw error("quickcheck computation doesn't work in hyperactive mode");
 
               dag_node *d1, *d2;
-              
+
               d1 = dag_get_path_value_l(a, f->path());
               d2 = dag_get_path_value_l(b, f->path());
-              
+
               int s1 = BI_TOP, s2 = BI_TOP;
-              
+
               if(d1 != FAIL) s1 = dag_type(d1);
               if(d2 != FAIL) s2 = dag_type(d2);
-              
+
               if(glb(s1, s2) == -1)
-                
+
                 {
                   value[i] = f->cost();
                   price += f->cost();
-                  good++;
 
                   if(failure_id.find(*f) == failure_id.end())
                     {
@@ -196,12 +195,12 @@ void record_failures(dag_node *root, dag_node *a, dag_node *b)
 
   if(opt_print_failure)
     {
-      fprintf(stderr, "failure at\n");
+      fprintf(ferr, "failure at\n");
       for(list<unification_failure *>::iterator iter = fails.begin(); iter != fails.end(); ++iter)
         {
-          fprintf(stderr, "  ");
-          (*iter)->print(stderr);
-          fprintf(stderr, "\n");
+          fprintf(ferr, "  ");
+          (*iter)->print(ferr);
+          fprintf(ferr, "\n");
        }
     }
 }
@@ -330,7 +329,7 @@ bool qc_compatible(type_t *a, type_t *b)
       if(glb(a[i], b[i]) < 0)
         {
 #ifdef DEBUG
-          fprintf(stderr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
+          fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
                   i, typenames[a[i]], typenames[b[i]]);
 #endif
           return false;

@@ -31,7 +31,7 @@ item *build_rule_item(grammar_rule *R, item *passive)
 
   if(!arg.valid())
     {
-      fprintf(stderr, "trouble getting arg of rule\n");
+      fprintf(ferr, "trouble getting arg of rule\n");
       return NULL;
     }
 
@@ -129,7 +129,7 @@ item *build_combined_item(item *active, item *passive)
 
   if(!arg.valid())
     {
-      fprintf(stderr, "trouble getting arg of active item\n");
+      fprintf(ferr, "trouble getting arg of active item\n");
       return NULL;
     }
 
@@ -218,13 +218,13 @@ item *active_and_passive_task::execute()
 
 void basic_task::print(FILE *f)
 {
-  fprintf(stderr, "task #%d (%d [%d %d %d %d])", _id, _p, _q, _r, _s, _t);
+  fprintf(f, "task #%d (%d [%d %d %d %d])", _id, _p, _q, _r, _s, _t);
 }
 
 void rule_and_passive_task::print(FILE *f)
 {
-  fprintf(stderr, 
-          "task #%d {%s + %d} (%d [%d %d %d %d])", 
+  fprintf(f,
+          "task #%d {%s + %d} (%d [%d %d %d %d])",
           _id,
           _R->name(), _passive->id(),
           _p, _q, _r, _s, _t);

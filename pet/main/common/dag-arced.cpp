@@ -166,7 +166,7 @@ void dag_get_qc_vector(qc_node *path, dag_node *dag, type_t *qc_vector)
 
   dag_arc *arc;
   for(qc_arc *qarc = path->arcs; qarc != 0; qarc = qarc->next)
-    if((arc = dag_find_attr(dag->arcs, qarc->attr)))
+    if((arc = dag_find_attr(dag->arcs, qarc->attr)) != 0)
       dag_get_qc_vector(qarc->val, arc->val, qc_vector);
 }
 

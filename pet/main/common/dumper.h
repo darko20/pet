@@ -17,7 +17,7 @@ class dumper
 {
  public:
   dumper(FILE *f, bool write = false);
-  dumper(char *fname, bool write = false);
+  dumper(const char *fname, bool write = false);
 
   ~dumper();
 

@@ -32,6 +32,9 @@ class chunk_allocator
       return p;
     }
 
+  inline int nchunks() { return _nchunks; }
+  inline int chunksize() { return _chunk_size; }
+
   inline long int allocated()
     { return _curr_chunk * _chunk_size + _chunk_pos; }
 

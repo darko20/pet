@@ -15,6 +15,7 @@
 #include "cheap.h"
 #include "parse.h"
 #include "tsdb++.h"
+#pragma hdrstop
 #ifdef YY
 # include "k2y.h"
 # include "yy.h"
@@ -59,7 +60,7 @@ void statistics::reset()
 
 void statistics::print(FILE *f)
 {
-  fprintf (stderr, 
+  fprintf (f,
 	   "id: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\nfirst: %d\ntcpu: %d\n"
 	   "ftasks_fi: %d\nftasks_qc: %d\netasks: %d\nstasks: %d\n"
 	   "aedges: %d\npedges: %d\nraedges: %d\nrpedges: %d\n"
@@ -111,7 +112,7 @@ void initialize_version()
   string sts("");
   struct setting *set;
 
-  if((set = cheap_settings->lookup("start-symbols")))
+  if((set = cheap_settings->lookup("start-symbols")) != 0)
     {
       for(int i = 0; i < set->n; i++)
         {
@@ -120,7 +121,7 @@ void initialize_version()
         }                 
     }
 
-  if((set = cheap_settings->lookup("weighted-start-symbols")))
+  if((set = cheap_settings->lookup("weighted-start-symbols")) != 0)
     {
       for(int i = 0; i < set->n; i += 2)
         {
@@ -378,7 +379,7 @@ void cheap_tsdb_summarize_error(error &condition) {
 
 int cheap_complete_test_run(int run_id, char *custom)
 {
-  fprintf(stderr, "total elapsed parse time %.3fs; %d items; avg time per item %.4fs\n",
+  fprintf(ferr, "total elapsed parse time %.3fs; %d items; avg time per item %.4fs\n",
 	  TotalParseTime.convert2s(TotalParseTime.elapsed()),
 	  nprocessed,
 	  (TotalParseTime.convert2ms(TotalParseTime.elapsed()) / double(nprocessed)) / 1000.);
@@ -387,7 +388,7 @@ int cheap_complete_test_run(int run_id, char *custom)
 
 int cheap_reconstruct_item(char *derivation)
 {
-  fprintf(stderr, "cheap_reconstruct_item(%s)\n", derivation);
+  fprintf(ferr, "cheap_reconstruct_item(%s)\n", derivation);
   return 0;
 }
 

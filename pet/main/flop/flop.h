@@ -41,7 +41,7 @@
 #define OSF_EXT ".osf"
 #define FFLEX_EXT ".ffl"
 #define VOC_EXT ".voc"
-#define DUMP_EXT ".gram"
+#define DUMP_EXT ".grm"
 
 #define TABLE_SIZE 20
 #define COREF_TABLE_SIZE 32
@@ -156,6 +156,8 @@ struct conjunction
 struct type
 {
   int id;
+
+  char *printname; // name as defined in grammar, including capitalization etc
 
   int status; // index into statustable
   bool defines_status;

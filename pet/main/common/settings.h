@@ -11,7 +11,7 @@
 #include "lex-tdl.h"
 
 #define SET_SUBDIRECTORY "pet"
-#define SET_EXT ".settings"
+#define SET_EXT ".set"
 #define SET_TABLE_SIZE 100
 
 struct setting
@@ -19,13 +19,19 @@ struct setting
   char *name;
   int n, allocated;
   char **values;
+
+  // store result of lookup_type on the corresponding value
+  // used to improve speed of sassoc
+  bool t_initialized;
+  int *t_values;
+  
   struct lex_location* loc;
 };
 
 class settings
 {
  public:
-  settings(const char *name, char *base, char *message = 0);
+  settings(const char *name, const char *base, char *message = 0);
   ~settings();
   
   setting *lookup(const char *name);
@@ -35,10 +41,11 @@ class settings
   // string equality based assoc
   char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
   // subtype based assoc
-  char *sassoc(const char *name, const char *key, int arity = 2, int nth = 1);
-
+  char *sassoc(const char *name, int key_type, int arity = 2, int nth = 1);
 
   struct lex_location *lloc() { return _lloc; }
+
+  static char *basename(const char *name);
   
  private:
   int _n;

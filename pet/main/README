@@ -1,10 +1,10 @@
-This directory contains the sources of the PET system, consisting of two
-major parts.
+This directory contains the open source PET system.
+PET consists of two major parts:
 
-1) The `flop' preprocessor, that compiles a given grammar in text
+1) The `flop' preprocessor. It compiles a given grammar in text
    form into binary form usable by the runtime system.
-2) The `cheap' parser framework. Parsers with different combinations of
-   unifier, parsing strategy etc. can be built.
+2) The `cheap' parser. It parses input with respect to a grammar in the binary
+   form produced by `flop'.
 
 Layout of the sources:
 
@@ -13,6 +13,3 @@ common/ contains the sources shared between `flop' and `cheap'.
 flop/ contains the sources for the preprocessor.
 
 cheap/ contains the sources for the parser.
-
-goofy/ contains the beginnings of a graphical interface, is not really useable
-       except for viewing feature structures, and requires the QT library.

@@ -5,9 +5,13 @@
 
 /* POS tags */
 
-#include <strings.h>
+#include <string.h>
 #include <algorithm>
 #include "postags.h"
+
+#ifdef __BORLANDC__
+#define strcasecmp stricmp
+#endif
 
 bool postags::contains(string s) const
 {

@@ -14,7 +14,8 @@
 chart::chart(int len)
   : _Chart(), _pedges(0),
     _Cp_start(len + 1), _Cp_end(len + 1),
-    _Ca_start(len + 1), _Ca_end(len + 1)
+    _Ca_start(len + 1), _Ca_end(len + 1),
+    _item_owner()
 {
 }
 
@@ -29,8 +30,8 @@ void chart::add(item *it)
   it->stamp(_next_stamp++);
 
 #ifdef DEBUG
-  it->print(stderr);
-  fprintf(stderr, "\n");
+  it->print(ferr);
+  fprintf(ferr, "\n");
 #endif
 
   _Chart.push_back(it);

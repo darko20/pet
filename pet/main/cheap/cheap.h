@@ -10,7 +10,7 @@
 
 #include "settings.h"
 #include "options.h"
-#include "errors.h"
+#include "../common/errors.h"
 
 extern settings *cheap_settings;
 extern FILE *ferr, *fstatus, *flog;

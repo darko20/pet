@@ -8,6 +8,8 @@
 
 #include "mfile.h"
 
+extern FILE *ferr;
+
 struct MFILE *mopen()
 {
   struct MFILE *f;
@@ -63,7 +65,7 @@ int vmprintf( struct MFILE *f, char *format, va_list ap )
 
   if (n >= MFILE_MAX_LINE)
     {
-      fprintf( stderr, "mprintf(): line too long for mprintf (%s)...\n", format );
+      fprintf( ferr, "mprintf(): line too long for mprintf (%s)...\n", format );
       exit(1);
     }
   

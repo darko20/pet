@@ -17,12 +17,27 @@
 #include "types.h"
 
 #ifdef WINDOWS
+#define strcasecmp stricmp
 #define PATH_SEP "\\"
 #else
 #define PATH_SEP "/"
 #endif
 
-settings::settings(const char *name, char *base, char *message)
+char *settings::basename(const char *base)
+{
+  // return part between last slash and first dot after that
+  char *slash = strrchr((char *) base, PATH_SEP[0]);
+  if(slash == 0) slash = (char *) base; else slash++;
+  char *dot = strchr(slash, '.');
+  if(dot == 0) dot = slash + strlen(slash);;
+  
+  char *res = (char *) malloc(dot - slash + 1);
+  strncpy(res, slash, dot - slash);
+  res[dot-slash] = '\0';
+  return res;
+}
+
+settings::settings(const char *name, const char *base, char *message)
 {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
@@ -32,7 +47,7 @@ settings::settings(const char *name, char *base, char *message)
 
   if(base)
     {
-      char *slash = strrchr(base, PATH_SEP[0]);
+      char *slash = strrchr((char *) base, PATH_SEP[0]);
       _prefix = (char *) malloc(strlen(base));
       if(slash)
 	{
@@ -158,31 +173,38 @@ char *settings::assoc(const char *name, const char *key, int arity, int nth)
   return 0;
 }
 
-char *settings::sassoc(const char *name, const char *key, int arity, int nth)
+// initialize type name cache in settings (temporary solution)
+void t_initialize(setting *set)
+{
+  for(int i = 0; i < set->n; i++)
+    {
+      char *v_lc = strdup(set->values[i]);
+      strtolower(v_lc);
+      set->t_values[i] = lookup_type(v_lc);
+      free(v_lc);
+    }
+  set->t_initialized = true;
+}
+
+char *settings::sassoc(const char *name, int key_t, int arity, int nth)
 {
   setting *set = lookup(name);
   if(set == 0) return 0;
-
-  int key_t = lookup_type(key);
-  if(key_t == -1)
-    {
-      fprintf(stderr, "warning: unknown type `%s' [while checking `%s']\n",
-	      key, name);
-      return 0;
-    }
+  if(key_t == -1) return 0;
 
   assert(nth <= arity && arity > 1);
+
+  if(!set->t_initialized)
+    t_initialize(set);
 
   for(int i = 0; i < set->n; i+=arity)
     {
       if(i+nth >= set->n) return 0;
-      char *v_lc = strdup(set->values[i]);
-      strtolower(v_lc);
-      int v_t = lookup_type(v_lc);
+      int v_t = set->t_values[i];
       if(v_t == -1)
 	{
-	  fprintf(stderr, "warning: ignoring unknown type `%s' in setting `%s'\n",
-		  v_lc, name);
+	  fprintf(ferr, "warning: ignoring unknown type `%s' in setting `%s'\n",
+		  set->values[i], name);
 	  continue;
 	}
 
@@ -214,6 +236,8 @@ void settings::parse_one()
       set->n = 0;
       set->allocated = SET_TABLE_SIZE;
       set->values = (char **) malloc(set->allocated * sizeof(char *));
+      set->t_values = (int *) malloc(set->allocated * sizeof(int));
+      set->t_initialized = false;
     }
 
   if(LA(0)->tag != T_DOT)
@@ -228,8 +252,10 @@ void settings::parse_one()
 	    {
 	      if(set->n >= set->allocated)
 		{
-		  set->allocated+=SET_TABLE_SIZE;
+		  set->allocated += SET_TABLE_SIZE;
 		  set->values = (char **) realloc(set->values, set->allocated * sizeof(char *));
+		  set->t_values = (int *) realloc(set->t_values, set->allocated * sizeof(int));
+
 		}
 	      set->values[set->n++] = LA(0)->text; LA(0)->text=NULL;
 	    }
@@ -272,7 +298,8 @@ void settings::parse()
 	      char *ofname, *fname;
 
 	      ofname = (char *) malloc(strlen(_prefix) + strlen(LA(0)->text) + 1);
-	      strcpy(ofname, LA(0)->text);
+              strcpy(ofname, _prefix);
+	      strcat(ofname, LA(0)->text);
 	      consume(1);
 
 	      match(T_DOT, "`.'", true);

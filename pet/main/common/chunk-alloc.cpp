@@ -21,6 +21,11 @@
 #endif
 
 #include "chunk-alloc.h"
+#ifdef FLOP
+#include "flop.h"
+#else
+#include "cheap.h"
+#endif
 
 chunk_allocator t_alloc(CHUNK_SIZE, false);
 chunk_allocator p_alloc(CHUNK_SIZE, true);
@@ -57,11 +62,12 @@ chunk_allocator::~chunk_allocator()
   delete[] _chunk;
 }
 
+#pragma argsused
 void chunk_allocator::_overflow(int n)
 {
   if(++_curr_chunk >= MAX_CHUNKS)
     {
-      fprintf(stderr, "alloc: out of chunks\n"); exit(1);
+      fprintf(ferr, "alloc: out of chunks\n"); exit(1);
     }
   
   if(_curr_chunk >= _nchunks)
@@ -84,7 +90,7 @@ void chunk_allocator::may_shrink()
   if(_nchunks > avg_chunks * 2 && _curr_chunk <= avg_chunks + 1)
     {
 #ifdef DEBUG
-      fprintf(stderr, "shrink (avg: %d, used: %d, allocated: %d) -> ",
+      fprintf(ferr, "shrink (avg: %d, used: %d, allocated: %d) -> ",
 	      avg_chunks, _curr_chunk, _nchunks);
 #endif
 
@@ -94,13 +100,13 @@ void chunk_allocator::may_shrink()
 	}
 
 #ifdef DEBUG
-      fprintf(stderr, "%d\n", _nchunks);
+      fprintf(ferr, "%d\n", _nchunks);
 #endif
     }
 #ifdef DEBUG
   else
     {
-      fprintf(stderr, "noshrink (avg: %d, used: %d, allocated: %d)\n",
+      fprintf(ferr, "noshrink (avg: %d, used: %d, allocated: %d)\n",
 	      avg_chunks, _curr_chunk, _nchunks);
     }
 #endif
@@ -191,7 +197,7 @@ void *chunk_allocator::_core_alloc(int size)
   if(p == MAP_FAILED)
     {
       perror("chunk_allocator::_core_alloc");
-      fprintf(stderr,
+      fprintf(ferr,
 	      "couldn't mmap %d bytes %s (up = %xd, down = %xd)\n",
 	      size,
 	      _core_down ? "down" : "up",
@@ -206,7 +212,7 @@ void *chunk_allocator::_core_alloc(int size)
 
   if(_mmap_up_mark >= _mmap_down_mark)
     {
-      fprintf(stderr, "alloc: no space (up = %xd, down = %xd)\n",
+      fprintf(ferr, "alloc: no space (up = %xd, down = %xd)\n",
 	      (int) _mmap_up_mark, (int) _mmap_down_mark);
       exit(1);
     }
@@ -220,7 +226,7 @@ int chunk_allocator::_core_free(void *p, int size)
 
   if(res == -1)
     {
-      fprintf(stderr, "alloc: couldn't munmap\n"); exit(1);
+      fprintf(ferr, "alloc: couldn't munmap\n"); exit(1);
     }
 
   if(_core_down)
@@ -233,11 +239,13 @@ int chunk_allocator::_core_free(void *p, int size)
 
 #else
 
+#ifdef GENERIC_CHUNKALLOC
 
 //
 // generic core memory allocation for Windows et al
 //
 
+#pragma argsused
 void chunk_allocator::_init_core(bool down)
 {
 }
@@ -248,10 +256,43 @@ void *chunk_allocator::_core_alloc(int size)
   return p;
 }
 
+#pragma argsused
 int chunk_allocator::_core_free(void *p, int size)
 {
   delete[] (char *) p;
   return 1;
 }
+
+#else
+
+#ifdef __BORLANDC__
+// Use WinAPI VirtualAlloc and VirtualFree
+
+#include "winbase.h"
+
+#pragma argsused
+void chunk_allocator::_init_core(bool down)
+{
+}
+
+void *chunk_allocator::_core_alloc(int size)
+{
+  void *p = (void *)
+    VirtualAlloc(0, size, MEM_COMMIT, PAGE_READWRITE);
+  return p;
+}
+
+#pragma argsused
+int chunk_allocator::_core_free(void *p, int size)
+{
+  VirtualFree(p, 0, MEM_RELEASE);
+  return 1;
+}
+
+#else
+#error "No platform specific allocator defined"
+#endif
+
+#endif
 
 #endif

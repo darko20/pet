@@ -10,6 +10,8 @@
 
 #include <stdio.h>
 
+#include "settings.h"
+
 #define CHEAP_SERVER_PORT 4711
 
 extern bool opt_one_solution, opt_shrink_mem, opt_shaping, opt_default_les,
@@ -21,10 +23,16 @@ extern bool opt_one_meaning, opt_yy;
 extern unsigned int opt_k2y;
 #endif
 extern int verbosity, pedgelimit, opt_nqc, opt_key, opt_server;
+extern long int memlimit;
 extern bool opt_linebreaks, opt_chart_man;
 extern char *grammar_file_name;
 
 void usage(FILE *f);
+
+#ifndef __BORLANDC__
 bool parse_options(int argc, char* argv[]);
+#endif
+
+void options_from_settings(settings *);
 
 #endif
