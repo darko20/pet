@@ -219,7 +219,7 @@ block(item *it, int mark)
             Chart->pedges()--;
     }  
 
-    for(list<item *>::iterator parent = it->parents.begin(); parent != it->parents.end(); ++it)
+    for(list<item *>::iterator parent = it->parents.begin(); parent != it->parents.end(); ++parent)
     {
       block(*parent, 2);
     }
@@ -237,8 +237,9 @@ packed_edge(item *newitem)
         bool forward, backward;
         item *olditem = iter.current();
 
-	if(olditem->trait() == INFL_TRAIT)
-            continue;
+	if(olditem->passive() == false
+           || olditem->trait() == INFL_TRAIT)
+          continue;
 
         subsumes(olditem->get_fs(), newitem->get_fs(), forward, backward);
 
