@@ -48,10 +48,6 @@ int template_mode = 0;
 
 void tdl_domainname()
 {
-  int sv = builtin_mode;
-
-  builtin_mode = 0;
-
   if(LA(0)->tag == T_COLON)
     {
       consume(1);
@@ -78,8 +74,6 @@ void tdl_domainname()
     {
       syntax_error("expecting domain name", LA(0));
     }
-
-  builtin_mode = sv;
 }
 
 int tdl_opt_inst_status()
@@ -117,7 +111,6 @@ int tdl_option(bool readonly)
       if(is_keyword(LA(0), "status"))
 	 {
 	   
-	   builtin_mode = 0;
 	   consume(1);
 	   match(T_COLON, "`:' after `status'", true);
 
@@ -125,8 +118,6 @@ int tdl_option(bool readonly)
 	     statusname = match(T_ID, "status value", readonly);
 	   else
 	     match(T_ID, "status value", readonly);
-
-	   builtin_mode = 1;
 	 }
       else
 	{
@@ -455,7 +446,6 @@ int tdl_coref(struct coref_table *co, bool readonly)
 
   match(T_HASH, "`#'", true);
 
-  builtin_mode = 0;
   if(!readonly)
     {
       name = match(T_ID, "coreference name", false);
@@ -464,7 +454,6 @@ int tdl_coref(struct coref_table *co, bool readonly)
     {
       match(T_ID, "coreference name", true);
     }
-  builtin_mode = 1;
 
   if(!readonly && name)
     return add_coref(co, name);
@@ -607,7 +596,6 @@ struct term *tdl_term(struct coref_table *co, bool readonly)
   else if(LA(0)->tag == T_QUOTE)
     { // atom
       consume(1);
-      builtin_mode = 0;
       if(!readonly)
 	{
 	  t->tag = ATOM;
@@ -629,8 +617,6 @@ struct term *tdl_term(struct coref_table *co, bool readonly)
 	}
       else
 	match(T_ID, "atom expected (term)", true);
-
-      builtin_mode = 1;
     }
   else if(LA(0)->tag == T_STRING)
     { // atom
@@ -1223,7 +1209,6 @@ void tdl_defdomain_option()
 
 void tdl_statement()
 {
-  builtin_mode = 0;
   if(is_keyword(LA(0), "defdomain"))
     {
       consume(1);
@@ -1281,7 +1266,6 @@ void tdl_statement()
 	    }
 	  else
 	    {
-	      builtin_mode = 1;
 	      push_file(fname, "including");
 	    }
 	}
@@ -1313,7 +1297,6 @@ void tdl_statement()
       syntax_error("unknown type of statement", LA(0));
       recover(T_DOT);
     }
-  builtin_mode = 1;
 }
 
 void tdl_start(int toplevel)

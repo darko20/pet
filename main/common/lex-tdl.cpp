@@ -42,7 +42,6 @@ int is_idchar(int c)
 }
 
 int lisp_mode = 0; // shall lexer recognize lisp expressions 
-int builtin_mode = 1; // shall lexer translate builtin names 
 
 void print_token(struct lex_token *t);
 
