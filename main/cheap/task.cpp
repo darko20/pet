@@ -176,8 +176,9 @@ build_combined_item(chart *C, item *active, item *passive)
 
 double packingscore(int start, int end, int n, bool active)
 {
+    return 0;
     //    return end - start;
-    return end - double(start) / n;
+    //return end - double(start) / n;
     /*
 
            - (active ? 0.0 : double(start) / n) ;
