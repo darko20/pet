@@ -417,6 +417,8 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
             if((*tree)->blocked())
                 continue;
 
+            stats.p_trees++;
+
             list<item *> results;
             results = (*tree)->unpack();
             
