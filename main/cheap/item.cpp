@@ -43,7 +43,7 @@ item::item(int start, int end, const tPaths &paths,
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
-      _result_root(-1), _result_contrib(false), _nparents(0),
+      _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
@@ -56,7 +56,7 @@ item::item(int start, int end, const tPaths &paths,
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
-      _result_root(-1), _result_contrib(false), _nparents(0),
+      _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
@@ -161,7 +161,7 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
 #ifdef DEBUG
     fprintf(stderr, "A %d < %d\n", pasv->id(), id());
 #endif
-    pasv->_nparents++; pasv->parents.push_back(this);
+    pasv->parents.push_back(this);
 
     if(opt_nqc_unif != 0)
     {
@@ -211,8 +211,8 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 #ifdef DEBUG
     fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
 #endif
-    pasv->_nparents++; pasv->parents.push_back(this);
-    active->_nparents++; active->parents.push_back(this);
+    pasv->parents.push_back(this);
+    active->parents.push_back(this);
 
     _tofill = active->restargs();
     _nfilled = active->nfilled() + 1;
