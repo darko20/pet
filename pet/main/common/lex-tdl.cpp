@@ -44,8 +44,6 @@ int is_idchar(int c)
 int lisp_mode = 0; // shall lexer recognize lisp expressions 
 int builtin_mode = 1; // shall lexer translate builtin names 
 
-int in_ifdef = 0;
-
 void print_token(struct lex_token *t);
 
 struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len)
@@ -102,10 +100,6 @@ struct lex_token *get_next_token()
 
   if(c == EOF) 
     {
-      if(in_ifdef)
-        {
-          fprintf(ferr, "warning: FLOP specific section not closed on end of file...\n");
-        }
       t = make_token(T_EOF, NULL, 0);
     }
   else if(isspace(c))
@@ -143,45 +137,33 @@ struct lex_token *get_next_token()
       LConsume(i);
     }
   else if(c == '#' && LLA(1) == '|')
-    { /* block comment or FLOP specific section (#ifdef) */
+  { /* block comment */
       char *start;
 
       start = LMark();
       
-      if(LLA(2) == 'C' && LLA(3) == 'H' && LLA(4) == 'I' && LLA(5) == 'C')
-        {
-          t = make_token(T_COMM, start, 6);
-          LConsume(6);
-          
-          fprintf(fstatus, "entering FLOP ifdef section...\n");
-
-          in_ifdef++;
-        }
-      else
-        {
-          int i = 2;
-          
-          while(LLA(i) != EOF)
-            {
-              if(LLA(i) == '|' && LLA(i+1) == '#')
-                {
-                  break;
-                }
-              i++;
-            }
-          
-          if(LLA(i) == EOF)
-            { // runaway comment
-                   fprintf(ferr, "runaway block comment starting in %s:%d.%d\n",
-                           curr_fname(), curr_line(), curr_col());
-		   throw error("runaway block comment");
-            }
-          
-          i += 2;
-          t = make_token(T_COMM, start, i);
-          LConsume(i);
-        }
-    }
+      int i = 2;
+      
+      while(LLA(i) != EOF)
+      {
+          if(LLA(i) == '|' && LLA(i+1) == '#')
+          {
+              break;
+          }
+          i++;
+      }
+      
+      if(LLA(i) == EOF)
+      { // runaway comment
+          fprintf(ferr, "runaway block comment starting in %s:%d.%d\n",
+                  curr_fname(), curr_line(), curr_col());
+          throw error("runaway block comment");
+      }
+      
+      i += 2;
+      t = make_token(T_COMM, start, i);
+      LConsume(i);
+  }
   else if(c == '"')
     { // string
       char *start;
@@ -230,60 +212,55 @@ struct lex_token *get_next_token()
       LConsume(i);
 
     }
-  else if(is_idchar(c) && !isdigit(c))
-    { /* identifier (or command etc.) */
-      char *start;
-      int i;
+  else if(is_idchar(c) || isdigit(c) || c == '-')
+  { /* identifier/number (or command etc.) */
 
+      // _fix_me_
+      // This isn't particularly elegant or robust. The error
+      // handling is not good. There's no clear way to integrate
+      // general numbers seamlessly into TDL...
+
+      char *start;
+      int i = 0;
+      
       start = LMark();
 
-      if(in_ifdef > 0 && c == 'C' && LLA(1) == 'H' && LLA(2) == 'I' && LLA(3) == 'C' && LLA(4) == '|' && LLA(5) == '#')
-        {
-          in_ifdef--;
-
-          t = make_token(T_COMM, start, 6);
-          LConsume(6);
-          fprintf(fstatus, "leaving FLOP ifdef section...\n");
-        }
-      else
-        {
+      char *endptr = 0;
+      if(c == '-' || isdigit(c))
+      {
+          // First, let's see if this can be a number.
           i = 1;
+          while(is_idchar(LLA(i)) || LLA(i) == '.' || LLA(i) == '-'
+                || LLA(i) == '+' || LLA(i) == 'e' || LLA(i) == 'E' )
+              i++;
+          
+          // Remove stuff that shouldn't be at the end.
+          while(i > 1 && (LLA(i-1) == '-' || LLA(i-1) == '+' || LLA(i-1) == '.'
+                          || LLA(i-1) == 'e' || LLA(i-1) == 'E'))
+              i--;
+          
+          strtod(start, &endptr);
+      }
+
+      if(endptr != start + i)
+      {
+          // See if it's an identifier.
+          i = 0;
           while(is_idchar(LLA(i)) || LLA(i) == '!') i++;
           
-          t = make_token(T_ID, start, i);
-          LConsume(i);
+          if(i == 0)
+          {
+	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
+		    (char) c, curr_fname(), curr_line(), curr_col());
+	    throw error("unexpected character in input");
+          }
+      }
           
-	  check_id(t);
-        }
-    }
-  else if(isdigit(c))
-    { /* number */
-      char *start;
-      int i;
-      bool alldigs = true;
-
-      start = LMark();
-
-      i = 1;
-      while(is_idchar(LLA(i)))
-	{
-	  if(alldigs && !isdigit(LLA(i))) alldigs = false;
-	  i++;
-	}
-	
-      if(alldigs && LLA(i) == '.' && isdigit(LLA(i+1)))
-        {
-          i++;
-          while(isdigit(LLA(i)))
-            i++;
-        }
-
       t = make_token(T_ID, start, i);
       LConsume(i);
-
-      if(t->tag == T_ID)
-	check_id(t);
-    }
+          
+      check_id(t);
+  }
   else if(c == ':')
     {
       if(LLA(1) == '<')
