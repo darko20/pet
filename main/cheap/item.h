@@ -57,10 +57,6 @@ class item
   inline int id() { return _id; }
   inline rule_trait trait() { return _trait; }
 
-  inline int stamp() { return _stamp; }
-  inline void stamp(int t) { _stamp = t; }
-  inline bool in_chart() { return _stamp != -1; }
-
   inline bool passive() const { return _tofill == 0; }
   inline int start() const { return _start; }
   inline int end() const { return _end; }
@@ -236,8 +232,6 @@ class item
   static int _next_id;
 
   int _id;
-  int _stamp;       // ascending order according to time of insertion to chart
-                    // -1 for items not yet in the chart
 
   rule_trait _trait;
 

@@ -40,7 +40,7 @@ int item::_next_id = 1;
 
 item::item(int start, int end, const tPaths &paths,
            int p, fs &f, const char *printname)
-    : _id(_next_id++), _stamp(-1),
+    : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
@@ -52,7 +52,7 @@ item::item(int start, int end, const tPaths &paths,
 
 item::item(int start, int end, const tPaths &paths,
            int p, const char *printname)
-    : _id(_next_id++), _stamp(-1),
+    : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
