@@ -195,15 +195,28 @@ packed_edge(item *newitem)
 
         forward = backward = true;
      
-        if(opt_nqc != 0)
-            qc_subsumption_compatible(olditem->qc_vector(),
-                                      newitem->qc_vector(),
-                                      forward, backward);
-    
+        if(opt_filter)
+            Grammar->subsumption_filter_compatible(olditem->rule(),
+                                                   newitem->rule(),
+                                                   forward, backward);
+
         if(forward ==false && backward == false)
-            stats.fsubs_qc++;
+        {
+            stats.fsubs_fi++;
+        }
         else
-            subsumes(olditem->get_fs(), newitem->get_fs(), forward, backward);
+        {
+            if(opt_nqc != 0)
+                qc_subsumption_compatible(olditem->qc_vector(),
+                                          newitem->qc_vector(),
+                                          forward, backward);
+            
+            if(forward ==false && backward == false)
+                stats.fsubs_qc++;
+            else
+                subsumes(olditem->get_fs(), newitem->get_fs(),
+                         forward, backward);
+        }
 
         if(forward && !olditem->blocked())
         {
