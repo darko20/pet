@@ -523,7 +523,7 @@ tsdb_parse_collect_edges(tsdb_parse &T, item *root)
         (*it)->daughter_ids(dtrs);
         for(list<int>::iterator it_dtr = dtrs.begin(); 
             it_dtr != dtrs.end(); ++it_dtr)
-            tmp << " " << *it_dtr;
+            tmp << (it_dtr == dtrs.begin() ? "" : " ") << *it_dtr;
         tmp << ")";
         e.daughters = tmp.str();
         T.push_edge(e);
