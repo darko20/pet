@@ -414,7 +414,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
         for(vector<item *>::iterator tree = Chart->trees().begin();
             tree != Chart->trees().end(); ++tree)
         {
-            if((*tree)->frozen())
+            if((*tree)->blocked())
                 continue;
 
             list<item *> results;
