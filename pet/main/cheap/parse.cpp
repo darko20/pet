@@ -509,7 +509,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
     if(Grammar->sm())
     {
         sort(Chart->readings().begin(), Chart->readings().end(),
-             less_than_score(Grammar->sm()));
+             greater_than_score(Grammar->sm()));
     }
 }
 

@@ -57,7 +57,7 @@ typedef  unsigned       char ub1;
  * Use for hash table lookup, or anything where one collision in 2^32 is
  * acceptable.  Do NOT use for cryptographic purposes.
  **/
-ub4 hash(ub1 *k, ub4 length, ub4 initval);
+ub4 hash(const ub1 *k, ub4 length, ub4 initval);
 
 /**
  * This works on all machines.  hash2() is identical to hash() on 
@@ -68,7 +68,7 @@ ub4 hash(ub1 *k, ub4 length, ub4 initval);
  * -- that all your machines have the same endianness, and
  * -- that the length be the number of ub4's in the key
  **/
-ub4 hash2(ub4 *k, ub4 length, ub4 initval);
+ub4 hash2(const ub4 *k, ub4 length, ub4 initval);
 
 /** Same as hash2 above, but on a vector<int>
  */
@@ -81,7 +81,7 @@ ub4 hash2(const std::vector<int> &k, ub4 initval);
  * hash2(), and it requires
  * -- that all your machines be little-endian
  **/
-ub4 hash3(ub1 *k, ub4 length, ub4 initval);
+ub4 hash3(const ub1 *k, ub4 length, ub4 initval);
 
 
 #endif

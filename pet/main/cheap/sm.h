@@ -26,6 +26,11 @@
 
 #define SM_EXT ".sm"
 
+/** A feature in a stochastic model. 
+ *  This class represents one feature in a stochastic model. Features are
+ *  tupels of integers. The tSMMap class efficiently maps features to
+ *  integer codes.
+ */
 class tSMFeature
 {
  public:
@@ -50,10 +55,10 @@ class tSMFeature
     operator==(const tSMFeature &, const tSMFeature&);
 };
 
-/** Stochastic Model.
- *  This class represents an abstract stochastic model. It reads the model
- *  from a file, provides a mapping between features and unique integer
- *  identifiers of features, and provides a scoring function for items.
+/** A stochastic model.
+ *  This class represents an abstract stochastic model. A model can be
+ *  instantiated from a file. The class provides methods to compute the
+ *  score for a feature in the model, and to combine two scores.
  */
 class tSM
 {
@@ -89,7 +94,7 @@ class tSM
     char *_fileName;
 };
 
-/** Maximum Entropy Model.
+/** A Maximum Entropy model.
  *  The model specifies features and their weights.
  *  A feature has the general form of a sequence of subfeatures. A subfeature
  *  is either a type / instance of the grammar, an integer, or a string.

@@ -407,15 +407,15 @@ class phrasal_item : public item
   grammar_rule *_rule;
 };
 
-class less_than_score
+class greater_than_score
 {
 public:
-    less_than_score(tSM *sm)
+    greater_than_score(tSM *sm)
         : _sm(sm) {}
 
     bool operator() (item *i, item *j)
     {
-        return i->score(_sm) < j->score(_sm);
+        return i->score(_sm) > j->score(_sm);
     }
  private:
     tSM *_sm;
