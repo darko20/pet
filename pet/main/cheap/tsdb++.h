@@ -241,7 +241,7 @@ class timer
   inline clock_t convert2ms(clock_t t) { return t / (CLOCKS_PER_SEC / 1000); }
   // converts time in internal unit to milliseconds
 
-  inline clock_t resolution() { return 1000 / CLK_TCK; }
+  inline clock_t resolution() { return 1000 / CLOCKS_PER_SEC; }
   // returns `stepsize' of the clock in milliseconds
  private:
   clock_t _start;
