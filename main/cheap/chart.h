@@ -30,7 +30,7 @@ class chart
   chart(int, auto_ptr<item_owner>);
   ~chart();
 
-  void add(item *);
+  void add(tItem *);
 
   void print(FILE *f);
 
@@ -41,23 +41,23 @@ class chart
   unsigned int length() { return (unsigned int) _Cp_start.size() ; }
   unsigned int rightmost() { return length() - 1; }
 
-  vector<item *> &trees() { return _trees; }
-  vector<item *> &readings() { return _readings; }
+  vector<tItem *> &trees() { return _trees; }
+  vector<tItem *> &readings() { return _readings; }
 
-  void shortest_path(list <item *> &);
+  void shortest_path(list <tItem *> &);
 
  private:
   static int _next_stamp;
 
-  vector<item *> _Chart;
-  vector<item *> _trees;
-  vector<item *> _readings;
+  vector<tItem *> _Chart;
+  vector<tItem *> _trees;
+  vector<tItem *> _readings;
 
   int _pedges;
 
-  vector< list<item *> > _Cp_start, _Cp_end;
-  vector< list<item *> > _Ca_start, _Ca_end;
-  vector< vector < list<item*> > > _Cp_span;
+  vector< list<tItem *> > _Cp_start, _Cp_end;
+  vector< list<tItem *> > _Ca_start, _Ca_end;
+  vector< vector < list<tItem*> > > _Cp_span;
 
   auto_ptr<item_owner> _item_owner;
 
@@ -93,7 +93,7 @@ class chart_iter
         return _curr != _LI.end();
     }
 
-    inline item *current()
+    inline tItem *current()
     {
         if(valid())
             return *_curr;
@@ -102,8 +102,8 @@ class chart_iter
     }
 
  private:
-    vector<class item *> &_LI;
-    vector<class item *>::iterator _curr;
+    vector<class tItem *> &_LI;
+    vector<class tItem *>::iterator _curr;
 };
 
 class chart_iter_span_passive
@@ -132,7 +132,7 @@ class chart_iter_span_passive
         return _curr != _LI.end();
     }
 
-    inline item *current()
+    inline tItem *current()
     {
         if(valid())
             return *_curr;
@@ -141,15 +141,15 @@ class chart_iter_span_passive
     }
 
  private:
-    list<item *> &_LI;
-    list<item *>::iterator _curr;
+    list<tItem *> &_LI;
+    list<tItem *>::iterator _curr;
 };
 
 class chart_iter_adj_passive
 {
  public:
     inline
-    chart_iter_adj_passive(chart *C, item *active)
+    chart_iter_adj_passive(chart *C, tItem *active)
         : _LI(active->left_extending() ?
               C->_Cp_end[active->start()] : C->_Cp_start[active->end()])
     {
@@ -167,7 +167,7 @@ class chart_iter_adj_passive
         return _curr != _LI.end();
     }
 
-    inline item *current()
+    inline tItem *current()
     {
         if(valid())
             return *_curr;
@@ -176,8 +176,8 @@ class chart_iter_adj_passive
     }
 
  private:
-  list<item *> &_LI;
-  list<item *>::iterator _curr;
+  list<tItem *> &_LI;
+  list<tItem *>::iterator _curr;
 };
 
 class chart_iter_adj_active
@@ -189,7 +189,7 @@ class chart_iter_adj_active
         _curr = _LI_end.begin();
     }
 
-    inline chart_iter_adj_active(chart *C, item *passive)
+    inline chart_iter_adj_active(chart *C, tItem *passive)
         : _LI_start(C->_Ca_start[passive->end()]),
           _LI_end(C->_Ca_end[passive->start()]),
           _at_start(true)
@@ -217,17 +217,17 @@ class chart_iter_adj_active
         return _curr != _LI_end.end();
     }
 
-    inline item *current()
+    inline tItem *current()
     {
         if(valid()) return *_curr; else return 0;
     }
 
  private:
-    list<item *> &_LI_start, &_LI_end;
+    list<tItem *> &_LI_start, &_LI_end;
     
     bool _at_start;
     
-    list<item *>::iterator _curr;
+    list<tItem *>::iterator _curr;
 };
 
 #endif

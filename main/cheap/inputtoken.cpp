@@ -115,13 +115,13 @@ input_token::instantiate()
     return _form.instantiate();
 }  
 
-list<lex_item *>
+list<tLexItem *>
 input_token::generics(postags onlyfor)
 // Add generic lexical entries for token at position `i'. If `onlyfor' is 
 // non-empty, only those generic entries corresponding to one of those
 // POS tags are postulated. The correspondence is defined in posmapping.
 {
-    list<lex_item *> result;
+    list<tLexItem *> result;
 
     list_int *gens = Grammar->generics();
 
@@ -165,8 +165,8 @@ input_token::generics(postags onlyfor)
 
         fs f = fs(gen); 
 
-        lex_item *lex =
-            new lex_item(_start, _end, _paths, 1, 0, dtrs, f,
+        tLexItem *lex =
+            new tLexItem(_start, _end, _paths, 1, 0, dtrs, f,
                          _orth.c_str());
 
         result.push_back(lex);
@@ -176,9 +176,9 @@ input_token::generics(postags onlyfor)
 }
 
 bool
-contains(list<lex_item *> &les, lex_item *le)
+contains(list<tLexItem *> &les, tLexItem *le)
 {
-    for(list<lex_item *>::iterator it = les.begin();
+    for(list<tLexItem *>::iterator it = les.begin();
         it != les.end(); ++it)
         if(same_lexitems(**it, *le))
             return true;
@@ -188,7 +188,7 @@ contains(list<lex_item *> &les, lex_item *le)
 
 bool
 input_token::add_result(int start, int end, int ndtrs, int keydtr,
-                        input_token **dtrs, list<lex_item *> &result)
+                        input_token **dtrs, list<tLexItem *> &result)
 {
     // preserve allocation state so we can return in case of duplicates
     fs_alloc_state FSAS(false);
@@ -199,7 +199,7 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
     // if fs is valid, create a new lex item and task
     if(f.valid())
     {
-        lex_item *it = new lex_item(start, end, _paths, 
+        tLexItem *it = new tLexItem(start, end, _paths, 
                                     ndtrs, keydtr, dtrs, f,
                                     _form.description().c_str());
 
@@ -224,7 +224,7 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
 
 bool
 input_token::expand_rec(int arg_pos, int start, int end, input_token ** dtrs,
-                        list<lex_item *> &result)
+                        list<tLexItem *> &result)
 {
     if(arg_pos <= _form.offset())        // expand to the left
     {
@@ -279,7 +279,7 @@ input_token::expand_rec(int arg_pos, int start, int end, input_token ** dtrs,
 }
 
 void
-input_token::expand(list<lex_item *> &result)
+input_token::expand(list<tLexItem *> &result)
 {
     if(_form.valid())
     {

@@ -519,12 +519,12 @@ tsdb_parse::capi_print()
 static int tsdb_unique_id = 1;
 
 void
-tsdb_parse_collect_edges(tsdb_parse &T, item *root)
+tsdb_parse_collect_edges(tsdb_parse &T, tItem *root)
 {
-    list<item *> edges;
+    list<tItem *> edges;
     root->collect_children(edges);
     
-    for(list<item *>::iterator it = edges.begin(); it != edges.end(); ++it)
+    for(list<tItem *>::iterator it = edges.begin(); it != edges.end(); ++it)
     {
         tsdb_edge e;
         e.id = (*it)->id();
@@ -557,7 +557,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         if(nderivations >= 0) // default case, report results
         {
             if(!nderivations) nderivations = Chart.readings().size();
-            for(vector<item *>::iterator iter = Chart.readings().begin();
+            for(vector<tItem *>::iterator iter = Chart.readings().begin();
                 nderivations && iter != Chart.readings().end();
                 ++iter, --nderivations)
             {

@@ -125,10 +125,10 @@ void interactive()
                 int nres = 0;
                 struct MFILE *mstream = mopen();
                 
-                for(vector<item *>::iterator iter = Chart->readings().begin();
+                for(vector<tItem *>::iterator iter = Chart->readings().begin();
                     iter != Chart->readings().end(); ++iter)
                 {
-                    item *it = *iter;
+                    tItem *it = *iter;
                     
                     nres++;
                     fprintf(fstatus, "derivation[%d]", nres);

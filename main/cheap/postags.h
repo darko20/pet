@@ -30,7 +30,7 @@ class postags
   postags() : _tags() {} ;
   postags(const vector<string> &, const vector<double> &);
   postags(const class full_form ff);
-  postags(const list<class lex_item *> &les);
+  postags(const list<class tLexItem *> &les);
   postags(const postags &t) : _tags(t._tags) {} ;
 
   ~postags() {} ;

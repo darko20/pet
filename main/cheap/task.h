@@ -37,7 +37,7 @@ class basic_task
         : _id(next_id++), _Chart(C), _A(A), _p(0.0)
     {}
 
-    virtual item * execute() = 0;
+    virtual tItem * execute() = 0;
     
     inline double priority() const
     { return _p; }
@@ -61,40 +61,40 @@ class basic_task
 class item_task : public basic_task
 {
  public:
-    item_task(class chart *C, class tAgenda *A, item *it);
+    item_task(class chart *C, class tAgenda *A, tItem *it);
     
-    virtual item *execute();
+    virtual tItem *execute();
 
  private:
-    item *_item;
+    tItem *_item;
 };
 
 class rule_and_passive_task : public basic_task
 {
  public:
     rule_and_passive_task(class chart *C, class tAgenda *A,
-                          grammar_rule *R, item *passive);
+                          grammar_rule *R, tItem *passive);
     
-    virtual item *execute();
+    virtual tItem *execute();
     virtual void print(FILE *f);
     
  private:
     grammar_rule *_R;
-    item *_passive;
+    tItem *_passive;
 };
 
 class active_and_passive_task : public basic_task
 {
  public:
     active_and_passive_task(class chart *C, class tAgenda *A,
-                            item *active, item *passive);
+                            tItem *active, tItem *passive);
 
-    virtual item *execute();
+    virtual tItem *execute();
     virtual void print(FILE *f);
 
  private:
-    item *_active;
-    item *_passive;
+    tItem *_active;
+    tItem *_passive;
 };
 
 class task_priority_less

@@ -35,10 +35,10 @@
 //#define DEBUG
 //#define DEBUGPOS
 
-item_owner *item::_default_owner = 0;
-int item::_next_id = 1;
+item_owner *tItem::_default_owner = 0;
+int tItem::_next_id = 1;
 
-item::item(int start, int end, const tPaths &paths,
+tItem::tItem(int start, int end, const tPaths &paths,
            fs &f, const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
@@ -51,7 +51,7 @@ item::item(int start, int end, const tPaths &paths,
     if(_default_owner) _default_owner->add(this);
 }
 
-item::item(int start, int end, const tPaths &paths,
+tItem::tItem(int start, int end, const tPaths &paths,
            const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
@@ -64,7 +64,7 @@ item::item(int start, int end, const tPaths &paths,
     if(_default_owner) _default_owner->add(this);
 }
 
-item::~item()
+tItem::~tItem()
 {
     delete[] _qc_vector_unif;
     delete[] _qc_vector_subs;
@@ -72,10 +72,10 @@ item::~item()
     delete _unpack_cache;
 }
 
-lex_item::lex_item(int start, int end, const tPaths &paths,
+tLexItem::tLexItem(int start, int end, const tPaths &paths,
                    int ndtrs, int keydtr, input_token **dtrs, 
                    fs &f, const char *printname)
-    : item(start, end, paths, f, printname),
+    : tItem(start, end, paths, f, printname),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
     // _fix_me_
@@ -84,7 +84,7 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
         _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
 
     if(_keydtr >= _ndtrs)
-        throw tError("keydtr > ndtrs for lex_item");
+        throw tError("keydtr > ndtrs for tLexItem");
 
     _dtrs = new input_token*[_ndtrs] ;
 
@@ -131,7 +131,7 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
 }
 
 bool
-same_lexitems(const lex_item &a, const lex_item &b)
+same_lexitems(const tLexItem &a, const tLexItem &b)
 {
     if(a.start() != b.start() || a.end() != b.end())
         return false;
@@ -139,8 +139,8 @@ same_lexitems(const lex_item &a, const lex_item &b)
     return a._dtrs[a._keydtr]->form() == b._dtrs[b._keydtr]->form();
 }
 
-phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
-    : item(pasv->_start, pasv->_end, pasv->_paths,
+tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
+    : tItem(pasv->_start, pasv->_end, pasv->_paths,
            f, R->printname()),
     _daughters(), _adaughter(0), _rule(R)
 {
@@ -183,15 +183,15 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
         R->actives++;
 
 #ifdef DEBUG
-    fprintf(ferr, "new rule item (`%s' + %d@%d):", 
+    fprintf(ferr, "new rule tItem (`%s' + %d@%d):", 
             R->printname(), pasv->id(), R->nextarg());
     print(ferr);
     fprintf(ferr, "\n");
 #endif
 }
 
-phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
-    : item(-1, -1, active->_paths.common(pasv->_paths),
+tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
+    : tItem(-1, -1, active->_paths.common(pasv->_paths),
            f, active->printname()),
     _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
 {
@@ -246,15 +246,15 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 #endif
 }
 
-phrasal_item::phrasal_item(phrasal_item *sponsor, vector<item *> &dtrs, fs &f)
-    : item(sponsor->start(), sponsor->end(), sponsor->_paths,
+tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
+    : tItem(sponsor->start(), sponsor->end(), sponsor->_paths,
            f, sponsor->printname()),
       _daughters(),
       _adaughter(0), _rule(sponsor->rule())
 {
     // _fix_me_
     //  copy(dtrs.begin(), dtrs.end(), _daughters.begin());
-    for(vector<item *>::iterator it = dtrs.begin(); it != dtrs.end(); ++it)
+    for(vector<tItem *>::iterator it = dtrs.begin(); it != dtrs.end(); ++it)
         _daughters.push_back(*it);
 
     _trait = SYNTAX_TRAIT;
@@ -262,18 +262,18 @@ phrasal_item::phrasal_item(phrasal_item *sponsor, vector<item *> &dtrs, fs &f)
 }
 
 void
-lex_item::set_result_root(type_t rule)
+tLexItem::set_result_root(type_t rule)
 {
     set_result_contrib();
     _result_root = rule;
 }
 
 void
-phrasal_item::set_result_root(type_t rule)
+tPhrasalItem::set_result_root(type_t rule)
 {
     if(result_contrib() == false)
     {
-        for(list<item *>::iterator pos = _daughters.begin();
+        for(list<tItem *>::iterator pos = _daughters.begin();
             pos != _daughters.end();
             ++pos)
             (*pos)->set_result_contrib();
@@ -287,7 +287,7 @@ phrasal_item::set_result_root(type_t rule)
 }
 
 void
-item::print(FILE *f, bool compact)
+tItem::print(FILE *f, bool compact)
 {
     fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
             _trait);
@@ -332,10 +332,10 @@ item::print(FILE *f, bool compact)
 }
 
 void
-lex_item::print(FILE *f, bool compact)
+tLexItem::print(FILE *f, bool compact)
 {
     fprintf(f, "L ");
-    item::print(f);
+    tItem::print(f);
     if(verbosity > 10 && compact == false)
     {
         fprintf(f, "\n");
@@ -344,14 +344,14 @@ lex_item::print(FILE *f, bool compact)
 }
 
 string
-lex_item::description()
+tLexItem::description()
 {
     if(_ndtrs == 0) return string();
     return _dtrs[_keydtr]->description();
 }
 
 string
-lex_item::orth()
+tLexItem::orth()
 {
     string orth;
     for(int i = 0; i < _ndtrs; i++)
@@ -363,10 +363,10 @@ lex_item::orth()
 }
 
 void
-phrasal_item::print(FILE *f, bool compact)
+tPhrasalItem::print(FILE *f, bool compact)
 {
     fprintf(f, "P ");
-    item::print(f);
+    tItem::print(f);
 
     if(verbosity > 10 && compact == false)
     {
@@ -376,27 +376,27 @@ phrasal_item::print(FILE *f, bool compact)
 }
 
 void
-item::print_packed(FILE *f)
+tItem::print_packed(FILE *f)
 {
     if(packed.size() == 0)
         return;
 
     fprintf(f, " < packed: ");
-    for(list<item *>::iterator pos = packed.begin();
+    for(list<tItem *>::iterator pos = packed.begin();
         pos != packed.end(); ++pos)
         fprintf(f, "%d ",(*pos)->_id);
     fprintf(f, ">");
 }
 
 void
-phrasal_item::print_family(FILE *f)
+tPhrasalItem::print_family(FILE *f)
 {
     fprintf(f, " < dtrs: ");
-    for(list<item *>::iterator pos = _daughters.begin();
+    for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
         fprintf(f, "%d ",(*pos)->_id);
     fprintf(f, " parents: ");
-    for(list<item *>::iterator pos = parents.begin();
+    for(list<tItem *>::iterator pos = parents.begin();
         pos != parents.end(); ++pos)
         fprintf(f, "%d ",(*pos)->_id);
     fprintf(f, ">");
@@ -405,7 +405,7 @@ phrasal_item::print_family(FILE *f)
 static int derivation_indentation = 0; // not elegant
 
 void
-lex_item::print_derivation(FILE *f, bool quoted)
+tLexItem::print_derivation(FILE *f, bool quoted)
 {
     if(derivation_indentation == 0)
         fprintf(f, "\n");
@@ -417,7 +417,7 @@ lex_item::print_derivation(FILE *f, bool quoted)
 }
 
 void
-lex_item::print_yield(FILE *f)
+tLexItem::print_yield(FILE *f)
 {
     list<string> orth;
     for(int i = 0; i < _ndtrs; i++)
@@ -427,7 +427,7 @@ lex_item::print_yield(FILE *f)
 }
 
 string
-lex_item::tsdb_derivation(int protocolversion)
+tLexItem::tsdb_derivation(int protocolversion)
 {
     string orth;
     for(int i = 0; i < _ndtrs; i++)
@@ -440,13 +440,13 @@ lex_item::tsdb_derivation(int protocolversion)
 }
 
 void
-lex_item::daughter_ids(list<int> &ids)
+tLexItem::daughter_ids(list<int> &ids)
 {
     ids.clear();
 }
 
 void 
-lex_item::collect_children(list<item *> &result)
+tLexItem::collect_children(list<tItem *> &result)
 {
     if(blocked())
         return;
@@ -455,7 +455,7 @@ lex_item::collect_children(list<item *> &result)
 }
 
 void
-phrasal_item::print_derivation(FILE *f, bool quoted)
+tPhrasalItem::print_derivation(FILE *f, bool quoted)
 {
     if(derivation_indentation == 0)
         fprintf(f, "\n");
@@ -469,7 +469,7 @@ phrasal_item::print_derivation(FILE *f, bool quoted)
     if(packed.size())
     {
         fprintf(f, " {");
-        for(list<item *>::iterator pack = packed.begin();
+        for(list<tItem *>::iterator pack = packed.begin();
             pack != packed.end(); ++pack)
         {
             fprintf(f, "%s%d", pack == packed.begin() ? "" : " ", (*pack)->id()); 
@@ -493,7 +493,7 @@ phrasal_item::print_derivation(FILE *f, bool quoted)
     }
 
     derivation_indentation+=2;
-    for(list<item *>::iterator pos = _daughters.begin();
+    for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
     {
         fprintf(f, "\n");
@@ -505,9 +505,9 @@ phrasal_item::print_derivation(FILE *f, bool quoted)
 }
 
 void
-phrasal_item::print_yield(FILE *f)
+tPhrasalItem::print_yield(FILE *f)
 {
-    for(list<item *>::iterator pos = _daughters.begin();
+    for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
     {
         (*pos)->print_yield(f);
@@ -515,14 +515,14 @@ phrasal_item::print_yield(FILE *f)
 }
 
 string
-phrasal_item::tsdb_derivation(int protocolversion)
+tPhrasalItem::tsdb_derivation(int protocolversion)
 {
     ostringstream result;
     
     result << "(" << _id << " " << printname() << " " << _score
            << " " << _start << " " << _end;
 
-    for(list<item *>::iterator pos = _daughters.begin();
+    for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
     {
         result << " ";
@@ -538,11 +538,11 @@ phrasal_item::tsdb_derivation(int protocolversion)
 }
 
 void
-phrasal_item::daughter_ids(list<int> &ids)
+tPhrasalItem::daughter_ids(list<int> &ids)
 {
     ids.clear();
 
-    for(list<item *>::iterator pos = _daughters.begin();
+    for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
     {
         ids.push_back((*pos)->id());
@@ -550,14 +550,14 @@ phrasal_item::daughter_ids(list<int> &ids)
 }
 
 void 
-phrasal_item::collect_children(list<item *> &result)
+tPhrasalItem::collect_children(list<tItem *> &result)
 {
     if(blocked())
         return;
     frost();
     result.push_back(this);
     
-    for(list<item *>::iterator pos = _daughters.begin();
+    for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
     {
         (*pos)->collect_children(result);
@@ -565,24 +565,24 @@ phrasal_item::collect_children(list<item *> &result)
 }
 
 grammar_rule *
-lex_item::rule()
+tLexItem::rule()
 {
     return NULL;
 }
 
 grammar_rule *
-phrasal_item::rule()
+tPhrasalItem::rule()
 {
     return _rule;
 }
 
 void
-lex_item::recreate_fs()
+tLexItem::recreate_fs()
 {
     throw tError("cannot rebuild lexical item's feature structure");
 }
 
-void phrasal_item::recreate_fs()
+void tPhrasalItem::recreate_fs()
 {
     if(!passive())
     {
@@ -612,7 +612,7 @@ void phrasal_item::recreate_fs()
 //
 
 void
-item::block(int mark)
+tItem::block(int mark)
 {
     if(verbosity > 4)
     {
@@ -628,7 +628,7 @@ item::block(int mark)
         _blocked = mark;
     }  
 
-    for(list<item *>::iterator parent = parents.begin();
+    for(list<tItem *>::iterator parent = parents.begin();
         parent != parents.end(); ++parent)
     {
       (*parent)->freeze();
@@ -642,10 +642,10 @@ item::block(int mark)
 // for printing debugging output
 int unpacking_level;
 
-list<item *>
-item::unpack(int upedgelimit)
+list<tItem *>
+tItem::unpack(int upedgelimit)
 {
-    list<item *> res;
+    list<tItem *> res;
 
     unpacking_level++;
     if(verbosity > 3)
@@ -672,46 +672,46 @@ item::unpack(int upedgelimit)
         return res;
 
     // Recursively unpack items that are packed into this item.
-    for(list<item *>::iterator p = packed.begin();
+    for(list<tItem *>::iterator p = packed.begin();
         p != packed.end(); ++p)
     {
         // Append result of unpack_item on packed item.
-        list<item *> tmp = (*p)->unpack(upedgelimit);
+        list<tItem *> tmp = (*p)->unpack(upedgelimit);
         res.splice(res.begin(), tmp);
     }
 
     // Unpack children.
-    list<item *> tmp = unpack1(upedgelimit);
+    list<tItem *> tmp = unpack1(upedgelimit);
     res.splice(res.begin(), tmp);
 
     if(verbosity > 3)
     {
         fprintf(stderr, "%*s< unpack [%d] ( ", unpacking_level * 2, "", id());
-        for(list<item *>::iterator i = res.begin(); i != res.end(); ++i)
+        for(list<tItem *>::iterator i = res.begin(); i != res.end(); ++i)
             fprintf(stderr, "%d ", (*i)->id());
         fprintf(stderr, ")\n");
     }
 
-    _unpack_cache = new list<item *>(res);
+    _unpack_cache = new list<tItem *>(res);
 
     unpacking_level--;
     return res;
 }
 
-list<item *>
-lex_item::unpack1(int limit)
+list<tItem *>
+tLexItem::unpack1(int limit)
 {
-    list<item *> res;
+    list<tItem *> res;
     res.push_back(this);
     return res;
 }
 
-list<item *>
-phrasal_item::unpack1(int upedgelimit)
+list<tItem *>
+tPhrasalItem::unpack1(int upedgelimit)
 {
     // Collect expansions for each daughter.
-    vector<list<item *> > dtrs;
-    for(list<item *>::iterator dtr = _daughters.begin();
+    vector<list<tItem *> > dtrs;
+    for(list<tItem *>::iterator dtr = _daughters.begin();
         dtr != _daughters.end(); ++dtr)
     {
         dtrs.push_back((*dtr)->unpack(upedgelimit));
@@ -719,18 +719,18 @@ phrasal_item::unpack1(int upedgelimit)
 
     // Consider all possible combinations of daughter structures
     // and collect the ones that combine. 
-    vector<item *> config(rule()->arity());
-    list<item *> res;
+    vector<tItem *> config(rule()->arity());
+    list<tItem *> res;
     unpack_cross(dtrs, 0, config, res);
  
     return res;
 }
 
 void
-print_config(FILE *f, int motherid, vector<item *> &config)
+print_config(FILE *f, int motherid, vector<tItem *> &config)
 {
     fprintf(f, "%d[", motherid);
-    for(vector<item *>::iterator it = config.begin(); it != config.end(); ++it)
+    for(vector<tItem *>::iterator it = config.begin(); it != config.end(); ++it)
         fprintf(f, "%s%d", it == config.begin() ? "" : " ", (*it)->id());
     fprintf(f, "]");
 }
@@ -738,13 +738,13 @@ print_config(FILE *f, int motherid, vector<item *> &config)
 // Recursively compute all configurations of dtrs, and accumulate valid
 // instantiations (wrt mother) in res.
 void
-phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
-                           int index, vector<item *> &config,
-                           list<item *> &res)
+tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
+                           int index, vector<tItem *> &config,
+                           list<tItem *> &res)
 {
     if(index >= rule()->arity())
     {
-        item *combined = unpack_combine(config);
+        tItem *combined = unpack_combine(config);
         if(combined)
         {
             if(verbosity > 9)
@@ -774,7 +774,7 @@ phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
 	return;
     }
 
-    for(list<item *>::iterator i = dtrs[index].begin(); i != dtrs[index].end();
+    for(list<tItem *>::iterator i = dtrs[index].begin(); i != dtrs[index].end();
         ++i)
     {
         config[index] = *i;
@@ -786,8 +786,8 @@ phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
 // _fix_me_
 // This is quite similar to functionality in task.cpp - common functionality
 // should be factored out.
-item *
-phrasal_item::unpack_combine(vector<item *> &daughters)
+tItem *
+tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
 {
     fs_alloc_state FSAS(false);
 
@@ -824,5 +824,5 @@ phrasal_item::unpack_combine(vector<item *> &daughters)
     }
 
     stats.p_upedges++;
-    return new phrasal_item(this, daughters, res);
+    return new tPhrasalItem(this, daughters, res);
 }

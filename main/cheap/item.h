@@ -33,24 +33,24 @@
  *  morphological items, lexical items and phrasal items. 
  */
 
-class item
+class tItem
 {
  public:
-  item(int start, int end, const tPaths &paths, fs &f,
+  tItem(int start, int end, const tPaths &paths, fs &f,
        const char *printname);
-  item(int start, int end, const tPaths &paths, 
+  tItem(int start, int end, const tPaths &paths, 
        const char *printname);
 
-  virtual ~item();
+  virtual ~tItem();
 
-  virtual item &operator=(const item &li)
+  virtual tItem &operator=(const tItem &li)
   {
-    throw tError("unexpected call to copy constructor of item");
+    throw tError("unexpected call to copy constructor of tItem");
   }
 
-  item()
+  tItem()
   {
-    throw tError("unexpected call to constructor of item");
+    throw tError("unexpected call to constructor of tItem");
   }
 
   static void default_owner(class item_owner *o) { _default_owner = o; }
@@ -117,7 +117,7 @@ class item
           return _start - (R->arity() - 1) >= 0;
   }
   
-  inline bool compatible(item *active, int length)
+  inline bool compatible(tItem *active, int length)
   {
       if(_trait == INFL_TRAIT)
           return false;
@@ -147,7 +147,7 @@ class item
       return _tofill == 0 || first(_tofill) == 1;
   }
 
-  inline bool adjacent(class item *passive) // assumes `this' is an active item
+  inline bool adjacent(class tItem *passive) // assumes `this' is an active item
   {
       return (left_extending() ? (_start == passive->_end)
               : (_end == passive->_start));
@@ -196,7 +196,7 @@ class item
 
   virtual void daughter_ids(list<int> &ids) = 0;
   // Collect all (transitive) children. Uses frosting mechanism.
-  virtual void collect_children(list<item *> &result) = 0;
+  virtual void collect_children(list<tItem *> &result) = 0;
 
   inline type_t result_root() { return _result_root; }
   inline bool result_contrib() { return _result_contrib; }
@@ -232,8 +232,8 @@ class item
   inline bool frosted() { return _blocked == 1; }
   inline bool frozen() { return _blocked == 2; }
 
-  list<item *> unpack(int limit);
-  virtual list<item *> unpack1(int limit) = 0;
+  list<tItem *> unpack(int limit);
+  virtual list<tItem *> unpack1(int limit) = 0;
 
   inline const char *printname() { return _printname.c_str(); }
 
@@ -271,33 +271,33 @@ class item
   const string _printname;
 
   int _blocked;
-  list<item *> *_unpack_cache;
+  list<tItem *> *_unpack_cache;
 
  public:
-  list<item *> parents;
-  list<item *> packed;
+  list<tItem *> parents;
+  list<tItem *> packed;
 
-  friend class lex_item;
-  friend class phrasal_item;
+  friend class tLexItem;
+  friend class tPhrasalItem;
 };
 
-class lex_item : public item
+class tLexItem : public tItem
 {
  public:
-  lex_item(int start, int end, const tPaths &paths,
+  tLexItem(int start, int end, const tPaths &paths,
            int ndtrs, int keydtr, class input_token **dtrs,
            fs &f, const char *name);
 
-  ~lex_item() { delete[] _dtrs; }
+  ~tLexItem() { delete[] _dtrs; }
 
-  virtual lex_item &operator=(const item &li)
+  virtual tLexItem &operator=(const tItem &li)
   {
-    throw tError("unexpected call to assignment operator of lex_item");
+    throw tError("unexpected call to assignment operator of tLexItem");
   }
 
-  lex_item(const lex_item &li)
+  tLexItem(const tLexItem &li)
   {
-    throw tError("unexpected call to copy constructor of lex_item");
+    throw tError("unexpected call to copy constructor of tLexItem");
   }
 
   virtual void print(FILE *f, bool compact = false);
@@ -309,7 +309,7 @@ class lex_item : public item
 
   virtual void daughter_ids(list<int> &ids);
   // Collect all (transitive) children. Uses frosting mechanism.
-  virtual void collect_children(list<item *> &result);
+  virtual void collect_children(list<tItem *> &result);
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
@@ -337,14 +337,14 @@ class lex_item : public item
 
   bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
 
-  friend bool same_lexitems(const lex_item &a, const lex_item &b);
+  friend bool same_lexitems(const tLexItem &a, const tLexItem &b);
 
   virtual int identity()
   {
       return _dtrs[_keydtr]->identity();
   }
 
-  virtual list<item *> unpack1(int limit);
+  virtual list<tItem *> unpack1(int limit);
 
  private:
   int _ndtrs, _keydtr;
@@ -353,12 +353,12 @@ class lex_item : public item
   fs _fs_full; // unrestricted (packing) structure
 };
 
-class phrasal_item : public item
+class tPhrasalItem : public tItem
 {
  public:
-  phrasal_item(class grammar_rule *, class item *, fs &);
-  phrasal_item(class phrasal_item *, class item *, fs &);
-  phrasal_item(class phrasal_item *, vector<class item *> &, fs &);
+  tPhrasalItem(class grammar_rule *, class tItem *, fs &);
+  tPhrasalItem(class tPhrasalItem *, class tItem *, fs &);
+  tPhrasalItem(class tPhrasalItem *, vector<class tItem *> &, fs &);
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f);
@@ -368,7 +368,7 @@ class phrasal_item : public item
 
   virtual void daughter_ids(list<int> &ids);
   // Collect all (transitive) children. Uses frosting mechanism.
-  virtual void collect_children(list<item *> &result);
+  virtual void collect_children(list<tItem *> &result);
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
@@ -387,15 +387,15 @@ class phrasal_item : public item
       else
           return 0;
   }
-  virtual list<item *> unpack1(int limit);
-  void unpack_cross(vector<list<item *> > &dtrs,
-                    int index, vector<item *> &config,
-                    list<item *> &res);
-  item *unpack_combine(vector<item *> &config);
+  virtual list<tItem *> unpack1(int limit);
+  void unpack_cross(vector<list<tItem *> > &dtrs,
+                    int index, vector<tItem *> &config,
+                    list<tItem *> &res);
+  tItem *unpack_combine(vector<tItem *> &config);
 
  private:
-  list<item *> _daughters;
-  item * _adaughter;
+  list<tItem *> _daughters;
+  tItem * _adaughter;
   grammar_rule *_rule;
 
   friend class active_and_passive_task;
@@ -409,7 +409,7 @@ public:
     greater_than_score(tSM *sm)
         : _sm(sm) {}
 
-    bool operator() (item *i, item *j)
+    bool operator() (tItem *i, tItem *j)
     {
         return i->score(_sm) > j->score(_sm);
     }
@@ -425,15 +425,15 @@ class item_owner
   item_owner() {}
   ~item_owner()
     {
-      for(list<item *>::iterator curr = _list.begin(); 
+      for(list<tItem *>::iterator curr = _list.begin(); 
 	  curr != _list.end(); 
 	  ++curr)
 	delete *curr;
-      item::reset_ids();
+      tItem::reset_ids();
     }
-  void add(item *it) { _list.push_back(it); }
+  void add(tItem *it) { _list.push_back(it); }
  private:
-  list<item *> _list;
+  list<tItem *> _list;
 };
 
 #endif

@@ -29,11 +29,11 @@
 
 int basic_task::next_id = 0;
 
-item *
-build_combined_item(chart *C, item *active, item *passive);
+tItem *
+build_combined_item(chart *C, tItem *active, tItem *passive);
 
-item *
-build_rule_item(chart *C, tAgenda *A, grammar_rule *R, item *passive)
+tItem *
+build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
 {
     fs_alloc_state FSAS(false);
     
@@ -83,25 +83,25 @@ build_rule_item(chart *C, tAgenda *A, grammar_rule *R, item *passive)
     {
         stats.stasks++;
         
-        phrasal_item *it;
+        tPhrasalItem *it;
         
         if(temporary)
 	{
             temporary_generation save(res.temp());
-            it = new phrasal_item(R, passive, res);
+            it = new tPhrasalItem(R, passive, res);
             FSAS.release();
 	}
         else
 	{
-            it = new phrasal_item(R, passive, res);
+            it = new tPhrasalItem(R, passive, res);
 	}
         
         return it;
     }
 }
 
-item *
-build_combined_item(chart *C, item *active, item *passive)
+tItem *
+build_combined_item(chart *C, tItem *active, tItem *passive)
 {
     fs_alloc_state FSAS(false);
     
@@ -155,18 +155,18 @@ build_combined_item(chart *C, item *active, item *passive)
     {
         stats.stasks++;
         
-        phrasal_item *it;
+        tPhrasalItem *it;
         
         if(temporary)
 	{
             temporary_generation save(res.temp());
-            it = new phrasal_item(dynamic_cast<phrasal_item *>(active),
+            it = new tPhrasalItem(dynamic_cast<tPhrasalItem *>(active),
                                   passive, res);
             FSAS.release();
 	}
         else
 	{
-            it = new phrasal_item(dynamic_cast<phrasal_item *>(active),
+            it = new tPhrasalItem(dynamic_cast<tPhrasalItem *>(active),
                                   passive, res);
 	}
         
@@ -182,7 +182,7 @@ double packingscore(int start, int end, int n, bool active)
   //    - (active ? 0.0 : double(end - start) / n) ;
 }
 
-item_task::item_task(class chart *C, class tAgenda *A, item *it)
+item_task::item_task(class chart *C, class tAgenda *A, tItem *it)
     : basic_task(C, A), _item(it)
 {
     if(opt_packing)
@@ -191,10 +191,10 @@ item_task::item_task(class chart *C, class tAgenda *A, item *it)
       priority(it->score());
 }
 
-item *
+tItem *
 item_task::execute()
 {
-    // There should be no way this item (which must be a lex_item)
+    // There should be no way this item (which must be a tLexItem)
     // has been blocked.
     assert(!(opt_packing && _item->blocked()));
 
@@ -202,7 +202,7 @@ item_task::execute()
 }
 
 rule_and_passive_task::rule_and_passive_task(class chart *C, class tAgenda *A,
-                                             grammar_rule *R, item *passive)
+                                             grammar_rule *R, tItem *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
     if(opt_packing)
@@ -212,32 +212,32 @@ rule_and_passive_task::rule_and_passive_task(class chart *C, class tAgenda *A,
     }
     else if(Grammar->sm())
     {
-        list<item *> daughters;
+        list<tItem *> daughters;
         daughters.push_back(passive);
 
         priority(Grammar->sm()->scoreLocalTree(R, daughters));
     }
 }
 
-item *
+tItem *
 rule_and_passive_task::execute()
 {
     if(opt_packing && _passive->blocked())
         return 0;
     
-    item *result = build_rule_item(_Chart, _A, _R, _passive);
+    tItem *result = build_rule_item(_Chart, _A, _R, _passive);
     if(result) result->score(priority());
     return result;
 }
 
 active_and_passive_task::active_and_passive_task(class chart *C,
                                                  class tAgenda *A,
-                                                 item *act, item *passive)
+                                                 tItem *act, tItem *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {
     if(opt_packing)
     {
-        phrasal_item *active = dynamic_cast<phrasal_item *>(act); 
+        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
         if(active->left_extending())
             priority(packingscore(passive->start(), active->end(),
                                   C->rightmost(), false));
@@ -247,9 +247,9 @@ active_and_passive_task::active_and_passive_task(class chart *C,
     }
     else if(Grammar->sm())
     {
-        phrasal_item *active = dynamic_cast<phrasal_item *>(act); 
+        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
 
-        list<item *> daughters(active->_daughters);
+        list<tItem *> daughters(active->_daughters);
 
         if(active->left_extending())
             daughters.push_front(passive);
@@ -260,13 +260,13 @@ active_and_passive_task::active_and_passive_task(class chart *C,
     }
 }
 
-item *
+tItem *
 active_and_passive_task::execute()
 {
     if(opt_packing && (_passive->blocked() || _active->blocked()))
         return 0;
     
-    item *result = build_combined_item(_Chart, _active, _passive);
+    tItem *result = build_combined_item(_Chart, _active, _passive);
     if(result) result->score(priority());
     return result;
 }
