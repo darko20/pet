@@ -440,11 +440,15 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
         stats.readings = stats.trees;
         Chart->readings() = Chart->trees();
     }
+
+    // _fix_me_ need to redesign this
+#if 0
     if(Grammar->sm())
     {
         sort(Chart->readings().begin(), Chart->readings().end(),
              greater_than_score(Grammar->sm()));
     }
+#endif
 }
 
 void

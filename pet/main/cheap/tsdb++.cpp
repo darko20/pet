@@ -551,7 +551,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 if(Grammar->sm())
                 {
                     R.scored = true;
-                    R.score = (*iter)->score(Grammar->sm());
+                    R.score = (*iter)->score();
                 }
                 if(opt_tsdb == 1)
                     R.derivation = (*iter)->tsdb_derivation(opt_tsdb);

@@ -259,7 +259,7 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
                                     ndtrs, keydtr, dtrs, f,
                                     _form.description().c_str());
 
-        it->priority(dtrs[keydtr]->priority());
+        it->score(dtrs[keydtr]->priority());
 
         if(contains(result, it))
         {

@@ -81,6 +81,15 @@ class tSM
     G()
     { return _G; }
 
+    virtual double
+    scoreLocalTree(class grammar_rule *, list<class item *>);
+
+    virtual double
+    scoreLeaf(class lex_item *);
+
+    class tSMMap *map()
+    { return _map; }
+
     /** Return a description string suitable for printing.*/
     virtual string
     description() = 0;
@@ -96,6 +105,8 @@ class tSM
 
     class grammar *_G;
     char *_fileName;
+
+    class tSMMap *_map;
 };
 
 /** A Maximum Entropy model.
@@ -130,7 +141,6 @@ class tMEM : public tSM
  private:
     
     vector<double> _weights;
-    class tSMMap *_map;
 
     /** Number of contexts this model was trained on. For reporting
         purposes only. */

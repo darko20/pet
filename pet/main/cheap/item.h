@@ -166,6 +166,11 @@ class item
           recreate_fs();
       return _fs;
   }
+
+  virtual type_t type()
+  {
+      return get_fs().type();
+  }
   
   inline int nextarg() { return first(_tofill); }
   inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
@@ -205,12 +210,19 @@ class item
 
   virtual void recreate_fs() = 0;
 
-  inline double priority() { return _p; }
-
-  inline void priority(double p) { _p = p; }
-
   virtual int identity() = 0;
-  virtual double score(tSM *) = 0;
+
+  double
+  score()
+  {
+      return _score;
+  }
+
+  void
+  score(double score)
+  {
+      _score = score; 
+  }
 
   void block(int mark);
   inline void frost() { block(1); }
@@ -254,9 +266,6 @@ class item
 
   type_t *_qc_vector;
 
-  double _p;
-  
-  tSM *_score_model;
   double _score;
 
   const string _printname;
@@ -313,6 +322,11 @@ class lex_item : public item
       return full ? _fs_full : _fs;
   }
 
+  virtual type_t type()
+  {
+      return leaftype_parent(get_fs().type());
+  }
+
   virtual void recreate_fs();
 
   string description();
@@ -336,8 +350,6 @@ class lex_item : public item
   {
       return _dtrs[_keydtr]->identity();
   }
-
-  virtual double score(tSM *);
 
   virtual list<item *> unpack1(int limit);
 
@@ -386,8 +398,6 @@ class phrasal_item : public item
       else
           return 0;
   }
-  virtual double score(tSM *);
-
   virtual list<item *> unpack1(int limit);
   void unpack_cross(vector<list<item *> > &dtrs,
                     int index, vector<item *> &config,
@@ -402,6 +412,8 @@ class phrasal_item : public item
   friend class active_and_passive_task;
 };
 
+// _fix_me_
+#if 0
 class greater_than_score
 {
 public:
@@ -415,6 +427,7 @@ public:
  private:
     tSM *_sm;
 };
+#endif
 
 class item_owner
 // allow proper release of memory
