@@ -115,7 +115,7 @@ acceptable.  Do NOT use for cryptographic purposes.
 --------------------------------------------------------------------
 */
 
-ub4 hash(const ub1 *k, register ub4 length, register ub4 initval)
+ub4 bjhash(const ub1 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 
@@ -169,7 +169,7 @@ ub4 hash(const ub1 *k, register ub4 length, register ub4 initval)
  -- that the length be the number of ub4's in the key
 --------------------------------------------------------------------
 */
-ub4 hash2(const ub4 *k, register ub4 length, register ub4 initval)
+ub4 bjhash2(const ub4 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 
@@ -212,7 +212,7 @@ ub4 hash2(const ub4 *k, register ub4 length, register ub4 initval)
 --------------------------------------------------------------------
 */
 
-ub4 hash3(const ub1 *k, register ub4 length, register ub4 initval)
+ub4 bjhash3(const ub1 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 
@@ -270,7 +270,7 @@ ub4 hash3(const ub1 *k, register ub4 length, register ub4 initval)
 
 /** Same as hash2 above, but on a vector<int>
  */
-ub4 hash2(const std::vector<int> &k, ub4 initval)
+ub4 bjhash2(const std::vector<int> &k, ub4 initval)
 {
    register ub4 a,b,c,len,offset;
 

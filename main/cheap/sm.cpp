@@ -30,7 +30,7 @@
 int
 tSMFeature::hash() const
 {
-    return hash2(_v, 0);
+	return ::bjhash2(_v, 0);
 }
 
 void
@@ -84,7 +84,7 @@ namespace HASH_SPACE {
     {
         inline size_t operator()(const string &key) const
         {
-            return ::hash((const ub1 *) key.data(), key.size(), 0);
+            return ::bjhash((const ub1 *) key.data(), key.size(), 0);
         }
     };
 }
