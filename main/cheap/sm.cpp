@@ -21,15 +21,124 @@
 
 #include "sm.h"
 
+class tSMFeature
+{
+ public:
+    tSMFeature(const vector<int> &v)
+        : _v(v)
+    {}
 
-/** Maintains a mapping between features and feature ids.
+    int
+    hash() const;
+    
+ private:
+    vector<int> _v;
+    
+    friend int
+    compare(const tSMFeature &f1, const tSMFeature &f2);
+    friend bool
+    operator<(const tSMFeature &, const tSMFeature&);
+    friend bool
+    operator==(const tSMFeature &, const tSMFeature&);
+};
+
+int
+tSMFeature::hash() const
+{
+    int k = 0;
+    for(vector<int>::const_iterator it = _v.begin();
+        it != _v.end(); ++it)
+    {
+        k += *it;
+    }
+
+    return k;
+}
+
+inline int
+compare(const tSMFeature &f1, const tSMFeature &f2)
+{
+    unsigned int i = 0;
+    while(i < f1._v.size() && i < f2._v.size())
+    {
+        if(f1._v[i] < f2._v[i])
+            return -1;
+        else if(f1._v[i] > f2._v[i])
+            return +1;
+        i++;
+    }
+    if(f1._v.size() < f2._v.size())
+        return -1;
+    else if(f1._v.size() > f2._v.size())
+        return +1;
+    else
+        return 0;
+}
+
+inline bool
+operator<(const tSMFeature& a, const tSMFeature &b)
+{ return compare(a, b) == -1; }
+
+inline bool
+operator==(const tSMFeature& a, const tSMFeature &b)
+{ return compare(a, b) == 0; }
+
+namespace HASH_SPACE {
+    template<> struct hash<tSMFeature>
+    {
+        inline size_t operator()(const tSMFeature &key) const
+        {
+            return key.hash();
+        }
+    };
+}
+
+/** Maintains a mapping between symbols (features) and codes.
  *  
  */
 class tSMMap
 {
+ public:
+    tSMMap()
+        : _n(0)
+    {};
 
+    int
+    symbolToCode(const tSMFeature &symbol);
 
+    tSMFeature
+    codeToSymbol(int code) const;
+
+ private:
+    int _n;
+    vector<tSMFeature> _codeToSymbol;
+    hash_map<tSMFeature, int> _symbolToCode;
 };
+
+int
+tSMMap::symbolToCode(const tSMFeature &symbol)
+{
+    hash_map<tSMFeature, int>::iterator itMatch = _symbolToCode.find(symbol);
+    if(itMatch != _symbolToCode.end())
+    {
+        return itMatch->second;
+    }
+    else
+    {
+        _codeToSymbol.push_back(symbol);
+        return _symbolToCode[symbol] = _n++;
+    }
+}
+
+tSMFeature
+tSMMap::codeToSymbol(int code) const
+{
+    if(code >= 0 && code < _n)
+        return _codeToSymbol[code];
+    else
+        return vector<int>();
+}
+
 
 tSM::tSM(grammar *G, const char *fileName, const char *basePath)
     : _G(G), _fileName(0)
@@ -86,13 +195,15 @@ tSM::findFile(const char *fileName, const char *basePath)
 }
 
 tMEM::tMEM(grammar *G, const char *fileNameIn, const char *basePath)
-    : tSM(G, fileNameIn, basePath)
+    : tSM(G, fileNameIn, basePath), _map(0)
 {
+    _map = new tSMMap();
     readModel(fileName());
 }
 
 tMEM::~tMEM()
 {
+    delete _map;
 }
 
 void
@@ -213,22 +324,60 @@ tMEM::parseFeatures(int nFeatures)
 void
 tMEM::parseFeature(int n)
 {
-    fprintf(fstatus, "\n[%d]", n);
+    if(verbosity > 4)
+        fprintf(fstatus, "\n[%d]", n);
 
     match(T_LBRACKET, "begin of feature vector", true);
- 
+
+    vector<int> v;
     char *tmp;
+    bool good = true;
     while(LA(0)->tag != T_RBRACKET && LA(0)->tag != T_EOF)
     {
         tmp = match(T_ID, "feature vector", false);
-        fprintf(fstatus, " %s", tmp);
+        if(verbosity > 4)
+            fprintf(fstatus, " %s", tmp);
+        
+        char *endptr;
+        int t = strtol(tmp, &endptr, 10);
+        if(endptr == 0 || *endptr != 0)
+        {
+            char *inst = (char *) malloc(strlen(tmp)+2);
+            strcpy(inst, "$");
+            strcat(inst, tmp);
+            t = lookup_type(inst);
+            if(t == -1)
+                t = lookup_type(inst+1);
+            free(inst);
+            
+            if(t == -1)
+            {
+                fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
+                        tmp, n);
+                good = false;
+            }
+        }
+        v.push_back(t);
+
         free(tmp);
     }
 
     match(T_RBRACKET, "end of feature vector", true);
     
     tmp = match(T_ID, "feature weight", false);
-    fprintf(fstatus, ": %s", tmp);
+    // _fix_me_
+    // check syntax of number
+    double w = strtod(tmp, NULL);
+    if(verbosity > 4)
+        fprintf(fstatus, ": %g", w);
+
+    if(good)
+    {
+        int code = _map->symbolToCode(v);
+        if(verbosity > 4)
+            fprintf(fstatus, " (code %d)\n", code);
+    }
+
     free(tmp);
 }
 
