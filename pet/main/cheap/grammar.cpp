@@ -561,14 +561,14 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
     
     for(int i = 0; i < ntypes; i++)
     {
-        if(i == qc_inst_unif)
+        if(qc_inst_unif != 0 && i == qc_inst_unif)
         {
             if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
                                       printnames[qc_inst_unif]);
             qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
             dag = 0;
         }
-        else if(i == qc_inst_subs)
+        else if(qc_inst_subs && i == qc_inst_subs)
         {
             if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
                                       printnames[qc_inst_subs]);
