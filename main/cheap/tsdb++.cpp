@@ -232,11 +232,11 @@ cheap_tsdb_summarize_run(void)
 
 }
 
-int nprocessed = 0;
+static int nprocessed = 0;
 
 int
 cheap_process_item(int i_id, char *i_input, int parse_id, 
-                   int edges, int exhaustive, 
+                   int edges, int nanalyses, 
                    int nderivations, int interactive)
 {
     struct timeval tA, tB; int treal = 0;
@@ -250,12 +250,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         
         pedgelimit = edges;
         // _fix_me_
-#if 0
-        if(exhaustive)
-            opt_nsolutions = 0;
-        else
-            opt_nsolutions = 1;
-#endif
+        opt_nsolutions = nanalyses;
         
         gettimeofday(&tA, NULL);
 
