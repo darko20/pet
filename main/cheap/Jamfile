@@ -2,10 +2,10 @@ UNIFIER = tomabechi ;
 YY = true ;
 
 TSDB = true ;
-ITSDBDIR = /project/cl/systems/lkb ;
+ITSDBDIR = /home/uc/src/lkb ;
 
 ICU = true ;
-ICUDIR = /project/cl/deepthought/local/ ;
+ICUDIR = /opt ; 
 
 CC = gcc ;
 C++ = g++ ;
@@ -59,7 +59,7 @@ if $(ICU) = true
 
 if $(YY) = true
 {
-  CHEAPSOURCES += k2y.cpp yy.cpp ;
+  CHEAPSOURCES += yy.cpp ;
   C++FLAGS += -DYY ;
 }
 
