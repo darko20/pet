@@ -229,7 +229,7 @@ public:
     _id = req_string_attr(attr, "id");
     _cstart = req_int_attr(attr, "cstart");
     _cend = req_int_attr(attr, "cend");
-    _constant = req_bool_attr(attr, "constant");
+    _constant = opt_bool_attr(attr, "constant", false);
     _prio = opt_double_attr(attr, "prio", 0.0);
   }
   /**
@@ -393,7 +393,7 @@ private:
   inline void get_attributes(AttributeList& attr) {
     _id = req_string_attr(attr, "id");
     // baseform == yes means: this is a stem (base form), not a type name
-    _base = req_bool_attr(attr, "baseform");
+    _base = opt_bool_attr(attr, "baseform", true);
     _prio = opt_double_attr(attr, "prio", 0.0);
   }
 
