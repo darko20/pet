@@ -210,28 +210,25 @@ item *build_combined_item(chart *C, item *active, item *passive)
 
 item *item_task::execute()
 {
-#ifdef PACKING
-  if(_item->frozen())
+  if(opt_packing && _item->frozen())
     return 0;
-#endif
+
   return _item;
 }
 
 item *rule_and_passive_task::execute()
 {
-#ifdef PACKING
-  if(_passive->frozen())
+  if(opt_packing && _passive->frozen())
     return 0;
-#endif
+
   return build_rule_item(_C, _A, _R, _passive);
 }
 
 item *active_and_passive_task::execute()
 {
-#ifdef PACKING
-  if(_passive->frozen() || _active->frozen())
+  if(opt_packing && (_passive->frozen() || _active->frozen()))
     return 0;
-#endif
+
   return build_combined_item(_C, _active, _passive);
 }
 

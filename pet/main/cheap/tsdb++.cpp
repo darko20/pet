@@ -64,6 +64,13 @@ void statistics::reset()
   unify_cost_succ = 0;
   unify_cost_fail = 0;
 
+  p_trees = 0;
+  p_equivalent = 0;
+  p_proactive = 0;
+  p_retroactive = 0;
+  p_frozen = 0;
+  p_failures = 0;
+
   // rule stuff
   for(rule_iter rule(Grammar); rule.valid(); rule++)
     {
@@ -83,7 +90,9 @@ void statistics::print(FILE *f)
 	   "dyn_bytes: %ld\n"
 	   "stat_bytes: %ld\n"
 	   "cycles: %d\nfssize: %d\n"
-	   "unify_cost_succ: %d\nunify_cost_fail: %d\n",
+	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
+           "trees: %d\nequivalent: %d\nproactive: %d\nretroactive: %d\n"
+           "frozen: %d\nfailures: %d\n",
 	   id, readings, words, words_pruned, first, tcpu,
 	   ftasks_fi, ftasks_qc, etasks, stasks,
 	   aedges, pedges, raedges, rpedges,
@@ -92,7 +101,9 @@ void statistics::print(FILE *f)
 	   dyn_bytes,
 	   stat_bytes,
 	   cycles, fssize,
-	   unify_cost_succ, unify_cost_fail
+	   unify_cost_succ, unify_cost_fail,
+           p_trees, p_equivalent, p_proactive, p_retroactive,
+           p_frozen, p_failures
 	   );
 }
 

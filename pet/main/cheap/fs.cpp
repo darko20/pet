@@ -321,14 +321,19 @@ void subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
   dag_subsumes(a._dag, b._dag, forward, backward);
 }
 
-#ifdef PACKING
-fs packing_partial_copy(const fs &a)
+fs
+packing_partial_copy(const fs &a, list_int *del, bool perm)
 {
-  fs res(dag_partial_copy(a._dag, lookup_attr("CONT")));
-  dag_invalidate_changes();
-  return res;
+    struct dag_node *res = dag_partial_copy(a._dag, del);
+    dag_invalidate_changes();
+    if(perm)
+    {
+        res = dag_full_p_copy(res);
+        dag_invalidate_changes();
+        return res;
+    }
+    return res;
 }
-#endif
 
 bool compatible(const fs &a, const fs &b)
 {

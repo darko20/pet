@@ -66,6 +66,14 @@ class statistics
   int unify_cost_succ;
   int unify_cost_fail;
 
+  // for packing
+  int p_trees;
+  int p_equivalent;
+  int p_proactive;
+  int p_retroactive;
+  int p_frozen;
+  int p_failures;
+
   void reset();
   void print(FILE *f);
 };

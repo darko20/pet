@@ -180,9 +180,7 @@ fundamental_for_active(phrasal_item *active)
         // avoid processing tasks already done in the `excursion'
         for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
             if(it.current()->stamp() > active->done())
-#ifdef PACKING
-                if(it.current()->frozen() == 0)
-#endif
+                if(opt_packing == 0 || it.current()->frozen() == 0)
                     if(it.current()->compatible(active, Chart->rightmost()))
                         if(filter_combine_task(active, it.current()))
                             Agenda->push(New
@@ -192,9 +190,7 @@ fundamental_for_active(phrasal_item *active)
     else
     {
         for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
-#ifdef PACKING
-            if(it.current()->frozen() == 0)
-#endif
+            if(opt_packing == 0 || it.current()->frozen() == 0)
                 if(it.current()->compatible(active, Chart->rightmost()))
                     if(filter_combine_task(active, it.current()))
                         Agenda->push(New
@@ -203,23 +199,26 @@ fundamental_for_active(phrasal_item *active)
     }
 }
 
-#ifdef PACKING
-
 void
 block(item *it, int mark)
 {
-    fprintf(ferr, "%sing ", mark == 1 ? "frost" : "freez");
-    it->print(ferr);
-    fprintf(ferr, "\n");
-
+    if(verbosity > 4)
+    {
+        fprintf(ferr, "%sing ", mark == 1 ? "frost" : "freez");
+        it->print(ferr);
+        fprintf(ferr, "\n");
+    }
+        
     if(it->passive() && (it->frozen() == 0 || mark == 2))
     {
+        if(mark == 2) 
+            stats.p_frozen++;
+
         it->freeze(mark);
-        if(it->frozen() == 0)
-            Chart->pedges()--;
     }  
 
-    for(list<item *>::iterator parent = it->parents.begin(); parent != it->parents.end(); ++parent)
+    for(list<item *>::iterator parent = it->parents.begin();
+        parent != it->parents.end(); ++parent)
     {
       block(*parent, 2);
     }
@@ -245,12 +244,20 @@ packed_edge(item *newitem)
 
         if(forward && olditem->frozen() == 0)
         {
-            fprintf(ferr, "proactive (%s) packing:\n", backward
-                    ? "equi" : "subs");
-            newitem->print(ferr);
-            fprintf(ferr, " -> ");
-            olditem->print(ferr);
-            fprintf(ferr, "\n");
+            if(verbosity > 4)
+            {
+                fprintf(ferr, "proactive (%s) packing:\n", backward
+                        ? "equi" : "subs");
+                newitem->print(ferr);
+                fprintf(ferr, " -> ");
+                olditem->print(ferr);
+                fprintf(ferr, "\n");
+            }
+
+            if(backward)
+              stats.p_equivalent++;
+            else
+              stats.p_proactive++;
 
             olditem->packed.push_back(newitem);
             return true;
@@ -258,12 +265,17 @@ packed_edge(item *newitem)
       
         if(backward)
         {
-            fprintf(ferr, "retroactive packing:\n");
-            newitem->print(ferr);
-            fprintf(ferr, " <- ");
-            olditem->print(ferr);
-            fprintf(ferr, "\n");
-	  
+            if(verbosity > 4)
+            {
+                fprintf(ferr, "retroactive packing:\n");
+                newitem->print(ferr);
+                fprintf(ferr, " <- ");
+                olditem->print(ferr);
+                fprintf(ferr, "\n");
+            }
+
+            stats.p_retroactive++;
+
 	    newitem->packed.splice(newitem->packed.begin(), olditem->packed);
             olditem->packed = list<item *>();
 
@@ -277,8 +289,6 @@ packed_edge(item *newitem)
     }
     return false;
 }
-
-#endif
 
 bool
 add_root(item *it)
@@ -311,15 +321,16 @@ add_root(item *it)
 void
 add_item(item *it)
 {
-#ifdef PACKING
-    if(it->frozen())
+    if(opt_packing && it->frozen())
     {
-        fprintf(ferr, "ignoring ");
-        it->print(ferr);
-        fprintf(ferr, "\n");
+        if(verbosity > 4)
+        {
+            fprintf(ferr, "ignoring ");
+            it->print(ferr);
+            fprintf(ferr, "\n");
+        }
         return;
     }
-#endif
 
 #ifdef DEBUG
     fprintf(ferr, "add_item ");
@@ -339,10 +350,9 @@ add_item(item *it)
 
     if(it->passive())
     {
-#ifdef PACKING
-        if(packed_edge(it))
+        if(opt_packing && packed_edge(it))
             return;
-#endif
+
         Chart->add(it);
 
         type_t rule;
