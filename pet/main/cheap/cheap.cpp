@@ -125,9 +125,9 @@ writeSuperTagged(FILE *fTagged, FILE *fData, chart *Chart, int nderivations)
                     if(n > 1)
                     {
                         // This is part of a multi word
-                        char tmp[42];
-                        sprintf(tmp, "-%d", i);
-                        thisTag += string(tmp);
+                        ostringstream tmp;
+                        tmp << "-" << i;
+                        thisTag += tmp.str();
                     }
                     else
                     {
@@ -143,9 +143,9 @@ writeSuperTagged(FILE *fTagged, FILE *fData, chart *Chart, int nderivations)
                                 (n / MAX_WORDS_PER_TAG) + 1;
                         }
 
-                        char tmp[42];
-                        sprintf(tmp, "-%d", overflowMap[wordPlusTag]);
-                        thisTag += string(tmp);
+                        ostringstream tmp;
+                        tmp << "-" << overflowMap[wordPlusTag];
+                        thisTag += tmp.str();
                     }
                         
                     supertagMap[thisTag].insert(*itWord);

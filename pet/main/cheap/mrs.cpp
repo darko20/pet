@@ -615,9 +615,9 @@ mrs_hcons::mrs_hcons(mrs *m, fs f)
         int lhs = m->id(sc_arg);
         int rhs = m->id(outscpd);
         if(rhs == m->top()) {
-          char foo[128];
-          sprintf(foo, "MRS top handle (h%d) outscoped by h%d", rhs, lhs);
-          throw error(foo);
+            ostringstream desc;
+            desc << "MRS top handle (h" << rhs << ") outscoped by h" << lhs;
+          throw error(desc.str());
         } /* if */
         _dict[lhs] =  rhs;
 

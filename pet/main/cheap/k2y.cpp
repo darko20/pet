@@ -61,11 +61,11 @@ public:
   {
     ++_depth;
     if(_depth > K2Y_MAX_DEPTH)
-      {
-	char foo[128];
-	sprintf(foo, "apparently circular K2Y (depth %d)", _depth);
-	throw error(foo);
-      }
+    {
+        ostringstream desc;
+        desc << "apparently circular K2Y (depth " << _depth << ")";
+	throw error(desc.str());
+    }
   }
   ~K2YSafeguard()
   {
@@ -96,10 +96,10 @@ void new_k2y_object(mrs_rel &r, k2y_role role, int clause,
   nrelations++;
 
   if(nrelations > MAXIMUM_NUMBER_OF_RELS)
-    {
-      char foo[128];
-      sprintf(foo, "apparently circular K2Y (%d relation(s))", nrelations);
-      throw error(foo);
+  {
+      ostringstream desc;
+      desc << "apparently circular K2Y (" << nrelations << " relation(s))";
+      throw error(desc.str());
     }
 
   if(!r.labels().empty())

@@ -17,7 +17,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* defines classes representing errors - used in exceptions */
+/* defines class representing errors - used in exceptions */
 
 #ifndef _ERROR_H_
 #define _ERROR_H_
@@ -37,22 +37,6 @@ class error
 
  private:
   string _msg;
-};
-
-class error_ressource_limit : public error
-{
- public:
-  error_ressource_limit(string limit, int v);
-
-  virtual string msg();
-  virtual void print(FILE *f);
-#ifdef TSDBAPI
-  virtual void tsdb_print();
-#endif
-
- private:
-  string _lim;
-  int _val;
 };
 
 #endif

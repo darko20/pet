@@ -245,12 +245,11 @@ tMEM::~tMEM()
 string
 tMEM::description()
 {
-    string desc;
-    ostringstream os(desc);
-    os << "MEM[" << string(fileName()) << "] "
-       << _weights.size() << "/" << _ctxts;
+    ostringstream desc;
+    desc << "MEM[" << string(fileName()) << "] "
+         << _weights.size() << "/" << _ctxts;
 
-    return desc;
+    return desc.str();
 }
 
 void
