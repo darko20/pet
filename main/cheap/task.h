@@ -32,14 +32,18 @@ class basic_task
 {
  public:
     static int next_id;
-    basic_task(class chart *C, class agenda *A) 
+
+    inline basic_task(class chart *C, class agenda *A) 
         : _id(next_id++), _C(C), _A(A), _p(0.0)
     {}
 
-    virtual item *execute() = 0;
+    virtual item * execute() = 0;
     
-    inline double priority() const { return _p; }
-    inline void priority(double p) { _p = p; }
+    inline double priority() const
+    { return _p; }
+    
+    inline void priority(double p)
+    { _p = p; }
 
     virtual void print(FILE *f);
 
@@ -49,7 +53,6 @@ class basic_task
     class chart *_C;
     class agenda *_A;
   
-    // priority
     double _p;
     
     friend class task_priority_less;
@@ -58,13 +61,10 @@ class basic_task
 class item_task : public basic_task
 {
  public:
-    inline item_task(class chart *C, class agenda *A, item *it)
-        : basic_task(C, A), _item(it)
-    {
-        priority(it->score());
-    }
+    item_task(class chart *C, class agenda *A, item *it);
     
     virtual item *execute();
+
  private:
     item *_item;
 };
@@ -72,15 +72,8 @@ class item_task : public basic_task
 class rule_and_passive_task : public basic_task
 {
  public:
-    inline rule_and_passive_task(class chart *C, class agenda *A,
-                                 grammar_rule *R, item *passive)
-        : basic_task(C, A), _R(R), _passive(passive)
-    {
-
-        list<item *> daughters;
-        daughters.push_back(passive);
-        priority(Grammar->sm()->scoreLocalTree(R, daughters));
-    }
+    rule_and_passive_task(class chart *C, class agenda *A,
+                          grammar_rule *R, item *passive);
     
     virtual item *execute();
     virtual void print(FILE *f);
@@ -93,16 +86,12 @@ class rule_and_passive_task : public basic_task
 class active_and_passive_task : public basic_task
 {
  public:
-    inline active_and_passive_task(class chart *C, class agenda *A,
-                                   item *active, item *passive)
-        : basic_task(C, A), _active(active), _passive(passive)
-    {
-        list<item *> daughters(dynamic_cast<phrasal_item *>(active)->
-                               _daughters);
-        daughters.push_back(passive);
-        priority(Grammar->sm()->scoreLocalTree(active->rule(), daughters));
-    }
+    active_and_passive_task(class chart *C, class agenda *A,
+                            item *active, item *passive);
+
     virtual item *execute();
+    virtual void print(FILE *f);
+
  private:
     item *_active;
     item *_passive;

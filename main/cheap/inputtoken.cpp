@@ -67,14 +67,14 @@ input_token::description()
 
 void
 input_token::print_derivation(FILE *f, bool quoted,
-                              int id, double p,
+                              int id, type_t letype, double p,
                               list_int *inflrs_todo, string orth)
 {
     int start = _start; 
     int end = _end;
 
-    fprintf (f, "(%d %s %.2f %d %d ", id, _form.stemprintname(),
-             p, start, end);
+    fprintf (f, "(%d %s/%s %.2f %d %d ", id, _form.stemprintname(),
+             printnames[letype], p, start, end);
 
     fprintf(f, "[");
     for(list_int *l = inflrs_todo; l != 0; l = rest(l))
@@ -258,8 +258,6 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
         lex_item *it = New lex_item(start, end, _paths, 
                                     ndtrs, keydtr, dtrs, f,
                                     _form.description().c_str());
-
-        it->score(dtrs[keydtr]->priority());
 
         if(contains(result, it))
         {

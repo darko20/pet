@@ -256,6 +256,9 @@ tSM::scoreLocalTree(grammar_rule *R, list<item *> dtrs)
 
     tSMFeature f(v);
 
+    //    f.print(stderr);
+    // fprintf(ferr, " -> %.2f\n", score(f));
+
     return combineScores(total, score(f));
 }
 
@@ -265,6 +268,7 @@ tSM::scoreLeaf(lex_item *it)
     vector<int> v;
     v.push_back(map()->intToSubfeature(1));
     v.push_back(map()->typeToSubfeature(it->type()));
+    v.push_back(map()->stringToSubfeature(it->orth()));
 
     return score(tSMFeature(v));
 }

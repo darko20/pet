@@ -39,7 +39,7 @@ class lex_stem
 {
  public:
 
-  lex_stem(type_t t, const modlist &mods = modlist(), const list<string> &orths = list<string>(), int discount = 0);
+  lex_stem(type_t t, const modlist &mods = modlist(), const list<string> &orths = list<string>());
   lex_stem(const lex_stem &le);
   ~lex_stem();
 
@@ -53,7 +53,6 @@ class lex_stem
   inline int type() const { return _type; }
   inline int length() const { return _nwords; }
   inline int inflpos() const { return _nwords - 1; }
-  inline int priority() const { return _p; }
 
   inline const char *orth(int i) const { return _orth[i]; }
   
@@ -70,8 +69,6 @@ class lex_stem
 
   int _nwords;      // length of _orth
   char **_orth;     // array of _nwords strings
-
-  int _p;           // priority
 
   vector<string> get_stems();
 
@@ -157,11 +154,6 @@ class full_form
     return orth(offset());
   }
 
-  inline int priority()
-  {
-    if(valid()) return _stem->priority(); else return 0;
-  }
-
   list_int *affixes() { return _affixes; }
 
   const char *stemprintname()
@@ -213,7 +205,6 @@ class grammar_rule
 
   inline type_t *qc_vector(int arg) { return _qc_vector[arg - 1]; }
 
-  inline int priority(int def) { return _p == 0 ? def : _p ; }
   inline bool hyperactive() { return _hyper; }
   inline bool spanningonly() { return _spanningonly; }
 
@@ -233,8 +224,6 @@ class grammar_rule
   
   type_t **_qc_vector;
   void init_qc_vector();
-
-  int _p;           // priority
 
   bool _hyper;
   bool _spanningonly;

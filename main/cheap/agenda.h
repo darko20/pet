@@ -27,21 +27,32 @@
 class agenda
 {
  public:
+    agenda()
+        : _A()
+    {}
 
-  agenda() : _A() {}
-  agenda(agenda &a) : _A(a._A) {}
-  ~agenda() { while(!this->empty()) delete this->pop(); }
+    agenda(agenda &a)
+        : _A(a._A)
+    {}
 
+    ~agenda();
   
-  void push(basic_task *t);
-  basic_task *top();
-  basic_task *pop();
+    void
+    push(class basic_task *t);
+    
+    class basic_task *
+    top();
 
-  inline bool empty() { return _A.empty(); }
+    class basic_task *
+    pop();
+
+    bool
+    empty();
 
  private:
 
-  std::priority_queue<basic_task *, vector<basic_task *>, task_priority_less> _A;
+    std::priority_queue<class basic_task *, vector<class basic_task *>,
+                        task_priority_less> _A;
 };
 
 #endif

@@ -24,29 +24,44 @@
 
 //#define DEBUG
 
-void agenda::push(basic_task *t)
+agenda::~agenda()
+{
+    while(!this->empty())
+        delete this->pop();
+}
+
+bool
+agenda::empty()
+{
+    return _A.empty();
+}
+
+void
+agenda::push(basic_task *t)
 {
 #ifdef DEBUG
-  fprintf(ferr, " -> ");
-  t->print(ferr);
-  fprintf(ferr, "\n");
+    fprintf(ferr, " -> ");
+    t->print(ferr);
+    fprintf(ferr, "\n");
 #endif
-
-  _A.push(t);
+    
+    _A.push(t);
 }
 
-basic_task *agenda::top()
+basic_task *
+agenda::top()
 {
-  basic_task *t;
-  t = _A.top();
-  return t;
+    basic_task *t;
+    t = _A.top();
+    return t;
 }
 
-basic_task *agenda::pop()
+basic_task *
+agenda::pop()
 {
-  basic_task *t = top();
-
-  _A.pop();
-
-  return t;
+    basic_task *t = top();
+    
+    _A.pop();
+    
+    return t;
 }

@@ -156,8 +156,8 @@ void lingo_tokenizer::add_tokens(input_chart *i_chart)
 	  for(list<full_form>::iterator currf = forms.begin();
 	      currf != forms.end(); ++currf)
 	    {
-	      i_chart->add_token(id++, i, i+1, *currf, *pos, currf->priority(),
-				 postags(), tPaths());
+	      i_chart->add_token(id++, i, i+1, *currf, *pos,
+				 0, postags(), tPaths());
 	    }
 	}
       i++;
