@@ -47,8 +47,109 @@ timer *ParseTime;
 timer TotalParseTime(false);
 
 //
+// filtering
+//
+
+bool
+filter_rule_task(grammar_rule *R, tItem *passive)
+{
+
+#ifdef DEBUG
+    fprintf(ferr, "trying "); R->print(ferr);
+    fprintf(ferr, " & passive "); passive->print(ferr);
+    fprintf(ferr, " ==> ");
+#endif
+
+    if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(),
+                                                 passive->rule()))
+    {
+        stats.ftasks_fi++;
+
+#ifdef DEBUG
+        fprintf(ferr, "filtered (rf)\n");
+#endif
+
+        return false;
+    }
+
+    if(opt_nqc_unif != 0
+       && !qc_compatible_unif(qc_len_unif, R->qc_vector_unif(R->nextarg()),
+                              passive->qc_vector_unif()))
+    {
+        stats.ftasks_qc++;
+
+#ifdef DEBUG
+        fprintf(ferr, "filtered (qc)\n");
+#endif
+
+        return false;
+    }
+
+#ifdef DEBUG
+    fprintf(ferr, "passed filters\n");
+#endif
+
+    return true;
+}
+
+bool
+filter_combine_task(tItem *active, tItem *passive)
+{
+#ifdef DEBUG
+    fprintf(ferr, "trying active "); active->print(ferr);
+    fprintf(ferr, " & passive "); passive->print(ferr);
+    fprintf(ferr, " ==> ");
+#endif
+
+    if(opt_filter && !Grammar->filter_compatible(active->rule(),
+                                                 active->nextarg(),
+                                                 passive->rule()))
+    {
+#ifdef DEBUG
+        fprintf(ferr, "filtered (rf)\n");
+#endif
+
+        stats.ftasks_fi++;
+        return false;
+    }
+
+    if(opt_nqc_unif != 0
+       && !qc_compatible_unif(qc_len_unif, active->qc_vector_unif(),
+                              passive->qc_vector_unif()))
+    {
+#ifdef DEBUG
+        fprintf(ferr, "filtered (qc)\n");
+#endif
+
+        stats.ftasks_qc++;
+        return false;
+    }
+
+#ifdef DEBUG
+    fprintf(ferr, "passed filters\n");
+#endif
+
+    return true;
+}
+
+//
 // parser control
 //
+
+void
+postulate(tItem *passive)
+{
+    // iterate over all the rules in the grammar
+    for(rule_iter rule(Grammar); rule.valid(); rule++)
+    {
+        grammar_rule *R = rule.current();
+
+        if(passive->compatible(R, Chart->rightmost()))
+            if(filter_rule_task(R, passive))
+                Agenda->push(new rule_and_passive_task(Chart, Agenda, R,
+                                                       passive));
+    }
+}
 
 void
 fundamental_for_passive(tItem *passive)
@@ -57,13 +158,11 @@ fundamental_for_passive(tItem *passive)
     for(chart_iter_adj_active it(Chart, passive); it.valid(); it++)
     {
         tItem *active = it.current();
-
-        // _fix_me This condition should be checked in the iterator.
-        if(active->leftExtending() ? (active->start() == passive->end())
-           : (active->end() == passive->start()))
-            if(active->compatible(passive, Chart->rightmost()))
-                Agenda->push(new active_and_passive_task(Chart, Agenda,
-                                                         active, passive));
+        if(active->adjacent(passive))
+            if(passive->compatible(active, Chart->rightmost()))
+                if(filter_combine_task(active, passive))
+                    Agenda->push(new active_and_passive_task(Chart, Agenda,
+                                                             active, passive));
     }
 }
 
@@ -74,7 +173,8 @@ fundamental_for_active(tPhrasalItem *active)
 
   for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
     if(opt_packing == 0 || !it.current()->blocked())
-      if(active->compatible(it.current(), Chart->rightmost()))
+      if(it.current()->compatible(active, Chart->rightmost()))
+        if(filter_combine_task(active, it.current()))
           Agenda->push(new
                        active_and_passive_task(Chart, Agenda,
                                                active, it.current()));
@@ -97,13 +197,10 @@ packed_edge(tItem *newitem)
 
         forward = backward = true;
      
-#if 0
-        // _fix_me_
         if(opt_filter)
             Grammar->subsumption_filter_compatible(olditem->rule(),
                                                    newitem->rule(),
                                                    forward, backward);
-#endif
 
         if(forward ==false && backward == false)
         {
@@ -117,17 +214,13 @@ packed_edge(tItem *newitem)
                                    olditem->qc_vector_subs(),
                                    newitem->qc_vector_subs(),
                                    f1, b1);
-     
-            // _fix_me_
-#if 0
+            
             if(forward ==false && backward == false)
                 stats.fsubs_qc++;
             else
                 subsumes(olditem->get_fs(), newitem->get_fs(),
                          forward, backward);
-#endif            
-
-
+            
             if(f1 == false && forward || b1==false && backward)
             {
                 fprintf(stderr, "S | > %c vs %c | < %c vs %c\n",
@@ -234,6 +327,7 @@ add_item(tItem *it)
                 return;
         }
 
+        postulate(it);
         fundamental_for_passive(it);
     }
     else
@@ -414,6 +508,9 @@ analyze(input_chart &i_chart, string input, chart *&C,
     stats.reset();
     stats.id = id;
 
+    auto_ptr<item_owner> owner(new item_owner);
+    tItem::default_owner(owner.get());
+
 #ifdef YY
     if(opt_yy)
         i_chart.populate(new yy_tokenizer(input));
@@ -439,7 +536,7 @@ analyze(input_chart &i_chart, string input, chart *&C,
     if (!missing.empty()) 
         throw tError("no lexicon entries for " + missing) ;
 
-    C = Chart = new chart(max_pos);
+    C = Chart = new chart(max_pos, owner);
 
     parse(*Chart, tLexItems, FSAS, errors);
 }

@@ -24,7 +24,6 @@
 #include "inputchart.h"
 #include "item.h"
 #include "dag-common.h"
-#include "grammar.h"
 
 input_token::input_token(int id, int s, int e, class full_form ff, string o,
                          double p, const postags &pos, const tPaths &paths,
@@ -167,7 +166,8 @@ input_token::generics(postags onlyfor)
         fs f = fs(gen); 
 
         tLexItem *lex =
-            new tLexItem(_start, _end, _paths, 1, 0, dtrs, f);
+            new tLexItem(_start, _end, _paths, 1, 0, dtrs, f,
+                         _orth.c_str());
 
         result.push_back(lex);
     }
@@ -200,7 +200,8 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
     if(f.valid())
     {
         tLexItem *it = new tLexItem(start, end, _paths, 
-                                    ndtrs, keydtr, dtrs, f);
+                                    ndtrs, keydtr, dtrs, f,
+                                    _form.description().c_str());
 
         if(contains(result, it))
         {

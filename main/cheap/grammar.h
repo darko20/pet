@@ -23,11 +23,11 @@
 #define _GRAMMAR_H_
 
 #include "list-int.h"
+#include "../common/utility.h"
 #include "types.h"
 #include "fs.h"
 #include "sm.h"
 #include "lexicon.h"
-#include "item.h"
 
 // global variables for quick check
 extern int qc_len_unif;
@@ -36,87 +36,57 @@ extern qc_node *qc_paths_unif;
 extern int qc_len_subs;
 extern qc_node *qc_paths_subs;
 
-class tGrammarRule
+enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT };
+
+class grammar_rule
 {
  public:
-    tGrammarRule(type_t t);
+  grammar_rule(type_t t);
 
-    int
-    id()
-    {
-        return _id;
-    }
+  inline int arity() { return _arity; }
+  inline int nextarg() { return first(_tofill); }
+  inline bool left_extending() { return first(_tofill) == 1; }
 
-    type_t
-    type()
-    {
-        return _type;
-    }
+  inline int type() { return _type; }
+  inline char *printname() { return printnames[_type]; }
+  inline int id() { return _id; }
+  inline rule_trait trait() { return _trait; }
+  inline void trait(rule_trait t) { _trait = t; }
 
-    tItemTrait
-    trait()
-    {
-        return _trait;
-    }
+  void print(FILE *f);
 
-    void
-    setTrait(tItemTrait trait)
-    {
-        _trait = trait;
-    }
+  fs instantiate(bool full = false);
 
-    int
-    remainingArity()
-    {
-        return length(_toFill);
-    }
-    
-    list_int *
-    restArgs()
-    {
-        return _toFill;
-    }
-    
-    bool
-    hyperActive()
-    {
-        return _hyperActive;
-    }
+  inline fs nextarg(fs &f) { return f.nth_arg(first(_tofill)); }
+  inline list_int *restargs() { return rest(_tofill); }
+  inline list_int *allargs() { return _tofill; }
 
-    bool
-    spanningOnly()
-    {
-        return _spanningOnly;
-    }
+  inline type_t *qc_vector_unif(int arg) { return _qc_vector_unif[arg - 1]; }
 
-    const string
-    printName()
-    {
-        return string(printnames[type()]);
-    }
+  inline bool hyperactive() { return _hyper; }
+  inline bool spanningonly() { return _spanningonly; }
 
-    void
-    print(FILE *f);
-
-    fs
-    getFS();
-
-    tPhrasalItem *
-    instantiate();
-
-    int actives, passives;
+  int actives, passives;
 
  private:
-    static int nextId;
-    
-    int _id;
-    type_t _type;        // type index
-    tItemTrait _trait;
+  static int next_id;
 
-    list_int *_toFill;
+  int _id;
+  int _type;        // type index
+  rule_trait _trait;
+  int _arity;
+  list_int *_tofill;
   
-    bool _hyperActive;
-    bool _spanningOnly;
+  fs _f_restriced;  // The feature structure corresponding to this rule
+                    // with the packing restrictor applied.
+  
+  type_t **_qc_vector_unif;
+  void init_qc_vector_unif();
+
+  bool _hyper;
+  bool _spanningonly;
+
+  friend class tGrammar;
 };
 
 class tGrammar
@@ -136,15 +106,26 @@ class tGrammar
   list_int *deleted_daughters() { return _deleted_daughters; }
   list_int *packing_restrictor() { return _packing_restrictor; }
 
-  inline bool filter_compatible(tGrammarRule *mother, int arg,
-                                tGrammarRule *daughter)
+  inline bool filter_compatible(grammar_rule *mother, int arg,
+                                grammar_rule *daughter)
   {
     if(daughter == NULL) return true;
     return _filter[daughter->id() + _nrules * mother->id()] &
       (1 << (arg - 1));
   }
 
-  inline void subsumption_filter_compatible(tGrammarRule *a, tGrammarRule *b,
+  // This version is used in the morphological analyzer
+  inline bool filter_compatible(type_t mother, int arg,
+                                type_t daughter)
+  {
+    grammar_rule *mother_r = _rule_dict[mother];
+    grammar_rule *daughter_r = _rule_dict[daughter];
+    if(mother_r == 0 || daughter_r == 0)
+      throw tError("Unknown rule passed to filter_compatible");
+    return filter_compatible(mother_r, arg, daughter_r);
+  }
+
+  inline void subsumption_filter_compatible(grammar_rule *a, grammar_rule *b,
                                             bool &forward, bool &backward)
   {
       if(a == 0 || b == 0)
@@ -156,14 +137,8 @@ class tGrammar
       backward = _subsumption_filter[b->id() + _nrules * a->id()];
   }
 
-  int
-  nRules()
-  {
-      return _rules.size();
-  }
-  
-  int
-  nHyperActiveRules();
+  inline int nrules() { return _rules.size(); }
+  int nhyperrules();
 
   inline int nstems() { return _lexicon.size(); }
   lex_stem *find_stem(int inst_key);
@@ -212,7 +187,8 @@ class tGrammar
 #endif
 
   int _nrules;
-  list<tGrammarRule *> _rules;
+  list<grammar_rule *> _rules;
+  map<type_t, grammar_rule *> _rule_dict;
 
   list_int *_root_insts;
 
@@ -252,7 +228,7 @@ class rule_iter
       return _curr != _G->_rules.end();
     }
 
-  inline tGrammarRule *current()
+  inline grammar_rule *current()
     {
       if(valid()) return *_curr; else return 0;
     }
@@ -263,7 +239,7 @@ class rule_iter
     }
 
  private:
-  list<tGrammarRule *>::iterator _curr;
+  list<grammar_rule *>::iterator _curr;
   tGrammar *_G;
 };
 

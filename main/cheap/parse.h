@@ -30,7 +30,7 @@ extern class tGrammar *Grammar;
 
 extern timer TotalParseTime;
 
-bool filter_rule_task(class tGrammarRule *R, class item *passive);
+bool filter_rule_task(class grammar_rule *R, class item *passive);
 bool filter_combine_task(class item *active, class item *passive);
 
 void analyze(class input_chart &ic, string input, class chart *&C, 

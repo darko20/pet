@@ -26,109 +26,164 @@
 #include "list-int.h"
 #include "fs.h"
 #include "options.h"
-#include "paths.h"
+#include "grammar.h"
 #include "inputtoken.h"
 
-enum tItemTrait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT };
-
-/** Represent an item in a chart. There are input items,
- *  morphological items, lexical items and phrasal items.
- *  This class defines a common interface for filtering and
- *  computing combinations of items. The class also implements
- *  the basic position bookkeeping.
+/** Represent an item in a chart. Conceptually there are input items,
+ *  morphological items, lexical items and phrasal items. 
  */
 
 class tItem
 {
  public:
+  tItem(int start, int end, const tPaths &paths, fs &f,
+       const char *printname);
+  tItem(int start, int end, const tPaths &paths, 
+       const char *printname);
 
-    /** Constructor. */
-    tItem(int start, int end, const tPaths &paths);
+  virtual ~tItem();
 
-    /** Destructor. */
-    virtual ~tItem();
+  virtual tItem &operator=(const tItem &li)
+  {
+    throw tError("unexpected call to copy constructor of tItem");
+  }
 
-    /** Unique identifier for this item. */
-    inline int
-    id() const
-    {
-        return _id;
-    }
+  tItem()
+  {
+    throw tError("unexpected call to constructor of tItem");
+  }
 
-    /** Does this item have a position? Active items need not have one.
-     *  If the item is not positioned, start() and end() will return -1,
-     *  and span() will return 0. */
-    bool
-    positioned() const
-    {
-        return start() != -1 && end() != -1;
-    }
+  static void default_owner(class item_owner *o) { _default_owner = o; }
+  static class item_owner *default_owner() { return _default_owner; }
 
-    /** Return start position of the item. Returns -1 if the item is not
-     *  positioned(). */
-    inline int
-    start() const
-    {
-        return _start;
-    }
+  static void reset_ids() { _next_id = 1; }
 
-    /** Return end position of the item. Returns -1 if the item is not
-     *  positioned(). */
-    inline int
-    end() const
-    {
-        return _end;
-    }
+  inline int id() { return _id; }
+  inline rule_trait trait() { return _trait; }
 
-    /** Return span of the item. Returns 0 if the item is not
-     *  positioned(). */
-    inline int
-    span() const
-    {
-        return end() - start();
-    }
+  inline bool passive() const { return _tofill == 0; }
+  inline int start() const { return _start; }
+  inline int end() const { return _end; }
+  inline int span() const { return (_end - _start); }
+
+  bool spanningonly() { return _spanningonly; }
+
+  inline bool compatible(class grammar_rule *R, int length)
+  {
+      if(R->trait() == INFL_TRAIT)
+      {
+          if(_trait != INFL_TRAIT)
+              return false;
+          
+          if(first(_inflrs_todo) != R->type())
+              return false;
+      }
+      else if(R->trait() == LEX_TRAIT)
+      {
+          if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
+              return false;
+      }
+      else if(R->trait() == SYNTAX_TRAIT)
+      {
+          if(_trait == INFL_TRAIT)
+              return false;
+      }
+      
+      if(R->spanningonly())
+      {
+          if(R->arity() == 1)
+          {
+              if(span() != length)
+                  return false;
+          }
+          else if(R->nextarg() == 1)
+          {
+              if(_start != 0)
+                  return false;
+          }
+          else if(R->nextarg() == R->arity())
+          {
+              if(_end != length)
+                  return false;
+          }
+      }
+      
+      if(opt_shaping == false)
+          return true;
+      
+      if(R->left_extending())
+          return _end + R->arity() - 1 <= length;
+      else
+          return _start - (R->arity() - 1) >= 0;
+  }
+  
+  inline bool compatible(tItem *active, int length)
+  {
+      if(_trait == INFL_TRAIT)
+          return false;
+      
+      if(active->spanningonly())
+      {
+          if(active->nextarg() == 1)
+          {
+              if(_start != 0)
+                  return false;
+          }
+          else if(active->nextarg() == active->arity() + active->nfilled())
+          {
+              if(_end != length)
+                  return false;
+          }
+      }
+  
+      if(!opt_lattice && !_paths.compatible(active->_paths))
+          return false;
     
-    inline tItemTrait
-    trait() const
-    {
-        return _trait;
-    }
+      return true;
+  }
+  
+  inline bool left_extending()
+  {
+      return _tofill == 0 || first(_tofill) == 1;
+  }
 
-    /** A string suitable for printing as a name for this item. */
-    virtual const string
-    printName() const = 0;
+  inline bool adjacent(class tItem *passive) // assumes `this' is an active item
+  {
+      return (left_extending() ? (_start == passive->_end)
+              : (_end == passive->_start));
+  }
 
-    /** Does this item have any further completion requirements? */
-    virtual bool
-    passive() = 0;
+  inline bool root(class tGrammar *G, int length, type_t &rule)
+  {
+      if(_trait == INFL_TRAIT)
+          return false;
+      
+      if(_start == 0 && _end == length)
+          return G->root(_fs, rule);
+      else
+          return false;
+  }
+  
+  virtual fs get_fs(bool full = false)
+  {
+      if(_fs.temp() && _fs.temp() != unify_generation)
+          recreate_fs();
+      return _fs;
+  }
 
-    /** If this item is not passive(), i.e. it has further completion
-     *  requirements, does it extend to the left? If the item is
-     *  passive(), returns true. */
-    virtual bool
-    leftExtending() = 0;
+  type_t type()
+  {
+      return get_fs().type();
+  }
+  
+  inline int nextarg() { return first(_tofill); }
+  inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
+  inline list_int *restargs() { return rest(_tofill); }
+  inline int arity() { return length(_tofill); }
+  inline int nfilled() { return _nfilled; }
 
-    /** _fix_me_ length shouldn't be passed here; also it should do
-     *  a more complete job */
-    virtual bool
-    compatible(tItem *passive, int length) = 0;
-
-    virtual tItem *
-    combine(class tItem *passive) = 0;
-    
-    /** Determine whether this is a root item (a complete analysis),
-     *  if so return type of the licensing root node in rootType. */
-    // _fix_me_ grammar and length shouldn't be required
-    virtual bool
-    root(class tGrammar *G, int length, type_t &rootType) = 0;
-
-    //
-    // Temporary stuff
-    //
-
-    //
-    // Old stuff
-    //
+  virtual int startposition() = 0;
+  virtual int endposition() = 0;
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
@@ -152,7 +207,11 @@ class tItem
   inline type_t *qc_vector_unif() { return _qc_vector_unif; }
   inline type_t *qc_vector_subs() { return _qc_vector_subs; }
 
+  virtual grammar_rule *rule() = 0;
+
   virtual void recreate_fs() = 0;
+
+  virtual int identity() = 0;
 
   double
   score()
@@ -176,19 +235,16 @@ class tItem
   list<tItem *> unpack(int limit);
   virtual list<tItem *> unpack1(int limit) = 0;
 
+  inline const char *printname() { return _printname.c_str(); }
+
  private:
-  
-  /** Disabled copy constructor; no definition. */
-  tItem(const tItem &);
+  static class item_owner *_default_owner;
 
-  /** Disabled assignment operator; no definition. */
-  void
-  operator=(const tItem &);
+  static int _next_id;
 
-  static int _nextId;
   int _id;
 
-  tItemTrait _trait;
+  rule_trait _trait;
 
   int _start, _end;
 
@@ -197,6 +253,10 @@ class tItem
   tPaths _paths;
   
   fs _fs;
+
+  list_int *_tofill;
+
+  int _nfilled;
 
   list_int *_inflrs_todo;
 
@@ -208,6 +268,8 @@ class tItem
 
   double _score;
 
+  const string _printname;
+
   int _blocked;
   list<tItem *> *_unpack_cache;
 
@@ -217,252 +279,26 @@ class tItem
 
   friend class tLexItem;
   friend class tPhrasalItem;
-  
 };
 
-/** Input items represent tokens in the input. All input items are
- *  passive.  Input items feed only into morphological items.
- */
-class tInputItem : public tItem
+class tLexItem : public tItem
 {
  public:
-
-    tInputItem();
-
-    virtual const string
-    printName() const;
-
-    virtual bool
-    passive()
-    {
-        return true;
-    }
-
-    virtual bool
-    leftExtending()
-    {
-        return true;
-    }
-
-    virtual bool
-    compatible(tItem *passive, int length)
-    {
-        return false;
-    }
-
-    virtual tItem *
-    combine(class tItem *passive)
-    {
-        return 0;
-    }
-    
-    virtual bool
-    root(class tGrammar *G, int length, type_t &rootType) 
-    {
-        return false;
-    }
-
- private:
-    
-
-};
-
-/** Morphological items represent morphologically analyzed input
- *  items. All morphological items are passive. Morphological items
- *  feed only into lexical items.
- */
-class tMorphItem : public tItem
-{
- public:
-
-    tMorphItem();
-
-    virtual const string
-    printName() const;
-
-    virtual bool
-    passive()
-    {
-        return true;
-    }
-
-    virtual bool
-    leftExtending()
-    {
-        return true;
-    }
-
-    virtual bool
-    compatible(tItem *passive, int length)
-    {
-        return false;
-    }
-
-    virtual tItem *
-    combine(class tItem *passive)
-    {
-        return 0;
-    }
-    
-    virtual bool
-    root(class tGrammar *G, int length, type_t &rootType) 
-    {
-        return false;
-    }
-
-
- private:
-
-};
-
-/** Represent the combination requirements of an item. Note that
- *  passive items are represented here as a active items with no
- *  further combination requirements. */
-class tActive
-{
- public:
-
-    tActive(int filled, list_int *toFill)
-        : _filled(filled), _toFill(toFill) 
-    {}
-
-    int 
-    filledArity()
-    {
-        return _filled;
-    }
-
-    int
-    remainingArity()
-    {
-        return length(_toFill);
-    }
-
-    int
-    totalArity()
-    {
-        return filledArity() + remainingArity();
-    }
-
-    bool
-    passive()
-    {
-        return remainingArity() == 0;
-    }
-
-    int
-    nextArg()
-    {
-        if(remainingArity() == 0)
-            return 0;
-        return first(_toFill);
-    }
-
-    list_int *
-    restArgs()
-    {
-        if(remainingArity() == 0)
-            return 0;
-        return rest(_toFill);
-    }
-
-    bool
-    leftExtending()
-    {
-        return nextArg() == 1;
-    }
- 
- private:
-
-    int _filled;
-    list_int *_toFill;
-};
-
-/** Implement the functionality common to all items that have an
- *  associated feature structure.
- */
-class tFSItem
-{
- public:
-
-    tFSItem(type_t t, fs f)
-        : _t(t), _f(f)
-    {
-    }
-
-    type_t
-    type() const
-    {
-        return _t;
-    }
-    
-    fs
-    getFS() const
-    {
-        return _f;
-    }
-
-    fs
-    getNthArg(int i) const
-    {
-        return getFS().nth_arg(i);
-    }
-
- private:
-
-    type_t _t;
-    fs _f;
-};
-
-/** Lexical items represent morphological items that have undergone
- *  lexical lookup. There are active and passive lexical items. Active
- *  lexical items represent multi-word lexical entries and require
- *  combination with suitable morphological items to result in a
- *  passive lexical item.
- */
-class tLexItem : public tItem, private tActive, private tFSItem
-{
- public:
-
-    virtual const string
-    printName() const
-    {
-        // _fix_me_
-        return string("some lexitem");
-    }
-
-    virtual bool
-    passive()
-    {
-        return tActive::passive();
-    }
-
-    virtual bool
-    leftExtending()
-    {
-        return tActive::leftExtending();
-    }
-
-    type_t
-    type() const
-    {
-        return getFS().type();
-    }
-
-    virtual bool
-    compatible(class tItem *passive, int length);
-
-    virtual tItem *
-    combine(class tItem *passive);
-
-    virtual bool
-    root(class tGrammar *G, int length, type_t &rootType);
-
   tLexItem(int start, int end, const tPaths &paths,
            int ndtrs, int keydtr, class input_token **dtrs,
-           fs &f);
+           fs &f, const char *name);
 
   ~tLexItem() { delete[] _dtrs; }
+
+  virtual tLexItem &operator=(const tItem &li)
+  {
+    throw tError("unexpected call to assignment operator of tLexItem");
+  }
+
+  tLexItem(const tLexItem &li)
+  {
+    throw tError("unexpected call to copy constructor of tLexItem");
+  }
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) {}
@@ -478,6 +314,8 @@ class tLexItem : public tItem, private tActive, private tFSItem
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
 
+  virtual grammar_rule *rule();
+
   virtual fs get_fs(bool full = false)
   {
       return full ? _fs_full : _fs;
@@ -488,6 +326,10 @@ class tLexItem : public tItem, private tActive, private tFSItem
   string description();
   string orth();
 
+  virtual inline int startposition() { return _dtrs[0]->startposition() ; }
+  virtual inline int endposition() { 
+    return _dtrs[_ndtrs - 1]->endposition() ; }
+
   inline const postags &get_in_postags()
   { return _dtrs[_keydtr]->get_in_postags(); }
   inline const postags &get_supplied_postags()
@@ -496,6 +338,11 @@ class tLexItem : public tItem, private tActive, private tFSItem
   bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
 
   friend bool same_lexitems(const tLexItem &a, const tLexItem &b);
+
+  virtual int identity()
+  {
+      return _dtrs[_keydtr]->identity();
+  }
 
   virtual list<tItem *> unpack1(int limit);
 
@@ -506,82 +353,10 @@ class tLexItem : public tItem, private tActive, private tFSItem
   fs _fs_full; // unrestricted (packing) structure
 };
 
-/** Phrasal items represent lexical items or phrasal items that have
- *  undergone application of a grammar rule. There are active and
- *  passive phrasal items.
- */
-class tPhrasalItem : public tItem, private tActive, private tFSItem
+class tPhrasalItem : public tItem
 {
  public:
-
-    virtual const string
-    printName() const
-    {
-        return printnames[type()];
-    }
-
-    virtual bool
-    passive()
-    {
-        return tActive::passive();
-    }
-
-    virtual bool
-    leftExtending()
-    {
-        return tActive::leftExtending();
-    }
-
-    virtual bool
-    compatible(class tItem *passive, int length);
-
-    virtual tItem *
-    combine(class tItem *passive);
-
-    virtual bool
-    root(class tGrammar *G, int length, type_t &rootType);
-
-    void
-    getCombinedPositions(class tItem *passive, int &resStart, int &resEnd)
-    {
-        if(positioned())
-        {
-            if(leftExtending())
-            {
-                resStart = passive->start();
-                resEnd = end();
-            }
-            else
-            {
-                resStart = start();
-                resEnd = passive->end();
-        }
-        }
-        else
-        {
-            resStart = passive->start();
-            resEnd = passive->end();
-        }
-    }
-    
-    list<tItem *>
-    getCombinedDaughters(class tItem *passive)
-    {
-        list<tItem *> combined(_daughters);
-        if(leftExtending())
-            combined.push_front(passive);
-        else
-            combined.push_back(passive);
-        return combined;
-    }
-
-    fs
-    nextArg()
-    {
-        return getNthArg(tActive::nextArg());
-    }
-
-  tPhrasalItem(class tGrammarRule *); 
+  tPhrasalItem(class grammar_rule *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, vector<class tItem *> &, fs &);
 
@@ -598,8 +373,20 @@ class tPhrasalItem : public tItem, private tActive, private tFSItem
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
 
+  virtual grammar_rule *rule();
+
   virtual void recreate_fs();
 
+  virtual int startposition() { return _daughters.front()->startposition() ; }
+  virtual int endposition() { return _daughters.back()->endposition() ; }
+
+  virtual int identity()
+  {
+      if(_rule)
+          return _rule->type();
+      else
+          return 0;
+  }
   virtual list<tItem *> unpack1(int limit);
   void unpack_cross(vector<list<tItem *> > &dtrs,
                     int index, vector<tItem *> &config,
@@ -609,6 +396,7 @@ class tPhrasalItem : public tItem, private tActive, private tFSItem
  private:
   list<tItem *> _daughters;
   tItem * _adaughter;
+  grammar_rule *_rule;
 
   friend class active_and_passive_task;
 };
@@ -629,5 +417,23 @@ public:
     tSM *_sm;
 };
 #endif
+
+class item_owner
+// allow proper release of memory
+{
+ public:
+  item_owner() {}
+  ~item_owner()
+    {
+      for(list<tItem *>::iterator curr = _list.begin(); 
+	  curr != _list.end(); 
+	  ++curr)
+	delete *curr;
+      tItem::reset_ids();
+    }
+  void add(tItem *it) { _list.push_back(it); }
+ private:
+  list<tItem *> _list;
+};
 
 #endif
