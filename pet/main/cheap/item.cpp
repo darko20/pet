@@ -269,7 +269,7 @@ void item::print(FILE *f, bool compact)
   
     fprintf(f, "}]");
 
-    print_daughters(f);
+    print_family(f);
 
     if(verbosity > 2 && compact == false)
     {
@@ -308,11 +308,15 @@ void phrasal_item::print(FILE *f, bool compact)
 }
 
 void
-phrasal_item::print_daughters(FILE *f)
+phrasal_item::print_family(FILE *f)
 {
-    fprintf(f, " <");
+    fprintf(f, " < dtrs: ");
     for(list<item *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
+        fprintf(f, "%d ",(*pos)->_id);
+    fprintf(f, " parents: ");
+    for(list<item *>::iterator pos = parents.begin();
+        pos != parents.end(); ++pos)
         fprintf(f, "%d ",(*pos)->_id);
     fprintf(f, ">");
 }
