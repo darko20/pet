@@ -35,7 +35,7 @@ EncodingConverter::EncodingConverter(string encodingname) :
 {
   _conv = ucnv_open(encodingname.c_str(), &_status);
   if(U_FAILURE(_status))
-    throw error("Couldn't open " + encodingname + " converter");
+    throw tError("Couldn't open " + encodingname + " converter");
 }
 
 EncodingConverter::~EncodingConverter()
@@ -51,7 +51,7 @@ string EncodingConverter::convert(const UnicodeString from)
 
   sz = ucnv_fromUChars(_conv, s, sz, from.getBuffer(), from.length(), &_status);
   if(U_FAILURE(_status))
-    throw error("Couldn't convert to " + _encoding);
+    throw tError("Couldn't convert to " + _encoding);
 
   s[sz] = '\0';
 
@@ -71,7 +71,7 @@ UnicodeString EncodingConverter::convert(const string from)
 
   sz = ucnv_toUChars(_conv, toBuffer, sz, from.c_str(), from.length(), &_status); 
   if(U_FAILURE(_status))
-    throw error("Couldn't convert from " + _encoding + " (" + from + ")");
+    throw tError("Couldn't convert from " + _encoding + " (" + from + ")");
 
   to.releaseBuffer(sz);
   

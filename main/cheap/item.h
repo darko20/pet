@@ -45,12 +45,12 @@ class item
 
   virtual item &operator=(const item &li)
   {
-    throw error("unexpected call to copy constructor of item");
+    throw tError("unexpected call to copy constructor of item");
   }
 
   item()
   {
-    throw error("unexpected call to constructor of item");
+    throw tError("unexpected call to constructor of item");
   }
 
   static void default_owner(class item_owner *o) { _default_owner = o; }
@@ -292,12 +292,12 @@ class lex_item : public item
 
   virtual lex_item &operator=(const item &li)
   {
-    throw error("unexpected call to assignment operator of lex_item");
+    throw tError("unexpected call to assignment operator of lex_item");
   }
 
   lex_item(const lex_item &li)
   {
-    throw error("unexpected call to copy constructor of lex_item");
+    throw tError("unexpected call to copy constructor of lex_item");
   }
 
   virtual void print(FILE *f, bool compact = false);

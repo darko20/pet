@@ -44,7 +44,7 @@ dumper::dumper(const char *fname, bool write)
   _f = fopen(fname, _write ? "wb" : "rb");
 
   if(_f == NULL)
-    throw error("unable to open file `" + string(fname) + "'");
+    throw tError("unable to open file `" + string(fname) + "'");
 
   _buff = new char[BUFF_SIZE];
   setvbuf(_f, _buff, _IOFBF, BUFF_SIZE);
@@ -65,14 +65,14 @@ dumper::~dumper()
 void dumper::dump_char(char i)
 {
   if(!_write || fwrite(&i, sizeof(i), 1, _f) != 1)
-    throw error("couldn't write character to file");
+    throw tError("couldn't write character to file");
 }
 
 char dumper::undump_char()
 {
   char i;
   if(_write || fread(&i, sizeof(i), 1, _f) != 1)
-    throw error("couldn't read character from file");
+    throw tError("couldn't read character from file");
   return i;
 }
 
@@ -80,14 +80,14 @@ void dumper::dump_short(short i)
 {
   if(_swap) i = swap_short(i);
   if(!_write || fwrite(&i, sizeof(i), 1, _f) != 1)
-    throw error("couldn't write short to file");
+    throw tError("couldn't write short to file");
 }
 
 short dumper::undump_short()
 {
   short i;
   if(_write || fread(&i, sizeof(i), 1, _f) != 1)
-    throw error("couldn't read short from file");
+    throw tError("couldn't read short from file");
   if(_swap)
     return swap_short(i);
   else
@@ -98,14 +98,14 @@ void dumper::dump_int(int i)
 {
   if(_swap) i = swap_int(i);
   if(!_write || fwrite(&i, sizeof(i), 1, _f) != 1)
-    throw error("couldn't write integer to file");
+    throw tError("couldn't write integer to file");
 }
 
 int dumper::undump_int()
 {
   int i;
   if(_write || fread(&i, sizeof(i), 1, _f) != 1)
-    throw error("couldn't read integer from file");
+    throw tError("couldn't read integer from file");
   if(_swap)
     return swap_int(i);
   else
@@ -115,7 +115,7 @@ int dumper::undump_int()
 void dumper::dump_string(const char *s)
 {
   if(!_write)
-    throw error("not in write mode");
+    throw tError("not in write mode");
 
   if(s == 0)
     {
@@ -129,7 +129,7 @@ void dumper::dump_string(const char *s)
   dump_short(len);
 
   if(fwrite(s, sizeof(char), len, _f) != (unsigned int) len)
-    throw error("error writing string to file");
+    throw tError("error writing string to file");
 }
 
 char *dumper::undump_string()
@@ -138,7 +138,7 @@ char *dumper::undump_string()
   char *s;
 
   if(_write)
-    throw error("not in read mode");
+    throw tError("not in read mode");
 
   len = undump_short();
 
@@ -148,7 +148,7 @@ char *dumper::undump_string()
   s = new char[len];
   
   if(s == 0 || fread(s, sizeof(char), len, _f) != (unsigned int) len)
-    throw error("error reading string from file");
+    throw tError("error reading string from file");
 
   return s;
 }

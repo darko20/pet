@@ -52,7 +52,7 @@ class dumper
   inline long int tell()
     { return ftell(_f); }
   inline void seek(long int pos)
-    { if(fseek(_f, pos, SEEK_SET) != 0) throw error("cannot seek"); }
+    { if(fseek(_f, pos, SEEK_SET) != 0) throw tError("cannot seek"); }
 
  private:
   FILE *_f;

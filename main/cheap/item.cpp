@@ -84,7 +84,7 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
         _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
 
     if(_keydtr >= _ndtrs)
-        throw error("keydtr > ndtrs for lex_item");
+        throw tError("keydtr > ndtrs for lex_item");
 
     _dtrs = new input_token*[_ndtrs] ;
 
@@ -579,7 +579,7 @@ phrasal_item::rule()
 void
 lex_item::recreate_fs()
 {
-    throw error("cannot rebuild lexical item's feature structure");
+    throw tError("cannot rebuild lexical item's feature structure");
 }
 
 void phrasal_item::recreate_fs()
@@ -591,11 +591,11 @@ void phrasal_item::recreate_fs()
         fs arg = _rule->nextarg(_fs);
         _fs = unify_np(_fs, _daughters.front()->get_fs(), arg);
         if(!_fs.valid())
-            throw error("trouble rebuilding active item (1)");
+            throw tError("trouble rebuilding active item (1)");
     }
     else
     {
-        throw error("won't rebuild passive item");
+        throw tError("won't rebuild passive item");
     }
 #ifdef DEBUG
     {

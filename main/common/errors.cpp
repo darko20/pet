@@ -19,46 +19,5 @@
 
 /* defines class representing errors - used in exceptions */
 
-#include "pet-system.h"
 #include "errors.h"
-
-#ifdef TSDBAPI
-#include "tsdb++.h"
-#endif
-
-error::error()
-  : _msg("unknown error")
-{
-}
-
-error::error(string s)
-  : _msg(s)
-{
-}
-  
-error::~error()
-{
-}
-
-void error::print(FILE *f)
-{
-  fprintf(f, "%s", _msg.c_str());
-}
-
-#ifdef TSDBAPI
-void error::tsdb_print()
-{
-  string s;
-  for(string::size_type i = 0; i < _msg.length(); i++)
-    {
-      if(_msg[i] == '"')
-	s += "<quote>";
-      else
-	s += string(1, _msg[i]);
-    }
-
-  capi_printf("%s", s.c_str());
-}
-#endif
-
 

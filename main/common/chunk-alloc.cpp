@@ -56,13 +56,13 @@ chunk_allocator::chunk_allocator(int chunk_size, bool down)
 
   _chunk = new char* [MAX_CHUNKS];
   if(_chunk == 0)
-    throw error("alloc: out of memory"); 
+    throw tError("alloc: out of memory"); 
 
   _init_core(down);
 
   _chunk[_nchunks++] = (char *) _core_alloc(_chunk_size);
   if(_chunk[_curr_chunk] == 0)
-    throw error("alloc: out of memory"); 
+    throw tError("alloc: out of memory"); 
 
   _stats_chunk_sum = _stats_chunk_n = 0;
 
@@ -83,10 +83,10 @@ chunk_allocator::~chunk_allocator()
 void chunk_allocator::_overflow(int n)
 {
   if(n > _chunk_size)
-    throw error("alloc: chunk_size too small");
+    throw tError("alloc: chunk_size too small");
 
   if(++_curr_chunk >= MAX_CHUNKS)
-    throw error("alloc: out of chunks");
+    throw tError("alloc: out of chunks");
   
   if(_curr_chunk >= _nchunks)
     {
@@ -95,7 +95,7 @@ void chunk_allocator::_overflow(int n)
       { 
         _nchunks--;
         reset(); 
-        throw error("alloc: out of memory"); 
+        throw tError("alloc: out of memory"); 
       }
     }
   _chunk_pos = 0;
@@ -225,7 +225,7 @@ void *chunk_allocator::_core_alloc(int size)
 	      size,
 	      _core_down ? "down" : "up",
 	      (int) _mmap_up_mark, (int) _mmap_down_mark);
-      throw error("alloc: mmap problem");
+      throw tError("alloc: mmap problem");
     }
 
   if(_core_down)
@@ -237,7 +237,7 @@ void *chunk_allocator::_core_alloc(int size)
     {
       fprintf(ferr, "alloc: no space (up = %xd, down = %xd)\n",
 	      (int) _mmap_up_mark, (int) _mmap_down_mark);
-      throw error("alloc: out of mmap space");
+      throw tError("alloc: out of mmap space");
     }
 
   return p;
@@ -248,7 +248,7 @@ int chunk_allocator::_core_free(void *p, int size)
   int res = munmap((char *) p, size);
 
   if(res == -1)
-    throw error("alloc: munmap error");
+    throw tError("alloc: munmap error");
 
   if(_core_down)
     _mmap_down_mark += size;

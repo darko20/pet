@@ -156,7 +156,7 @@ char *settings::req_value(const char *name)
   if(v == 0)
     {
       fprintf(ferr, "\nno definition for required parameter `%s'\n", name);
-      throw error("no definition for required parameter `" + string(name) + "'");
+      throw tError("no definition for required parameter `" + string(name) + "'");
     }
   return v;
 }

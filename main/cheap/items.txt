@@ -453,3 +453,74 @@ class phrasal_item : public item
 
   friend class active_and_passive_task;
 };
+
+
+
+// rules as active items (with no argument filled)
+
+
+**************************************************
+
+tItem *
+buildCombinedItem(tItem *active, tItem *passive)
+{
+    fsAllocState FSAS(false);
+
+    stats.etasks++;
+
+    tFS result;
+
+
+}
+
+
+class tParser
+{
+ public:
+
+    tParser(tGrammar *G, list<tInputItem *> &initial);
+
+    list<tError> &getErrors();
+    tChart *getChart();
+    tStatistics &getStatistics();
+
+ private:
+
+    tGrammar *_grammar;
+
+    list<tInputItem *initial> _initial;
+    tChart *_chart;
+    list<error> _errors;
+    tStatistics _stats;
+
+    void parse();
+};
+
+tParser::tParser(tGrammar *G, list<tInputItem *> &initial)
+    : _grammar(G), _initial(initial), _chart(0), _stats()
+{
+    // Determine rightmost position, check that leftmost is 0.
+    int left = 1, right = -1;
+    for(list<tInputItem *>::iterator it = _initial.begin();
+        it != _initial.end(); ++it)
+    {
+        if((*it)->getStart() < left)
+            left = (*it)->getStart();
+        if((*it)->getEnd() > right)
+            right = (*it)->getEnd();
+    }
+
+    
+
+}
+
+void
+tParser::parse()
+{
+    if(initial.empty())
+        return;
+
+    
+
+
+}

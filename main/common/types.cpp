@@ -237,7 +237,7 @@ int get_special_name(settings *sett, char *suff, bool attr = false)
 #else 
  id = attr ? lookup_attr(v) : lookup_type(v);
   if(id == -1)
-    throw error(string(buff) + " not defined (but referenced in settings file)");
+    throw tError(string(buff) + " not defined (but referenced in settings file)");
 #endif
   return id;
 }
@@ -441,7 +441,7 @@ void undump_tables(dumper *f)
   else if(coding == 1)
     dag_nocasts = false;
   else
-    throw error("unknown encoding");
+    throw tError("unknown encoding");
 
   featset = new int[first_leaftype];
 

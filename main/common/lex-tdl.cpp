@@ -157,7 +157,7 @@ struct lex_token *get_next_token()
       { // runaway comment
           fprintf(ferr, "runaway block comment starting in %s:%d.%d\n",
                   curr_fname(), curr_line(), curr_col());
-          throw error("runaway block comment");
+          throw tError("runaway block comment");
       }
       
       i += 2;
@@ -179,7 +179,7 @@ struct lex_token *get_next_token()
 	{ // runaway string
 	  fprintf(ferr, "runaway string starting in %s:%d.%d\n",
 		  curr_fname(), curr_line(), curr_col());
-	  throw error("runaway string");
+	  throw tError("runaway string");
 	}
 
       i += 1;
@@ -205,7 +205,7 @@ struct lex_token *get_next_token()
 	{ // runaway LISP expression
 	  fprintf(ferr, "runaway LISP expression starting in %s:%d.%d\n",
 		  curr_fname(), curr_line(), curr_col());
-	  throw error("runaway LISP expression");
+	  throw tError("runaway LISP expression");
 	}
       
       t = make_token(T_LISP, start, i);
@@ -252,7 +252,7 @@ struct lex_token *get_next_token()
           {
 	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
 		    (char) c, curr_fname(), curr_line(), curr_col());
-	    throw error("unexpected character in input");
+	    throw tError("unexpected character in input");
           }
       }
           
@@ -356,7 +356,7 @@ struct lex_token *get_next_token()
 	  {
 	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
 		    (char) c, curr_fname(), curr_line(), curr_col());
-	    throw error("unexpected character in input");
+	    throw tError("unexpected character in input");
 	  }
 	}
       txt[0] = (char) c;
@@ -516,7 +516,7 @@ void recover(enum TOKEN_TAG tag)
   if(LA(0) ->tag == T_EOF)
     {
       fprintf(ferr, "confused by previous errors, bailing out...\n");
-      throw error("confused");
+      throw tError("confused");
     }
   
   if(LA(0) == last_t) consume(1);

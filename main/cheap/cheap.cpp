@@ -101,7 +101,7 @@ void interactive()
 
             input_chart i_chart(new end_proximity_position_map);
 
-            list<error> errors;
+            list<tError> errors;
             analyze(i_chart, input, Chart, FSAS, errors, id);
             if(!errors.empty())
                 throw errors.front();
@@ -147,9 +147,9 @@ void interactive()
             fflush(fstatus);
         } /* try */
         
-        catch(error &e)
+        catch(tError &e)
         {
-            e.print(ferr); fprintf(ferr, "\n");
+            fprintf(ferr, "%s\n", e.getMessage().c_str());
             if(verbosity > 0) stats.print(fstatus);
             stats.readings = -1;
         }
@@ -190,7 +190,7 @@ void nbest()
                 
                 input_chart i_chart(new end_proximity_position_map);
                 
-                list<error> errors;
+                list<tError> errors;
                 analyze(i_chart, input, Chart, FSAS, errors, id);
                 if(!errors.empty())
                     throw errors.front();
@@ -205,9 +205,9 @@ void nbest()
                 fflush(fstatus);
             } /* try */
             
-            catch(error &e)
+            catch(tError &e)
             {
-                e.print(ferr); fprintf(ferr, "\n");
+                fprintf(ferr, "%s\n", e.getMessage().c_str());
                 stats.print(fstatus);
                 fflush(fstatus);
                 stats.readings = -1;
@@ -275,10 +275,9 @@ void process(char *s)
       Grammar = new grammar(s); 
     }
     
-    catch(error &e)
+    catch(tError &e)
     {
-        fprintf(fstatus, "\naborted\n");
-        e.print(ferr);
+        fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
         delete Grammar;
         delete cheap_settings;
         return;
@@ -366,9 +365,9 @@ int main(int argc, char* argv[])
 
   try { process(grammar_file_name); }
 
-  catch(error &e)
+  catch(tError &e)
     {
-      e.print(ferr);  fprintf(ferr, "\n");
+      fprintf(ferr, "%s\n", e.getMessage().c_str());
       exit(1);
     }
 

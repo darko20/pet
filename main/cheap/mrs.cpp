@@ -34,7 +34,7 @@ char *k2y_type_name(char *abstr_name)
   char *name = cheap_settings->assoc("k2y_type_names", abstr_name);
   if(name == 0) name = cheap_settings->assoc("k2y-type-names", abstr_name);
   if(name == 0)
-    throw error("undefined k2y_type_name `" + string(abstr_name) + "'.");
+    throw tError("undefined k2y_type_name `" + string(abstr_name) + "'.");
   return name;
 
 }
@@ -44,7 +44,7 @@ char *k2y_pred_name(char *abstr_name)
   char *name = cheap_settings->assoc("k2y_pred_names", abstr_name);
   if(name == 0) name = cheap_settings->assoc("k2y-pred-names", abstr_name);
   if(name == 0)
-    throw error("undefined k2y_pred_name `" + string(abstr_name) + "'.");
+    throw tError("undefined k2y_pred_name `" + string(abstr_name) + "'.");
   return name;
 
 }
@@ -54,7 +54,7 @@ char *k2y_role_name(char *abstr_name)
   char *name = cheap_settings->assoc("k2y_role_names", abstr_name);
   if(name == 0) name = cheap_settings->assoc("k2y-role-names", abstr_name);
   if(name == 0)
-    throw error("undefined k2y_role_name `" + string(abstr_name) + "'.");
+    throw tError("undefined k2y_role_name `" + string(abstr_name) + "'.");
   return name;
 }
 
@@ -154,7 +154,7 @@ mrs::mrs(fs root)
     {
       fs rel = liszt.get_attr_value(BIA_FIRST);
       if(!rel.valid())
-	throw error("invalid MRS LISZT");
+	throw tError("invalid MRS LISZT");
 
       push_rel(mrs_rel(this, rel));
 
@@ -336,7 +336,7 @@ void mrs::print(FILE *f)
 void mrs::countpseudorel()
 {
   if(++_pseudorels > K2Y_MAX_PSEUDORELS)
-    throw error("too many pseudorels in K2Y");
+    throw tError("too many pseudorels in K2Y");
 }
 
 // construct an MRS REL from a feature structure
@@ -346,7 +346,7 @@ mrs_rel::mrs_rel(mrs *m, fs f)
 
   if(cheap_settings->member("k2y-disfavoured-relations", typenames[_rel]))
     {
-      throw error(string("disfavoured relation `") + printnames[_rel] +
+      throw tError(string("disfavoured relation `") + printnames[_rel] +
                   string("' in MRS"));
     }
 
@@ -358,7 +358,7 @@ mrs_rel::mrs_rel(mrs *m, fs f)
     if(pred.valid()) _pred = pred.type();
     else _pred = _rel;
   } // try
-  catch (error &condition) {
+  catch (tError &condition) {
     _pred = _rel;
   } // catch
 
@@ -457,7 +457,7 @@ list<int> mrs_rel::id_list(char *path)
       fs rel = list.get_attr_value(BIA_FIRST);
 
       if(!rel.valid())
-	   throw error("invalid difflist in MRS");
+	   throw tError("invalid difflist in MRS");
 
       ids.push_front(_mrs->id(rel));
 
@@ -504,7 +504,7 @@ bool mrs_rel::number_convert(void) {
       _cvalue = strtoint(fs.name(), "mrs::number_convert()", true);
       return true;
     } /* try */
-    catch (error &condition) {
+    catch (tError &condition) {
       _cvalue = -1;
       return false;
     } /* catch */
@@ -607,7 +607,7 @@ mrs_hcons::mrs_hcons(mrs *m, fs f)
       {
         fs pair = liszt.get_attr_value(BIA_FIRST);
         if(!pair.valid())
-          throw error("invalid H-CONS value in MRS");
+          throw tError("invalid H-CONS value in MRS");
 
         fs sc_arg = pair.get_attr_value(k2y_role_name("k2y_sc_arg"));
         fs outscpd = pair.get_attr_value(k2y_role_name("k2y_outscpd"));
@@ -617,7 +617,7 @@ mrs_hcons::mrs_hcons(mrs *m, fs f)
         if(rhs == m->top()) {
             ostringstream desc;
             desc << "MRS top handle (h" << rhs << ") outscoped by h" << lhs;
-          throw error(desc.str());
+          throw tError(desc.str());
         } /* if */
         _dict[lhs] =  rhs;
 

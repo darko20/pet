@@ -40,7 +40,7 @@ undump_header(dumper *f, int &version)
     magic = f->undump_int();
     
     if(magic != DUMP_MAGIC)
-        throw error("invalid grammar file");
+        throw tError("invalid grammar file");
     
     version = f->undump_int();
     if(version != DUMP_VERSION)
@@ -54,7 +54,7 @@ undump_header(dumper *f, int &version)
                     version, DUMP_VERSION); 
         }
         else
-            throw error("grammar file has incompatible version");
+            throw tError("grammar file has incompatible version");
     }
     
     desc = f->undump_string();
@@ -86,7 +86,7 @@ dump_toc::goto_section(sectiontype s)
         _dump->seek(_toc[s]);
         sectiontype actual = sectiontype(_dump->undump_int());
         if(actual != s)
-            throw error("grammar file is corrupted");
+            throw tError("grammar file is corrupted");
         
         return true;
     }
@@ -102,7 +102,7 @@ void
 dump_toc_maker::add_section(sectiontype s)
 {
     if(!_open)
-        throw error("TOC already closed");
+        throw tError("TOC already closed");
     
     _dump->dump_int(s);
     _where[s] = _dump->dump_int_variable();
@@ -112,7 +112,7 @@ void
 dump_toc_maker::close()
 {
     if(!_open)
-        throw error("TOC already closed");
+        throw tError("TOC already closed");
     
     _dump->dump_int(SEC_NOSECTION);
     _open = false;
@@ -122,10 +122,10 @@ void
 dump_toc_maker::start_section(sectiontype s)
 {
     if(_open)
-        throw error("TOC still open");
+        throw tError("TOC still open");
     
     if(_where.find(s) == _where.end())
-        throw error("Trying to start a section that is not in the TOC");
+        throw tError("Trying to start a section that is not in the TOC");
     
     _toc[s] = _dump->tell();
     _dump -> dump_int(s);
@@ -134,7 +134,7 @@ dump_toc_maker::start_section(sectiontype s)
 dump_toc_maker::~dump_toc_maker()
 {
     if(_open)
-        throw error("TOC still open");
+        throw tError("TOC still open");
     
     for(map<sectiontype, long int>::iterator iter = _where.begin();
         iter != _where.end(); ++iter)
@@ -143,7 +143,7 @@ dump_toc_maker::~dump_toc_maker()
         long int pos = iter->second;
         
         if(_toc.find(s) == _toc.end())
-            throw error("Undefined section in TOC");
+            throw tError("Undefined section in TOC");
         
         _dump->set_int_variable(pos, _toc[s]);
     }

@@ -247,14 +247,14 @@ bool yy_tokenizer::eos()
 char yy_tokenizer::cur()
 {
   if(eos())
-    throw error("yy_tokenizer: trying to read beyond end of string");
+    throw tError("yy_tokenizer: trying to read beyond end of string");
   return _yyinput[_yypos];
 }
 
 const char *yy_tokenizer::res()
 {
   if(eos())
-    throw error("yy_tokenizer: trying to read beyond end of string");
+    throw tError("yy_tokenizer: trying to read beyond end of string");
   return _yyinput.c_str() + _yypos;
 }
 
@@ -417,43 +417,43 @@ yy_tokenizer::read_token()
         return 0;
   
     if(!read_special('('))
-        throw error("yy_tokenizer: ill-formed token (expected '(')");
+        throw tError("yy_tokenizer: ill-formed token (expected '(')");
 
     if(!read_int(res->id) || !read_special(','))
-        throw error("yy_tokenizer: ill-formed token (expected id)");
+        throw tError("yy_tokenizer: ill-formed token (expected id)");
 
     if(!read_int(res->start) || !read_special(','))
-        throw error("yy_tokenizer: ill-formed token (expected start pos)");
+        throw tError("yy_tokenizer: ill-formed token (expected start pos)");
  
     if(!read_int(res->end) || !read_special(','))
-        throw error("yy_tokenizer: ill-formed token (expected end pos)");
+        throw tError("yy_tokenizer: ill-formed token (expected end pos)");
  
     int path;
     while(read_int(path))
         res->paths.push_back(path);
 
     if(res->paths.empty() || !read_special(','))
-        throw error("yy_tokenizer: ill-formed token (expected paths)");
+        throw tError("yy_tokenizer: ill-formed token (expected paths)");
 
     bool downcasep = true;
     if(!read_string(res->stem, true, downcasep))
-        throw error("yy_tokenizer: ill-formed token (expected stem)");
+        throw tError("yy_tokenizer: ill-formed token (expected stem)");
 
     // Read (optional) surface string.
     read_string(res->surface, true);
 
     if(!read_special(','))
-        throw error("yy_tokenizer: ill-formed token (expected , after stem)");
+        throw tError("yy_tokenizer: ill-formed token (expected , after stem)");
 
     if(!read_int(res->inflpos) || !read_special(','))
-        throw error("yy_tokenizer: ill-formed token (expected inflpos)");
+        throw tError("yy_tokenizer: ill-formed token (expected inflpos)");
 
     string inflr;
     while(read_string(inflr, true))
         res->inflrs.push_back(inflr);
     
     if(res->inflrs.empty())
-        throw error("yy_tokenizer: ill-formed token (expected inflrs)");
+        throw tError("yy_tokenizer: ill-formed token (expected inflrs)");
 
     if(read_special(','))
     {
@@ -466,7 +466,7 @@ yy_tokenizer::read_token()
     }
     
     if(!read_special(')'))
-        throw error("yy_tokenizer: ill-formed token (expected ')')");
+        throw tError("yy_tokenizer: ill-formed token (expected ')')");
     
     return res.release();
 }
@@ -553,13 +553,12 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
     fflush(fstatus);
   }
 
-  catch(error &e)
+  catch(tError &e)
     {
-      fprintf(fstatus, "\nL2 error: `");
-      e.print(fstatus); fprintf(fstatus, "'.\n");
+      fprintf(fstatus, "\nL2 error: `%s'.\n", e.getMessage().c_str());
       fflush(fstatus);
 
-      throw l2_error(e.msg());
+      throw l2_error(e.getMessage());
     }
 }
 
@@ -606,7 +605,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
         input_chart i_chart(new end_proximity_position_map);
 
-        list<error> errors;
+        list<tError> errors;
         analyze(i_chart, input, Chart, FSAS, errors, item_id);
         if(!errors.empty())
             throw errors.front();
@@ -658,12 +657,11 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
         mclose(mstream);
     } /* try */
 
-    catch(error &e)
+    catch(tError &e)
     {
-        fprintf(fstatus, " (%d) [%d] --- L2 error ` ",
-                stats.id, pedgelimit);
-        e.print(fstatus);
-        fprintf(fstatus, "' (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+        fprintf(fstatus, " (%d) [%d] --- L2 error `%s'",
+                stats.id, pedgelimit, e.getMessage().c_str());
+        fprintf(fstatus, " (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                 stats.first / 1000., stats.tcpu / 1000.,
                 stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
         fflush(fstatus);
@@ -671,7 +669,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 #ifdef TSDBFILEAPI
         if(Chart)
             TsdbParse->set_i_length(Chart->length());
-        list<error> errors;
+        list<tError> errors;
         errors.push_back(e);
         cheap_tsdb_summarize_error(errors, -1, *TsdbParse);
 #endif
@@ -730,10 +728,9 @@ vector<l2_morph_analysis> l2_morph_analyse(const string& formUTF8)
       }
   }
 
-  catch(error &e)
+  catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `");
-    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
     fflush(fstatus);
 
     throw l2_error(e.msg());
@@ -774,10 +771,9 @@ string l2_morph_analyse_imp(const string& formUTF8)
     results += "\f+\nL";
   }
 
-  catch(error &e)
+  catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `");
-    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
     fflush(fstatus);
 
     throw l2_error(e.msg());
@@ -794,10 +790,9 @@ l2_parser_punctuationp(const string &input)
   {
     return Grammar->punctuationp(input);
   }
-  catch(error &e)
+  catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `");
-    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
     fflush(fstatus);
 
     throw l2_error(e.msg());
@@ -822,10 +817,9 @@ void l2_parser_exit_imp()
 #endif
   }
 
-  catch(error &e)
+  catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `");
-    e.print(fstatus); fprintf(fstatus, "'.\n");
+    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
     fflush(fstatus);
     
     throw l2_error(e.msg());
@@ -995,7 +989,7 @@ void cheap_server(int port) {
   struct hostent *host;
 
   if((server = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-    throw error("unable to create server socket.");
+    throw tError("unable to create server socket.");
   } /* if */
 
 #ifdef SIGPIPE
@@ -1019,7 +1013,7 @@ void cheap_server(int port) {
   server_address.sin_port = htons(port);
   if(bind(server,
           (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-    throw error("server(): unable to bind to server port.");
+    throw tError("server(): unable to bind to server port.");
   } /* if */
 
   listen(server, SOMAXCONN);
@@ -1184,7 +1178,7 @@ int cheap_server_child(int socket) {
       assert(tsdbitem != NULL);
       strcpy(tsdbitem, input);
 
-      list<error> errors;
+      list<tError> errors;
       analyze(i_chart, foo, Chart, FSAS, errors, ntsdbitems);
       if(!errors.empty())
           throw errors.front();
@@ -1233,15 +1227,14 @@ int cheap_server_child(int socket) {
 #endif
     } /* try */
 
-    catch(error &e) {
+    catch(tError &e) {
       errorp = true;
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
           log++) {
-          fprintf(*log, "[%d] server_child(): (%d) [%d] --- error ` ",
-                  stats.id, pedgelimit, getpid());
-          e.print(*log);
-          fprintf(*log, "' (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+          fprintf(*log, "[%d] server_child(): (%d) [%d] --- error `%s'",
+                  stats.id, pedgelimit, getpid(), e.getMessage().c_str());
+          fprintf(*log, " (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                   stats.first / 1000., stats.tcpu / 1000.,
                   stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
           fflush(*log);
@@ -1444,14 +1437,14 @@ int yy_tsdb_summarize_item(chart &Chart, const char *item,
 
 } /* yy_tsdb_summarize_item() */
 
-int yy_tsdb_summarize_error(const char *item, int length, error &condition) {
+int yy_tsdb_summarize_error(const char *item, int length, tError &condition) {
 
   if(!client_open_item_summary()) {
     capi_printf("(:i-length . %d) (:i-input . \"%s\")", length,
                 escape_string(item == 0 ? "" : item).c_str());
 
     tsdb_parse T;
-    list<error> errors;
+    list<tError> errors;
     errors.push_back(condition);
     cheap_tsdb_summarize_error(errors, 0, T);
     T.capi_print();

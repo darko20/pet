@@ -51,7 +51,7 @@ string get_next_list(string &s, string::size_type start,
   
   if(plevel != 0)
   {
-    throw error("unbalanced list");
+    throw tError("unbalanced list");
   }
 
   stop = closep;
@@ -305,7 +305,7 @@ bool morph_subrule::establish_and_check_bindings(UnicodeString matched)
       c1 = it1.next32PostInc();
       morph_letterset *ls = _analyzer->letterset(string(1, (char) c1));
       if(ls == 0)
-        throw error("Referencing undefined letterset !" + string(1, (char) c1));
+        throw tError("Referencing undefined letterset !" + string(1, (char) c1));
       if(ls->bound() == 0 || ls->bound() == c2)
         ls->bind(c2);
       else
@@ -314,7 +314,7 @@ bool morph_subrule::establish_and_check_bindings(UnicodeString matched)
     else
     {
       if(c1 != c2)
-        throw error("Conception error in morphology");
+        throw tError("Conception error in morphology");
     }
   }
   return true;
@@ -342,7 +342,7 @@ bool morph_subrule::base_form(UnicodeString matched,
       c = it.next32PostInc();
       morph_letterset *ls = _analyzer->letterset(string(1, (char) c));
       if(ls == 0)
-        throw error("Referencing undefined letterset !" + string(1, (char) c));
+        throw tError("Referencing undefined letterset !" + string(1, (char) c));
       result.append(ls->bound());
     }
     else
@@ -415,7 +415,7 @@ void trie_node::add_path(UnicodeString path, morph_subrule *rule)
       morph_letterset *ls = _analyzer->letterset(lsname);
 
       if(ls == 0)
-        throw error("Referencing undefined letterset !" + lsname);
+        throw tError("Referencing undefined letterset !" + lsname);
 
       const set<UChar32> &elems = ls->elems();
       for(set<UChar32>::const_iterator it = elems.begin();
@@ -475,7 +475,7 @@ void morph_trie::add_subrule(type_t rule, string subrule)
   while(curr < subrule.length() && !isspace(subrule[curr])) ++curr;
 
   if(curr == subrule.length())
-    throw error("Invalid subrule `" + subrule + "' in rule " + printnames[rule]);
+    throw tError("Invalid subrule `" + subrule + "' in rule " + printnames[rule]);
 
   left_u8 = subrule.substr(0, curr);
   if(left_u8 == "*")
@@ -484,7 +484,7 @@ void morph_trie::add_subrule(type_t rule, string subrule)
   while(curr < subrule.length() && isspace(subrule[curr])) ++curr;
 
   if(curr == subrule.length())
-    throw error("Invalid subrule `" + subrule + "' in rule " + printnames[rule]);
+    throw tError("Invalid subrule `" + subrule + "' in rule " + printnames[rule]);
 
   right_u8 = subrule.substr(curr, subrule.length() - curr);
 
@@ -726,7 +726,7 @@ void morph_analyzer::add_rule(type_t t, string rule)
   else if(rule.substr(0,6) == string("prefix"))
     parse_rule(t, rule.substr(6, rule.length() - 6), false);
   else
-    throw error(string("unknown type of morphological rule [") + printnames[t] + "]: " + rule);
+    throw tError(string("unknown type of morphological rule [") + printnames[t] + "]: " + rule);
 }
 
 void morph_analyzer::add_irreg(string stem, type_t t, string form)
