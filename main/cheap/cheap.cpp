@@ -225,7 +225,7 @@ void interactive()
                         stats.id, stats.readings, stats.pedges);
 
             fprintf(fstatus, 
-                    "(%d) `%s' [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
+                    "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
                     stats.id, input.c_str(), pedgelimit, stats.readings, 
                     stats.first/1000., stats.tcpu / 1000.,
                     stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
