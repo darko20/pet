@@ -228,7 +228,7 @@ void critical_types(struct dag_node *dag, leda_set<int> &cs)
 
 #define MAX_EXP_DEPTH 1000
 
-bool fully_expand(struct dag_node *dag)
+bool fully_expand(struct dag_node *dag, bool full)
 {
   static int depth = 0;
 
@@ -247,7 +247,7 @@ bool fully_expand(struct dag_node *dag)
 	  return false;
 	}
 
-      if(dag->type < types.number() && (opt_full_expansion || dag->arcs))
+      if(dag->type < types.number() && (full || dag->arcs))
 	{
 	  if(dag_unify3(types[dag->type]->thedag, dag) == FAIL)
 	    {
@@ -261,7 +261,7 @@ bool fully_expand(struct dag_node *dag)
       arc = dag->arcs;
       while(arc)
 	{
-	  if(!fully_expand(arc->val))
+	  if(!fully_expand(arc->val, full))
 	    {
 	      depth--;
 	      return false;
@@ -316,7 +316,7 @@ bool fully_expand_types()
 
       if(!pseudo_type(i))
 	{
-	  if(!fully_expand(types[i]->thedag))
+	  if(!fully_expand(types[i]->thedag, opt_full_expansion))
 	    {
 	      fprintf(ferr, " `%s' failed\n", typenames[i]);
 	      fail = true;

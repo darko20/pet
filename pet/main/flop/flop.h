@@ -392,6 +392,8 @@ void compute_feat_sets(bool minimal);
 
 void unfill_types();
 
+bool fully_expand(struct dag_node *dag, bool full);
+
 /*** reduction.cc ***/
 void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in_reduction);
 
