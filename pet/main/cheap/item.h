@@ -222,7 +222,7 @@ class item
   list<item *> unpack(int limit);
   virtual list<item *> unpack1(int limit) = 0;
 
-  inline const char *printname() { return _printname; }
+  inline const char *printname() { return _printname.c_str(); }
 
  private:
   static class item_owner *_default_owner;
@@ -259,7 +259,7 @@ class item
   tSM *_score_model;
   double _score;
 
-  const char *_printname;
+  const string _printname;
 
   int _blocked;
   list<item *> *_unpack_cache;
