@@ -7,6 +7,8 @@ ITSDBDIR = /home/uc/src/lkb ;
 ICU = true ;
 ICUDIR = /opt ; 
 
+LEXDB = true ;
+
 CC = gcc ;
 C++ = g++ ;
 
@@ -63,6 +65,12 @@ if $(YY) = true
   C++FLAGS += -DYY ;
 }
 
+if $(LEXDB) = true
+{
+  CHEAPSOURCES += lexdb.cpp ;
+  C++FLAGS += -DLEXDB ;
+}
+
 C++FLAGS += -DHASH_MAP_AVAIL -DUSEMMAP ;
 
 HDRS += . ;
@@ -81,8 +89,12 @@ if $(ICU) = true
   LINKLIBS on cheap += -licuuc -licui18n -licudata -lpthread -ldl ;
 }
 
-Main cheap : $(CHEAPSOURCES) ; 
+if $(LEXDB) = true
+{
+  LINKLIBS on cheap += -lpq ;
+}
 
+Main cheap : $(CHEAPSOURCES) ; 
 
 if $(TSDB) = false
 {
