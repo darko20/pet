@@ -34,7 +34,7 @@ void cheap_tsdb_summarize_run();
 #endif
 
 void cheap_tsdb_summarize_item(class chart &, int, int, int,
-                               const char *, class tsdb_parse &);
+                               class tsdb_parse &);
 void cheap_tsdb_summarize_error(error &, int treal, class tsdb_parse &);
 
 class statistics
@@ -97,7 +97,7 @@ class tsdb_result
   tsdb_result() :
     parse_id(-1), result_id(-1), time(-1), r_ctasks(-1), r_ftasks(-1),
     r_etasks(-1), r_stasks(-1), size(-1), r_aedges(-1), r_pedges(-1),
-    derivation(), tree(), mrs(), scored(false)
+    derivation(), edge_id(-1), tree(), mrs(), scored(false)
     {
     }    
 
@@ -117,11 +117,33 @@ class tsdb_result
   int size;                         // size of feature structure
   int r_aedges;                     // active items for this result
   int r_pedges;                     // passive items in this result
-  string derivation;                // derivation tree for this reading
+
+  string derivation;                // derivation tree for this reading (v1)
+
+  int edge_id;                      // edge id for derivation (v2)
+
   string tree;                      // phrase structure tree (CSLI labels)
   string mrs;                       // mrs for this reading
   bool scored;                      // has a score been assigned?
   double score;                     // score assigned by stochastic model
+};
+
+class tsdb_edge
+{
+ public:
+    tsdb_edge()
+        : id(-1), label(), start(-1), end(-1), score(-1.0), daughters()
+    {
+    }
+#ifdef TSDBAPI
+    void capi_print();
+#endif  
+
+    int id;
+    string label;
+    int start, end;
+    double score;
+    string daughters;
 };
 
 class tsdb_rule_stat
@@ -154,7 +176,7 @@ class tsdb_parse
         subsumptions(-1), p_trees(-1), p_equivalent(-1), p_proactive(-1),
         p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
         p_upedges(-1),
-        results(), rule_stats(), i_input(), i_length(-1)
+        results(), edges(), rule_stats(), i_input(), i_length(-1)
         {
         }
 
@@ -163,7 +185,10 @@ class tsdb_parse
         results.push_back(r);
     }
 
-    void set_rt(const string &rt);
+    void push_edge(class tsdb_edge &e)
+    {
+        edges.push_back(e);
+    }
 
     void push_rule_stat(class tsdb_rule_stat &r)
     {
@@ -232,6 +257,7 @@ class tsdb_parse
  private:
     
     list<tsdb_result> results;
+    list<tsdb_edge> edges;
     list<tsdb_rule_stat> rule_stats;
     string i_input;
     int i_length; 

@@ -621,7 +621,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
 #ifdef TSDBFILEAPI
         TsdbParse->set_i_length(Chart->length());
-        cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), -1, 0, 0,
+        cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), -1, 0,
                                   *TsdbParse);
 #endif
 
@@ -1422,7 +1422,7 @@ int yy_tsdb_summarize_item(chart &Chart, const char *item,
                 escape_string(item == 0 ? "" : item).c_str());
 
     tsdb_parse T;
-    cheap_tsdb_summarize_item(Chart, length, treal, 0, rt, T);
+    cheap_tsdb_summarize_item(Chart, length, treal, 0, T);
     T.capi_print();
     
     return client_send_item_summary();

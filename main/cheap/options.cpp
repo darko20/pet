@@ -29,7 +29,7 @@
 
 bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
-  opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
+  opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
   opt_nbest, opt_online_morph, opt_fullform_morph;
 #ifdef YY
@@ -38,6 +38,7 @@ int opt_k2y, opt_nth_meaning;
 #endif
 
 int opt_nsolutions, opt_nqc, verbosity, pedgelimit, opt_key, opt_server;
+int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
 
@@ -52,7 +53,7 @@ void usage(FILE *f)
 {
   fprintf(f, "usage: `cheap [options] grammar-file'; valid options are:\n");
 #ifdef TSDBAPI
-  fprintf(f, "  `-tsdb' --- self explanatory, isn't it?\n");
+  fprintf(f, "  `-tsdb[=n]' --- enable tsdb++ slave mode (protocol version = n)\n");
 #endif
   fprintf(f, "  `-nsolutions[=n]' --- find best n only, 1 if n is not given\n");
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
@@ -133,7 +134,7 @@ void usage(FILE *f)
 
 void init_options()
 {
-  opt_tsdb = false;
+  opt_tsdb = 0;
   opt_nsolutions = 0;
   verbosity = 0;
   pedgelimit = 0;
@@ -175,7 +176,7 @@ bool parse_options(int argc, char* argv[])
 
   struct option options[] = {
 #ifdef TSDBAPI
-    {"tsdb", no_argument, 0, OPTION_TSDB},
+    {"tsdb", optional_argument, 0, OPTION_TSDB},
 #endif
     {"nsolutions", optional_argument, 0, OPTION_NSOLUTIONS},
     {"verbose", optional_argument, 0, OPTION_VERBOSE},
@@ -224,7 +225,20 @@ bool parse_options(int argc, char* argv[])
       case '?':
           return false;
       case OPTION_TSDB:
-          opt_tsdb = true;
+          if(optarg != NULL)
+          {
+              opt_tsdb = strtoint(optarg, "as argument to -tsdb");
+              if(opt_tsdb < 0 || opt_tsdb > 2)
+              {
+                  fprintf(ferr, "parse_options(): invalid tsdb++ protocol"
+                          " version\n");
+                  return false;
+              }
+          }
+          else
+          {
+              opt_tsdb = 1;
+          }
           break;
       case OPTION_NSOLUTIONS:
           if(optarg != NULL)

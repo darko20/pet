@@ -187,13 +187,11 @@ class item
 
   virtual void getTagSequence(list<string> &tags, list<list<string> > &words) = 0;
 
-  //
-  // on 14-jan-02, the UDF steering committee (with consultation from EMB)
-  // once and for all unanimously voted to drop the foolish (PAGE-style)
-  // offset computation; for once, it makes comparison of complete charts
-  // impossible and, secondly, it breaks the fine tree comparison tool.
-  //
-  virtual string tsdb_derivation() = 0;
+  virtual string tsdb_derivation(int protocolversion) = 0;
+
+  virtual void daughter_ids(list<int> &ids) = 0;
+  // Collect all (transitive) children. Uses frosting mechanism.
+  virtual void collect_children(list<item *> &result) = 0;
 
   inline type_t result_root() { return _result_root; }
   inline bool result_contrib() { return _result_contrib; }
@@ -297,7 +295,11 @@ class lex_item : public item
   virtual void print_family(FILE *f) {}
   virtual void print_derivation(FILE *f, bool quoted);
   virtual void print_yield(FILE *f);
-  virtual string tsdb_derivation();
+  virtual string tsdb_derivation(int protocolversion);
+
+  virtual void daughter_ids(list<int> &ids);
+  // Collect all (transitive) children. Uses frosting mechanism.
+  virtual void collect_children(list<item *> &result);
 
   virtual void getTagSequence(list<string> &tags, list<list<string> > &words);
 
@@ -363,7 +365,11 @@ class phrasal_item : public item
   virtual void print_family(FILE *f);
   virtual void print_derivation(FILE *f, bool quoted);
   virtual void print_yield(FILE *f);
-  virtual string tsdb_derivation();
+  virtual string tsdb_derivation(int protocolversion);
+
+  virtual void daughter_ids(list<int> &ids);
+  // Collect all (transitive) children. Uses frosting mechanism.
+  virtual void collect_children(list<item *> &result);
 
   virtual void getTagSequence(list<string> &tags, list<list<string> > &words);
 

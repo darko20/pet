@@ -37,8 +37,6 @@ void strtoupper(char *s);
 // convert string to integer, throw error msg if invalid
 extern int strtoint(const char *s, const char *errloc, bool = false);
 
-extern string inttostr(int i);
-
 // convert standard C string mnemonic escape sequences
 string convert_escapes(const string &s);
 
