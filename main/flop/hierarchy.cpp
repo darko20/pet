@@ -536,10 +536,5 @@ bool process_hierarchy()
 
   fprintf(fstatus, ")\n");
 
-#ifdef MORPH_STUFF
-  if(opt_cmi)
-      print_hierarchy(fstatus);
-#endif
-
   return true;
 }

@@ -28,8 +28,9 @@
 
 bool opt_pre, opt_expand_all_instances,
   opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
-  opt_propagate_status, opt_linebreaks, opt_glbdebug, opt_cmi;
+  opt_propagate_status, opt_linebreaks, opt_glbdebug;
 
+int opt_cmi;
 int verbosity;
 int errors_to;
 
@@ -46,7 +47,7 @@ void usage(FILE *f)
   fprintf(f, "  `-propagate-status' --- propagate status the PAGE way\n");
   fprintf(f, "  `-no-semantics' --- remove all semantics\n");
   fprintf(f, "  `-glbdebug' --- print information about glb types created\n");
-  fprintf(f, "  `-no-cmi' --- don't create morphology information\n");
+  fprintf(f, "  `-cmi=level' --- create morph info, level = 0..2, default 1, 0 = off\n");
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-errors-to=n' --- print errors to fd n\n");
 }
@@ -77,7 +78,7 @@ bool parse_options(int argc, char* argv[])
     {"no-semantics", no_argument, 0, OPTION_NO_SEM},
     {"propagate-status", no_argument, 0, OPTION_PROPAGATE_STATUS},
     {"glbdebug", no_argument, 0, OPTION_GLBDEBUG},
-    {"cmi", no_argument, 0, OPTION_CMI},
+    {"cmi", required_argument, 0, OPTION_CMI},
     {"verbose", optional_argument, 0, OPTION_VERBOSE},
     {"errors-to", required_argument, 0, OPTION_ERRORS_TO},
     {0, 0, 0, 0}
@@ -92,8 +93,8 @@ bool parse_options(int argc, char* argv[])
   opt_propagate_status = false;
   opt_linebreaks = false;
   opt_glbdebug = false;
-  opt_cmi = true;
 
+  opt_cmi = 1;
   verbosity = 0;
   errors_to = -1;
   
@@ -129,7 +130,8 @@ bool parse_options(int argc, char* argv[])
       opt_glbdebug = true;
       break;
     case OPTION_CMI:
-      opt_cmi = false;
+      if(optarg != NULL)
+        opt_cmi = strtoint(optarg, "as argument to `-cmi'");
       break;
     case OPTION_VERBOSE:
       if(optarg != NULL)

@@ -378,6 +378,9 @@ void undo_subtype_constraints(int t);
 list<int> immediate_subtypes(int t);
 list<int> immediate_supertypes(int t);
 
+void
+print_hierarchy(FILE *f);
+
 /*** expand.cc ***/
 
 bool compute_appropriateness();
