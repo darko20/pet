@@ -339,7 +339,7 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
               opt_packing = strtoint(optarg, "as argument to `-packing'");
           else
-              opt_packing = 0xff;
+              opt_packing = PACKING_EQUI | PACKING_PRO | PACKING_RETRO;
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:
