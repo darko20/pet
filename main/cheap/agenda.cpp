@@ -17,47 +17,38 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* class `agenda' */
+/* Parser agenda: a queue of prioritized tasks */
 
 #include "pet-system.h"
 #include "agenda.h"
 
-//#define DEBUG
-
-agenda::~agenda()
+tAgenda::~tAgenda()
 {
     while(!this->empty())
         delete this->pop();
 }
 
 bool
-agenda::empty()
+tAgenda::empty()
 {
     return _A.empty();
 }
 
 void
-agenda::push(basic_task *t)
+tAgenda::push(basic_task *t)
 {
-#ifdef DEBUG
-    fprintf(ferr, " -> ");
-    t->print(ferr);
-    fprintf(ferr, "\n");
-#endif
-    
     _A.push(t);
 }
 
 basic_task *
-agenda::top()
+tAgenda::top()
 {
-    basic_task *t;
-    t = _A.top();
+    basic_task *t = _A.top();
     return t;
 }
 
 basic_task *
-agenda::pop()
+tAgenda::pop()
 {
     basic_task *t = top();
     
