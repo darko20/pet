@@ -79,16 +79,23 @@ void dagify_types()
 
 struct dag_node *dagify_conjunction(struct conjunction *C, int type);
 
+// Global variable to enable meaningful error messages
+int current_toplevel_type = 0;
+
 struct dag_node *dagify_tdl_term(struct conjunction *C, int type, int ncr)
 {
   int i;
   struct dag_node *result;
   
+  current_toplevel_type = type;
+
   ncorefs = ncr;
   dagify_corefs = new struct dag_node * [ncorefs];
   for(i = 0; i < ncorefs; i++) dagify_corefs[i] = 0;
   
   result = dagify_conjunction(C, type);
+
+  current_toplevel_type = 0;
 
   delete[] dagify_corefs;
   return dag_deref(result);
@@ -119,7 +126,8 @@ struct dag_node *dagify_avm(struct avm *A)
         {
           if(dag_unify1(arc->val, val) == FAIL)
             {
-              fprintf(ferr, "unification under `%s' failed\n", attrname[attr]);
+              fprintf(ferr, "type `%s': unification under `%s' failed\n",
+                      typenames[current_toplevel_type], attrname[attr]);
               return FAIL;
             }
         }
@@ -146,7 +154,8 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
             {
               if(dag_unify1(last, result) == FAIL)
                 {
-                  fprintf(ferr, "unification of `LAST' failed\n");
+                  fprintf(ferr, "type `%s': unification of `LAST' failed\n",
+                          typenames[current_toplevel_type]);
                   return FAIL;
                 }
             }
@@ -210,7 +219,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
 	newtype = glb(type, C->term[i]->type);
 	if(newtype == -1)
 	  {
-	    fprintf(ferr, "inconsistent term detected: `%s' & `%s' have no glb...\n",
+	    fprintf(ferr, "type `%s': inconsistent term detected: `%s' & `%s' have no glb...\n",
+                    typenames[current_toplevel_type],
 		    typenames[type],
 		    typenames[C->term[i]->type]);
 	    return FAIL;
@@ -221,7 +231,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
       {
 	if(cref != -1 && cref != C->term[i]->coidx)
 	  {
-	    fprintf(ferr, "term specifies two coreference indices: %d & %d...\n",
+	    fprintf(ferr, "type `%s': term specifies two coreference indices: %d & %d...\n",
+                    typenames[current_toplevel_type],
 		    cref, C->term[i]->coidx);
 	    return FAIL;
 	  }
@@ -243,7 +254,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              fprintf(ferr, "feature term unification failed\n");
+              fprintf(ferr, "type `%s': feature term unification failed\n",
+                      typenames[current_toplevel_type]);
               return FAIL;
             }
         }
@@ -253,7 +265,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              fprintf(ferr, "list term unification failed\n");
+              fprintf(ferr, "type `%s': list term unification failed\n",
+                      typenames[current_toplevel_type]);
               return FAIL;
             }
         }
@@ -266,7 +279,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
         {
           if(dag_unify1(dagify_corefs[cref], result) == FAIL)
             {
-              fprintf(ferr, "coreference unification failed\n");
+              fprintf(ferr, "type `%s': coreference unification failed\n",
+                      typenames[current_toplevel_type]);
               return FAIL;
             }
         }
