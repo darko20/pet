@@ -642,30 +642,39 @@ bool dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward
 
 void dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
+#ifdef DEBUG_SUBSUME
   unify_path_rev = 0;
+#endif
+
   dag_subsumes1(dag1, dag2, forward = true, backward = true);
   dag_invalidate_changes();
 }
 
+#ifdef DEBUG_SUBSUME
 int subsumption_level = 0;
+#endif
 
 bool
 dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
-    dag_node *c1 = dag_get_copy(dag1), *c2 = dag_get_copy(dag2);
+    dag_node *c1 = dag_get_copy(dag1),
+             *c2 = dag_get_copy(dag2);
     
+#ifdef DEBUG_SUBSUME
     subsumption_level++;
     if(verbosity > 14)
     {
         fprintf(stderr, "%*s", subsumption_level*2, "");
         fprintf(stderr,
                 "> subsumes(%x (%x), %x (%x), %s, %s) ",
-                (int) dag1, (int) c1, (int) dag2, (int) c2, forward ? "t" : "f", backward ? "t" : "f");
+                (int) dag1, (int) c1, (int) dag2, (int) c2,
+                forward ? "t" : "f", backward ? "t" : "f");
         list_int *tmp = reverse(unify_path_rev);
         print_path(stderr, tmp);
         free_list(tmp);
         fprintf(stderr, "\n");
     }
+#endif
     
     if(forward)
     {
@@ -685,6 +694,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     
     if(forward == false && backward == false)
     {
+#ifdef DEBUG_SUBSUME
         if(verbosity > 14)
         {
             fprintf(stderr, "%*s", subsumption_level*2, "");
@@ -692,6 +702,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
                     "< (f f) (coreferences)\n");
         }
         subsumption_level--;
+#endif
         return false;
     }
     
@@ -707,6 +718,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     
     if(forward == false && backward == false)
     {
+#ifdef DEBUG_SUBSUME
         if(verbosity > 14)
         {
             fprintf(stderr, "%*s", subsumption_level*2, "");
@@ -714,6 +726,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
                     "< (f f) (types)\n");
         }
         subsumption_level--;
+#endif
         return false;
     }
     
@@ -738,9 +751,12 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
             
             if(arc2)
 	    {
+#ifdef DEBUG_SUBSUME
                 unify_path_rev = cons(arc1->attr, unify_path_rev);
+#endif
                 if(!dag_subsumes1(arc1->val, arc2->val, forward, backward))
                 {
+#ifdef DEBUG_SUBSUME
                     if(verbosity > 14)
                     {
                         fprintf(stderr, "%*s", subsumption_level*2, "");
@@ -749,23 +765,28 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
                     }
                     unify_path_rev = pop_rest(unify_path_rev);
                     subsumption_level--;
+#endif
                     return false;
                 }
+#ifdef DEBUG_SUBSUME
                 unify_path_rev = pop_rest(unify_path_rev);
+#endif
 	    }
             
             arc1 = arc1->next;
 	}
     }
     
+#ifdef DEBUG_SUBSUME
     if(verbosity > 14)
     {
         fprintf(stderr, "%*s", subsumption_level*2, "");
         fprintf(stderr,
                 "< (%s %s)\n", forward ? "t" : "f", backward ? "t" : "f");
     }
-
     subsumption_level--;
+#endif
+
     return true;
 }
 
