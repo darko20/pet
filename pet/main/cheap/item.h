@@ -263,8 +263,6 @@ class item
   type_t _result_root;
   bool _result_contrib;
 
-  int _nparents;
-
   type_t *_qc_vector_unif;
   type_t *_qc_vector_subs;
 
