@@ -204,7 +204,7 @@ lex_stem::print(FILE *f) const
 }
 
 fs
-lex_stem::instantiate(bool full)
+lex_stem::instantiate()
 {
     fs e(leaftype_parent(_type));
 
@@ -228,14 +228,7 @@ lex_stem::instantiate(bool full)
         }
     }
 
-    // _fix_me_
-    // save the full structure here for later perusal
-
-    if(opt_packing && !full)
-      return packing_partial_copy(expanded,
-                                  Grammar->packing_restrictor(), false);
-    else
-      return expanded;
+    return expanded;
 }
 
 full_form::full_form(dumper *f, grammar *G)
@@ -276,13 +269,13 @@ full_form::full_form(lex_stem *st, morph_analysis a)
 #endif
 
 fs
-full_form::instantiate(bool full)
+full_form::instantiate()
 {
     if(!valid())
         throw error("trying to instantiate invalid full form");
 
     // get the base
-    fs res = _stem->instantiate(full);
+    fs res = _stem->instantiate();
     
     if(!res.valid()) 
         throw error("cannot instantiate base of full form");

@@ -70,8 +70,14 @@ item::~item()
 lex_item::lex_item(int start, int end, const tPaths &paths,
                    int ndtrs, int keydtr, input_token **dtrs, 
                    int p, fs &f, const char *printname)
-    : item(start, end, paths, p, f, printname), _ndtrs(ndtrs), _keydtr(keydtr)
+    : item(start, end, paths, p, f, printname),
+      _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
+    // _fix_me_
+    // Not nice to overwrite the _fs field.
+    if(opt_packing)
+        _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
+
     if(_keydtr >= _ndtrs)
         throw error("keydtr > ndtrs for lex_item");
 
@@ -215,6 +221,17 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 #endif
 }
 
+phrasal_item::phrasal_item(phrasal_item *sponsor, vector<item *> &dtrs, fs &f)
+    : item(sponsor->start(), sponsor->end(), sponsor->_paths,
+           sponsor->priority(), f, sponsor->printname()),
+      _daughters(),
+      _adaughter(0), _rule(sponsor->rule())
+{
+    copy(dtrs.begin(), dtrs.end(), _daughters.begin());
+    _trait = SYNTAX_TRAIT;
+    _nfilled = dtrs.size(); 
+}
+
 void lex_item::set_result_root(type_t rule)
 {
     set_result_contrib();
@@ -270,6 +287,7 @@ void item::print(FILE *f, bool compact)
     fprintf(f, "}]");
 
     print_family(f);
+    print_packed(f);
 
     if(verbosity > 2 && compact == false)
     {
@@ -305,6 +323,19 @@ void phrasal_item::print(FILE *f, bool compact)
         fprintf(f, "\n");
         _fs.print(f);
     }
+}
+
+void
+item::print_packed(FILE *f)
+{
+    if(packed.size() == 0)
+        return;
+
+    fprintf(f, " < packed: ");
+    for(list<item *>::iterator pos = packed.begin();
+        pos != packed.end(); ++pos)
+        fprintf(f, "%d ",(*pos)->_id);
+    fprintf(f, ">");
 }
 
 void
@@ -526,3 +557,138 @@ lex_item::adjust_priority(const char *settingname)
     }
 }
 
+//
+// Unpacking
+//
+
+list<item *>
+item::unpack()
+{
+    list<item *> res;
+
+    if(verbosity > 2)
+        fprintf(stderr, "> unpack [%d]\n", id());
+
+    // Ignore frozen items.
+    if(frozen() == 2)
+    {
+        if(verbosity > 2)
+            fprintf(stderr, "< unpack [%d] ( )\n", id());
+        
+        return res;
+    }
+
+    // Recursively unpack items that are packed into this item.
+    for(list<item *>::iterator p = packed.begin();
+        p != packed.end(); ++p)
+    {
+        // Append result of unpack_item on packed item.
+        list<item *> tmp = (*p)->unpack();
+        res.splice(res.begin(), tmp);
+    }
+
+    // Unpack children.
+    list<item *> tmp = unpack1();
+    res.splice(res.begin(), tmp);
+
+    if(verbosity > 2)
+    {
+        fprintf(stderr, "< unpack [%d] ( ", id());
+        for(list<item *>::iterator i = res.begin(); i != res.end(); ++i)
+            fprintf(stderr, "%d ", (*i)->id());
+        fprintf(stderr, ")\n");
+    }
+
+    return res;
+}
+
+list<item *>
+lex_item::unpack1()
+{
+    list<item *> res;
+    res.push_back(this);
+    return res;
+}
+
+list<item *>
+phrasal_item::unpack1()
+{
+    // Collect expansions for each daughter.
+    vector<list<item *> > dtrs;
+    for(list<item *>::iterator dtr = _daughters.begin();
+        dtr != _daughters.end(); ++dtr)
+    {
+        dtrs.push_back((*dtr)->unpack());
+    }
+
+    // Consider all possible combinations of daughter structures
+    // and collect the ones that combine. 
+    vector<item *> config(rule()->arity());
+    list<item *> res;
+    unpack_cross(dtrs, 0, config, res);
+ 
+    return res;
+}
+
+// Recursively compute all configurations of dtrs, and accumulate valid
+// instantiations (wrt mother) in res.
+void
+phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
+                           int index, vector<item *> &config,
+                           list<item *> &res)
+{
+    if(index >= rule()->arity())
+    {
+        item *combined = unpack_combine(config);
+        if(combined)
+            res.push_back(combined);
+    }
+
+    for(list<item *>::iterator i = dtrs[index].begin(); i != dtrs[index].end();
+        ++i)
+    {
+        config[index] = *i;
+        unpack_cross(dtrs, index + 1, config, res);
+    }
+}
+
+// Try to instantiate mother with a particular configuration of daughters.
+// _fix_me_
+// This is quite similar to functionality in task.cpp - common functionality
+// should be factored out.
+item *
+phrasal_item::unpack_combine(vector<item *> &daughters)
+{
+    fs_alloc_state FSAS(false);
+
+    fs res = rule()->instantiate(true);
+
+    assert(daughters.size() == rule()->arity());
+
+    list_int *tofill = rule()->allargs();
+    
+    while(res.valid() && tofill)
+    {
+        fs arg = res.nth_arg(first(tofill));
+        
+        if(rest(tofill))
+        {
+            res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
+        }
+        else
+        {
+            res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
+                                 arg,
+                                 Grammar->deleted_daughters());
+        }
+        tofill = rest(tofill);
+    }
+    
+    if(!res.valid())
+    {
+        FSAS.release();
+        return 0;
+    }
+
+    return New phrasal_item(this, daughters, res);
+}

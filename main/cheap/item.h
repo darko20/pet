@@ -164,15 +164,13 @@ class item
           return false;
   }
   
-  inline fs get_fs()
+  virtual fs get_fs(bool full = false)
   {
       if(_fs.temp() && _fs.temp() != unify_generation)
           recreate_fs();
       return _fs;
   }
   
-  inline void set_fs(const fs &f) { _fs = f; }
-
   inline int nextarg() { return first(_tofill); }
   inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
   inline list_int *restargs() { return rest(_tofill); }
@@ -186,6 +184,7 @@ class item
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
+  virtual void print_packed(FILE *f);
   virtual void print_derivation(FILE *f, bool quoted) = 0;
   
   virtual void print_yield(FILE *f) = 0;
@@ -222,6 +221,9 @@ class item
 
   inline int frozen() { return _frozen; }
   inline void freeze(int mark) { _frozen = mark; }
+
+  list<item *> unpack();
+  virtual list<item *> unpack1() = 0;
 
   inline const char *printname() { return _printname; }
 
@@ -305,6 +307,11 @@ class lex_item : public item
 
   virtual grammar_rule *rule();
 
+  virtual fs get_fs(bool full = false)
+  {
+      return full ? _fs_full : _fs;
+  }
+
   virtual void recreate_fs();
 
   string description();
@@ -330,9 +337,13 @@ class lex_item : public item
   
   void adjust_priority(const char *setting);
 
+  virtual list<item *> unpack1();
+
  private:
   int _ndtrs, _keydtr;
   class input_token **_dtrs;
+
+  fs _fs_full; // unrestricted (packing) structure
 };
 
 class phrasal_item : public item
@@ -340,7 +351,8 @@ class phrasal_item : public item
  public:
   phrasal_item(class grammar_rule *, class item *, fs &);
   phrasal_item(class phrasal_item *, class item *, fs &);
-  
+  phrasal_item(class phrasal_item *, vector<class item *> &, fs &);
+
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f);
   virtual void print_derivation(FILE *f, bool quoted);
@@ -360,6 +372,12 @@ class phrasal_item : public item
   virtual int endposition() { return _daughters.back()->endposition() ; }
 
   virtual inline int age() { return _id; }
+
+  virtual list<item *> unpack1();
+  void unpack_cross(vector<list<item *> > &dtrs,
+                    int index, vector<item *> &config,
+                    list<item *> &res);
+  item *unpack_combine(vector<item *> &config);
 
  private:
   list<item *> _daughters;
