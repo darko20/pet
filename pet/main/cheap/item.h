@@ -120,13 +120,6 @@ class tItem
       return _fs;
   }
 
-#if 0
-  type_t type()
-  {
-      return get_fs().type();
-  }
-#endif
-  
   inline int nextarg() { return first(_tofill); }
   inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
   inline list_int *restargs() { return rest(_tofill); }
