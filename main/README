@@ -3,6 +3,7 @@ PET consists of two major parts:
 
 1) The `flop' preprocessor. It compiles a given grammar in text
    form into binary form usable by the runtime system.
+
 2) The `cheap' parser. It parses input with respect to a grammar in the binary
    form produced by `flop'.
 
@@ -13,3 +14,6 @@ common/ contains the sources shared between `flop' and `cheap'.
 flop/ contains the sources for the preprocessor.
 
 cheap/ contains the sources for the parser.
+
+goofy/ contains the sources for an outdated GUI prototype. This hasn't been
+compiled for two years and probably won't work.
