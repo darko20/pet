@@ -28,7 +28,10 @@
 #include "tsdb++.h"
 #include "mfile.h"
 #include "grammar-dump.h"
-#include "inputchart.h"
+#include "lexparser.h"
+#include "fullform-morph.h"
+#include "yy-tokenizer.h"
+#include "lingo-tokenizer.h"
 
 #ifdef QC_PATH_COMP
 #include "qc.h"
@@ -50,7 +53,7 @@ FILE *ferr, *fstatus, *flog;
 tGrammar *Grammar = 0;
 settings *cheap_settings = 0;
 
-#ifdef ONLINEMORPH
+#if 0
 #include "morph.h"
 
 void interactive_morph()
@@ -104,10 +107,10 @@ void interactive()
         try {
             fs_alloc_state FSAS;
 
-            input_chart i_chart(new end_proximity_position_map);
+            // input_chart i_chart(new end_proximity_position_map);
 
             list<tError> errors;
-            analyze(i_chart, input, Chart, FSAS, errors, id);
+            analyze(input, Chart, FSAS, errors, id);
             if(!errors.empty())
                 throw errors.front();
                 
@@ -179,6 +182,7 @@ void interactive()
     }
 #endif
 }
+
 void nbest()
 {
     string input;
@@ -199,10 +203,10 @@ void nbest()
             {
                 fs_alloc_state FSAS;
                 
-                input_chart i_chart(new end_proximity_position_map);
+                // input_chart i_chart(new end_proximity_position_map);
                 
                 list<tError> errors;
-                analyze(i_chart, input, Chart, FSAS, errors, id);
+                analyze(input, Chart, FSAS, errors, id);
                 if(!errors.empty())
                     throw errors.front();
                 
@@ -284,6 +288,25 @@ void process(char *s)
       fprintf(fstatus, "\n");
       fprintf(fstatus, "loading `%s' ", s);
       Grammar = new tGrammar(s); 
+
+      dumper dmp(s);
+      tFullformMorphology *ff = tFullformMorphology::create(dmp);
+      if (ff != NULL) 
+        Lexparser.register_morphology(ff);
+      if(opt_online_morph) {
+        tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
+        if (lkbm != NULL)
+          Lexparser.register_morphology(lkbm);
+        else
+          opt_online_morph = false;
+      }
+      Lexparser.register_lexicon(new tInternalLexicon());
+      if (opt_yy) {
+        Lexparser.register_tokenizer(new tYYTokenizer());
+      } else {
+        Lexparser.register_tokenizer(new tLingoTokenizer());
+      }
+
     }
     
     catch(tError &e)
@@ -321,7 +344,7 @@ void process(char *s)
             else
 #endif
             {
-#ifdef ONLINEMORPH
+#if 0 // #ifdef ONLINEMORPH
                 if(opt_interactive_morph)
                     interactive_morph();
                 else

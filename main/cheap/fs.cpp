@@ -80,13 +80,13 @@ fs::get_path_value(const char *path)
     return fs(dag_get_path_value(_dag, path));
 }
 
-char *
+const char *
 fs::name()
 {
     return typenames[dag_type(_dag)];
 }
 
-char *
+const char *
 fs::printname()
 {
   return printnames[dag_type(_dag)];
@@ -355,6 +355,9 @@ copy(const fs &a)
     return res;
 }
 
+/** Do a unification without partial copy, results in temporary dag. np stands
+ *  for "non permanent"
+ */
 fs
 unify_np(fs &root, const fs &a, fs &b)
 {

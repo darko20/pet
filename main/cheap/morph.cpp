@@ -23,6 +23,7 @@
 #include "morph.h"
 #include "unicode.h"
 #include "cheap.h"
+#include "grammar-dump.h"
 
 //
 // utility functions
@@ -860,6 +861,8 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
       it != eq.second; ++it)
     final_results.push_back(*it->second);
 
+  // filter duplicates
+  unique(final_results.begin(), final_results.end(), tMorphAnalysis::equal());
   return final_results;
 }
 
@@ -867,3 +870,176 @@ string tMorphAnalyzer::generate(tMorphAnalysis m)
 {
   return string("");
 }
+
+void
+tLKBMorphology::undump_inflrs(dumper &dmp) {
+  int ninflrs = dmp.undump_int();
+  for(int i = 0; i < ninflrs; i++)
+    {
+      int t = dmp.undump_int();
+      char *r = dmp.undump_string();
+
+      if(r == 0)
+        continue;
+	  
+      if(t == -1)
+        _morph.add_global(string(r));
+      else
+        {
+          _morph.add_rule(t, string(r));
+
+          grammar_rule *rule = Grammar->find_rule(t);
+          if (rule != NULL) {
+            if(rule->trait() == SYNTAX_TRAIT)
+              fprintf(ferr, "warning: found syntax `%s' rule "
+                      "with attached infl rule `%s'\n",
+                      printnames[t], r);
+                
+            rule->trait(INFL_TRAIT);
+          } else {
+            fprintf(ferr, "warning: rule `%s' with infl annotation "
+                    "`%s' doesn't correspond to any of the parser's "
+                    "rules\n", printnames[t], r);
+          }
+        }
+
+      delete[] r;
+    }
+
+  if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
+  if(verbosity >14) _morph.print(fstatus);
+}
+
+void
+tLKBMorphology::undump_irregs(dumper &dmp) {  // irregular forms
+  int nirregs = dmp.undump_int();
+  for(int i = 0; i < nirregs; i++)
+    {
+      char *form = dmp.undump_string();
+      char *infl = dmp.undump_string();
+      char *stem = dmp.undump_string();
+
+      strtolower(infl);
+      type_t inflr = lookup_type(infl);
+      if(inflr == -1)
+        {
+          fprintf(ferr, "Ignoring entry with unknown rule `%s' "
+                  "in irregular forms\n", infl);
+          delete[] form; delete[] infl; delete[] stem;
+          continue;
+        }
+	  
+      _morph.add_irreg(string(stem), inflr, string(form));
+      delete[] form; delete[] infl; delete[] stem;
+    }
+}
+
+/** LKB like online morphology with regexps for suffixes and prefixes and a
+ *  table for irregular forms.
+ */
+tLKBMorphology *
+tLKBMorphology::create(dumper &dmp) {
+  tLKBMorphology *result = new tLKBMorphology();
+
+  // XXX _fix_me_ this should go into grammar-dump
+  dmp.seek(0);
+  int version;
+  undump_header(&dmp, version);
+  dump_toc toc(&dmp);
+  if(cheap_settings->lookup("irregular-forms-only"))
+    result->_morph.set_irregular_only(true);
+
+  if(toc.goto_section(SEC_INFLR))
+    {
+      result->undump_inflrs(dmp);
+    }
+  if(toc.goto_section(SEC_IRREGS))
+    {
+      result->undump_irregs(dmp);
+    }
+  if(result->_morph.empty()) {
+    delete result;
+    return NULL;
+  } else {
+    return result;
+  }
+}
+
+
+/** Create a morphology component from the fullform tables, if available. */
+tFullformMorphology *
+tFullformMorphology::create(dumper &dmp) {
+  dmp.seek(0);
+  int version;
+  undump_header(&dmp, version);
+  dump_toc toc(&dmp);
+  if(toc.goto_section(SEC_FULLFORMS)) {
+    tFullformMorphology *newff = new tFullformMorphology(dmp);
+    if (newff->_fullforms.empty()) {
+      delete newff;
+      newff = NULL;
+    }
+    return newff;
+  } else {
+    return NULL;
+  }       
+}
+
+tFullformMorphology::tFullformMorphology(dumper &dmp) {
+  int nffs = dmp.undump_int();
+  int invalid = 0;
+  for(int i = 0; i < nffs; i++)
+    {
+      int preterminal = dmp.undump_int();
+      lex_stem *lstem;
+      // If we do not find a stem for the preterminal, this full form is not
+      // valid 
+      if ((lstem = Grammar->find_stem(preterminal)) != NULL) {
+          
+        const char *stem = printnames[preterminal];
+
+        int affix = dmp.undump_int();
+        list<type_t> affixes;
+        if (affix != -1) {
+          affixes.push_front(affix);
+        }
+          
+        // int offset = dmp.undump_char();
+        // XXX _fix_me_ the is not yet possible, and wrongly modelled anyway
+        // lstem->keydtr(offset);
+          
+        char *s = dmp.undump_string(); 
+        list<string> forms;
+        forms.push_front(string(s));
+        forms.push_back(string(stem));
+        delete[] s;
+          
+        _fullforms.insert(make_pair(string(stem)
+                                    , tMorphAnalysis(forms, affixes)));
+          
+        if(verbosity > 14)
+          {
+            // print(fstatus); // _fix_me_ do this explicitely
+            fprintf(fstatus, "\n");
+          }
+      } else {
+        invalid++;
+      }
+    }
+
+  if(verbosity > 4) {
+    fprintf(fstatus, ", %d full form entries", nffs);
+    if (invalid > 0) fprintf(fstatus, ", %d of them invalid", invalid);
+  }
+}
+
+/** Compute morphological results for \a form. */
+list<tMorphAnalysis> tFullformMorphology::operator()(const myString &form){
+  list<tMorphAnalysis> result;
+  pair<ffdict::iterator,ffdict::iterator> p = _fullforms.equal_range(form);
+  for(ffdict::iterator it = p.first; it != p.second; ++it) {
+    result.push_back(it->second);
+  }
+  return result;
+}
+

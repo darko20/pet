@@ -56,9 +56,20 @@ genle_status(type_t t)
 bool
 rule_status(type_t t)
 {
-    return cheap_settings->statusmember("rule-status-values", typestatus[t])
-        || cheap_settings->statusmember("lexrule-status-values", typestatus[t])
-        || cheap_settings->statusmember("infl-rule-status-values", typestatus[t]);
+  return cheap_settings->statusmember("rule-status-values", typestatus[t]);
+}
+
+bool 
+lex_rule_status(type_t t)
+{
+  return cheap_settings->statusmember("lexrule-status-values", typestatus[t]);
+}
+
+bool 
+infl_rule_status(type_t t)
+{
+  return 
+    cheap_settings->statusmember("infl-rule-status-values", typestatus[t]);
 }
 
 grammar_rule::grammar_rule(type_t t)
@@ -428,7 +439,19 @@ tGrammar::tGrammar(const char * filename)
         else if(rule_status(i))
         {
             grammar_rule *R = new grammar_rule(i);
-            _rules.push_front(R);
+            _syn_rules.push_front(R);
+            _rule_dict[i] = R;
+        }
+        else if(lex_rule_status(i))
+        {
+            grammar_rule *R = new grammar_rule(i);
+            _lex_rules.push_front(R);
+            _rule_dict[i] = R;
+        }
+        else if(infl_rule_status(i))
+        {
+            grammar_rule *R = new grammar_rule(i);
+            _infl_rules.push_front(R);
             _rule_dict[i] = R;
         }
         else if(genle_status(i))
@@ -437,10 +460,15 @@ tGrammar::tGrammar(const char * filename)
             _lexicon[i] = new lex_stem(i);
         }
     }
+    // Activate all rules for initialization etc.
+    activate_all_rules();
+    // The number of all rules for the unification and subsumption rule
+    // filtering
     _nrules = _rules.size();
     if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules", nstems(), 
                               length(_generics), _nrules);
 
+#if 0
     // full forms
     if(toc.goto_section(SEC_FULLFORMS))
     {
@@ -539,6 +567,10 @@ tGrammar::tGrammar(const char * filename)
         }
     }
 #endif
+#else
+    _morph = NULL;  // this should be there anyway
+#endif //if 0
+    
 
     if(opt_nqc_unif != 0)
     {
@@ -562,6 +594,7 @@ tGrammar::tGrammar(const char * filename)
         opt_compute_qc = save;
     }
 
+#if 0
     s = cheap_settings->value("punctuation-characters");
     string pcs;
     if(s == 0)
@@ -574,6 +607,7 @@ tGrammar::tGrammar(const char * filename)
 #else
     _punctuation_characters = Conv->convert(pcs);
 #endif  
+#endif
 
     char *sm_file;
     if((sm_file = cheap_settings->value("sm")) != 0)
@@ -813,6 +847,7 @@ tGrammar::~tGrammar()
         pos != _fullforms.end(); ++pos)
         delete pos->second;
 
+    activate_all_rules();
     for(list<grammar_rule *>::iterator pos = _rules.begin();
         pos != _rules.end(); ++pos)
         delete *pos;

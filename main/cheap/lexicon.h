@@ -43,7 +43,10 @@ class lex_stem
   inline int length() const { return _nwords; }
   inline int inflpos() const { return _nwords - 1; }
 
-  inline const char *orth(int i) const { return _orth[i]; }
+  inline const char *orth(int i) const { 
+    assert(i < _nwords);
+    return _orth[i];
+  }
   
   void print(FILE *f) const;
 

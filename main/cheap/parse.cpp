@@ -27,7 +27,8 @@
 #include "item.h"
 #include "grammar.h"
 #include "chart.h"
-#include "inputchart.h"
+//#include "inputchart.h"
+#include "lexparser.h"
 #include "tokenizer.h"
 #include "agenda.h"
 #include "tsdb++.h"
@@ -344,26 +345,12 @@ resources_exhausted()
         (memlimit > 0 && t_alloc.max_usage() >= memlimit);
 }
 
+
 void
-parse(chart &C, list<tLexItem *> &initial, fs_alloc_state &FSAS, 
-      list<tError> &errors)
+parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
 {
-    if(initial.empty()) return;
-
-    unify_wellformed = true;
-
-    Chart = &C;
-    Agenda = new tAgenda;
-
     TotalParseTime.start();
-    ParseTime = new timer;
-
-    for(list<tLexItem *>::iterator lex_it = initial.begin();
-        lex_it != initial.end(); ++lex_it)
-    {
-        Agenda->push(new item_task(Chart, Agenda, *lex_it));
-        stats.words++;
-    }
+    ParseTime->start();
 
     while(!Agenda->empty() &&
           (opt_nsolutions == 0 || stats.trees < opt_nsolutions) &&
@@ -387,7 +374,10 @@ parse(chart &C, list<tLexItem *> &initial, fs_alloc_state &FSAS,
 
     ParseTime->stop();
     TotalParseTime.stop();
+}
 
+void
+parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
     stats.tcpu = ParseTime->convert2ms(ParseTime->elapsed());
 
     stats.dyn_bytes = FSAS.dynamic_usage();
@@ -395,7 +385,7 @@ parse(chart &C, list<tLexItem *> &initial, fs_alloc_state &FSAS,
     FSAS.clear_stats();
 
     get_unifier_stats();
-    C.get_statistics();
+    Chart->get_statistics();
 
     if(opt_shrink_mem)
     {
@@ -403,12 +393,12 @@ parse(chart &C, list<tLexItem *> &initial, fs_alloc_state &FSAS,
         prune_glbcache();
     }
 
-    if(verbosity > 8)
-        C.print(fstatus);
-  
-    delete ParseTime;
-    delete Agenda;
+    tChartPrinter chp("/tmp/chdisplay");
+    Chart->print(&chp);
 
+    if(verbosity > 8)
+        Chart->print(fstatus);
+  
     if(resources_exhausted())
     {
         ostringstream s;
@@ -501,42 +491,35 @@ parse(chart &C, list<tLexItem *> &initial, fs_alloc_state &FSAS,
 }
 
 void
-analyze(input_chart &i_chart, string input, chart *&C,
-        fs_alloc_state &FSAS, list<tError> &errors, int id)
+analyze(string input, chart *&C, fs_alloc_state &FSAS
+        , list<tError> &errors, int id)
 {
     FSAS.clear_stats();
     stats.reset();
     stats.id = id;
+    ParseTime = new timer;
 
     auto_ptr<item_owner> owner(new item_owner);
     tItem::default_owner(owner.get());
 
-#ifdef YY
-    if(opt_yy)
-        i_chart.populate(new yy_tokenizer(input));
-    else
-#endif
-        i_chart.populate(new lingo_tokenizer(input));
+    unify_wellformed = true;
 
-    list<tLexItem *> tLexItems;
-    int max_pos = i_chart.expand_all(tLexItems);
+    inp_list input_items;
+    int max_pos = Lexparser.process_input(input, input_items);
 
-    dependency_filter(tLexItems,
-                      cheap_settings->lookup("chart-dependencies"),
-                      cheap_settings->lookup(
-                          "unidirectional-chart-dependencies") != 0);
-        
-    if(opt_default_les)
-        i_chart.add_generics(tLexItems);
-
-    if(verbosity > 9)
-        i_chart.print(ferr);
-
-    string missing = i_chart.uncovered(i_chart.gaps(max_pos, tLexItems));
-    if (!missing.empty()) 
-        throw tError("no lexicon entries for " + missing) ;
-
+    Agenda = new tAgenda;
     C = Chart = new chart(max_pos, owner);
+    
+    Lexparser.lexical_processing(input_items
+                                 , cheap_settings->lookup("lex-exhaustive")
+                                 , FSAS, errors);
 
-    parse(*Chart, tLexItems, FSAS, errors);
+    // during lexical processing, the appropriate tasks for the syntactic stage
+    // are already created
+    parse_loop(FSAS, errors);
+    parse_finish(FSAS, errors);
+
+    Lexparser.reset();
+    delete ParseTime;
+    delete Agenda;
 }

@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#if 0
 #include "tokenizer.h"
 
 class yy_tokenizer : public tokenizer
@@ -58,6 +59,7 @@ class yy_tokenizer : public tokenizer
   bool read_pos(string &, double &);
   class yy_token *read_token();
 };
+#endif
 
 extern int cheap_server_initialize(int);
 extern void cheap_server(int);

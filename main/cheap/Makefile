@@ -1,10 +1,9 @@
-%.o: %.cpp
-	$(COMPILE.cc) $< $(OUTPUT_OPTION)
+#%.o: %.cpp
+#	$(COMPILE.cc) $< $(OUTPUT_OPTION)
 
 RM = rm
 OBJ = o
 CXX = g++
-C = c
 CC = gcc
 LD = gcc
 # CC = KCC --
@@ -12,12 +11,17 @@ LD = gcc
 cpp=cpp
 c=c
 
-ECLPATH = /project/cl/deepthought/local/lib/ecl
-
-#ICUDIR = /usr
+ifeq ($(shell test -d /project/cl && echo "yes"), yes)
+ECLPATH = /project/cl/deepthought/local/ecl
 ICUDIR = /project/cl/deepthought/local
+#ITSDBPATH = /project/cl/deepthought/lkb
+ITSDBPATH = /home/cl-home/kiefer/lkb
+else 
+ECLPATH = /usr/local
+ICUDIR = /usr/local
+ITSDBPATH = /home/project/cl/systems/lkb
+endif
 
-ITSDBPATH = /project/cl/deepthought/lkb
 INCLUDE = -I. -I../common  -I$(ITSDBPATH)/include -I$(ICUDIR)/include
 
 # for Unix/gcc
@@ -53,12 +57,13 @@ LIBS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0 \
 # linux dynamic
 # ITSDBLIBS = -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3 -liberty
 # linux static
-ITSDBLIBS = -L$(ITSDBPATH)/lib/linux $(ITSDBPATH)/lib/linux/libitsdb.a -lpvm3 -liberty
+ITSDBLIBS = -Wl,-R,$(ITSDBPATH)/lib/linux -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3 -liberty
+#ITSDBLIBS = -L$(ITSDBPATH)/lib/linux $(ITSDBPATH)/lib/linux/libitsdb.a -lpvm3 -liberty
 # cygwin (no itsdb available)
 # ITSDBLIBS =
 
-ECLLIBS = -L$(ECLPATH) -lecl -lclos -llsp -lgc -lgmp \
-         -L$(ITSDBPATH)/lib/linux -lmrs
+ECLLIBS = -Wl,-R,$(ECLPATH)/lib/ecl -L$(ECLPATH)/lib/ecl -lecl \
+          -L$(ITSDBPATH)/lib/linux -lmrs
 
 #ICULIBS = -L$(ICUDIR)/lib -licuuc -licui18n -lpthread -ldl
 ICULIBS = -Wl,-R,$(ICUDIR)/lib -L$(ICUDIR)/lib -licuuc -licui18n -lpthread -ldl
@@ -76,9 +81,17 @@ DAGSRC = dag-io.$(cpp) dag-common.$(cpp) dag-arced.$(cpp) dag-alloc.$(cpp) dag-t
 # DAGSRC = dag-io.$(cpp) dag-common.$(cpp) dag-arced.$(cpp) dag-alloc.$(cpp) dag-synth1.$(cpp)
 
 COMMONSRCS = bitcode.$(cpp) chunk-alloc.$(cpp) errors.$(cpp) mfile.$(c) \
-	lex-io.$(cpp) lex-tdl.$(cpp) settings.$(cpp) fs.$(cpp) dumper.$(cpp) grammar-dump.$(cpp) grammar.$(cpp) types.$(cpp) tsdb++.$(cpp) utility.$(cpp) $(DAGSRC)
+	     lex-io.$(cpp) lex-tdl.$(cpp) settings.$(cpp) fs.$(cpp)\
+             dumper.$(cpp) grammar-dump.$(cpp) grammar.$(cpp) types.$(cpp)\
+	     tsdb++.$(cpp) utility.$(cpp) $(DAGSRC)
 
-PARSESRCS = parse.$(cpp) item.$(cpp) task.$(cpp) chart.$(cpp) agenda.$(cpp) tokenizer.$(cpp) options.$(cpp) postags.$(cpp) inputtoken.$(cpp) inputchart.$(cpp) mrs.$(cpp) yy.$(cpp) morph.$(cpp) unicode.$(cpp) paths.$(cpp) sm.$(cpp) hash.$(cpp) parser.$(cpp) lexicon.$(cpp) petecl.$(c) petmrs.$(c) cppbridge.$(cpp)
+PARSESRCS = parse.$(cpp) item.$(cpp) task.$(cpp) chart.$(cpp) agenda.$(cpp)\
+            options.$(cpp) postags.$(cpp) mrs.$(cpp) morph.$(cpp)\
+            unicode.$(cpp) paths.$(cpp) sm.$(cpp) hash.$(cpp) parser.$(cpp)\
+            lexicon.$(cpp) petecl.$(c) petmrs.$(c) cppbridge.$(cpp)\
+	    lingo-tokenizer.$(cpp) yy-tokenizer.$(cpp) lexparser.$(cpp)\
+            yy.$(cpp) item-printer.$(cpp)
+# inputtoken.$(cpp) inputchart.$(cpp) tokenizer.$(cpp)
 
 #
 # cheap
@@ -91,10 +104,10 @@ cheap: $(CHEAPOBJS)
 	$(LD) $(CFLAGS) -o $@ $^ $(LIBS) $(ITSDBLIBS) $(ICULIBS) $(ECLLIBS)
 
 petecl.$(OBJ): petecl.$(c) 
-	$(CC) $(CFLAGS) -I$(ECLPATH)/h \
+	$(CC) $(CFLAGS) -I$(ECLPATH)/lib/ecl/h \
 	  -o $@ -Dlinux -fstrict-aliasing -c $<
 petmrs.$(OBJ): petmrs.$(c) 
-	$(CC) $(CFLAGS) -I$(ECLPATH)/h \
+	$(CC) $(CFLAGS) -I$(ECLPATH)/lib/ecl/h \
 	  -o $@ -Dlinux -fstrict-aliasing -c $<
 
 
@@ -120,14 +133,15 @@ mrs:
 	( \
 	  echo "(load \"$(ITSDBPATH)/src/general/loadup.lisp\")"; \
 	  echo "(compile-system \"mrs\" :force t)"; \
-	) | ecl
+	) | $(ECLPATH)/bin/ecl
+	test -f cheap && rm cheap
 
 #
 # dependencies
 #
 
 depend: $(CHEAPSRCS)
-	makedepend -f- $(INCLUDE) -I$(ECLPATH)/h $^ | sed "s/\.c\.o/.o/" > .depend
+	makedepend -f- $(INCLUDE) -I$(ECLPATH)/lib/ecl/h $^ | sed "s/\.c\.o/.o/" > .depend
 #	makedepend -f- $(INCLUDE) $^ > .depend
 
 ifneq ("$(shell ls .depend 2>/dev/null)", "")

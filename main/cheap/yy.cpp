@@ -41,22 +41,18 @@
 #include "../common/utility.h"
 #include "../common/errors.h"
 #include "lex-tdl.h"
-#include "tokenizer.h"
 #include "parse.h"
 #include "agenda.h"
 #include "chart.h"
 #include "cheap.h"
-#include "inputchart.h"
 #include "typecache.h"
 #include "tsdb++.h"
 #include "yy.h"
-#ifdef ONLINEMORPH
-#include "morph.h"
-#endif
 #ifdef ICU
 #include "unicode.h"
 #endif
 
+#if 0
 //
 // parsing of YY input tokens
 // the form of one token is (id, start, end, path+, stem surface, ipos, irule+, {tag prob}*)
@@ -470,7 +466,7 @@ yy_tokenizer::read_token()
     
     return res.release();
 }
-
+#endif
 //
 // library based interface to language server
 //
@@ -603,10 +599,10 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
     {
         item_id++;
 
-        input_chart i_chart(new end_proximity_position_map);
+        // input_chart i_chart(new end_proximity_position_map);
 
         list<tError> errors;
-        analyze(i_chart, input, Chart, FSAS, errors, item_id);
+        analyze(input, Chart, FSAS, errors, item_id);
         if(!errors.empty())
             throw errors.front();
 
@@ -1116,7 +1112,7 @@ int cheap_server_child(int socket) {
     fs_alloc_state FSAS;
     chart *Chart = 0;
 
-    input_chart i_chart(new end_proximity_position_map);
+    // input_chart i_chart(new end_proximity_position_map);
 
     try {
       int status = socket_readline(socket, input, size);
@@ -1179,7 +1175,7 @@ int cheap_server_child(int socket) {
       strcpy(tsdbitem, input);
 
       list<tError> errors;
-      analyze(i_chart, foo, Chart, FSAS, errors, ntsdbitems);
+      analyze(foo, Chart, FSAS, errors, ntsdbitems);
       if(!errors.empty())
           throw errors.front();
                 
@@ -1242,7 +1238,7 @@ int cheap_server_child(int socket) {
 
 #ifdef TSDBAPI
       if(opt_tsdb) 
-        yy_tsdb_summarize_error(input, i_chart.max_position(), e);
+        yy_tsdb_summarize_error(input, Chart->rightmost(), e);
 #endif
     } /* catch */
 
@@ -1293,7 +1289,7 @@ int cheap_server_child(int socket) {
       } /* for */
 #ifdef TSDBAPI
       if(!errorp && opt_tsdb && Chart != NULL) {
-        yy_tsdb_summarize_item(*Chart, tsdbitem, i_chart.max_position(), 
+        yy_tsdb_summarize_item(*Chart, tsdbitem, Chart->rightmost(), 
                                treal, foo.c_str());
       } /* if */
 #endif

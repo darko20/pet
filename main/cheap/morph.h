@@ -23,6 +23,7 @@
 #define _MORPH_H_
 
 #include "types.h"
+#include "input-modules.h"
 
 class tMorphAnalysis
 {
@@ -33,15 +34,38 @@ class tMorphAnalysis
     : _forms(forms), _rules(rules)
     {}
 
+  /** A list of strings, from the most analyzed to the surface form */
   list<string> &forms() { return _forms; }
 
+  /** The base form of the string, without inflection */
   string base() { return _forms.front(); }
+  /** The surface form (the input of the analysis) */
   string complex() { return _forms.back(); }
 
   list<type_t> &rules() { return _rules; }
 
   void print(FILE *f);
   void print_lkb(FILE *f);
+
+  /** Two analyses are equal if the base form and the inflection derivation are
+   *  equal
+   */
+  struct equal : public binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
+    bool operator()(tMorphAnalysis &a, tMorphAnalysis &b) {
+      if (a.base() != b.base()) return false;
+      list<type_t>::iterator ar = a.rules().begin();
+      list<type_t>::iterator ae = a.rules().end();
+      list<type_t>::iterator br = b.rules().begin();
+      list<type_t>::iterator be = b.rules().end();
+      while(ar != ae) {
+        if ((br == be) || (*ar != *br)) return false;
+        ar++; 
+        br++;
+      }
+      if (br != be) return false;
+      return true;
+    }
+  };
 
  private:
   list<string> _forms;
@@ -92,6 +116,60 @@ class tMorphAnalyzer
   multimap<string, tMorphAnalysis *> _irregs_by_form;
 
   friend class morph_trie;
+};
+
+/** LKB like online morphology with regexps for suffixes and prefixes and a
+ *  table for irregular forms.
+ */
+class tLKBMorphology : public tMorphology {
+public:
+  static tLKBMorphology *create(class dumper &dmp);
+
+  virtual ~tLKBMorphology() {}
+
+  /** Compute morphological results for \a form. */
+  virtual list<tMorphAnalysis> operator()(const myString &form) {
+    return _morph.analyze(form);
+  }
+
+  virtual string description() { return "LKB style morphology"; }
+
+private:
+  tLKBMorphology() {}
+  void undump_inflrs(class dumper &dmp);
+  void undump_irregs(class dumper &dmp);
+
+  tMorphAnalyzer _morph;
+};
+
+
+/** Take an input token and compute a list of input tokens with morphological
+ *  information stored in the \c _inflrs_todo and \c _stem fields.
+ */
+class tFullformMorphology : public tMorphology {
+private:
+  
+  typedef multimap<string, tMorphAnalysis> ffdict ;
+
+  /** Prerequisite: The dumper must be set to the beginning of the (existing)
+   *  fullform section
+   */
+  tFullformMorphology(class dumper &dmp);
+
+public:
+  /** \brief Create a new full form morphology, if available. Return NULL
+   *  otherwise 
+   */
+  static tFullformMorphology *create(class dumper &dmp);
+
+  virtual ~tFullformMorphology() {}
+  
+  /** Compute morphological results for \c token. */
+  virtual list<tMorphAnalysis> operator()(const myString &form);
+
+  virtual string description() { return "full form table morphology"; }
+private:
+  ffdict _fullforms;
 };
 
 #endif
