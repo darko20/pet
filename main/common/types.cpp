@@ -460,16 +460,14 @@ int core_glb(int a, int b)
     return lookup_code(*temp_bitcode);
 }
 
-bool core_subtype(int a, int b)
+inline bool
+core_subtype(type_t a, type_t b)
 {
-  if (a == b)
-    return true;
-
-  // could use subset_fast here, once it's debugged
-  return typecode[a]->subset(*typecode[b]);
+    return typecode[a]->subset(*typecode[b]);
 }
 
-inline bool is_leaftype(int s)
+inline bool
+is_leaftype(type_t s)
 {
   return s >= first_leaftype && s < ntypes;
 }
@@ -527,16 +525,19 @@ bool subtype(int a, int b)
 
 #ifndef FLOP
 void
-subtype_bidir(int A, int B, bool &a, bool &b)
+subtype_bidir(type_t A, type_t B, bool &a, bool &b)
 {
-    if(A == B) // every type is subtype of itself
-    {
-        a = b = true;
-        return;
-    }
+    // precondition: A != B, A >= 0, B >= 0
+    
+#ifdef SUBTYPE_PROFILING
+    fprintf(ferr, "ST %d %d - ", A, B);
+#endif
 
     if(A == BI_TOP)
     {
+#ifdef SUBTYPE_PROFILING
+        // fprintf(ferr, "1\n");
+#endif
         a = false;
         b = true;
         return;
@@ -544,34 +545,88 @@ subtype_bidir(int A, int B, bool &a, bool &b)
 
     if(B == BI_TOP)
     {
+#ifdef SUBTYPE_PROFILING
+        // fprintf(ferr, "2\n");
+#endif
         a = true;
         b = false;
         return;
     }
+    
 
-    if(A == -1)
+    // Handle the slightly complicated case of leaftypes. In PET,
+    // leaftypes are recursive, so a leaftype can be a subtype of
+    // another leaftype.
+    // We briefly `borrow' the variables a and be here to cache the
+    // result of is_leaftype.
+    if((a = is_leaftype(A)) || (b = is_leaftype(B)))
     {
-        a = true;
-        b = false;
-        return;
-    }
+        if(a && b) // both types are leaftypes
+        {
+#ifdef SUBTYPE_PROFILING
+            // fprintf(ferr, "3\n");
+#endif
+            // Follow the leaftype_parent chain of A up to the first
+            // non-leaftype or B. If we encounter B, A is a subtype of B.
+            // Otherwise do the same for B.
 
-    if(B == -1)
-    {
-        a = false;
-        b = true;
-        return;
-    }
-
-    if(is_leaftype(A) || is_leaftype(B))
-    {
-        // _fixme_ this is inefficient
-        a = subtype(A, B);
-        b = subtype(B, A);
+            type_t savedA = A;
+            do
+            {
+                A = leaftypeparent[A - first_leaftype]; 
+            } while(A != B && is_leaftype(A));
+            if(A == B)
+            {
+                a = true;
+                b = false;
+                return;
+            }
+            A = savedA;
+            do
+            {
+                B = leaftypeparent[B - first_leaftype]; 
+            } while(B != A && is_leaftype(B));
+            if(B == A)
+            {
+                b = true;
+                a = false;
+                return;
+            }
+            a = false;
+            b = false;
+            return;
+        }
+        else if(a) // a is a leaftype
+        {
+#ifdef SUBTYPE_PROFILING
+            // fprintf(ferr, "4\n");
+#endif
+            b = false; // a non-leaftype cannot be subtype of a leaftype
+            do
+            {
+                A = leaftypeparent[A - first_leaftype]; 
+            } while(is_leaftype(A));
+            a = core_subtype(a, b);
+        }
+        else // b is a leaftype
+        {
+#ifdef SUBTYPE_PROFILING
+            // fprintf(ferr, "5\n");
+#endif
+            a = false; // a non-leaftype cannot be subtype of a leaftype
+            do
+            {
+                B = leaftypeparent[B - first_leaftype]; 
+            } while(is_leaftype(B));
+            b = core_subtype(b, a);
+        }
         return;
     }
     
     subset_bidir(*typecode[A], *typecode[B], a, b);
+#ifdef SUBTYPE_PROFILING
+    // fprintf(ferr, "6- %c%c\n", a ? 't' : 'f', b ? 't' : 'f');
+#endif
 }
 #endif
 
