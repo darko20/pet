@@ -75,19 +75,6 @@ class basic_task
     friend class task_priority_less;
 };
 
-/* Obsolete: old input_chart functionality
-class item_task : public basic_task
-{
- public:
-    item_task(class chart *C, class tAgenda *A, tItem *it);
-    
-    virtual class tItem *execute();
-
- private:
-    class tItem *_item;
-};
-*/
-
 /** Combination of grammar rule and passive item */
 class rule_and_passive_task : public basic_task
 {

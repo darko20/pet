@@ -102,11 +102,13 @@ extern char **attrname;
 /** The lenghts of the attribute names for faster printing */
 extern int *attrnamelen;
 
-/// appropriate type for feature, i.e., the topmost type that introduces a
-/// feature
+/** appropriate type for feature, i.e., the topmost type that introduces a
+ * feature
+ */
 extern type_t *apptype;
-/// maximal appropriate type under feature, i.e., the most general type that a
-/// node under this feature may bear.
+/** maximal appropriate type under feature, i.e., the most general type that a
+ * node under this feature may bear.
+ */
 extern type_t *maxapp;
 /*@}*/
 

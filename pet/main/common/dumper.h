@@ -94,7 +94,7 @@ class dumper
   char *_buff;
   /** writeable? */
   bool _write;
-   /** close on exit */
+  /** close on exit */
   bool _coe;
   /** swap byteorder? */
   bool _swap;

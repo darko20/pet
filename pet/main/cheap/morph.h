@@ -117,8 +117,8 @@ class tMorphAnalyzer
 
   /** Return the letterset named \a name (an alias for a character class). */
   class morph_letterset *letterset(string name);
-  /** I've got no clue what this is about.
-   * \todo Add documentation for this function.
+  /** \brief Lettersets can imply co-occurence restrictions that are enforced
+   *  via bindings. Reset the bindings of all lettersets.
    */
   void undo_letterset_bindings();
 
@@ -130,8 +130,6 @@ class tMorphAnalyzer
   /** Print the contents of this analyzer for debugging purposes */
   void print(FILE *f);
 
-  bool infl_rule_filter() { return _infl_rule_filter ; }
-  
  private:
   void parse_rule(type_t t, string rule, bool suffix);
 
@@ -149,18 +147,28 @@ class tMorphAnalyzer
 
   bool _irregs_only;
 
+  /** Check that no rule gets applied twice in a chain
+   *  Gets the value of the setting \c orthographemics-duplicate-filter.
+   */
+  bool _duplicate_filter_p;
+  /** The maximal depth of inflection rules (either prefix or suffix).
+   *  Gets the value of the setting \c orthographemics-maximum-chain-depth.
+   */
+  unsigned int _maximal_depth;
+  /** Make sure that the length of the base form string does not become smaller
+   *  than the value of this variable (in case it is > 0).
+   *  Gets the value of the setting \c orthographemics-minimum-stem-length
+   */
+  unsigned int _minimal_stem_length;
+  /** Check inflection rules during morph analysis for applicability with the
+   *  rule filter.
+   *  Set to \c true if \c orthographemics-cohesive-chains is set.
+   */
+  bool _rule_filter;
+
   multimap<string, tMorphAnalysis *> _irregs_by_stem;
   multimap<string, tMorphAnalysis *> _irregs_by_form;
 
-  /** The maximal number of inflection rules (optionally) specified in the
-   *  setting \c max_inflections.
-   */
-  unsigned int _max_infls;
-
-  /** Check inflection rules during morph analysis for applicability with the
-   *  rule filter.
-   */
-  bool _infl_rule_filter;
   
   friend class morph_trie;
 };

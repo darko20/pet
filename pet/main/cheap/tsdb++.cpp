@@ -42,6 +42,7 @@ statistics::reset()
   readings = 0;
   words = 0;
   words_pruned = 0;
+  mtcpu = 0;
   first = -1;
   tcpu = 0;
   ftasks_fi = 0;
@@ -90,7 +91,7 @@ statistics::print(FILE *f)
 {
   fprintf (f,
 	   "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
-           "first: %d\ntcpu: %d\nutcpu: %d\n"
+           "mtcpu: %d\nfirst: %d\ntcpu: %d\nutcpu: %d\n"
 	   "ftasks_fi: %d\nftasks_qc: %d\n"
 	   "fsubs_fi: %d\nfsubs_qc: %d\n"
            "etasks: %d\nstasks: %d\n"
@@ -106,7 +107,7 @@ statistics::print(FILE *f)
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\n",
 	   id, trees, readings, words, words_pruned,
-           first, tcpu, p_utcpu,
+           mtcpu, first, tcpu, p_utcpu,
 	   ftasks_fi, ftasks_qc,
            fsubs_fi, fsubs_qc,
            etasks, stasks,
@@ -257,8 +258,6 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        // input_chart i_chart(new end_proximity_position_map);
-        
         pedgelimit = edges;
         opt_nsolutions = nanalyses;
         
@@ -281,7 +280,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
             cheap_tsdb_summarize_error(errors, treal, T);
         
         cheap_tsdb_summarize_item(*Chart
-                                  , Chart->rightmost() //i_chart.max_position()
+                                  , Chart->rightmost()
                                   , treal, nderivations, T);
         T.capi_print();
         
@@ -490,6 +489,7 @@ tsdb_parse::capi_print()
     
     capi_printf("(:comment . \""
                 "(:nmeanings . %d) "
+                "(:mtcpu . %d) " 
                 "(:clashes . %d) "
                 "(:pruned . %d) "
                 "(:subsumptions . %d) "
@@ -502,7 +502,10 @@ tsdb_parse::capi_print()
                 "(:upedges . %d) " 
                 "(:failures . %d) " 
                 "\")",
-                nmeanings, clashes, pruned,
+                nmeanings, 
+                mtcpu,
+                clashes, 
+                pruned,
                 subsumptions,
                 trees,
                 p_frozen,
@@ -553,7 +556,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
 {
     if(opt_derivation)
     {
-        int nres = 1;
+        int nres = 0;
         if(nderivations >= 0) // default case, report results
         {
             if(!nderivations) nderivations = Chart.readings().size();
@@ -630,7 +633,11 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     
     T.readings = stats.readings;
     T.words = stats.words;
+    T.mtcpu = stats.mtcpu;
     T.first = stats.first;
+    // _fix_me_
+    // I think i changed that because Berthold complained that his total times
+    // were not comparable anymore (bk, 15-feb-2005), but what is correct?
     T.total = stats.tcpu;
     T.tcpu = stats.tcpu + stats.p_utcpu;
     T.tgc = 0;
@@ -677,6 +684,7 @@ cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
     T.pedges = stats.pedges;
     T.words = stats.words;
     
+    T.mtcpu = stats.mtcpu;
     T.first = stats.first;
     T.total = stats.tcpu;
     T.tcpu = stats.tcpu;

@@ -238,6 +238,31 @@ tSM::findFile(const char *fileName, const char *basePath)
 }
 
 double
+tSM::scoreLocalTree(grammar_rule *R, vector<tItem *> dtrs)
+{
+    vector<int> v;
+    v.push_back(map()->intToSubfeature((unsigned) R->arity() == dtrs.size() ?
+                                       1 : 2));
+    v.push_back(map()->typeToSubfeature(R->type()));
+
+    double total = neutralScore();
+
+    for(vector<tItem *>::iterator dtr = dtrs.begin();
+        dtr != dtrs.end(); ++dtr)
+    {
+        v.push_back((*dtr)->identity());
+        total = combineScores(total, (*dtr)->score());
+    }
+
+    tSMFeature f(v);
+
+    //    f.print(stderr);
+    // fprintf(ferr, " -> %.2f\n", score(f));
+
+    return combineScores(total, score(f));
+}
+
+double
 tSM::scoreLocalTree(grammar_rule *R, list<tItem *> dtrs)
 {
     vector<int> v;
@@ -261,6 +286,7 @@ tSM::scoreLocalTree(grammar_rule *R, list<tItem *> dtrs)
 
     return combineScores(total, score(f));
 }
+
 
 double
 tSM::scoreLeaf(tLexItem *it)

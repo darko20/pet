@@ -21,6 +21,8 @@
 
 #include "config.h"
 #include "pet-system.h"
+#include <sys/param.h>
+
 #include "cheap.h"
 #include "utility.h"
 #include "types.h"
@@ -94,6 +96,30 @@ tItem::~tItem()
     free_list(_inflrs_todo);
     delete _unpack_cache;
 }
+
+
+void tItem::lui_dump(const char *path) {
+
+  if(chdir(path)) {
+    fprintf(ferr, "tItem::lui_dump(): invalid target directory `%s'.\n", path);
+    return;
+  } // if
+  char name[MAXPATHLEN + 1];
+  sprintf(name, "%d.lui", _id);
+  FILE *stream;
+  if((stream = fopen(name, "w")) == NULL) {
+    fprintf(ferr, 
+            "tItem::lui_dump(): unable to open `%s' (in `%s').\n",
+            name, path);
+    return;
+  } // if
+  fprintf(stream, "avm %d ", _id);
+  _fs.print(stream, DAG_FORMAT_LUI);
+  fprintf(stream, " \"Edge # %d\"\f\n", _id);
+  fclose(stream);
+
+} // tItem::lui_dump()
+
 
 /*****************************************************************************
  INPUT ITEM
@@ -312,7 +338,7 @@ void tLexItem::init(fs &f) {
     if((opt_mrs != 0) && (characterize_mods())) {
       assert(_startposition >= 0 && _endposition >= 0);
       _fs.modify_eagerly_searching(characterize_mods(_startposition
-                                                   , _endposition));
+                                                     , _endposition));
     }
 #endif
 
@@ -336,14 +362,13 @@ void tLexItem::init(fs &f) {
       }
 #endif
 #endif
+  }
 
 #ifdef DEBUG
-    fprintf(ferr, "new lexical item (`%s[%s]'):", 
-            le->printname(), le->affixprintname());
+    fprintf(ferr, "new lexical item (`%s'):", printname());
     print(ferr);
     fprintf(ferr, "\n");
 #endif
-  }
 }
 
 tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
@@ -390,17 +415,6 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
   }
   init(_fs);
 }
-
-#if 0
-bool
-same_lexitems(const tLexItem &a, const tLexItem &b)
-{
-    if(a.start() != b.start() || a.end() != b.end())
-        return false;
-
-    return a._dtrs[a._keydtr]->form() == b._dtrs[b._keydtr]->form();
-}
-#endif
 
 tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     : tItem(pasv->_start, pasv->_end, pasv->_paths,
@@ -616,6 +630,9 @@ tItem::print(FILE *f, bool compact)
     {
         print_derivation(f, false);
     }
+#ifdef LUI
+    lui_dump();
+#endif
 }
 
 void
@@ -766,7 +783,7 @@ tPhrasalItem::print_derivation(FILE *f, bool quoted)
         fprintf(f, "%*s", derivation_indentation, "");
 
     fprintf(f, 
-            "(%d %s %.2f %d %d", 
+            "(%d %s %.4f %d %d", 
             _id, printname(), _score, _start, _end);
 
     if(packed.size())
@@ -1137,66 +1154,10 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
 #endif
 
     stats.p_upedges++;
-    return new tPhrasalItem(this, daughters, res);
+    tPhrasalItem *result = new tPhrasalItem(this, daughters, res);
+    if(result && Grammar->sm()) {
+      result->score(Grammar->sm()->scoreLocalTree(result->rule(), daughters));
+    } // if
+
+    return result;
 }
-
-
-#if 0
-tLexItem::tLexItem(int start, int end, const tPaths &paths,
-                   int ndtrs, int keydtr, input_token **dtrs, 
-                   fs &f, const char *printname)
-    : tItem(start, end, paths, f, printname),
-      _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
-{
-    // _fix_me_
-    // Not nice to overwrite the _fs field.
-    if(opt_packing)
-        _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
-
-    if(_keydtr >= _ndtrs)
-        throw tError("keydtr > ndtrs for tLexItem");
-
-    _dtrs = new input_token*[_ndtrs] ;
-
-    for (int i = 0; i < _ndtrs; i++)
-        _dtrs[i] = dtrs[i] ;
-
-    _inflrs_todo = copy_list(_dtrs[_keydtr]->form().affixes());
-    if(_inflrs_todo)
-        _trait = INFL_TRAIT;
-    else
-        _trait = LEX_TRAIT;
-
-    if(opt_nqc_unif != 0)
-        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
-
-    if(opt_nqc_subs != 0)
-        _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
-
-    // compute _score score for lexical items
-    if(Grammar->sm())
-        score(Grammar->sm()->scoreLeaf(this));
-
-#ifdef YY
-    if(opt_k2y)
-    {
-        mrs_stamp_fs(_fs, _id);
-
-        for(int i = 0; i < _ndtrs; i++)
-            mrs_map_id(_id, _dtrs[i]->id());
-
-        set<string> senses = cheap_settings->smap("type-to-sense", _fs.type());
-        for(set<string>::iterator it = senses.begin(); it != senses.end();
-            ++it)
-            mrs_map_sense(_id, *it);
-    }
-#endif
-
-#ifdef DEBUG
-    fprintf(ferr, "new lexical item (`%s[%s]'):", 
-            le->printname(), le->affixprintname());
-    print(ferr);
-    fprintf(ferr, "\n");
-#endif
-}
-#endif

@@ -253,7 +253,7 @@ char *output_name(char *in, char *oldext, const char *newext)
   return out;
 }
 
-string read_line(FILE *f)
+string read_line(FILE *f, int commentp)
 {
   const int ASBS = 131072; // arbitrary, small buffer size
   static char buff[ASBS];
@@ -263,6 +263,16 @@ string read_line(FILE *f)
   
   if(buff[0] == '\0' || buff[0] == '\n')
     return string();
+
+  //
+  // 2004/03/12 Eric Nichols <eric-n@is.naist.jp>
+  // allow pass-through of comment lines in input: ignore any line starting
+  // with either `#' or `//'; optionally repeat it back on the output stream.
+  //
+  if(commentp && (buff[0] == '#' || buff[0] == '/' && buff[1] == '/')) {
+    if(commentp > 0) fprintf(stderr, "%s\n", buff);
+    return read_line(f, commentp);
+  } // if
 
   buff[strlen(buff) - 1] = '\0';
 

@@ -181,27 +181,6 @@ double packingscore(int start, int end, int n, bool active)
   //    - (active ? 0.0 : double(end - start) / n) ;
 }
 
-/* Obsolete: old input_chart functionality
-item_task::item_task(chart *C, tAgenda *A, tItem *it)
-    : basic_task(C, A), _item(it)
-{
-    if(opt_packing)
-        priority(packingscore(it->start(), it->end(), C->rightmost(), false));
-    else 
-      priority(it->score());
-}
-
-tItem *
-item_task::execute()
-{
-    // There should be no way this item (which must be a tLexItem)
-    // has been blocked.
-    assert(!(opt_packing && _item->blocked()));
-
-    return _item;
-}
-*/
-
 rule_and_passive_task::rule_and_passive_task(chart *C, tAgenda *A,
                                              grammar_rule *R, tItem *passive)
     : basic_task(C, A), _R(R), _passive(passive)

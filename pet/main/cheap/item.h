@@ -287,6 +287,9 @@ class tItem
   /** Print the yield of this item */
   virtual void print_yield(FILE *f) = 0;
 
+  /** Dump item in a format feasible for LUI (?) into \a directory */
+  void lui_dump(const char* directory = "/tmp");
+
   /** Print the derivation of this item in incr[tsdb()] compatible form,
    *  according to \a protocolversion.
    */
@@ -671,11 +674,6 @@ private:
 class tLexItem : public tItem
 {
  public:
-  // obsolete
-  //tLexItem(int start, int end, const tPaths &paths,
-  //         int ndtrs, int keydtr, class input_token **dtrs,
-  //         fs &f, const char *name);
-
   /** Build a new tLexitem from \a stem and morph info in \a inflrs_todo,
    *  together with the first daughter \a first_dtr.
    */
@@ -783,10 +781,6 @@ class tLexItem : public tItem
   { 
     return _supplied_pos;
   }
-
-  // obsolete
-  // bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
-  // friend bool same_lexitems(const tLexItem &a, const tLexItem &b);
 
   /** Return the HPSG type this item stems from */
   virtual int identity() const
@@ -985,6 +979,15 @@ class item_owner
       tItem::reset_ids();
     }
   void add(tItem *it) { _list.push_back(it); }
+  void print(FILE *stream) {
+    for(list<tItem *>::iterator item = _list.begin(); 
+        item != _list.end(); 
+        ++item)
+      if(!(*item)->frozen()) {
+        (*item)->print(stream);
+        fprintf(stream, "\n");
+      } // if
+  } // print()
  private:
   list<tItem *> _list;
 };
@@ -1018,7 +1021,7 @@ struct item_predicate : public unary_function<bool, tItem *> {
 };
 
 /** A function object comparing two items based on their score */
-struct item_better_than : public binary_function<bool, tItem*, tItem*> {
+struct item_greater_than_score : public binary_function<bool, tItem*, tItem*> {
   bool operator()(tItem *a, tItem *b) const {
     return a->score() > b->score();
   }
