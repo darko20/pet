@@ -89,7 +89,7 @@ bool dag_framed(dag_node *dag)
   return dag->arcs != 0;
 }
 
-dag_arc *dag_find_attr(dag_arc *arc, int attr)
+dag_arc *dag_find_attr(dag_arc *arc, attr_t attr)
 // assumes: dag is already dereferenced
 {
   while(arc)
@@ -160,11 +160,11 @@ bool dag_make_wellformed3(int new_type, dag_node *dag1, dag_node *dag2)
      (dag2->type == new_type && dag2->arcs))
     return true;
 
-  if(typedag[new_type])
+  if(type_dag(new_type))
     {
       dag2->type = new_type;
       
-      if(dag_unify3_rec(typedag[new_type], dag2, ++copy_wf_generation) == FAIL)
+      if(dag_unify3_rec(type_dag(new_type), dag2, ++copy_wf_generation) == FAIL)
 	return false;
     }
   else
@@ -295,9 +295,9 @@ dag_node *dag_make_wellformed2(int new_type, dag_node *dag1, dag_node *dag2)
      (dag2->type == new_type && dag2->arcs))
     return dag2;
   
-  if(typedag[new_type])
+  if(type_dag(new_type))
     {
-      dag_node *c = dag_copy_rec(typedag[new_type], ++copy_wf_generation);
+      dag_node *c = dag_copy_rec(type_dag(new_type), ++copy_wf_generation);
       return dag_unify3_rec(dag2, c, copy_generation);
     }
   return dag2;

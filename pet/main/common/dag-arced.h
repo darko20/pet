@@ -22,8 +22,6 @@
 #ifndef _DAG_ARCED_H_
 #define _DAG_ARCED_H_
 
-struct dag_node *new_dag(int s);
-
 inline struct dag_arc *new_arc(int attr, dag_node *val)
 {
   dag_arc *newarc = dag_alloc_arc();

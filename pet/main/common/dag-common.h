@@ -34,8 +34,6 @@ extern bool unify_wellformed;
 
 extern struct dag_node **typedag;
 
-extern vector<dag_node *> dyntypedag;  // dags for dynamic types
-
 // cost of last unification - measured in number of nodes visited
 extern int unification_cost;
 
@@ -97,6 +95,18 @@ struct constraint_info
 
 extern constraint_info **constraint_cache;
 
+struct dag_node *new_dag(int s);
+
+#ifdef DYNAMIC_SYMBOLS
+/** For dynamic symbol, create simple new typedag */
+inline dag_node *type_dag(type_t type) {
+  return is_resident_type(type) ? typedag[type] : new_dag(type) ;
+}
+#else
+inline dag_node *type_dag(type_t type) { return typedag[type]; }
+//#define type_dag(type) typedag[type]
+#endif
+
 void initialize_dags(int n);
 void register_dag(int i, struct dag_node *dag);
 
@@ -106,7 +116,13 @@ struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr);
 struct dag_node *dag_create_attr_value(const char *attr, dag_node *val);
 
 struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path);
-struct dag_node *dag_create_path_value(const char *path, int type);
+struct dag_node *dag_create_path_value(const char *path, type_t type);
+struct dag_node *dag_create_path_value(list_int *path, type_t type);
+struct dag_node *dag_create_path_value_search(struct dag_node *dag
+                                              , const char *path
+                                              , type_t intype
+                                              , type_t type);
+list_int *path_to_lpath(const char *path, class grammar *gram);
 
 struct dag_node *dag_get_path_value_l(struct dag_node *dag, list_int *path);
 list<struct dag_node *> dag_get_list(struct dag_node* first);
@@ -114,23 +130,24 @@ dag_node *dag_listify_ints(list_int *);
 struct dag_node *dag_nth_arg(struct dag_node *dag, int n);
 
 //
-// interface defined here, implementation in seperate files
+// interface defined here, implementation in separate files
 //
 
 void dag_initialize();
+void dag_finalize();
 
 void dag_mark_coreferences(struct dag_node *dag);
 void dag_print(FILE *f, struct dag_node *dag);
 int dag_size(dag_node *dag);
 
-void dag_init(dag_node *dag, int type);
+void dag_init(dag_node *dag, type_t type);
 
-int dag_type(struct dag_node *dag);
-void dag_set_type(struct dag_node *dag, int s);
+type_t dag_type(struct dag_node *dag);
+void dag_set_type(struct dag_node *dag, type_t s);
 bool dag_framed(struct dag_node *dag);
 
-struct dag_node *dag_get_attr_value(struct dag_node *dag, int attr);
-bool dag_set_attr_value(struct dag_node *dag, int attr, dag_node *val);
+struct dag_node *dag_get_attr_value(struct dag_node *dag, attr_t attr);
+bool dag_set_attr_value(struct dag_node *dag, attr_t attr, dag_node *val);
 
 struct dag_node *dag_full_copy(dag_node *dag);
 struct dag_node *dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del);

@@ -95,6 +95,7 @@ void bitcode::clear()
 
 list_int *bitcode::get_elements()
 {
+  // collect the positions of all bits that are 1 into the result list
   CODEWORD *p, w;
   int i;
   list_int *l = 0;

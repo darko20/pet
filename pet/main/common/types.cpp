@@ -41,19 +41,27 @@ static hash_map<bitcode, int> codetable;
 static bitcode *temp_bitcode = NULL;
 static int codesize;
 
-int *apptype = 0;
-int *maxapp = 0;
+type_t *apptype = 0;
+type_t *maxapp = 0;
 
 // status
 int nstatus;
 char **statusnames = 0;
 
 // types
-int ntypes;
-int first_leaftype;
+type_t ntypes;
+type_t first_leaftype;
 char **typenames = 0;
 char **printnames = 0;
 int *typestatus = 0;
+
+type_t last_dynamic;
+#ifdef DYNAMIC_SYMBOLS
+// dyntypename contains all dynamically needed type names for a parse.
+map<string, type_t> dyntypememo ;
+vector<string> dyntypename;
+vector<int> integer_type_map;
+#endif
 
 int BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
 
@@ -127,47 +135,56 @@ int lookup_type(const char *s)
   return -1;
 }
 
-// dyntypename contains all dynamically needed type names for a parse.
-map<string, int> dyntypememo ;
-vector<const char *> dyntypename;
-vector<dag_node *> dyntypedag;
-int last_dynamic;
-
+#ifdef DYNAMIC_SYMBOLS
 int lookup_symbol(const char *s)
 {
   int type = lookup_type(s);
 
   if (type == -1) {
     // is it registered as dynamic type?
-    map<string, int>::iterator pos = dyntypememo.find(s);
+    string str = s;
+    map<string, int>::iterator pos = dyntypememo.find(str);
     if(pos != dyntypememo.end())
       return (*pos).second;
 
     // None of the above: register it as new dynamic type
-    dyntypememo[s] = last_dynamic ;
-    dyntypename.push_back(s);
-    // Create a dag for this dynamic symbol only containing its type
-    dag_node *dyntype = new_dag(last_dynamic) ;
-    dyntypedag.push_back(dyntype) ;
+    dyntypememo[str] = last_dynamic ;
+    dyntypename.push_back(str);
+
     last_dynamic++ ;
     return last_dynamic - 1 ;
   }
   else return type;
 }
 
-void clear_dynamic_symbols() {
-  for (int i = ntypes; i < last_dynamic; i++) {
-    delete dyntypedag[i] ; 
-    dyntypedag.pop_back();
-    dyntypename.pop_back();
+int lookup_unsigned_symbol(unsigned int i)
+{
+  if(integer_type_map.size() <= i) {
+    integer_type_map.resize(i + 1, -1);
   }
-  last_dynamic = ntypes ;
-  dyntypememo.erase(dyntypememo.begin(), dyntypememo.end()) ;
+  if(integer_type_map[i] == -1) {
+    char intstring[40];
+    sprintf(intstring, "\"%d\"", i);
+    integer_type_map[i] = lookup_symbol(intstring);
+  }
+  return integer_type_map[i];
 }
 
-map<string, int> _attrname_memo; 
+void clear_dynamic_symbols() {
+  last_dynamic = ntypes ;
+  for(unsigned int i = 0; i < integer_type_map.size(); i++) {
+    if(integer_type_map[i] >= last_dynamic) {
+      integer_type_map[i] = -1;
+    }
+  }
+  dyntypename.erase(dyntypename.begin(), dyntypename.end()) ;
+  dyntypememo.erase(dyntypememo.begin(), dyntypememo.end()) ;
+}
+#endif
 
-int lookup_attr(const char *s)
+map<string, attr_t> _attrname_memo; 
+
+attr_t lookup_attr(const char *s)
 {
   map<string, int>::iterator pos = _attrname_memo.find(s);
   if(pos != _attrname_memo.end())
@@ -186,6 +203,9 @@ int lookup_attr(const char *s)
   return -1;
 }
 
+/** \brief Check, if the given status name \a s is mentioned in the grammar. If
+ *  so, return its code.
+ */
 int lookup_status(const char *s)
 {
   for(int i = 0; i < nstatus; i++)
@@ -198,7 +218,7 @@ int lookup_status(const char *s)
   return -1;
 }
 
-int lookup_code(const bitcode &b)
+type_t lookup_code(const bitcode &b)
 {
   hash_map<bitcode, int>::const_iterator pos = codetable.find(b);
 
@@ -383,7 +403,7 @@ void dump_hierarchy(dumper *f)
       }
     else
       fprintf(ferr, "leaf type conception error a: `%s' (%d -> %d)\n", 
-              typenames[rleaftype_order[i]], i, rleaftype_order[i]);
+              type_name(rleaftype_order[i]), i, rleaftype_order[i]);
 
   // parents for all leaf types
   for(i = first_leaftype; i < ntypes; i++)
@@ -393,7 +413,7 @@ void dump_hierarchy(dumper *f)
       }
     else
       fprintf(ferr, "leaf type conception error b: `%s' (%d -> %d)\n", 
-              typenames[rleaftype_order[i]], i, rleaftype_order[i]);
+              type_name(rleaftype_order[i]), i, rleaftype_order[i]);
 }
 
 #endif
@@ -424,6 +444,8 @@ initialize_maxapp()
     for(int i = 0; i < nattrs; i++)
     {
         maxapp[i] = 0;
+        // the direct access to typedag[] is ok here because no dynamic type
+        // can be appropriate for a feature
         dag_node *cval = dag_get_attr_value(typedag[apptype[i]], i);
         if(cval && cval != FAIL)
             maxapp[i] = dag_type(cval);
@@ -507,7 +529,8 @@ core_subtype(type_t a, type_t b)
 inline bool
 is_leaftype(type_t s)
 {
-  return s >= first_leaftype && s < ntypes;
+  assert(is_type(s));
+  return s >= first_leaftype;
 }
 
 #ifndef FLOP
@@ -529,15 +552,21 @@ void prune_glbcache()
 #endif
 
 
+/** Is \a a a subtype of \a b ? */
 bool subtype(int a, int b)
-// is `a' a subtype of `b'
 {
   if(a == b) return true; // every type is subtype of itself
   if(b == BI_TOP) return true; // every type is a subtype of top
 
   if(a == -1) return true; // bottom is subtype of everything
   if(b == -1) return false; // no other type is a subtype of bottom
-  
+
+#ifdef DYNAMIC_SYMBOLS
+  if(is_dynamic_type(a)) return false; // dyntypes are only subtypes of BI_TOP
+    // return subtype(b, BI_STRING); // dyntypes are direct subtypes of STRING
+  if(is_dynamic_type(b)) return false; // and always leaf types
+#endif
+
 #ifdef FLOP
   if(leaftypeparent[a] != -1)
     return subtype(leaftypeparent[a], b);

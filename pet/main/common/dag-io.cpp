@@ -73,9 +73,9 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
     }
 
 #ifdef DEBUG
-  fprintf(f, "%s (%x)", typenames[dag->type], (int) dag);
+  fprintf(f, "%s (%x)", type_name(dag->type), (int) dag);
 #else
-  fprintf(f, "%s", typenames[dag->type]);
+  fprintf(f, "%s", type_name(dag->type));
 #endif
  
   if((arc = dag->arcs) != 0)
@@ -121,7 +121,7 @@ void dag_print(FILE *f, struct dag_node *dag)
 {
   if(dag == 0)
     {
-      fprintf(f, "%s", typenames[0]);
+      fprintf(f, "%s", type_name(0));
       return;
     }
   if(dag == FAIL)
@@ -207,10 +207,11 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
       while(arc) nr++, arc = arc->next;
 
       type = dag->type;
-
+      fprintf(stderr, "%s ", type_name(type));
 #ifdef FLOP
       type = leaftype_order[type];
 #endif
+      fprintf(stderr, "%s", type_name(type));
 
       dump_n.type = type;
 
@@ -223,6 +224,7 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
 	{
 	  dump_a.attr = (short int) arc->attr;
 	  dump_a.val = (short int) (abs(dag_get_visit(dag_deref(arc->val))) - 1);
+          fprintf(stderr, "%d %d\n", dump_a.val, dump_index);
 	  assert(dump_a.val < dump_index);
 	  dump_arc(f, &dump_a);
 	  arc = arc->next;

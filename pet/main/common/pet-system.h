@@ -81,9 +81,9 @@
 #include "unicode/ucnv.h"
 #endif
 
-#ifndef FLOP
+//#ifndef FLOP
 using namespace std;
-#endif
+//#endif
 
 // platform specifics
 

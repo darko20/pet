@@ -120,6 +120,9 @@ settings::~settings()
   free(_fname);
 }
 
+/** Do a linear search for \a name in the settings and return the first 
+ * matching setting.
+ */
 setting *settings::lookup(const char *name)
 {
   for(int i = 0; i < _n; i++)
@@ -139,6 +142,9 @@ setting *settings::lookup(const char *name)
   return 0;
 }
 
+/** Return the value of the first setting matching \a name or NULL if there is
+ * no such setting.
+ */
 char *settings::value(const char *name)
 {
   setting *s;
@@ -149,6 +155,9 @@ char *settings::value(const char *name)
   return s->values[0];
 }
 
+/** Return the value of the first setting matching \a name or throw an error if
+ *  there is no such setting (short for required_value).
+ */
 char *settings::req_value(const char *name)
 {
   char *v = value(name);
@@ -160,8 +169,8 @@ char *settings::req_value(const char *name)
   return v;
 }
 
+/** \brief Is \a value in the list for \a name? If so, return \c true */
 bool settings::member(const char *name, const char *value)
-/* is value in the list for name? */
 {
   setting *set = lookup(name);
 
@@ -174,6 +183,15 @@ bool settings::member(const char *name, const char *value)
   return false;
 }
 
+/** Get an element of a setting that is an assoc list.
+ *
+ *  \param name The setting to look for
+ *  \param key The key to search in the assoc list
+ *  \param arity The number of elements in one assoc-cons
+ *  \param nth The number of the element to return
+ *  \return NULL if there is no such setting or no such key in the assoc list,
+ *          the \a nth element of the assoc cons otherwise
+ */
 char *settings::assoc(const char *name, const char *key, int arity, int nth)
 {
   setting *set = lookup(name);
@@ -228,12 +246,18 @@ set<string> settings::smap(const char *name, int key_type)
 }
 #endif
 
+/** Return \c true, if the \a key is a type with status \a name.
+ */
 bool settings::statusmember(const char *name, type_t key)
 {
+  // first try to find the list of status types for name in the cache
   list_int *l = _li_cache[string(name)];
   if(l == 0)
     {
       setting *set = lookup(name);
+      // convert the set of status names into a list of code numbers and store
+      // it in the cache. All status names that do not occur in the grammar
+      // are reported to be unknown.
       if(set != 0)
 	{
 	  for(int i = 0; i < set->n; i++)

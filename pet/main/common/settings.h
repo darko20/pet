@@ -22,6 +22,8 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
+using namespace std;
+
 #include "lex-tdl.h"
 #include "types.h"
 

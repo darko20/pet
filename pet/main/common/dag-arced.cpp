@@ -75,6 +75,8 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
   
   if(dag_dump_total_arcs > 0)
     dag_qc_undumped_arcs = new qc_arc[dag_dump_total_arcs];
+  else
+    dag_qc_undumped_arcs = NULL;
 
   int current_arc = 0;
   qc_len = 0;
@@ -94,7 +96,7 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
 	{
 	  int val;
       
-	  val = strtoint(typenames[dump_n.type], "in qc structure", true);
+	  val = strtoint(type_name(dump_n.type), "in qc structure", true);
 
 	  if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
 	    throw tError("invalid node (value too large) in qc structure");
@@ -131,12 +133,12 @@ void dag_qc_free()
 {
   if(dag_qc_undumped_nodes != 0)
   {
-    free(dag_qc_undumped_nodes);
+    delete[] dag_qc_undumped_nodes;
     dag_qc_undumped_nodes = 0;
   }
   if(dag_qc_undumped_arcs != 0)
   {
-    free(dag_qc_undumped_arcs);
+    delete[] dag_qc_undumped_arcs;
     dag_qc_undumped_arcs = 0;
   }
 }
