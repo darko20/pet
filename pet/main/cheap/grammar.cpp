@@ -240,7 +240,7 @@ grammar_rule::init_qc_vector_unif()
 }
 
 bool
-grammar::punctuationp(const string &s)
+tGrammar::punctuationp(const string &s)
 {
 #ifndef ICU
     if(_punctuation_characters.empty())
@@ -333,7 +333,7 @@ free_constraint_cache()
 #endif
 
 // Construct a grammar object from binary representation in a file
-grammar::grammar(const char * filename)
+tGrammar::tGrammar(const char * filename)
     : _properties(), _nrules(0), _root_insts(0), _generics(0),
       _filter(0), _subsumption_filter(0), _qc_inst_unif(0), _qc_inst_subs(0),
       _deleted_daughters(0), _packing_restrictor(0),
@@ -626,7 +626,7 @@ grammar::grammar(const char * filename)
 }
 
 void
-grammar::undump_properties(dumper *f)
+tGrammar::undump_properties(dumper *f)
 {
     if(verbosity > 4)
         fprintf(fstatus, " [");
@@ -649,7 +649,7 @@ grammar::undump_properties(dumper *f)
 }
 
 string
-grammar::property(string key)
+tGrammar::property(string key)
 {
     map<string, string>::iterator it = _properties.find(key);
     if (it != _properties.end())
@@ -659,7 +659,7 @@ grammar::property(string key)
 }
 
 void
-grammar::init_parameters()
+tGrammar::init_parameters()
 {
     char *v;
 
@@ -733,7 +733,7 @@ grammar::init_parameters()
 }
 
 void
-grammar::init_rule_qc_unif()
+tGrammar::init_rule_qc_unif()
 {
     for(rule_iter iter(this); iter.valid(); iter++)
     {
@@ -744,7 +744,7 @@ grammar::init_rule_qc_unif()
 }
 
 void
-grammar::initialize_filter()
+tGrammar::initialize_filter()
 {
     fs_alloc_state S0;
     _filter = new char[_nrules * _nrules];
@@ -801,7 +801,7 @@ grammar::initialize_filter()
     S0.clear_stats();
 }
 
-grammar::~grammar()
+tGrammar::~tGrammar()
 {
     for(map<type_t, lex_stem *>::iterator pos = _lexicon.begin();
         pos != _lexicon.end(); ++pos)
@@ -845,7 +845,7 @@ grammar::~grammar()
 }
 
 int
-grammar::nhyperrules()
+tGrammar::nhyperrules()
 {
     int n = 0;
     for(rule_iter iter(this); iter.valid(); iter++)
@@ -855,7 +855,7 @@ grammar::nhyperrules()
 }
 
 bool
-grammar::root(fs &candidate, type_t &rule)
+tGrammar::root(fs &candidate, type_t &rule)
 {
     list_int *r;
     for(r = _root_insts, rule = -1; r != 0; r = rest(r))
@@ -870,7 +870,7 @@ grammar::root(fs &candidate, type_t &rule)
 }
 
 lex_stem *
-grammar::find_stem(type_t inst_key)
+tGrammar::find_stem(type_t inst_key)
 {
     map<type_t, lex_stem *>::iterator it = _lexicon.find(inst_key);
     if (it != _lexicon.end())
@@ -880,7 +880,7 @@ grammar::find_stem(type_t inst_key)
 }
 
 list<lex_stem *>
-grammar::lookup_stem(string s)
+tGrammar::lookup_stem(string s)
 {
     list<lex_stem *> results;
 #ifdef EXTDICT
@@ -956,7 +956,7 @@ grammar::lookup_stem(string s)
 
 #ifdef EXTDICT
 void
-grammar::clear_dynamic_stems()
+tGrammar::clear_dynamic_stems()
 {
     for(list<lex_stem *>::iterator it = _dynamicstems.begin();
         it != _dynamicstems.end(); ++it)
@@ -967,7 +967,7 @@ grammar::clear_dynamic_stems()
 #endif
 
 list<full_form>
-grammar::lookup_form(const string form)
+tGrammar::lookup_form(const string form)
 {
     list<full_form> result;
   

@@ -178,7 +178,7 @@ tSMMap::stringToSubfeature(const string &s)
     }
 }
 
-tSM::tSM(grammar *G, const char *fileName, const char *basePath)
+tSM::tSM(tGrammar *G, const char *fileName, const char *basePath)
     : _G(G), _fileName(0), _map(0)
 {
     _fileName = findFile(fileName, basePath);
@@ -273,7 +273,7 @@ tSM::scoreLeaf(lex_item *it)
     return score(tSMFeature(v));
 }
 
-tMEM::tMEM(grammar *G, const char *fileNameIn, const char *basePath)
+tMEM::tMEM(tGrammar *G, const char *fileNameIn, const char *basePath)
     : tSM(G, fileNameIn, basePath)
 {
     readModel(fileName());

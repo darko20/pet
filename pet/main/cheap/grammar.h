@@ -86,14 +86,14 @@ class grammar_rule
   bool _hyper;
   bool _spanningonly;
 
-  friend class grammar;
+  friend class tGrammar;
 };
 
-class grammar
+class tGrammar
 {
  public:
-  grammar(const char *filename);
-  ~grammar();
+  tGrammar(const char *filename);
+  ~tGrammar();
 
   // Look up a grammar property.
   string property(string key);
@@ -218,7 +218,7 @@ class grammar
 class rule_iter
 {
  public:
-  rule_iter(grammar *G)
+  rule_iter(tGrammar *G)
     {
       _G = G; _curr = _G->_rules.begin();
     }
@@ -240,7 +240,7 @@ class rule_iter
 
  private:
   list<grammar_rule *>::iterator _curr;
-  grammar *_G;
+  tGrammar *_G;
 };
 
 #endif

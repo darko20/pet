@@ -26,7 +26,7 @@
 
 extern class settings *cheap_settings;
 
-extern class grammar *Grammar;
+extern class tGrammar *Grammar;
 
 extern timer TotalParseTime;
 

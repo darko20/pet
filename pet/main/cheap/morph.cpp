@@ -639,7 +639,7 @@ void morph_analysis::print_lkb(FILE *f)
 // Analzer
 //
 
-morph_analyzer::morph_analyzer(grammar *G)
+morph_analyzer::morph_analyzer(tGrammar *G)
   : _grammar(G),
     _lettersets(new morph_lettersets),
     _suffixrules(new morph_trie(this, true)),

@@ -153,7 +153,7 @@ class item
               : (_end == passive->_start));
   }
 
-  inline bool root(class grammar *G, int length, type_t &rule)
+  inline bool root(class tGrammar *G, int length, type_t &rule)
   {
       if(_trait == INFL_TRAIT)
           return false;

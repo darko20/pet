@@ -61,7 +61,7 @@ class lex_stem
 
   vector<string> get_stems();
 
-  friend class grammar;
+  friend class tGrammar;
 };
 
 class full_form
@@ -74,7 +74,7 @@ class full_form
     : _stem(st), _affixes(copy_list(affixes)), _offset(0), _mods(mods)
     { if(st) _offset = st->inflpos(); }
 
-  full_form(dumper *f, class grammar *G);
+  full_form(dumper *f, class tGrammar *G);
 
 #ifdef ONLINEMORPH
   full_form(lex_stem *st, class morph_analysis a);
@@ -164,7 +164,7 @@ class full_form
   string _form;
   modlist _mods;
 
-  friend class grammar;
+  friend class tGrammar;
 };
 
 #endif

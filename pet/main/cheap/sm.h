@@ -63,7 +63,7 @@ class tSMFeature
 class tSM
 {
  public:
-    tSM(class grammar *, const char *fileName, const char *basePath);
+    tSM(class tGrammar *, const char *fileName, const char *basePath);
     virtual ~tSM();
        
     /** Compute score for a feature with respect to the model. */
@@ -77,7 +77,7 @@ class tSM
     combineScores(double, double) = 0;
 
     /** Return grammar this model corresponds to. */
-    inline class grammar *
+    inline class tGrammar *
     G()
     { return _G; }
 
@@ -103,7 +103,7 @@ class tSM
     char *
     findFile(const char *fileName, const char *basePath);
 
-    class grammar *_G;
+    class tGrammar *_G;
     char *_fileName;
 
     class tSMMap *_map;
@@ -120,7 +120,7 @@ class tMEM : public tSM
     // _fix_me_
     // We'd prefer not to have to pass fileName and basePath here.
     // There should be a central placed to to this sort of thing.
-    tMEM(class grammar *G, const char *fileName, const char *basePath);
+    tMEM(class tGrammar *G, const char *fileName, const char *basePath);
     virtual ~tMEM();
 
     virtual double
