@@ -19,6 +19,7 @@
 
 /* chart items */
 
+#include "config.h"
 #include "pet-system.h"
 #include "cheap.h"
 #include "utility.h"

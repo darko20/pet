@@ -19,19 +19,20 @@
 
 /* grammar, lexicon and lexicon entries */
 
+#include "grammar.h"
+
 #include "pet-system.h"
 
-#include "grammar.h"
 #include "cheap.h"
 #include "fs.h"
 #include "parse.h"
-#include "../common/utility.h"
+#include "utility.h"
 #include "dumper.h"
 #include "grammar-dump.h"
 #include "tsdb++.h"
 #include "sm.h"
 #include "restrictor.h"
-#ifdef ICU
+#ifdef HAVE_ICU
 #include "unicode.h"
 #endif
 #ifdef ONLINEMORPH
@@ -266,10 +267,11 @@ grammar_rule::init_qc_vector_unif()
     }
 }
 
+#if 0
 bool
 tGrammar::punctuationp(const string &s)
 {
-#ifndef ICU
+#ifndef HAVE_ICU
     if(_punctuation_characters.empty())
         return false;
     
@@ -293,6 +295,7 @@ tGrammar::punctuationp(const string &s)
     return true;
 #endif
 }
+#endif
 
 void
 undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
@@ -341,7 +344,9 @@ tGrammar::tGrammar(const char * filename)
       _deleted_daughters(0), _packing_restrictor(0),
       _sm(0)
 {
+#ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
+#endif
 
     // _fix_me_
     // This is ugly. All grammar objects (rules, stems etc) should have a 
@@ -563,10 +568,11 @@ tGrammar::tGrammar(const char * filename)
             delete[] form; delete[] infl; delete[] stem;
         }
     }
-#endif
 #else
     _morph = NULL;  // this should be there anyway
-#endif //if 0
+#endif
+//endif to: if 0
+#endif
     
 
     if(opt_nqc_unif != 0)
@@ -585,10 +591,14 @@ tGrammar::tGrammar(const char * filename)
 
     if(opt_filter)
     {
-        char *save = opt_compute_qc;
-        opt_compute_qc = 0;
-        initialize_filter();
-        opt_compute_qc = save;
+      //char *save = opt_compute_qc;
+      bool qc_subs = opt_compute_qc_subs;
+      bool qc_unif = opt_compute_qc_unif;
+      //opt_compute_qc = 0;
+      initialize_filter();
+      //opt_compute_qc = save;
+      opt_compute_qc_subs = qc_subs;
+      opt_compute_qc_unif = qc_unif;
     }
 
 #if 0
@@ -599,7 +609,7 @@ tGrammar::tGrammar(const char * filename)
     else
         pcs = convert_escapes(string(s));
 
-#ifndef ICU
+#ifndef HAVE_ICU
     _punctuation_characters = pcs;
 #else
     _punctuation_characters = Conv->convert(pcs);
@@ -620,7 +630,7 @@ tGrammar::tGrammar(const char * filename)
       }
     }
 
-#ifdef EXTDICT
+#ifdef HAVE_EXTDICT
     try
     {
         _extdict_discount = 0;
@@ -885,7 +895,7 @@ tGrammar::~tGrammar()
     delete _packing_restrictor;
     free_type_tables();
 
-#ifdef EXTDICT
+#ifdef HAVE_EXTDICT
     clear_dynamic_stems();
 #endif
 
@@ -932,7 +942,7 @@ list<lex_stem *>
 tGrammar::lookup_stem(string s)
 {
     list<lex_stem *> results;
-#ifdef EXTDICT
+#ifdef HAVE_EXTDICT
     set<type_t> native_types;
 #endif
   
@@ -944,7 +954,7 @@ tGrammar::lookup_stem(string s)
         it != eq.second; ++it)
     {
         results.push_back(it->second);
-#ifdef EXTDICT
+#ifdef HAVE_EXTDICT
         if(_extDict)
         {
             native_types.insert(_extDict->equiv_rep(leaftype_parent(it->second->type())));
@@ -952,7 +962,7 @@ tGrammar::lookup_stem(string s)
 #endif
     }
   
-#ifdef EXTDICT
+#ifdef HAVE_EXTDICT
     if(!_extDict)
         return results;
 
@@ -1003,7 +1013,7 @@ tGrammar::lookup_stem(string s)
     return results;
 }
 
-#ifdef EXTDICT
+#ifdef HAVE_EXTDICT
 void
 tGrammar::clear_dynamic_stems()
 {

@@ -11,6 +11,7 @@
 #define _HIERARCHY_H_
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
 
 /** typedef for boost graph implementation */
 typedef boost::adjacency_list

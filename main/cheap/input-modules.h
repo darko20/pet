@@ -11,10 +11,12 @@
 #ifndef _INPUT_MODULES_H
 #define _INPUT_MODULES_H
 
+#include "config.h"
+
 #include <list>
 #include <string>
 #include "item.h"
-#ifdef ICU
+#ifdef HAVE_ICU
 #include "unicode.h"
 #endif
 
@@ -83,10 +85,10 @@ protected:
   /** A string with all characters considered as punctuation.
    * May be set by the global setting \c punctuation-characters.
    */
-#ifndef ICU
-  string _punctuation_characters;
-#else
+#ifdef HAVE_ICU
   UnicodeString _punctuation_characters;
+#else
+  string _punctuation_characters;
 #endif
 };
 

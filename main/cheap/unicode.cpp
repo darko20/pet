@@ -23,7 +23,7 @@
 //
 
 #include "pet-system.h"
-#include "../common/errors.h"
+#include "errors.h"
 #include "unicode.h"
 
 EncodingConverter *Conv = 0;

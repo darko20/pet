@@ -26,6 +26,8 @@
    specific implementation that uses VirtualAlloc; and a third one that
    relies on standard C++ memory management only */
 
+#include "config.h"
+
 #ifdef HAVE_MMAP
 #include <unistd.h>
 #endif

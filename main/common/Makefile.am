@@ -1,0 +1,13 @@
+# -*- makefile -*-
+
+EXTRA_DIST = bitcode.cpp bitcode.h builtins.h byteorder.h		\
+	chunk-alloc.cpp chunk-alloc.h dag-alloc.cpp dag-alloc.h		\
+	dag-arced.cpp dag-arced.h dag-chunk-alloc.cpp			\
+	dag-chunk-alloc.h dag-common.cpp dag-common.h dag-io.cpp	\
+	dag-simple.cpp dag-simple.h dag.h dumper.cpp dumper.h		\
+	errors.cpp errors.h getopt.h grammar-dump.cpp grammar-dump.h	\
+	hash.cpp hash.h lex-io.cpp lex-io.h lex-tdl.cpp lex-tdl.h	\
+	list-int.h mfile.c mfile.h pet-system.h settings.cpp		\
+	settings.h typecache.h types.cpp types.h utility.cpp utility.h	\
+	Makefile.common type-chunk-alloc.cpp type-chunk-alloc.h         \
+	type-alloc.h type-alloc.cpp

@@ -19,7 +19,7 @@
 
 /* ECL integration */
 
-#include <ecl.h>
+#include "ecl.h"
 #include "cppbridge.h"
 
 // Include the individual packages

@@ -13,15 +13,14 @@ endif
 INCLUDE = -I$(BOOSTDIR) -I. -I../common
 
 CPPFLAGS=-Wall -g -O3 $(INCLUDE) -DDAG_SIMPLE  -DWROBLEWSKI3 -DFLOP
-LIBS = -lstdc++ 
 
 ifeq ($(OS),cygwin)
 # cygwin
 #CPPFLAGS+=-DGENERIC_CHUNKALLOC
 else
 # unix
-CPPFLAGS+=-DNew=new -DHAVE_MMAP -DHAVE_HASH_MAP
-LIBS+= -ldl
+# only gcc > 3.2 supported, therefore HAVE_EXT_HASH_MAP
+CPPFLAGS+=-DNew=new -DHAVE_MMAP -DHAVE_EXT_HASH_MAP
 endif 
 
 CFLAGS = $(CPPFLAGS)

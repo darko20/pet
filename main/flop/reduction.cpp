@@ -19,10 +19,8 @@
 
 /* Compute transitive reduction of an acyclic graph. */
 
-#include <vector>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/topological_sort.hpp>
 #include "hierarchy.h"
+#include <vector>
 
 #include <iostream>
 #include <fstream>

@@ -92,7 +92,7 @@ class fs
   const char *printname();
 
   /** Return type of the root node */
-  int type() { return dag_type(_dag); }
+  int type() const { return dag_type(_dag); }
   /** Set type of the root node to \a s */
   void set_type(type_t s) { dag_set_type(_dag, s); }
 

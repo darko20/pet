@@ -25,6 +25,11 @@
 #ifndef _UNICODE_H_
 #define _UNICODE_H_
 
+// ICU
+#include "unicode/unistr.h"
+#include "unicode/schriter.h"
+#include "unicode/ucnv.h"
+
 /** Global converter for externally encoded strings */
 extern class EncodingConverter *Conv;
 

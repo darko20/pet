@@ -1,6 +1,11 @@
-- build process: auto(config|make)
+- restrictors that are paths instead of features
 
-- cheap dynamic library / API
+- API!!! and maybe cheap dynamic library
+  - restarting a parse stopped because the first result arrived
+  - determining the subset of results to retrieve
+  - determine the desired output format(s) (multiple formats may be desired, 
+    without reparse!)
+  - set/change options/settings through API (a part of "clean up:options")
 
 - flop returns zero even in the presence of errors like non-unique feature
   introduction
@@ -19,16 +24,12 @@
 
 - more flexible heuristics / better selection of partial results
 
-- separate switches for unification and subsumption quickcheck computation
-
 - cleaning up:
   - option handling
-  - YY references; split yy.cpp module into separate modules
-    + yy_tokenizer removed from yy.cpp
-    - server mode still unused, yy.cpp/h should become socket.cpp/h
-  + runtime selection of online-morphology vs full-forms
   - logging / debugging info: get rid of global verbosity,
-    implement some central logging facility (take log4cxx)
+    implement some central logging facility (take Apache log4cxx)
+  - YY references; split yy.cpp module into separate modules
+    - server mode still unused, yy.cpp/h should become socket.cpp/h
 
 - complete lexical database (postgres) integration
 
@@ -66,8 +67,6 @@
   - val(path1) OP const1 && val(path2) OP const2
   - val(path1) OP const1 && val(path1) OP val(path2)
   - val(path1) OP val(path2) && val(path2) OP const2  (??)
-
-- restrictors that are paths instead of features
 
 refactoring:
 - make tAgenda a template

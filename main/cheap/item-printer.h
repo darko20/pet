@@ -49,7 +49,7 @@ protected:
    * fields or methods can then be accessed via the superclass
    */
   /*@{*/
-  const int id(const tItem *item) { return item->_id; }
+  const fs &get_fs(const tItem *item) { return item->_fs; }
   const list_int *inflrs_todo(const tItem *item) { return item->_inflrs_todo; }
   const type_t result_root(const tItem *item) { return item->_result_root; }
 
@@ -266,6 +266,29 @@ private:
 
   FILE *_out;
   const char *_filename_prefix;
+};
+
+/** Print chart items for the exchange with Ulrich Krieger's jfs, mainly for
+ *  use with his corpus directed approximation.
+ *  For function descriptions, \see tItemPrinter.
+ */
+class tJxchgPrinter : public tItemPrinter {
+public:
+  /** Print items onto stream \a out. */
+  tJxchgPrinter(ostream &out) : _out(out) {}
+  
+  virtual ~tJxchgPrinter() {}
+
+  virtual void print(const tItem *arg) ;
+
+  virtual void real_print(const tInputItem *item) ;
+  virtual void real_print(const tLexItem *item) ;
+  virtual void real_print(const tPhrasalItem *item) ;
+  
+private:
+  void print_yield(const tInputItem *item);
+
+  ostream &_out;
 };
 
 #endif

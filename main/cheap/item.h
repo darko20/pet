@@ -84,7 +84,7 @@ class tItem
   static void reset_ids() { _next_id = 1; }
 
   /** Return the unique internal id of this item */
-  inline int id() { return _id; }
+  inline int id() const { return _id; }
   /** Return the trait of this item, which may be:
       -- \c INPUT_TRAIT an input item, still without feature structure
       -- \c INFL_TRAIT an incomplete lexical item that needs application of
@@ -341,7 +341,7 @@ class tItem
   virtual void recreate_fs() = 0;
 
   /** Return the HPSG type this item stems from */
-  virtual int identity() = 0;
+  virtual int identity() const = 0;
 
   /** Return the score for this item */
   double score() const { return _score; }
@@ -630,7 +630,7 @@ public:
   /*@}*/
 
   /** Return the HPSG type this item stems from */
-  virtual int identity() { return _class; }
+  virtual int identity() const { return _class; }
 
   /** \brief Since a tInputItem do not have a feature structure, and can thus
    * have no other items packed into them, they need not be unpacked. Unpacking
@@ -789,9 +789,9 @@ class tLexItem : public tItem
   // friend bool same_lexitems(const tLexItem &a, const tLexItem &b);
 
   /** Return the HPSG type this item stems from */
-  virtual int identity()
+  virtual int identity() const
   {
-    return leaftype_parent(_stem->type()); // _dtrs[_keydtr]->identity();
+    return _stem->type(); // _dtrs[_keydtr]->identity();
   }
 
   /** Cheap compatibility tests of an active tLexItem and a tInputItem.
@@ -903,7 +903,7 @@ class tPhrasalItem : public tItem
   virtual void recreate_fs();
 
   /** Return the HPSG type this item stems from */
-  virtual int identity()
+  virtual int identity() const
   {
       if(_rule)
           return _rule->type();
@@ -1005,6 +1005,8 @@ namespace HASH_SPACE {
 typedef list< tItem * > item_list;
 /** Iterator for item_list */
 typedef list< tItem * >::iterator item_iter;
+/** Iterator for const item list */
+typedef list< tItem * >::const_iterator item_citer;
 /** A list of input items */
 typedef list< tInputItem * > inp_list;
 /** Iterator for inp_list */

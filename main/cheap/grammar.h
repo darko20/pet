@@ -24,6 +24,8 @@
 #ifndef _GRAMMAR_H_
 #define _GRAMMAR_H_
 
+#include "config.h"
+
 #include "list-int.h"
 #include "utility.h"
 #include "types.h"
@@ -311,10 +313,12 @@ class tGrammar
  private:
   map<string, string> _properties;
 
-#ifndef ICU
+#if 0
+#ifndef HAVE_ICU
   string _punctuation_characters;
 #else
   UnicodeString _punctuation_characters;
+#endif
 #endif
 
   map<type_t, lex_stem *> _lexicon;

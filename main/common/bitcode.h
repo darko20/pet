@@ -32,7 +32,7 @@
 #define _BITCODE_H_
 
 #include <cassert>
-#include <ostream>
+#include <iosfwd>
 
 /** \c CODEWORD should be an unsigned numeric type that fits best into a CPU
  *  register.
@@ -263,9 +263,9 @@ inline bool operator>(const bitcode& a, const bitcode &b)
 { return a.compare(b) ==  1; }
 /*@}*/
 
-#ifdef HAVE_HASH_MAP
 #include "hashing.h"
 
+#ifdef HASH_SPACE
 namespace HASH_SPACE {
 template<> struct hash<bitcode>
 {

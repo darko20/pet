@@ -24,7 +24,11 @@
 #ifndef _ITSDB_H_
 #define _ITSDB_H_
 
+#include "config.h"
 #include "errors.h"
+#include <list>
+
+using namespace std;
 
 #define MICROSECS_PER_SEC 1000000
 

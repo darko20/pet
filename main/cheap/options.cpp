@@ -19,12 +19,12 @@
 
 /* command line options */
 
+#include "options.h"
 #include "pet-system.h"
 
 #include "getopt.h"
 #include "fs.h"
 #include "cheap.h"
-#include "options.h"
 #include "utility.h"
 #include "version.h"
 #include <string>
@@ -33,7 +33,8 @@ bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_nbest, opt_online_morph, opt_fullform_morph, opt_partial;
+  opt_nbest, opt_online_morph, opt_fullform_morph, opt_partial,
+  opt_compute_qc_unif, opt_compute_qc_subs;
 #ifdef YY
 bool opt_yy, opt_k2y_segregation;
 int opt_k2y, opt_nth_meaning;
@@ -50,7 +51,7 @@ char *opt_mrs = 0;
 
 tokenizer_id opt_tok = TOKENIZER_STRING;
 
-string opt_tsdb_file;
+string opt_tsdb_dir, opt_jxchg_dir;
 
 int opt_packing = 0;
 
@@ -70,6 +71,10 @@ void usage(FILE *f)
   fprintf(f, "  `-qc-unif=n' --- use only top n quickcheck paths (unification)\n");
   fprintf(f, "  `-qc-subs=n' --- use only top n quickcheck paths (subsumption)\n");
   fprintf(f, "  `-compute-qc[=file]' --- compute quickcheck paths (output to file,\n"
+             "                           default /tmp/qc.tdl)\n");
+  fprintf(f, "  `-compute-qc-unif[=file]' --- compute quickcheck paths only for unificaton (output to file,\n"
+             "                           default /tmp/qc.tdl)\n");
+  fprintf(f, "  `-compute-qc-subs[=file]' --- compute quickcheck paths only for subsumption (output to file,\n"
              "                           default /tmp/qc.tdl)\n");
   fprintf(f, "  `-mrs[=mode]' --- compute MRS semantics (in specified mode)\n");
   fprintf(f, "  `-key=n' --- select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)\n");
@@ -102,6 +107,8 @@ void usage(FILE *f)
              "log server mode activity to `file' (`+' appends)\n");
   fprintf(f, "  `-tsdbdump directory' --- "
              "write incr[tsdb] item, result and parse files to `directory'\n");
+  fprintf(f, "  `-jxchgdump directory' --- "
+             "write jxchg/approximation chart files to `directory'\n");
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");  
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
@@ -139,6 +146,9 @@ void usage(FILE *f)
 #define OPTION_PARTIAL 30
 #define OPTION_NRESULTS 31
 #define OPTION_TOK 32
+#define OPTION_COMPUTE_QC_UNIF 33
+#define OPTION_COMPUTE_QC_SUBS 34
+#define OPTION_JXCHG_DUMP 35
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -161,6 +171,8 @@ void init_options()
   opt_nqc_unif = -1;
   opt_nqc_subs = -1;
   opt_compute_qc = 0;
+  opt_compute_qc_unif = false;
+  opt_compute_qc_subs = false;
   opt_print_failure = false;
   opt_key = 0;
   opt_hyper = true;
@@ -177,10 +189,11 @@ void init_options()
   opt_fullform_morph = true;
   opt_packing = 0;
   opt_mrs = 0;
-  opt_tsdb_file = "";
+  opt_tsdb_dir = "";
   opt_partial = false;
   opt_nresults = 0;
   opt_tok = TOKENIZER_STRING;
+  opt_jxchg_dir = "";
 
 #ifdef YY
   opt_yy = false;
@@ -235,6 +248,9 @@ bool parse_options(int argc, char* argv[])
     {"partial", no_argument, 0, OPTION_PARTIAL},
     {"results", required_argument, 0, OPTION_NRESULTS},
     {"tok", required_argument, 0, OPTION_TOK},
+    {"compute-qc-unif", optional_argument, 0, OPTION_COMPUTE_QC_UNIF},
+    {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
+    {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
 
     {0, 0, 0, 0}
   }; /* struct option */
@@ -303,6 +319,22 @@ bool parse_options(int argc, char* argv[])
               opt_compute_qc = strdup(optarg);
           else
               opt_compute_qc = "/tmp/qc.tdl";
+          opt_compute_qc_unif = true;
+          opt_compute_qc_subs = true;
+          break;
+      case OPTION_COMPUTE_QC_UNIF:
+          if(optarg != NULL)
+              opt_compute_qc = strdup(optarg);
+          else
+              opt_compute_qc = "/tmp/qc.tdl";
+          opt_compute_qc_unif = true;
+          break;
+      case OPTION_COMPUTE_QC_SUBS:
+          if(optarg != NULL)
+              opt_compute_qc = strdup(optarg);
+          else
+              opt_compute_qc = "/tmp/qc.tdl";
+          opt_compute_qc_subs = true;
           break;
       case OPTION_PRINT_FAILURE:
           opt_print_failure = true;
@@ -369,7 +401,7 @@ bool parse_options(int argc, char* argv[])
               opt_mrs = "simple";
           break;
       case OPTION_TSDB_DUMP:
-          opt_tsdb_file = optarg;
+          opt_tsdb_dir = optarg;
           break;
       case OPTION_PARTIAL:
           opt_partial = true;
@@ -394,6 +426,11 @@ bool parse_options(int argc, char* argv[])
               opt_tok = TOKENIZER_STRING;
             }
           }
+          break;
+      case OPTION_JXCHG_DUMP:
+          opt_jxchg_dir = optarg;
+          if (*(opt_jxchg_dir.end()--) != '/') 
+            opt_jxchg_dir += '/';
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:

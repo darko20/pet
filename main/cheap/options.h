@@ -24,6 +24,7 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
+#include "config.h"
 #include "settings.h"
 
 #define CHEAP_SERVER_PORT 4711
@@ -32,7 +33,7 @@ extern bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_nbest, opt_partial;
+  opt_nbest, opt_partial, opt_compute_qc_unif, opt_compute_qc_subs;
 #ifdef YY
 extern bool opt_yy, opt_k2y_segregation;
 extern int opt_k2y, opt_nth_meaning;
@@ -56,7 +57,7 @@ enum tokenizer_id {
 
 extern tokenizer_id opt_tok;
 
-extern string opt_tsdb_file;
+extern string opt_tsdb_dir, opt_jxchg_dir;
 
 #define PACKING_EQUI  (1 << 0)
 #define PACKING_PRO   (1 << 1)

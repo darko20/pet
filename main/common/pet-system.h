@@ -81,13 +81,6 @@
 #include <queue>
 #include <stack>
 
-// ICU
-#ifdef ICU
-#include "unicode/unistr.h"
-#include "unicode/schriter.h"
-#include "unicode/ucnv.h"
-#endif
-
 //#ifndef FLOP
 using namespace std;
 //#endif

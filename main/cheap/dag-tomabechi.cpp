@@ -1810,6 +1810,53 @@ void dag_print_rec_fed_safe(FILE *f, struct dag_node *dag) {
   }
 }
 
+
+int dag_print_rec_jxchg_safe(ostream &f, struct dag_node *dag, int coref_nr){
+  dag_arc *arc = dag->arcs ;
+  int coref = dag_get_visit_safe(dag) - 1;
+ 
+  if(coref < 0) // dag is coreferenced, already printed
+    {
+      f << " # " << -(coref+1) ;
+      return coref_nr;
+    }
+  else if(coref > 0) // dag is coreferenced, not printed yet
+    {
+      coref = -dag_set_visit_safe(dag, -(coref_nr++));
+      f << " # " << coref ;
+    }
+ 
+  f <<  " [ " << dag->type ;
+ 
+  while(arc) {
+    f << " " << arc->attr ;
+    coref_nr = dag_print_rec_jxchg_safe(f, arc->val, coref_nr) ;
+    arc=arc->next;
+  }
+ 
+  f << " ]" ;
+  return coref_nr;
+}
+
+void dag_print_jxchg(ostream &f, struct dag_node *dag) {
+  if(dag == 0)
+    {
+      f << 0 ;
+      return;
+    }
+  if(dag == FAIL)
+    {
+      f << "fail" ;
+      return;
+    }
+ 
+  dag_mark_coreferences_safe(dag, 0);
+ 
+  dag_print_rec_jxchg_safe(f, dag, 1);
+  dags_visited.clear();
+}
+
+
 void dag_print_fed_safe(FILE *f, struct dag_node *dag) {
   if(dag == 0) {
     fprintf(f, "NIL") ;

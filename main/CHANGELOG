@@ -1,3 +1,13 @@
+v0.99.2
+  - build process with automake && autoconfig && configure for flop and cheap,
+    boost and dumpgram binaries may be revived if used by anybody
+  - adaptation of source files to use automatically build config.h
+  - make the use of ICU really optional, i.e. make cheap work without ICU 
+    altogether. 
+  - corpus approximation (jxchg) output format provided anew
+  - separate switches for unification and subsumption quickcheck computation
+  - changed version mechanism to be supported by the auto... tools
+
 v0.99.1
   - make XML input mode really optional, fixes in Makefile and cheap.cpp
 
@@ -22,7 +32,7 @@ v0.99.0
   - activation of packing without restrictor setting does no longer lead to a
     segmentation fault; packing is simply not activated.
   - translation of iso chars to isomorphix in YY input mode
-  - incr(tsdb[]) file dump mode
+  - [incr tsdb()] file dump mode
   - version string now included in flop and cheap binaries. version number is
     printed with usage information
   - printer for hierarchies in VCG tool style, can be used in cheap and flop
@@ -38,8 +48,8 @@ v0.99.0
 
 Done previously (from old ToDo file, partially redundant)
 
-+- XML input mode
-  + complete DTD specification (Uli S. and me did this)
++ XML input mode
+  + complete DTD specification (Uli S. and bk did this)
   + build SAX parser
   + supersedes integration of bernd's (whiteboard) version
 
@@ -72,20 +82,9 @@ Done previously (from old ToDo file, partially redundant)
 + Restricting the number of inflection rule applications
 
 + positions and counts for YY and XML tokenizer
-+ perforce main branch auf den neuesten Stand bringen:
-  raus:
-     cheap:
-        agenda.cpp inputchart.cpp/h inputtoken.cpp/h chartpositions.h
-        tokenizer.cpp/h parser.cpp/h mrs.cpp/h  
-     common:
-        errors.cpp
-
-  neu:
-     cheap:
-        xmlparser* xml-tokenizer* pic-handler* pic-states.h lexparser.*
-     common:
-        hashing.h vcg_print.h version.h
 
 + japanese multiword bug (requires input chart redesign)
 +? implement mrs/rmrs code - processor interface ?Is this implemented or not?
 
++ yy_tokenizer removed from yy.cpp
++ runtime selection of online-morphology vs full-forms

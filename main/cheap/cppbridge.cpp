@@ -19,6 +19,7 @@
 
 /* Bridge from C to C++ into PET for the ECL lisp integration */
 
+#include "config.h"
 #include "pet-system.h"
 #include "types.h"
 #include "fs.h"

@@ -22,11 +22,13 @@
 // the mapping to the grammar lexicon.
 //
 
-#ifdef EXTDICT
+#include "config.h"
+
+#ifdef HAVE_EXTDICT
 
 #include "pet-system.h"
-#include "../common/errors.h"
-#include "../common/utility.h"
+#include "errors.h"
+#include "utility.h"
 #include "cheap.h"
 #include "grammar.h"
 #include "parse.h"
