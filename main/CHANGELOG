@@ -4,7 +4,7 @@ v0.99.5
   - deleted inactive code in grammar.cpp (punctuationp, translate_iso_chars)
   - fixed wrong is_stem_token predicate in item.h
   - fixed wrong string decoding in XML mode
-  - XML tokenizing works from stream as well as from file
+  - XML tokenizing works from stream as well as from file, DTD is now optional
   - flop returns different exit codes depending on the error
 
 v0.99.4
