@@ -432,7 +432,7 @@ grammar_rule::grammar_rule(type_t t)
     // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
     //
 
-    // _fix me_
+    // _fix_me_
     // this is wrong for more than binary branching rules, 
     // since adjacency is not guarantueed.
     
@@ -969,7 +969,7 @@ grammar::init_grammar_info()
         _info.ntypes =
         _info.ntemplates = "";
 
-    int ind = lookup_type("grammar_info"); // XXX make configurable
+    int ind = lookup_type("grammar_info"); // _fix_me_ make configurable
     if(ind != -1)
     {
         fs f(ind);

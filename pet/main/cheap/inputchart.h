@@ -126,7 +126,7 @@ public:
       delete *it;
     _inputtokens.clear();
     _positionmap->clear();
-    clear_dynamic_symbols(); // XXX does this belong here?
+    clear_dynamic_symbols(); // _fix_me_ does this belong here?
   }
 
   void populate(class tokenizer *t);
