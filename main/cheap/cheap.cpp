@@ -88,124 +88,10 @@ void interactive_morph()
 }
 #endif
 
-map<string, set<string> > supertagMap;
-map<string, int> overflowMap;
-
-#define MAX_WORDS_PER_TAG 10
-
-void
-writeSuperTagged(FILE *fTagged, FILE *fData, chart *Chart, int nderivations)
-{
-    int j = 0;
-    while(j < opt_supertag_norm)
-    {
-        for(vector<item *>::iterator iter = Chart->readings().begin();
-            iter != Chart->readings().end() && j < opt_supertag_norm;
-            ++iter, ++j)
-        {
-            item *it = *iter;
-            list<string> tags;
-            list<list<string> > words;
-            
-            it->getTagSequence(tags, words);
-            assert(tags.size() == words.size());
-
-            list<string>::iterator itTags;
-            list<list<string> >::iterator itWords;
-            
-            for(itTags = tags.begin(), itWords = words.begin();
-                itTags != tags.end(); ++itTags, ++itWords)
-            {
-                int i = 1, n = itWords->size();                for(list<string>::iterator itWord = itWords->begin();
-                    itWord != itWords->end(); ++itWord)
-                {
-                    string thisTag = string("LinGO-") + *itTags;
-
-                    if(n > 1)
-                    {
-                        // This is part of a multi word
-                        ostringstream tmp;
-                        tmp << "-" << i;
-                        thisTag += tmp.str();
-                    }
-                    else
-                    {
-                        string wordPlusTag = *itWord + thisTag;
-                        if(overflowMap[wordPlusTag] == 0)
-                        {
-                            // This is a new pair
-
-                            int n;
-                            
-                            n = overflowMap[thisTag]++;
-                            overflowMap[wordPlusTag] =
-                                (n / MAX_WORDS_PER_TAG) + 1;
-                        }
-
-                        ostringstream tmp;
-                        tmp << "-" << overflowMap[wordPlusTag];
-                        thisTag += tmp.str();
-                    }
-                        
-                    supertagMap[thisTag].insert(*itWord);
-
-                    fprintf(fTagged, "%s ", thisTag.c_str());
-                    if(fData)
-                    {
-                        fprintf(fData, "%s ", itWord->c_str());
-                    }
-                }
-            }
-            fprintf(fTagged, "\n");
-            if(fData)
-                fprintf(fData, "\n");
-        }
-    }
-}
-
-void
-writeSuperTagVoc(FILE *f, const map<string, set<string> > &tagMap)
-{
-    fprintf(f, ";; LinGO vocabulary\n\n");
-
-    for(map<string, set<string> >::const_iterator itMap = tagMap.begin();
-        itMap != tagMap.end(); ++itMap)
-    {
-        fprintf(f, "%s [", itMap->first.c_str());
-        for(set<string>::const_iterator itSet = itMap->second.begin();
-            itSet != itMap->second.end(); ++itSet)
-            fprintf(f, " %s", itSet->c_str());
-        fprintf(f, " ]\n");
-    }
-}
-
 void interactive()
 {
     string input;
     int id = 1;
-
-    FILE *fTags = 0;
-    FILE *fData = 0;
-    FILE *fVoc = 0;
-    
-    if(opt_supertag_file)
-    {
-        char *tmp = new char[strlen(opt_supertag_file) + 42];
-
-        strcpy(tmp, opt_supertag_file);
-        strcat(tmp, ".tagged");
-        fTags = fopen(tmp, "w");
-
-        strcpy(tmp, opt_supertag_file);
-        strcat(tmp, ".data");
-        fData = fopen(tmp, "w");
-
-        strcpy(tmp, opt_supertag_file);
-        strcat(tmp, ".voc");
-        fVoc = fopen(tmp, "w");
-
-        delete[] tmp;
-    }
 
     while(!(input = read_line(stdin)).empty())
     {
@@ -232,10 +118,6 @@ void interactive()
                     TotalParseTime.elapsed_ts() / 10.);
 
             if(verbosity > 0) stats.print(fstatus);
-
-            if(fTags && stats.readings > 0)
-                writeSuperTagged(fTags, fData, Chart,
-                                   stats.readings);
 
             if(verbosity > 1)
 
@@ -276,11 +158,6 @@ void interactive()
 
         id++;
     } /* while */
-
-    if(opt_supertag_file && fVoc)
-    {
-        writeSuperTagVoc(fVoc, supertagMap);
-    }
 
 #ifdef QC_PATH_COMP
     if(opt_compute_qc)

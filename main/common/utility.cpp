@@ -287,6 +287,26 @@ findAndReplace(string &s, const string &oldText, const string &newText)
     }
 }
 
+void
+splitStrings(list<string> &strs)
+{
+    list<string> result;
+    
+    for(list<string>::iterator it = strs.begin(); it != strs.end(); ++it)
+    {
+        string::size_type p;
+        while((p = it->find(' ')) != string::npos)
+        {
+            string s = it->substr(0, p);
+            it->erase(0, p + 1);
+            result.push_back(s);
+        }
+        result.push_back(*it);
+    }
+    
+    strs.swap(result);
+}
+
 #ifdef __BORLANDC__
 
 #include <alloc.h>

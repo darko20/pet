@@ -79,8 +79,6 @@ class input_token
 			double p, list_int *l, string orth);
   void print_yield(FILE *f, list_int *l, list<string> &orth);
   string tsdb_derivation(int id, string orth);
-  void getTagSequence(list_int *l, list<string> &orth,
-                      list<string> &tags, list<list<string> > &words);
   
   string description();
 
