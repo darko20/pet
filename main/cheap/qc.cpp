@@ -293,7 +293,7 @@ compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
     // Find minimal set of paths covering all failure sets
     time_t t = time(NULL);
     fprintf(f, "; searching for minimal number of paths to cover %d sets %s",
-            fail_sets.size(), ctime(&t));
+            n, ctime(&t));
 
     min_sol_cost = failure_id.size() + 1;
     searchspace = 1;
