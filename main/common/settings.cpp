@@ -24,6 +24,8 @@
 #include "settings.h"
 #include "utility.h"
 #include "types.h"
+#include "errors.h"
+#include "list-int.h"
 
 #ifdef WINDOWS
 #define strcasecmp stricmp

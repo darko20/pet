@@ -32,20 +32,20 @@
 #include "options.h"
 #include "flop.h"
 
-struct coref_table *crefs; // topmost cref table
-char *context_descr = 0; // context for warning/error messages
+struct coref_table *crefs; /// topmost cref table
+char *context_descr = 0; /// context for warning/error messages
 
-//
-// current nesting depth of template calls
-//
+///
+/// current nesting depth of template calls
+///
 
 int templ_nest = 0;
 
-//
-// `display' (stack of parameter lists) for actual template parameters:
-//  whenever a template call is made, first the default parameter list,
-//  and then the actual parameter list are pushed onto the stack */
-//
+///
+/// `display' (stack of parameter lists) for actual template parameters:
+///  whenever a template call is made, first the default parameter list,
+///  and then the actual parameter list are pushed onto the stack */
+///
 
 struct param_list *templ_env[TABLE_SIZE];
 
@@ -80,17 +80,17 @@ struct param *lookup_param(char *name)
   return p;
 }
 
-//
-// templ_stack
-// stack of currently expanded templates
+///
+/// templ_stack
+/// stack of currently expanded templates
 
 struct templ* templ_stack[TABLE_SIZE];
 
-//
-// templ_crefs
-// used to make coreference tags in template expansion unique, by giving each
-// node in the expansion tree a unique id
-//
+///
+/// templ_crefs
+/// used to make coreference tags in template expansion unique, by giving each
+/// node in the expansion tree a unique id
+///
 
 int templ_crefs[TABLE_SIZE]; // to make coreferences in template calls unique
 
@@ -100,7 +100,7 @@ void clear_templ_crefs()
     templ_crefs[i] = 0;
 }
 
-// `expand' (make unique) coreference tag by prepending contents of templ_crefs
+/// `expand' (make unique) coreference tag by prepending contents of templ_crefs
 string expand_coref_tag(string tag)
 {
   string exp(tag);
@@ -111,10 +111,8 @@ string expand_coref_tag(string tag)
   return exp;
 }
 
-//
-// expansion of template calls and parameters
-//
-
+/** @name expansion of template calls and parameters */
+/*@{*/
 void expand_conjunction(struct conjunction *);
 
 void expand_avm(struct avm *A)
@@ -354,9 +352,9 @@ void expand_conjunction(struct conjunction *C)
     }
 }
 
-//
-// enter sorts `created' in expansion into type table
-//
+///
+/// enter sorts `created' in expansion into type table
+///
 
 void check_sorts_conjunction(struct conjunction *);
 
@@ -448,3 +446,4 @@ void expand_templates()
 
   fprintf(fstatus, "%d template instantiations\n", ntemplinstantiations);
 }
+/*@}*/

@@ -27,7 +27,7 @@
 #include "types.h"
 #include "utility.h"
 
-dag_node *new_dag(int s)
+dag_node *new_dag(type_t s)
 {
   dag_node *dag = dag_alloc_node();
   dag_init(dag, s);

@@ -17,21 +17,31 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* PET builtins */
+/** \file builtins.h
+ * PET builtin types. The special types and attributes in this file have to be
+ * defined appropriately in the settings file for grammar processing with flop
+ * and cheap.
+ */
 
 #ifndef _BUILTINS_H_
 #define _BUILTINS_H_
 
-/* builtin types */
+/** Topmost type of the hierarchy */
 extern int BI_TOP;
 
-/* special types and attributes */
-
+/** Special types: symbol, string, cons, list, nil (empty list) and difference
+ *  list
+ */
 extern int BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
+
+/** Special attributes: FIRST, REST (for lists) , LIST, LAST (for difference
+ *  lists, ARGS, for list of rule arguments.
+ */
 extern int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 
-// initialize special types and attributes according to settings file
-// defined in types.cpp
+/** Initialize special types and attributes according to settings file.
+ *  defined in types.cpp
+ */
 extern void initialize_specials(class settings *);
 
 #endif

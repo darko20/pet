@@ -144,15 +144,15 @@ unification_failure::print(FILE *f) const
 
     if(_type == CLASH)
     {
-        fprintf(f, ": `%s' & `%s'", typenames[_s1], typenames[_s2]);
+        fprintf(f, ": `%s' & `%s'", type_name(_s1), type_name(_s2));
     }
     else if(_type == CONSTRAINT)
     {
         int meet = glb(_s1, _s2);
         
         fprintf(f, ": constraint `%s' introduced by `%s' & `%s'",
-                meet == -1 ? "bottom" : typenames[meet],
-                typenames[_s1], typenames[_s2]);
+                meet == -1 ? "bottom" : type_name(meet),
+                type_name(_s1), type_name(_s2));
     }
     else if(_type == CYCLE)
     {
@@ -167,15 +167,15 @@ unification_failure::print(FILE *f) const
 }
 
 int
-compare(const unification_failure &a, const unification_failure &b)
+unification_failure::less_than(const unification_failure &b) const
 {
-    if(a._type < b._type)
+    if(_type < b._type)
         return -1;
     
-    if(b._type < a._type)
+    if(b._type < _type)
         return 1;
     
     // types are equal - compare paths
     
-    return compare(a._path, b._path);
+    return compare(_path, b._path);
 }

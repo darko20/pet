@@ -17,8 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* This is based on lookup2.c by Bob Jenkins, see
- *  http://burtleburtle.net/bob/hash/index.html
+/** \file hash.h
+ * This is based on lookup2.c by Bob Jenkins, see
+ * http://burtleburtle.net/bob/hash/index.html
  */
 
 #ifndef _HASH_H_
@@ -26,10 +27,14 @@
 
 #include <vector>
 
-typedef  unsigned long  int  ub4;   /* unsigned 4-byte quantities */
+/** unsigned 4-byte quantities */
+typedef  unsigned long  int  ub4;
+/** unsigned 1-byte quantities */
 typedef  unsigned       char ub1;
 
+/** number of buckets you need for \a n bits. */
 #define hashsize(n) ((ub4)1<<(n))
+/** Create a mask of \a n 1's */
 #define hashmask(n) (hashsize(n)-1)
 
 /**

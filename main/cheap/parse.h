@@ -17,22 +17,30 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* parser */
+/** \file parse.h
+ * Hyperactive agenda-driven chart parser.
+ */
 
 #ifndef _PARSE_H_
 #define _PARSE_H_
 
 #include "tsdb++.h"
 
-extern class settings *cheap_settings;
-
-extern class tGrammar *Grammar;
-
+/** Gives the total time spent in parsing (more specifically: in the function
+ *  parse_loop).
+ */
 extern timer TotalParseTime;
 
-bool filter_rule_task(class grammar_rule *R, class item *passive);
-bool filter_combine_task(class item *active, class item *passive);
-
+/** Take some kind of input, run it through the registered preprocessing
+ *  modules first and then do syntactic parsing.
+ * \param input Any kind of input feasible for the registered preprocessing
+ * \param C The chart, passed from the outside so as to be able to analyze it
+ *          afterwards.
+ * \param FSAS An feature structure allocation state, gives control over the
+ *             allocated memory during and after parsing.
+ * \param errors The errors occured during parsing, e.g., resource exhaustion
+ * \param id A unique id for this parse.
+ */
 void analyze(string input, class chart *&C, 
 	     class fs_alloc_state &FSAS, list<tError> &errors, int id = 0);
 

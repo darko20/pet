@@ -34,6 +34,7 @@
 
 #include "pet-system.h"
 #include "dag.h"
+#include "dag-arced.h"
 #include "types.h"
 
 #ifdef FLOP
@@ -51,15 +52,6 @@ void dag_init(dag_node *dag, int s)
   dag->visit_generation = -1;
 #endif
   dag->copy_generation = -1;
-}
-
-dag_arc *new_arc(int attr, dag_node *val)
-{
-  dag_arc *newarc = dag_alloc_arc();
-  newarc->attr = attr;
-  newarc->val = val;
-  newarc->next = 0;
-  return newarc;
 }
 
 struct dag_node *current_base = 0;
@@ -82,26 +74,6 @@ void dag_set_type(dag_node *dag, int s)
   dag -> type = s;
 }
 
-bool dag_framed(dag_node *dag)
-{
-  if(dag == 0) return false;
-  dag = dag_deref(dag);
-  return dag->arcs != 0;
-}
-
-dag_arc *dag_find_attr(dag_arc *arc, attr_t attr)
-// assumes: dag is already dereferenced
-{
-  while(arc)
-    {
-      if(arc->attr == attr)
-	return arc;
-      arc = arc->next;
-    }
-
-  return 0;
-}
-
 dag_node *dag_get_attr_value(dag_node *dag, int attr)
 {
   dag_arc *arc;
@@ -116,12 +88,6 @@ dag_node *dag_get_attr_value(dag_node *dag, int attr)
   return arc->val;
 }
 
-void add_arc(dag_node *dag, dag_arc *newarc)
-{
-  newarc->next = dag->arcs;
-  dag->arcs = newarc;
-}
-
 struct dag_node *make_nth_arg(int n, dag_node *v)
 // make v the n th argument of new dag, return this dag
 {
@@ -130,16 +96,16 @@ struct dag_node *make_nth_arg(int n, dag_node *v)
   dag_node *res, *t1, *t2;
   res = new_dag(BI_TOP);
   t1 = new_dag(BI_TOP);
-  add_arc(res, new_arc(BIA_ARGS, t1)); 
+  dag_add_arc(res, new_arc(BIA_ARGS, t1)); 
   
   for(int i = 1; i < n ; i++)
     {
       t2 = new_dag(BI_TOP);
-      add_arc(t1, new_arc(BIA_REST, t2));
+      dag_add_arc(t1, new_arc(BIA_REST, t2));
       t1 = t2;
     }
 
-  add_arc(t1, new_arc(BIA_FIRST, v));
+  dag_add_arc(t1, new_arc(BIA_FIRST, v));
 
   return res;
 }
@@ -158,6 +124,7 @@ bool dag_make_wellformed3(int new_type, dag_node *dag1, dag_node *dag2)
      (!dag1->arcs && !dag2->arcs) ||
      (dag1->type == new_type && dag1->arcs) ||
      (dag2->type == new_type && dag2->arcs))
+    // well-typedness already enforced
     return true;
 
   if(type_dag(new_type))
@@ -210,8 +177,6 @@ dag_node *dag_unify1_rec(dag_node *dag1, dag_node *dag2)
     }
 #endif
 
-  assert(dag2 != NULL);
-
   dag1->forward = dag2;
   
   if(unify_wellformed)
@@ -231,7 +196,7 @@ dag_node *dag_unify1_rec(dag_node *dag1, dag_node *dag2)
 	    return FAIL;
 	}
       else
-	add_arc(dag2, new_arc(arc1->attr, arc1->val));
+	dag_add_arc(dag2, new_arc(arc1->attr, arc1->val));
 
 
       arc1 = arc1->next;
@@ -259,7 +224,7 @@ dag_node *dag_copy_rec(dag_node *src, int generation)
       arc = src->arcs;
       while(arc != 0)
         {
-          add_arc(copy, new_arc(arc->attr, dag_copy_rec(arc->val, generation)));
+          dag_add_arc(copy, new_arc(arc->attr, dag_copy_rec(arc->val, generation)));
           arc = arc->next;
         }
     }
@@ -348,10 +313,10 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
               if((copy1 = dag_unify2_rec(arc1->val,arc2->val)) == FAIL )
                 return FAIL;
               
-              add_arc(result, new_arc(arc1->attr, copy1));
+              dag_add_arc(result, new_arc(arc1->attr, copy1));
             }
           else
-            add_arc(result, new_arc(arc1->attr, dag_current_or_copy(arc1->val, copy_generation)));
+            dag_add_arc(result, new_arc(arc1->attr, dag_current_or_copy(arc1->val, copy_generation)));
 
           arc1 = arc1->next;
         }
@@ -360,7 +325,7 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
       while(arc2 != 0)
         {
           if(!dag_find_attr(dag1->arcs, arc2->attr))
-            add_arc(result, new_arc(arc2->attr, dag_current_or_copy(arc2->val, copy_generation)));
+            dag_add_arc(result, new_arc(arc2->attr, dag_current_or_copy(arc2->val, copy_generation)));
                     
           arc2 = arc2->next;
         }
@@ -439,7 +404,7 @@ dag_node * dag_unify3_rec(dag_node *dag1, dag_node *dag2, int generation)
 		return FAIL;
 	    }
 	  else
-	    add_arc(dag2, new_arc(arc1->attr, dag_current_or_copy(arc1->val, generation)));
+	    dag_add_arc(dag2, new_arc(arc1->attr, dag_current_or_copy(arc1->val, generation)));
 	  
 	  arc1 = arc1->next;
 	}

@@ -30,6 +30,7 @@
 #include "grammar-dump.h"
 #include "tsdb++.h"
 #include "sm.h"
+#include "restrictor.h"
 #ifdef ICU
 #include "unicode.h"
 #endif
@@ -97,12 +98,12 @@ grammar_rule::grammar_rule(type_t t)
     struct dag_node *dag, *head_dtr;
     list <struct dag_node *> argslist;
 
-    dag = dag_get_path_value(typedag[t],
+    dag = dag_get_path_value(type_dag(t),
                              cheap_settings->req_value("rule-args-path"));
    
     if(dag == FAIL)
     {
-        throw tError("Feature structure of rule " + string(typenames[t])
+        throw tError("Feature structure of rule " + string(type_name(t))
                     + " does not contain "
                     + string(cheap_settings->req_value("rule-args-path")));
     }	    
@@ -110,8 +111,12 @@ grammar_rule::grammar_rule(type_t t)
     argslist = dag_get_list(dag);
     
     _arity = argslist.size();
+
+    if(_arity == 0) {
+        throw tError("Rule " + string(type_name(t)) + " has arity zero");
+    }
     
-    head_dtr = dag_get_path_value(typedag[t],
+    head_dtr = dag_get_path_value(type_dag(t),
                                   cheap_settings->req_value("head-dtr-path"));
     
     int n = 1, keyarg = -1, head = -1;
@@ -143,7 +148,7 @@ grammar_rule::grammar_rule(type_t t)
             fprintf(ferr, "warning: both keyarg-marker-path and rule-keyargs "
                     "supply information on key argument...\n");
         }
-        char *s = cheap_settings->assoc("rule-keyargs", typenames[t]);
+        char *s = cheap_settings->assoc("rule-keyargs", type_name(t));
         if(s && strtoint(s, "in `rule-keyargs'"))
         {
             keyarg = strtoint(s, "in `rule-keyargs'");
@@ -195,12 +200,12 @@ grammar_rule::grammar_rule(type_t t)
     //
 
     if(_arity > 2
-       || cheap_settings->member("depressive-rules", typenames[_type]))
+       || cheap_settings->member("depressive-rules", type_name(_type)))
     {
         _hyper = false;
     }
 
-    if(cheap_settings->member("spanning-only-rules", typenames[_type]))
+    if(cheap_settings->member("spanning-only-rules", type_name(_type)))
     {
         _spanningonly = true;
     }
@@ -211,10 +216,21 @@ grammar_rule::grammar_rule(type_t t)
     }
 }
 
+grammar_rule *
+grammar_rule::make_grammar_rule(type_t t) {
+  try {
+    return new grammar_rule(t);
+  }
+  catch (tError e) {
+    fprintf(ferr, "%s\n", e.getMessage().c_str());
+  }
+  return NULL;
+}
+
 void
 grammar_rule::print(FILE *f)
 {
-    fprintf(f, "%s/%d%s (", printnames[_type], _arity,
+    fprintf(f, "%s/%d%s (", print_name(_type), _arity,
             _hyper == false ? "[-HA]" : "");
     
     list_int *l = _tofill;
@@ -278,9 +294,6 @@ tGrammar::punctuationp(const string &s)
 #endif
 }
 
-// this typedef works around a bug in Borland C++ Builder
-typedef constraint_info *constraint_info_p;
-
 void
 undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
 {
@@ -289,7 +302,7 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
     initialize_dags(ntypes);
     
 #ifdef CONSTRAINT_CACHE
-    constraint_cache = new constraint_info_p [ntypes];
+    init_constraint_cache(ntypes);
 #endif
     
     for(int i = 0; i < ntypes; i++)
@@ -297,14 +310,14 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
         if(qc_inst_unif != 0 && i == qc_inst_unif)
         {
             if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
-                                      printnames[qc_inst_unif]);
+                                      print_name(qc_inst_unif));
             qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
             dag = 0;
         }
         else if(qc_inst_subs && i == qc_inst_subs)
         {
             if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
-                                      printnames[qc_inst_subs]);
+                                      print_name(qc_inst_subs));
             qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
             dag = 0;
         }
@@ -312,9 +325,6 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
             dag = dag_undump(f);
         
         register_dag(i, dag);
-#ifdef CONSTRAINT_CACHE
-        constraint_cache[i] = 0;
-#endif
     }
 
     if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs)
@@ -323,25 +333,6 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
         qc_len_subs = qc_len_unif;
     }
 }
-
-#ifdef CONSTRAINT_CACHE
-void
-free_constraint_cache()
-{
-    for(int i = 0; i < ntypes; i++)
-    {
-        constraint_info *c = constraint_cache[i];
-        while(c != 0)
-        {
-            constraint_info *n = c->next;
-            delete c;
-            c = n;
-        }
-    }
-    
-    delete[] constraint_cache;
-}
-#endif
 
 // Construct a grammar object from binary representation in a file
 tGrammar::tGrammar(const char * filename)
@@ -438,21 +429,27 @@ tGrammar::tGrammar(const char * filename)
         }
         else if(rule_status(i))
         {
-            grammar_rule *R = new grammar_rule(i);
-            _syn_rules.push_front(R);
-            _rule_dict[i] = R;
+            grammar_rule *R = grammar_rule::make_grammar_rule(i);
+            if (R != NULL) {
+              _syn_rules.push_front(R);
+              _rule_dict[i] = R;
+            }
         }
         else if(lex_rule_status(i))
         {
-            grammar_rule *R = new grammar_rule(i);
-            _lex_rules.push_front(R);
-            _rule_dict[i] = R;
+            grammar_rule *R = grammar_rule::make_grammar_rule(i);
+            if (R != NULL) {
+              _lex_rules.push_front(R);
+              _rule_dict[i] = R;
+            }
         }
         else if(infl_rule_status(i))
         {
-            grammar_rule *R = new grammar_rule(i);
-            _infl_rules.push_front(R);
-            _rule_dict[i] = R;
+            grammar_rule *R = grammar_rule::make_grammar_rule(i);
+            if (R != NULL) {
+              _infl_rules.push_front(R);
+              _rule_dict[i] = R;
+            }
         }
         else if(genle_status(i))
         {
@@ -520,7 +517,7 @@ tGrammar::tGrammar(const char * filename)
                         if(iter.current()->trait() == SYNTAX_TRAIT)
                             fprintf(ferr, "warning: found syntax `%s' rule "
                                     "with attached infl rule `%s'\n",
-                                    printnames[t], r);
+                                    print_name(t), r);
 		      
                         iter.current()->trait(INFL_TRAIT);
                         found = true;
@@ -530,7 +527,7 @@ tGrammar::tGrammar(const char * filename)
                 if(!found)
                     fprintf(ferr, "warning: rule `%s' with infl annotation "
                             "`%s' doesn't correspond to any of the parser's "
-                            "rules\n", printnames[t], r);
+                            "rules\n", print_name(t), r);
             }
 
             delete[] r;
@@ -754,17 +751,33 @@ tGrammar::init_parameters()
     set = cheap_settings->lookup("packing-restrictor");
     if(set)
     {
+        list_int *del_attrs = NULL;
         for(int i = 0; i < set->n; i++)
         {
             int a;
             if((a = lookup_attr(set->values[i])) != -1)
-              _packing_restrictor = cons(a, _packing_restrictor);
+              del_attrs = cons(a, del_attrs);
             else
             {
               fprintf(ferr, "ignoring unknown attribute `%s' in packing_restrictor.\n",
                       set->values[i]);
             }
         }
+        _packing_restrictor = new list_int_restrictor(del_attrs);
+        free_list(del_attrs);
+    }
+    else 
+    {
+      char *restname = cheap_settings->value("dag-restrictor");
+      if ((restname != NULL) && is_type(lookup_type(restname))) {
+        _packing_restrictor = 
+          new dag_restrictor(type_dag(lookup_type(restname)));
+      }
+    }
+    if(opt_packing && (_packing_restrictor == NULL)) {
+      fprintf(ferr, "\nWarning: packing enabled but no packing restrictor: "
+              "packing disabled\n");
+      opt_packing = 0;
     }
 }
 
@@ -802,16 +815,13 @@ tGrammar::initialize_filter()
             {
                 fs_alloc_state S2;
                 fs mother_fs = mother->instantiate();
+                list_int_restrictor restr(Grammar->deleted_daughters());
                 
                 if(arg == 1)
                 {
                     bool forward = true, backward = false;
-                    fs a = packing_partial_copy(daughter_fs,
-                                                Grammar->deleted_daughters(),
-                                                false);
-                    fs b = packing_partial_copy(mother_fs,
-                                                Grammar->deleted_daughters(),
-                                                false);
+                    fs a = packing_partial_copy(daughter_fs, restr, false);
+                    fs b = packing_partial_copy(mother_fs, restr, false);
                     
                     subsumes(a, b, forward, backward);
                     
@@ -843,9 +853,11 @@ tGrammar::~tGrammar()
         pos != _lexicon.end(); ++pos)
         delete pos->second;
 
+#if 0
     for(ffdict::iterator pos = _fullforms.begin();
         pos != _fullforms.end(); ++pos)
         delete pos->second;
+#endif
 
     activate_all_rules();
     for(list<grammar_rule *>::iterator pos = _rules.begin();
@@ -866,11 +878,11 @@ tGrammar::~tGrammar()
     dag_qc_free();
 
 #ifdef CONSTRAINT_CACHE
-    free_constraint_cache();
+    free_constraint_cache(ntypes);
 #endif
 
     free_list(_deleted_daughters);
-    free_list(_packing_restrictor);
+    delete _packing_restrictor;
     free_type_tables();
 
 #ifdef EXTDICT
@@ -958,13 +970,13 @@ tGrammar::lookup_stem(string s)
         if(native_types.find(_extDict->equiv_rep(t)) != native_types.end())
         {
             if(verbosity > 2)
-                fprintf(fstatus, " (%s)", typenames[t]);
+                fprintf(fstatus, " (%s)", type_name(t));
             continue;
         }
         else
         {
             if(verbosity > 2)
-                fprintf(fstatus, " %s", typenames[t]);
+                fprintf(fstatus, " %s", type_name(t));
         }
 
         modlist mods;
@@ -1003,6 +1015,7 @@ tGrammar::clear_dynamic_stems()
 }
 #endif
 
+#if 0
 list<full_form>
 tGrammar::lookup_form(const string form)
 {
@@ -1032,3 +1045,4 @@ tGrammar::lookup_form(const string form)
   
     return result;
 }
+#endif

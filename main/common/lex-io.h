@@ -17,18 +17,25 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* fast memory mapped I/O for lexer - implemented with high lexer throughput in mind */
+/** \file lex-io.h
+ * Fast memory mapped I/O for lexer - implemented with high lexer throughput
+ * in mind.
+ */
 
 #ifndef _LEX_IO_H_
 #define _LEX_IO_H_
 
+#include <cstdio>
+
 using namespace std;
 
+/** maximal nesting depth of include files */
 #define MAX_LEX_NEST 16 
-/* maximal nesting depth of include files */
 
+/** Total number of lines processed by lexer */
 extern int total_lexed_lines;
 
+/** Custom lexer file structure */
 typedef struct 
 {
   char *buff;
@@ -40,26 +47,48 @@ typedef struct
   char *info;
 } lex_file;
 
+/** Object to store a file location with line and column number */
 struct lex_location 
 {
+  /** The file name */
   char *fname;
-  int linenr, colnr;
+  /** line nr */
+  int linenr;
+  /** column nr */
+  int colnr;
 };
 
+/** Build a new location object with the given parameters. */
 struct lex_location *new_location(char *fname, int linenr, int colnr);
 
+/*@{*/
+/** File streams for error and status messages */
 extern FILE *ferr, *fstatus;
+/*@}*/
 
+/** Push file \a fname onto include stack, where \a info provides a hint in
+ *  which context the function is used.
+ */
 void push_file(const char *fname, char *info);
+/** Pop file from include stack
+ *  \return nonzero if there are still open files, zero otherwise.
+ */
 int pop_file();
 
+/*@{*/
+/** Return the current location parameters of the lexer */
 int curr_line();
 int curr_col();
 char *curr_fname();
+/*@}*/
 
-/* lexical lookahead */
-
+/** The file stream the lexer is currently working on */
 extern lex_file *CURR;
+
+/** lexical lookahead of \a n characters. 
+ *  \return \c EOF if past end of file, the character \a n positions away from
+ *  the current file pointer otherwise.
+ */
 inline int LLA(int n)
 { 
   if(CURR == NULL || CURR->pos + n >= CURR->len)
@@ -68,7 +97,11 @@ inline int LLA(int n)
   return CURR->buff[CURR->pos + n];
 }
 
+/** Consume \a n characters */
 int LConsume(int n);
+/** Get the current pointer into the file buffer as a starting point for
+ *  longer tokens such as comments or strings.
+ */
 char *LMark();
 
 #endif

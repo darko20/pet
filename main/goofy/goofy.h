@@ -27,6 +27,13 @@
 #include <qmainwindow.h>
 #include <qstring.h>
 #include <qtooltip.h>
+#include <qtimer.h>
+
+#include <string>
+#include <list>
+
+using std::string;
+using std::list;
 
 #include "grammar.h"
 #include "dag.h"
@@ -93,7 +100,7 @@ private:
   QTextStream *flop_stat_stream, *flop_err_stream;
   QSocketNotifier *flop_stat_sn;
 
-  grammar *G;
+  tGrammar *G;
   
 };
 

@@ -17,16 +17,25 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* global stuff */
+/** \file cheap.h 
+ * Global variables for cheap.
+ */
 
 #ifndef _CHEAP_H_
 #define _CHEAP_H_
 
-#include "settings.h"
 #include "options.h"
-#include "../common/errors.h"
+#include "errors.h"
 
-extern settings *cheap_settings;
-extern FILE *ferr, *fstatus, *flog;
+/** The global settings for this process, read from the settings file */
+extern class settings *cheap_settings;
+/** The file stream to direct log messages to.
+ * \todo replace this with a general logging facility, e.g., log4cxx.
+ */
+extern FILE *flog;
+/** The global grammar for this process, which means: only one language/grammar
+ *  per CHEAP process.
+ */
+extern class tGrammar *Grammar;
 
 #endif

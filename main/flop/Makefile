@@ -1,28 +1,30 @@
 %.o: %.cpp
 	$(COMPILE.cc) $< $(OUTPUT_OPTION)
 
+OS=$(shell uname | tr [:upper:] [:lower:] | sed 's/\(linux\|cygwin\).*/\1/')
+
 CXX = g++
 ifeq ($(shell test -d /project/cl/deepthought && echo "yes"), yes)
 BOOSTDIR=/project/cl/deepthought/local/lib/boost-1.30.2
 else
-BOOSTDIR=/home/kiefer/tmp/boost-1.30.2
+BOOSTDIR=/usr/local/include/boost-1_31
 endif
 
 INCLUDE = -I$(BOOSTDIR) -I. -I../common
 
-# unix
-CPPFLAGS = -Wall -g -O3 $(INCLUDE) -DNew=new -DGITSETWK -DUSEMMAP -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
+CPPFLAGS=-Wall -g -O3 $(INCLUDE) -DDAG_SIMPLE  -DWROBLEWSKI3 -DFLOP
+LIBS = -lstdc++ 
+
+ifeq ($(OS),cygwin)
 # cygwin
-# CPPFLAGS = -Wall -g -O3 $(INCLUDE) -DLEDA_PREFIX -DGITSETWK -DDAG_SIMPLE -DFLOP
+#CPPFLAGS+=-DGENERIC_CHUNKALLOC
+else
+# unix
+CPPFLAGS+=-DNew=new -DHAVE_MMAP -DHAVE_HASH_MAP
+LIBS+= -ldl
+endif 
 
 CFLAGS = $(CPPFLAGS)
-
-# linux dynamic
-# LIBS = -L$(LEDAROOT) -lG -lL -lm -lstdc++ -ldl -liberty
-# linux static
-LIBS = -lm -lstdc++ -ldl -liberty
-# cygwin
-# LIBS = $(LEDAROOT)/libG.a $(LEDAROOT)/libL.a -lm -lstdc++ -liberty
 
 VPATH = .:../common
 
@@ -30,19 +32,27 @@ FLOPOBJS = flop.o builtins.o terms.o settings.o full-form.o lex-io.o lex-tdl.o\
 	parse-tdl.o print-chic.o print-tdl.o template.o corefs.o util.o\
 	options.o bitcode.o types.o hierarchy.o expand.o reduction.o\
 	partition.o dag-arced.o dag-simple.o dag-common.o dag-tdl.o dag-io.o\
-	dag-alloc.o dumper.o grammar-dump.o dump.o errors.o chunk-alloc.o\
-	utility.o
+	dag-alloc.o dumper.o grammar-dump.o dump.o chunk-alloc.o utility.o
+
+#PROFILING = /lokal/lib/vmonauto_gcc.o /lokal/lib/libvmon.a -Wl,-R,/lokal/lib -L/lokal/lib -lpapi
 
 flop: $(FLOPOBJS)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(CFLAGS) -o $@ $^ $(PROFILING) $(LIBS) 
 
 clean:
 	/bin/rm -f *.o *~
 
+dist:  .depend $(FLOPOBJS:.o=.cpp) Makefile $(shell tr ' ' '\n' < .depend | grep '\.h$$' | sort | uniq)
+	cd .. ; \
+	tar cf flop-$(shell date -I).tar $(foreach f,$(filter-out .depend,$^),$(if $(subst ../common/,,$(dir $(f))),./flop/$(notdir $f),./common/$(notdir $f))) ; \
+	rm flop-$(shell date -I).tar.gz ; \
+	gzip -9 flop-$(shell date -I).tar
+
 .depend: $(FLOPOBJS:.o=.cpp)
 	$(CC) -MM $(CFLAGS) $^ > $@
 
-ifneq ("$(shell ls .depend 2>/dev/null)", "")
+
+ifneq (,$(wildcard .depend))
 include .depend
 endif
 

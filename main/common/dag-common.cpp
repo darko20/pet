@@ -161,10 +161,11 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
 #ifndef FLOP
 
 // create dag node with one attribute .attr.
-struct dag_node *dag_create_attr_value(int attr, dag_node *val)
+struct dag_node *dag_create_attr_value(attr_t attr, dag_node *val)
 {
   dag_node *res;
-  if(attr < 0 || attr >= nattrs || apptype[attr] < 0 || apptype[attr] >= ntypes)
+  if(attr < 0 || attr >= nattrs 
+     || apptype[attr] < 0 || apptype[attr] >= ntypes)
     return FAIL;
 
   res = dag_full_copy(type_dag(apptype[attr]));
@@ -183,7 +184,7 @@ struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
   return dag_create_attr_value(a, val);
 }
 
-struct dag_node *dag_create_path_value(const char *path, int type)
+struct dag_node *dag_create_path_value(const char *path, type_t type)
 {
   if(! is_type(type) || type_dag(type) == 0) return FAIL;
   dag_node *res = 0;
@@ -305,7 +306,7 @@ struct dag_node *dag_create_path_value(list_int *path, type_t type)
   }
 }
 
-struct list_int *path_to_lpath(const char *path, grammar *gram)
+struct list_int *path_to_lpath(const char *path)
 {
   if(path == 0 || strlen(path) == 0) return NULL;
 
@@ -318,7 +319,7 @@ struct list_int *path_to_lpath(const char *path, grammar *gram)
       attr_t feat = lookup_attr(attr);
       delete[] attr;
       if (feat == -1) return NULL;
-      list_int *sub = path_to_lpath(dot + 1, gram);
+      list_int *sub = path_to_lpath(dot + 1);
       if (sub == NULL) return NULL;
       return cons(feat, sub);
     }

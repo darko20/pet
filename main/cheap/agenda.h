@@ -17,39 +17,35 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* Parser agenda: a queue of prioritized tasks */
+/** Agenda: a priority queue adapter */
 
 #ifndef _AGENDA_H_
 #define _AGENDA_H_
 
-#include "task.h"
-
-class tAgenda
+/** agenda: a priority queue adapter */
+template <typename T, typename LESS_THAN > class agenda
 {
  public:
 
-    tAgenda()
-        : _A()
-    {}
+    agenda() : _A() {}
 
-    ~tAgenda();
+    ~agenda() { while(!this->empty()) delete this->pop(); }
   
-    void
-    push(class basic_task *t);
+    /** Push \a t onto agenda */
+    void push(T *t) { _A.push(t); }
     
-    class basic_task *
-    top();
+    /** Return the topmost (best) element from the agenda */
+    T * top() { return _A.top(); }
 
-    class basic_task *
-    pop();
+    /** Remove the topmost element from the agenda and return it */
+    T * pop() { T *t = top(); _A.pop(); return t; }
 
-    bool
-    empty();
+    /** Test if agenda is empty */
+    bool empty() { return _A.empty(); }
 
  private:
 
-    std::priority_queue<class basic_task *, vector<class basic_task *>,
-                        task_priority_less> _A;
+    std::priority_queue<T *, vector<T *>, LESS_THAN> _A;
 };
 
 #endif

@@ -17,10 +17,11 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* special and builtin types */
+/** Functions for special and builtin types */
 
 #include "flop.h"
 
+/** Register a new builtin type with name \a name */
 int
 new_bi_type(char *name)
 {
@@ -29,6 +30,7 @@ new_bi_type(char *name)
     return t->id;
 }
 
+/** Initialize the builtin types with the topmost type in the hierarchy */
 void
 initialize_builtins()
 {

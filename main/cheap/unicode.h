@@ -17,30 +17,40 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// 
-// This module provides 8 bit encodings - Unicode strings conversion
-// facilities. The ICU library provides the required functionality.
-//
+/** \file unicode.h
+ * This module provides 8 bit encodings - Unicode strings conversion
+ * facilities. The ICU library provides the required functionality.
+ */
 
 #ifndef _UNICODE_H_
 #define _UNICODE_H_
 
+/** Global converter for externally encoded strings */
 extern class EncodingConverter *Conv;
+
+/// \todo obsolete when yy is obsolete
 extern class EncodingConverter *ConvUTF8;
 
-//
-// Encoding conversion utility class
-// This class implements UnicodeString <-> STL String
-// converters using a specified encoding for the STL strings (e.g. UTF8)
-//
+/**
+ * Encoding conversion utility class
+ * This class implements UnicodeString <-> STL String
+ * converters using a specified encoding for the STL strings (e.g. UTF8)
+ */
 
 class EncodingConverter
 {
 public:
+  /** Create a converter for the encoding \a encodingname */
   EncodingConverter(string encodingname);
   ~EncodingConverter();
 
+  /** Convert the string \a from, which has to be encoded in the encoding of
+   *  this converter, to UTF8 and return the new string
+   */
   string convert(const UnicodeString from);
+  /** Convert the string \a from, which has to be encoded in UTF8, into the
+   *  encoding this converter and return the new string.
+   */
   UnicodeString convert(const string from);
 
 private:
@@ -49,6 +59,7 @@ private:
   string _encoding;
 };
 
+/** Initialize the conversion service and the global encoding converter */
 void initialize_encoding_converter(string encoding);
 
 #endif

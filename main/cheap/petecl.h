@@ -17,28 +17,35 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* ECL integration */
+/** \file petecl.h
+ * ECL integration.
+ *
+ * Since ECL (and ecl.h in particular) doesn't compile as C++ we
+ * cannot use ECL datatypes or functions from C++ modules. On the
+ * other hand, we cannot call C++ functions from C (there's nothing
+ * like an extern "C++" directive), so our setup is a little involved.
+ *
+ * The modules petecl and petmrs are written in C. They use ECL
+ * functions and datatypes, and have access to PET data and
+ * functionality by means of functions contained in the cppbridge
+ * module. cppbridge is written in C++ and exports a number of extern
+ * "C" functions. It includes standard PET headers, and uses their
+ * functionality to implement the extern "C" functions.
+ */
+
 
 #ifndef _PETECL_H_
 #define _PETECL_H_
 
-//
-// Since ECL (and ecl.h in particular) doesn't compile as C++ we
-// cannot use ECL datatypes or functions from C++ modules. On the
-// other hand, we cannot call C++ functions from C (there's nothing
-// like an extern "C++" directive), so our setup is a little involved.
-//
-// The modules petecl and petmrs are written in C. They use ECL
-// functions and datatypes, and have access to PET data and
-// functionality by means of functions contained in the cppbridge
-// module. cppbridge is written in C++ and exports a number of extern
-// "C" functions. It includes standard PET headers, and uses their
-// functionality to implement the extern "C" functions.
-//
-
+/**
+ * \brief ECL initialization function. Boots the ECL engine, loads
+ * user-specified (interpreted) lisp files, and initializes the compiled
+ * packages (currently only MRS).
+ */
 extern "C" int
 ecl_initialize(int argc, char **argv, char *grammar_file_name);
 
+/** Load a lisp file with the given name using the ECL interpreter. */
 extern "C" void
 ecl_load_lispfile(char *s);
 

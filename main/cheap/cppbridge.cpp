@@ -100,19 +100,24 @@ ecl_cpp_load_files(char *setting, char *basename)
 int
 pet_cpp_ntypes()
 {
+  // _fix_me_ sure this should not be last_dynamic??
     return ntypes;
 }
 
 int
 pet_cpp_lookup_type_code(const char *s)
 {
+#ifdef DYNAMIC_SYMBOLS
+    return lookup_symbol(s);
+#else
     return lookup_type(s);
+#endif
 }
 
 char *
 pet_cpp_lookup_type_name(int t)
 {
-    return typenames[t];
+    return (char *) type_name(t);
 }
 
 int
@@ -266,7 +271,7 @@ pet_cpp_glb(int t1, int t2)
 int
 pet_cpp_type_valid_p(int t)
 {
-    return t >= 0 && t < ntypes;
+    return is_type(t);
 }
 
 //

@@ -23,14 +23,11 @@
 
 #include "cheap.h"
 #include "parse.h"
-#include "agenda.h"
 #include "chart.h"
-//#include "inputchart.h"
-//#include "tokenizer.h"
 #include "tsdb++.h"
-#include "mfile.h"
 #include "qc.h"
 #include "cppbridge.h"
+#include "version.h"
 #ifdef YY
 # include "yy.h"
 #endif
@@ -172,10 +169,11 @@ initialize_version()
     }
     
     sprintf(CHEAP_VERSION,
-            "PET(%s cheap) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s "
+            "PET(%s cheap v%s) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s "
             "%s[%d(%s)] %s[%d(%s)]"
             " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
             da,
+            version_string,
             pedgelimit,
             opt_packing ? "+" : "-",
             opt_packing,
@@ -583,8 +581,8 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
 #ifdef ECL
                 if(opt_mrs)
                 {
-                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-                                                opt_mrs);
+                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag()
+                                                , opt_mrs);
                 }
 #endif
                 T.push_result(R);
@@ -633,8 +631,8 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.readings = stats.readings;
     T.words = stats.words;
     T.first = stats.first;
-    T.total = stats.tcpu + stats.p_utcpu;
-    T.tcpu = stats.tcpu;
+    T.total = stats.tcpu;
+    T.tcpu = stats.tcpu + stats.p_utcpu;
     T.tgc = 0;
     T.treal = treal;
     
@@ -792,4 +790,68 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
     
     fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
             parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
+}
+
+
+tTsdbDump::tTsdbDump(string directory) 
+  : _parse_file(NULL), _result_file(NULL), _item_file(NULL), _current(NULL) {
+  if (directory.size() > 0) {
+    
+    if(directory[directory.size() - 1] != '/')
+      directory += "/";
+    
+    if ((_item_file = fopen((directory + "item").c_str(), "w"))) {
+      if ((_result_file = fopen((directory + "result").c_str(), "w"))) {
+        if ((_parse_file = fopen((directory + "parse").c_str(), "w"))
+            == NULL) {
+          fclose(_result_file); _result_file = NULL;
+          fclose(_item_file); _item_file = NULL;
+        }
+      } else {
+        fclose(_item_file); _item_file = NULL;
+      }
+    }
+  }
+}
+
+tTsdbDump::~tTsdbDump() {
+  if (_current != NULL) delete _current;
+  if (_item_file != NULL) fclose(_item_file);
+  if (_result_file != NULL) fclose(_result_file);
+  if (_parse_file != NULL) fclose(_parse_file);
+}
+
+void tTsdbDump::start(string input) {
+  if(_current != NULL) delete _current;
+  if (active()) {
+    _current = new tsdb_parse();
+    _current->set_input(input);
+  }
+}
+
+void tTsdbDump::finish(chart *Chart) {
+  if (_current != NULL) {
+    _current->set_i_length(Chart->length());
+    cheap_tsdb_summarize_item(*Chart, Chart->rightmost(), -1, 0, *_current);
+    dump_current();
+  }
+}
+
+void tTsdbDump::error(class chart *Chart, const class tError & e){
+  if (_current != NULL) {
+    if(Chart)
+      _current->set_i_length(Chart->length());
+    list<tError> errors;
+    errors.push_back(e);
+    cheap_tsdb_summarize_error(errors, -1, *_current);
+    dump_current();
+  }
+}
+
+void tTsdbDump::dump_current() {
+  if (active() && (_current != NULL)) {
+    _current->file_print(_parse_file, _result_file, _item_file);
+    delete _current;
+    _current = 0;
+  }
 }

@@ -26,6 +26,9 @@
 
 #include <iostream>
 #include <fstream>
+#if 1
+#include "flop.h"
+#endif
 
 /** Binary predicate defining a strict weak topological ordering on edges.
  *  Two edges x and y are equivalent if both f(x, y) and f(y, x) are false.
@@ -39,110 +42,154 @@
  */
 class topologicalCompare
 {
- public:
-    topologicalCompare(tHierarchy &G)
-        : _G(G)
+  /** The %container has to be a random access container to use this
+      output_iterator, and it has to have the right size, which is not
+      nice at all.
+  */
+  template<typename _Container>
+  class index_insert_iterator 
+    : public std::iterator<std::output_iterator_tag, void, void, void, void>
     {
-        boost::topological_sort(_G, std::back_inserter(_ord));
-    }
+    protected:
+      _Container* container;
+      int pos;
 
-    /** 
-        Compares two edges according to a topological order of the underlying
-        graph.Returns true if the first edge precedes the second edge in the
-        order. Edges are first sorted decreasing by source, then increasing
-        by target.
-    */
-    bool
-    operator()(const tHierarchyEdge &e1, const tHierarchyEdge &e2)
-    {
-        int s = _ord[boost::source(e2, _G)] - _ord[boost::source(e1, _G)];
-        if (s != 0)
-        {
-            // edges have different source, put in decreasing order.
-            return s < 0;
-        }
-        else
-        {
-            // edges have identical source, put in increasing order.
-            s = _ord[boost::target(e2, _G)] - _ord[boost::target(e1, _G)];
-            return s > 0;
-        }
-    }
+    public:
+      /// A nested typedef for the type of whatever container you used.
+      typedef _Container          container_type;
+      
+      /// The only way to create this %iterator is with a container.
+      explicit 
+      index_insert_iterator(_Container& __x) : container(&__x), pos(0) { }
 
- protected:
-    tHierarchy &_G;
-    std::vector<int> _ord;
+      /**
+       *  @param  value  An instance of whatever type container_type::size_type
+       *                 is, because it has to be an index into the container
+       *  @return  This %iterator, for chained operations.
+       *
+       *  This iterator is a bit strange in that it does not store the value
+       *  into the container at its position, but rather uses value as an index
+       *  into the container and stores the current position there.
+       */
+      index_insert_iterator&
+      operator=(typename _Container::const_reference __value) 
+      { 
+        (*container)[(int) __value] = pos;
+        return *this;
+      }
+
+      /// Simply returns *this.
+      index_insert_iterator& 
+      operator*() { return *this; }
+
+      /// Increment position and returns *this.
+      index_insert_iterator& 
+      operator++() { pos++ ; return *this; }
+
+      /// return a copy of the current state after incrementing pos.
+      index_insert_iterator
+      operator++(int) { 
+        index_insert_iterator __tmp = *this; 
+        pos++;
+        return *__tmp; 
+      }
+    };
+
+
+public:
+  /** Build a data structure to compare the vertices of \a G according to their
+   *  topological order.
+   */
+  topologicalCompare(tHierarchy &G)
+    : _G(G), _topos(boost::num_vertices(G), 0)
+  {
+    // This was a fatal error! We do not need the edges in topological order,
+    // but the position in the order for every node
+    // boost::topological_sort(_G, std::back_inserter(_ord));
+
+    // _topos[type1] > _topos[type2] means type1 is potentially closer to
+    // *top* than type1
+    boost::topological_sort(_G, index_insert_iterator< vector<int> >(_topos));
+  }
+
+  /** 
+      Compares two edges according to a topological order of the underlying
+      graph. Returns true if the first edge precedes the second edge in the
+      order. Edges are first sorted with source closer to the leaves, then 
+      with target being closer to *top*.
+  */
+  bool
+  operator()(const tHierarchyEdge &e1, const tHierarchyEdge &e2)
+  {
+    int s = _topos[boost::source(e2, _G)] - _topos[boost::source(e1, _G)];
+    if (s != 0)
+      {
+        // edges have different source, put in decreasing order,
+        // i.e. leaves come first: pos(source(e1)) < pos(source(e2))
+        return s > 0;
+      }
+    else
+      {
+        // edges have identical source, put in increasing order, i.e.
+        // targets up in the hierarchy (near to *top*) come first:
+        // pos(target(e1)) > pos(target(e2))
+        return _topos[boost::target(e1, _G)] > _topos[boost::target(e2, _G)];
+      }
+  }
+
+private:
+  tHierarchy &_G;
+  std::vector<int> _topos;
 };
 
 /** Compute transitive reduction of an acyclic graph. This implements the
-    algorithm from Mehlhorn: Data Structures and Algorithms, Vol II, pages 7 -- 9. */
+    algorithm from Mehlhorn: Data Structures and Algorithms, Vol II,
+    pages 7 -- 9.
+ */
 void
 acyclicTransitiveReduction(tHierarchy &G)
 {
     
     // Obtain a list of the edges in G in topological order
     std::vector<tHierarchyEdge> allEdges;
-    copy(boost::edges(G).first, boost::edges(G).second, std::back_inserter(allEdges));
+    copy(boost::edges(G).first, boost::edges(G).second
+         , std::back_inserter(allEdges));
     sort(allEdges.begin(), allEdges.end(), topologicalCompare(G));
 
-#ifdef DEBUG
-    std::ofstream f0("new.top");
-#endif
-   
-    std::vector<int> ord;
-    boost::topological_sort(G, std::back_inserter(ord));
-    
-#ifdef DEBUG
-    for(int i = 0; i < boost::num_vertices(G) ; i++)
-    {
-        f0 << "T " << i << ": " << ord[i] << "\n";
-    }
+    boost::graph_traits<tHierarchy>::vertices_size_type num_vertices
+      = boost::num_vertices(G);
 
-    for(std::vector<tHierarchyEdge>::iterator it = allEdges.begin(); it != allEdges.end(); ++it)
-    {
-        f0 << "(" << ord[boost::source(*it, G)] << "," << ord[boost::target(*it, G)] << ") [" << *it << "]" << std::endl;
-    }
+    std::vector<std::list<tHierarchyVertex> > closure(num_vertices);
+    bool *reached = new bool[num_vertices];
     
-    std::cout << std::endl;
-#endif
-
-    std::vector<std::list<tHierarchyVertex> > closure(boost::num_vertices(G));
-    std::vector<bool> reached(boost::num_vertices(G));
-    
-    for(tHierarchyVertex v = 0; v < boost::num_vertices(G); ++v)
+    for(tHierarchyVertex v = 0; v < num_vertices; ++v)
     {
         closure[v].push_back(v);
     }
 
-#ifdef DEBUG
-    std::ofstream f1("new.red");
-#endif
-
-    tHierarchyVertex previous_v = boost::num_vertices(G);
-    for(std::vector<tHierarchyEdge>::iterator it = allEdges.begin(); it != allEdges.end(); ++it)
+    tHierarchyVertex previous_v = num_vertices;
+    for(std::vector<tHierarchyEdge>::iterator it = allEdges.begin()
+          ; it != allEdges.end(); ++it)
     {
+
         tHierarchyVertex v = boost::source(*it, G);
         
         if(v != previous_v)
         {
-            for(tHierarchyVertex z = 0; z < boost::num_vertices(G); ++z)
+            for(tHierarchyVertex z = 0; z < num_vertices; ++z)
                 reached[z] = false;
             
             previous_v = v;
+            reached[v] = true;   // for security's sake in case of loops
         }
         
         tHierarchyVertex w = boost::target(*it, G);
-#ifdef DEBUG
-        f1 << v << " - " << w;
-#endif
         if(!reached[w])
         {  // e is in the transitive reduction
-#ifdef DEBUG
-            f1 << " R";
-#endif
  
             std::list<tHierarchyVertex> &Rw = closure[w];
-            for(std::list<tHierarchyVertex>::iterator itZ = Rw.begin(); itZ != Rw.end(); ++itZ)
+            for(std::list<tHierarchyVertex>::iterator itZ = Rw.begin()
+                  ; itZ != Rw.end(); ++itZ)
             {
                 if(!reached[*itZ])
                 {
@@ -151,123 +198,11 @@ acyclicTransitiveReduction(tHierarchy &G)
                 }
             }
         }
-#ifdef DEBUG
-        f1 << std::endl;
-#endif
+        else 
+        {
+            G.remove_edge(*it);
+        }
     }
+    delete[] reached;
 }
 
-#if 0
-
-class compare_edges : public leda_cmp_base<leda_edge>
-{
-  const leda_graph& G;
-  const leda_node_array<int> ord;
-
-public:
-
-  compare_edges(const leda_graph& _G, const leda_node_array<int>& _ord) :
-    G(_G), ord(_ord) {} 
-  
-  int operator()(const leda_edge& e, const leda_edge& f) const 
-    { 
-      int s = compare(ord[G.source(e)], ord[G.source(f)]);
-      if ( s != 0 ) return -s; // edges with larger source come first
-      // for equal source edges are ordered by target number
-      return compare(ord[G.target(e)], ord[G.target(f)]);
-    }
-
-  virtual ~compare_edges() {};
-};
-
-void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in_reduction)
-/* marks all edges in the transitive reduction of G
-   The  algorithm is as described in Mehlhorn: Data Structures and Algorithms, 
-   Vol II, pages 7 -- 9. 
-   G must be acyclic. */
-{
-  leda_node_array<int> ord(G);
-  TOPSORT(G,ord);  // numbered starting at one
-
-  compare_edges cmp(G,ord);
-
-  leda_list<leda_edge> E = G.all_edges();
-  E.sort(cmp);
-
-  leda_edge e;
-  leda_node v;
-
-#ifdef DEBUG
-  std::ofstream f0("old.top");
-
-  forall_nodes(v, G)
-  {
-      f0 << "T " << hierarchy.inf(v) << ": " << ord[v] << std::endl;
-  }
-
-  forall(e, E)
-  {
-      f0 << "(" << ord[G.source(e)] << "," << ord[G.target(e)] << ") [" << hierarchy.inf(G.source(e)) << "," << hierarchy.inf(G.target(e)) << "]" << std::endl;
-  }
-#endif
-  
-  leda_node_array<leda_list<leda_node> > closure(G);
-
-  forall_edges(e,G) in_reduction[e] = false;
-
-  leda_node_array<bool> reached(G,false);
-  leda_node previous_v = nil;
-
-  forall_nodes(v,G) closure[v].append(v);
-
-#ifdef DEBUG
-  std::ofstream f1("old.red");
-#endif
-
-  forall(e,E) 
-    {
-      leda_node v = G.source(e);
-      
-      if ( v != previous_v)
-	{
-	  leda_node z;
-	  forall_nodes(z,G) reached[z] = false;
-	  
-	  previous_v = v;
-	}
-      
-      leda_node w = G.target(e);
-
-#ifdef DEBUG
-      f1 << hierarchy.inf(v) << " - " << hierarchy.inf(w);
-#endif
-
-      if ( ! reached[w] )
-	{ // e is an edge of the transitive reduction
-   
-#ifdef DEBUG 
-         f1 << " R";
-#endif
-
-	  in_reduction[e] = true;
-
-	  leda_node z;
-	  
-	  leda_list<leda_node>& Rw = closure[w];
-
-	  forall(z,Rw) 
-	    {
-	      if ( !reached[z] )
-		{
-		  reached[z] = true;
-		  closure[v].append(z);
-		}
-	    }
-	}
-#ifdef DEBUG
-      f1 << endl;
-#endif 
-    }
-}
-
-#endif

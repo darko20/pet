@@ -17,23 +17,30 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// provide swapping for conversion between little / big endian
-// inspired by byteorder/swab.h from the Linux kernel
+/** \file byteorder.h
+ * Provide swapping for conversion between little / big endian
+ * inspired by byteorder/swab.h from the Linux kernel.
+ * This guarantees that the generated binary images are portable across
+ * platforms.
+ */
 
 #ifndef _BYTEORDER_H_
 #define _BYTEORDER_H_
 
+/** Swap the bytes of a two byte value */
 #define swap_short(x) \
                 ((((x) & (unsigned short)0x00ffU) << 8) | \
                 (((x) & (unsigned short)0xff00U) >> 8) )
 
+/** Swap the bytes of a four byte value */
 #define swap_int(x) \
                 ((((x) & (unsigned int)0x000000ffUL) << 24) | \
                 (((x) & (unsigned int)0x0000ff00UL) <<  8) | \
                 (((x) & (unsigned int)0x00ff0000UL) >>  8) | \
                 (((x) & (unsigned int)0xff000000UL) >> 24) )
 
-inline bool cpu_little_endian() // verbose way of testing
+/** verbose way of testing the endianness of the architecture */
+inline bool cpu_little_endian()
 {
   unsigned const int i = 0x01020304;
   unsigned char *p = (unsigned char *) &i;

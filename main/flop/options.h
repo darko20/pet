@@ -17,7 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* command line options */
+/** \file options.h
+ * Command line options for flop.
+ */
 
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_

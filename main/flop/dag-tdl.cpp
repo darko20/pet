@@ -19,14 +19,14 @@
 
 /* conversion from TDL representation to dags */
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 #include <vector>
 #include <string>
 
-#include "types.h"
 #include "options.h"
 #include "flop.h"
+#include "dag-arced.h"
 
 int ncorefs = 0;
 struct dag_node **dagify_corefs;
@@ -67,21 +67,16 @@ void dagify_symtabs()
     }
 }
 
-void dagify_types()
-{
-  for(int i = 0; i < types.number(); i++)
-    {
-      types[i]->thedag = dagify_tdl_term(types[i]->constraint, i,
-					 types[i]->coref ?
-					 types[i]->coref->n : 0);
-    }
-}
-
 struct dag_node *dagify_conjunction(struct conjunction *C, int type);
 
 // Global variable to enable meaningful error messages
 int current_toplevel_type = 0;
 
+/** Convert the internal representation of a TDL specification into a dag.
+ * \param C the surface oriented representation of the definition
+ * \param type the type whose definition is converted
+ * \param crefs the number of coreferences in this definition
+ */
 struct dag_node *dagify_tdl_term(struct conjunction *C, int type, int ncr)
 {
   int i;
@@ -116,7 +111,14 @@ struct dag_node *dagify_avm(struct avm *A)
 
       attr = attributes.id(A->av[i]->attr);
 
-      if(opt_no_sem && attr == attributes.id(flop_settings->req_value("sem-attr")))
+      
+      // With the option 'no-semantics', all structures under a feature
+      // which is specified as 'sem-attr' in the 'flop.set' are
+      // removed from the hierarchy definitions and the feature itself is
+      // ignored in all computation concering features, such as appropriate
+      // type computation.
+      if(opt_no_sem 
+         && attr == attributes.id(flop_settings->req_value("sem-attr")))
 	continue;
 
       if((val = dagify_conjunction(A->av[i]->val, BI_TOP)) == FAIL)
@@ -132,7 +134,7 @@ struct dag_node *dagify_avm(struct avm *A)
             }
         }
       else
-        add_arc(result, new_arc(attr, val));
+        dag_add_arc(result, new_arc(attr, val));
     }
 
   return result;
@@ -165,9 +167,9 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
   
   result = new_dag(BI_LIST);
   if((tmp = dagify_conjunction(L->list[i], BI_TOP)) == FAIL) return FAIL;
-  add_arc(result, new_arc(BIA_FIRST, tmp));
+  dag_add_arc(result, new_arc(BIA_FIRST, tmp));
   if((tmp = dagify_list_body(L, i+1, last)) == FAIL) return FAIL;
-  add_arc(result, new_arc(BIA_REST, tmp));
+  dag_add_arc(result, new_arc(BIA_REST, tmp));
 
   return result;
 }
@@ -183,10 +185,10 @@ struct dag_node *dagify_list(struct tdl_list *L)
       result = new_dag(BI_DIFF_LIST);
       
       last = new_dag(BI_TOP);
-      add_arc(result, new_arc(BIA_LAST, last));
+      dag_add_arc(result, new_arc(BIA_LAST, last));
 
       if((lst = dagify_list_body(L, 0, last)) == FAIL) return FAIL;
-      add_arc(result, new_arc(BIA_LIST, lst));
+      dag_add_arc(result, new_arc(BIA_LIST, lst));
     }
   else
     {
@@ -289,4 +291,14 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
     }
 
   return result;
+}
+
+void dagify_types()
+{
+  for(int i = 0; i < types.number(); i++)
+    {
+      types[i]->thedag = dagify_tdl_term(types[i]->constraint, i,
+					 types[i]->coref ?
+					 types[i]->coref->n : 0);
+    }
 }

@@ -11,63 +11,67 @@ LD = gcc
 cpp=cpp
 c=c
 
-ifeq ($(shell test -d /project/cl && echo "yes"), yes)
+ifeq ($(shell test -d /project/cl/deepthought && echo "yes"), yes)
 ECLPATH = /project/cl/deepthought/local/ecl
 ICUDIR = /project/cl/deepthought/local
-#ITSDBPATH = /project/cl/deepthought/lkb
-ITSDBPATH = /home/cl-home/kiefer/lkb
+ITSDBPATH = /project/cl/deepthought/lkb
+XERCESPATH = /project/cl/deepthought/local/lib/xerces-c
 else 
 ECLPATH = /usr/local
 ICUDIR = /usr/local
-ITSDBPATH = /home/project/cl/systems/lkb
+ITSDBPATH = /home/kiefer/Lisp/lkb
+XERCESPATH = /usr/local/lib/xerces-c
 endif
 
 INCLUDE = -I. -I../common  -I$(ITSDBPATH)/include -I$(ICUDIR)/include
 
-# for Unix/gcc
-CPPFLAGS1 = -Wall -g -DHASH_MAP_AVAIL -DUSEMMAP -DYY $(INCLUDE) \
-  -DTSDBAPI -DSOCKET_INTERFACE -DONLINEMORPH -DICU -DECL
-# for CygWin
-# CPPFLAGS1 = -Wall -g -O3 -DYY $(INCLUDE)
+#PROFILING=-pg
+MRS=-DECL
+#XML=yes
+
+DEFINES =-DHAVE_HASH_MAP -DHAVE_MMAP -DYY -DTSDBAPI -DSOCKET_INTERFACE -DONLINEMORPH -DICU -DDYNAMIC_SYMBOLS -DTSDBFILEAPI $(MRS)
 
 #
 # choice here has to correspond to choice for DAGOBJ (see below):
 #
 
-# CPPFLAGS = -DDAG_SIMPLE -DWROBLEWSKI2 $(CPPFLAGS1)
-CPPFLAGS = -DDAG_TOMABECHI $(CPPFLAGS1) -DQC_PATH_COMP # -DPACKING
-# CPPFLAGS = -DDAG_FIXED $(CPPFLAGS1) -DNO_CAST
-# CPPFLAGS = -DDAG_SYNTH1 $(CPPFLAGS1)
+DEFINES += -DDAG_TOMABECHI -DQC_PATH_COMP # -DPACKING
+# DEFINES += -DDAG_SIMPLE -DWROBLEWSKI2
+# DEFINES += -DDAG_FIXED -DNO_CAST
+# DEFINES += -DDAG_SYNTH1
 
+# for Unix/gcc
+CPPFLAGS = $(DEFINES) $(INCLUDE)
+# for CygWin
+# CPPFLAGS1 = -Wall -g -DYY $(INCLUDE)
 
-CFLAGS = $(CPPFLAGS)
+CXXFLAGS = -g -Wall $(PROFILING) $(CPPFLAGS)
+CFLAGS = -g -Wall $(PROFILING) $(CPPFLAGS)
 
 # solaris
 # LIBS = -Wl,-R,/proj/perform/uc/5lib -lm -lstdc++ -ldl -liberty
-# linux dynamic
-# LIBS = -lm -lstdc++ -ldl -liberty
-# linux static
-LIBS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0 \
-       -lm -lstdc++ -ldl -liberty
+# linux dynamic: all standard libraries are provided by the compiler
+# LIBS = -lm -lstdc++ -lc -ldl
 # cygwin
 # LIBS = -lm -lstdc++ -liberty
 
 # solaris
 # ITSDBLIBS = $(ITSDBPATH)/lib/solaris/libitsdb.a $(ITSDBPATH)/lib/solaris/libpvm3.a -lsocket -lnsl -lkstat -lposix4
 # linux dynamic
-# ITSDBLIBS = -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3 -liberty
+#ITSDBLIBS = -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3 -liberty
 # linux static
-ITSDBLIBS = -Wl,-R,$(ITSDBPATH)/lib/linux -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3 -liberty
+ITSDBLIBS = -Wl,-R,$(ITSDBPATH)/lib/linux -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3
 #ITSDBLIBS = -L$(ITSDBPATH)/lib/linux $(ITSDBPATH)/lib/linux/libitsdb.a -lpvm3 -liberty
 # cygwin (no itsdb available)
 # ITSDBLIBS =
 
-ECLLIBS = -Wl,-R,$(ECLPATH)/lib/ecl -L$(ECLPATH)/lib/ecl -lecl \
-          -L$(ITSDBPATH)/lib/linux -lmrs
+ICULIBS = -Wl,-R,$(ICUDIR)/lib -L$(ICUDIR)/lib -licuuc -licui18n -lpthread
 
-#ICULIBS = -L$(ICUDIR)/lib -licuuc -licui18n -lpthread -ldl
-ICULIBS = -Wl,-R,$(ICUDIR)/lib -L$(ICUDIR)/lib -licuuc -licui18n -lpthread -ldl
+ECLLIBS = -Wl,-R,$(ECLPATH)/lib/ecl -L$(ECLPATH)/lib/ecl -lecl -L$(ITSDBPATH)/lib/linux -lmrs
 
+XERCESLIBS = -Wl,-R,$(XERCESPATH)/lib -L$(XERCESPATH)/lib -lxerces-c
+
+LIBS+=$(ITSDBLIBS) $(ICULIBS)
 
 VPATH = .:../common
 
@@ -80,28 +84,72 @@ DAGSRC = dag-io.$(cpp) dag-common.$(cpp) dag-arced.$(cpp) dag-alloc.$(cpp) dag-t
 # DAGSRC = dag-common.$(cpp) dag-fixed.$(cpp)
 # DAGSRC = dag-io.$(cpp) dag-common.$(cpp) dag-arced.$(cpp) dag-alloc.$(cpp) dag-synth1.$(cpp)
 
-COMMONSRCS = bitcode.$(cpp) chunk-alloc.$(cpp) errors.$(cpp) mfile.$(c) \
+COMMONSRCS = bitcode.$(cpp) chunk-alloc.$(cpp) mfile.$(c) \
 	     lex-io.$(cpp) lex-tdl.$(cpp) settings.$(cpp) fs.$(cpp)\
              dumper.$(cpp) grammar-dump.$(cpp) grammar.$(cpp) types.$(cpp)\
 	     tsdb++.$(cpp) utility.$(cpp) $(DAGSRC)
 
-PARSESRCS = parse.$(cpp) item.$(cpp) task.$(cpp) chart.$(cpp) agenda.$(cpp)\
-            options.$(cpp) postags.$(cpp) mrs.$(cpp) morph.$(cpp)\
-            unicode.$(cpp) paths.$(cpp) sm.$(cpp) hash.$(cpp) parser.$(cpp)\
-            lexicon.$(cpp) petecl.$(c) petmrs.$(c) cppbridge.$(cpp)\
-	    lingo-tokenizer.$(cpp) yy-tokenizer.$(cpp) lexparser.$(cpp)\
-            yy.$(cpp) item-printer.$(cpp)
+PARSESRCS = chart.$(cpp) hash.$(cpp) item.$(cpp) item-printer.$(cpp) \
+	    lexicon.$(cpp) lexparser.$(cpp) lingo-tokenizer.$(cpp)\
+            morph.$(cpp) options.$(cpp)\
+            parse.$(cpp) paths.$(cpp) postags.$(cpp)\
+	    sm.$(cpp) task.$(cpp) unicode.$(cpp)\
+	    yy.$(cpp) yy-tokenizer.$(cpp) # mrs.$(cpp) 
+
+ECLSRCS = cppbridge.$(cpp) petecl.$(c) petmrs.$(c) 
+
+XMLSRCS = pic-handler.$(cpp) xmlparser.$(cpp)
+
 # inputtoken.$(cpp) inputchart.$(cpp) tokenizer.$(cpp)
 
-#
-# cheap
-#
-
 CHEAPSRCS = cheap.$(cpp) $(COMMONSRCS) $(PARSESRCS)
+
+ifdef XML
+  INCLUDE+= -I$(XERCESPATH)/include
+  LIBS+= $(XERCESLIBS)
+  CHEAPSRCS+= $(XMLSRCS)
+endif
+
+ifeq "$(MRS)" "-DECL"
+  LIBS+= $(ECLLIBS)
+  CHEAPSRCS+= $(ECLSRCS)
+endif
+
 CHEAPOBJS = $(patsubst %.$(c), %.o, $(CHEAPSRCS:.$(cpp)=.o))
 
+#
+# dependencies
+#
+
+.%.d: %.c
+	set -e; $(CC) -MM $(CFLAGS) -I$(ECLPATH)/lib/ecl/h $< \
+	    | sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
+	    [ -s $@ ] || rm -f $@
+
+.%.d: %.cpp
+	set -e; $(CPP) -MM $(CPPFLAGS) -I$(ECLPATH)/lib/ecl/h $< \
+	    | sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
+	    [ -s $@ ] || rm -f $@
+
+# .depend: $(CHEAPSRCS)
+# 	$(CC) -MM $(CFLAGS) -I$(ECLPATH)/lib/ecl/h $^ > $@
+#
+# ifneq ("$(shell ls .depend 2>/dev/null)", "")
+# include .depend
+# endif
+
+deap: $(CHEAPOBJS)
+	$(LD) $(CFLAGS) -o $@ $^ $(LIBS)
+
+#
+# cheap: full optimization and global libs
+#
+
+cheap: CPPFLAGS+= -O3
+cheap: CFLAGS+= -O3
 cheap: $(CHEAPOBJS)
-	$(LD) $(CFLAGS) -o $@ $^ $(LIBS) $(ITSDBLIBS) $(ICULIBS) $(ECLLIBS)
+	$(LD) $(CFLAGS) -o $@ $^ $(LIBS)
+
 
 petecl.$(OBJ): petecl.$(c) 
 	$(CC) $(CFLAGS) -I$(ECLPATH)/lib/ecl/h \
@@ -110,6 +158,27 @@ petmrs.$(OBJ): petmrs.$(c)
 	$(CC) $(CFLAGS) -I$(ECLPATH)/lib/ecl/h \
 	  -o $@ -Dlinux -fstrict-aliasing -c $<
 
+
+#
+# goofy
+#
+
+MOC = moc
+
+OBJMOC = moc_goofy.o
+
+moc_goofy.o: moc_goofy.cc \
+	goofy.h
+
+moc_goofy.cc: goofy.h
+	$(MOC) goofy.h -o moc_goofy.cc
+
+QTLIBS = -L$(QTDIR)/lib -lqt -lqt-mt -lqutil -L/usr/X11R6/lib -lX11 -lXext
+
+GOOFYOBJS = goofy.o $(CHEAPOBJS) $(OBJMOC)
+goofy: INCLUDE+= -I$(QTDIR)/include
+goofy: $(GOOFYOBJS)
+	$(LD) $(CFLAGS) -o $@ $^ $(QTLIBS) $(LIBS)
 
 #
 # mtest
@@ -130,20 +199,11 @@ clean:
 # rebuild MRS library, using an installed ECL binary (in the PATH)
 #
 mrs:
+	find $(ITSDBPATH)/src/.lecl/ -type f -exec rm {} \;
 	( \
 	  echo "(load \"$(ITSDBPATH)/src/general/loadup.lisp\")"; \
-	  echo "(compile-system \"mrs\" :force t)"; \
+	  echo "(compile-system \"mrs\")"; \
 	) | $(ECLPATH)/bin/ecl
-	test -f cheap && rm cheap
+	if test -f cheap ; then rm cheap ; fi
 
-#
-# dependencies
-#
-
-depend: $(CHEAPSRCS)
-	makedepend -f- $(INCLUDE) -I$(ECLPATH)/lib/ecl/h $^ | sed "s/\.c\.o/.o/" > .depend
-#	makedepend -f- $(INCLUDE) $^ > .depend
-
-ifneq ("$(shell ls .depend 2>/dev/null)", "")
-include .depend
-endif
+include $(patsubst %.$(c), .%.d, $(patsubst %.$(cpp), .%.d, $(CHEAPSRCS)))

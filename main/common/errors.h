@@ -17,15 +17,18 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* defines class representing errors - used in exceptions */
+/** \file errors.h
+ * Defines class representing errors - used in exceptions
+ */
 
 #ifndef _ERROR_H_
 #define _ERROR_H_
 
 #include <string>
 
-/** Represent an error that occured. The implementation is trivial, we just
- *  store an (optional) error message as a string. */
+/** \brief Represent an error that occured. The implementation is trivial, we
+ *  just store an (optional) error message as a string.
+ */
 class tError
 {
  public:

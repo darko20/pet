@@ -1,6 +1,7 @@
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+ *   2004 Bernd Kiefer kiefer@dfki.de
  *
  *   This program is free software; you can redistribute it and/or
  *   modify it under the terms of the GNU Lesser General Public
@@ -17,26 +18,86 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* tokenizer */
+/* tokenizer base class and simple lingo tokenizer */
 
 #include "pet-system.h"
-#include "cheap.h"
-#include "grammar.h"
-#include "parse.h"
-#include "inputchart.h"
-#include "tokenizer.h"
+#include "settings.h"
+#include "lingo-tokenizer.h"
 #ifdef ICU
 #include "unicode.h"
 #endif
 
-void tokenizer::print(FILE *f)
-{
-  fprintf(f, "tokenized<%s>\n", _input.c_str());
+extern settings *cheap_settings;
+
+tTokenizer::tTokenizer() {
+  char *s = cheap_settings->value("punctuation-characters");
+  string pcs;
+  if(s == 0)
+    pcs = " \t?!.:;,()-+*$\n";
+  else
+    pcs = convert_escapes(string(s));
+  
+#ifndef ICU
+  _punctuation_characters = pcs;
+#else
+  _punctuation_characters = Conv->convert(pcs);
+#endif  
 }
 
-list<string> lingo_tokenizer::tokenize()
+bool tTokenizer::punctuationp(const string &s)
 {
-  string s(_input);
+#ifndef ICU
+  if(_punctuation_characters.empty())
+    return false;
+    
+  for(string::size_type i = 0; i < s.length(); i++)
+    if(_punctuation_characters.find(s[i]) == STRING_NPOS)
+      return false;
+    
+  return true;
+#else
+  UnicodeString U = Conv->convert(s);
+  StringCharacterIterator it(U);
+    
+  UChar32 c;
+  while(it.hasNext())
+    {
+      c = it.next32PostInc();
+      if(_punctuation_characters.indexOf(c) == -1)
+        return false;
+    }
+    
+  return true;
+#endif
+}
+
+/** Produce a set of tokens from the given string. */
+void 
+tLingoTokenizer::tokenize(string s, inp_list &result) {
+  list<string> tokens = do_it(s);
+  if(verbosity > 4)
+    fprintf(ferr, "lingo_tokenizer:");
+
+  char idstrbuf[6];
+  int i = 0, id = 0;
+  for(list<string>::iterator pos = tokens.begin();
+      pos != tokens.end(); ++pos)
+    {
+      if(verbosity > 7)
+        fprintf(ferr, " [%d] <%s>", i, pos->c_str());
+      
+      sprintf(idstrbuf, "%d", id++);
+      result.push_back(new tInputItem(idstrbuf, i, i+1, *pos, "", tPaths()));
+      i++;
+    }
+  
+  if(verbosity > 4)
+    fprintf(ferr, "\n");
+  
+}
+
+list<string>
+tLingoTokenizer::do_it(string s) {
 
   // downcase string
   if(true || !cheap_settings->lookup("trivial-tokenizer"))
@@ -50,7 +111,7 @@ list<string> lingo_tokenizer::tokenize()
   // replace all punctuation characters by blanks
 #ifndef ICU
   for(string::size_type i = 0; i < s.length(); i++)
-    if(Grammar->punctuationp(string(1, s[i])))
+    if(punctuationp(string(1, s[i])))
       s[i] = ' ';
 #else
   UnicodeString U = Conv->convert(s);
@@ -62,7 +123,7 @@ list<string> lingo_tokenizer::tokenize()
     {
       c = it.next32PostInc();
       string coded = Conv->convert(UnicodeString(c));
-      if(Grammar->punctuationp(coded))
+      if(punctuationp(coded))
 	Res.append(UChar32(' '));
       else
 	Res.append(c);
@@ -130,39 +191,4 @@ list<string> lingo_tokenizer::tokenize()
   }
 
   return words2;
-}
-
-void lingo_tokenizer::add_tokens(input_chart *i_chart)
-{
-  list<string> tokens = tokenize();
-  if(verbosity > 4)
-    fprintf(ferr, "lingo_tokenizer:");
-
-  int i = 0, id = 0;
-  for(list<string>::iterator pos = tokens.begin();
-      pos != tokens.end(); ++pos)
-    {
-      if(verbosity > 7)
-	fprintf(ferr, " [%d] <%s>", i, pos->c_str());
-      
-      list<full_form> forms = Grammar->lookup_form(*pos);
-
-      if(forms.empty())
-	{
-	  i_chart->add_token(id++, i, i+1, full_form(), *pos, 0, postags(), tPaths());
-	}
-      else
-	{
-	  for(list<full_form>::iterator currf = forms.begin();
-	      currf != forms.end(); ++currf)
-	    {
-	      i_chart->add_token(id++, i, i+1, *currf, *pos,
-				 0, postags(), tPaths());
-	    }
-	}
-      i++;
-    }
-
-  if(verbosity > 4)
-    fprintf(ferr, "\n");
 }

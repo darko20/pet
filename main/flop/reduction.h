@@ -3,7 +3,9 @@
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
-/* transitive reduction */
+/** \file reduction.h
+ * Transitive reduction of an acyclic directed graph.
+ */
 
 #ifndef _REDUCTION_H_
 #define _REDUCTION_H_

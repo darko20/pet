@@ -207,11 +207,10 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
       while(arc) nr++, arc = arc->next;
 
       type = dag->type;
-      fprintf(stderr, "%s ", type_name(type));
+
 #ifdef FLOP
       type = leaftype_order[type];
 #endif
-      fprintf(stderr, "%s", type_name(type));
 
       dump_n.type = type;
 
@@ -224,7 +223,6 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
 	{
 	  dump_a.attr = (short int) arc->attr;
 	  dump_a.val = (short int) (abs(dag_get_visit(dag_deref(arc->val))) - 1);
-          fprintf(stderr, "%d %d\n", dump_a.val, dump_index);
 	  assert(dump_a.val < dump_index);
 	  dump_arc(f, &dump_a);
 	  arc = arc->next;

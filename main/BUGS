@@ -1,0 +1,9 @@
+- the bound on the number of inflection rules (setting max-inflections) does 
+  not work
+- flop is not able to dump cyclic structures
+- Berthold: packing vs. Relativsaetze (what is the exact error?)
+
+- wrong/no characterization when unfilling is used
+  :-( No clean way to implement this; in fact, characterization should be 
+  implemented in the grammar, not in the processing engine.
+

@@ -17,12 +17,20 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* class to represent symbol tables */
+/** \file symtab.h
+ * Symbol tables: mappings from strings to information via unique numeric IDs.
+ */
 
 #include <string>
+#include <map>
 
 extern int Hash(const string &s);
 
+/** Class template for symbol tables: tables that associate names (strings)
+ *  with some other data via a unique id, that is maintained by the symbol
+ *  table.
+ * \pre info must be <em> default constructible </em>
+ */
 template <class info> class symtab
 {
  private:
@@ -38,6 +46,7 @@ template <class info> class symtab
         : names(), ids(), infos(), n(0)
     { }
 
+    /** Add a new symbol \a name to the table */
     int
     add(const string& name)
     {
@@ -49,25 +58,33 @@ template <class info> class symtab
         
     }
     
-    int id(const string &name)
+    /** Return the id for \a name, or -1 if it does not exist in the table. */
+    int id(const string &name) const
     {
-        map<string, int>::iterator it = ids.find(name);
+        map<string, int>::const_iterator it = ids.find(name);
         if(it != ids.end())
             return it->second;
         else
             return -1;
     }
     
-    const string &name(int id)
+    /** \brief Return the name associated with \a id. Will be the empty string
+     *  if \a id is greater or equal to number().
+     */
+    const string &name(int id) const
     {
         return names[id];
     }
     
+    /** Read/Write access to the info associated with id.
+     * \pre \a id must be less than number()
+     */
     info &operator[](int id)
     {
         return infos[id];
     }
     
+    /** The number of symbols registered in this table */
     int number()
     {
         return n;

@@ -17,7 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* memory allocation for dags */
+/** \file dag-alloc.h
+ * memory allocation for dags
+ */
 
 #ifndef _DAG_ALLOC_H_
 #define _DAG_ALLOC_H_
@@ -25,63 +27,92 @@
 #include "dag.h"
 #include "chunk-alloc.h"
 
+/** An allocation marker to do stack based allocation/deallocation of whole
+ *  memory areas.
+ *  \see chunk_alloc_state
+ */
 struct dag_alloc_state
 {
   struct chunk_alloc_state state;
 };
 
+/** The amount of dynamic memory in bytes used for dags */
 long dag_alloc_dynamic_mem();
+/** The amount of static memory in bytes used for dags */
 long dag_alloc_static_mem();
+/** Reset the statistics of static and dynamic memory usage */
 void dag_alloc_clear_stats();
 
+/** Tell the allocator to release memory if it is convenient */
 void dag_alloc_may_shrink();
+/** Release all memory allocated for dags */
 void dag_alloc_reset();
 
+/** Statistics about allocated nodes and arcs */
 extern int allocated_nodes, allocated_arcs;
 
-//
-// temporary dag storage
-//
-
+/** @name Temporary dag storage
+ * This is storage that is allocated for dags during parsing. At the beginning
+ * of a series of unifications, an allocation mark is acquired. Then, a number
+ * of dynamically allocated dag arcs and nodes is created during
+ * unification. If unification fails at some point, the memory up to the last
+ * mark is released. Otherwise, copying the feature structure requests more
+ * memory.
+ */
+/*@{*/
+/** Allocate a dag node in temporary storage */
 inline struct dag_node *dag_alloc_node()
 {
   allocated_nodes++;
   return (dag_node *) t_alloc.allocate(sizeof(dag_node));
 }
 
+/** Allocate a dag arc in temporary storage */
 inline struct dag_arc *dag_alloc_arc()
 {
   allocated_arcs++;
   return (dag_arc *) t_alloc.allocate(sizeof(dag_arc));
 }
 
+/** Acquire an allocation marker in \a s to be able to release a bunch of
+ *  useless memory in one step.
+ */
 inline void dag_alloc_mark(struct dag_alloc_state &s)
 {
   t_alloc.mark(s.state);
 }
 
+/** Release all memory up the mark given by \a s */
 inline void dag_alloc_release(struct dag_alloc_state &s)
 {
   t_alloc.release(s.state);
 }
+/*@}*/
 
-//
-// permanent dag storage
-//
-
+/** @name Permanent dag storage
+ * This is memory allocated during initialization of the grammar. The dags in
+ * this memory belong to the data base. They will only be released when the 
+ * grammar as a whole is released, which is typically at the end of the process
+ */
+/*@{*/
+/** Allocate a dag node in temporary storage */
 inline struct dag_node *dag_alloc_p_node()
 {
   allocated_nodes++;
   return (dag_node *) p_alloc.allocate(sizeof(dag_node));
 }
 
+/** Allocate a dag arc in temporary storage */
 inline struct dag_arc *dag_alloc_p_arc()
 {
   allocated_arcs++;
   return (dag_arc *) p_alloc.allocate(sizeof(dag_arc));
 }
 
+/** Allocate \a n dag nodes in temporary storage */
 struct dag_node *dag_alloc_p_nodes(int n);
+/** Allocate \a n dag arcs in temporary storage */
 struct dag_arc *dag_alloc_p_arcs(int n);
+/*@}*/
 
 #endif

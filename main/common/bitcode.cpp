@@ -21,6 +21,8 @@
 
 #include "pet-system.h"
 #include "bitcode.h"
+#include "list-int.h"
+#include "dumper.h"
 #include "errors.h"
 
 bitcode::bitcode(int n)
@@ -57,7 +59,7 @@ bitcode& bitcode::operator=(const bitcode& b)
       stop = V + n;
     }
 
-  for(CODEWORD *p = V, *q = b.V; p < stop; p++, q++) *p = *q;
+  for(CODEWORD *p = V, *q = b.V; p < end(); p++, q++) *p = *q;
 
   return *this;
 }
@@ -66,7 +68,7 @@ bitcode& bitcode::operator=(const bitcode& b)
 void bitcode::find_relevant_parts()
 {
   first_set = last_set = -1;
-  for(CODEWORD *p = V; p < stop && last_set == -1; p++)
+  for(CODEWORD *p = V; p < end() && last_set == -1; p++)
   {
     if(first_set == -1)
     {
@@ -87,12 +89,6 @@ void bitcode::find_relevant_parts()
 }
 #endif
 
-void bitcode::clear()
-{
-  register CODEWORD *p = V;
-  while (p < stop) *p = 0;
-}
-
 list_int *bitcode::get_elements()
 {
   // collect the positions of all bits that are 1 into the result list
@@ -100,7 +96,7 @@ list_int *bitcode::get_elements()
   int i;
   list_int *l = 0;
 
-  for(p = V, i = 0; p < stop; p++, i++)
+  for(p = V, i = 0; p < end(); p++, i++)
     if(*p)
       {
 	w = *p;
@@ -116,33 +112,16 @@ list_int *bitcode::get_elements()
   return l;
 }
 
-bitcode& bitcode::join(const bitcode& b)
-{
-  CODEWORD *p, *q;
-
-  for(p = V, q = b.V; p<stop; p++, q++) *p |= *q;
-
-  return *this;
-}
-
-bitcode& bitcode::intersect(const bitcode& b)
-{
-  CODEWORD *p, *q;
-
-  for(p = V, q = b.V; p<stop; p++, q++) *p &= *q;
-
-  return *this;
-}
-
 void
 subset_bidir(const bitcode&A, const bitcode &B, bool &a, bool &b)
 {
     // postcondition: a == subset(A, B) && b == subset(B, A)
 
+    assert(A.sz == B.sz);
     CODEWORD *cA, *cB;
     a = b = true;
 
-    for(cA = A.V, cB = B.V; cA < A.stop; cA++, cB++)
+    for(cA = A.V, cB = B.V; cA < A.end(); cA++, cB++)
     {
         CODEWORD join = *cA & *cB;
         if(join != *cA) a = false;
@@ -158,7 +137,7 @@ bool intersect_empty(const bitcode &A, const bitcode &B, bitcode *C)
   CODEWORD *p, *q, *s;
   bool empty;
 
-  for(p = A.V, q = B.V, s = C -> V, empty = true; p < A.stop; p++, q++, s++)
+  for(p = A.V, q = B.V, s = C -> V, empty = true; p < A.end(); p++, q++, s++)
     if((*s = *p & *q) != 0) empty = false;
 
   return empty;
@@ -166,54 +145,13 @@ bool intersect_empty(const bitcode &A, const bitcode &B, bitcode *C)
 
 bool bitcode::subset(const bitcode &supposed_superset)
 {
+  assert(sz == supposed_superset.sz);
   CODEWORD *sub, *super;
 
-  for(sub = V, super = supposed_superset.V; sub < stop; sub++, super++)
+  for(sub = V, super = supposed_superset.V; sub < end(); sub++, super++)
     if((*sub & *super) != *sub) return false;
 
   return true;
-}
-
-bitcode& bitcode::complement()
-{
-  for(CODEWORD *p = V; p<stop; p++) *p = ~(*p);
-
-  return *this;
-}
-
-bitcode bitcode::operator|(const bitcode& b)
-{
-  bitcode res(*this);
-
-  return res.join(b);
-}
-
-bitcode bitcode::operator&(const bitcode& b)
-{
-  bitcode res(*this);
-
-  return res.intersect(b);
-}
-
-bitcode bitcode::operator~()
-{
-  bitcode res(*this);
-
-  return res.complement();
-}
-
-int bitcode::empty() const
-{
-  for(CODEWORD *p = V; p < stop; p++)
-    if(*p != 0) return 0;
-
-  return 1;
-}
-
-void bitcode::print(FILE *f) const
-{
-  for(CODEWORD *p = V; p < stop; p++)
-    fprintf(f, "%.8X", *p);
 }
 
 #ifdef NAIVE_BITCODE_DUMP
@@ -224,7 +162,7 @@ void bitcode::dump(dumper *f)
 
   f->dump_short(s);
 
-  for(CODEWORD *p = V; p < stop; p++)
+  for(CODEWORD *p = V; p < end(); p++)
     f->dump_int(*p);
 }
 
@@ -239,7 +177,7 @@ void bitcode::undump(dumper *f)
     fprintf(ferr, "mismatch %d vs %d\n", s, 1+sz/SIZE_OF_WORD);
   }
 
-  for(CODEWORD *p = V; p < stop; p++)
+  for(CODEWORD *p = V; p < end(); p++)
     *p = f->undump_int();
 }
 
@@ -304,7 +242,7 @@ void bitcode::undump(dumper *f)
 int Hash(const bitcode &C)
 {
   
-  for(CODEWORD *p = C.V; p < C.stop; p++)
+  for(CODEWORD *p = C.V; p < C.end(); p++)
     if(*p != 0)
       {
 	for(int j = 0; j < C.SIZE_OF_WORD ; j++)

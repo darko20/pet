@@ -38,11 +38,10 @@
 
 #include "pet-system.h"
 #include "mfile.h"
-#include "../common/utility.h"
-#include "../common/errors.h"
+#include "utility.h"
+#include "errors.h"
 #include "lex-tdl.h"
 #include "parse.h"
-#include "agenda.h"
 #include "chart.h"
 #include "cheap.h"
 #include "typecache.h"
@@ -718,7 +717,7 @@ vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
 	for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r)
-	  a.rules.push_back(ConvUTF8->convert(Conv->convert(string(typenames[*r]))));
+	  a.rules.push_back(ConvUTF8->convert(Conv->convert(string(type_name(*r)))));
 
 	results.push_back(a);
       }
@@ -759,7 +758,7 @@ string l2_morph_analyse_imp(const string& formUTF8)
 	for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r) {
-          results += ConvUTF8->convert(Conv->convert(string(typenames[*r])));
+          results += ConvUTF8->convert(Conv->convert(string(type_name(*r))));
           results += "\f+\nR";
         }
         results += "\f+\nA";

@@ -40,7 +40,7 @@ lex_stem::get_stems()
                                cheap_settings->req_value("orth-path"));
     if(dag == FAIL)
     {
-        fprintf(ferr, "no orth-path in `%s'\n", typenames[_type]);
+        fprintf(ferr, "no orth-path in `%s'\n", type_name(_type));
         if(verbosity > 9)
         {
             dag_print(stderr, e.dag());
@@ -58,12 +58,22 @@ lex_stem::get_stems()
         // might be a singleton
         if(is_type(dag_type(dag)))
         {
-            string s(typenames[dag_type(dag)]);
-            orth.push_back(s.substr(1, s.length()-2));
+            string s(type_name(dag_type(dag)));
+            switch(s[0]) {
+            case '"':
+              orth.push_back(s.substr(1, s.length()-2));
+              break;
+            case '\'':
+              orth.push_back(s.substr(1, s.length()-1));
+              break;
+            default:
+              orth.push_back(s);
+              break;
+            }
         }
         else
         {
-            fprintf(ferr, "no valid stem in `%s'\n", typenames[_type]);
+            fprintf(ferr, "no valid stem in `%s'\n", type_name(_type));
         }
         
         return orth;
@@ -77,18 +87,18 @@ lex_stem::get_stems()
         dag = *iter;
         if(dag == FAIL)
         {
-            fprintf(ferr, "no stem %d in `%s'\n", n, typenames[_type]);
+            fprintf(ferr, "no stem %d in `%s'\n", n, type_name(_type));
             return vector<string>();
         }
         
         if(is_type(dag_type(dag)))
         {
-            string s(typenames[dag_type(dag)]);
+            string s(type_name(dag_type(dag)));
             orth.push_back(s.substr(1,s.length()-2));
         }
         else
         {
-            fprintf(ferr, "no valid stem %d in `%s'\n", n, typenames[_type]);
+            fprintf(ferr, "no valid stem %d in `%s'\n", n, type_name(_type));
             return vector<string>();
         }
         n++;
@@ -135,17 +145,6 @@ lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths) :
     }
 }
 
-lex_stem::lex_stem(const lex_stem &le)
-{
-    throw tError("unexpected call to copy constructor of lex_stem");
-}
-
-lex_stem&
-lex_stem::operator=(const lex_stem &le)
-{
-  throw tError("unexpected call to assignment operator of lex_stem");
-}
-
 lex_stem::~lex_stem()
 {
   for(int j = 0; j < _nwords; j++)
@@ -189,7 +188,7 @@ lex_stem::instantiate()
             for(modlist::iterator mod = _mods.begin(); mod != _mods.end();
                 ++mod)
                 m += string("[") + mod->first + string(" : ")
-                    + typenames[mod->second] + string("]");
+                    + type_name(mod->second) + string("]");
             throw tError(string("invalid lex_stem `") + printname()
                         + "' (cannot apply mods " + m + ")");
         }
@@ -197,6 +196,8 @@ lex_stem::instantiate()
 
     return expanded;
 }
+
+#if 0
 
 full_form::full_form(dumper *f, tGrammar *G)
 {
@@ -262,7 +263,7 @@ full_form::print(FILE *f)
         fprintf(f, "(");
         for(list_int *affix = _affixes; affix != 0; affix = rest(affix))
         {
-            fprintf(f, "%s@%d ", printnames[first(affix)], offset());
+            fprintf(f, "%s@%d ", print_name(first(affix)), offset());
         }
         
         fprintf(f, "(");
@@ -286,7 +287,7 @@ full_form::affixprintname()
     name += string("[");
     for(list_int *affix = _affixes; affix != 0; affix = rest(affix))
     {
-        name += printnames[first(affix)];
+        name += print_name(first(affix));
     }
     name += string("]");
     
@@ -311,3 +312,4 @@ full_form::description()
     return desc;
 }
 
+#endif

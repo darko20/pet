@@ -27,6 +27,9 @@
 #include "grammar.h"
 #include "fs.h"
 #include "tsdb++.h"
+#include "settings.h"
+#include "cheap.h"
+#include "failure.h"
 
 // _fix_me_ this should not be hardwired (need to make sure it exists)
 #define DUMMY_ATTR "ARGS"
