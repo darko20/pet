@@ -193,7 +193,17 @@ packed_edge(item *newitem)
 	if(olditem->trait() == INFL_TRAIT)
           continue;
 
-        subsumes(olditem->get_fs(), newitem->get_fs(), forward, backward);
+        forward = backward = true;
+     
+        if(opt_nqc != 0)
+            qc_subsumption_compatible(olditem->qc_vector(),
+                                      newitem->qc_vector(),
+                                      forward, backward);
+    
+        if(forward ==false && backward == false)
+            stats.fsubs_qc++;
+        else
+            subsumes(olditem->get_fs(), newitem->get_fs(), forward, backward);
 
         if(forward && !olditem->blocked())
         {

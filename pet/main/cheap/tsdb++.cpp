@@ -48,6 +48,8 @@ statistics::reset()
   tcpu = 0;
   ftasks_fi = 0;
   ftasks_qc = 0;
+  fsubs_fi = 0;
+  fsubs_qc = 0;
   etasks = 0;
   stasks = 0;
   aedges = 0;
@@ -91,7 +93,9 @@ statistics::print(FILE *f)
   fprintf (f,
 	   "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
            "first: %d\ntcpu: %d\nutcpu: %d\n"
-	   "ftasks_fi: %d\nftasks_qc: %d\netasks: %d\nstasks: %d\n"
+	   "ftasks_fi: %d\nftasks_qc: %d\n"
+	   "fsubs_fi: %d\nfsubs_qc: %d\n"
+           "etasks: %d\nstasks: %d\n"
 	   "aedges: %d\npedges: %d\nupedges: %d\n"
            "raedges: %d\nrpedges: %d\n"
 	   "medges: %d\n"
@@ -105,7 +109,9 @@ statistics::print(FILE *f)
            "frozen: %d\nfailures: %d\n",
 	   id, trees, readings, words, words_pruned,
            first, tcpu, p_utcpu,
-	   ftasks_fi, ftasks_qc, etasks, stasks,
+	   ftasks_fi, ftasks_qc,
+           fsubs_fi, fsubs_qc,
+           etasks, stasks,
 	   aedges, pedges, p_upedges, 
            raedges, rpedges,
 	   medges,

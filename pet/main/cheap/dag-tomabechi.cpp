@@ -643,15 +643,17 @@ struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
   return dag_partial_copy1(dag, 0, del);
 }
 
-bool dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
+bool
+dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
 
-void dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
+void
+dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
 #ifdef DEBUG_SUBSUME
   unify_path_rev = 0;
 #endif
 
-  dag_subsumes1(dag1, dag2, forward = true, backward = true);
+  dag_subsumes1(dag1, dag2, forward, backward);
   dag_invalidate_changes();
 }
 
