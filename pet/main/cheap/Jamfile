@@ -17,7 +17,7 @@ C++FLAGS += -g -Wall ;
 CFLAGS += -g -Wall ;
 
 LINK = g++ ;
-OPTIM = -O3 ;
+OPTIM = ;
 
 SEARCH_SOURCE += ../common ;
 
