@@ -27,6 +27,7 @@
 #include "options.h"
 
 //#define DEBUG
+//#define DEBUG_SUBSUME
 
 dag_node *INSIDE = (dag_node *) -2;
 
@@ -657,7 +658,7 @@ int subsumption_level = 0;
 bool
 dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
-    dag_node *c1 = dag_get_copy(dag1),
+    dag_node *c1 = dag_get_forward(dag1),
              *c2 = dag_get_copy(dag2);
     
 #ifdef DEBUG_SUBSUME
@@ -679,7 +680,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     if(forward)
     {
         if(c1 == 0)
-            dag_set_copy(dag1, dag2);
+            dag_set_forward(dag1, dag2);
         else if(c1 != dag2)
             forward = false;
     }
