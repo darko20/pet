@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -18,7 +18,7 @@ inline list_int *cons(int v, list_int *n)
 {
   list_int *c;
 
-  c = new list_int;
+  c = New list_int;
   c->next = n;
   c->val = v;
   

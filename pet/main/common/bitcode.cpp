@@ -1,10 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* class to represent bitvectors of fixed size */
 
+#include "pet-system.h"
 #include "bitcode.h"
 #include "errors.h"
 
@@ -13,7 +14,7 @@ bitcode::bitcode(int n)
   sz = n; 
   register int i = 1 + sz/SIZE_OF_WORD;
 
-  V = new CODEWORD[i];
+  V = New CODEWORD[i];
   stop = V + i;
 
   first_set = last_set = 0; // no bit is set
@@ -26,7 +27,7 @@ bitcode::bitcode(const bitcode& b)
   sz = b.sz;
   register int n = 1 + sz/SIZE_OF_WORD;
 
-  V = new CODEWORD[n];
+  V = New CODEWORD[n];
   stop = V + n;
   first_set = b.first_set; last_set = b.last_set;
 
@@ -41,7 +42,7 @@ bitcode& bitcode::operator=(const bitcode& b)
     {
       delete[] V;
       sz = b.sz;
-      V = new CODEWORD[n];
+      V = New CODEWORD[n];
       stop = V + n;
     }
 

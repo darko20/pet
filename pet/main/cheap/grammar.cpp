@@ -1,52 +1,118 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* grammar, lexicon and lexicon entries */
 
-#include <string.h>
-#include <ctype.h>
-#ifndef __BORLANDC__
-#include <sys/time.h>
-#endif
+#include "pet-system.h"
 
-#include "cheap.h"
-#include "../common/utility.h"
-#include "types.h"
-#include "fs.h"
 #include "grammar.h"
+#include "cheap.h"
+#include "fs.h"
+#include "../common/utility.h"
 #include "dumper.h"
 #include "grammar-dump.h"
 #include "tsdb++.h"
-
-#ifdef __BORLANDC__
-#define strcasecmp stricmp
+#ifdef ICU
+#include "unicode.h"
+#endif
+#ifdef ONLINEMORPH
+#include "morph.h"
 #endif
 
-int lex_entry::next_id = 0;
-char *lex_entry::affix_path = 0;
+int lex_stem::next_id = 0;
 int grammar_rule::next_id = 0;
 
-lex_entry::lex_entry(dumper *f)
+vector<string> lex_stem::get_stems()
 {
-  _id = next_id++;
-  
-  _base = f->undump_int();
-  _affix = f->undump_int();
-  _inflpos = f->undump_char();
-  _nwords = f->undump_char();
+  fs_alloc_state FSAS;
+  vector <string> orth;
+  struct dag_node *dag;
+  fs e = instantiate();
 
-  _orth = new char*[_nwords];
+  dag = dag_get_path_value(e.dag(),
+			   cheap_settings->req_value("orth-path"));
+  if(dag == FAIL)
+    {
+      fprintf(ferr, "no orth-path in `%s'\n", typenames[_type]);
+      if(verbosity > 9)
+	{
+	  dag_print(stderr, e.dag());
+	  fprintf(ferr, "\n");
+	}
+
+      orth.push_back("");
+      return orth;
+    }
+
+  list <struct dag_node *> stemlist = dag_get_list(dag);
+
+  if(stemlist.size() == 0)
+    {
+      // might be a singleton
+      if(is_type(dag_type(dag)))
+	{
+	  string s(typenames[dag_type(dag)]);
+	  orth.push_back(s.substr(1, s.length()-1));
+	}
+      else
+	{
+	  fprintf(ferr, "no valid stem in `%s'\n", typenames[_type]);
+	}
+
+      return orth;
+    }
+
+  int n = 0;
+
+  for(list<dag_node *>::iterator iter = stemlist.begin();
+      iter != stemlist.end(); ++iter)
+    {
+      dag = *iter;
+      if(dag == FAIL)
+	{
+	  fprintf(ferr, "no stem %d in `%s'\n", n, typenames[_type]);
+	  return vector<string>();
+	}
+
+      if(is_type(dag_type(dag)))
+	{
+	  string s(typenames[dag_type(dag)]);
+	  orth.push_back(s.substr(1,s.length()-2));
+	}
+      else
+	{
+	  fprintf(ferr, "no valid stem %d in `%s'\n", n, typenames[_type]);
+	  return vector<string>();
+	}
+      n++;
+    }
+
+  return orth;
+}
+
+bool lexentry_status(type_t t)
+{
+  return cheap_settings->statusmember("lexentry-status-values", typestatus[t]);
+}
+
+lex_stem::lex_stem(type_t t) :
+  _id(next_id++), _type(t), _orth(0), _p(0)
+{
+  vector<string> orth = get_stems();
+  _nwords = orth.size();
+
+  if(_nwords == 0) // invalid entry
+    return;
+
+  _orth = New char*[_nwords];
 
   for(int j = 0; j < _nwords; j++)
     {
-      _orth[j] = f->undump_string();
+      _orth[j] = strdup(orth[j].c_str());
       strtolower(_orth[j]);
     }
-
-  _p = 0;
-  _invalid = false;
 
   char *v;
   if((v = cheap_settings->value("default-le-priority")) != 0)
@@ -54,190 +120,240 @@ lex_entry::lex_entry(dumper *f)
       _p = strtoint(v, "as value of default-le-priority");
     }
 
-  if((v = cheap_settings->sassoc("likely-le-types", _base)) != 0)
+  if((v = cheap_settings->sassoc("likely-le-types", _type)) != 0)
     {
       _p = strtoint(v, "in value of likely-le-types");
     }
 
-  if((v = cheap_settings->sassoc("unlikely-le-types", _base)) != 0)
+  if((v = cheap_settings->sassoc("unlikely-le-types", _type)) != 0)
     {
       _p = strtoint(v, "in value of unlikely-le-types");
     }
+
+  if(verbosity > 14)
+    {
+      print(fstatus); fprintf(fstatus, "\n");
+    }
 }
 
-lex_entry::lex_entry(const lex_entry &le)
+lex_stem::lex_stem(const lex_stem &le)
 {
-  throw error("unexpected call to copy constructor of lex_entry");
+  throw error("unexpected call to copy constructor of lex_stem");
 }
 
-lex_entry::~lex_entry()
+lex_stem& lex_stem::operator=(const lex_stem &le)
 {
-  // XXX - also delete elements
-  delete[] _orth;
+  throw error("unexpected call to assignment operator of lex_stem");
 }
 
-lex_entry& lex_entry::operator=(const lex_entry &le)
+lex_stem::~lex_stem()
 {
-  throw error("unexpected call to assignment operator of lex_entry");
+  for(int j = 0; j < _nwords; j++)
+    free(_orth[j]);
+  if(_orth)
+    delete[] _orth;
 }
 
-void lex_entry::print(FILE *f)
+void lex_stem::print(FILE *f) const
 {
-  fprintf(f, "%s[%s@%d] <%d>:", name(), affixname(), _inflpos, _p);
+  fprintf(f, "%s <%d>:", printname(), _p);
   for(int i = 0; i < _nwords; i++)
     fprintf(f, " \"%s\"", _orth[i]);
 }
 
-void lex_entry::print_derivation(FILE *f, bool quoted, 
-                                 int start, int end, int id)
+fs lex_stem::instantiate()
 {
+  fs e(leaftype_parent(_type));
 
-  if(_affix != -1)
-    fprintf (f, "(%d %s %d %d %d ",
-	     id, affixname(), _p, start, end);
-
-  fprintf (f, 
-           "(%d %s %d %d %d (%s\"", 
-           id, name(), _p, start, end, quoted ? "\\" : "");
-
-  for(int i = 0; i < _nwords; i++)
-    fprintf(f, "%s%s", i == 0 ? "" : " ", _orth[i]);
-
-  fprintf(f, "%s\" %d %d))", quoted ? "\\" : "", start, end);
-
-  if(_affix != -1)
-    fprintf(f, ")");
-}
-
-#ifdef TSDBAPI
-void lex_entry::tsdb_print_derivation(int start, int end, int id)
-{
-  if(_affix != -1)
-    capi_printf("(%d %s %d %d %d ",
-		id, affixname(), _p, start, end);
-
-  capi_printf("(%d %s %d %d %d (\\\"", id, name(), _p, start, end);
-
-  for(int i = 0; i < _nwords; i++) {
-    if(i) capi_putc(' ');
-    //
-    // _hack_
-    // really, capi_printf() should do appropriate escaping, depending on the
-    // context; but we would need to elaborate it significantly, i guess, so 
-    // hack around it for the time being: it seems unlikely, we will see 
-    // embedded quotes anyplace else.                   (1-feb-01  -  oe@yy)
-    //
-    for(char *foo = _orth[i]; *foo; foo++) {
-      if(*foo == '"' || *foo == '\\') {
-        capi_putc('\\');
-        capi_putc('\\');
-        capi_putc('\\');
-      } /* if */
-      capi_putc(*foo);
-    } /* for */
-  } /* for */
-
-  capi_printf( "\\\" %d %d))", start, end);
-
-  if(_affix != -1)
-    capi_printf( ")");
-}
-#endif
-
-bool lex_entry::matches0(int pos, tokenlist *input)
-// assumes key position matches
-{
-  if(_nwords > 0)
-    {
-      if((pos - _inflpos >= 0) // within input boundaries?
-         && (pos - _inflpos + _nwords <= input->length())) 
-	{
-	  int i; bool mismatch;
-	  
-	  for(i = 0, mismatch = false; i < _nwords && !mismatch; i++)
-	    {
-	      if(strcasecmp(_orth[i], (*input)[pos-_inflpos+i].c_str()) != 0)
-		mismatch = true;
-	    }
-	  return !mismatch;
-	}
-      else
-	return false;
-    }
-  else
-    return true;
-}
-
-bool lex_entry::matches(int pos, tokenlist *input)
-{
-  if(strcasecmp((*input)[pos].c_str(), _orth[_inflpos]) == 0) // key position matches
-    {
-      return matches0(pos, input);
-    }
-
-  return false;
-}
-
-
-fs lex_entry::instantiate()
-{
-  if(_invalid) return fs();
-
-  fs e(leaftype_parent(_base));
-
-  fs expanded = unify(e, (fs(_base)), e);
+  fs expanded = unify(e, (fs(_type)), e);
 
   if(!expanded.valid())
-    throw error("invalid lexentry " + description() + " (cannot expand)");
-
-  if(_affix == -1)
-    {
-#ifdef PACKING
-      return packing_partial_copy(expanded);
-#else
-      return expanded;
-#endif
-    }
-  else
-    {
-      fs f = fs(_affix);
-      fs arg = f.get_path_value(affix_path);
-
-      if(!arg.valid())
-        throw error("invalid lexentry " + description() + " (no affixpath)");
-
-      fs le = unify(f, expanded, arg); 
-
-      if(!le.valid())
-	{
-	  _invalid = true; // cache failure for further lookups
-	  if(!cheap_settings->lookup("lex-entries-can-fail"))
-	    throw error("invalid lexentry " + description() + " (incompatible affix)");
-	}
+    throw error(string("invalid lex_stem `") + printname() + "' (cannot expand)");
 
 #ifdef PACKING
-      return packing_partial_copy(le);
+  return packing_partial_copy(expanded);
 #else
-      return le;
+  return expanded;
 #endif
+}
+
+char *full_form::_affix_path = 0;
+
+full_form::full_form(dumper *f, grammar *G)
+{
+  int preterminal = f->undump_int();
+  _stem = G->lookup_stem(preterminal);
+  
+  int affix = f->undump_int();
+  _affixes = (affix == -1) ? 0 : cons(affix, 0);
+
+  _offset = f->undump_char();
+  
+  char *s = f->undump_string(); 
+  _form = string(s);
+  delete[] s;
+
+  if(verbosity > 14)
+    {
+      print(fstatus); fprintf(fstatus, "\n");
     }
 }
 
-grammar_rule::grammar_rule(dumper *f)
-  : _tofill(0), _hyper(true)
+#ifdef ONLINEMORPH
+full_form::full_form(lex_stem *st, morph_analysis a)
 {
-  int i;
-  
-  int keyarg, headdtr;
-  
+  _stem = st;
+
+  _affixes = 0;
+  for(list<type_t>::reverse_iterator it = a.rules().rbegin();
+      it != a.rules().rend(); ++it)
+    _affixes = cons(*it, _affixes);
+
+  _offset = _stem->inflpos();
+
+  _form = a.complex();
+}
+#endif
+
+fs full_form::instantiate()
+{
+  if(!valid())
+    throw error("trying to instantiate invalid full form");
+
+  // get the base
+  fs res = _stem->instantiate();
+
+  if(!res.valid()) 
+    throw error("cannot instantiate base of full form");
+
+  // apply modifications
+  if(!res.modify(_mods))
+    throw error("failure applying modifications");
+ 
+  return res;
+}
+
+void full_form::print(FILE *f)
+{
+  if(valid())
+    {
+      fprintf(f, "(");
+      for(list_int *affix = _affixes; affix != 0; affix = rest(affix))
+	{
+	  fprintf(f, "%s@%d ", printnames[first(affix)], offset());
+	}
+
+      fprintf(f, "(");
+      _stem->print(f);
+      fprintf(f, ")");
+
+      for(int i = 0; i < length(); i++)
+	fprintf(f, " \"%s\"", orth(i).c_str());
+
+      fprintf(f, ")");
+    }
+  else
+    fprintf(f, "(invalid full form)");
+}
+
+string full_form::affixprintname()
+{
+  string name;
+
+  name += string("[");
+  for(list_int *affix = _affixes; affix != 0; affix = rest(affix))
+    {
+      name += printnames[first(affix)];
+    }
+  name += string("]");
+
+  return name;
+}
+
+string full_form::description()
+{
+  string desc;
+
+  if(valid())
+  {
+    desc = string(stemprintname());
+    desc += affixprintname();
+  }
+  else
+  {
+    desc = string("(invalid full form)");
+  }
+
+  return desc;
+}
+
+bool rule_status(type_t t)
+{
+  return cheap_settings->statusmember("rule-status-values", typestatus[t])
+    || cheap_settings->statusmember("lexrule-status-values", typestatus[t]);
+}
+
+grammar_rule::grammar_rule(type_t t)
+  : _tofill(0), _hyper(true), _spanningonly(false)
+{
   _id = next_id++;
+  _type = t;
 
-  _type = f->undump_int();
-  _arity = f->undump_char();
-  keyarg = f->undump_char();
-  headdtr = f->undump_char();
+  if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
+    _trait = LEX_TRAIT;
+  else
+    _trait = SYNTAX_TRAIT;
 
-  _qc_vector = new type_t *[_arity];
+  struct dag_node *dag, *head_dtr;
+  list <struct dag_node *> argslist;
+      
+  dag = dag_get_path_value(typedag[t],
+			   cheap_settings->req_value("rule-args-path"));
+
+  argslist = dag_get_list(dag);
+
+  _arity = argslist.size();
+
+  head_dtr = dag_get_path_value(typedag[t],
+				cheap_settings->req_value("head-dtr-path"));
+
+  int n = 1, keyarg = -1, head = -1;
+  for(list<dag_node *>::iterator currentdag = argslist.begin();
+      currentdag != argslist.end(); ++ currentdag)
+    {
+      if(cheap_settings->lookup("keyarg-marker-path"))
+	{
+	  struct dag_node *k;
+
+	  k = dag_get_path_value(*currentdag,
+				 cheap_settings->value("keyarg-marker-path"));
+	  
+	  if(k != FAIL && dag_type(k) ==
+	     lookup_type(cheap_settings->req_value("true-type")))
+	    keyarg = n;
+	}
+	  
+      if(*currentdag == head_dtr)
+	head = n;
+
+      n++;
+    }
+
+  if(cheap_settings->lookup("rule-keyargs"))
+    {
+      if(keyarg != -1)
+	{
+	  fprintf(ferr, "warning: both keyarg-marker-path and rule-keyargs "
+		  "supply information on key argument...\n");
+	}
+      char *s = cheap_settings->assoc("rule-keyargs", typenames[t]);
+      if(s && strtoint(s, "in `rule-keyargs'"))
+	{
+	  keyarg = strtoint(s, "in `rule-keyargs'");
+	}
+    }
+
+  _qc_vector = New type_t *[_arity];
 
   // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
 
@@ -248,25 +364,24 @@ grammar_rule::grammar_rule(dumper *f)
     }
   else if(opt_key == 3)
     {
-      if(headdtr != -1) 
-        _tofill = append(_tofill, headdtr);
+      if(head != -1) 
+        _tofill = append(_tofill, head);
       else if(keyarg != -1) 
         _tofill = append(_tofill, keyarg);
     }
 
   if(opt_key != 2)
     {
-      for(i = 1; i <= _arity; i++)
+      for(int i = 1; i <= _arity; i++)
         if(!contains(_tofill, i)) _tofill = append(_tofill, i);
     }
   else
     {
-      for(i = _arity; i >= 1; i--)
+      for(int i = _arity; i >= 1; i--)
         if(!contains(_tofill, i)) _tofill = append(_tofill, i);
     }
 
-
-  for(i = 0; i < _arity; i++)
+  for(int i = 0; i < _arity; i++)
     _qc_vector[i] = 0;
 
   // determine priority
@@ -288,14 +403,25 @@ grammar_rule::grammar_rule(dumper *f)
     {
       _hyper = false;
     }
+
+  if(cheap_settings->member("spanning-only-rules", typenames[_type]))
+    {
+      _spanningonly = true;
+    }
   
   if(_arity > 2)
     _hyper = false;
+
+  if(verbosity > 14)
+    {
+      print(fstatus); fprintf(fstatus, "\n");
+    }
 }
 
 void grammar_rule::print(FILE *f)
 {
-  fprintf(f, "rule `%s' %s <%d> (", typenames[_type], _hyper == false ? "-HA" : "", _p);
+  fprintf(f, "%s/%d%s <%d> (", printnames[_type], _arity,
+	  _hyper == false ? "[-HA]" : "", _p);
   
   list_int *l = _tofill;
   while(l)
@@ -329,67 +455,124 @@ void grammar_rule::init_qc_vector()
     }
 }
 
-void undump_toc(dumper *f)
+bool grammar::punctuationp(const string &s)
 {
-  int toc_hierarchy, toc_tables, toc_rules, toc_lexicon, toc_constraints;
+#ifndef ICU
+  if(_punctuation_characters.empty())
+    return false;
 
-  toc_hierarchy = f->undump_int();
-  toc_tables = f->undump_int();
-  toc_rules = f->undump_int();
-  toc_lexicon = f->undump_int();
-  toc_constraints = f->undump_int();
-  if(verbosity > 10)
-    fprintf(ferr, "TOC:\n  hierarchy:   %d\n  tables:      %d\n   rules:       %d\n  lexicon:     %d\n  constraints: %d\n",
-	    toc_hierarchy, toc_tables, toc_rules, toc_lexicon, toc_constraints);
+  for(string::size_type i = 0; i < s.length(); i++)
+    if(_punctuation_characters.find(s[i]) == STRING_NPOS)
+      return false;
+  
+  return true;
+#else
+  UnicodeString U = Conv->convert(s);
+  StringCharacterIterator it(U);
+
+  UChar32 c;
+  while(it.hasNext())
+    {
+      c = it.next32PostInc();
+      if(_punctuation_characters.indexOf(c) == -1)
+	return false;
+    }
+
+  return true;
+#endif
 }
+
+bool genle_status(type_t t)
+{
+  return cheap_settings->statusmember("generic-lexentry-status-values",
+				      typestatus[t]);
+}
+
+// this typedef works around a bug in Borland C++ Builder
+typedef constraint_info *constraint_info_p;
+
+void undump_dags(dumper *f, int qc_inst)
+{
+  struct dag_node *dag;
+  
+  initialize_dags(ntypes);
+
+#ifdef CONSTRAINT_CACHE
+  constraint_cache = New constraint_info_p [ntypes];
+#endif
+
+  for(int i = 0; i < ntypes; i++)
+    {
+      if(i == qc_inst)
+	{
+	  if(verbosity > 4) fprintf(fstatus, "qc structure `%s' ",
+				    printnames[qc_inst]);
+	  qc_paths = dag_read_qc_paths(f, opt_nqc, qc_len);
+	  dag = 0;
+	}
+      else
+	dag = dag_undump(f);
+
+      register_dag(i, dag);
+#ifdef CONSTRAINT_CACHE
+      constraint_cache[i] = 0;
+#endif
+    }
+}
+
+#ifdef CONSTRAINT_CACHE
+void free_constraint_cache()
+{
+  for(int i = 0; i < ntypes; i++)
+  {
+    constraint_info *c = constraint_cache[i];
+    while(c != 0)
+    {
+      constraint_info *n = c->next;
+      delete c;
+      c = n;
+    }
+  }
+
+  delete[] constraint_cache;
+}
+#endif
 
 // construct grammar object from binary representation in a file
 grammar::grammar(const char * filename)
-  : _lexicon(), _dict_lexicon(), _rules(),
-    _fsf(0), _qc_inst(0), _deleted_daughters(0)
+  : _nrules(0), _weighted_roots(false), _root_insts(0),
+    _generics(0), _filter(0), _qc_inst(0), _deleted_daughters(0) 
 {
+  initialize_encoding_converter(cheap_settings->req_value("encoding"));
+
   dumper dmp(filename);
 
-  char *desc = undump_header(&dmp);
-  if(desc) fprintf(fstatus, "(%s) ", desc);
-  undump_toc(&dmp);
+  char *s = undump_header(&dmp);
+  if(s) fprintf(fstatus, "(%s) ", s);
+
+  dump_toc toc(&dmp);
 
   // symbol tables
-  _fsf = new fs_factory(&dmp);
+  toc.goto_section(SEC_SYMTAB);
+  undump_symbol_tables(&dmp);
+  toc.goto_section(SEC_PRINTNAMES);
+  undump_printnames(&dmp);
 
   // hierarchy
+  toc.goto_section(SEC_HIERARCHY);
   undump_hierarchy(&dmp);
-  undump_tables(&dmp);
 
-  if(dag_nocasts == false)
-    fprintf(fstatus, "[ casts ] ");
+  toc.goto_section(SEC_FEATTABS);
+  undump_tables(&dmp);
 
   // call unifier specific initialization
   dag_initialize();
 
   init_parameters();
 
-  // grammar rules
-  _nrules = dmp.undump_int();
-  for(int i = 0; i < _nrules; i++)
-    {
-      _rules.push_front(new grammar_rule(&dmp));
-    }
-  if(verbosity > 4) fprintf(fstatus, "%d rules ", _nrules);
-
-  int nles = dmp.undump_int();
-  for(int i = 0; i < nles; i++)
-    {
-      lex_entry *le = new lex_entry(&dmp); 
-      _lexicon.push_front(le);
-
-      _dict_lexicon.insert(pair<const string,lex_entry *>(le->key(), le));
-    }
-
-  if(verbosity > 4) fprintf(fstatus, "%d lexentries ", nles);
-
-  _fsf->initialize(&dmp, _qc_inst);
-
+  // constraints
+  toc.goto_section(SEC_CONSTRAINTS);
+  undump_dags(&dmp, _qc_inst);
   stop_creating_permanent_dags();
 
   if(opt_nqc && _qc_inst == 0)
@@ -397,6 +580,120 @@ grammar::grammar(const char * filename)
       fprintf(fstatus, "[ disabling quickcheck ] ");
       opt_nqc = 0;
     }
+
+  // find grammar rules and stems
+  for(int i = 0; i < ntypes; i++)
+    {
+      if(lexentry_status(i))
+	{
+	  lex_stem *st = New lex_stem(i);
+	  _lexicon[i] = st;
+	  _stemlexicon.insert(make_pair(st->orth(st->inflpos()), st));
+	}
+      else if(rule_status(i))
+	{
+	  _rules.push_front(New grammar_rule(i));
+	}
+      else if(genle_status(i))
+	{
+	  _generics = cons(i, _generics);
+	  _lexicon[i] = New lex_stem(i);
+	}
+    }
+  _nrules = _rules.size();
+  if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules ", nstems(), 
+			    length(_generics), _nrules);
+
+  // full forms
+  if(toc.goto_section(SEC_FULLFORMS))
+    {
+      int nffs = dmp.undump_int();
+      for(int i = 0; i < nffs; i++)
+	{
+	  full_form *ff = New full_form(&dmp, this);
+	  if(ff->valid())
+	    _fullforms.insert(make_pair(ff->key(), ff));
+	  else
+	    delete ff;
+	}
+
+      if(verbosity > 4) fprintf(fstatus, "%d full form entries ", nffs);
+    }
+
+#ifdef ONLINEMORPH
+  // inflectional rules
+  _morph = New morph_analyzer(this);
+
+  if(cheap_settings->lookup("irregular-forms-only"))
+    _morph->set_irregular_only(true);
+
+  if(toc.goto_section(SEC_INFLR))
+    {
+      int ninflrs = dmp.undump_int();
+      for(int i = 0; i < ninflrs; i++)
+	{
+	  int t = dmp.undump_int();
+	  char *r = dmp.undump_string();
+
+	  if(r == 0)
+	    continue;
+	  
+	  if(t == -1)
+	    _morph->add_global(string(r));
+	  else
+	    {
+	      _morph->add_rule(t, string(r));
+
+	      bool found = false;
+	      for(rule_iter iter(this); iter.valid(); iter++)
+		{
+		  if(iter.current()->type() == t)
+		    {
+		      if(iter.current()->trait() == SYNTAX_TRAIT)
+			fprintf(ferr, "warning: found syntax `%s' rule with "
+				"attached infl rule `%s'\n", printnames[t], r);
+		      
+		      iter.current()->trait(INFL_TRAIT);
+		      found = true;
+		    }
+		}
+	      
+	      if(!found)
+		fprintf(ferr, "warning: rule `%s' with infl annotation `%s' "
+			"doesn't correspond to any of the parser's rules\n",
+			printnames[t], r);
+	    }
+
+	  delete[] r;
+	}
+      if(verbosity > 4) fprintf(fstatus, "%d infl rules ", ninflrs);
+      if(verbosity >14) _morph->print(fstatus);
+    }
+  // irregular forms
+  if(toc.goto_section(SEC_IRREGS))
+    {
+      int nirregs = dmp.undump_int();
+      for(int i = 0; i < nirregs; i++)
+	{
+	  char *form = dmp.undump_string();
+	  char *infl = dmp.undump_string();
+	  char *stem = dmp.undump_string();
+
+	  strtolower(infl);
+	  type_t inflr = lookup_type(infl);
+	  if(inflr == -1)
+	    {
+	      fprintf(ferr, "Ignoring entry with unknown rule `%s' "
+		      "in irregular forms\n", infl);
+	      delete[] form; delete[] infl; delete[] stem;
+	      continue;
+	    }
+	  
+	  _morph->add_irreg(string(stem), inflr, string(form));
+	  delete[] form; delete[] infl; delete[] stem;
+	}
+    }
+#endif
 
   if(opt_nqc != 0)
     {
@@ -418,6 +715,20 @@ grammar::grammar(const char * filename)
 
   init_grammar_info();
 
+  s = cheap_settings->value("punctuation-characters");
+  string pcs;
+  if(s == 0)
+    pcs = " \t?!.:;,()-+*$\n";
+  else
+    pcs = convert_escapes(string(s));
+
+#ifndef ICU
+  _punctuation_characters = pcs;
+#else
+  _punctuation_characters = Conv->convert(pcs);
+#endif  
+
+
   get_unifier_stats();
 }
 
@@ -433,10 +744,13 @@ void grammar::init_parameters()
 	{
 	  _root_insts = cons(lookup_type(set->values[i]), _root_insts);
 	  if(first(_root_insts) == -1)
-	    throw error("undefined start symbol");
+	    throw error(string("undefined start symbol `") +
+			string(set->values[i]) + string("'"));
 
 	  int weight = strtoint(set->values[i+1], "in weighted-start-symbols");
           _root_weight[first(_root_insts)] = weight;
+	  if(weight != 0)
+	    _weighted_roots = true;
 	}
     }
   else if((set = cheap_settings->lookup("start-symbols")) != 0)
@@ -446,7 +760,8 @@ void grammar::init_parameters()
 	{
 	  _root_insts = cons(lookup_type(set->values[i]), _root_insts);
 	  if(first(_root_insts) == -1)
-	    throw error("undefined start symbol");
+	    throw error(string("undefined start symbol `") +
+			string(set->values[i]) + string("'"));
           _root_weight[first(_root_insts)] = 0;
 	}
     }
@@ -477,14 +792,12 @@ void grammar::init_parameters()
 	    }
 	}
     }
-
-  lex_entry::affix_path = cheap_settings->value("affixation-path");
+  full_form::_affix_path = cheap_settings->value("affixation-path");
 }
 
 void grammar::init_grammar_info()
 {
   _info.version =
-    _info.vocabulary =
     _info.ntypes =
     _info.ntemplates = "";
 
@@ -492,10 +805,9 @@ void grammar::init_grammar_info()
   if(ind != -1)
     {
       fs f(ind);
-      _info.version = f.get_attr_value("GRAMMAR_VERSION").name();
-      _info.vocabulary = f.get_attr_value("GRAMMAR_VOCABULARY").name();
-      _info.ntypes =  f.get_attr_value("GRAMMAR_NTYPES").name();
-      _info.ntemplates =  f.get_attr_value("GRAMMAR_NTEMPLATES").name();
+      _info.version = f.get_attr_value("GRAMMAR_VERSION").printname();
+      _info.ntypes =  f.get_attr_value("GRAMMAR_NTYPES").printname();
+      _info.ntemplates =  f.get_attr_value("GRAMMAR_NTEMPLATES").printname();
     }
 }
 
@@ -512,7 +824,7 @@ void grammar::init_rule_qc()
 void grammar::initialize_filter()
 {
   fs_alloc_state S0;
-  _filter = new char[_nrules * _nrules];
+  _filter = New char[_nrules * _nrules];
 
   for(rule_iter daughters(this); daughters.valid(); daughters++)
     {
@@ -545,9 +857,13 @@ void grammar::initialize_filter()
 
 grammar::~grammar()
 {
-  for(list<lex_entry *>::iterator pos = _lexicon.begin();
+  for(map<type_t, lex_stem *>::iterator pos = _lexicon.begin();
       pos != _lexicon.end(); ++pos)
-    delete *pos;
+    delete pos->second;
+
+  for(ffdict::iterator pos = _fullforms.begin();
+      pos != _fullforms.end(); ++pos)
+    delete pos->second;
 
   for(list<grammar_rule *>::iterator pos = _rules.begin();
       pos != _rules.end(); ++pos)
@@ -556,7 +872,19 @@ grammar::~grammar()
   if(_filter)
     delete[] _filter;
 
+#ifdef ONLINEMORPH
+  if(_morph)
+    delete _morph;
+#endif
+
+  dag_qc_free();
+
+#ifdef CONSTRAINT_CACHE
+  free_constraint_cache();
+#endif
+
   free_list(_deleted_daughters);
+  free_type_tables();
 
   fs_alloc_state FSAS;
   FSAS.reset();
@@ -571,16 +899,76 @@ int grammar::nhyperrules()
   return n;
 }
 
-bool grammar::root(fs &candidate, int &maxp)
+bool grammar::root(fs &candidate, type_t &rule, int &maxp)
 {
-  list_int *r;
-  for(r = _root_insts; r != 0; r = rest(r))
+  list_int *r; bool good = false;
+  for(r = _root_insts, maxp = 0, rule = -1; r != 0; r = rest(r))
     {
       if(compatible(fs(first(r)), candidate))
 	{
-	  maxp = _root_weight[first(r)];
-	  return true;
+	  if(_weighted_roots == false)
+	    {
+	      rule = first(r);
+	      return true;
+	    }
+
+	  good = true;
+	  int weight = _root_weight[first(r)];
+	  if(weight > maxp)
+	    {
+	      rule = first(r);
+	      maxp = weight;
+	    }
 	}
     }
-  return false;
+  return good;
+}
+
+lex_stem *grammar::lookup_stem(type_t inst_key)
+{
+  map<type_t, lex_stem *>::iterator it = _lexicon.find(inst_key);
+  if (it != _lexicon.end())
+    return it->second;
+  else
+    return 0;
+}
+
+list<lex_stem *> grammar::lookup_stem(string s)
+{
+  list<lex_stem *> results;
+ 
+  pair<multimap<string, lex_stem *>::iterator,
+       multimap<string, lex_stem *>::iterator> eq =
+    _stemlexicon.equal_range(s);
+
+  for(multimap<string, lex_stem *>::iterator it = eq.first;
+      it != eq.second; ++it)
+    {
+      results.push_back(it->second);
+    }
+
+  return results;
+}
+
+list<full_form> grammar::lookup_form(const string form)
+{
+  list<full_form> result;
+
+#ifdef ONLINEMORPH
+  list<morph_analysis> m = _morph->analyze(form);
+  for(list<morph_analysis>::iterator it = m.begin(); it != m.end(); ++it)
+    {
+      for(list<lex_stem *>::iterator st_it = it->stems().begin();
+	  st_it != it->stems().end(); ++st_it)
+	result.push_back(full_form(*st_it, *it));
+    }
+#else
+  pair<ffdict::iterator,ffdict::iterator> p = _fullforms.equal_range(form);
+  for(ffdict::iterator it = p.first; it != p.second; ++it)
+    {
+      result.push_back(*it->second);
+    }
+#endif
+
+  return result;
 }

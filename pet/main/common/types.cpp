@@ -1,27 +1,14 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* operations on types  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-
-#include <vector>
-#include <map>
-#include <string>
-#ifdef HASH_MAP_AVAIL
-#include <hash_map>
-#else
-#define hash_map map
-#endif
+#include "pet-system.h"
+#include "types.h"
 #include "bitcode.h"
 #include "dag.h"
-#include "types.h"
 #include "dumper.h"
 
 #ifdef FLOP
@@ -39,30 +26,31 @@ static hash_map<bitcode, int> codetable;
 static bitcode *temp_bitcode = NULL;
 static int codesize;
 
-int *apptype;
+int *apptype = 0;
 
 // status
 int nstatus;
-char **statusnames;
+char **statusnames = 0;
 
 // types
 int ntypes;
 int first_leaftype;
-char **typenames;
-int *typestatus;
+char **typenames = 0;
+char **printnames = 0;
+int *typestatus = 0;
 
 int BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
 
 // attributes
-char **attrname;
+char **attrname = 0;
 int nattrs;
-int *attrnamelen;
+int *attrnamelen = 0;
 int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 
 void initialize_codes(int n)
 {
   codesize = n;
-  temp_bitcode = new bitcode(codesize);
+  temp_bitcode = New bitcode(codesize);
   codetable[bitcode(codesize)] = -1;
   typecode.resize(n);
 }
@@ -83,6 +71,7 @@ void register_typecode(int i, bitcode *b)
 }
 
 #ifdef HASH_MAP_AVAIL
+namespace std {
 template<> struct hash<string>
 {
   inline size_t operator()(const string &key) const
@@ -94,6 +83,7 @@ template<> struct hash<string>
     return v;
   }
 };
+}
 #endif
 
 hash_map<string, int> _typename_memo;
@@ -114,11 +104,45 @@ int lookup_type(const char *s)
     {
       return (*pos).second;
     }
-  else
-    { // cache negatives
-      _typename_memo[s] = -1;
-      return -1;
-    }
+  return -1;
+}
+
+// dyntypename contains all dynamically needed type names for a parse.
+map<string, int> dyntypememo ;
+vector<const char *> dyntypename;
+vector<dag_node *> dyntypedag;
+int last_dynamic;
+
+int lookup_symbol(const char *s)
+{
+  int type = lookup_type(s);
+
+  if (type == -1) {
+    // is it registered as dynamic type?
+    map<string, int>::iterator pos = dyntypememo.find(s);
+    if(pos != dyntypememo.end())
+      return (*pos).second;
+
+    // None of the above: register it as new dynamic type
+    dyntypememo[s] = last_dynamic ;
+    dyntypename.push_back(s);
+    // Create a dag for this dynamic symbol only containing its type
+    dag_node *dyntype = new_dag(last_dynamic) ;
+    dyntypedag.push_back(dyntype) ;
+    last_dynamic++ ;
+    return last_dynamic - 1 ;
+  }
+  else return type;
+}
+
+void clear_dynamic_symbols() {
+  for (int i = ntypes; i < last_dynamic; i++) {
+    delete dyntypedag[i] ; 
+    dyntypedag.pop_back();
+    dyntypename.pop_back();
+  }
+  last_dynamic = ntypes ;
+  dyntypememo.erase(dyntypememo.begin(), dyntypememo.end()) ;
 }
 
 map<string, int> _attrname_memo; 
@@ -142,6 +166,18 @@ int lookup_attr(const char *s)
   return -1;
 }
 
+int lookup_status(const char *s)
+{
+  for(int i = 0; i < nstatus; i++)
+    {
+      if(strcmp(statusnames[i], s) == 0)
+	{
+	  return i;
+	}
+    }
+  return -1;
+}
+
 int lookup_code(const bitcode &b)
 {
   hash_map<bitcode, int>::const_iterator pos = codetable.find(b);
@@ -154,9 +190,10 @@ int lookup_code(const bitcode &b)
 
 int get_special_name(settings *sett, char *suff, bool attr = false)
 {
-  char *buff = new char[strlen(suff) + 25];
+  char *buff = New char[strlen(suff) + 25];
   sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
   char *v = sett->req_value(buff);
+  delete[] buff;
   int id;
 #ifdef FLOP
   if(attr)
@@ -215,6 +252,7 @@ void undump_symbol_tables(dumper *f)
   // nleaftypes
   nleaftypes = f->undump_int();
   ntypes = first_leaftype + nleaftypes;
+  last_dynamic = ntypes;
 
   // nattrs
   nattrs = f->undump_int();
@@ -243,6 +281,66 @@ void undump_symbol_tables(dumper *f)
     }
 
   initialize_specials(cheap_settings);
+}
+
+void undump_printnames(dumper *f)
+{
+  if(f == 0) // we have no printnames
+    {
+      printnames = typenames;
+      return;
+    }
+
+  printnames = (char **) malloc(sizeof(char *) * ntypes);
+
+  for(int i = 0; i < ntypes; i++)
+    {
+      printnames[i] = f->undump_string();
+      if(printnames[i] == 0)
+	printnames[i] = typenames[i];
+    }
+}
+
+void free_type_tables()
+{
+  if(statusnames != 0)
+  {
+    free(statusnames);
+    statusnames = 0;
+  }
+  if(typenames != 0)
+  {
+    free(typenames);
+    typenames = 0;
+  }
+  if(typestatus != 0)
+  {
+    free(typestatus);
+    typestatus = 0;
+  }
+  if(attrname != 0)
+  {
+    free(attrname);
+    attrname = 0;
+  }
+  if(attrnamelen != 0)
+  {
+    free(attrnamelen);
+    attrnamelen = 0;
+  }
+  if(printnames != 0)
+  {
+    free(printnames);
+    printnames = 0;
+  }
+
+  delete temp_bitcode;
+  delete[] leaftypeparent;
+  delete[] apptype;
+  delete[] featset;
+  for(int i = 0; i < nfeatsets; i++)
+    delete[] featsetdesc[i].attr;
+  delete[] featsetdesc;
 }
 
 #endif
@@ -290,10 +388,10 @@ void undump_hierarchy(dumper *f)
       temp_bitcode->undump(f);
       register_codetype(*temp_bitcode, i);
       register_typecode(i, temp_bitcode);
-      temp_bitcode = new bitcode(codesize);
+      temp_bitcode = New bitcode(codesize);
     }
 
-  leaftypeparent = new int[nleaftypes];
+  leaftypeparent = New int[nleaftypes];
   for(int i = 0; i < nleaftypes; i++)
     leaftypeparent[i] = f->undump_int();
 }
@@ -311,7 +409,7 @@ void undump_tables(dumper *f)
   else
     throw error("unknown encoding");
 
-  featset = new int[first_leaftype];
+  featset = New int[first_leaftype];
 
   for(int i = 0; i < first_leaftype; i++)
     {
@@ -321,20 +419,20 @@ void undump_tables(dumper *f)
   // read feature sets
 
   nfeatsets = f->undump_int();
-  featsetdesc = new featsetdescriptor[nfeatsets];
+  featsetdesc = New featsetdescriptor[nfeatsets];
   
   for(int i = 0; i < nfeatsets; i++)
     {
       short int na = featsetdesc[i].n = f->undump_short();
-      featsetdesc[i].attr = na > 0 ? new short int[na] : 0;
+      featsetdesc[i].attr = na > 0 ? New short int[na] : 0;
 
       for(int j = 0; j < na; j++)
 	featsetdesc[i].attr[j] = f->undump_short();
     }
 
-  // read app table
+  // read appropriate sorts table
 
-  apptype = new int[nattrs];
+  apptype = New int[nattrs];
   for(int i = 0; i < nattrs; i++)
     apptype[i] = f->undump_int();
 }
@@ -363,7 +461,7 @@ inline bool is_leaftype(int s)
 
 #ifndef FLOP
 #include <typecache.h>
-static typecache glbcache(0);
+typecache glbcache(0);
 
 void prune_glbcache()
 {
@@ -424,7 +522,7 @@ int glb(int s1, int s2)
 
 #ifndef FLOP
   // result is a _reference_ to the cache entry -> automatic writeback
-  int &result = glbcache[s1*ntypes + s2];
+  int &result = glbcache[ (typecachekey_t) s1*ntypes + s2 ];
   if(result) return result;
 
   if(is_leaftype(s1))

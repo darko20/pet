@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -22,9 +22,15 @@
 #include <LEDA/graph_iterator.h>
 #include <LEDA/node_partition.h>
 
-bool dummy_type(int i)
+bool pseudo_type(int i)
 {
-  return flop_settings->member("dont-expand", types.name(i).c_str());
+  return flop_settings->member("pseudo-types", types.name(i).c_str());
+}
+
+bool dont_expand(int i)
+{
+  return types[i]->tdl_instance &&
+    flop_settings->statusmember("dont-expand", types[i]->status);
 }
 
 // find maximal types that introduce features
@@ -49,7 +55,7 @@ bool compute_appropriateness()
       struct dag_arc *arc;
       i = hierarchy.inf(it.get_node());
 
-      if(!dummy_type(i))
+      if(!pseudo_type(i))
 	{
 	  arc = dag_deref(types[i]->thedag)->arcs;
 	  while(arc) // look at all top level features of type
@@ -140,7 +146,7 @@ bool apply_appropriateness()
 
   for(i = 0; i < types.number(); i++)
     {
-      if(!dummy_type(i) && !apply_appropriateness_rec(types[i]->thedag))
+      if(!pseudo_type(i) && !apply_appropriateness_rec(types[i]->thedag))
 	{
 	  fprintf(ferr, "when applying appropriateness constraints on type `%s'\n",
 		  types.name(i).c_str());
@@ -166,7 +172,7 @@ bool delta_expand_types()
     {
       i = hierarchy.inf(it.get_node());
 
-      if(!dummy_type(i) && (opt_expand_all_instances || !(types[i]->tdl_instance && types[i]->status == LEXENTRY_STATUS)))
+      if(!pseudo_type(i) && (opt_expand_all_instances || !dont_expand(i)))
 	{
 	  l = immediate_supertypes(i);
 	  forallint(e, l)
@@ -294,7 +300,7 @@ bool fully_expand_types()
     {
       i = G.inf(it.get_node());
 
-      if(!dummy_type(i))
+      if(!pseudo_type(i))
 	{
 	  if(!fully_expand(types[i]->thedag))
 	    {

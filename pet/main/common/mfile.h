@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -12,6 +12,10 @@
 
 #define MFILE_BUFF_SIZE 65536
 #define MFILE_MAX_LINE 31744
+
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                        
 
 struct MFILE
 {
@@ -27,4 +31,9 @@ int mprintf( struct MFILE *f, char *format, ... );
 int vmprintf( struct MFILE *f, char *format, va_list ap );
 int mlength( struct MFILE *f );
 char *mstring(struct MFILE *);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

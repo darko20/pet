@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -7,10 +7,6 @@
 
 #ifndef _ERROR_H_
 #define _ERROR_H_
-
-#include <stdio.h>
-#include <string>
-using namespace std;
 
 class error
 {

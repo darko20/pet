@@ -1,13 +1,12 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* class representing feature structures, abstracting from underlying dag
    module  */
 
-#include <assert.h>
-#include <string.h>
+#include "pet-system.h"
 #include "cheap.h"
 #include "fs.h"
 #include "types.h"
@@ -20,17 +19,21 @@ qc_node *qc_paths;
 
 fs::fs(int type)
 {
-  if(type < 0 || type >= ntypes)
+  if(type < 0 || type >= last_dynamic)
     throw error("construction of non-existent dag requested");
 
-  _dag = typedag[type];
-
+  if (type >= ntypes) {
+    // dynamic symbol, get dag from separate table
+    _dag = dyntypedag[type - ntypes] ;
+  }
+  else _dag = typedag[type];
+  
   _temp = 0;
 }
 
 fs::fs(char *path, int type)
 {
-  if(type < 0 || type >= ntypes)
+  if(type < 0 || type >= last_dynamic)
     throw error("construction of non-existent dag requested");
 
   _dag = 0; // dag_create_path_value(path, type);
@@ -53,7 +56,7 @@ fs fs::get_attr_value(char *attr)
   return fs(v);
 }
 
-fs fs::get_path_value(char *path)
+fs fs::get_path_value(const char *path)
 {
   return fs(dag_get_path_value(_dag, path));
 }
@@ -61,6 +64,11 @@ fs fs::get_path_value(char *path)
 char *fs::name()
 {
   return typenames[dag_type(_dag)];
+}
+
+char *fs::printname()
+{
+  return printnames[dag_type(_dag)];
 }
 
 void fs::print(FILE *f)
@@ -76,6 +84,18 @@ void fs::print(FILE *f)
 void fs::restrict(list_int *del)
 {
   dag_remove_arcs(_dag, del);
+}
+
+bool fs::modify(modlist &mods)
+{
+  for(modlist::iterator mod = mods.begin(); mod != mods.end(); ++mod)
+    {
+      dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
+      _dag = dag_unify(_dag, p, _dag, 0);
+      if(_dag == FAIL)
+	return false;
+    }
+  return true;
 }
 
 // statistics
@@ -123,7 +143,7 @@ void record_failures(dag_node *root, dag_node *a, dag_node *b)
   if(opt_compute_qc)
     {
       int total = fails.size();
-      int *value = new int[total], price = 0;
+      int *value = New int[total], price = 0;
       int i = 0;
       int id;
 
@@ -309,7 +329,7 @@ type_t *get_qc_vector(const fs &f)
 {
   type_t *vector;
 
-  vector = new type_t [qc_len];
+  vector = New type_t [qc_len];
   for(int i = 0; i < qc_len; i++) vector[i] = 0;
 
   if(opt_hyper && f.temp())
@@ -330,49 +350,11 @@ bool qc_compatible(type_t *a, type_t *b)
         {
 #ifdef DEBUG
           fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
-                  i, typenames[a[i]], typenames[b[i]]);
+                  i, printnames[a[i]], printnames[b[i]]);
 #endif
           return false;
         }
     }
   
   return true;
-}
-
-fs_factory::fs_factory(dumper *f)
-{
-  undump_symbol_tables(f);
-}
-
-// strangely enough this is needed for Borland C++ Builder
-typedef constraint_info *constraint_info_p;
-
-void fs_factory::initialize(dumper *f, int qc_inst)
-{
-  struct dag_node *dag;
-
-  initialize_dags(ntypes);
-
-#ifdef CONSTRAINT_CACHE
-  constraint_cache = new constraint_info_p [ntypes];
-#endif
-
-  for(int i = 0; i < ntypes; i++)
-    {
-      if(i == qc_inst)
-	{
-	  if(verbosity > 4) fprintf(fstatus, "qc structure `%s' ",
-				    typenames[qc_inst]);
-	  qc_paths = dag_read_qc_paths(f, opt_nqc, qc_len);
-	  dag = 0;
-	}
-      else
-	dag = dag_undump(f);
-
-      register_dag(i, dag);
-#ifdef CONSTRAINT_CACHE
-      constraint_cache[i] = 0;
-#endif
-    }
-
 }

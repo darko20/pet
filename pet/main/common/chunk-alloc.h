@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -10,7 +10,7 @@
 #define _CHUNK_ALLOC_H_
 
 #define MAX_CHUNKS 16000
-#define CHUNK_SIZE (1024 * 512)
+#define CHUNK_SIZE (1024 * 1024)
 
 typedef struct chunk_alloc_state
 {

@@ -1,10 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* classes to represent MRS */
 
+#include "pet-system.h"
 #include "mrs.h"
 #include "types.h"
 #include "tsdb++.h"
@@ -23,8 +24,9 @@ mrs::mrs(fs root)
   _raw = root.get_path_value(cheap_settings->value("mrs-path"));
   // walk through LISZT and construct list of mrs_rel
 
-  fs liszt = _raw.get_path_value("LISZT.LIST");
-  fs last = _raw.get_path_value("LISZT.LAST");
+  fs foo = _raw.get_path_value(k2y_role_name("k2y_liszt"));
+  fs liszt = foo.get_attr_value(BIA_LIST);
+  fs last = foo.get_attr_value(BIA_LAST);
   while(liszt.valid() && liszt != last )
     {
       fs rel = liszt.get_attr_value(BIA_FIRST);
@@ -36,9 +38,9 @@ mrs::mrs(fs root)
       liszt = liszt.get_attr_value(BIA_REST);
     }
 
-  fs top = _raw.get_attr_value("TOP");
+  fs top = _raw.get_attr_value(k2y_role_name("k2y_top"));
   _top = id(top);
-  fs index = _raw.get_attr_value("INDEX");
+  fs index = _raw.get_attr_value(k2y_role_name("k2y_index"));
   _index = id(index);
   _hcons = mrs_hcons(this, _raw);
 
@@ -114,7 +116,7 @@ mrs_rel mrs::rel(char *attr, int val, int subtypeof)
     return mrs_rel();
   else if(l.size() > 1)
     fprintf(ferr, "mrs::rel(): at most one rel that is subtype of %s and has a %s value %d expected (found %d)\n",
-	    typenames[subtypeof], attr, val, l.size());
+	    printnames[subtypeof], attr, val, l.size());
 
   return rel(l.front());
 }
@@ -135,10 +137,13 @@ void mrs::sanitize(void) {
   for(list<mrs_rel>::iterator r = _rels.begin();
       r != _rels.end();
       r++) {
+    //
+    // 
     // If temporal locative PP ('in, on, at') or generic loc_rel 
     // with a temp_rel internal argument, change rel name to say so
+    // 
     int intargid = r->value(k2y_role_name("k2y_arg3"));
-    mrs_rel intargrel = rel("INST", intargid);
+    mrs_rel intargrel = rel(k2y_role_name("k2y_inst"), intargid);
     if(intargrel.valid() 
        && subtype(intargrel.type(), lookup_type(k2y_pred_name("k2y_temp_rel")))
        && (subtype(r->type(), lookup_type(k2y_pred_name("k2y_temploc_rel")))
@@ -199,18 +204,31 @@ mrs_rel::mrs_rel(mrs *m, fs f)
 
   if(cheap_settings->member("k2y-disfavoured-relations", typenames[_rel]))
     {
-      throw error(string("disfavoured relation `") + typenames[_rel] +
+      throw error(string("disfavoured relation `") + printnames[_rel] +
                   string("' in MRS"));
     }
 
-  fs label = _fs.get_attr_value("LABEL");
+  char *path = cheap_settings->value("label-path-tail");
+  if(path == NULL) path = "LABEL";
+
+  try {
+    fs pred = _fs.get_attr_value(k2y_role_name("k2y_pred"));
+    if(pred.valid()) _pred = pred.type();
+    else _pred = _rel;
+  } // try
+  catch (error &condition) {
+    _pred = _rel;
+  } // catch
+
+
+  fs label = _fs.get_attr_value(path);
   if(label.valid() && label.type() == BI_CONS)
     {
       for(; 
           label.valid() && label.type() == BI_CONS; 
-          label = label.get_attr_value("REST"))
+          label = label.get_attr_value(BIA_REST))
 	{
-	  fs node = label.get_attr_value("FIRST");
+	  fs node = label.get_attr_value(BIA_FIRST);
 	  if(node.valid())
 	    {
 	      int type = node.type();
@@ -222,10 +240,13 @@ mrs_rel::mrs_rel(mrs *m, fs f)
 }
 
 // construct an MRS REL from whole cloth
-mrs_rel::mrs_rel(mrs *m, int type)
+mrs_rel::mrs_rel(mrs *m, int type, int pred)
   : _fs(copy(fs(type))), _mrs(m), _rel(type), _label(0), _cvalue(-1)
 {
+
+  _pred = (pred ? pred : type);
   _id = _mrs->id(_fs);
+
 }
 
 int mrs_rel::value(char *attr)
@@ -243,7 +264,7 @@ list<int> mrs_rel::id_list_by_paths(char **paths)
 {
   list<int> ids;
 
-  for(int i = 0; paths[i] != NULL; i++)
+  for(int i = 0; paths[i] != 0; i++)
     {
       fs foo = _fs.get_path_value(paths[i]);
       if(foo.valid()) ids.push_front(_mrs->id(foo));
@@ -263,8 +284,8 @@ list<int> mrs_rel::id_list(char *path)
     return ids;
   }
 
-  fs list = diff.get_attr_value("LIST");
-  fs last = diff.get_attr_value("LAST");
+  fs list = diff.get_attr_value(BIA_LIST);
+  fs last = diff.get_attr_value(BIA_LAST);
 
   while(list.valid() && list != last )
     {
@@ -285,8 +306,23 @@ bool mrs_rel::number_convert(void) {
 
   if(_cvalue >= 0) return true;
 
-  if(!strcmp(name(), "card_rel")) {
-    fs fs = get_fs().get_path_value("CONST_VALUE");
+  if(!strcmp(name(), k2y_pred_name("k2y_quantity_rel"))) {
+    int foo = value(k2y_role_name("k2y_amount"));
+    if(foo) {
+      mrs_rel amount 
+        = _mrs->rel(k2y_role_name("k2y_hndl"), foo, 
+                    lookup_type(k2y_pred_name("k2y_integer_rel")));
+    
+      if(amount.number_convert()) {
+        _cvalue = amount.cvalue();
+        return true;
+      } // if
+    } // if
+    return false;
+  } // if
+
+  if(!strcmp(name(), k2y_pred_name("k2y_card_rel"))) {
+    fs fs = get_fs().get_path_value(k2y_role_name("k2y_const_value"));
     if(!fs.valid()) {
       //
       // _fix_me_
@@ -305,20 +341,22 @@ bool mrs_rel::number_convert(void) {
 
   int term1 = 0;
   int term2 = 0;
-  if(!strcmp(name(), "plus_rel")) {
-    term1 = value("TERM1");
-    term2 = value("TERM2");
+  if(!strcmp(name(), k2y_pred_name("K2y_plus_rel"))) {
+    term1 = value(k2y_role_name("k2y_term1"));
+    term2 = value(k2y_role_name("k2y_term2"));
   } /* if */
-  else if(!strcmp(name(), "times_rel")) {
-    term1 = value("FACTOR1");
-    term2 = value("FACTOR2");
+  else if(!strcmp(name(), k2y_pred_name("k2y_times_rel"))) {
+    term1 = value(k2y_role_name("k2y_factor1"));
+    term2 = value(k2y_role_name("k2y_factor2"));
   } /* if */
   if(!term1 || !term2) return false;
 
   mrs_rel operand1 
-    = _mrs->rel(k2y_role_name("k2y_hndl"), term1, lookup_type("integer_rel"));
+    = _mrs->rel(k2y_role_name("k2y_hndl"), term1, 
+                lookup_type(k2y_pred_name("k2y_integer_rel")));
   mrs_rel operand2 
-    = _mrs->rel(k2y_role_name("k2y_hndl"), term2, lookup_type("integer_rel"));
+    = _mrs->rel(k2y_role_name("k2y_hndl"), term2, 
+                lookup_type(k2y_pred_name("k2y_integer_rel")));
   if(!operand1.valid() || !operand1.number_convert() 
      || !operand2.valid() || !operand2.number_convert()) {
     //
@@ -332,7 +370,7 @@ bool mrs_rel::number_convert(void) {
   _mrs->use_rel(operand1.id());
   _mrs->use_rel(operand2.id());
 
-  if(!strcmp(name(), "plus_rel")) _cvalue = value1 + value2;
+  if(!strcmp(name(), k2y_pred_name("k2y_plus_rel"))) _cvalue = value1 + value2;
   else _cvalue = value1 * value2;
 
   //
@@ -351,8 +389,8 @@ bool mrs_rel::number_convert(void) {
 
 void mrs_rel::print(FILE *f)
 {
-  fprintf(f, "%s\n  ID x%d\n", typenames[_rel], _id);
-  fs handel =_fs.get_attr_value("HANDEL");
+  fprintf(f, "%s (%s)\n  ID x%d\n", printnames[_rel], printnames[_pred], _id);
+  fs handel =_fs.get_attr_value(k2y_role_name("k2y_hndl"));
   if(handel.valid()) fprintf(f, "  HANDEL h%d\n", _mrs->id(handel));
   if(_cvalue >= 0) 
     fprintf(f, 
@@ -377,28 +415,31 @@ mrs_hcons::mrs_hcons(mrs *m, fs f)
 {
   // walk through HCONS and construct list of mrs_rel
   
-  fs liszt = f.get_path_value("H-CONS.LIST");
-  fs last = f.get_path_value("H-CONS.LAST");
-  while(liszt.valid() && liszt != last )
-    {
-      fs  pair = liszt.get_attr_value(BIA_FIRST);
-      if(!pair.valid())
-        throw error("invalid H-CONS value in MRS");
+  fs hcons = f.get_path_value(k2y_role_name("k2y_hcons"));
+  if(hcons.valid()) {
+    fs liszt = hcons.get_attr_value(BIA_LIST);
+    fs last = hcons.get_attr_value(BIA_LAST);
+    while(liszt.valid() && liszt != last )
+      {
+        fs pair = liszt.get_attr_value(BIA_FIRST);
+        if(!pair.valid())
+          throw error("invalid H-CONS value in MRS");
 
-      fs sc_arg = pair.get_attr_value("SC-ARG");
-      fs outscpd = pair.get_attr_value("OUTSCPD");
+        fs sc_arg = pair.get_attr_value(k2y_role_name("k2y_sc_arg"));
+        fs outscpd = pair.get_attr_value(k2y_role_name("k2y_outscpd"));
 
-      int lhs = m->id(sc_arg);
-      int rhs = m->id(outscpd);
-      if(rhs == m->top()) {
-        char foo[128];
-        sprintf(foo, "MRS top handle (h%d) outscoped by h%d", rhs, lhs);
-        throw error(foo);
-      } /* if */
-      _dict[lhs] =  rhs;
+        int lhs = m->id(sc_arg);
+        int rhs = m->id(outscpd);
+        if(rhs == m->top()) {
+          char foo[128];
+          sprintf(foo, "MRS top handle (h%d) outscoped by h%d", rhs, lhs);
+          throw error(foo);
+        } /* if */
+        _dict[lhs] =  rhs;
 
-      liszt = liszt.get_attr_value(BIA_REST);
-    }
+        liszt = liszt.get_attr_value(BIA_REST);
+      }
+  } // if
 }
 
 int mrs_hcons::lookup(int lhs)
@@ -423,11 +464,9 @@ void mrs_hcons::print(FILE *f)
 char *k2y_type_name(char *abstr_name)
 {
   char *name = cheap_settings->assoc("k2y_type_names", abstr_name);
-  if(name == NULL) name = cheap_settings->assoc("k2y-type-names", abstr_name);
-  if(name == 0) {
-    fprintf(ferr, "undefined k2y_type_name `%s'.\n", abstr_name);
-    exit(0);
-  }
+  if(name == 0) name = cheap_settings->assoc("k2y-type-names", abstr_name);
+  if(name == 0)
+    throw error("undefined k2y_type_name `" + string(abstr_name) + "'.");
   return name;
 
 }
@@ -435,11 +474,9 @@ char *k2y_type_name(char *abstr_name)
 char *k2y_pred_name(char *abstr_name)
 {
   char *name = cheap_settings->assoc("k2y_pred_names", abstr_name);
-  if(name == NULL) name = cheap_settings->assoc("k2y-pred-names", abstr_name);
-  if(name == 0) {
-    fprintf(ferr, "undefined k2y_pred_name `%s'.\n", abstr_name);
-    exit(0);
-  }
+  if(name == 0) name = cheap_settings->assoc("k2y-pred-names", abstr_name);
+  if(name == 0)
+    throw error("undefined k2y_pred_name `" + string(abstr_name) + "'.");
   return name;
 
 }
@@ -447,11 +484,8 @@ char *k2y_pred_name(char *abstr_name)
 char *k2y_role_name(char *abstr_name)
 {
   char *name = cheap_settings->assoc("k2y_role_names", abstr_name);
-  if(name == NULL) name = cheap_settings->assoc("k2y-role-names", abstr_name);
-  if(name == 0) {
-    fprintf(ferr, "undefined k2y_role_name `%s'.\n", abstr_name);
-    exit(0);
-  }
+  if(name == 0) name = cheap_settings->assoc("k2y-role-names", abstr_name);
+  if(name == 0)
+    throw error("undefined k2y_role_name `" + string(abstr_name) + "'.");
   return name;
-
 }

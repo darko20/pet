@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -36,18 +36,19 @@ symtab<int> statustable;
 symtab<struct templ *> templates;
 symtab<int> attributes;
 
+char *global_inflrs = 0;
+
 settings *flop_settings = 0;
 
 /*** variables local to module */
 
 static char *grammar_version;
-static char *vocfname;
 
 void check_undefined_types()
 {
   for(int i = 0; i < types.number(); i++)
     {
-      if(types[i]->implicit == 1)
+      if(types[i]->implicit)
 	{
 	  lex_location *loc = types[i]->def;
 
@@ -68,7 +69,7 @@ void process_conjunctive_subtype_constraints()
   struct conjunction *c;
   
   for(i = 0; i<types.number(); i++)
-    if((c = (t = types[i])->constraint) != NULL)
+    if((c = (t = types[i])->constraint) != 0)
       for(j = 0; j < c->n; j++)
 	if( c->term[j]->tag == TYPE)
 	  {
@@ -76,6 +77,59 @@ void process_conjunctive_subtype_constraints()
 	    subtype_constraint(t->id, c->term[j]->type);
 	    c->term[j--] = c->term[--c->n];
 	  }
+}
+
+char *synth_type_name(int offset = 0)
+{
+  char name[80];
+  sprintf(name, "synth%d", types.number() + offset);
+
+  if(types.id(name) != -1)
+    return synth_type_name(offset + (int) (10.0*rand()/(RAND_MAX+1.0)));
+
+  return strdup(name);
+}
+
+void process_multi_instances()
+{
+  int i, n = types.number();
+  struct type *t;
+
+  map<list_int *, int, list_int_compare> ptype;
+
+  for(i = 0; i < n; i++)
+    if((t = types[i])->tdl_instance && length(t->parents) > 1)
+      {
+	if(verbosity > 4)
+	  {
+	    fprintf(fstatus, "TDL instance `%s' has multiple parents: ",
+		    types.name(i).c_str());
+	    for(list_int *l = t->parents; l != 0; l = rest(l))
+	      fprintf(fstatus, " %s", types.name(first(l)).c_str());
+	    fprintf(fstatus, "\n");
+	  }
+
+	if(ptype[t->parents] == 0)
+	  {
+	    char *name = synth_type_name();
+	    struct type *p = new_type(name, false);
+	    p->def = new_location("synthesized", 0, 0);
+	    p->parents = t->parents;
+	    
+	    for(list_int *l = t->parents; l != 0; l = rest(l))
+	      subtype_constraint(p->id, first(l));
+
+	    ptype[t->parents] = p->id;
+
+	    if(verbosity > 4)
+	      fprintf(fstatus, "Synthesizing new parent type `%d'\n", p->id); 
+	  }
+
+	undo_subtype_constraints(t->id);
+	subtype_constraint(t->id, ptype[t->parents]);
+	
+	t->parents = cons(ptype[t->parents], 0);
+      }
 }
 
 void propagate_status()
@@ -163,17 +217,27 @@ void reorder_leaftypes()
     }
 }
 
+void assign_printnames()
+{
+  for(int i = 0; i < types.number(); i++)
+    if(types[i]->printname == 0)
+      types[i]->printname = strdup(types.name(i).c_str());
+}
+
 void preprocess_types()
 {
   expand_templates();
 
   find_corefs();
   process_conjunctive_subtype_constraints();
+  process_multi_instances();
 
   process_hierarchy();
 
   if(opt_propagate_status)
     propagate_status();
+
+  assign_printnames();
 }
 
 void log_types(char *title)
@@ -194,8 +258,14 @@ void demote_instances()
       if(types[i]->tdl_instance)
 	{
 	  // all instances should be leaftypes
-	  assert(leaftypeparent[i] != -1);
-	  dag_set_type(types[i]->thedag, leaftypeparent[i]);
+	  if(leaftypeparent[i] == -1)
+	    {
+	      fprintf(stderr, "warning: tdl instance `%s' is not a leaftype\n",
+		      types.name(i).c_str());
+	      // assert(leaftypeparent[i] != -1);
+	    }
+	  else
+	    dag_set_type(types[i]->thedag, leaftypeparent[i]);
 	}
     }
 }
@@ -245,13 +315,13 @@ void process_types()
 char *parse_version()
 {
   char *fname;
-  char *version = NULL;
+  char *version = 0;
 
   fname = flop_settings->value("version-file");
   if(fname)
     {
       fname = find_file(fname, SET_EXT);
-      if(!fname) return NULL;
+      if(!fname) return 0;
 
       push_file(fname, "reading");
       while(LA(0)->tag != T_EOF)
@@ -266,7 +336,7 @@ char *parse_version()
                 }
               else
                 {
-                  version = LA(0)->text; LA(0)->text = NULL;
+                  version = LA(0)->text; LA(0)->text = 0;
                 }
             } 
           consume(1);
@@ -275,94 +345,18 @@ char *parse_version()
     }
   else
     {
-      return NULL;
+      return 0;
     }
 
   return version;
 }
 
-vector<string> get_le_stems(dag_node *le)
-{
-  struct dag_node *dag;
-  list <struct dag_node *> stemlist;
-  vector <string> orth;
-  int n;
-      
-  dag = dag_get_path_value(le, flop_settings->req_value("orth-path"));
-  if(dag == FAIL)
-    {
-      fprintf(ferr, "no orthography for\n");
-      dag_print(ferr, le);
-      exit(1);
-    }
-
-  stemlist = dag_get_list(dag);
-
-  n = 0;
-  for(list<dag_node *>::iterator iter = stemlist.begin(); iter != stemlist.end(); ++iter)
-    {
-      dag = *iter;
-      if(dag == FAIL)
-	{
-	  fprintf(ferr, "no stem %d for\n", n);
-	  dag_print(ferr, le);
-	  exit(1);
-	}
-
-      if(is_type(dag_type(dag)))
-	{
-	  string s(typenames[dag_type(dag)]);
-	  orth.push_back(s.substr(1,s.length()-2));
-	}
-      else
-	{
-	  fprintf(ferr, "trouble getting stem %d of\n", n);
-	  dag_print(ferr, le);
-	  exit(1);
-	}
-      n++;
-    }
-
-  return orth;
-}
-
-// construct lexicon if no .voc file is present
-void make_lexicon()
-{
-  struct type *t;
-  list<int> les;
-  int i;
-
-  // construct list `les' containing id's of all types that are les
-  for(i = 0; i < types.number(); i++)
-    if((t = types[i])->status == LEXENTRY_STATUS && t->tdl_instance)
-      les.push_back(i);
-
-  fprintf(fstatus, " %d entries\n", les.size());
-
-  for(list<int>::iterator iter = les.begin(); iter != les.end(); ++iter)
-    {
-      vector<string> orth = get_le_stems(types[*iter]->thedag);
-
-      vocabulary.push_front(morph_entry(types.name(*iter), orth.front(), string(), string(), orth.size() > 1 ? 1 : 0, orth.size()));
-    }
-}
-
 void initialize_status()
 {
-  char *s;
   // NO_STATUS
   statustable.add("*none*");
   // ATOM_STATUS
   statustable.add("*atom*");
-  // RULE_STATUS
-  s = strdup(flop_settings->req_value("rule-status-value"));
-  strtolower(s);
-  statustable.add(s);
-  // LEXENTRY_STATUS
-  s = strdup(flop_settings->req_value("lexicon-status-value"));
-  strtolower(s);
-  statustable.add(s);
 }
 
 extern int dag_dump_grand_total_nodes, dag_dump_grand_total_atomic,
@@ -393,9 +387,9 @@ void process(char *ofname)
     }
 
   grammar_version = parse_version();
-  if(grammar_version == NULL) grammar_version = "unknown";
+  if(grammar_version == 0) grammar_version = "unknown";
 
-  outfname = output_name(fname, TDL_EXT, opt_pre ? PRE_EXT : DUMP_EXT);
+  outfname = output_name(fname, TDL_EXT, opt_pre ? PRE_EXT : GRAMMAR_EXT);
   outf = fopen(outfname, "wb");
   
   if(outf)
@@ -408,7 +402,7 @@ void process(char *ofname)
 
       fprintf(fstatus, "\nconverting `%s' (%s) into `%s' ...\n", fname, grammar_version, outfname);
       
-      if((set = flop_settings->lookup("postload-files")) != NULL)
+      if((set = flop_settings->lookup("postload-files")) != 0)
 	for(i = set->n - 1; i >= 0; i--)
 	  {
 	    char *fname;
@@ -418,7 +412,7 @@ void process(char *ofname)
       
       push_file(fname, "loading");
       
-      if((set = flop_settings->lookup("preload-files")) != NULL)
+      if((set = flop_settings->lookup("preload-files")) != 0)
 	for(i = set->n - 1; i >= 0; i--)
 	  {
 	    char *fname;
@@ -429,12 +423,18 @@ void process(char *ofname)
       tdl_start(1);
       fprintf(fstatus, "\n");
 
-      char *vfname;
-      if((vfname = flop_settings->value("vocabulary-file")) != NULL)
+      char *fffname;
+      if((fffname = flop_settings->value("fullform-file")) != 0)
 	{
-	  if((vfname = find_file(vfname, VOC_EXT)))
-	    read_morph(vfname);
-	  vocfname = vfname;
+	  if((fffname = find_file(fffname, VOC_EXT)))
+	    read_morph(fffname);
+	}
+
+      char *irregfname;
+      if((irregfname = flop_settings->value("irregs-file")) != 0)
+	{
+	  if((irregfname = find_file(irregfname, IRR_EXT)))
+	    read_irregs(irregfname);
 	}
 
       if(!opt_pre)
@@ -449,21 +449,13 @@ void process(char *ofname)
       t_start = clock();
 
       if(flop_settings->value("grammar-info") != 0)
-	create_grammar_info(flop_settings->value("grammar-info"), grammar_version,
-			    vocfname == NULL ? "none" : vocfname);
+	create_grammar_info(flop_settings->value("grammar-info"),
+			    grammar_version);
       
       preprocess_types();
       
       if(!opt_pre)
-	{
-	  process_types();
-
-	  if(flop_settings->value("vocabulary-file") == NULL)
-	    {
-	      fprintf(fstatus, "making lexicon index:");
-	      make_lexicon();
-	    }
-	}
+	process_types();
 
       if(opt_pre)
 	{
@@ -476,14 +468,13 @@ void process(char *ofname)
 	  fprintf(fstatus, "dumping grammar (");
 	  dump_grammar(&dmp, grammar_version);
 	  fprintf(fstatus, ")\n");
-#ifdef VVERBOSE
-	  fprintf(fstatus,
-                  "%d[%d]/%d (%0.2g) total grammar nodes[atoms]/arcs (ratio) dumped\n",
-		  dag_dump_grand_total_nodes, 
-                  dag_dump_grand_total_atomic,
-                  dag_dump_grand_total_arcs,
-                  double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
-#endif
+	  if(verbosity > 10)
+	    fprintf(fstatus,
+		    "%d[%d]/%d (%0.2g) total grammar nodes[atoms]/arcs (ratio) dumped\n",
+		    dag_dump_grand_total_nodes, 
+		    dag_dump_grand_total_atomic,
+		    dag_dump_grand_total_arcs,
+		    double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
 	}
       
       fclose(outf);
@@ -549,6 +540,8 @@ int main(int argc, char* argv[])
 
   ferr = fstatus = stderr; // preliminary setup
 
+  setlocale(LC_ALL, "" );
+
   if(!parse_options(argc, argv))
     {
       usage(stderr);
@@ -557,7 +550,24 @@ int main(int argc, char* argv[])
 
   setup_io();
 
-  process(grammar_file_name);
+  try { process(grammar_file_name); }
+  catch(error &e)
+    {
+      e.print(ferr);  fprintf(ferr, "\n");
+      exit(1);
+    }
+
+  catch(bad_alloc)
+    {
+      fprintf(ferr, "out of memory\n");
+      exit(1);
+    }
+
+  catch(...)
+    {
+      fprintf(ferr, "unknown exception\n");
+      exit(1);
+    }
   
   return 0;
 }

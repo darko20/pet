@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -10,11 +10,6 @@
 #ifndef _BITCODE_H_
 #define _BITCODE_H_
 
-#include <stdio.h>
-#include <iostream.h>
-#ifdef HASH_MAP_AVAIL
-#include <hash_map>
-#endif
 #include <list-int.h>
 #include <dumper.h>
 
@@ -138,6 +133,7 @@ inline bool operator>(const bitcode& a, const bitcode &b)
 { return compare(a, b) ==  1; }
 
 #ifdef HASH_MAP_AVAIL
+namespace std {
 template<> struct hash<bitcode>
 {
   inline size_t operator()(const bitcode &key) const
@@ -145,6 +141,7 @@ template<> struct hash<bitcode>
     return Hash(key);
   }
 };
+}
 #endif
 
 #endif

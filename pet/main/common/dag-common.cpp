@@ -1,13 +1,12 @@
+
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* operations on dags that are shared between different unifiers */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "pet-system.h"
 #include "grammar-dump.h"
 #include "dag.h"
 #include "types.h"
@@ -60,7 +59,7 @@ void undump_arc(dumper *f, dag_arc_dump *x)
 void initialize_dags(int n)
 {
   int i;
-  typedag = new dag_node *[n];
+  typedag = New dag_node *[n];
 
   for(i = 0; i < n; i++) typedag[i] = 0;
 }
@@ -88,7 +87,7 @@ list<struct dag_node *> dag_get_list(struct dag_node* first)
   return L;
 }
 
-struct dag_node *dag_get_attr_value(struct dag_node *dag, char *attr)
+struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr)
 {
   int a = lookup_attr(attr);
   if(a == -1) return FAIL;
@@ -127,14 +126,14 @@ struct dag_node *dag_get_path_value_l(struct dag_node *dag, list_int *path)
   return dag;
 }
 
-struct dag_node *dag_get_path_value(struct dag_node *dag, char *path)
+struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
 {
   if(path == 0 || strlen(path) == 0) return dag;
 
-  char *dot = strchr(path, '.');
+  const char *dot = strchr(path, '.');
   if(dot != 0)
     {
-      char *attr = new char[strlen(path)+1];
+      char *attr = New char[strlen(path)+1];
       strncpy(attr, path, dot - path);
       attr[dot - path] = '\0';
       dag_node *f = dag_get_attr_value(dag, attr);
@@ -146,7 +145,7 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, char *path)
     return dag_get_attr_value(dag, path);
 }
 
-#if 0
+#ifndef FLOP
 
 // create dag node with one attribute .attr.
 struct dag_node *dag_create_attr_value(int attr, dag_node *val)
@@ -162,7 +161,7 @@ struct dag_node *dag_create_attr_value(int attr, dag_node *val)
   return res;
 }
 
-struct dag_node *dag_create_attr_value(char *attr, dag_node *val)
+struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
 {
   int a = lookup_attr(attr);
   if(a == -1) return FAIL;
@@ -170,7 +169,7 @@ struct dag_node *dag_create_attr_value(char *attr, dag_node *val)
   return dag_create_attr_value(a, val);
 }
 
-struct dag_node *dag_create_path_value(char *path, int type)
+struct dag_node *dag_create_path_value(const char *path, int type)
 {
   dag_node *res = 0;
 
@@ -185,30 +184,20 @@ struct dag_node *dag_create_path_value(char *path, int type)
       return res;
     }
 
-  dag_node *resrest;
-  char *dot = strchr(path, '.');
-  char *firstpart;
-
+  const char *dot = strchr(path, '.');
   if(dot != 0)
     {
-      firstpart = new char[strlen(path)+1];
+      char *firstpart = New char[strlen(path)+1];
       strncpy(firstpart, path, dot - path);
       firstpart[dot - path] = '\0';
 
-      resrest = dag_create_path_value(dot + 1, type);
+      res = dag_create_attr_value(firstpart
+                                  , dag_create_path_value(dot + 1, type));
+      delete[] firstpart;
+      return res;
     }
   else
-    {
-      firstpart = path;
-      resrest = dag_create_path_value(0, type);
-    }
-
-  res = dag_create_attr_value(firstpart, resrest);
-
-  if(firstpart != path)
-    delete[] firstpart;
-
-  return res;
+    return dag_create_attr_value(path, dag_create_path_value(0, type));
 }
 
 #endif

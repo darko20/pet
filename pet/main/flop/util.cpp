@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -88,7 +88,25 @@ struct type *new_type(const string &name, bool is_inst, bool define = true)
   else
     t -> id = -1;
 
+  t -> inflr = 0;
+
   t -> parents = 0;
 
   return t;
+}
+
+char *add_inflr(char *old, char *add)
+{
+  char *s = (char *) salloc((old == 0 ? 0 : strlen(old)) + strlen(add) + 1);
+  if(old != 0)
+    {
+      strcpy(s, old);
+      free(old);
+    }
+  else
+    {
+      strcpy(s, "");
+    }
+  strcat(s, add);
+  return s;
 }

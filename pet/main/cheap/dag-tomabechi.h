@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -84,6 +84,8 @@ void dag_get_qc_vector_np(struct qc_node *qc_paths, struct dag_node *dag, type_t
 struct dag_node *dag_nth_arg_np(struct dag_node *dag, int n);
 
 void dag_print_safe(FILE *f, struct dag_node *dag, bool np);
+
+void dag_print_fed_safe(FILE *f, struct dag_node *dag);
 
 // accessor functions for the `protected' slots -- inlined for efficiency
 

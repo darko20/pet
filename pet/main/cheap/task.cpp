@@ -1,22 +1,25 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* tasks */
 
+#include "pet-system.h"
 #include "task.h"
-#include "tsdb++.h"
-#include "options.h"
 #include "parse.h"
+#include "chart.h"
+#include "agenda.h"
+#include "options.h"
+#include "tsdb++.h"
 
 #define HYPERACTIVE_EXKURS
 
 int basic_task::next_id = 0;
 
-item *build_combined_item(item *active, item *passive);
+item *build_combined_item(chart *C, item *active, item *passive);
 
-item *build_rule_item(grammar_rule *R, item *passive)
+item *build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
 {
   fs_alloc_state FSAS(false);
 
@@ -69,25 +72,30 @@ item *build_rule_item(grammar_rule *R, item *passive)
       if(temporary)
 	{
 	  temporary_generation save(res.temp());
-	  it = new phrasal_item(R, passive, res);
-	  Chart->own(it);
+	  it = New phrasal_item(R, passive, res);
 #ifdef HYPERACTIVE_EXKURS
 	  // try to find a passive edge to complete this right away
           //
           // in best-first mode, it is more important to stick to the ordering
           // of tasks, as governed by the scoring mechanism. (9-apr-01  -  oe)
           //
-          if(!opt_one_solution && !opt_one_meaning) {
+          if(!opt_one_solution
+#ifdef YY
+             && !opt_one_meaning
+#endif
+             ) {
             bool success = false;
-            for(chart_iter_adj_passive iter(Chart, it); iter.valid(); iter++)
+            for(chart_iter_adj_passive iter(C, it); iter.valid(); iter++)
               {
+		if(!iter.current()->compatible(it, C->rightmost()))
+		  continue;
                 it->set_done(iter.current()->stamp());
                 if(filter_combine_task(it, iter.current()))
                   {
-                    item *it2 = build_combined_item(it, iter.current());
+                    item *it2 = build_combined_item(C, it, iter.current());
                     if(it2)
                       {
-                        Agenda->push(new item_task(it2));
+                        A->push(New item_task(C, A, it2));
                         success = true;
                       }
                     
@@ -102,15 +110,14 @@ item *build_rule_item(grammar_rule *R, item *passive)
 	}
       else
 	{
-	  it = new phrasal_item(R, passive, res);
-	  Chart->own(it);
+	  it = New phrasal_item(R, passive, res);
 	}
 
       return it;
     }
 }
 
-item *build_combined_item(item *active, item *passive)
+item *build_combined_item(chart *C, item *active, item *passive)
 {
   fs_alloc_state FSAS(false);
 
@@ -168,21 +175,19 @@ item *build_combined_item(item *active, item *passive)
 	{
 	  temporary_generation save(res.temp());
 #ifndef CRASHES_ON_DYNAMIC_CASTS
-	  it = new phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
+	  it = New phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
 #else
-	  it = new phrasal_item((phrasal_item *)(active), passive, res);
+	  it = New phrasal_item((phrasal_item *)(active), passive, res);
 #endif
-	  Chart->own(it);
 	  FSAS.release();
 	}
       else
 	{
 #ifndef CRASHES_ON_DYNAMIC_CASTS
-	  it = new phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
+	  it = New phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
 #else
-	  it = new phrasal_item((phrasal_item *)(active), passive, res);
+	  it = New phrasal_item((phrasal_item *)(active), passive, res);
 #endif
-	  Chart->own(it);
 	}
 
       return it;
@@ -204,7 +209,7 @@ item *rule_and_passive_task::execute()
   if(_passive->frozen())
     return 0;
 #endif
-  return build_rule_item(_R, _passive);
+  return build_rule_item(_C, _A, _R, _passive);
 }
 
 item *active_and_passive_task::execute()
@@ -213,7 +218,7 @@ item *active_and_passive_task::execute()
   if(_passive->frozen() || _active->frozen())
     return 0;
 #endif
-  return build_combined_item(_active, _passive);
+  return build_combined_item(_C, _active, _passive);
 }
 
 void basic_task::print(FILE *f)
@@ -226,6 +231,6 @@ void rule_and_passive_task::print(FILE *f)
   fprintf(f,
           "task #%d {%s + %d} (%d [%d %d %d %d])",
           _id,
-          _R->name(), _passive->id(),
+          _R->printname(), _passive->id(),
           _p, _q, _r, _s, _t);
 }

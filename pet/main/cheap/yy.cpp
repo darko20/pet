@@ -1,16 +1,12 @@
 //
-// The entire contents of this file, in printed or electronic form, are
-// (c) Copyright YY Software Corporation, La Honda, CA 2000, 2001.
-// Unpublished work -- all rights reserved -- proprietary, trade secret
+//      The entire contents of this file, in printed or electronic form, are
+//      (c) Copyright YY Technologies, Mountain View, CA 1991,1992,1993,1994,
+//                                                       1995,1996,1997,1998,
+//                                                       1999,2000,2001
+//      Unpublished work -- all rights reserved -- proprietary, trade secret
 //
 
 // YY input format and server mode (oe, uc)
-
-#include <stdlib.h>          
-#include <stdio.h>
-#include <ctype.h>
-#include <errno.h>
-#include <string.h>
 
 #ifdef SOCKET_INTERFACE
 #include <unistd.h>
@@ -28,81 +24,131 @@
 #include <sys/wait.h>
 #endif
 
-#include <string>
-using namespace std;
-
-extern "C" {
-#  include "mfile.h"
-}
-
+#include "pet-system.h"
+#include "mfile.h"
 #include "../common/utility.h"
 #include "errors.h"
-#include "tokenlist.h"
+#include "lex-tdl.h"
+#include "tokenizer.h"
 #include "parse.h"
+#include "agenda.h"
+#include "chart.h"
 #include "cheap.h"
+#include "inputchart.h"
+#include "typecache.h"
 #include "tsdb++.h"
 #include "k2y.h"
 #include "yy.h"
 
-yy_tokenlist::yy_tokenlist(const char *in)
+string _yyfilteredinput;
+
+void yy_tokenizer::add_tokens(input_chart *i_chart)
 {
   int start, end;
   string word, surface;
   set<string> tags;
+
+  if(verbosity > 4)
+    fprintf(ferr, "yy_tokenizer:");
   
-  _input = (char *)in;
-
-  _ntokens = 0; _tokens.clear(); _surface.clear();
-  while(read_token(start, end, word, surface, tags))
+  FILE *token_output = 0;
+  if(opt_yy)
     {
-      if(start < 0 || end != start + 100)
+      char *token_stream = getenv("CHEAP_TOKEN_STREAM");
+      if(token_stream)
+	token_output = fopen(token_stream, "a");
+    }
+
+  char *save; _yyfilteredinput = string();
+  while(save = _yyinput, read_token(start, end, word, surface, tags))
+    {
+      if(start < 0 || end <= start || (start % 100) != 0 || (end % 100) != 0)
 	{
-	  _ntokens = 0;
-	  throw error("tokenlist(): unexpected multi-word token.");
+	  ostrstream msg;
+	  msg << "tokenizer(): illegal token span ("
+	      << start << " - " << end << ")";
+	  throw error(msg.str());
 	}
-      unsigned int pos = start / 100;
-      if(pos >= _tokens.size()) _tokens.resize(pos + 1);
-      _tokens[pos] = word;
-      if(pos >= _surface.size()) _surface.resize(pos + 1);
-      _surface[pos] = surface;
-      if(pos >= _postags.size()) _postags.resize(pos + 1);
-      _postags[pos] = tags;
-      _ntokens++;
-    } /* while */
 
-  char *token_stream;
-  FILE *token_output;
+      start /= 100; end /= 100;
+      postags poss(tags);
 
-  if(opt_yy
-     && (token_stream = getenv("CHEAP_TOKEN_STREAM")) != NULL
-     && (token_output = fopen(token_stream, "a")) != NULL) {
-    for(int i = 0; i < _ntokens; i++) {
-      fprintf(token_output, "%s\t\t", _surface[i].c_str());
-      postags poss = postags(_postags[i]);
-      poss.print(token_output);
-      fprintf(token_output, "\n");
-    } /* for */
-    fprintf(token_output, "\f\n");
-    fclose(token_output);
-  } /* if */
+      if(verbosity > 4)
+	{
+	  fprintf(ferr, " [%d - %d] <%s> {", start, end, word.c_str());
+	  poss.print(ferr);
+	  fprintf(ferr, "}");
+	}
 
+      // log token
+      if(token_output)
+	{
+	  fprintf(token_output, "%s\t\t", surface.c_str());
+	  poss.print(token_output);
+	  fprintf(token_output, "\n");
+	}
+
+      // skip empty tokens and punctuation
+      if(word.empty() || Grammar->punctuationp(word))
+	{
+	  _yyfilteredinput += string(save, _yyinput - save);
+	  continue;
+	}
+
+      if(i_chart->contains(start, end, word, poss))
+	{
+	  if(verbosity > 4)
+	    fprintf(ferr, " - duplicate");
+
+	  continue;
+	}
+
+      _yyfilteredinput += string(save, _yyinput - save);
+      list<full_form> forms = Grammar->lookup_form(word);
+
+      if(forms.empty())
+	{
+	  i_chart->add_token(start, end, full_form(), word, 0, poss);
+	}
+      else
+	{
+	  for(list<full_form>::iterator currf = forms.begin();
+	      currf != forms.end(); ++currf)
+	    {
+	      i_chart->add_token(start, end, *currf, word, currf->priority(), 
+				 poss);
+	    }
+	}
+    }
+
+  if(token_output)
+    {
+      fprintf(token_output, "\f\n");
+      fclose(token_output);
+    }
+
+  if(verbosity > 4)
+    {
+      fprintf(ferr, "\n");
+      fprintf(ferr, "Filtered input: <%s>\n", _yyfilteredinput.c_str());
+    }
 }
 
-bool yy_tokenlist::read_int(int &target)
+bool yy_tokenizer::read_int(int &target)
 {
   int n;
 
-  if(_input == 0 || _input[0] == '\0')
+  if(_yyinput == 0 || _yyinput[0] == '\0')
     {
       target = -1;
       return false;
     }
   
-  for(; _input[0] && !isdigit(_input[0]); _input++) ;
+  for(; _yyinput[0] && !isdigit(_yyinput[0]); _yyinput++) ;
 
-  for(target = n = 0; _input[0] && isdigit(_input[0]); _input++, n++)
+  for(target = n = 0; _yyinput[0] && isdigit(_yyinput[0]); _yyinput++, n++)
     {
-      target = _input[0] - '0' + (10 * target);
+      target = _yyinput[0] - '0' + (10 * target);
     }
 
   if(!n)
@@ -114,36 +160,36 @@ bool yy_tokenlist::read_int(int &target)
  return true;
 }
 
-bool yy_tokenlist::read_string(string &target, string &surface)
+bool yy_tokenizer::read_string(string &target, string &surface)
 {
   target = "";
   surface = "";
 
-  if(_input == 0 || _input[0] == '\0')
+  if(_yyinput == 0 || _yyinput[0] == '\0')
     return false;
 
-  for(; _input[0] && _input[0] != '"'; _input++);
-  if(_input[0] != '"') return false;
+  for(; _yyinput[0] && _yyinput[0] != '"'; _yyinput++);
+  if(_yyinput[0] != '"') return false;
 
   //
-  // skip trailing `#' sign in concept names, though not as an isolated token
+  // skip leading `#' sign in concept names, though not as an isolated token
   //
-  if(_input[1] == '#' && _input[2] != '"') _input++;
+  if(_yyinput[1] == '#' && _yyinput[2] != '"') _yyinput++;
 
   char last;
-  for(_input++, last = 0; 
-      _input[0] && (_input[0] != '"' || last == '\\');
-      last = (last == '\\' ? 0 : _input[0]), _input++)
+  for(_yyinput++, last = 0; 
+      _yyinput[0] && (_yyinput[0] != '"' || last == '\\');
+      last = (last == '\\' ? 0 : _yyinput[0]), _yyinput++)
     {
-      if(_input[0] != '\\' || last == '\\') {
-        target += tolower(_input[0]);
-        surface += _input[0];
+      if(_yyinput[0] != '\\' || last == '\\') {
+        target += tolower(_yyinput[0]);
+        surface += _yyinput[0];
       } /* if */
     }
 
-  if(_input[0] == '"')
+  if(_yyinput[0] == '"')
     {
-      _input++;
+      _yyinput++;
       return true;
     }
 
@@ -153,39 +199,39 @@ bool yy_tokenlist::read_string(string &target, string &surface)
 
 }
 
-bool yy_tokenlist::read_comma()
+bool yy_tokenizer::read_comma()
 {
-  if(_input == 0 || _input[0] == '\0')
+  if(_yyinput == 0 || _yyinput[0] == '\0')
     return false;
 
-  for(; _input[0] && isspace(_input[0]); _input++) ;
-  if(_input[0] != ',') return false;
-  _input++;
+  for(; _yyinput[0] && isspace(_yyinput[0]); _yyinput++) ;
+  if(_yyinput[0] != ',') return false;
+  _yyinput++;
   return true;
 }
 
-bool yy_tokenlist::read_pos(string &target)
+bool yy_tokenizer::read_pos(string &target)
 {
   target = "";
 
-  if(_input == 0 || _input[0] == '\0')
+  if(_yyinput == 0 || _yyinput[0] == '\0')
     return false;
 
-  for(; _input[0] && isspace(_input[0]); _input++) ;
-  if(!isalnum(_input[0])) return false;
+  for(; _yyinput[0] && isspace(_yyinput[0]); _yyinput++) ;
+  if(!is_idchar(_yyinput[0])) return false;
 
-  while(isalnum(_input[0]))
+  while(is_idchar(_yyinput[0]))
     {
-      target += _input[0];
-      _input++;
+      target += _yyinput[0];
+      _yyinput++;
     }
 
-  if(isspace(_input[0]))
+  if(isspace(_yyinput[0]))
     {
-      _input++;
+      _yyinput++;
       return true;
     }
-  else if(_input[0] == ')' || _input[0] == ',')
+  else if(_yyinput[0] == ')' || _yyinput[0] == ',')
     {
       return true;
     }
@@ -195,14 +241,14 @@ bool yy_tokenlist::read_pos(string &target)
 
 }
 
-bool yy_tokenlist::read_token(int &start, int &end,
+bool yy_tokenizer::read_token(int &start, int &end,
                               string &word, string &surface, set<string> &tags)
 {
-  if(_input == 0 || _input[0] == '\0') return false;
+  if(_yyinput == 0 || _yyinput[0] == '\0') return false;
 
-  for(; _input[0] && _input[0] != '('; _input++);
+  for(; _yyinput[0] && _yyinput[0] != '('; _yyinput++);
 
-  if(_input[0]) _input++;
+  if(_yyinput[0]) _yyinput++;
 
   tags.clear();
   if(read_int(start) && read_int(end) && read_string(word, surface))
@@ -215,36 +261,39 @@ bool yy_tokenlist::read_token(int &start, int &end,
 	    tags.insert(tag);
 	}
       
-      for(; _input[0] != '\0' && _input[0] != ')'; _input++);
-      return (*_input++ == ')');
+      for(; _yyinput[0] != '\0' && _yyinput[0] != ')'; _yyinput++);
+      return (*_yyinput++ == ')');
     }
 
   return false;
 }
 
-postags yy_tokenlist::POS(int i)
-{
-  return postags(_postags[i]);
-}
-
 // library based interface to language server
 
 // initialize parser with specified grammar
-int l2_parser_init(string grammar_path)
+
+string l2_parser_init(string grammar_path, int k2y_segregation_p)
 {
-  fstatus = fopen("l2dbg.log", "w");
+  //fstatus = fopen("l2dbg.log", "w");
+  fstatus = fopen("nul", "w");
   if(fstatus == 0)
-    { // xx think about error reporting
+    { // XXX think about error reporting
       fstatus = stderr;
     }
   ferr = fstatus;
 
   fprintf(fstatus, "[%s] l2_parser_init(\"%s\")\n", current_time(), grammar_path.c_str());
 
-  cheap_settings = new settings(settings::basename(grammar_path.c_str()), grammar_path.c_str(), "reading");
+  cheap_settings = New settings(settings::basename(grammar_path.c_str()), grammar_path.c_str(), "reading");
   fprintf(fstatus, "\n");
 
   options_from_settings(cheap_settings);
+
+  //
+  // only reset K2Y modifier segregation if explicity requested from language
+  // server `.ini' file (hence the three-valued logix).
+  //
+  if(k2y_segregation_p >= 0) opt_k2y_segregation = k2y_segregation_p;
 
 #ifndef DONT_EDUCATE_USERS
   if(opt_yy == false)
@@ -286,13 +335,16 @@ int l2_parser_init(string grammar_path)
 
   timer t_start;
   fprintf(fstatus, "loading `%s' ", grammar_path.c_str());
-  try { Grammar = new grammar(grammar_path.c_str()); }
+  try { Grammar = New grammar(grammar_path.c_str()); }
 
   catch(error &e)
     {
       fprintf(fstatus, "- aborted\n");
       e.print(ferr);
-      return 1;
+      if(e.msg().empty())
+	return string("unknown problem loading grammar");
+      else
+	return e.msg();
     }
 
   fprintf(fstatus, "- %d types in %0.2g s\n",
@@ -302,72 +354,82 @@ int l2_parser_init(string grammar_path)
 
   fflush(fstatus);
 
-  return 0;
+  return string();
 }
 
 #ifdef __BORLANDC__
 extern unsigned long int Mem_CurrUser;
 #endif
 
+extern typecache glbcache;
+extern int total_cached_constraints;
+
 // parse one input item; return string of K2Y's
 string l2_parser_parse(string input)
 {
   static int item_id = 0;
 
-  fprintf(fstatus, "[%s] l2_parser_parse(\"%s\")\n", current_time(),
-          input.c_str());
+  fprintf(fstatus, "[%s] (%d) l2_parser_parse(\"%s\")\n", current_time(),
+          stats.id, input.c_str());
+
+  fprintf(fstatus, " Permanent dag storage: %d*%dk\n Dynamic dag storage: %d*%dk\n GLB cache: %d*%dk, Constraint cache: %d entries\n",
+	  p_alloc.nchunks(), p_alloc.chunksize() / 1024, 
+	  t_alloc.nchunks(), t_alloc.chunksize() / 1024,
+	  glbcache.alloc().nchunks(), glbcache.alloc().chunksize() / 1024,
+	  total_cached_constraints);
 
 #ifdef __BORLANDC__
-  fprintf(fstatus, " LanguageServer allocated: %lu\n", Mem_CurrUser);
+  fprintf(fstatus, " LanguageServer storage: %lu\n", Mem_CurrUser);
 #endif
 
-  fprintf(fstatus, " L2 allocated: %d*%dk permanent, %d*%dk dynamic\n",
-	  p_alloc.nchunks(), p_alloc.chunksize(), 
-	  t_alloc.nchunks(), t_alloc.chunksize());
-
-  tokenlist *Input = 0;
-  chart *Chart = 0;
   string result;
+  chart *Chart = 0;
+  agenda *Roots = 0;
 
   try
     {
+      fs_alloc_state FSAS;
+
       item_id++;
+      
+      input_chart i_chart(New end_proximity_position_map);
 
-      Input = new yy_tokenlist(input.c_str());
+      analyze(i_chart, input, Chart, Roots, FSAS, item_id);
 
-      if(Input == 0 || Input->length() <= 0)
-	{
-          throw error("malformed input");
-	}
-
-      Chart = new chart(Input->length());
-      parse(*Chart, Input, item_id);
-
-      fprintf(fstatus,"(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+      fprintf(fstatus," (%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
 	      stats.id, pedgelimit, stats.readings,
 	      stats.first / 1000., stats.tcpu / 1000.,
-	      stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
+	      stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+	      TotalParseTime.elapsed_ts() / 10.);
+
       if(verbosity > 1) stats.print(fstatus);
       fflush(fstatus);
 
       struct MFILE *mstream = mopen();
+      
       int nres = 1;
-      for(chart_iter it(*Chart); it.valid(); it++) {
-	if(it.current()->result_root()) {
+      while(!Roots->empty())
+	{
+	  basic_task *t = Roots->pop();
+	  item *it = t->execute();
+	  delete t;
+		
+	  if(it == 0) continue;
+	  
 	  mflush(mstream);
-	  int n = construct_k2y(nres++, it.current(), false, mstream);
-	  if(n >= 0) {
-	    result += string(mstring(mstream));
-	    if(opt_one_meaning) break;
-	  } /* if */
-	} /* if */
-      } /* for */
+	  int n = construct_k2y(nres++, it, false, mstream);
+	  if(n >= 0)
+	    {
+	      result += string(mstring(mstream));
+	      if(opt_one_meaning) break;
+	    }
+	}
       mclose(mstream);
     } /* try */
 
   catch(error_ressource_limit &e)
     {
-      fprintf(fstatus, "(%d) [%d] --- edge limit exceeded "
+      fprintf(fstatus, " (%d) [%d] --- edge limit exceeded "
 	      "(%.1f|%.1fs) <%d:%d> (%.1fK)\n",
 	      stats.id, pedgelimit,
 	      stats.first / 1000., stats.tcpu / 1000.,
@@ -377,16 +439,16 @@ string l2_parser_parse(string input)
 
     catch(error &e)
       {
-	fprintf(fstatus, "error: `");
+	fprintf(fstatus, " L2 error: `");
 	e.print(fstatus); fprintf(fstatus, "'.\n");
         fflush(fstatus);
       }
 
-  if(verbosity > 4)
-    fprintf(fstatus, "result: %s\n", result.c_str());
+  delete Chart;
+  delete Roots;
 
-  if(Chart != 0) delete Chart;
-  if(Input != 0) delete Input;
+  if(verbosity > 4)
+    fprintf(fstatus, " result: %s\n", result.c_str());
 
   fflush(fstatus);
 
@@ -399,9 +461,10 @@ void l2_parser_exit()
   fprintf(fstatus, "[%s] l2_parser_exit()\n", current_time());
 
   delete Grammar;
+  delete cheap_settings;
+
   fclose(fstatus);
 }
-
 
 #ifdef SOCKET_INTERFACE
 
@@ -667,9 +730,9 @@ void cheap_server(int port) {
 
 int cheap_server_child(int socket) {
 
-  int nitems = 1;
+  int ntsdbitems = 1;
   static int size = 4096;
-  static char *item, *input = (char *)malloc(size);
+  static char *tsdbitem, *input = (char *)malloc(size);
   assert(input != NULL);
   FILE *stream = fdopen(socket, "r");
   assert(stream != NULL);
@@ -679,15 +742,19 @@ int cheap_server_child(int socket) {
 
   struct timeval tstart, tend; int treal = 0;
 
-  tokenlist *Input = (tokenlist *)NULL;
-  chart *Chart = (chart *)NULL;
-
   socket_write(socket, "\f");
 
   bool errorp = false, kaerb = false;
-  for(item = (char *)NULL, Chart = (chart *)NULL, Input = (tokenlist *)NULL; 
+  for(tsdbitem = (char *)NULL; 
       !feof(stream) && !kaerb; 
-      nitems++, errorp = false) {
+      ntsdbitems++, errorp = false) {
+
+    fs_alloc_state FSAS;
+    chart *Chart = 0;
+    agenda *Roots = 0;
+  
+    input_chart i_chart(New end_proximity_position_map);
+
     try {
       int status = socket_readline(socket, input, size);
 
@@ -710,8 +777,8 @@ int cheap_server_child(int socket) {
         } /* for */
         break;
       } /* if */
-      if(status == 1) {
 
+      if(status == 1) {
         for(list<FILE *>::iterator log = _log_channels.begin();
             log != _log_channels.end();
             log++) {
@@ -742,61 +809,50 @@ int cheap_server_child(int socket) {
 
       gettimeofday(&tstart, NULL);
 
-      item = new char[strlen(input) + 1];
-      assert(item != NULL);
-      strcpy(item, input);
+      tsdbitem = New char[strlen(input) + 1];
+      assert(tsdbitem != NULL);
+      strcpy(tsdbitem, input);
+      _yyfilteredinput = string(tsdbitem);
 
-      if(opt_yy)
-	Input = new yy_tokenlist(input);
-      else
-	Input = new lingo_tokenlist(input);
+      analyze(i_chart, input, Chart, Roots, FSAS, ntsdbitems);
+
+      gettimeofday(&tend, NULL);
+      treal = (tend.tv_sec - tstart.tv_sec) * 1000 
+	+ (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);
       
-      if(Input == 0 || Input->length() <= 0) {
-        for(list<FILE *>::iterator log = _log_channels.begin();
-            log != _log_channels.end();
-            log++) {
-          fprintf(*log,
-                  "[%d] server_child(): ignoring malformed input.\n",
-                  getpid());
-          fflush(*log);
-        } /* for */
-      } /* if */
-      else {
+      for(list<FILE *>::iterator log = _log_channels.begin();
+	  log != _log_channels.end();
+	  log++) {
+	fprintf(*log,
+		"[%d] server_child(): "
+		"(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+		getpid(),
+		stats.id, pedgelimit, stats.readings, 
+		stats.first / 1000., stats.tcpu / 1000.,
+		stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
+	fflush(*log);
+      } /* for */
         
-        Chart = new chart(Input->length());
-        parse(*Chart, Input, nitems);
+      struct MFILE *mstream = mopen();
+      int nres = 1;
 
-        gettimeofday(&tend, NULL);
-        treal = (tend.tv_sec - tstart.tv_sec) * 1000 
-          + (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);
-
-        for(list<FILE *>::iterator log = _log_channels.begin();
-            log != _log_channels.end();
-            log++) {
-          fprintf(*log,
-                  "[%d] server_child(): "
-                  "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-                  getpid(),
-                  stats.id, pedgelimit, stats.readings, 
-                  stats.first / 1000., stats.tcpu / 1000.,
-                  stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-          fflush(*log);
-        } /* for */
-        
-        struct MFILE *mstream = mopen();
-        int nres = 1;
-        for(chart_iter it(*Chart); it.valid(); it++) {
-          if(it.current()->result_root()) {
-            mflush(mstream);
-            int n = construct_k2y(nres++, it.current(), false, mstream);
-            if(n >= 0) {
-              socket_write(socket, mstring(mstream));
-              if(opt_one_meaning) break;
-            } /* if */
-          } /* if */
-        } /* for */
-        mclose(mstream);
-      } /* if */
+      while(!Roots->empty())
+	{
+	  basic_task *t = Roots->pop();
+	  item *it = t->execute();
+	  delete t;
+		
+	  if(it == 0) continue;
+	  
+	  mflush(mstream);
+	  int n = construct_k2y(nres++, it, false, mstream);
+	  if(n >= 0)
+	    {
+	      socket_write(socket, mstring(mstream));
+	      if(opt_one_meaning) break;
+	    }
+	}
+      mclose(mstream);
     } /* try */
     
     catch(error_ressource_limit &e) {
@@ -815,7 +871,7 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 #ifdef TSDBAPI
-      if(opt_tsdb) yy_tsdb_summarize_error(item, Input->length(), e);
+      if(opt_tsdb) yy_tsdb_summarize_error(_yyfilteredinput.c_str(), i_chart.max_position(), e);
 #endif
     } /* catch */
 
@@ -830,7 +886,7 @@ int cheap_server_child(int socket) {
       } /* for */
 
 #ifdef TSDBAPI
-      if(opt_tsdb) yy_tsdb_summarize_error(item, Input->length(), e);
+      if(opt_tsdb) yy_tsdb_summarize_error(_yyfilteredinput.c_str(), i_chart.max_position(), e);
 #endif
     } /* catch */
 
@@ -879,24 +935,22 @@ int cheap_server_child(int socket) {
 
 #ifdef TSDBAPI
       if(!errorp && opt_tsdb && Chart != NULL) {
-        yy_tsdb_summarize_item(*Chart, item, Input->length(), treal, input);
+        yy_tsdb_summarize_item(*Chart, Roots, _yyfilteredinput.c_str(), i_chart.max_position(), treal, input);
       } /* if */
 #endif
       socket_write(socket, "\f");
 
     } /* else */
 
-    if(item != NULL) delete[] item; item = (char *)NULL;
-    if(Input != NULL) delete Input;
-    Input = (tokenlist *)NULL;
-    if(Chart != NULL) delete Chart;
-    Chart = (chart *)NULL;
-    
+    if(tsdbitem != 0) delete[] tsdbitem; tsdbitem = 0;
+    if(Chart != 0) delete Chart; Chart = 0;
+    delete Roots;
+
   } /* for */
 
   fclose(stream);
   close(socket);
-  return --nitems;
+  return --ntsdbitems;
 
 } /* cheap_server_child() */
 
@@ -994,20 +1048,17 @@ static void _sigchld(int foo) {
 } /* _sigchld() */
 
 #ifdef TSDBAPI
-int yy_tsdb_summarize_item(chart &Chart, char *item, int length,
-                           int treal, char *rt) {
+int yy_tsdb_summarize_item(chart &Chart, agenda *Roots, const char *item,
+			   int length, int treal, char *rt) {
 
   if(!client_open_item_summary()) {
     capi_printf("(:run . (");
     cheap_tsdb_summarize_run();
     capi_printf("))\n");
-    capi_printf("(:i-length . %d) (:i-input . \"", length);
-    for(char *foo = item; *foo; foo++) {
-      if(*foo == '"' || *foo == '\\') capi_putc('\\');
-      capi_putc(*foo);
-    } /* for */
-    capi_printf("\")");
-    cheap_tsdb_summarize_item(Chart, length, treal, 0, rt);
+    capi_printf("(:i-length . %d) (:i-input . ", length);
+    capi_putstr(item);
+    capi_printf(")");
+    cheap_tsdb_summarize_item(Chart, Roots, length, treal, 0, rt);
     return client_send_item_summary();
   } /* if */
 
@@ -1024,18 +1075,13 @@ int yy_tsdb_summarize_item(chart &Chart, char *item, int length,
 
 } /* yy_tsdb_summarize_item() */
 
-int yy_tsdb_summarize_error(char *item, int length, error &condition) {
+int yy_tsdb_summarize_error(const char *item, int length, error &condition) {
 
   if(!client_open_item_summary()) {
-    capi_printf("(:i-length . %d) (:i-input . \"", length);
-    if(item != NULL) {
-      for(char *foo = item; *foo; foo++) {
-        if(*foo == '"' || *foo == '\\') capi_putc('\\');
-        capi_putc(*foo);
-      } /* for */
-    } /* if */
-    capi_printf("\")");
-    cheap_tsdb_summarize_error(condition);
+    capi_printf("(:i-length . %d) (:i-input . ", length);
+    capi_putstr(item);
+    capi_printf(")");
+    cheap_tsdb_summarize_error(condition, 0);
     return client_send_item_summary();
   } /* if */
   for(list<FILE *>::iterator log = _log_channels.begin();
@@ -1052,6 +1098,3 @@ int yy_tsdb_summarize_error(char *item, int length, error &condition) {
 } /* yy_tsdb_summarize_error() */
 #endif
 #endif
-
-
-

@@ -1,25 +1,22 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* class to manage chunks of memory for efficient allocation of objects */
 
-/* this class has two implementations of the basic memory allocation,
+/* this class has several implementations of its low-level memory allocation,
    one that is unix dependend, supporting two heaps with disjunct and
-   easy to distinguis address rooms to allow cheap zero-overhead seperation
-   of permanent and non-permant dags; the other implementation only
-   relies on C++ memory management */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <new>
-#include <fcntl.h>
+   easy to distinguish address rooms to allow zero-overhead seperation
+   of permanent and non-permant dags (colored pointers); another windows-
+   specific implementation that uses VirtualAlloc; and a third one that
+   relies on standard C++ memory management only */
 
 #ifdef USEMMAP
 #include <unistd.h>
 #endif
 
+#include "pet-system.h"
 #include "chunk-alloc.h"
 #ifdef FLOP
 #include "flop.h"
@@ -43,7 +40,7 @@ chunk_allocator::chunk_allocator(int chunk_size, bool down        )
   _chunk_pos = 0;
   _nchunks = 0;
 
-  _chunk = new char* [MAX_CHUNKS];
+  _chunk = New char* [MAX_CHUNKS];
 
   _init_core(down);
 
@@ -62,13 +59,16 @@ chunk_allocator::~chunk_allocator()
   delete[] _chunk;
 }
 
+#ifdef __borlandc__
 #pragma argsused
+#endif
 void chunk_allocator::_overflow(int n)
 {
+  if(n > _chunk_size)
+    throw error("alloc: chunk_size too small");
+
   if(++_curr_chunk >= MAX_CHUNKS)
-    {
-      fprintf(ferr, "alloc: out of chunks\n"); exit(1);
-    }
+    throw error("alloc: out of chunks");
   
   if(_curr_chunk >= _nchunks)
     {
@@ -202,7 +202,7 @@ void *chunk_allocator::_core_alloc(int size)
 	      size,
 	      _core_down ? "down" : "up",
 	      (int) _mmap_up_mark, (int) _mmap_down_mark);
-      exit(1);
+      throw error("alloc: mmap problem");
     }
 
   if(_core_down)
@@ -214,7 +214,7 @@ void *chunk_allocator::_core_alloc(int size)
     {
       fprintf(ferr, "alloc: no space (up = %xd, down = %xd)\n",
 	      (int) _mmap_up_mark, (int) _mmap_down_mark);
-      exit(1);
+      throw error("alloc: out of mmap space");
     }
 
   return p;
@@ -225,9 +225,7 @@ int chunk_allocator::_core_free(void *p, int size)
   int res = munmap((char *) p, size);
 
   if(res == -1)
-    {
-      fprintf(ferr, "alloc: couldn't munmap\n"); exit(1);
-    }
+    throw error("alloc: munmap error");
 
   if(_core_down)
     _mmap_down_mark += size;
@@ -252,7 +250,7 @@ void chunk_allocator::_init_core(bool down)
 
 void *chunk_allocator::_core_alloc(int size)
 {
-  void *p = (void *) new char[size];
+  void *p = (void *) New char[size];
   return p;
 }
 

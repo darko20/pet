@@ -1,28 +1,19 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* lexer for files in TDL syntax */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-
-#ifndef WINDOWS
-#include <sys/mman.h>
-#include <sys/time.h>
-#endif
+#include "pet-system.h"
+#include "lex-tdl.h"
+#include "errors.h"
 
 #ifdef FLOP
 #include "flop.h"
 #include "options.h"
 #endif
 
-#include "lex-tdl.h"
 
 char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
@@ -33,7 +24,7 @@ char *lexer_idchars = "_+-*?";
 
 int is_idchar(int c)
 {
-  return isalnum(c) || strchr(lexer_idchars, c);
+  return isalnum(c) || strchr(lexer_idchars, c) || c > 127 || c < 0;
 }
 
 int lisp_mode = 0; // shall lexer recognize lisp expressions 
@@ -169,7 +160,7 @@ struct lex_token *get_next_token()
             { // runaway comment
                    fprintf(ferr, "runaway block comment starting in %s:%d.%d\n",
                            curr_fname(), curr_line(), curr_col());
-            exit(1);
+		   throw error("runaway block comment");
             }
           
           i += 2;
@@ -192,7 +183,7 @@ struct lex_token *get_next_token()
 	{ // runaway string
 	  fprintf(ferr, "runaway string starting in %s:%d.%d\n",
 		  curr_fname(), curr_line(), curr_col());
-	  exit(1);
+	  throw error("runaway string");
 	}
 
       i += 1;
@@ -218,7 +209,7 @@ struct lex_token *get_next_token()
 	{ // runaway LISP expression
 	  fprintf(ferr, "runaway LISP expression starting in %s:%d.%d\n",
 		  curr_fname(), curr_line(), curr_col());
-	  exit(1);
+	  throw error("runaway LISP expression");
 	}
       
       t = make_token(T_LISP, start, i);
@@ -276,7 +267,7 @@ struct lex_token *get_next_token()
             i++;
         }
 
-      t = make_token(alldigs ? (isfloat ? T_FLOAT : T_INT) : T_ID, start, i);
+      t = make_token(T_ID, start, i);
       LConsume(i);
 
       if(t->tag == T_ID)
@@ -377,7 +368,7 @@ struct lex_token *get_next_token()
 	  {
 	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
 		    (char) c, curr_fname(), curr_line(), curr_col());
-	    exit(1);
+	    throw error("unexpected character in input");
 	  }
 	}
       txt[0] = (char) c;
@@ -537,7 +528,7 @@ void recover(enum TOKEN_TAG tag)
   if(LA(0) ->tag == T_EOF)
     {
       fprintf(ferr, "confused by previous errors, bailing out...\n");
-      exit(1);
+      throw error("confused");
     }
   
   if(LA(0) == last_t) consume(1);

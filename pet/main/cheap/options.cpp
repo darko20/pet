@@ -1,11 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* command line options */
 
-#include <stdlib.h>
+#include "pet-system.h"
 
 #include "getopt.h"
 #include "fs.h"
@@ -13,17 +13,12 @@
 #include "options.h"
 #include "../common/utility.h"
 
-
-#ifdef __BORLANDC__
-#define strcasecmp stricmp
-#endif
-
 bool opt_one_solution, opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_compute_qc, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
-  opt_linebreaks, opt_chart_man;
+  opt_linebreaks, opt_chart_man, opt_interactive_morph;
 #ifdef YY
-bool opt_one_meaning, opt_yy;
+bool opt_one_meaning, opt_yy, opt_k2y_segregation;
 int unsigned opt_k2y;
 #endif
 
@@ -55,10 +50,15 @@ void usage(FILE *f)
 #ifdef YY
   fprintf(f, "  `-k2y[=n]' --- "
           "output K2Y, filter at `n' %% of raw atoms (default: 50)\n");
+  fprintf(f, "  `-k2y-segregation' --- "
+          "pre-nominal modifiers in analogy to reduced relatives\n");
   fprintf(f, "  `-one-meaning' --- non exhaustive search for first valid semantic formula\n");
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
+#ifdef ONLINEMORPH
+  fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
+#endif
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
@@ -83,12 +83,13 @@ void usage(FILE *f)
 #define OPTION_NO_CHART_MAN 16
 #define OPTION_LOG 17
 #define OPTION_MEMLIMIT 18
+#define OPTION_INTERACTIVE_MORPH 19
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
 #define OPTION_YY 101
 #define OPTION_K2Y 102
-
+#define OPTION_K2Y_SEGREGATION 103
 #endif
 
 void init_options()
@@ -112,9 +113,11 @@ void init_options()
   opt_server = 0;
   opt_pg = false;
   opt_chart_man = true;
+  opt_interactive_morph = false;
 #ifdef YY
   opt_yy = false;
   opt_k2y = 0;
+  opt_k2y_segregation = false;
   opt_one_meaning = false;
 #endif
 }
@@ -147,10 +150,12 @@ bool parse_options(int argc, char* argv[])
     {"yy", no_argument, 0, OPTION_YY},
     {"one-meaning", no_argument, 0, OPTION_ONE_MEANING},
     {"k2y", optional_argument, 0, OPTION_K2Y},
+    {"k2y-segregation", no_argument, 0, OPTION_K2Y_SEGREGATION},
 #endif
     {"server", optional_argument, 0, OPTION_SERVER},
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", no_argument, 0, OPTION_PG},
+    {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -206,6 +211,9 @@ bool parse_options(int argc, char* argv[])
         case OPTION_PG:
           opt_pg = true;
           break;
+	case OPTION_INTERACTIVE_MORPH:
+	  opt_interactive_morph = true;
+	  break;
         case OPTION_VERBOSE:
           if(optarg != NULL)
 	    verbosity = strtoint(optarg, "as argument to `-verbose'");
@@ -242,6 +250,9 @@ bool parse_options(int argc, char* argv[])
             opt_k2y = strtoint(optarg, "as argument to -k2y");
           else
             opt_k2y = 50;
+          break;
+        case OPTION_K2Y_SEGREGATION:
+          opt_k2y_segregation = true;
           break;
         case OPTION_YY:
           opt_yy = true;
@@ -289,7 +300,10 @@ void options_from_settings(settings *set)
   memlimit = 1024 * 1024 * int_setting(set, "memlimit");
   opt_hyper = bool_setting(set, "hyper");
   opt_default_les = bool_setting(set, "default-les");
+#ifdef YY
   opt_k2y = int_setting(set, "k2y");
   opt_yy = bool_setting(set, "yy");
+  opt_k2y_segregation = bool_setting(set, "k2y-segregation");
   opt_one_meaning = bool_setting(set, "one-meaning");
+#endif
 }

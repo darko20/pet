@@ -1,6 +1,9 @@
 /* pseudo files kept in memory */
 
 #include <stdlib.h>
+#ifdef SMARTHEAP
+#include <smrtheap.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,0 +1,24 @@
+C++ = g++ ;
+C++FLAGS += -g -Wall -DNew=new ;
+LINKFLAGS += ;
+OPTIM = -O3 ;
+
+SEARCH_SOURCE += ../common ;
+
+FLOPSOURCES = flop.cpp builtins.cpp terms.cpp settings.cpp full-form.cpp
+              lex-io.cpp lex-tdl.cpp parse-tdl.cpp print-chic.cpp 
+	      print-tdl.cpp template.cpp corefs.cpp util.cpp options.cpp
+	      bitcode.cpp types.cpp hierarchy.cpp expand.cpp reduction.cpp
+	      dag-arced.cpp dag-simple.cpp dag-common.cpp dag-tdl.cpp
+	      dag-io.cpp dag-alloc.cpp dumper.cpp grammar-dump.cpp dump.cpp
+              errors.cpp chunk-alloc.cpp utility.cpp ;
+
+C++FLAGS += -DLEDA_PREFIX -DGITSETWK -DUSEMMAP -DDAG_SIMPLE -DWROBLEWSKI3
+	    -DFLOP ;
+
+HDRS += . $(LEDAROOT)/incl ;
+
+LINKLIBS on flop = $(LEDAROOT)/libG.a $(LEDAROOT)/libL.a -lm -lstdc++ -ldl
+                   -liberty ;
+
+Main flop : $(FLOPSOURCES) ; 

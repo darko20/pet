@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -8,13 +8,9 @@
 #ifndef _DAG_COMMON_H_
 #define _DAG_COMMON_H_
 
-#include <list>
-#include <stdio.h>
-
 #include "list-int.h"
 #include "dumper.h"
-
-typedef int type_t;
+#include "types.h"
 
 struct dag_node;
 
@@ -23,6 +19,8 @@ extern struct dag_node *FAIL;
 extern bool unify_wellformed;
 
 extern struct dag_node **typedag;
+
+extern vector<dag_node *> dyntypedag;  // dags for dynamic types
 
 // cost of last unification - measured in number of nodes visited
 extern int unification_cost;
@@ -90,15 +88,15 @@ void register_dag(int i, struct dag_node *dag);
 
 struct dag_node *dag_undump(dumper *f);
 
-struct dag_node *dag_get_attr_value(struct dag_node *dag, char *attr);
-struct dag_node *dag_create_attr_value(char *attr, dag_node *val);
+struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr);
+struct dag_node *dag_create_attr_value(const char *attr, dag_node *val);
 
-struct dag_node *dag_get_path_value(struct dag_node *dag, char *path);
-struct dag_node *dag_create_path_value(char *path, int type);
+struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path);
+struct dag_node *dag_create_path_value(const char *path, int type);
 
 struct dag_node *dag_get_path_value_l(struct dag_node *dag, list_int *path);
 list<struct dag_node *> dag_get_list(struct dag_node* first);
-dag_node *dag_listify_ints(int *, int);
+dag_node *dag_listify_ints(list_int *);
 struct dag_node *dag_nth_arg(struct dag_node *dag, int n);
 
 //
@@ -135,5 +133,6 @@ struct qc_node;
 
 struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len);
 void dag_get_qc_vector(struct qc_node *, struct dag_node *dag, type_t *qc_vector);
+void dag_qc_free();
 
 #endif

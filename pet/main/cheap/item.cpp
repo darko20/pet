@@ -1,12 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* chart items */
 
-#include <assert.h>
-
+#include "pet-system.h"
 #include "cheap.h"
 #include "../common/utility.h"
 #include "types.h"
@@ -17,237 +16,100 @@
 //#define DEBUG
 //#define DEBUGPOS
 
-int item::next_id = 1;
+item_owner *item::_default_owner = 0;
+int item::_next_id = 1;
 
-item::item(int start, int end, fs &f, char *name)
-  : _stamp(-1), _start(start), _end(end), _fs(f), _tofill(0), _result_root(0), _result_contrib(0), _nparents(0), _name(name), parents(), packed()
+item::item(int start, int end, int p, fs &f, const char *printname)
+  : _id(_next_id++), _stamp(-1),
+    _start(start), _end(end), _spanningonly(false), _fs(f), _tofill(0), 
+    _inflrs_todo(0),
+    _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
+    _p(p), _q(0), _r(0), _printname(printname), _done(0), _frozen(0),
+    parents(), packed()
 {
-  _id = next_id++;
-  _qc_vector = 0;
-  _done = 0;
-#ifdef PACKING
-  _frozen = 0;
-#endif
+  if(_default_owner) _default_owner->add(this);
 }
 
-item::item(int start, int end, char *name)
-  : _stamp(-1), _start(start), _end(end), _tofill(0), _result_root(0), _result_contrib(0), _nparents(0), _name(name), parents(), packed()
+item::item(int start, int end, int p, const char *printname)
+  : _id(_next_id++), _stamp(-1),
+    _start(start), _end(end), _spanningonly(false), _fs(), _tofill(0),
+    _inflrs_todo(0),
+    _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
+    _p(p), _q(0), _r(0), _printname(printname), _done(0), _frozen(0),
+    parents(), packed()
 {
-  _id = next_id++;
-  _qc_vector = 0;
-  _done = 0;
-  _fs = fs();
+  if(_default_owner) _default_owner->add(this);
 }
 
 item::~item()
 {
-  if(_qc_vector != 0) delete[] _qc_vector;
+  if(_qc_vector) delete[] _qc_vector;
+  free_list(_inflrs_todo);
 }
 
-lex_item::lex_item(class lex_entry *le, int pos, 
-                   fs &f, const postags &POS, int offset)
-  : item(pos - le->offset(), pos - le->offset() + le->length(), f, le->name()),
-    _pos()
+lex_item::lex_item(int start, int end, int ndtrs, int keydtr,
+		   input_token **dtrs, int p, fs &f, const char *printname)
+  : item(start, end, p, f, printname), _ndtrs(ndtrs), _keydtr(keydtr)
 {
-  _le = le;
-  _offset = offset;
+  _dtrs = New input_token*[_ndtrs] ;
+
+  for (int i = 0; i < _ndtrs; i++)
+    _dtrs[i] = dtrs[i] ;
+
+  _inflrs_todo = copy_list(_dtrs[_keydtr]->form().affixes());
+  if(_inflrs_todo)
+    _trait = INFL_TRAIT;
+  else
+    _trait = LEX_TRAIT;
 
   if(opt_nqc != 0)
     _qc_vector = get_qc_vector(f);
-
-  _p = le->priority();
-  
-#ifdef YY
-  //
-  // _hack_ 
-  // stamp in position information for K2Y: link input words to K2Y clauses
-  //
-  if(opt_k2y)
-    {
-      fs label = f.get_path_value("SYNSEM.LOCAL.KEYS.KEY.LABEL");
-      if(!label.valid())
-        label = f.get_path_value("SYNSEM.LOCAL.KEYS.ALTKEY.LABEL");
-      if(label.valid() && label.type() == BI_CONS)
-	{
-	  int *span = new int[le->length()];
-	  for(int i = 0; i < le->length(); i++)
-	    span[i] = _start + i;
-	  fs ras = fs(dag_listify_ints(span, le->length()));
-	  delete[] span;
-	  fs result = unify(f, label, ras);
-	  if(result.valid()) _fs = result;
-	}
-    }
-
-  setting *set;
-  if((set = cheap_settings->lookup("type-to-pos")) != 0)
-    {
-      for(int i = 0; i < set->n; i+=2)
-	{
-	  if(i+2 > set->n)
-	    {
-	      fprintf(ferr, "warning: incomplete last entry in type to POS mapping - ignored\n");
-	      break;
-	    }
-      
-	  char *lhs = set->values[i], *rhs = set->values[i+1];
-	  int id = lookup_type(lhs);
-	  if(id != -1)
-	    {
-	      if(subtype(_le->basetype(), id))
-		{
-		  _pos = string(rhs);
-		  break;
-		}
-	    }
-	  else
-	    fprintf(ferr, "warning: unknown type `%s' in type to POS mapping - ignored\n", lhs);
-
-	}
-
-    }
-#endif
-
 #ifdef DEBUG
   fprintf(ferr, "new lexical item (`%s[%s]'):", 
-	  le->name(), le->affixname());
+	  le->printname(), le->affixprintname());
   print(ferr);
   fprintf(ferr, "\n");
 #endif
 }
 
-//
-// Adjust priority for generic lexical item according to POS information
-// and mapping specified in configuration file
-//
-// Find first matching tuple in mapping, and set to this priority
-// If not match found, leave unchanged
-//
-
-void generic_le_item::compute_pos_priority(const postags &POS)
+bool
+lex_item::same_dtrs(int ndtrs, input_token **dtrs) const
 {
-  setting *set = cheap_settings->lookup("posmapping");
-  if(set == 0) return;
-
-#ifdef DEBUGPOS
-  fprintf(ferr, "adjusting priority for %s(`%s')\n", typenames[_type],
-          _orth.c_str());
-#endif
-
-  for(int i = 0; i < set->n; i+=3)
+  if(_ndtrs != ndtrs)
+    return false;
+  
+  for(int i = 0; i < _ndtrs; i++)
     {
-      if(i+3 > set->n)
-        {
-          fprintf(ferr, "warning: incomplete last entry in POS mapping - ignored\n");
-          break;
-        }
-      
-      char *lhs = set->values[i], *p = set->values[i+1],
-        *rhs = set->values[i+2];
-      
-#ifdef DEBUGPOS
-      fprintf(ferr, "checking triple %d (%s %s %s)\n",
-              i, lhs, p, rhs);
-#endif
-
-      int prio = strtoint(p, "as priority value in POS mapping");
-
-      int type = lookup_type(rhs);
-      if(type == -1)
-        {
-          fprintf(ferr, "warning: unknown type `%s' in POS mapping\n",
-                  rhs);
-        }
+      if(i == _keydtr)
+	{
+	  if(*_dtrs[i] != *dtrs[i])
+	    return false;
+	}
       else
 	{
-	  if(subtype(_type, type))
-	    {
-#ifdef DEBUGPOS
-	      fprintf(ferr, "entry #%d matches rhs (%s, %d, %s)\n",
-		      i/3, rhs, prio, lhs);
-#endif
-	      if(POS.contains(lhs))
-		{
-#ifdef DEBUGPOS
-		  fprintf(ferr, "  also matches lhs\n");
-#endif
-		  _p = prio;
-		  return;
-		}
-	      
-	    }
+	  if(_dtrs[i]->orth() != dtrs[i]->orth())
+	    return false;
 	}
     }
-
-}
-
-generic_le_item::generic_le_item(int type, int pos, 
-                                 string orth, const postags &POS, int discount)
-  : item(pos, pos+1, typenames[type]), _orth(orth)
-{
-  _type = type;
   
-  fs e(leaftype_parent(_type));
-  if(!e.valid())
-    throw error("unable to instantiate base for generic");
-
-  _fs = unify(e, fs(_type), e);
-  if(!_fs.valid())
-    throw error("unable to expand generic");
-
-  if(opt_nqc != 0)
-    _qc_vector = get_qc_vector(_fs);
-
-  char *v;
-  if((v = cheap_settings->value("default-gen-le-priority")) != 0)
-    {
-      _p = strtoint(v, "as value of default-le-priority");
-    }
-
-  if((v = cheap_settings->sassoc("likely-le-types", _type)) != 0)
-    {
-      _p = strtoint(v, "in value of likely-le-types");
-    }
-
-  if((v = cheap_settings->sassoc("unlikely-le-types", _type)) != 0)
-    {
-      _p = strtoint(v, "in value of unlikely-le-types");
-    }
-
-  compute_pos_priority(POS);
-  _p -= discount;
-  if(_p < 0) _p = 0;
-
-#ifdef YY
-  //
-  // _hack_ 
-  // stamp in position information for K2Y: link input words to K2Y clauses
-  //
-  if(opt_k2y) {
-    fs label = _fs.get_path_value("SYNSEM.LOCAL.KEYS.KEY.LABEL");
-    if(label.valid() && label.type() == BI_CONS) {
-      int span[1];
-      span[0] = pos;
-      fs ras = fs(dag_listify_ints(span, 1));
-      fs result = unify(_fs, label, ras);
-      if(result.valid()) _fs = result;
-    } /* if */
-  } /* if */
-#endif
-
-#if (defined(DEBUG) || defined(DEBUGPOS))
-  fprintf(ferr, "new generic lexical item (`%s'):",
-         typenames[_type]);
-  print(ferr);
-  fprintf(ferr, "\n");
-#endif
+  return true;
 }
 
 phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
-  : item(pasv->_start, pasv->_end, f, R->name()), _daughters(), _adaughter(0), _rule(R)
+  : item(pasv->_start, pasv->_end, R->priority(pasv->priority()), f, R->printname()), _daughters(), _adaughter(0), _rule(R)
 {
   _tofill = R->restargs();
   _daughters.push_back(pasv);
+
+  _trait = R->trait();
+  if(_trait == INFL_TRAIT)
+    {
+      _inflrs_todo = copy_list(rest(pasv->_inflrs_todo));
+      if(_inflrs_todo == 0)
+	_trait = LEX_TRAIT;
+    }
+  
+  _spanningonly = R->spanningonly();
 
   pasv->_nparents++; pasv->parents.push_back(this);
 
@@ -259,7 +121,6 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
 	_qc_vector = get_qc_vector(nextarg(f));
     }
 
-  _p = R->priority();
   _q = pasv->priority();
 
   // rule stuff
@@ -270,14 +131,14 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
 
 #ifdef DEBUG
   fprintf(ferr, "new rule item (`%s' + %d@%d):", 
-	  R->name(), pasv->id(), R->nextarg());
+	  R->printname(), pasv->id(), R->nextarg());
   print(ferr);
   fprintf(ferr, "\n");
 #endif
 }
 
 phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
-  : item(-1, -1, f, active->name()), _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
+  : item(-1, -1, active->priority(), f, active->printname()), _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
 {
   if(active->left_extending())
     {
@@ -297,6 +158,8 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 
   _tofill = active->restargs();
 
+  _trait = SYNTAX_TRAIT;
+
   if(opt_nqc != 0)
     {
       if(passive())
@@ -305,7 +168,6 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 	_qc_vector = get_qc_vector(nextarg(f));
     }
 
-  _p = active->priority();
   _q = pasv->priority();
   
   // rule stuff
@@ -322,48 +184,47 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 #endif
 }
 
-string lex_item::postag()
+void lex_item::set_result_root(type_t rule)
 {
-  return _pos;
+  set_result_contrib();
+  _result_root = rule;
 }
 
-void lex_item::set_result(bool root)
+void phrasal_item::set_result_root(type_t rule)
 {
-  _result_contrib = 1;
-  if(root) _result_root = 1;
-}
-
-void generic_le_item::set_result(bool root)
-{
-  _result_contrib = 1;
-  if(root) _result_root = 1;
-}
-
-void phrasal_item::set_result(bool root)
-{
-  if(_result_contrib == 0)
+  if(result_contrib() == false)
     {
       for(list<item *>::iterator pos = _daughters.begin();
           pos != _daughters.end();
           ++pos)
-	(*pos)->set_result(false);
+	(*pos)->set_result_contrib();
 
       if(_adaughter)
-	_adaughter->set_result(false);
+	_adaughter->set_result_contrib();
     }
   
-  _result_contrib = 1;
-  if(root) _result_root = 1;
+  set_result_contrib();
+  _result_root = rule;
 }
 
 void item::print(FILE *f, bool compact)
 {
-  fprintf(f, "[%d %d-%d %s (%d) %d {", _id, _start, _end, _fs.name(), _fs.size(), _p);
+  fprintf(f, "[%d %d-%d %s (%d) %d {", _id, _start, _end, _fs.printname(),
+	  _trait, _p);
 
   list_int *l = _tofill;
   while(l)
     {
       fprintf(f, "%d ", first(l));
+      l = rest(l);
+    }
+
+  fprintf(f, "} {");
+
+  l = _inflrs_todo;
+  while(l)
+    {
+      fprintf(f, "%s ", printnames[first(l)]);
       l = rest(l);
     }
   
@@ -379,7 +240,6 @@ void item::print(FILE *f, bool compact)
 void lex_item::print(FILE *f, bool compact)
 {
   fprintf(f, "L ");
-  if(!_pos.empty()) fprintf(f, "%s ", _pos.c_str());
   item::print(f);
   if(verbosity > 10 && compact == false)
     {
@@ -388,15 +248,11 @@ void lex_item::print(FILE *f, bool compact)
     }
 }
 
-void generic_le_item::print(FILE *f, bool compact)
+string
+lex_item::description()
 {
-  fprintf(f, "G ");
-  item::print(f);
-  if(verbosity > 10 && compact == false)
-    {
-      fprintf(f, "\n");
-      _fs.print(f);
-    }
+  if(_ndtrs == 0) return string();
+  return _dtrs[_keydtr]->description();
 }
 
 void phrasal_item::print(FILE *f, bool compact)
@@ -417,63 +273,73 @@ void phrasal_item::print(FILE *f, bool compact)
     }
 }
 
+static int derivation_indentation = 0; // not elegant
+
 void lex_item::print_derivation(FILE *f, bool quoted, int offset)
 {
-  _le->print_derivation(f, quoted, _start - offset, _end - offset, _id);
+  fprintf(f, "%*s", derivation_indentation, "");
+
+  string orth;
+
+  for(int i = 0; i < _ndtrs; i++)
+    {
+      if(i != 0) orth += " ";
+      orth += _dtrs[i]->orth();
+    }
+
+  _dtrs[_keydtr]->print_derivation(f, quoted, offset, _id, _p, _q, _inflrs_todo, orth);
 }
 
 #ifdef TSDBAPI
 void lex_item::tsdb_print_derivation(int offset)
 {
-  _le->tsdb_print_derivation(_start - offset, _end - offset, _id);
-}
-#endif
+  string orth;
 
-void generic_le_item::print_derivation(FILE *f, bool quoted, int offset)
-{
-  fprintf(f, 
-          "(%d %s %d %d %d (%s\"", 
-          _id, name(), _p, _start, _end, quoted ? "\\" : "");
-  fprintf(f, "%s", _orth.c_str());
-  fprintf(f, "%s\" %d %d))", quoted ? "\\" : "", _start, _end);
-}
+  for(int i = 0; i < _ndtrs; i++)
+    {
+      if(i != 0) orth += " ";
+      orth += _dtrs[i]->orth();
+    }
 
-#ifdef TSDBAPI
-void generic_le_item::tsdb_print_derivation(int offset)
-{
-  capi_printf("(%d %s %d %d %d (\\\"", 
-              _id, name(), _p, _start, _end);
-  //
-  // _hack_
-  // really, capi_printf() should do appropriate escaping, depending on the
-  // context; but we would need to elaborate it significantly, i guess, so 
-  // hack around it for the time being: it seems very unlikely, we will see 
-  // embedded quotes anyplace else. 
-  //                                                  (1-feb-01  -  oe@yy)
-  for(char *foo = (char *)_orth.c_str(); *foo; foo++) {
-    if(*foo == '"' || *foo == '\\') {
-      capi_putc('\\');
-      capi_putc('\\');
-      capi_putc('\\');
-    } /* if */
-    capi_putc(*foo);
-  } /* for */
-  capi_printf("\\\" %d %d))",  _start, _end);
+  _dtrs[_keydtr]->tsdb_print_derivation(offset, _id, orth);
 }
 #endif
 
 void phrasal_item::print_derivation(FILE *f, bool quoted, int offset)
 {
-  fprintf(f, 
-          "(%d %s %d %d %d", 
-          _id, name(), _p, _start - offset, _end - offset);
+  if(derivation_indentation == 0)
+    fprintf(f, "\n");
+  else
+    fprintf(f, "%*s", derivation_indentation, "");
 
+  fprintf(f, 
+          "(%d %s %d/%d %d %d", 
+          _id, printname(), _p, _q, _start - offset, _end - offset);
+
+  if(_result_root != -1)
+    {
+      fprintf(f, " [%s %d]", printnames[_result_root], _r);
+    }
+  
+  if(_inflrs_todo)
+    {
+      fprintf(f, " [");
+      for(list_int *l = _inflrs_todo; l != 0; l = rest(l))
+	{
+	  fprintf(f, "%s%s", printnames[first(l)], rest(l) == 0 ? "" : " ");
+	}
+      fprintf(f, "]");
+    }
+
+  derivation_indentation+=2;
   for(list<item *>::iterator pos = _daughters.begin();
       pos != _daughters.end(); ++pos)
     {
-      fprintf(f, " ");
+      fprintf(f, "\n");
+      // the offset here gives us positions relative to the mother node
       (*pos)->print_derivation(f, quoted, _start);
     }
+  derivation_indentation-=2;
 
   fprintf(f, ")");
 }
@@ -482,7 +348,7 @@ void phrasal_item::print_derivation(FILE *f, bool quoted, int offset)
 void phrasal_item::tsdb_print_derivation(int offset)
 {
   capi_printf("(%d %s %d %d %d", 
-              _id, name(), _p, _start - offset, _end - offset);
+              _id, printname(), _p, _start - offset, _end - offset);
 
   for(list<item *>::iterator pos = _daughters.begin();
       pos != _daughters.end(); ++pos)
@@ -500,11 +366,6 @@ grammar_rule *lex_item::rule()
   return NULL;
 }
 
-grammar_rule *generic_le_item::rule()
-{
-  return NULL;
-}
-
 grammar_rule *phrasal_item::rule()
 {
   return _rule;
@@ -512,14 +373,7 @@ grammar_rule *phrasal_item::rule()
 
 void lex_item::recreate_fs()
 {
-  _fs = _le->instantiate();
-}
-
-void generic_le_item::recreate_fs()
-{
-  _fs = fs(_type);
-  if(!_fs.valid())
-    throw error("unable to expand generic");
+  throw error("cannot rebuild lexical item's feature structure");
 }
 
 void phrasal_item::recreate_fs()

@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -14,15 +14,18 @@
 // #define CACHESTATS
 // #define PRUNING
 
-#ifdef CACHESTATS
-#include <map>
-#endif
-
 #include "chunk-alloc.h"
+
+typedef long typecachekey_t;
+
+// note that the initial cache has to fit in one chunk, thus
+// GLB_CACHE_SIZE*sizeof(typecachebucket) must be <= GLB_CHUNK_SIZE
+#define GLB_CACHE_SIZE (12289 /* 49157 */)
+#define GLB_CHUNK_SIZE ((int(GLB_CACHE_SIZE*sizeof(typecachebucket)/4096)+1)*4096)
 
 struct typecachebucket
 {
-  int key; int value;
+  typecachekey_t key; int value;
 
 #ifdef CACHESTATS
   unsigned short refs;
@@ -34,7 +37,7 @@ struct typecachebucket
 class typecache
 {
  private:
-  static const int _no_key = -1;
+  static const typecachekey_t _no_key = -1;
 
   chunk_allocator _cache_alloc;
   chunk_alloc_state _initial_alloc;
@@ -62,8 +65,8 @@ class typecache
   
  public:
   
-  inline typecache(int no_value = 0, int nbuckets = /* 49157 */ 12289 ) :
-    _cache_alloc(CHUNK_SIZE, true),
+  inline typecache(int no_value = 0, int nbuckets = GLB_CACHE_SIZE ) :
+    _cache_alloc(GLB_CHUNK_SIZE, true),
     _no_value(no_value), _nbuckets(nbuckets), _buckets(0), _size(0),
     _overflows(0)
     {
@@ -84,12 +87,12 @@ class typecache
       _cache_alloc.reset();
     }
 
-  inline int hash(int key)
+  inline int hash(typecachekey_t key)
     {
       return key % _nbuckets;
     }
 
-  inline int& operator[](const int key)
+  inline int& operator[](const typecachekey_t key)
     {
       typecachebucket *b = _buckets + hash(key);
 
@@ -149,6 +152,8 @@ class typecache
       b -> value = 0;
       return b->value;
     }
+
+  inline chunk_allocator& alloc() { return _cache_alloc; }
 
   inline void clear()
     {

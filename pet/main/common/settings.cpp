@@ -1,16 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* parse the settings file */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-
+#include "pet-system.h"
 #include "lex-tdl.h"
 #include "settings.h"
 #include "utility.h"
@@ -38,9 +33,10 @@ char *settings::basename(const char *base)
 }
 
 settings::settings(const char *name, const char *base, char *message)
+  : _li_cache()
 {
   _n = 0;
-  _set = new setting*[SET_TABLE_SIZE];
+  _set = New setting*[SET_TABLE_SIZE];
 
   _prefix = 0;
   _fname = 0;
@@ -48,7 +44,7 @@ settings::settings(const char *name, const char *base, char *message)
   if(base)
     {
       char *slash = strrchr((char *) base, PATH_SEP[0]);
-      _prefix = (char *) malloc(strlen(base));
+      _prefix = (char *) malloc(strlen(base) + 1 + strlen(SET_SUBDIRECTORY) + 1);
       if(slash)
 	{
 	  strncpy(_prefix, base, slash - base + 1);
@@ -59,18 +55,20 @@ settings::settings(const char *name, const char *base, char *message)
 	  strcpy(_prefix, "");
 	}
 
-      char *fname = (char *) malloc(strlen(_prefix) + strlen(SET_SUBDIRECTORY) + 1 + strlen(name) + 1);
+      char *fname = (char *) malloc(strlen(_prefix) + 1 + strlen(name) + 1);
       strcpy(fname, _prefix);
       strcat(fname, name);
       
       _fname = find_file(fname, SET_EXT, true);
       if(!_fname)
 	{
+	  strcat(_prefix, SET_SUBDIRECTORY);
+	  strcat(_prefix, PATH_SEP);
+          fname = (char *) realloc(fname, strlen(_prefix) + 1 + strlen(name) + 1);
 	  strcpy(fname, _prefix);
-	  strcat(fname, SET_SUBDIRECTORY);
-	  strcat(fname, PATH_SEP);
 	  strcat(fname, name);
 	  _fname = find_file(fname, SET_EXT, true);
+          free(fname);
 	}
     }
   else
@@ -82,6 +80,7 @@ settings::settings(const char *name, const char *base, char *message)
   if(_fname)
     {
       push_file(_fname, message);
+      free(_fname);
       char *sv = lexer_idchars;
       lexer_idchars = "_+-*?$";
       parse();
@@ -94,7 +93,13 @@ settings::settings(const char *name, const char *base, char *message)
 settings::~settings()
 {
   for(int i = 0; i < _n; i++)
+  {
+    for(int j = 0; j < _set[i]->n; j++)
+      free(_set[i]->values[j]);
+    free(_set[i]->values);
+    free(_set[i]->t_values);
     delete _set[i];
+  }
 
   delete[] _set;
 
@@ -137,7 +142,7 @@ char *settings::req_value(const char *name)
   if(v == 0)
     {
       fprintf(ferr, "\nno definition for required parameter `%s'\n", name);
-      exit(0);
+      throw error("no definition for required parameter `" + string(name) + "'");
     }
   return v;
 }
@@ -215,6 +220,31 @@ char *settings::sassoc(const char *name, int key_t, int arity, int nth)
   return 0;
 }
 
+bool settings::statusmember(const char *name, type_t key)
+{
+  list_int *l = _li_cache[string(name)];
+  if(l == 0)
+    {
+      setting *set = lookup(name);
+      if(set != 0)
+	{
+	  for(int i = 0; i < set->n; i++)
+	    {
+	      int v = lookup_status(set->values[i]);
+	      if(v == -1)
+		{
+		  fprintf(ferr, "ignoring unknown status `%s' in setting "
+			  "`%s'\n", set->values[i], name);
+		}
+	      else
+		l = cons(v, l);
+	    }
+	  _li_cache[string(name)] = l;
+	}
+    }
+  return contains(l, key);
+}
+
 void settings::parse_one()
 {
   char *option;
@@ -230,7 +260,7 @@ void settings::parse_one()
   else
     {
       assert(_n < SET_TABLE_SIZE);
-      set = _set[_n++] = (struct setting *) malloc(sizeof(struct setting));
+      set = _set[_n++] = New setting;
       set->name = option;
       set->loc = LA(0)->loc; LA(0)->loc = NULL;
       set->n = 0;
@@ -247,8 +277,7 @@ void settings::parse_one()
       while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
 	{
 	  if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
-	     LA(0)->tag == T_STRING || LA(0)->tag == T_INT ||
-	     LA(0)->tag == T_FLOAT)
+	     LA(0)->tag == T_STRING)
 	    {
 	      if(set->n >= set->allocated)
 		{

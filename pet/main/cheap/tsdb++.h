@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -8,21 +8,20 @@
 #ifndef _ITSDB_H_
 #define _ITSDB_H_
 
-#include <stdio.h>
-#include <time.h>
-
-#include "chart.h"
-
 #define MICROSECS_PER_SEC 1000000
 
 #ifdef TSDBAPI
 extern "C" {
 #include "itsdb.h"
 }
+
+void capi_putstr(const char *, bool strctx = false);
+
 void tsdb_mode();
 void cheap_tsdb_summarize_run();
-void cheap_tsdb_summarize_item(chart &, int, int, int, char * = NULL);
-void cheap_tsdb_summarize_error(error &);
+void cheap_tsdb_summarize_item(class chart &, class agenda *, int, int, int,
+			       char * = NULL);
+void cheap_tsdb_summarize_error(error &, int treal);
 #endif
 
 class statistics
@@ -42,6 +41,7 @@ class statistics
   int pedges;                 /* passive items in chart */
   int raedges;                /* active items contributing to result */
   int rpedges;                /* passive items contributing to result */
+  int medges;                 /* inflr items */
   int unifications_succ;      /* nr of successfull unifications */
   int unifications_fail;      /* nr of failed unifications */
   int copies;                 /* nr of copies */
@@ -67,11 +67,14 @@ void initialize_version();
 // timer can be stopped and restarted
 // this implementation will fail when clock() wraps over, which happens after
 // about 36 minutes on solaris/linux on 32 bit machines
+// a timer with lower resolution (1 s) is also maintained, it will not
+// wrap over as quickly
 
 class timer
 {
  public:
-  inline timer(bool running = true) : _start(0), _elapsed(0), _saved(0), _running(false)
+  inline timer(bool running = true) : _start(0), _elapsed(0), _saved(0),
+    _elapsed_ts(0), _saved_ts(0), _running(false)
     { if(running) start(); }
 
   inline ~timer() {};
@@ -82,19 +85,19 @@ class timer
     { if(!_running) { _running = true; _start = clock(); } }
 
   void stop()
-    { if(_running) { _running = false; _elapsed += clock() - _start; } }
+    { if(_running) { _running = false; _elapsed += clock() - _start; _elapsed_ts += convert2ms(clock() - _start) / 100; } }
 
-  void save() { _saved = _elapsed; }
-  void restore() { _elapsed = _saved; }
+  void save() { _saved = _elapsed; _saved_ts = _elapsed_ts; }
+  void restore() { _elapsed = _saved; _elapsed_ts = _saved_ts; }
 
   inline clock_t elapsed() { return _elapsed + (_running ? clock() - _start : 0); }
   // returns elapsed time since start in some unknown unit
+
+  inline int elapsed_ts() { return _elapsed_ts; }
+  // returns elapsed time since start in tenth of seconds
   
   inline clock_t convert2ms(clock_t t) { return t / (CLOCKS_PER_SEC / 1000); }
-  // converts time in above unit to milliseconds
-
-  inline double convert2s(clock_t t) { return convert2ms(t) / 1000.; }
-  // converts time in above unit to seconds
+  // converts time in internal unit to milliseconds
 
   inline clock_t resolution() { return 1000 / CLK_TCK; }
   // returns `stepsize' of the clock in milliseconds
@@ -102,6 +105,10 @@ class timer
   clock_t _start;
   clock_t _elapsed;
   clock_t _saved;
+  
+  unsigned int _elapsed_ts;
+  unsigned int _saved_ts;
+
   bool _running;
 };
 

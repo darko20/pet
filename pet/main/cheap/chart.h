@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -8,25 +8,15 @@
 #ifndef _CHART_H_
 #define _CHART_H_
 
-#include <stdio.h>
-
-#include <list>
-#include <vector>
-#include <iterator>
-
 #include "item.h"
 
 class chart
 {
  public:
-
-  fs_alloc_state FSAS; // this will free fs memory upon destruction
-  
-  chart(int);
+  chart(int, auto_ptr<item_owner>);
   ~chart();
 
   void add(item *);
-  inline void own(item *it) { _item_owner.add(it); }
 
   void print(FILE *f);
 
@@ -34,8 +24,12 @@ class chart
 
   inline int& pedges() { return _pedges; }
 
- private:
+  unsigned int length() { return (unsigned int) _Cp_start.size() ; }
+  unsigned int rightmost() { return length() - 1; }
 
+  void shortest_path(list <item *> &);
+
+ private:
   static int _next_stamp;
 
   list<item *> _Chart;
@@ -45,7 +39,7 @@ class chart
   vector< list<item *> > _Cp_start, _Cp_end;
   vector< list<item *> > _Ca_start, _Ca_end;
 
-  item_owner _item_owner;
+  auto_ptr<item_owner> _item_owner;
 
   friend class chart_iter;
   friend class chart_iter_span;

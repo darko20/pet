@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -10,35 +10,74 @@
 
 #include <dumper.h>
 
+#define GRAMMAR_EXT ".grm"
+
 #define DUMP_MAGIC 0x03422711
-#define DUMP_VERSION 13
+#define DUMP_VERSION 15
 
 // version history
 // 1 -> 2 : introduced featset information for each type (2-nov-99)
 // 2 -> 3 : introduced new field headdtr to rule_dump (5-nov-99)
 // 3 -> 4 : new: feattable info after featset info (15-nov-99)
-// 4 -> 5 : unexpanded (qc) structures now have a negative type value (20-jan-00)
+// 4 -> 5 : unexpanded (qc) structures now have a negative type value
+//          (20-jan-00)
 // 5 -> 6 : also dump appropriate types for attributes (20-jan-00)
 // 6 -> 7 : dump number of bytes wasted per type by encoding (9-feb-00)
 // 7 -> 8 : dump dags depth first, root is now last node in dump (28-may-00)
-// 8 -> 9 : major cleanup - byteorder independence, bitcode compression (12-jun-00)
+// 8 -> 9 : major cleanup - byteorder independence, bitcode compression
+//          (12-jun-00)
 // 9 -> 10 : major cleanup, part II (13-jun-00)
 // 10 -> 11 : specify encoding type
 // 11 -> 12 : encode types as int rather than short in some places
 // 12 -> 13 : major cleanup. no more instances and symbols, store status value
 //            for all types instead; do not store waste information;
 //            store morphological rules
+// 13 -> 14 : introduce more general TOC concept; this allows to skip sections
+//            we don't know about. in this way, we can add sections in the
+//            future without having to change the version number (19-jun-01)
+// 14 -> 15 : remove lexicon and rule section; list of rules and lexicon is
+//            now constructed in the parser using status values 
 
-// general layout of a dumped grammar (`.gram' file)
-// 
-// - header
-// - type bit codes
-// - symbol tables
-// - grammar rules
-// - lexicon entries
-// - type constraints
+// A grammar file consists of a header, a table of contents, and a 
+// number of sections in arbitrary order
 
 void dump_header(dumper *f, char *desc);
 char *undump_header(dumper *f);
+
+// section type identifiers
+enum sectiontype { SEC_NOSECTION, SEC_SYMTAB, SEC_PRINTNAMES, SEC_HIERARCHY,
+		   SEC_FEATTABS, SEC_FULLFORMS, SEC_INFLR, SEC_CONSTRAINTS,
+                   SEC_IRREGS };
+
+class dump_toc
+{
+ public:
+  dump_toc(dumper *dump);
+  bool goto_section(sectiontype s);
+
+ private:
+  dumper *_dump;
+
+  map<sectiontype, long int> _toc;
+};
+
+class dump_toc_maker
+{
+ public:
+  dump_toc_maker(dumper *dump);
+  ~dump_toc_maker();
+
+  void add_section(sectiontype s);
+  void close();
+
+  void start_section(sectiontype s);
+  
+ private:
+  dumper *_dump;
+  bool _open;
+
+  map<sectiontype, long int> _toc;
+  map<sectiontype, long int> _where;
+};
 
 #endif

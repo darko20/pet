@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -16,31 +16,10 @@
    for windows - read the whole file
 */
 
-#ifdef USEMMAP
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#else
-#include <sys\stat.h>
-#include <io.h>
-#endif
-#ifndef WINDOWS
-#include <unistd.h>
-#endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <errno.h>
-
+#include "pet-system.h"
 #include "lex-io.h"
+#include "errors.h"
 #include "options.h"
-
-#ifdef WINDOWS
-#define strcasecmp stricmp
-#define R_OK 0
-#endif
 
 static lex_file file_stack[MAX_LEX_NEST];
 static int file_nest = 0;
@@ -59,69 +38,13 @@ struct lex_location *new_location(char *fname, int linenr, int colnr)
   return loc;
 }
 
-char *find_file(char *orig, char *ext, bool ext_req)
-{
-  char *newn;
-  struct stat sb;
-
-  if(orig == 0)
-    return 0;
-
-  newn = (char *) malloc(strlen(orig) + strlen(ext) + 1);
-  
-  strcpy(newn, orig);
-
-  if(ext_req == false && access(newn, R_OK) == 0)
-    {
-      stat(newn, &sb);
-      if((sb.st_mode & S_IFDIR) == 0)
-        return newn;
-    }
-
-  strcat(newn, ext);
-      
-  if(access(newn, R_OK) == 0)
-    {
-      stat(newn, &sb);
-      if((sb.st_mode & S_IFDIR) == 0)
-        return newn;
-    }
-
-  return NULL;
-}
-
-char *output_name(char *in, char *oldext, const char *newext)
-{
-  char *out, *ext;
-
-  out = (char *) malloc(strlen(in) + strlen(newext) + 1);
-
-  strcpy(out, in);
-
-  ext = strrchr(out, '.');
-
-  if(ext && strcasecmp(ext, oldext) == 0)
-    {
-      strcpy(ext, newext);
-    }
-  else
-    {
-      strcat(out, newext);
-    }
-
-  return out;
-}
-
 void push_file(char *fname, char *info)
 {
   lex_file f;
   struct stat statbuf;
 
   if(file_nest >= MAX_LEX_NEST)
-    {
-      fprintf(ferr, "too many nested includes (in %s)- giving up\n", fname);
-      exit(1);
-    }
+    throw error(string("too many nested includes (in ") + string(fname) + string(") - giving up"));
 
 #ifndef WINDOWS
   f.fd = open(fname, O_RDONLY);
@@ -130,16 +53,10 @@ void push_file(char *fname, char *info)
 #endif
 
   if(f.fd < 0)
-    {
-      fprintf(ferr, "error opening %s: %s", fname, strerror(errno));
-      exit(1);
-    }
+    throw error("error opening `" + string(fname) + "': " + string(strerror(errno)));
 
   if(fstat(f.fd, &statbuf) < 0)
-    {
-      fprintf(ferr, "couldn't fstat %s: %s", fname, strerror(errno));
-      exit(1);
-    }
+    throw error("couldn't fstat `" + string(fname) + "': " + string(strerror(errno)));
 
   f.len = statbuf.st_size;
 
@@ -147,23 +64,17 @@ void push_file(char *fname, char *info)
   f.buff = (char *) mmap(0, f.len, PROT_READ, MAP_SHARED, f.fd, 0);
 
   if(f.buff == (caddr_t) -1)
-    {
-      fprintf(ferr, "couldn't mmap %s: %s", fname, strerror(errno));
-      exit(1);
-    }
+    throw error("couldn't mmap `" + string(fname) + "': " + string(strerror(errno)));
+
 #else
-  f.buff = (char *) malloc(f.len);
+  f.buff = (char *) malloc(f.len + 1);
   if(f.buff == 0)
-    {
-      fprintf(ferr, "couldn't malloc for %s: %s", fname, strerror(errno));
-      exit(1);
-    }
+    throw error("couldn't malloc for `" + string(fname) + "': " + string(strerror(errno)));
   
   if((size_t) read(f.fd,f.buff,f.len) != f.len)
-    {
-      fprintf(ferr, "couldn't fread\n");
-      exit(1);
-    }
+    throw error("couldn't read from `" + string(fname) + "': " + string(strerror(errno)));
+
+  f.buff[f.len] = '\0';
 #endif
 
   f.fname = (char *) malloc(strlen(fname) + 1);
@@ -195,20 +106,14 @@ int pop_file()
 
 #ifdef USEMMAP
   if(munmap(f.buff, f.len) != 0)
-    {
-      fprintf(ferr, "couldn't munmap %s: %s", f.fname, strerror(errno));
-      exit(1);
-    }
+    throw error("couldn't munmap `" + string(f.fname) + "': " + string(strerror(errno)));
 #else
   free(f.buff);
 #endif
   
   if(close(f.fd) != 0)
-    {
-      fprintf(ferr, "couldn't close %s: %s", f.fname, strerror(errno));
-      exit(1);
-    }
-
+    throw error("couldn't close from `" + string(f.fname) + "': " + string(strerror(errno)));
+  
   return 1;
 }
 

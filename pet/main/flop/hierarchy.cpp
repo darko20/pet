@@ -1,5 +1,5 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include <time.h>
 #include <assert.h>
+
+#include <string>
+#include <vector>
 
 #include "types.h"
 #include "flop.h"
@@ -167,6 +170,9 @@ void make_semilattice()
 
   bool changed;
 
+  if(verbosity > 4)
+    fprintf(fstatus, " (%ld)", clock());
+
   // nr of synthesized glb types so far, old (total) number of types
   int glbtypes = 0, oldntypes = types.number();
 
@@ -241,6 +247,9 @@ void make_semilattice()
   // now we have to recompute the graph representation of the
   // hierarchy - there are two ways of doing this:
 
+  if(verbosity > 4)
+    fprintf(fstatus, " (%ld)", clock());
+
   fprintf(fstatus, "recomputing");
 
 #ifdef NAIVE_RECOMPUTATION
@@ -299,6 +308,9 @@ void make_semilattice()
 
   // now all edges that are in the reduction are marked - remove the others
 
+  if(verbosity > 4)
+    fprintf(fstatus, " (%ld)", clock());
+
   leda_list<leda_edge> el = hierarchy.all_edges();
   leda_edge e;
   int ndel = 0;
@@ -318,6 +330,9 @@ void make_semilattice()
       fprintf(ferr, "conception error - making hierarchy loopfree\n");
       Delete_Loops(hierarchy);
     }
+
+  if(verbosity > 4)
+    fprintf(fstatus, " (%ld)", clock());
 
 }
 

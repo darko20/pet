@@ -1,30 +1,26 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* parser control */
 
-#include <string.h>
-#include <string>
-using namespace std;
-#include <vector>
-#include <queue>
+#include "pet-system.h"
+
 #include "cheap.h"
 #include "parse.h"
 #include "fs.h"
 #include "item.h"
 #include "grammar.h"
 #include "chart.h"
+#include "inputchart.h"
+#include "tokenizer.h"
 #include "agenda.h"
 #include "tsdb++.h"
 
 #ifdef YY
-#  include "k2y.h"
-#endif
-
-#ifdef __BORLANDC__
-#define strcasecmp strcmpi
+#include "yy.h"
+#include "k2y.h"
 #endif
 
 //#define DEBUG_DEFER
@@ -35,6 +31,7 @@ using namespace std;
 
 chart *Chart;
 agenda *Agenda;
+agenda *Roots;
 
 timer *Clock;
 timer TotalParseTime(false);
@@ -52,7 +49,8 @@ bool filter_rule_task(grammar_rule *R, item *passive)
   fprintf(ferr, " ==> ");
 #endif
 
-  if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(), passive->rule()))
+  if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(),
+					       passive->rule()))
     {
       stats.ftasks_fi++;
 
@@ -63,7 +61,8 @@ bool filter_rule_task(grammar_rule *R, item *passive)
       return false;
     }
 
-  if(opt_nqc != 0 && !qc_compatible(R->qc_vector(R->nextarg()), passive->qc_vector()))
+  if(opt_nqc != 0 && !qc_compatible(R->qc_vector(R->nextarg()),
+				    passive->qc_vector()))
     {
       stats.ftasks_qc++;
 
@@ -89,7 +88,9 @@ bool filter_combine_task(item *active, item *passive)
   fprintf(ferr, " ==> ");
 #endif
 
-  if(opt_filter && !Grammar->filter_compatible(active->rule(), active->nextarg(), passive->rule()))
+  if(opt_filter && !Grammar->filter_compatible(active->rule(),
+					       active->nextarg(),
+					       passive->rule()))
     {
 #ifdef DEBUG
       fprintf(ferr, "filtered (rf)\n");
@@ -99,7 +100,8 @@ bool filter_combine_task(item *active, item *passive)
       return false;
     }
 
-  if(opt_nqc != 0 && !qc_compatible(active->qc_vector(), passive->qc_vector()))
+  if(opt_nqc != 0 && !qc_compatible(active->qc_vector(),
+				    passive->qc_vector()))
     {
 #ifdef DEBUG
       fprintf(ferr, "filtered (qc)\n");
@@ -120,16 +122,16 @@ bool filter_combine_task(item *active, item *passive)
 // parser control
 //
 
-void postulate(item *passive, tokenlist *Input)
+void postulate(item *passive)
 {
   // iterate over all the rules in the grammar
   for(rule_iter rule(Grammar); rule.valid(); rule++)
     {
       grammar_rule *R = rule.current();
 
-      if(!opt_shaping || passive->shape_fits(R, Input->size()))
+      if(passive->compatible(R, Chart->rightmost()))
 	if(filter_rule_task(R, passive))
-	  Agenda->push(new rule_and_passive_task(R, passive));
+	  Agenda->push(New rule_and_passive_task(Chart, Agenda, R, passive));
     }
 }
 
@@ -140,14 +142,20 @@ void fundamental_for_passive(item *passive)
     {
       item *active = it.current();
       if(active->adjacent(passive))
-	if(filter_combine_task(active, passive))
-	  Agenda->push(new active_and_passive_task(active, passive));
+	if(passive->compatible(active, Chart->rightmost()))
+	  if(filter_combine_task(active, passive))
+	    Agenda->push(New active_and_passive_task(Chart, Agenda,
+						     active, passive));
     }
 }
 
 void fundamental_for_active(phrasal_item *active)
 {
   // iterate over all passive items adjacent to active and try combination
+
+  // when making changes here, don't forget to change the excursion for
+  // hyperactive parsing in task.cpp accordingly
+
   if(opt_hyper)
     {
       // avoid processing tasks already done in the `excursion'
@@ -156,8 +164,10 @@ void fundamental_for_active(phrasal_item *active)
 #ifdef PACKING
 	if(it.current()->frozen() == 0)
 #endif
-          if(filter_combine_task(active, it.current()))
-            Agenda->push(new active_and_passive_task(active, it.current()));
+	if(it.current()->compatible(active, Chart->rightmost()))
+	  if(filter_combine_task(active, it.current()))
+	    Agenda->push(New active_and_passive_task(Chart, Agenda,
+						     active, it.current()));
     }
   else
     {
@@ -165,8 +175,10 @@ void fundamental_for_active(phrasal_item *active)
 #ifdef PACKING
 	if(it.current()->frozen() == 0)
 #endif
-        if(filter_combine_task(active, it.current()))
-          Agenda->push(new active_and_passive_task(active, it.current()));
+        if(it.current()->compatible(active, Chart->rightmost()))
+	  if(filter_combine_task(active, it.current()))
+	    Agenda->push(New active_and_passive_task(Chart, Agenda,
+						     active, it.current()));
     }
 }
 
@@ -236,12 +248,11 @@ bool packed_edge(item *newitem)
 
 #endif
 
-bool add_root(item *it, tokenlist *Input)
+bool add_root(item *it)
 // deals with result item
 // return value: true -> stop parsing; false -> continue parsing
 {
   stats.readings++;
-  it->set_result(true);
   if(stats.first == -1)
     {
       stats.first = Clock->convert2ms(Clock->elapsed());
@@ -262,7 +273,7 @@ bool add_root(item *it, tokenlist *Input)
   return false;
 }
 
-void add_item(item *it, tokenlist *Input)
+void add_item(item *it)
 {
 #ifdef PACKING
   if(it->frozen())
@@ -286,7 +297,7 @@ void add_item(item *it, tokenlist *Input)
 #ifdef DEBUG_DEFER
       fprintf(ferr, " -> deferred root item\n");
 #endif
-      add_root(it, Input);
+      add_root(it);
       return;
     }
 
@@ -298,28 +309,32 @@ void add_item(item *it, tokenlist *Input)
 #endif
       Chart->add(it);
 
+      type_t rule;
       int maxp; 
-      if(it->root(Grammar, Input, maxp))
+      if(it->root(Grammar, Chart->rightmost(), rule, maxp))
 	{
+	  it->rriority(maxp);
+	  it->set_result_root(rule);
+	  Roots->push(New item_task(Chart, Agenda, it, maxp));
 	  // we found a root item - it might be too early
 	  if(maxp != 0 && it->priority() > maxp)
 	    {
 #ifdef DEBUG_DEFER
 	      fprintf(ferr, " -> root, but it's too early\n");
 #endif
-	      Agenda->push(new item_task(it, maxp));
+	      Agenda->push(New item_task(Chart, Agenda, it, maxp));
 	    }
 	  else
 	    {
 #ifdef DEBUG_DEFER
 	      fprintf(ferr, " -> root on time\n");
 #endif
-	      if(add_root(it, Input))
+	      if(add_root(it))
 		return;
 	    }
 	}
 
-      postulate(it, Input);
+      postulate(it);
       fundamental_for_passive(it);
     }
   else
@@ -336,294 +351,6 @@ void add_item(item *it, tokenlist *Input)
 #endif
 }
 
-void add_generics(setting *generics, tokenlist *Input, int i, int offset, postags onlyfor = postags())
-// Add generic lexical entries for token at position `i'. If `onlyfor' is 
-// non-empty, only those generic entries corresponding to one of those
-// POS tags are postulated. The correspondence is defined in posmapping.
-{
-  if(!generics)
-    return;
-
-#ifdef DEBUG
-  fprintf(ferr, 
-	  "using generics for `%s' @ %d:\n", 
-	  (*Input)[i].c_str(), i);
-#endif
-  for(int j = 0; j < generics->n; j++)
-    {
-      char *suffix = cheap_settings->assoc("generic-le-suffixes",
-					   generics->values[j]);
-      if(suffix)
-	if((*Input)[i].length() <= strlen(suffix) ||
-	   strcasecmp(suffix,
-		      (*Input)[i].c_str()+(*Input)[i].length()-strlen(suffix)) != 0)
-	  continue;
-
-      int inst = lookup_type(generics->values[j]);
-      if(inst == -1)
-	{
-	  fprintf(ferr, "couldn't lookup generic `%s'\n",
-		  generics->values[j]);
-	  throw error("undefined generic");
-	}
-	  
-      if(!onlyfor.empty())
-	{
-	  setting *set = cheap_settings->lookup("posmapping");
-	  if(set)
-	    {
-	      bool good = false;
-	      for(int i = 0; i < set->n; i+=3)
-		{
-		  if(i+3 > set->n)
-		    {
-		      fprintf(ferr, "warning: incomplete last entry in POS mapping - ignored\n");
-		      break;
-		    }
-      
-		  char *lhs = set->values[i], *rhs = set->values[i+2];
-
-		  int type = lookup_type(rhs);
-		  if(type == -1)
-		    {
-		      fprintf(ferr, "warning: unknown type `%s' in POS mapping\n",
-			      rhs);
-		    }
-		  else
-		    {
-		      if(subtype(inst, type))
-			{
-			  if(onlyfor.contains(lhs))
-			    {
-			      good = true;
-			      break;
-			    }
-			}
-		    }
-		}
-	      if(!good)
-		continue;
-	    }
-	}
-
-#ifdef DEBUG
-      fprintf(ferr, "  ==> %s [%s]\n", generics->values[j], 
-	      suffix == 0 ? "*" : suffix);
-#endif
-	  
-      generic_le_item *lex =
-	new generic_le_item(inst, i, 
-			    (*Input)[i].c_str(), Input->POS(i), 750);
-      
-      if(lex)
-	{
-	  lex->skew(offset);
-	  Chart->own(lex);
-	  Agenda->push(new item_task(lex));
-	  stats.words++;
-	}
-    }
-}
-
-int initialize_chart(tokenlist *Input)
-{
-  vector<bool> in_lexicon(Input->length(), false);
-  vector<bool> punctuation(Input->length(), false);
-  int offset = 0;
-
-  vector<postags> missingpos(Input->length(), postags());
-
-  // for chart manipulation
-  struct setting *deps = cheap_settings->lookup("chart-dependencies"); 
-  vector< set<int> > satisfied;
-  if(deps)
-    satisfied.resize(deps->n);
-  map<lex_item *, pair<int, int> > requires;
-
-  // propose lexical items
-  list<lex_item *> proposed_les;
-  for(int i = 0; i < Input->length(); i++)
-    {
-      if(verbosity > 3 && !Input->POS(i).empty())
-        {
-          fprintf(ferr, "POS tags for `%s':", (*Input)[i].c_str());
-          Input->POS(i).print(ferr);
-   	  fprintf(ferr, "\n");
-	}
-
-      // start out assuming everything is missing
-      missingpos[i] = Input->POS(i);
-
-#ifdef YY
-      if(opt_yy && ((*Input)[i].empty() || Input->punctuationp(i))) {
-        punctuation[i] = true;
-        offset++;
-        continue;
-      } /* if */
-#endif
-
-      for(le_iter it(Grammar, i, Input); it.valid(); it++)
-	{
-	  fs f = it.current()->instantiate();
-	  if(f.valid())
-	    {
-
-	      lex_item *lex = 
-                new lex_item(it.current(), i, f, Input->POS(i), offset);
-
-
-	      if(!lex)
-		{
-		  fprintf(ferr, "couldn't construct lex_item for %s\n",
-			  it.current()->description().c_str());
-		  continue;
-		}
-
-#ifdef DEBUG
-	      fprintf(ferr, "found le for `%s' at %d:\n",
-		      (*Input)[i].c_str(), i);
-	      lex->print(ferr);
-	      fprintf(ferr, "\n");
-#endif
-
-	      if(opt_chart_man && deps)
-		{
-#ifdef DEBUG_DEP
-		  fprintf(ferr, "dependency information for %s(`%s'):\n",
-			  it.current()->description().c_str(),
-			  (*Input)[i].c_str());
-#endif
-
-		  for(int j = 0; j < deps->n; j++)
-		    {
-		      fs v = f.get_path_value(deps->values[j]);
-		      if(v.valid())
-			{
-#ifdef DEBUG_DEP
-			  fprintf(ferr, "  %s : %s\n",
-				  deps->values[j], v.name());
-#endif
-			  satisfied[j].insert(v.type());
-			  requires[lex].first = (j % 2 == 0) ? j + 1 : j - 1;
-			  requires[lex].second  = v.type();
-			}
-		    }
-		}
-	      proposed_les.push_back(lex);
-	    }
-	}
-    }
-
-  for(list<lex_item *>::iterator iter = proposed_les.begin(); iter != proposed_les.end(); ++iter)
-    {
-      lex_item *lex = *iter;
-     
-      if(requires.find(lex) != requires.end())
-	{
-	  pair<int, int> req = requires[lex];
-	  if(verbosity > 2)
-	    fprintf(ferr, "`%s' requires %s at %d -> ",
-		    lex->description().c_str(),
-		    typenames[req.second], req.first);
-	  
-	  if(satisfied[req.first].find(req.second) == satisfied[req.first].end())
-	    {
-	      delete lex;
-	      lex = 0;
-	      stats.words_pruned++;
-	    }
-
-	  if(verbosity > 2)
-	    fprintf(ferr, "%s satisfied\n", lex == 0 ? "not" : "");
-	}
-	 
-      if(lex)
-	{
-          stats.words++;
-          for(int j = lex->start(); j < lex->end(); j++)
-	    {
-	      in_lexicon[j] = true;
-	      if(!lex->postag().empty())
-		missingpos[j].remove(lex->postag());
-	    }
-          //
-          // _hack_
-          // while the language server sends punctuation and empty
-          // tokens down our pipe, we end up with a skewed view of the
-          // universe: input positions do not correspond to positions
-          // in the chart :-{.                   (29-jan-01  -  oe@yy)
-          //
-          lex->skew(lex->offset());
-	  Chart->own(lex);
-          Agenda->push(new item_task(lex));
-	}
-    }
-  
-
-  //
-  // record total number of (punctuation) tokens that were ignored
-  //
-  Input->skew(offset);
-
-  // check for input tokens not covered by appropriate lexical entries
-  string no_lex;
-  setting *generics 
-    = (opt_default_les ? cheap_settings->lookup("generic-les") : NULL);
-  
-  offset = 0;
-  for(int i = 0; i < Input->length(); i++)
-    {
-      if(punctuation[i])
-	{
-	  offset++;
-	  continue;
-	}
-      if(generics)
-	{
-	  // is there any lexical entry for this position? 
-	  if(!in_lexicon[i]) 
-	    {
-	      add_generics(generics, Input, i, offset);
-	    }
-	  // even if there is one (or more) lexical entries, we
-	  // still might want to postulate generic entries, for those
-          // categories proposed by the tagger, but not represented by any
-          // of the lexical entries that we found
-	  else
-	    {
-	      if(!missingpos[i].empty())
-		{
-		  if(verbosity > 4)
-		    {
-		      fprintf(fstatus, 
-			      "unsatisfied POS tag(s) for `%s':", 
-			      (*Input)[i].c_str());
-		      missingpos[i].print(fstatus);
-		      fprintf(fstatus, "\n");
-		    }
-#ifdef EXPERIMENTAL
-		  add_generics(generics, Input, i, offset, missingpos[i]);
-#endif
-		}
-	    }
-	}
-      else
-	{
-	  if(!in_lexicon[i])
-	  {
-	    if(!no_lex.empty())
-	      no_lex += ", ";
-	    no_lex += "<" + string((*Input)[i]) + ">";
-	  }
-	}
-    }
-
-  if(!no_lex.empty())
-    throw error("no lexicon entries for " + no_lex);
-
-  return stats.words;
-}
-
 inline bool ressources_exhausted()
 {
   return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) || 
@@ -632,60 +359,105 @@ inline bool ressources_exhausted()
 
 void get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS);
 
-void parse(chart &C, tokenlist *Input, int id)
+void parse(chart &C, agenda *R, list<lex_item *> &initial, int id,
+	      fs_alloc_state &FSAS)
 {
-  C.FSAS.clear_stats();
+  if(initial.empty()) return;
+
   stats.reset();
   stats.id = id;
 
   unify_wellformed = true;
 
   Chart = &C;
-  Agenda = new agenda;
+  Agenda = New agenda;
+  Roots = R;
+
   TotalParseTime.start();
-  Clock = new timer;
+  Clock = New timer;
 
-  if(initialize_chart(Input) > 0)
+  for(list<lex_item *>::iterator lex_it = initial.begin();
+      lex_it != initial.end(); ++lex_it)
     {
-      while(!Agenda->empty() &&
-	    (opt_one_solution == false || stats.first == -1) &&
-#ifdef YY
-	    (opt_one_meaning == false || !stats.nmeanings) &&
-#endif
-	    !ressources_exhausted())
-	{
-	  basic_task *t; item *it;
-	  
-	  t = Agenda->pop();
-	  if((it = t->execute()) != 0)
-	    add_item(it, Input);
-	  
-	  delete t;
-	}
-
-      TotalParseTime.stop();
-      get_statistics(C, Clock, C.FSAS);
-
-      if(opt_shrink_mem)
-	{
-	  C.FSAS.may_shrink();
-	  prune_glbcache();
-	}
-
-      if(verbosity > 8)
-	C.print(fstatus);
+      Agenda->push(New item_task(Chart, Agenda, *lex_it));
+      stats.words++;
     }
 
+  while(!Agenda->empty() &&
+        (opt_one_solution == false || stats.first == -1) &&
+#ifdef YY
+        (opt_one_meaning == false || !stats.nmeanings) &&
+#endif
+        !ressources_exhausted())
+    {
+      basic_task *t; item *it;
+	  
+      t = Agenda->pop();
+      if((it = t->execute()) != 0)
+        add_item(it);
+	  
+      delete t;
+    }
+
+  TotalParseTime.stop();
+  get_statistics(C, Clock, FSAS);
+
+  if(opt_shrink_mem)
+    {
+      FSAS.may_shrink();
+      prune_glbcache();
+    }
+
+  if(verbosity > 8)
+    C.print(fstatus);
+  
   delete Clock;
   delete Agenda;
 
-  if(ressources_exhausted())
+  if(Roots->empty() && ressources_exhausted())
     {
-      if(pedgelimit == 0 || stats.pedges < pedgelimit)
+      if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
 	throw error_ressource_limit("memory (MB)", memlimit / (1024 * 1024));
       else
 	throw error_ressource_limit("pedges", pedgelimit);
     }
+}
+
+void analyze(input_chart &i_chart, string input, chart *&C,
+	     agenda *&R, fs_alloc_state &FSAS, int id)
+{
+  FSAS.clear_stats();
+
+  auto_ptr<item_owner> owner(New item_owner);
+  item::default_owner(owner.get());
+
+#ifdef YY
+  if(opt_yy)
+    i_chart.populate(New yy_tokenizer(input));
+  else
+#endif
+  i_chart.populate(New lingo_tokenizer(input));
+
+  list<lex_item *> lex_items;
+  int max_pos = i_chart.expand_all(lex_items);
+
+  dependency_filter(lex_items,
+		    cheap_settings->lookup("chart-dependencies"));
+        
+  if(opt_default_les)
+    i_chart.add_generics(lex_items);
+
+  if(verbosity > 9)
+    i_chart.print(ferr);
+
+  string missing = i_chart.uncovered(i_chart.gaps(max_pos, lex_items));
+  if (!missing.empty()) 
+    throw error("no lexicon entries for " + missing) ;
+
+  C = Chart = New chart(max_pos, owner);
+  R = New agenda;
+
+  parse(*Chart, R, lex_items, id, FSAS);
 }
 
 void get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS)

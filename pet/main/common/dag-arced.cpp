@@ -1,13 +1,11 @@
 /* PET
- * Platform for Experimentation with effficient HPSG processing Techniques
+ * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2001 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
 /* common operations on arced dags */
 
-#include <stdlib.h>
-#include <assert.h>
-
+#include "pet-system.h"
 #include "errors.h"
 #include "dag.h"
 #include "dag-arced.h"
@@ -46,10 +44,11 @@ void dag_remove_arcs(struct dag_node *dag, list_int *del)
     }
 }
 
+static struct qc_node *dag_qc_undumped_nodes = NULL;
+static struct qc_arc *dag_qc_undumped_arcs = NULL;
+
 struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
 {
-  struct qc_node *undumped_nodes;
-  struct qc_arc *undumped_arcs = NULL;
   int dag_dump_total_nodes, dag_dump_total_arcs;
 
   struct dag_node_dump dump_n;
@@ -58,14 +57,14 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
   dag_dump_total_nodes = f->undump_int();
   dag_dump_total_arcs = f->undump_int();
 
-  undumped_nodes = new qc_node[dag_dump_total_nodes];
+  dag_qc_undumped_nodes = New qc_node[dag_dump_total_nodes];
   
   if(dag_dump_total_arcs > 0)
-    undumped_arcs = new qc_arc[dag_dump_total_arcs];
+    dag_qc_undumped_arcs = New qc_arc[dag_dump_total_arcs];
 
   int current_arc = 0;
   qc_len = 0;
-  
+
   for(int i = 0; i < dag_dump_total_nodes; i++)
     {
       undump_node(f, &dump_n);
@@ -73,9 +72,9 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
       if(dump_n.type < 0)
 	dump_n.type = -dump_n.type; // node is not expanded
 
-      undumped_nodes[i].type = BI_TOP; // we infer the type 
-      undumped_nodes[i].qc_pos = 0;
-      undumped_nodes[i].arcs = 0;
+      dag_qc_undumped_nodes[i].type = BI_TOP; // we infer the type
+      dag_qc_undumped_nodes[i].qc_pos = 0;
+      dag_qc_undumped_nodes[i].arcs = 0;
 
       if(typestatus[dump_n.type] == ATOM_STATUS)
 	{
@@ -89,29 +88,43 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
 	  val += 1;
 	  if(limit < 0 || val <= limit)
 	    {
-	      undumped_nodes[i].qc_pos = val;
+	      dag_qc_undumped_nodes[i].qc_pos = val;
 	      if(val > qc_len) qc_len = val;
 	    }
 	}
 
       if(dump_n.nattrs > 0)
-	undumped_nodes[i].arcs = undumped_arcs+current_arc;
+	dag_qc_undumped_nodes[i].arcs = dag_qc_undumped_arcs+current_arc;
 
       for(int j = 0; j < dump_n.nattrs; j++)
 	{
 	  undump_arc(f, &dump_a);
 	  
-	  undumped_nodes[i].type = glb(undumped_nodes[i].type, apptype[dump_a.attr]);
+	  dag_qc_undumped_nodes[i].type = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
 
-	  undumped_arcs[current_arc].attr = dump_a.attr;
-	  undumped_arcs[current_arc].val = undumped_nodes + dump_a.val;
-	  undumped_arcs[current_arc].next =
-	    (j == dump_n.nattrs - 1) ? 0 : undumped_arcs+current_arc+1;
+	  dag_qc_undumped_arcs[current_arc].attr = dump_a.attr;
+	  dag_qc_undumped_arcs[current_arc].val = dag_qc_undumped_nodes + dump_a.val;
+	  dag_qc_undumped_arcs[current_arc].next =
+	    (j == dump_n.nattrs - 1) ? 0 : dag_qc_undumped_arcs+current_arc+1;
 	  current_arc++;
 	}
     }
 
-  return undumped_nodes + dag_dump_total_nodes - 2; // remove first level of structure
+  return dag_qc_undumped_nodes + dag_dump_total_nodes - 2; // remove first level of structure
+}
+
+void dag_qc_free()
+{
+  if(dag_qc_undumped_nodes != 0)
+  {
+    free(dag_qc_undumped_nodes);
+    dag_qc_undumped_nodes = 0;
+  }
+  if(dag_qc_undumped_arcs != 0)
+  {
+    free(dag_qc_undumped_arcs);
+    dag_qc_undumped_arcs = 0;
+  }
 }
 
 // XXX todo: implement this for the new scheme
@@ -197,20 +210,21 @@ int dag_size(dag_node *dag)
   return nodes;
 }
 
-dag_node *dag_listify_ints(int *types, int ntypes)
+dag_node *dag_listify_ints(list_int *types)
+// builds list in reverse order
 {
   dag_node *result = new_dag(BI_NIL);
 
-  for(int i = --ntypes; i >= 0; i--)
+  while(types != 0)
     {
-      assert(types[i] >= 0);
+      assert(first(types) >= 0);
       dag_node *cons = new_dag(BI_CONS);
-      dag_node *first = new_dag(types[i]);
-      dag_add_arc(cons, new_arc(BIA_FIRST, first));
+      dag_node *front = new_dag(first(types));
+      dag_add_arc(cons, new_arc(BIA_FIRST, front));
       dag_add_arc(cons, new_arc(BIA_REST, result));
       result = cons;
+      types = rest(types);
     }
 
   return result;
-
 }
