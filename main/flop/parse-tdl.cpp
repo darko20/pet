@@ -852,10 +852,19 @@ void tdl_type_def()
 {
   char *name , *printname;
   
-  name = match(T_ID, "type name", false);
-
-  printname = strdup(name);
-  strtolower(name);
+  if(LA(0)->tag == T_STRING)
+  {
+      name = match(T_STRING, "type name", false);
+      string s = "\"" + string(name) + "\"";
+      printname = name;
+      name = strdup(s.c_str());
+  }
+  else
+  {
+      name = match(T_ID, "type name", false);
+      printname = strdup(name);
+      strtolower(name);
+  }
   
   if(LA(0)->tag == T_ISEQ)
     {
@@ -877,13 +886,22 @@ void tdl_type_def()
 
 void tdl_instance_def()
 {
-  char *name = NULL;
+  char *name = 0, *printname = 0;
   bool readonly = false;
   
-  name = match(T_ID, "instance name", false);
-
-  char *printname = strdup(name);
-  strtolower(name);
+  if(LA(0)->tag == T_STRING)
+  {  
+      name = match(T_STRING, "instance name", false);
+      string s = "\"" + string(name) + "\"";
+      printname = name;
+      name = strdup(s.c_str());
+  }
+  else
+  {
+      name = match(T_ID, "instance name", false);
+      printname = strdup(name);
+      strtolower(name);
+  }
 
   char *iname = (char *) salloc(strlen(name) + 2);
   sprintf(iname, "$%s", name);
@@ -1024,7 +1042,7 @@ void tdl_block()
       match(T_DOT, "`.'", true);
 
       do
-	if(LA(0)->tag == T_ID)
+	if(LA(0)->tag == T_ID || LA(0)->tag == T_STRING)
 	  {
 	    tdl_instance_def();
 	  }
@@ -1135,7 +1153,7 @@ void tdl_block()
       consume(1); match(T_DOT, "`.'", true);
 
       do
-	if(LA(0)->tag == T_ID)
+	if(LA(0)->tag == T_ID || LA(0)->tag == T_STRING)
 	  {
 	    tdl_type_def();
 	  }
