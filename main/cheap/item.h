@@ -39,6 +39,10 @@ class tItem
 {
  public:
 
+    /** A string suitable for printing as a name for this item */
+    virtual const string
+    printName() = 0;
+
     /** Does this item have any further completion requirements? */
     virtual bool
     passive() = 0;
@@ -77,10 +81,8 @@ class tItem
     // Old stuff
     //
     
-  tItem(int start, int end, const tPaths &paths, fs &f,
-       const char *printname);
-  tItem(int start, int end, const tPaths &paths, 
-       const char *printname);
+  tItem(int start, int end, const tPaths &paths, fs &f);
+  tItem(int start, int end, const tPaths &paths);
 
   virtual ~tItem();
 
@@ -118,10 +120,12 @@ class tItem
       return _fs;
   }
 
+#if 0
   type_t type()
   {
       return get_fs().type();
   }
+#endif
   
   inline int nextarg() { return first(_tofill); }
   inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
@@ -157,7 +161,9 @@ class tItem
 
   virtual void recreate_fs() = 0;
 
+#if 0
   virtual int identity() = 0;
+#endif
 
   double
   score()
@@ -180,8 +186,6 @@ class tItem
 
   list<tItem *> unpack(int limit);
   virtual list<tItem *> unpack1(int limit) = 0;
-
-  inline const char *printname() { return _printname.c_str(); }
 
  private:
   static class item_owner *_default_owner;
@@ -213,8 +217,6 @@ class tItem
   type_t *_qc_vector_subs;
 
   double _score;
-
-  const string _printname;
 
   int _blocked;
   list<tItem *> *_unpack_cache;
@@ -294,21 +296,33 @@ class tFSItem
 {
  public:
 
-    tFSItem(fs &f)
-        : _f(f)
+    tFSItem(type_t t, fs f)
+        : _t(t), _f(f)
     {
     }
 
-    
+    type_t
+    type()
+    {
+        return _t;
+    }
     
  private:
-    
+
+    type_t _t;
     fs _f;
 };
 
 class tLexItem : public tItem, private tActive
 {
  public:
+
+    virtual const string
+    printName()
+    {
+        // _fix_me_
+        return string("some lexitem");
+    }
 
     virtual bool
     passive()
@@ -334,11 +348,15 @@ class tLexItem : public tItem, private tActive
     virtual tItem *
     combine(class tItem *passive);
 
-    
+    type_t
+    type()
+    {
+        return get_fs().type();
+    }
 
   tLexItem(int start, int end, const tPaths &paths,
            int ndtrs, int keydtr, class input_token **dtrs,
-           fs &f, const char *name);
+           fs &f);
 
   ~tLexItem() { delete[] _dtrs; }
 
@@ -392,10 +410,12 @@ class tLexItem : public tItem, private tActive
 
   friend bool same_lexitems(const tLexItem &a, const tLexItem &b);
 
+#if 0
   virtual int identity()
   {
       return _dtrs[_keydtr]->identity();
   }
+#endif
 
   virtual list<tItem *> unpack1(int limit);
 
@@ -406,9 +426,15 @@ class tLexItem : public tItem, private tActive
   fs _fs_full; // unrestricted (packing) structure
 };
 
-class tPhrasalItem : public tItem, private tActive
+class tPhrasalItem : public tItem, private tActive, private tFSItem
 {
  public:
+
+    virtual const string
+    printName()
+    {
+        return printnames[type()];
+    }
 
     virtual bool
     passive()
@@ -468,7 +494,7 @@ class tPhrasalItem : public tItem, private tActive
         return combined;
     }
 
-  tPhrasalItem(class tGrammarRule *, fs &); 
+  tPhrasalItem(class tGrammarRule *); 
   tPhrasalItem(class tPhrasalItem *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, vector<class tItem *> &, fs &);
 
@@ -492,6 +518,7 @@ class tPhrasalItem : public tItem, private tActive
   virtual int endposition() { return _daughters.back()->endposition() ; }
 #endif
 
+#if 0
   virtual int identity()
   {
       if(_adaughter)
@@ -499,6 +526,8 @@ class tPhrasalItem : public tItem, private tActive
       else
           return 0;
   }
+#endif
+
   virtual list<tItem *> unpack1(int limit);
   void unpack_cross(vector<list<tItem *> > &dtrs,
                     int index, vector<tItem *> &config,

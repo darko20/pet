@@ -98,6 +98,9 @@ class tGrammarRule
     void
     print(FILE *f);
 
+    fs
+    getFS();
+
     tPhrasalItem *
     instantiate();
 

@@ -62,6 +62,10 @@ rule_status(type_t t)
                                         typestatus[t]);
 }
 
+//
+// tGrammarRule methods
+//
+
 int tGrammarRule::nextId = 0;
 
 tGrammarRule::tGrammarRule(type_t t)
@@ -73,10 +77,10 @@ tGrammarRule::tGrammarRule(type_t t)
     //
 
     if(cheap_settings->statusmember("infl-rule-status-values",
-                                    typestatus[t]))
+                                    typestatus[type()]))
         _trait = INFL_TRAIT;
     else if(cheap_settings->statusmember("lexrule-status-values",
-                                         typestatus[t]))
+                                         typestatus[type()]))
         _trait = LEX_TRAIT;
     else
         _trait = SYNTAX_TRAIT;
@@ -86,12 +90,12 @@ tGrammarRule::tGrammarRule(type_t t)
     // 
     
     struct dag_node *ruleDag;
-    ruleDag = dag_get_path_value(typedag[t],
+    ruleDag = dag_get_path_value(typedag[type()],
                                  cheap_settings->req_value("rule-args-path"));
    
     if(ruleDag == FAIL)
     {
-        throw tError("Feature structure of rule " + string(typenames[t])
+        throw tError("Feature structure of rule " + string(typenames[type()])
                      + " does not contain "
                      + string(cheap_settings->req_value("rule-args-path")));
     }	    
@@ -101,10 +105,10 @@ tGrammarRule::tGrammarRule(type_t t)
     int arity = argsList.size();
     
     struct dag_node *headDtrDag;
-    headDtrDag = dag_get_path_value(typedag[t],
+    headDtrDag = dag_get_path_value(typedag[type()],
                      cheap_settings->req_value("head-dtr-path"));
     
-    int n = 1, keyarg = -1, head = -1;
+    int n = 1, keyArg = -1, headArg = -1;
     for(list<dag_node *>::iterator currDag = argsList.begin();
         currDag != argsList.end(); ++currDag)
     {
@@ -117,66 +121,64 @@ tGrammarRule::tGrammarRule(type_t t)
             
             if(keyDag != FAIL && dag_type(keyDag) ==
                lookup_type(cheap_settings->req_value("true-type")))
-                keyarg = n;
+                keyArg = n;
         }
         
         if(*currDag == headDtrDag)
-            head = n;
+            headArg = n;
         
         n++;
     }
     
     if(cheap_settings->lookup("rule-keyargs"))
     {
-        if(keyarg != -1)
+        if(keyArg != -1)
         {
             fprintf(ferr, "warning: both keyarg-marker-path and rule-keyargs "
                     "supply information on key argument...\n");
         }
-        char *s = cheap_settings->assoc("rule-keyargs", typenames[t]);
+        char *s = cheap_settings->assoc("rule-keyargs", typenames[type()]);
         if(s && strtoint(s, "in `rule-keyargs'"))
         {
-            keyarg = strtoint(s, "in `rule-keyargs'");
+            keyArg = strtoint(s, "in `rule-keyargs'");
         }
     }
     
     //
-    // Build the _tofill list which determines the order in which arguments
+    // Build the _toFill list which determines the order in which arguments
     // are filled. The opt_key option determines the strategy:
     // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
     //
 
-    // _fix_me_
-    // this is wrong for more than binary branching rules, 
-    // since adjacency is not guarantueed.
-    
+    // Desired results for ternary rules with key x for key-driven strategy:
+    // x = 1: 1,2,3
+    // x = 2: 2,1,3
+    // x = 3: 3,1,2
+
     if(opt_key == 0)
     {
-        if(keyarg != -1) 
-            _toFill = append(_toFill, keyarg);
+        if(keyArg != -1) 
+            _toFill = append(_toFill, keyArg);
     }
     else if(opt_key == 3)
     {
-        if(head != -1) 
-            _toFill = append(_toFill, head);
-        else if(keyarg != -1) 
-            _toFill = append(_toFill, keyarg);
+        if(headArg != -1) 
+            _toFill = append(_toFill, headArg);
+        else if(keyArg != -1) 
+            _toFill = append(_toFill, keyArg);
     }
-
-    // Desired results for ternary rules with key
-    // 1: 1,2,3
-    // 2: 2,1,3
-    // 3: 3,1,2
     
     if(opt_key != 2)
     {
         for(int i = 1; i <= arity; i++)
-            if(!contains(_toFill, i)) _toFill = append(_toFill, i);
+            if(!contains(_toFill, i))
+                _toFill = append(_toFill, i);
     }
     else
     {
         for(int i = arity; i >= 1; i--)
-            if(!contains(_toFill, i)) _toFill = append(_toFill, i);
+            if(!contains(_toFill, i))
+                _toFill = append(_toFill, i);
     }
     
     //
@@ -185,12 +187,12 @@ tGrammarRule::tGrammarRule(type_t t)
     //
 
     if(arity > 2
-       || cheap_settings->member("depressive-rules", typenames[_type]))
+       || cheap_settings->member("depressive-rules", typenames[type()]))
     {
         _hyperActive = false;
     }
 
-    if(cheap_settings->member("spanning-only-rules", typenames[_type]))
+    if(cheap_settings->member("spanning-only-rules", typenames[type()]))
     {
         _spanningOnly = true;
     }
@@ -204,7 +206,7 @@ tGrammarRule::tGrammarRule(type_t t)
 void
 tGrammarRule::print(FILE *f)
 {
-    fprintf(f, "%s/%d%s (", printnames[_type], remainingArity(),
+    fprintf(f, "%s/%d%s (", printName().c_str(), remainingArity(),
             hyperActive() == false ? "[-HA]" : "");
     
     list_int *l = _toFill;
@@ -217,13 +219,18 @@ tGrammarRule::print(FILE *f)
     fprintf(f, ")");
 }
 
+fs 
+tGrammarRule::getFS()
+{
+    fs f;
+    // _fix_me_
+    return f;
+}
+
 tPhrasalItem *
 tGrammarRule::instantiate()
 {
-    // _fix_me_
-    fs f;
-    
-    return new tPhrasalItem(this, f);
+    return new tPhrasalItem(this);
 }
 
 bool

@@ -530,7 +530,7 @@ tsdb_parse_collect_edges(tsdb_parse &T, tItem *root)
         tsdb_edge e;
         e.id = (*it)->id();
         e.status = 0; // (passive edge)
-        e.label = string((*it)->printname());
+        e.label = string((*it)->printName());
         e.start = (*it)->start();
         e.end = (*it)->end();
         e.score = 0.0;
