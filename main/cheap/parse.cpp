@@ -208,7 +208,11 @@ block(item *it, int mark)
         it->print(ferr);
         fprintf(ferr, "\n");
     }
-        
+    //
+    // _fix_me_
+    // it would seem that we should block() active edges too, otherwise there
+    // should be potential of spurious ambiguity; curios.  (27-may-03; uc & oe)
+    //
     if(it->passive() && (it->frozen() == 0 || mark == 2))
     {
         if(mark == 2) 

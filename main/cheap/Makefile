@@ -8,7 +8,7 @@ CC = gcc
 # CC = KCC --
 # CXX = KCC
 
-ITSDBPATH = /home/oe/src/itsdb
+ITSDBPATH = /lingo/oe/src/lkb
 INCLUDE = -I. -I../common  -I$(ITSDBPATH)/include -I$(ICUDIR)/include
 
 ICUDIR = /usr/local
@@ -68,7 +68,7 @@ DAGOBJ = dag-io.$(OBJ) dag-common.$(OBJ) dag-arced.$(OBJ) dag-alloc.$(OBJ) dag-t
 COMMONOBJS = bitcode.$(OBJ) chunk-alloc.$(OBJ) errors.$(OBJ) mfile.$(OBJ) \
 	lex-io.$(OBJ) lex-tdl.$(OBJ) settings.$(OBJ) fs.$(OBJ) dumper.$(OBJ) grammar-dump.$(OBJ) grammar.$(OBJ) types.$(OBJ) tsdb++.$(OBJ) utility.$(OBJ) $(DAGOBJ)
 
-PARSEOBJS = parse.$(OBJ) item.$(OBJ) task.$(OBJ) chart.$(OBJ) agenda.$(OBJ) tokenizer.$(OBJ) options.$(OBJ) postags.$(OBJ) inputtoken.$(OBJ) inputchart.$(OBJ) mrs.$(OBJ) k2y.$(OBJ) yy.$(OBJ) morph.$(OBJ) unicode.$(OBJ) paths.$(OBJ) sm.$(OBJ)
+PARSEOBJS = parse.$(OBJ) item.$(OBJ) task.$(OBJ) chart.$(OBJ) agenda.$(OBJ) tokenizer.$(OBJ) options.$(OBJ) postags.$(OBJ) inputtoken.$(OBJ) inputchart.$(OBJ) mrs.$(OBJ) k2y.$(OBJ) yy.$(OBJ) morph.$(OBJ) unicode.$(OBJ) paths.$(OBJ) sm.$(OBJ) hash.$(OBJ)
 
 #
 # cheap
