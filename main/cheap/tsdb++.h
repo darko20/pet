@@ -230,14 +230,12 @@ class tsdb_parse
 // timer can be stopped and restarted
 // this implementation will fail when clock() wraps over, which happens after
 // about 36 minutes on solaris/linux on 32 bit machines
-// a timer with lower resolution (1 s) is also maintained, it will not
-// wrap over as quickly
 
 class timer
 {
  public:
   inline timer(bool running = true) : _start(0), _elapsed(0), _saved(0),
-    _elapsed_ts(0), _saved_ts(0), _running(false)
+      _running(false)
     { if(running) start(); }
 
   inline ~timer() {};
@@ -248,30 +246,28 @@ class timer
     { if(!_running) { _running = true; _start = clock(); } }
 
   void stop()
-    { if(_running) { _running = false; _elapsed += clock() - _start; _elapsed_ts += convert2ms(clock() - _start) / 100; } }
+    { if(_running) { _running = false; _elapsed += clock() - _start; } }
 
-  void save() { _saved = _elapsed; _saved_ts = _elapsed_ts; }
-  void restore() { _elapsed = _saved; _elapsed_ts = _saved_ts; }
+  void save() { _saved = _elapsed; }
+  void restore() { _elapsed = _saved; }
 
-  inline clock_t elapsed() { return _elapsed + (_running ? clock() - _start : 0); }
+  inline long long elapsed() { return _elapsed + (_running ? clock() - _start : 0); }
   // returns elapsed time since start in some unknown unit
 
-  inline int elapsed_ts() { return _elapsed_ts; }
+  inline int elapsed_ts() { return convert2ms(elapsed()) / 100; }
   // returns elapsed time since start in tenth of seconds
   
-  inline clock_t convert2ms(clock_t t) { return t / (CLOCKS_PER_SEC / 1000); }
+  inline long long convert2ms(long long t) { return t / (CLOCKS_PER_SEC / 1000); }
   // converts time in internal unit to milliseconds
 
   inline clock_t resolution() { return 1000 / CLOCKS_PER_SEC; }
   // returns `stepsize' of the clock in milliseconds
  private:
   clock_t _start;
-  clock_t _elapsed;
-  clock_t _saved;
-  
-  unsigned int _elapsed_ts;
-  unsigned int _saved_ts;
 
+  long long _elapsed;
+  long long _saved;
+  
   bool _running;
 };
 
