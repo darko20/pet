@@ -390,7 +390,7 @@ bool process_instances();
 void compute_maxapp();
 void compute_feat_sets(bool minimal);
 
-void shrink_types();
+void unfill_types();
 
 /*** reduction.cc ***/
 void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in_reduction);
