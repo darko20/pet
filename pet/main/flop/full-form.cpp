@@ -110,7 +110,7 @@ istream& operator>>(istream& I, ff_entry& C)
       i = line.find('{', 0) + 1;
       C._preterminal = get_string(line, i, I);
       if(!C._preterminal.empty())
-	C._preterminal = string("$") + C._preterminal;
+          C._preterminal = string("$") + C._preterminal;
       
       i = line.find(',', i) + 1;
       C._form = get_string(line, i, I);
@@ -121,7 +121,7 @@ istream& operator>>(istream& I, ff_entry& C)
       i = line.find(',', i) + 1;
       C._affix = get_string(line, i, I);
       if(opt_inst_affixes && !C._affix.empty())
-	C._affix = string("$") + C._affix;
+          C._affix = string("$") + C._affix;
 
       i = line.find(',', i) + 1;
       C._inflpos = get_int(line, i, I);
@@ -181,19 +181,24 @@ void read_morph(string fname)
   fprintf(fstatus, "reading full form entries from `%s': ", fname.c_str());
 
   while(!f.eof())
-    {
+  {
       ff_entry e;
-
+      
       if(f >> e)
-	{
-	  linenr++;
-	  e.setdef(fname, linenr);
-	  fullforms.push_front(e);
-	}
+      {
+          linenr++;
+          e.setdef(fname, linenr);
+          fullforms.push_front(e);
+          if(verbosity > 4)
+          {
+              cerr << e << endl;
+          }
+          
+      }
       else if(f.bad())
-	f.clear();
-    }
-
+          f.clear();
+  }
+  
   fprintf(fstatus, "%d entries.\n", fullforms.size());
 }
 
