@@ -39,4 +39,7 @@
 - defaults
 
 - generator
+
+- whenever dag_get_path_value is called, structure should be filled, at least
+  under that path.
   
