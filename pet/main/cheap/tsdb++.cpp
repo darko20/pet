@@ -166,23 +166,18 @@ void initialize_version()
     }
 
   sprintf(CHEAP_VERSION,
-          "PET(%s cheap) %s [%d] {RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
-#ifdef YY
-          "%s K2Y(%d) "
-#endif
-          "%s %s} {ns %d} (%s/%s) <%s>",
+          "PET(%s cheap) [%d] %sPA(%d) RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
+          "%s %s {ns %d} (%s/%s) <%s>",
           da,
-          opt_packing ? "packing" : "",
           pedgelimit,
+          opt_packing ? "+" : "-",
+          opt_packing,
           opt_key == 0 ? "key" : (opt_key == 1 ? "l-r" : (opt_key == 2 ? "r-l" : (opt_key == 3 ? "head" : "unknown"))),
           opt_hyper ? "+HA" : "-HA",
           Grammar->nhyperrules(),
           opt_filter ? "+FI" : "-FI",
           opt_nqc != 0 ? "+QC" : "-QC", opt_nqc, qcs,
           ((opt_nsolutions != 0) ? "+OS" : "-OS"), opt_nsolutions, 
-#ifdef YY
-          ((opt_nth_meaning != 0) ? "+OM" : "-OM"), opt_k2y,
-#endif
           opt_shrink_mem ? "+SM" : "-SM", 
           opt_shaping ? "+SH" : "-SH",
 	  sizeof(dag_node),
@@ -191,6 +186,9 @@ void initialize_version()
 
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
   sprintf(CHEAP_PLATFORM, "gcc %d.%d", __GNUC__, __GNUC_MINOR__);
+#if defined(__OPTIMIZED__)
+  sprintf(CHEAP_PLATFORM, " (optim)");
+#endif
 #else
   sprintf(CHEAP_PLATFORM, "unknown");
 #endif

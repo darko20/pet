@@ -223,7 +223,7 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 
 phrasal_item::phrasal_item(phrasal_item *sponsor, vector<item *> &dtrs, fs &f)
     : item(sponsor->start(), sponsor->end(), sponsor->_paths,
-           sponsor->priority(), f, sponsor->printname()),
+           sponsor->id(), f, sponsor->printname()),
       _daughters(),
       _adaughter(0), _rule(sponsor->rule())
 {
@@ -416,8 +416,19 @@ void phrasal_item::print_derivation(FILE *f, bool quoted)
         fprintf(f, "%*s", derivation_indentation, "");
 
     fprintf(f, 
-            "(%d %s %d/%d %d %d", 
-            _id, printname(), _p, _q, _start, _end);
+            "(%d %s %d %d %d", 
+            _id, printname(), _p, _start, _end);
+
+    if(packed.size())
+    {
+        fprintf(f, " {");
+        for(list<item *>::iterator pack = packed.begin();
+            pack != packed.end(); ++pack)
+        {
+            fprintf(f, "%s%d", pack == packed.begin() ? "" : " ", (*pack)->id()); 
+        }
+        fprintf(f, "}");
+    }
 
     if(_result_root != -1)
     {
