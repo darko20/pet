@@ -142,7 +142,7 @@ class fs
   bool modify_eagerly_searching(modlist &mods);
 
   /** Print readably for debugging purposes */
-  void print(FILE *f);
+  void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL);
 
  private:
   

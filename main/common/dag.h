@@ -34,3 +34,7 @@
 # define QDESTRUCTIVE_UNIFIER
 # include "dag-tomabechi.h"
 #endif
+
+#define DAG_FORMAT_TRADITIONAL 0
+#define DAG_FORMAT_FED 1
+#define DAG_FORMAT_LUI 2

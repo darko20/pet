@@ -646,18 +646,31 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
       // Can the rule reduce the string "matched + s" to a valid base form ?
       if((*r)->base_form(matched, s, base) == false)
         continue;
+
       type_t candidate = (*r)->rule();
       list<type_t> rules = a.rules();
 
       // Check the rule filter (if activated) with candidate as daughter rule
       // and the first rule in the 'rules' list as mother.
-      if (_analyzer->infl_rule_filter() && ! rules.empty()
+      if (_analyzer->_rule_filter && ! rules.empty()
           && ! Grammar->filter_compatible(rules.front(), 1, candidate))
         continue;
 
       if(_suffix) base.reverse();
 
       string st = Conv->convert(base);
+
+      //
+      // in case the `orthographemics-minimum-stem-length' parameter was used
+      // to impose a lower bound on how much to reduce the input form, see to
+      // it that hypotheses violating that constraint cannot get into .res.;
+      // given substitution and addition rules (plus variation among subrues),
+      // i am not quite sure whether we could maybe save work by moving this
+      // test further up; i think not.                         (12-feb-05; oe) 
+      //
+      if(_analyzer->_minimal_stem_length > 0
+         && st.size() < _analyzer->_minimal_stem_length) 
+        continue;
 
       list<string> forms = a.forms();
       list<type_t>::iterator rule;
@@ -674,7 +687,8 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
           rule != rules.end() && form != forms.end();
           ++rule, ++form) 
       {
-        if(*rule == candidate && *form == st) 
+        if(*rule == candidate 
+           && (_analyzer->_duplicate_filter_p || *form == st))
         {
           cyclep = true;
           break;
@@ -687,7 +701,6 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
 	  
       res.push_back(tMorphAnalysis(forms, rules));
     }
-
   }
 
   return res;
@@ -743,13 +756,20 @@ tMorphAnalyzer::tMorphAnalyzer()
     _suffixrules(new morph_trie(this, true)),
     _prefixrules(new morph_trie(this, false)),
     _irregs_only(false),
-    _max_infls(0),
-    _infl_rule_filter(false)
+    _duplicate_filter_p(false), _maximal_depth(0), _minimal_stem_length(0),
+    _rule_filter(false)
 {
-  char *maxinfl = cheap_settings->value("max-inflections");
-  if (maxinfl != NULL) 
-    _max_infls = abs(strtoint(maxinfl, "in setting max-inflections"));
-  _infl_rule_filter = (cheap_settings->lookup("infl-rule-filter") != NULL);
+  char *foo;
+  if((foo = cheap_settings->value("orthographemics-maximum-chain-depth")) != 0)
+    _maximal_depth 
+      = strtoint(foo, "as value of orthographemics-maximum-chain-depth");
+  if((foo = cheap_settings->value("orthographemics-minimum-stem-length")) != 0)
+    _minimal_stem_length 
+      = strtoint(foo, "as value of orthographemics-minimum-stem-length");
+  if(cheap_settings->lookup("orthographemics-duplicate-filter"))
+    _duplicate_filter_p = true;
+  if(cheap_settings->lookup("orthographemics-cohesive-chains") != NULL)
+    _rule_filter = true;
 }
 
 tMorphAnalyzer::~tMorphAnalyzer()
@@ -943,7 +963,9 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
 
   prev_results.push_back(tMorphAnalysis(forms, list<type_t>()));
   
-  while(prev_results.size() > 0)
+  unsigned int i = 0;
+  while(prev_results.size() > 0 
+        && (!_maximal_depth || i++ <= _maximal_depth))
   {
     if(verbosity > 9)
     {
@@ -956,11 +978,8 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
     for(list<tMorphAnalysis>::iterator it = prev_results.begin();
         it != prev_results.end(); ++it)
     {
-      if ((_max_infls == 0) || (it->rules()).size() < _max_infls)
-      {
-        list<tMorphAnalysis> r = analyze1(*it);
-        current_results.splice(current_results.end(), r);
-      }
+      list<tMorphAnalysis> r = analyze1(*it);
+      current_results.splice(current_results.end(), r);
       final_results.push_back(*it);
     }
 

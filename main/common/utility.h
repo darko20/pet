@@ -82,7 +82,7 @@ char *output_name(char *in, char *oldextension, const char *newextension);
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.
  */
-string read_line(FILE *f);
+string read_line(FILE *f, int commentp = 0);
 
 /** Replace all occurences of \a oldText in \a s by \a newText. */
 void

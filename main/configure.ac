@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.6], [pet@coli.uni-saarland.de])
+AC_INIT([PET], [0.99.7], [pet@coli.uni-saarland.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
@@ -407,6 +407,21 @@ if test x$yy = xtrue; then
 fi
 AM_CONDITIONAL(YY, [test x$yy = xtrue])
 
+AC_ARG_ENABLE(lui,
+AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
+[case "${enableval}" in
+   yes) lui=true ;;
+   no)  lui=false ;;
+   *)   lui=false
+        AC_MSG_ERROR(bad value ${enableval} for --enable-lui) ;;
+ esac
+], [lui=false])
+if test x$lui = xtrue; then 
+    AC_DEFINE(LUI, [], [Enable grammar dumping in LUI format])
+fi
+# no extra files, don't need Makefile conditional
+# AM_CONDITIONAL(LUI, [test x$lui = xtrue])
+
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADERS([hash_map ext/hash_map],,,)
 AC_LANG_PUSH(C++)
@@ -456,7 +471,7 @@ AC_PATH_PROG(DOXYGEN,doxygen,,$PATH:/usr/local/bin:/usr/bin)
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h locale.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h locale.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -486,7 +501,7 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 # Is becoming obsolete
 AC_FUNC_WAIT3
-AC_CHECK_FUNCS([bzero gethostbyaddr gettimeofday inet_ntoa munmap setlocale socket strcasecmp strchr strdup strerror strrchr strtol])
+AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gettimeofday inet_ntoa munmap setlocale socket strcasecmp strchr strdup strerror strpbrk strrchr strtol])
 
 # Excluded doc and goofy
 AC_CONFIG_FILES([Makefile

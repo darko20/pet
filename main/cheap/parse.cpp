@@ -43,7 +43,7 @@
 chart *Chart;
 tAgenda *Agenda;
 
-timer *ParseTime;
+timer ParseTime;
 timer TotalParseTime(false);
 
 //
@@ -221,7 +221,12 @@ packed_edge(tItem *newitem)
             else
                 subsumes(olditem->get_fs(), newitem->get_fs(),
                          forward, backward);
-#if 0    
+#if 0
+            //
+            // according to ulrich (sometime mid-2004), we sometimes hit this
+            // condition (for the ERG), hence subsumption quick check remains
+            // off for the time being.                         (11-jan-05; oe)
+            //
             if(f1 == false && forward || b1==false && backward)
             {
                 fprintf(stderr, "S | > %c vs %c | < %c vs %c\n",
@@ -297,7 +302,7 @@ add_root(tItem *it)
     stats.trees++;
     if(stats.first == -1)
     {
-        stats.first = ParseTime->convert2ms(ParseTime->elapsed());
+        stats.first = ParseTime.convert2ms(ParseTime.elapsed());
         if(opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
             return true;
     }
@@ -351,9 +356,6 @@ resources_exhausted()
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
 {
-    TotalParseTime.start();
-    ParseTime->start();
-
     while(!Agenda->empty() &&
           (opt_nsolutions == 0 || stats.trees < opt_nsolutions) &&
 #ifdef YY
@@ -373,14 +375,11 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
 	  
         delete t;
     }
-
-    ParseTime->stop();
-    TotalParseTime.stop();
 }
 
 void
 parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
-    stats.tcpu = ParseTime->convert2ms(ParseTime->elapsed());
+    stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
 
     stats.dyn_bytes = FSAS.dynamic_usage();
     stats.stat_bytes = FSAS.static_usage();
@@ -480,14 +479,11 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
         Chart->readings() = Chart->trees();
     }
 
-    // _fix_me_ need to redesign this
-#if 0
+    // This is not the ideal solution if parsing could be restarted
     if(Grammar->sm())
-    {
-        sort(Chart->readings().begin(), Chart->readings().end(),
-             greater_than_score(Grammar->sm()));
-    }
-#endif
+      sort(Chart->readings().begin(), Chart->readings().end(),
+           item_greater_than_score());
+
 }
 
 void
@@ -497,7 +493,6 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     FSAS.clear_stats();
     stats.reset();
     stats.id = id;
-    ParseTime = new timer;
 
     auto_ptr<item_owner> owner(new item_owner);
     tItem::default_owner(owner.get());
@@ -510,6 +505,14 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     Agenda = new tAgenda;
     C = Chart = new chart(max_pos, owner);
     
+    //
+    // really, start timing here.  for JaCY (as of jan-05), input processing
+    // takes significant time.                               (10-feb-05; oe)
+    //
+
+    TotalParseTime.start();
+    ParseTime.reset(); ParseTime.start();
+
     Lexparser.lexical_processing(input_items
                                  , cheap_settings->lookup("lex-exhaustive")
                                  , FSAS, errors);
@@ -517,9 +520,12 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     // during lexical processing, the appropriate tasks for the syntactic stage
     // are already created
     parse_loop(FSAS, errors);
+
+    ParseTime.stop();
+    TotalParseTime.stop();
+
     parse_finish(FSAS, errors);
 
     Lexparser.reset();
-    delete ParseTime;
     delete Agenda;
 }

@@ -22,6 +22,7 @@
 #include "grammar.h"
 
 #include "pet-system.h"
+#include <sys/param.h>
 
 #include "cheap.h"
 #include "fs.h"
@@ -255,6 +256,33 @@ grammar_rule::print(FILE *f)
     
     fprintf(f, ")");
 }
+
+void
+grammar_rule::lui_dump(const char *path) {
+
+  if(chdir(path)) {
+    fprintf(ferr, 
+            "grammar_rule::lui_dump(): invalid target directory `%s'.\n",
+            path);
+    return;
+  } // if
+  char name[MAXPATHLEN + 1];
+  sprintf(name, "rule.%d.lui", _id);
+  FILE *stream;
+  if((stream = fopen(name, "w")) == NULL) {
+    fprintf(ferr, 
+            "grammar_rule::lui_dump(): unable to open `%s' (in `%s').\n",
+            name, path);
+    return;
+  } // if
+  fprintf(stream, "avm -%d ", _id);
+  fs foo = instantiate(true);
+  foo.print(stream, DAG_FORMAT_LUI);
+  fprintf(stream, " \"Rule # %d (%s)\"\f\n", _id, printname());
+  fclose(stream);
+
+} // grammar_rule::lui_dump()
+
 
 fs
 grammar_rule::instantiate(bool full)
@@ -632,6 +660,13 @@ tGrammar::tGrammar(const char * filename)
                 " packing disabled\n");
         opt_packing = 0;
     }
+
+#ifdef LUI
+    for(list<grammar_rule *>::iterator rule = _rules.begin();
+        rule != _rules.end(); 
+        ++rule)
+      (*rule)->lui_dump();
+#endif
 }
 
 void

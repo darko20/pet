@@ -177,6 +177,8 @@ dag_node *dag_unify1_rec(dag_node *dag1, dag_node *dag2)
     }
 #endif
 
+  assert(dag2 != NULL);
+
   dag1->forward = dag2;
   
   if(unify_wellformed)

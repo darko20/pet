@@ -91,6 +91,9 @@ class grammar_rule
   /** Print in readable form for debugging purposes */
   void print(FILE *f);
 
+  /** Dump grammar in a format feasible for LUI (?) into \a directory */
+  void lui_dump(const char* directory = "/tmp");
+
   /** Return the feature structure associated with this rule.
    * If packing is active, the structure is restricted.
    */

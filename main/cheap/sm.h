@@ -83,6 +83,8 @@ class tSM
 
     virtual double
     scoreLocalTree(class grammar_rule *, list<class tItem *>);
+    virtual double
+    scoreLocalTree(class grammar_rule *, vector<class tItem *>);
 
     virtual double
     scoreLeaf(class tLexItem *);

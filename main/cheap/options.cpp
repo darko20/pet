@@ -49,6 +49,9 @@ char *opt_compute_qc = 0;
 
 char *opt_mrs = 0;
 
+// 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
+int opt_comment_passthrough = 0;
+
 tokenizer_id opt_tok = TOKENIZER_STRING;
 
 string opt_tsdb_dir, opt_jxchg_dir;
@@ -60,7 +63,8 @@ void usage(FILE *f)
   fprintf(f, "cheap version %s\n", version_string);
   fprintf(f, "usage: `cheap [options] grammar-file'; valid options are:\n");
 #ifdef TSDBAPI
-  fprintf(f, "  `-tsdb[=n]' --- enable tsdb++ slave mode (protocol version = n)\n");
+  fprintf(f, "  `-tsdb[=n]' --- "
+          "enable [incr tsdb()] slave mode (protocol version = n)\n");
 #endif
   fprintf(f, "  `-nsolutions[=n]' --- find best n only, 1 if n is not given\n");
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
@@ -102,7 +106,8 @@ void usage(FILE *f)
   fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
   fprintf(f, "  `-nbest' --- n-best parsing mode\n");
-  fprintf(f, "  `-packing=n' --- set packing to n (bit coded)\n");
+  fprintf(f, "  `-packing[=n]' --- "
+          "set packing to n (bit coded; default: 7)\n");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
   fprintf(f, "  `-tsdbdump directory' --- "
@@ -112,7 +117,11 @@ void usage(FILE *f)
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");  
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
-  fprintf(f, "  `-tok=(string|yy|yy_counts|xml|xml_counts)' --- select input method (default string)\n");  
+  fprintf(f, "  `-tok=(string|yy|yy_counts|xml|xml_counts)' --- "
+             "select input method (default `string')\n");  
+
+  fprintf(f, "  `-comment-passthrough[=1]' --- "
+          "allow input comments (-1 to suppress output)\n");
 }
 
 #define OPTION_TSDB 0
@@ -149,6 +158,7 @@ void usage(FILE *f)
 #define OPTION_COMPUTE_QC_UNIF 33
 #define OPTION_COMPUTE_QC_SUBS 34
 #define OPTION_JXCHG_DUMP 35
+#define OPTION_COMMENT_PASSTHROUGH 36
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -194,6 +204,7 @@ void init_options()
   opt_nresults = 0;
   opt_tok = TOKENIZER_STRING;
   opt_jxchg_dir = "";
+  opt_comment_passthrough = 0;
 
 #ifdef YY
   opt_yy = false;
@@ -251,6 +262,7 @@ bool parse_options(int argc, char* argv[])
     {"compute-qc-unif", optional_argument, 0, OPTION_COMPUTE_QC_UNIF},
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
+    {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
 
     {0, 0, 0, 0}
   }; /* struct option */
@@ -432,6 +444,15 @@ bool parse_options(int argc, char* argv[])
           if (*(opt_jxchg_dir.end()--) != '/') 
             opt_jxchg_dir += '/';
           break;
+
+      case OPTION_COMMENT_PASSTHROUGH:
+          if(optarg != NULL)
+            opt_comment_passthrough = 
+              strtoint(optarg, "as argument to -comment-passthrough");
+          else
+              opt_comment_passthrough = 1;
+	  break;
+
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)

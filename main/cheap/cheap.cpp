@@ -140,7 +140,7 @@ void interactive()
                 , opt_tsdb_dir.c_str());
     }
 
-    while(!(input = read_line(stdin)).empty())
+    while(!(input = read_line(stdin, opt_comment_passthrough)).empty())
     {
         chart *Chart = 0;
 
@@ -148,8 +148,6 @@ void interactive()
 
         try {
             fs_alloc_state FSAS;
-
-            // input_chart i_chart(new end_proximity_position_map);
 
             list<tError> errors;
             analyze(input, Chart, FSAS, errors, id);
@@ -185,7 +183,8 @@ void interactive()
                 
                 list< tItem * > results(Chart->readings().begin()
                                         , Chart->readings().end());
-                results.sort(item_better_than());
+                // sorting was done already in parse_finish
+                // results.sort(item_greater_than_score());
                 for(list<tItem *>::iterator iter = results.begin()
                       ; (iter != results.end())
                          && ((opt_nresults == 0) || (opt_nresults > nres))
@@ -290,7 +289,7 @@ void nbest()
         int selected = -1;
         int time = 0;
         
-        while(!(input = read_line(stdin)).empty())
+        while(!(input = read_line(stdin, opt_comment_passthrough)).empty())
         {
             if(selected != -1)
                 continue;
@@ -299,8 +298,6 @@ void nbest()
             try
             {
                 fs_alloc_state FSAS;
-                
-                // input_chart i_chart(new end_proximity_position_map);
                 
                 list<tError> errors;
                 analyze(input, Chart, FSAS, errors, id);
@@ -481,11 +478,6 @@ void process(char *s)
             else
 #endif
             {
-#if 0 // #ifdef ONLINEMORPH
-                if(opt_interactive_morph)
-                    interactive_morph();
-                else
-#endif
                 {
                     if(opt_nbest)
                         nbest();

@@ -48,6 +48,7 @@ extern char *grammar_file_name;
 extern char *opt_compute_qc;
 
 extern char *opt_mrs;
+extern int opt_comment_passthrough;
 
 enum tokenizer_id { 
   TOKENIZER_INVALID, TOKENIZER_STRING

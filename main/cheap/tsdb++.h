@@ -75,7 +75,9 @@ class statistics
   /** nr of words */
   int words;
   /** nr of words pruned by chart manipulation */
-  int words_pruned;
+  int words_pruned; 
+  /** time for morphological processing */
+  int mtcpu;
   /** time for first reading */
   int first;
   /** total cpu time */
@@ -256,20 +258,21 @@ class tsdb_rule_stat
 class tsdb_parse
 {
  public:
-  tsdb_parse()
-    : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
-    first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1),
-    l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
-    aedges(-1), pedges(-1), raedges(-1), rpedges(-1),
-    unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1),
-    gcs(-1), i_load(-1), a_load(-1),
-    date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
-    subsumptions(-1), p_equivalent(-1), p_proactive(-1),
-    p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
-    p_upedges(-1),
-    results(), edges(), rule_stats(), i_input(), i_length(-1)
-    {
-    }
+    tsdb_parse()
+        : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
+        mtcpu(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), 
+        words(-1),
+        l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
+        aedges(-1), pedges(-1), raedges(-1), rpedges(-1),
+        unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1),
+        gcs(-1), i_load(-1), a_load(-1),
+        date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
+        subsumptions(-1), p_equivalent(-1), p_proactive(-1),
+        p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
+        p_upedges(-1),
+        results(), edges(), rule_stats(), i_input(), i_length(-1)
+        {
+        }
 
   void push_result(class tsdb_result &r)
     {
@@ -312,6 +315,8 @@ class tsdb_parse
   int trees;
   /** number of readings obtained */
   int readings;
+  /** time for morphological processing */
+  int mtcpu;
   /** time to find first reading (msec) */
   int first;
   /** total time for parsing (msec) */
@@ -436,6 +441,10 @@ class timer
   inline ~timer() {};
 
   bool running() { return _running; }
+
+  void reset() {
+    _running = false; _start = 0; _elapsed = 0; _saved = 0;
+  }
 
   void start()
     { if(!_running) { _running = true; _start = clock(); } }

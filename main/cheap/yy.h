@@ -31,43 +31,6 @@
 #include <cstdio>
 #include <cassert>
 
-#if 0
-#include "tokenizer.h"
-
-class yy_tokenizer : public tokenizer
-{
- public:
-  yy_tokenizer(string s) :
-    tokenizer(s), _yyinput(s), _yypos(0) {};
-
-  virtual ~yy_tokenizer() {};
-
-  virtual void add_tokens(class input_chart *i_chart);
-
-  virtual string description() { return "YY Inc tokenization"; }
-
-
- private:
-  string _yyinput;
-  string::size_type _yypos;
-
-  bool eos();
-  char cur();
-  const char *res();
-  bool adv(int n = 1);
-
-  bool read_ws();
-  bool read_special(char);
-
-  bool read_int(int &);
-  bool read_double(double &);
-  bool read_string(string &, bool, bool = false);
-
-  bool read_pos(string &, double &);
-  class yy_token *read_token();
-};
-#endif
-
 extern int cheap_server_initialize(int);
 extern void cheap_server(int);
 extern int cheap_server_child(int);

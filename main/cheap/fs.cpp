@@ -93,14 +93,10 @@ fs::printname()
 }
 
 void
-fs::print(FILE *f)
+fs::print(FILE *f, int format)
 {
-    if(temp())
-    {
-        dag_print_safe(f, _dag, true);
-    }
-    else
-        dag_print_safe(f, _dag, false);
+    if(temp()) dag_print_safe(f, _dag, true, format);
+    else dag_print_safe(f, _dag, false, format);
 }
 
 void
@@ -298,6 +294,9 @@ record_failures(list<unification_failure *> fails, bool unification,
                     }
                     else if(unification)
                     {
+                      // _fix_me_ i needed to comment this out because it
+                      // didn't work with the more general restrictors
+                      // but i don't know the exact reason (bk)
                       //throw tError("Duplicate failure path");
                     }
                 }
