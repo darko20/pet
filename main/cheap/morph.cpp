@@ -188,6 +188,14 @@ private:
   map<string, morph_letterset*> _m;
 };
 
+/** This implements one element of a morphological rule specification, the
+ * so-called sub-rule. 
+ *
+ * It consists of the left part (the part to be substitued) and right part (the
+ * substitution). During analysis, the roles are switched: the right part has
+ * to be found in the string and is then replaced by the left part to come
+ * closer to the base form.
+ */
 class morph_subrule
 {
 public:
@@ -195,8 +203,13 @@ public:
                 MString left, MString right)
     : _analyzer(a), _rule(rule), _left(left), _right(right) {}
   
+  /** The AVM rule of this sub-rule */
   type_t rule() { return _rule; }
 
+  /** Can the string \a matched + \a rest be reduced to a base form with this
+   *  sub-rule?
+   *  If this is the case, return the reduced form in \a result.
+   */
   bool base_form(MString matched, MString rest,
                  MString &result);
 
@@ -245,7 +258,7 @@ public:
 
   void add_subrule(type_t rule, string subrule);
 
-  list<tMorphAnalysis> analyze(tMorphAnalysis a, int max_infls = 0);
+  list<tMorphAnalysis> analyze(tMorphAnalysis a);
 
   void print(FILE *f);
 
@@ -363,10 +376,13 @@ void morph_lettersets::print(FILE *f)
 
 bool morph_subrule::establish_and_check_bindings(MString matched)
 {
+  // Iterate over the right side of the morphological sub-rule: The part to be
+  // replaced during analysis.
   StringCharacterIterator it1(_right);
   StringCharacterIterator it2(matched);
   MChar c1, c2;
 
+  /* Reset all bindings */
   _analyzer->undo_letterset_bindings();
 
   while(it1.hasNext())
@@ -375,10 +391,13 @@ bool morph_subrule::establish_and_check_bindings(MString matched)
     c2 = it2.next32PostInc();
     if(c1 == '!')
     {
+      /* get the appropriate letterset for the character following the ! */
       c1 = it1.next32PostInc();
       morph_letterset *ls = _analyzer->letterset(string(1, (char) c1));
       if(ls == 0)
         throw tError("Referencing undefined letterset !" + string(1, (char) c1));
+      // Check if letterset is either unbound (first occurence) or the
+      // character is the same, as required 
       if(ls->bound() == 0 || ls->bound() == c2)
         ls->bind(c2);
       else
@@ -393,14 +412,21 @@ bool morph_subrule::establish_and_check_bindings(MString matched)
   return true;
 }
 
+/** Can this rule reduce the string consisting of \a matched and \a rest to a
+ * valid base form ?
+ * If so, return the reduced form in \a result.
+ */
 bool morph_subrule::base_form(MString matched,
                               MString rest,
                               MString &result)
 {
+  // Check the co-occurence restrictions introduced by the lettersets on the
+  // matched part
   if(establish_and_check_bindings(matched) == false)
     return false;
 
-  // build base form, translating lettersets
+  // build base form by replacing matched string with the left part of the
+  // subrule and translating references to lettersets
 
   result.remove();
 
@@ -554,12 +580,17 @@ void morph_trie::add_subrule(type_t rule, string subrule)
   if(left_u8 == "*")
     left_u8 = "";
 
+  // strip blanks at the beginning of the left part of a morph subrule
   while(curr < subrule.length() && isspace(subrule[curr])) ++curr;
 
-  if(curr == subrule.length())
+  // strip blanks at the end of the left part of a morph subrule
+  string::size_type rule_end = subrule.length() - 1;
+  while(rule_end >= curr && isspace(subrule[rule_end])) --rule_end;
+
+  if(curr > rule_end)
     throw tError("Invalid subrule `" + subrule + "' in rule " + print_name(rule));
 
-  right_u8 = subrule.substr(curr, subrule.length() - curr);
+  right_u8 = subrule.substr(curr, rule_end - curr + 1);
 
   MString left = Conv->convert(left_u8);
   MString right = Conv->convert(right_u8);
@@ -581,17 +612,12 @@ void morph_trie::add_subrule(type_t rule, string subrule)
 
 }
 
-/** Either this code is buggy or i'm lost in its complex beauty and simplicity
- * (bk). 
- * The length of the string is reduced, but the number of rules and forms
- * in the results may at most be 1 higher than in \a a? What am i missing?
- * \bug the max_infls thing can not work correctly here, but as long as i don't
- * understand the code, i can't fix it.
+/** Remove all possible prefixes (or suffixes) encoded in this trie from the
+ *  base string in \a a and return the list of newly created analyses.
  */
-list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a, int max_infls)
+list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
 {
   list<tMorphAnalysis> res;
-  //  int infls = 0;
 
   MString s = Conv->convert(a.base());
   if(_suffix) s.reverse();
@@ -600,29 +626,39 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a, int max_infls)
 
   trie_node *n = &_root;
 
-  while((s.length() > 0) //&& ((max_infls == 0) || (infls < max_infls))
-        )
+  while(s.length() > 0)
   {
     MChar c = s.char32At(0);
     s.remove(0, 1);
     matched.append(c);
 
+    // is there a branch at this trie node labeled with character c?
+    // If not so, we are done
     n = n->get_node(c);
     if(n == 0) return res;
 
+    // Iterate through all subrules that have been matched completedly when
+    // arriving at the current trie node.
     for(vector<morph_subrule *>::iterator r = n->rules().begin();
         r != n->rules().end(); ++r)
     {
       MString base;
+      // Can the rule reduce the string "matched + s" to a valid base form ?
       if((*r)->base_form(matched, s, base) == false)
         continue;
-	  
+      type_t candidate = (*r)->rule();
+      list<type_t> rules = a.rules();
+
+      // Check the rule filter (if activated) with candidate as daughter rule
+      // and the first rule in the 'rules' list as mother.
+      if (_analyzer->infl_rule_filter() && ! rules.empty()
+          && ! Grammar->filter_compatible(rules.front(), 1, candidate))
+        continue;
+
       if(_suffix) base.reverse();
 
       string st = Conv->convert(base);
 
-      type_t candidate = (*r)->rule();
-      list<type_t> rules = a.rules();
       list<string> forms = a.forms();
       list<type_t>::iterator rule;
       list<string>::iterator form;
@@ -652,7 +688,6 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a, int max_infls)
       res.push_back(tMorphAnalysis(forms, rules));
     }
 
-    // infls++;
   }
 
   return res;
@@ -700,7 +735,7 @@ void tMorphAnalysis::print_lkb(FILE *f)
 }
 
 //
-// Analzer
+// Analyzer
 //
 
 tMorphAnalyzer::tMorphAnalyzer()
@@ -708,11 +743,13 @@ tMorphAnalyzer::tMorphAnalyzer()
     _suffixrules(new morph_trie(this, true)),
     _prefixrules(new morph_trie(this, false)),
     _irregs_only(false),
-    _max_infls(0)
+    _max_infls(0),
+    _infl_rule_filter(false)
 {
   char *maxinfl = cheap_settings->value("max-inflections");
   if (maxinfl != NULL) 
     _max_infls = abs(strtoint(maxinfl, "in setting max-inflections"));
+  _infl_rule_filter = (cheap_settings->lookup("infl-rule-filter") != NULL);
 }
 
 tMorphAnalyzer::~tMorphAnalyzer()
@@ -842,8 +879,10 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze1(tMorphAnalysis form)
 {
   list<tMorphAnalysis> pre, suf;
 
-  pre = _prefixrules->analyze(form, _max_infls);
-  suf = _suffixrules->analyze(form, _max_infls);
+  /* Apply prefix and suffix rules in parallel to form and append the result
+     lists efficiently to one result */
+  pre = _prefixrules->analyze(form);
+  suf = _suffixrules->analyze(form);
 
   pre.splice(pre.begin(), suf);
 

@@ -265,7 +265,11 @@ int lex_parser::map_positions(inp_list &tokens, bool counts) {
   // position (i-1) have been processed
   tokens.sort(tInputItem_position_less());
 
-  int maxend = tokens.back()->endposition() + count_to_pos;
+  int maxend = 0;
+  for(inp_iterator it = tokens.begin(); it != tokens.end(); it++)
+    if ((*it)->endposition() > maxend) 
+      maxend = (*it)->endposition();
+  maxend += count_to_pos;
   // int offset = tokens.front()->startposition();
 
   // At the end of this function, this is the rightmost position in the chart

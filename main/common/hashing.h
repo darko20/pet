@@ -17,6 +17,9 @@
 #endif
 
 #ifdef HAVE_EXT_HASH_MAP
+#include <ext/hash_map>
+#include <ext/hash_set>
+
 // hopefully a gnu compiler with
 #if (__GNUC__ > 2) && ( __GNUC_MINOR__ > 1)
 //g++ version 3.2.x or later
@@ -26,9 +29,6 @@ using namespace HASH_SPACE;
 // g++ version 3.0.x or 3.1.x, not recommended
 #define HASH_SPACE std
 #endif
-
-#include <ext/hash_map>
-#include <ext/hash_set>
 #endif 
 
 #if ! defined(HAVE_HASH_MAP) && ! defined(HAVE_EXT_HASH_MAP)
