@@ -141,28 +141,53 @@ extern bool qc_compatible(type_t *, type_t *);
 class fs_alloc_state
 {
  public:
-  inline fs_alloc_state(bool auto_release = true) : _auto(auto_release) { dag_alloc_mark(_state); }
-  inline ~fs_alloc_state() { if(_auto) { dag_alloc_release(_state); } }
+    inline fs_alloc_state(bool auto_release = true)
+        : _auto(auto_release)
+    {
+        dag_alloc_mark(_state);
+    }
+    
+    inline ~fs_alloc_state()
+    {
+        if(_auto)
+        {
+            dag_alloc_release(_state);
+        }
+    }
 
-  inline void release() { dag_alloc_release(_state); _auto = false; }
+    inline void release()
+    {
+        dag_alloc_release(_state); _auto = false;
+    }
 
-  inline void clear_stats() { dag_alloc_clear_stats(); }
-
-  long dynamic_usage()
-    { return dag_alloc_dynamic_mem(); }
-
-  long static_usage()
-    { return dag_alloc_static_mem(); }
-
-  void reset()
-    { dag_alloc_reset(); }
-
-  void may_shrink()
-    { dag_alloc_may_shrink(); }
-
+    inline void clear_stats()
+    {
+        dag_alloc_clear_stats();
+    }
+    
+    long dynamic_usage()
+    {
+        return dag_alloc_dynamic_mem();
+    }
+    
+    long static_usage()
+    {
+        return dag_alloc_static_mem();
+    }
+    
+    void reset()
+    {
+        dag_alloc_reset();
+    }
+    
+    void may_shrink()
+    {
+        dag_alloc_may_shrink();
+    }
+    
  private:
-  struct dag_alloc_state _state;
-  bool _auto;
+    struct dag_alloc_state _state;
+    bool _auto;
 };
 
 #ifdef QC_PATH_COMP
