@@ -425,7 +425,7 @@ void tsdb_parse::capi_print()
               "(:nmeanings . %d) "
               "(:failures . %d) "
               "(:pruned . %d) "
-              "(:subsumption . %d) "
+              "(:subsumptions . %d) "
               "(:trees . %d) "
               "(:frozen . %d) "
               "(:equivalence . %d) "
@@ -436,10 +436,10 @@ void tsdb_parse::capi_print()
               nmeanings, failures, pruned,
               subsumptions,
               p_trees,
+              p_frozen,
               p_equivalent,
               p_proactive, 
               p_retroactive, 
-              p_frozen,
               p_utcpu);
 }
 
