@@ -2,7 +2,7 @@ UNIFIER = tomabechi ;
 YY = true ;
 
 TSDB = true ;
-ITSDBDIR = /proj/collate/home/uc/src/newlkb ;
+ITSDBDIR = /home/uc/src/lkb ;
 
 ICU = true ;
 ICUDIR = /usr/contrib/lib/icu ; 
@@ -41,7 +41,7 @@ COMMONSOURCES = bitcode.cpp chunk-alloc.cpp errors.cpp mfile.c
 
 PARSESOURCES = parse.cpp item.cpp task.cpp chart.cpp agenda.cpp tokenizer.cpp
                options.cpp postags.cpp inputtoken.cpp inputchart.cpp paths.cpp 
-	       mrs.cpp ;
+	       mrs.cpp sm.cpp ;
 
 CHEAPSOURCES = cheap.cpp $(DAGSOURCES) $(COMMONSOURCES) $(PARSESOURCES) ;
 
