@@ -132,7 +132,8 @@ class tsdb_edge
 {
  public:
     tsdb_edge()
-        : id(-1), label(), start(-1), end(-1), score(-1.0), daughters()
+        : id(-1), label(), score(-1.0), start(-1), end(-1), status(0), 
+        daughters()
     {
     }
 #ifdef TSDBAPI
@@ -141,8 +142,9 @@ class tsdb_edge
 
     int id;
     string label;
-    int start, end;
     double score;
+    int start, end;
+    int status;
     string daughters;
 };
 
