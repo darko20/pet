@@ -383,39 +383,41 @@ void print_token(struct lex_token *t)
 
 int tokensdelivered = 0;
 
-struct lex_token *get_token()
+struct lex_token *
+get_token()
 {
-  struct lex_token *t;
-  int hope = 1;
-
-  while(hope)
+    struct lex_token *t;
+    int hope = 1;
+    
+    while(hope)
     {
-      while((t = get_next_token())->tag != T_EOF)
+        while((t = get_next_token())->tag != T_EOF)
 	{
-	  if(t->tag != T_WS && t->tag != T_COMM)
+            if(t->tag != T_WS && t->tag != T_COMM)
 	    {
 #ifdef DEBUG
-	      fprintf(fstatus, "delivering "); print_token(t);
+                fprintf(fstatus, "delivering "); print_token(t);
 #endif
-	      tokensdelivered++;
-	      return t;
+                tokensdelivered++;
+                return t;
 	    }
 #ifdef DEBUG
-     else
-       {
-         fprintf(fstatus, "not delivering "); print_token(t);
-       }
+            else
+            {
+                fprintf(fstatus, "not delivering "); print_token(t);
+            }
 #endif
+            free(t);
 	}
-      if(!pop_file()) hope = 0;
+        if(!pop_file()) hope = 0;
     }
 
 #ifdef DEBUG
-  fprintf(fstatus, "delivering "); print_token(t);
+    fprintf(fstatus, "delivering "); print_token(t);
 #endif
-
-  tokensdelivered++;
-  return t;
+    
+    tokensdelivered++;
+    return t;
 }
 
 /* the parser operates on a stream of tokens. these are provided by get_token().
@@ -429,28 +431,29 @@ int allow_redefinitions = 0;
 int lexicon_mode = 0;
 int semrels_mode = 0;
 
-struct lex_token *LA(int n)
+struct lex_token *
+LA(int n)
 /* works for 0 <= i <= MAX_LA */
 {
-  int i;
-  assert(LA >= 0); assert(n <= MAX_LA);
-
-  if(LA_BUF[n] != NULL)
+    int i;
+    assert(LA >= 0); assert(n <= MAX_LA);
+    
+    if(LA_BUF[n] != NULL)
     {
-      return LA_BUF[n];
+        return LA_BUF[n];
     }
-  
-  /* we have to fill buffer */
-  
-  for(i = 0; i <= n; i++)
+    
+    /* we have to fill buffer */
+    
+    for(i = 0; i <= n; i++)
     {
-      if(LA_BUF[i] == NULL)
+        if(LA_BUF[i] == NULL)
 	{
-	  LA_BUF[i] = get_token();
+            LA_BUF[i] = get_token();
 	}
     }
   
-  return LA_BUF[n];
+    return LA_BUF[n];
 }
 
 void consume1()
