@@ -153,34 +153,56 @@ tGrammarRule::tGrammarRule(type_t t)
     // Desired results for ternary rules with key x for key-driven strategy:
     // x = 1: 1,2,3
     // x = 2: 2,1,3
-    // x = 3: 3,1,2
+    // x = 3: 3,2,1
 
-    if(opt_key == 0)
+    if(opt_key == 0 || opt_key == 3)
     {
-        if(keyArg != -1) 
-            _toFill = append(_toFill, keyArg);
-    }
-    else if(opt_key == 3)
-    {
-        if(headArg != -1) 
-            _toFill = append(_toFill, headArg);
-        else if(keyArg != -1) 
-            _toFill = append(_toFill, keyArg);
-    }
-    
-    if(opt_key != 2)
-    {
-        for(int i = 1; i <= arity; i++)
-            if(!contains(_toFill, i))
-                _toFill = append(_toFill, i);
+        if(opt_key == 0)
+        {
+            // Key-driven.
+            if(keyArg != -1) 
+                _toFill = append(_toFill, keyArg);
+        }
+        else if(opt_key == 3)
+        {
+            // Head-driven; fall back to key if no head.
+            if(headArg != -1) 
+                _toFill = append(_toFill, headArg);
+            else if(keyArg != -1) 
+                _toFill = append(_toFill, keyArg);
+        }
+
+        // If no key/head daughter was specified, use leftmost daughter first.
+        
+        if(length(_toFill) == 0)
+            _toFill = append(_toFill, 1);
+
+        // Now append remaining daughters, take care not to leave any
+        // holes.
+
+        while(length(_toFill) < arity)
+        {
+            for(int i = 1; i <= arity; i++)
+                if(!contains(_toFill, i) && 
+                   (contains(_toFill, i - 1) || contains(_toFill, i + 1))) 
+                    _toFill = append(_toFill, i);
+        }
     }
     else
     {
-        for(int i = arity; i >= 1; i--)
-            if(!contains(_toFill, i))
+        if(opt_key == 1)
+        {
+            // Strict left to right.
+            for(int i = 1; i <= arity; i++)
                 _toFill = append(_toFill, i);
+        }
+        else if(opt_key == 2)
+        {
+            for(int i = arity; i >= 1; i--)
+                _toFill = append(_toFill, i);
+        }
     }
-    
+
     //
     // Disable hyper activity if this is a more than binary-branching
     // rule or if it's explicitely disabled by a setting.
