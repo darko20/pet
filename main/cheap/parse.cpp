@@ -219,19 +219,26 @@ block(item *it, int mark)
             Chart->pedges()--;
     }  
 
-    item *parent;
-    forall(parent, it->parents)
-        block(parent, 2);
+    for(list<item *>::iterator parent = it->parents.begin(); parent != it->parents.end(); ++it)
+    {
+      block(*parent, 2);
+    }
 }
 
 bool
 packed_edge(item *newitem)
 {
+    if(newitem->trait() == INFL_TRAIT)
+      return false;
+
     for(chart_iter_span iter(Chart, newitem->start(), newitem->end());
         iter.valid(); iter++)
     {
         bool forward, backward;
         item *olditem = iter.current();
+
+	if(olditem->trait() == INFL_TRAIT)
+            continue;
 
         subsumes(olditem->get_fs(), newitem->get_fs(), forward, backward);
 
@@ -244,7 +251,7 @@ packed_edge(item *newitem)
             olditem->print(ferr);
             fprintf(ferr, "\n");
 
-            olditem->packed.push(newitem);
+            olditem->packed.push_back(newitem);
             return true;
         }
       
@@ -256,11 +263,11 @@ packed_edge(item *newitem)
             olditem->print(ferr);
             fprintf(ferr, "\n");
 	  
-            newitem->packed.conc(olditem->packed);
-            olditem->packed.clear();
+	    newitem->packed.splice(newitem->packed.begin(), olditem->packed);
+            olditem->packed = list<item *>();
 
             if(olditem->frozen() == 0)
-                newitem->packed.push(olditem);
+                newitem->packed.push_back(olditem);
 
             block(olditem, 1);
 
