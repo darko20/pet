@@ -129,68 +129,70 @@ void
 initialize_version()
 {
 #if defined(DAG_TOMABECHI)
-  char da[ABSBS]="tom";
+    char da[ABSBS]="tom";
 #elif defined(DAG_FIXED)
-  char da[ABSBS]="fix";
+    char da[ABSBS]="fix";
 #elif defined(DAG_SYNTH1)
-  char da[ABSBS]="syn";
+    char da[ABSBS]="syn";
 #elif defined(DAG_SIMPLE)
 #if defined(WROBLEWSKI1)
-  char da[ABSBS]="sim[1]";
+    char da[ABSBS]="sim[1]";
 #elif defined (WROBLEWSKI2)
-  char da[ABSBS]="sim[2]";
+    char da[ABSBS]="sim[2]";
 #elif defined (WROBLEWSKI3)
-  char da[ABSBS]="sim[3]";
+    char da[ABSBS]="sim[3]";
 #else
-  char da[ABSBS]="sim[?]";
+    char da[ABSBS]="sim[?]";
 #endif
 #else
-  char da[ABSBS]="unknown";
+    char da[ABSBS]="unknown";
 #endif
-
-  char *qcs = cheap_settings->value("qc-structure");
-  if(qcs == NULL) qcs = "";
-
-  string sts("");
-  struct setting *set;
-
-  if((set = cheap_settings->lookup("start-symbols")) != 0)
+    
+    char *qcs = cheap_settings->value("qc-structure");
+    if(qcs == NULL) qcs = "";
+    
+    string sts("");
+    struct setting *set;
+    
+    if((set = cheap_settings->lookup("start-symbols")) != 0)
     {
-      for(int i = 0; i < set->n; i++)
+        for(int i = 0; i < set->n; i++)
         {
-          if(i!=0) sts += string(", ");
-          sts += string(set->values[i]);
+            if(i!=0) sts += string(", ");
+            sts += string(set->values[i]);
         }                 
     }
-
-  sprintf(CHEAP_VERSION,
-          "PET(%s cheap) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
-          "%s %s {ns %d} (%s/%s) <%s>",
-          da,
-          pedgelimit,
-          opt_packing ? "+" : "-",
-          opt_packing,
-          Grammar->sm() ? "+" : "-",
-          Grammar->sm() ? Grammar->sm()->description().c_str() : "",
-          opt_key == 0 ? "key" : (opt_key == 1 ? "l-r" : (opt_key == 2 ? "r-l" : (opt_key == 3 ? "head" : "unknown"))),
-          opt_hyper ? "+HA" : "-HA",
-          Grammar->nhyperrules(),
-          opt_filter ? "+FI" : "-FI",
-          opt_nqc != 0 ? "+QC" : "-QC", opt_nqc, qcs,
-          ((opt_nsolutions != 0) ? "+OS" : "-OS"), opt_nsolutions, 
-          opt_shrink_mem ? "+SM" : "-SM", 
-          opt_shaping ? "+SH" : "-SH",
-	  sizeof(dag_node),
-          __DATE__, __TIME__,
-          sts.c_str());
-
+    
+    sprintf(CHEAP_VERSION,
+            "PET(%s cheap) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s %s[%d(%s)]"
+            " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
+            da,
+            pedgelimit,
+            opt_packing ? "+" : "-",
+            opt_packing,
+            Grammar->sm() ? "+" : "-",
+            Grammar->sm() ? Grammar->sm()->description().c_str() : "",
+            opt_key == 0 ? "key" : (opt_key == 1 ? "l-r"
+                                    : (opt_key == 2 ? "r-l"
+                                       : (opt_key == 3 ? "head" : "unknown"))),
+            opt_hyper ? "+HA" : "-HA",
+            Grammar->nhyperrules(),
+            opt_filter ? "+FI" : "-FI",
+            opt_nqc != 0 ? "+QC" : "-QC", opt_nqc, qcs,
+            ((opt_nsolutions != 0) ? "+OS" : "-OS"), opt_nsolutions, 
+            opt_shrink_mem ? "+SM" : "-SM", 
+            opt_shaping ? "+SH" : "-SH",
+            sizeof(dag_node),
+            __DATE__, __TIME__,
+            sts.c_str());
+    
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
-  sprintf(CHEAP_PLATFORM, "gcc %d.%d", __GNUC__, __GNUC_MINOR__);
+    sprintf(CHEAP_PLATFORM, "gcc %d.%d", __GNUC__, __GNUC_MINOR__);
 #if defined(__OPTIMIZED__)
-  sprintf(CHEAP_PLATFORM, " (optim)");
+    sprintf(CHEAP_PLATFORM, " (optim)");
 #endif
 #else
-  sprintf(CHEAP_PLATFORM, "unknown");
+    sprintf(CHEAP_PLATFORM, "unknown");
 #endif
 }
 
@@ -235,7 +237,8 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     struct timeval tA, tB; int treal = 0;
     chart *Chart = 0;
     
-    try {
+    try
+    {
         fs_alloc_state FSAS;
         
         input_chart i_chart(New end_proximity_position_map);
@@ -257,41 +260,41 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
 
         gettimeofday(&tB, NULL);
 
-    treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
-      (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
+        treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
+            (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
 
-    tsdb_parse T;
-    if(!errors.empty())
-        cheap_tsdb_summarize_error(errors.front(), treal, T);
+        tsdb_parse T;
+        if(!errors.empty())
+            cheap_tsdb_summarize_error(errors.front(), treal, T);
+        
+        cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
+                                  nderivations, T);
+        T.capi_print();
+        
+        delete Chart;
+        
+        return 0;
+    }
+
+    catch(error &e)
+    {
+        gettimeofday(&tB, NULL);
+        
+        treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
+            (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
+        
+        TotalParseTime.restore();
+        
+        tsdb_parse T;
+        cheap_tsdb_summarize_error(e, treal, T);
+        T.capi_print();
+        
+    }
     
-    cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
-			      nderivations, T);
-    T.capi_print();
-
     delete Chart;
-
-    return 0;
-  } /* try */
-
-  catch(error &e) {
-    gettimeofday(&tB, NULL);
-
-    treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
-      (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
-
-    TotalParseTime.restore();
-
-    tsdb_parse T;
-    cheap_tsdb_summarize_error(e, treal, T);
-    T.capi_print();
     
-  } /* catch */
-
-  delete Chart;
-
-  return 0;
+    return 0;
 }
-
 
 int
 cheap_complete_test_run(int run_id, char *custom)
@@ -318,8 +321,8 @@ cheap_complete_test_run(int run_id, char *custom)
 int
 cheap_reconstruct_item(char *derivation)
 {
-  fprintf(ferr, "cheap_reconstruct_item(%s)\n", derivation);
-  return 0;
+    fprintf(ferr, "cheap_reconstruct_item(%s)\n", derivation);
+    return 0;
 }
 
 void
@@ -362,114 +365,137 @@ tsdb_result::capi_print()
 }
 
 void
+tsdb_edge::capi_print()
+{
+    capi_printf("(");
+    capi_printf("(:id . %d) ", id);
+    capi_printf("(:label . \"%s\") ", escape_string(label).c_str());
+    capi_printf("(:score . \"%g\") ", score);
+    capi_printf("(:start . %d) ", start);
+    capi_printf("(:end . %d) ", end);
+    capi_printf("(:daughters . %s) ", daughters.c_str());
+    capi_printf("(:status . %d) ", status);
+    capi_printf(")\n");
+}
+
+void
 tsdb_rule_stat::capi_print()
 {
-  capi_printf("(");
-  capi_printf("(:rule . \"%s\") ", escape_string(rule).c_str());
-  capi_printf("(:actives . %d) ", actives);
-  capi_printf("(:passives . %d) ", passives);
-  capi_printf(")\n");
+    capi_printf("(");
+    capi_printf("(:rule . \"%s\") ", escape_string(rule).c_str());
+    capi_printf("(:actives . %d) ", actives);
+    capi_printf("(:passives . %d) ", passives);
+    capi_printf(")\n");
 }
 
 void
 tsdb_parse::capi_print()
 {
-  if(!results.empty())
-  {
-    capi_printf("(:results . (\n");
-    for(list<tsdb_result>::iterator it = results.begin();
-        it != results.end(); ++it)
-      it->capi_print();
-    capi_printf("))\n");
-  }
+    if(!results.empty())
+    {
+        capi_printf("(:results . (\n");
+        for(list<tsdb_result>::iterator it = results.begin();
+            it != results.end(); ++it)
+            it->capi_print();
+        capi_printf("))\n");
+    }
 
-  if(!rule_stats.empty())
-  {
-    capi_printf("(:statistics . (\n");
-    for(list<tsdb_rule_stat>::iterator it = rule_stats.begin();
-        it != rule_stats.end(); ++it)
-      it->capi_print();
-    capi_printf("))\n");
-  }
-  
-  if(!err.empty())
-    capi_printf("(:error . \"%s\")", escape_string(err).c_str());
-  
-  if(readings != -1)
-    capi_printf("(:readings . %d) ", readings);
-  
-  if(words != -1)
-    capi_printf("(:words . %d) ", words);
-  
-  if(first != -1)
-    capi_printf("(:first . %d) ", first);
-
-  if(total != -1)
-    capi_printf("(:total . %d) ", total);
-
-  if(tcpu != -1)
-    capi_printf("(:tcpu . %d) ", tcpu); 
-
-  if(tgc != -1)
+    if(!edges.empty())
+    {
+        capi_printf("(:edges . (\n");
+        for(list<tsdb_edge>::iterator it = edges.begin();
+            it != edges.end(); ++it)
+            it->capi_print();
+        capi_printf("))\n");
+    }
+    
+    if(!rule_stats.empty())
+    {
+        capi_printf("(:statistics . (\n");
+        for(list<tsdb_rule_stat>::iterator it = rule_stats.begin();
+            it != rule_stats.end(); ++it)
+            it->capi_print();
+        capi_printf("))\n");
+    }
+    
+    if(!err.empty())
+        capi_printf("(:error . \"%s\")", escape_string(err).c_str());
+    
+    if(readings != -1)
+        capi_printf("(:readings . %d) ", readings);
+    
+    if(words != -1)
+        capi_printf("(:words . %d) ", words);
+    
+    if(first != -1)
+        capi_printf("(:first . %d) ", first);
+    
+    if(total != -1)
+        capi_printf("(:total . %d) ", total);
+    
+    if(tcpu != -1)
+        capi_printf("(:tcpu . %d) ", tcpu); 
+    
+    if(tgc != -1)
     capi_printf("(:tgc . %d) ", tgc); 
-
-  if(treal != -1)
-    capi_printf("(:treal . %d) ", treal); 
-
-  if(others != -1)
-    capi_printf("(:others . %ld) ", others);
-
-  if(p_ftasks != -1)
-    capi_printf("(:p-ftasks . %d) ", p_ftasks);
-
-  if(p_etasks != -1)
-    capi_printf("(:p-etasks . %d) ", p_etasks);
-
-  if(p_stasks != -1)
-    capi_printf("(:p-stasks . %d) ", p_stasks);
-
-  if(aedges != -1)
-    capi_printf("(:aedges . %d) ", aedges);
-  
-  if(pedges != -1)
+    
+    if(treal != -1)
+        capi_printf("(:treal . %d) ", treal); 
+    
+    if(others != -1)
+        capi_printf("(:others . %ld) ", others);
+    
+    if(p_ftasks != -1)
+        capi_printf("(:p-ftasks . %d) ", p_ftasks);
+    
+    if(p_etasks != -1)
+        capi_printf("(:p-etasks . %d) ", p_etasks);
+    
+    if(p_stasks != -1)
+        capi_printf("(:p-stasks . %d) ", p_stasks);
+    
+    if(aedges != -1)
+        capi_printf("(:aedges . %d) ", aedges);
+    
+    if(pedges != -1)
     capi_printf("(:pedges . %d) ", pedges);
-
-  if(raedges != -1)
-    capi_printf("(:raedges . %d) ", raedges);
-
-  if(rpedges != -1)
-    capi_printf("(:rpedges . %d) ", rpedges);
-
-  if(unifications != -1)
-    capi_printf("(:unifications . %d) ", unifications);
-
-  if(copies != -1)
-    capi_printf("(:copies . %d) ", copies);
-  
-  capi_printf("(:comment . \""
-              "(:nmeanings . %d) "
-              "(:clashes . %d) "
-              "(:pruned . %d) "
-              "(:subsumptions . %d) "
-              "(:trees . %d) "
-              "(:frozen . %d) "
-              "(:equivalence . %d) "
-              "(:proactive . %d) "
-              "(:retroactive . %d) "
-              "(:utcpu . %d) " 
-              "(:upedges . %d) " 
-              "(:failures . %d) " 
-              "\")",
-              nmeanings, clashes, pruned,
-              subsumptions,
-              p_trees,
-              p_frozen,
-              p_equivalent,
-              p_proactive, 
-              p_retroactive, 
-              p_utcpu,
-              p_upedges,
-              p_failures);
+    
+    if(raedges != -1)
+        capi_printf("(:raedges . %d) ", raedges);
+    
+    if(rpedges != -1)
+        capi_printf("(:rpedges . %d) ", rpedges);
+    
+    if(unifications != -1)
+        capi_printf("(:unifications . %d) ", unifications);
+    
+    if(copies != -1)
+        capi_printf("(:copies . %d) ", copies);
+    
+    capi_printf("(:comment . \""
+                "(:nmeanings . %d) "
+                "(:clashes . %d) "
+                "(:pruned . %d) "
+                "(:subsumptions . %d) "
+                "(:trees . %d) "
+                "(:frozen . %d) "
+                "(:equivalence . %d) "
+                "(:proactive . %d) "
+                "(:retroactive . %d) "
+                "(:utcpu . %d) " 
+                "(:upedges . %d) " 
+                "(:failures . %d) " 
+                "\")",
+                nmeanings, clashes, pruned,
+                subsumptions,
+                p_trees,
+                p_frozen,
+                p_equivalent,
+                p_proactive, 
+                p_retroactive, 
+                p_utcpu,
+                p_upedges,
+                p_failures);
 }
 
 #endif
@@ -486,6 +512,7 @@ tsdb_parse_collect_edges(tsdb_parse &T, item *root)
     {
         tsdb_edge e;
         e.id = (*it)->id();
+        e.status = 0; // (passive edge)
         e.label = (*it)->printname();
         e.start = (*it)->start();
         e.end = (*it)->end();
@@ -507,236 +534,234 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                           int treal, int nderivations, 
                           tsdb_parse &T)
 {
-  if(opt_derivation)
-  {
-    int nres = 1;
-    if(nderivations >= 0) // default case, report results
+    if(opt_derivation)
     {
-      if(!nderivations) nderivations = Chart.readings().size();
-      for(vector<item *>::iterator iter = Chart.readings().begin();
-          nderivations && iter != Chart.readings().end();
-          ++iter, --nderivations)
-      {
-        tsdb_result R;
-
-        R.parse_id = tsdb_unique_id;
-        R.result_id = nres;
-        if(Grammar->sm())
+        int nres = 1;
+        if(nderivations >= 0) // default case, report results
         {
-            R.scored = true;
-            R.score = (*iter)->score(Grammar->sm());
+            if(!nderivations) nderivations = Chart.readings().size();
+            for(vector<item *>::iterator iter = Chart.readings().begin();
+                nderivations && iter != Chart.readings().end();
+                ++iter, --nderivations)
+            {
+                tsdb_result R;
+                
+                R.parse_id = tsdb_unique_id;
+                R.result_id = nres;
+                if(Grammar->sm())
+                {
+                    R.scored = true;
+                    R.score = (*iter)->score(Grammar->sm());
+                }
+                if(opt_tsdb == 1)
+                    R.derivation = (*iter)->tsdb_derivation(opt_tsdb);
+                else
+                {
+                    R.edge_id = (*iter)->id();
+                    tsdb_parse_collect_edges(T, *iter);
+                }
+                
+                T.push_result(R);
+                nres++;
+            }
         }
-        if(opt_tsdb == 1)
-            R.derivation = (*iter)->tsdb_derivation(opt_tsdb);
-        else
+        else // report all passive edges
         {
-            R.edge_id = (*iter)->id();
-            tsdb_parse_collect_edges(T, *iter);
+            for(chart_iter it(Chart); it.valid(); it++)
+            {
+                if(it.current()->passive())
+                {
+                    tsdb_result R;
+                    
+                    R.result_id = nres;
+                    R.derivation = it.current()->tsdb_derivation(opt_tsdb);
+                    
+                    T.push_result(R);
+                    nres++;
+                }
+            }
         }
-        
-        T.push_result(R);
-        nres++;
-      } // for
-    } // if
-    else // report all passive edges
-    {
-      for(chart_iter it(Chart); it.valid(); it++)
-      {
-        if(it.current()->passive())
-        {
-          tsdb_result R;
-          
-          R.result_id = nres;
-          R.derivation = it.current()->tsdb_derivation(opt_tsdb);
-          
-          T.push_result(R);
-          nres++;
-        }
-      }
     }
-  }
 
-
-  if(opt_rulestatistics)
-  {  // slow in tsdb++, thus disabled by default
-    for(rule_iter rule(Grammar); rule.valid(); rule++)
+    if(opt_rulestatistics)
     {
-      tsdb_rule_stat S;
-      grammar_rule *R = rule.current();
-
-      S.rule = R->printname();
-      S.actives = R->actives;
-      S.passives = R->passives;
-
-      T.push_rule_stat(S);
+        for(rule_iter rule(Grammar); rule.valid(); rule++)
+        {
+            tsdb_rule_stat S;
+            grammar_rule *R = rule.current();
+            
+            S.rule = R->printname();
+            S.actives = R->actives;
+            S.passives = R->passives;
+            
+            T.push_rule_stat(S);
+        }
     }
-  }
-
-  T.run_id = 1;
-  T.parse_id = tsdb_unique_id;
-  T.i_id = tsdb_unique_id;
-  T.date = string(current_time());
-  tsdb_unique_id++;
-
-  T.readings = stats.readings;
-  T.words = stats.words;
-  T.first = stats.first;
-  T.total = stats.tcpu + stats.p_utcpu;
-  T.tcpu = stats.tcpu;
-  T.tgc = 0;
-  T.treal = treal;
-  
-  T.others = stats.stat_bytes + stats.p_stat_bytes;
-  
-  T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
-  T.p_etasks = stats.etasks;
-  T.p_stasks = stats.stasks;
-  T.aedges = stats.aedges;
-  T.pedges = stats.pedges + stats.p_upedges;
-  T.raedges = stats.raedges;
-  T.rpedges = stats.rpedges;
-  
-  T.unifications = stats.unifications_succ + stats.unifications_fail;
-  T.copies = stats.copies;
-  
-  T.nmeanings = 0;
-  T.clashes = stats.unifications_fail;
-  T.pruned = stats.words_pruned;
-
-  T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
-  T.p_trees = stats.p_trees;
-  T.p_equivalent = stats.p_equivalent;
-  T.p_proactive = stats.p_proactive; 
-  T.p_retroactive = stats.p_retroactive;           
-  T.p_frozen = stats.p_frozen;               
-  T.p_utcpu = stats.p_utcpu;                    
-  T.p_upedges = stats.p_upedges;
-  T.p_failures = stats.p_failures;
+    
+    T.run_id = 1;
+    T.parse_id = tsdb_unique_id;
+    T.i_id = tsdb_unique_id;
+    T.date = string(current_time());
+    tsdb_unique_id++;
+    
+    T.readings = stats.readings;
+    T.words = stats.words;
+    T.first = stats.first;
+    T.total = stats.tcpu + stats.p_utcpu;
+    T.tcpu = stats.tcpu;
+    T.tgc = 0;
+    T.treal = treal;
+    
+    T.others = stats.stat_bytes + stats.p_stat_bytes;
+    
+    T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
+    T.p_etasks = stats.etasks;
+    T.p_stasks = stats.stasks;
+    T.aedges = stats.aedges;
+    T.pedges = stats.pedges + stats.p_upedges;
+    T.raedges = stats.raedges;
+    T.rpedges = stats.rpedges;
+    
+    T.unifications = stats.unifications_succ + stats.unifications_fail;
+    T.copies = stats.copies;
+    
+    T.nmeanings = 0;
+    T.clashes = stats.unifications_fail;
+    T.pruned = stats.words_pruned;
+    
+    T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
+    T.p_trees = stats.p_trees;
+    T.p_equivalent = stats.p_equivalent;
+    T.p_proactive = stats.p_proactive; 
+    T.p_retroactive = stats.p_retroactive;           
+    T.p_frozen = stats.p_frozen;               
+    T.p_utcpu = stats.p_utcpu;                    
+    T.p_upedges = stats.p_upedges;
+    T.p_failures = stats.p_failures;
 }
 
 void
 cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
 {
-  T.run_id = 1;
-  T.parse_id = tsdb_unique_id;
-  T.i_id = tsdb_unique_id;
-  T.date = string(current_time());
-  tsdb_unique_id++;
-
-  T.readings = -1;
-  T.pedges = stats.pedges;
-  T.words = stats.words;
-
-  T.first = stats.first;
-  T.total = stats.tcpu;
-  T.tcpu = stats.tcpu;
-  T.tgc = 0;
-  T.treal = treal;
-
-  T.others = stats.stat_bytes;
+    T.run_id = 1;
+    T.parse_id = tsdb_unique_id;
+    T.i_id = tsdb_unique_id;
+    T.date = string(current_time());
+    tsdb_unique_id++;
+    
+    T.readings = -1;
+    T.pedges = stats.pedges;
+    T.words = stats.words;
+    
+    T.first = stats.first;
+    T.total = stats.tcpu;
+    T.tcpu = stats.tcpu;
+    T.tgc = 0;
+    T.treal = treal;
+    
+    T.others = stats.stat_bytes;
+    
+    T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
+    T.p_etasks = stats.etasks;
+    T.p_stasks = stats.stasks;
+    T.aedges = stats.aedges;
+    T.pedges = stats.pedges;
+    T.raedges = stats.raedges;
+    T.rpedges = stats.rpedges;
   
-  T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
-  T.p_etasks = stats.etasks;
-  T.p_stasks = stats.stasks;
-  T.aedges = stats.aedges;
-  T.pedges = stats.pedges;
-  T.raedges = stats.raedges;
-  T.rpedges = stats.rpedges;
-  
-  T.unifications = stats.unifications_succ + stats.unifications_fail;
-  T.copies = stats.copies;
-
-  T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
-  T.p_trees = stats.p_trees;
-  T.p_equivalent = stats.p_equivalent;
-  T.p_proactive = stats.p_proactive; 
-  T.p_retroactive = stats.p_retroactive;           
-  T.p_frozen = stats.p_frozen;               
-  T.p_utcpu = stats.p_utcpu;                    
-  T.p_upedges = stats.p_upedges;
-  T.p_failures = stats.p_failures;
-  
-  T.err = condition.msg();
+    T.unifications = stats.unifications_succ + stats.unifications_fail;
+    T.copies = stats.copies;
+    
+    T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
+    T.p_trees = stats.p_trees;
+    T.p_equivalent = stats.p_equivalent;
+    T.p_proactive = stats.p_proactive; 
+    T.p_retroactive = stats.p_retroactive;           
+    T.p_frozen = stats.p_frozen;               
+    T.p_utcpu = stats.p_utcpu;                    
+    T.p_upedges = stats.p_upedges;
+    T.p_failures = stats.p_failures;
+    
+    T.err = condition.msg();
 }
 
 string
 tsdb_escape_string(const string &s)
 {
-  string res;
-
-  bool lastblank = false;
-  for(string::const_iterator it = s.begin(); it != s.end(); ++it)
-  {
-    if(isspace(*it))
+    string res;
+    
+    bool lastblank = false;
+    for(string::const_iterator it = s.begin(); it != s.end(); ++it)
     {
-      if(!lastblank)
-        res += " ";
-      lastblank = true;
-    }
-    else if(*it == '@')
-    {
-      lastblank = false;
-      res += "\\s";
-    }
-    else if(*it == '\\')
-    {
-      lastblank = false;
-      res += string("\\\\");
-    }
-    else
-    {
-      lastblank = false;
+        if(isspace(*it))
+        {
+            if(!lastblank)
+                res += " ";
+            lastblank = true;
+        }
+        else if(*it == '@')
+        {
+            lastblank = false;
+            res += "\\s";
+        }
+        else if(*it == '\\')
+        {
+            lastblank = false;
+            res += string("\\\\");
+        }
+        else
+        {
+            lastblank = false;
       res += string(1, *it);
+        }
     }
-  }
-  
-  return res;
+    
+    return res;
 }
 
 void
 tsdb_result::file_print(FILE *f)
 {
-  fprintf(f, "%d@%d@%d@%d@%d@%d@%d@%d@%d@%d@",
-          parse_id, result_id, time,
-          r_ctasks, r_ftasks, r_etasks, r_stasks, 
-          size, r_aedges, r_pedges);
-  fprintf(f, "%s@%s@%s\n",
+    fprintf(f, "%d@%d@%d@%d@%d@%d@%d@%d@%d@%d@",
+            parse_id, result_id, time,
+            r_ctasks, r_ftasks, r_etasks, r_stasks, 
+            size, r_aedges, r_pedges);
+    fprintf(f, "%s@%s@%s\n",
           tsdb_escape_string(derivation).c_str(),
-          tsdb_escape_string(tree).c_str(),
-          tsdb_escape_string(mrs).c_str());
+            tsdb_escape_string(tree).c_str(),
+            tsdb_escape_string(mrs).c_str());
 }
 
 void
 tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
 {
-  if(!results.empty())
-  {
-    for(list<tsdb_result>::iterator it = results.begin();
-        it != results.end(); ++it)
-      it->file_print(f_result);
-  }
-
-  fprintf(f_parse,
-          "%d@%d@%d@"
-          "%d@%d@%d@%d@%d@%d@"
-          "%d@%d@%d@%d@%d@%d@"
-          "%d@%d@%d@%d@"
-          "%d@%d@%d@%d@"
-          "%ld@%d@%d@%d@",
-          parse_id, run_id, i_id,
-          readings, first, total, tcpu, tgc, treal,
-          words, l_stasks, p_ctasks, p_ftasks, p_etasks, p_stasks,
-          aedges, pedges, raedges, rpedges,
-          unifications, copies, conses, symbols, 
-          others, gcs, i_load, a_load);
-
-  fprintf(f_parse, "%s@%s@(:nmeanings . %d) "
-          "(:clashes . %d) (:pruned . %d)\n",
-          tsdb_escape_string(date).c_str(),
-          tsdb_escape_string(err).c_str(),
-          nmeanings, clashes, pruned);
-
-  fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
-          parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
+    if(!results.empty())
+    {
+        for(list<tsdb_result>::iterator it = results.begin();
+            it != results.end(); ++it)
+            it->file_print(f_result);
+    }
+    
+    fprintf(f_parse,
+            "%d@%d@%d@"
+            "%d@%d@%d@%d@%d@%d@"
+            "%d@%d@%d@%d@%d@%d@"
+            "%d@%d@%d@%d@"
+            "%d@%d@%d@%d@"
+            "%ld@%d@%d@%d@",
+            parse_id, run_id, i_id,
+            readings, first, total, tcpu, tgc, treal,
+            words, l_stasks, p_ctasks, p_ftasks, p_etasks, p_stasks,
+            aedges, pedges, raedges, rpedges,
+            unifications, copies, conses, symbols, 
+            others, gcs, i_load, a_load);
+    
+    fprintf(f_parse, "%s@%s@(:nmeanings . %d) "
+            "(:clashes . %d) (:pruned . %d)\n",
+            tsdb_escape_string(date).c_str(),
+            tsdb_escape_string(err).c_str(),
+            nmeanings, clashes, pruned);
+    
+    fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
+            parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
 }
-
