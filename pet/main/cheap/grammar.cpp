@@ -351,8 +351,8 @@ bool
 rule_status(type_t t)
 {
     return cheap_settings->statusmember("rule-status-values", typestatus[t])
-        || cheap_settings->statusmember("lexrule-status-values",
-                                        typestatus[t]);
+        || cheap_settings->statusmember("lexrule-status-values", typestatus[t])
+        || cheap_settings->statusmember("infl-rule-status-values", typestatus[t]);
 }
 
 grammar_rule::grammar_rule(type_t t)
@@ -361,7 +361,9 @@ grammar_rule::grammar_rule(type_t t)
     _id = next_id++;
     _type = t;
     
-    if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
+    if(cheap_settings->statusmember("infl-rule-status-values", typestatus[t]))
+        _trait = INFL_TRAIT;
+    else if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
         _trait = LEX_TRAIT;
     else
         _trait = SYNTAX_TRAIT;
