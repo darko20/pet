@@ -27,8 +27,8 @@
 #include "types.h"
 #include "fs.h"
 #include "sm.h"
-#ifdef IQT
-#include "iqt.h"
+#ifdef EXTDICT
+#include "extdict.h"
 #endif
 
 // global variables for quick check
@@ -286,8 +286,8 @@ class grammar
   lex_stem *lookup_stem(int inst_key);
   list<lex_stem *> lookup_stem(string s);
 
-#ifdef IQT
-  iqtDictionary *iqtDict() { return _iqtDict; }
+#ifdef EXTDICT
+  extDictionary *extDict() { return _extDict; }
   void clear_dynamic_stems();
 #endif
   
@@ -313,10 +313,10 @@ class grammar
   map<type_t, lex_stem *> _lexicon;
   multimap<string, lex_stem *> _stemlexicon;
 
-#ifdef IQT
-  iqtDictionary *_iqtDict;
+#ifdef EXTDICT
+  extDictionary *_extDict;
   list<lex_stem *> _dynamicstems;
-  int _iqt_discount;
+  int _extdict_discount;
 #endif
 
   typedef multimap<string, full_form *> ffdict;

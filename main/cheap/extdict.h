@@ -22,40 +22,36 @@
 // the mapping to the grammar lexicon.
 //
 
-#ifndef _IQT_H_
-#define _IQT_H_
-
-#ifndef IQTEMU
-#include "iqtDct3.h"
-#endif
+#ifndef _EXTDICT_H_
+#define _EXTDICT_H_
 
 //
 // Mapping to the grammar lexicon.
 //
 
-class iqtMapEntry
+class extDictMapEntry
 {
  public:
-  iqtMapEntry()
+  extDictMapEntry()
     : _valid(false)
   {}
 
-  iqtMapEntry(type_t type, list<pair<string, string> > paths)
+  extDictMapEntry(type_t type, list<pair<string, string> > paths)
     : _valid(true), _type(type), _paths(paths)
   {}
 
-  iqtMapEntry(const iqtMapEntry &other)
+  extDictMapEntry(const extDictMapEntry &other)
     : _valid(other._valid), _type(other._type), _paths(other._paths)
   {}
 
-  iqtMapEntry& operator=(const iqtMapEntry& other)
+  extDictMapEntry& operator=(const extDictMapEntry& other)
   {
-    iqtMapEntry temp(other);
+    extDictMapEntry temp(other);
     Swap(temp);
     return *this;
   }
 
-  void Swap(iqtMapEntry &other) throw()
+  void Swap(extDictMapEntry &other) throw()
   {
     swap(_valid, other._valid);
     swap(_type, other._type);
@@ -73,19 +69,19 @@ class iqtMapEntry
   type_t _type;
   list<pair<string, string> > _paths;
 
-  friend bool operator==(const iqtMapEntry &a, const iqtMapEntry &b);
-  friend bool operator<(const iqtMapEntry &a, const iqtMapEntry &b);
+  friend bool operator==(const extDictMapEntry &a, const extDictMapEntry &b);
+  friend bool operator<(const extDictMapEntry &a, const extDictMapEntry &b);
 };
 
-class iqtMapping
+class extDictMapping
 {
  public:
-  iqtMapping(const string &mappath);
+  extDictMapping(const string &mappath);
 
-  ~iqtMapping()
+  ~extDictMapping()
   {}
 
-  iqtMapEntry get(const string &tag)
+  extDictMapEntry get(const string &tag)
   {
     return _map[tag];
   }
@@ -100,7 +96,7 @@ class iqtMapping
   bool undesired(const string &word, const string &tag);
   
  private:
-  map<string, iqtMapEntry> _map;
+  map<string, extDictMapEntry> _map;
 
   map<type_t, type_t> _equivs;
   map<type_t, int> _rank;
@@ -112,19 +108,19 @@ class iqtMapping
 };
 
 //
-// The class iqtDictionary encapsulates access to the Inquizit dictionary
+// The class extDictionary encapsulates access to the Inquizit dictionary
 // and the associated mapping.
 //
 
-class iqtDictionary
+class extDictionary
 {
  public:
-  iqtDictionary(const string &dictpath, const string &mappath);
-  ~iqtDictionary();
+  extDictionary(const string &dictpath, const string &mappath);
+  ~extDictionary();
 
   bool getHeadlist(const string &word, string &headlist);
   bool getHeadlist(const string &word, list<list<string> > &headlist);
-  bool getMapped(const string &word, list<iqtMapEntry> &mapped);
+  bool getMapped(const string &word, list<extDictMapEntry> &mapped);
 
   // Return representative of equivalence class that t belongs to
   type_t equiv_rep(type_t t);
@@ -132,21 +128,13 @@ class iqtDictionary
   // Return rank of t within its equivalence class
   int equiv_rank(type_t t);
 
-#ifdef IQTEMU
   void lookupAll();
-#endif
 
  private:
-#ifndef IQTEMU
-  PDCTSTATE _pDict;
-#else
   map<string, string> _dict;
-#endif
-  class iqtMapping *_pMap;
+  class extDictMapping *_pMap;
 
-#ifdef IQTEMU
   void readEmu(const string &);
-#endif
 };
 
 #endif
