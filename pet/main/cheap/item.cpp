@@ -62,6 +62,7 @@ tLexItem::tLexItem(int start, int end, const tPaths &paths,
                    fs &f)
     : tItem(start, end, paths),
       tActive(0, 0),
+      tFSItem(0, f),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
     // _fix_me_
@@ -254,7 +255,19 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
 }
 
 bool
-tItem::root(class tGrammar *G, int length, type_t &rule)
+tLexItem::root(class tGrammar *G, int length, type_t &rule)
+{
+    if(_trait == INFL_TRAIT)
+        return false;
+    
+    if(_start == 0 && _end == length)
+        return G->root(_fs, rule);
+    else
+        return false;
+}
+
+bool
+tPhrasalItem::root(class tGrammar *G, int length, type_t &rule)
 {
     if(_trait == INFL_TRAIT)
         return false;

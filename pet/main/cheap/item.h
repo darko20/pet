@@ -47,25 +47,57 @@ class tItem
 
     /** Unique identifier for this item. */
     inline int
-    id()
+    id() const
     {
         return _id;
     }
 
-    /** A string suitable for printing as a name for this item */
+    /** Does this item have a position? Active items need not have one.
+     *  If the item is not positioned, start() and end() will return -1,
+     *  and span() will return 0. */
+    bool
+    positioned() const
+    {
+        return start() != -1 && end() != -1;
+    }
+
+    /** Return start position of the item. Returns -1 if the item is not
+     *  positioned(). */
+    inline int
+    start() const
+    {
+        return _start;
+    }
+
+    /** Return end position of the item. Returns -1 if the item is not
+     *  positioned(). */
+    inline int
+    end() const
+    {
+        return _end;
+    }
+
+    /** Return span of the item. Returns 0 if the item is not
+     *  positioned(). */
+    inline int
+    span() const
+    {
+        return end() - start();
+    }
+    
+    inline tItemTrait
+    trait() const
+    {
+        return _trait;
+    }
+
+    /** A string suitable for printing as a name for this item. */
     virtual const string
-    printName() = 0;
+    printName() const = 0;
 
     /** Does this item have any further completion requirements? */
     virtual bool
     passive() = 0;
-
-    /* Active items need not have a position */
-    bool
-    positioned()
-    {
-        return start() != -1 && end() != -1;
-    }
 
     /** If this item is not passive(), i.e. it has further completion
      *  requirements, does it extend to the left? If the item is
@@ -80,6 +112,12 @@ class tItem
 
     virtual tItem *
     combine(class tItem *passive) = 0;
+    
+    /** Determine whether this is a root item (a complete analysis),
+     *  if so return type of the licensing root node in rootType. */
+    // _fix_me_ grammar and length shouldn't be required
+    virtual bool
+    root(class tGrammar *G, int length, type_t &rootType) = 0;
 
     //
     // Temporary stuff
@@ -90,17 +128,11 @@ class tItem
     //
 
 
-  inline tItemTrait trait() { return _trait; }
-
-  inline int start() const { return _start; }
-  inline int end() const { return _end; }
-  inline int span() const { return (_end - _start); }
-
-  bool spanningonly() { return _spanningonly; }
-
+#if 0
   bool
-  root(class tGrammar *G, int length, type_t &rule);
-  
+  root(type_t &rule);
+#endif  
+
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
   virtual void print_packed(FILE *f);
@@ -264,19 +296,19 @@ class tFSItem
     }
 
     type_t
-    type()
+    type() const
     {
         return _t;
     }
     
     fs
-    getFS()
+    getFS() const
     {
         return _f;
     }
 
     fs
-    getNthArg(int i)
+    getNthArg(int i) const
     {
         return getFS().nth_arg(i);
     }
@@ -287,12 +319,12 @@ class tFSItem
     fs _f;
 };
 
-class tLexItem : public tItem, private tActive
+class tLexItem : public tItem, private tActive, private tFSItem
 {
  public:
 
     virtual const string
-    printName()
+    printName() const
     {
         // _fix_me_
         return string("some lexitem");
@@ -310,17 +342,20 @@ class tLexItem : public tItem, private tActive
         return tActive::leftExtending();
     }
 
+    type_t
+    type() const
+    {
+        return getFS().type();
+    }
+
     virtual bool
     compatible(class tItem *passive, int length);
 
     virtual tItem *
     combine(class tItem *passive);
 
-    type_t
-    type()
-    {
-        return get_fs().type();
-    }
+    virtual bool
+    root(class tGrammar *G, int length, type_t &rootType);
 
   tLexItem(int start, int end, const tPaths &paths,
            int ndtrs, int keydtr, class input_token **dtrs,
@@ -375,7 +410,7 @@ class tPhrasalItem : public tItem, private tActive, private tFSItem
  public:
 
     virtual const string
-    printName()
+    printName() const
     {
         return printnames[type()];
     }
@@ -397,6 +432,9 @@ class tPhrasalItem : public tItem, private tActive, private tFSItem
 
     virtual tItem *
     combine(class tItem *passive);
+
+    virtual bool
+    root(class tGrammar *G, int length, type_t &rootType);
 
     void
     getCombinedPositions(class tItem *passive, int &resStart, int &resEnd)
