@@ -44,7 +44,7 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _score_model(0), _printname(printname), _done(0),
+      _p(p), _score_model(0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
@@ -56,7 +56,7 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _score_model(0), _printname(printname), _done(0),
+      _p(p), _score_model(0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);

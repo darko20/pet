@@ -210,8 +210,6 @@ class item
   virtual grammar_rule *rule() = 0;
 
   virtual void recreate_fs() = 0;
-  inline void set_done(int t) { _done = t; }
-  inline int done() { return _done; }
 
   inline int priority() { return _p; }
 
@@ -270,8 +268,6 @@ class item
   double _score;
 
   const char *_printname;
-
-  int _done;
 
   int _blocked;
   list<item *> *_unpack_cache;
