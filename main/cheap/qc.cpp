@@ -28,16 +28,10 @@
 #include "fs.h"
 #include "tsdb++.h"
 
+// _fix_me_ this should not be hardwired (need to make sure it exists)
 #define DUMMY_ATTR "ARGS"
-// _fix_me_ fix this
 
-vector< set<int> > fail_sets;
-vector<int> fail_weight;
-
-set<int>::size_type min_sol_cost;
-set<int> min_sol;
-
-bool
+inline bool
 intersect_empty(set<int> &a, set<int> &b)
 {
     if(a.size() > b.size()) return intersect_empty(b, a);
@@ -50,47 +44,6 @@ intersect_empty(set<int> &a, set<int> &b)
     
     return true;
 }
-
-void
-choose_paths(FILE *f, set<int> &selected, int d, int n)
-/* find a minimal set of paths covering all failure sets
-   algorithm is recursive branch-and-bound
-   selected contains the paths selected so far, d the current
-   depth (number of sets), n the total number of sets
- */
-{
-    if(d == n)
-    {
-        if(selected.size() < min_sol_cost)
-        {
-            min_sol = selected;
-            min_sol_cost = selected.size();
-            
-            time_t t = time(NULL);
-            fprintf(f, "; found solution with %d paths on %s",
-                    min_sol_cost, ctime(&t));
-        }
-        return;
-    }
-    
-    if(selected.size() > min_sol_cost)
-        return;
-    
-    if(intersect_empty(fail_sets[d], selected))
-    { // set is not yet covered
-        for(set<int>::iterator iter = fail_sets[d].begin();
-            iter != fail_sets[d].end(); ++iter)
-	{
-            selected.insert(*iter);
-            choose_paths(f, selected, d+1, n);
-            selected.erase(*iter);
-        }
-    }
-    else
-        choose_paths(f, selected, d+1, n);
-}
-
-extern int next_failure_id;
 
 template <class TPrio, class TInf>
 class pq_item
@@ -109,6 +62,140 @@ operator<(const pq_item<TPrio, TInf> &a, const pq_item<TPrio, TInf> &b)
     return a.prio < b.prio;
 }
 
+set<int>::size_type min_sol_cost;
+set<int> min_sol;
+long long searchspace;
+
+bool
+choose_paths(FILE *f,
+             vector<set<int> > &fail_sets,
+             vector<list<int> > &path_covers,
+             set<int> &selected,
+             set<int> &covered,
+             int d, int n, time_t timeout)
+/* Find a minimal set of paths covering all failure sets.
+   The algorithm is recursive branch-and-bound.
+   selected contains the paths selected so far, d the current
+   depth (number of sets), n the total number of sets
+ */
+{
+    if(verbosity > 1)
+    {
+        fprintf(ferr, "%*s> (%d) (%d): ", d/10, "", d, covered.size());
+    }
+
+    if(d == n)
+    {
+        time_t t = time(NULL);
+        
+        if(selected.size() < min_sol_cost)
+        {
+            min_sol = selected;
+            min_sol_cost = selected.size();
+
+            if(verbosity > 1)
+                fprintf(ferr, "new solution (cost %d)\n",
+                        min_sol_cost);
+            
+            fprintf(f, "; found solution with %d paths on %s",
+                    min_sol_cost, ctime(&t));
+            fprintf(f, "; estimated size of remaining search space %lld\n",
+                    searchspace);
+            fflush(f);
+        }
+        else
+        {
+            if(verbosity > 1)
+                fprintf(ferr, "too expensive\n");
+        }
+
+        if(t > timeout)
+        {
+            fprintf(f, "; timeout (estimated remaining search space %lld) %s",
+                    searchspace, ctime(&t));
+            return false;
+        }
+
+        return true;
+    }
+    
+    if(selected.size() > min_sol_cost)
+    {
+        if(verbosity > 1)
+            fprintf(ferr, "too expensive\n");
+        return true;
+    }
+    
+    if(covered.size() < (unsigned) n 
+       && intersect_empty(fail_sets[d], selected))
+    {   
+        // Set is not yet covered.
+
+        if(verbosity > 1)
+            fprintf(ferr, "not covered, %d candidates\n",
+                    fail_sets[d].size());
+
+        // Pursue a greedy strategy: Choose the path that covers the largest
+        // number of remaining sets which are not yet covered.
+
+        priority_queue<pq_item<int, int> > candidates;
+
+        for(set<int>::iterator iter = fail_sets[d].begin();
+            iter != fail_sets[d].end(); ++iter)
+	{
+            int value = 0;
+            for(list<int>::iterator it = path_covers[*iter].begin();
+                it != path_covers[*iter].end(); ++it)
+            {
+                if(covered.find(*it) == covered.end())
+                    value++;
+            }
+            candidates.push(pq_item<int, int>(value,*iter));
+        }
+
+        while(!candidates.empty())
+        {
+            pq_item<int, int> top = candidates.top();
+            searchspace *= candidates.size();
+            
+            if(verbosity > 1)
+                fprintf(ferr, "%*s- (%d): trying %d (covers %d more sets)\n",
+                        d/10, "", d, top.inf, top.prio);
+
+            selected.insert(top.inf);
+            for(list<int>::iterator it = path_covers[top.inf].begin(); 
+                it != path_covers[top.inf].end(); ++it)
+                covered.insert(*it);
+
+            if(!choose_paths(f, fail_sets, path_covers, selected, covered,
+                             d+1, n, timeout))
+                return false;
+
+            selected.erase(top.inf);
+            for(list<int>::iterator it = path_covers[top.inf].begin(); 
+                it != path_covers[top.inf].end(); ++it)
+                covered.erase(*it);
+
+            searchspace /= candidates.size();
+            candidates.pop();
+        }
+
+    }
+    else
+    {
+        if(verbosity > 1)
+            fprintf(ferr, "already covered\n");
+
+        if(!choose_paths(f, fail_sets, path_covers, selected, covered,
+                         d+1, n, timeout))
+            return false;
+    }
+
+    return true;
+}
+
+extern int next_failure_id;
+
 void
 compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
                 double threshold)
@@ -117,65 +204,108 @@ compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
             threshold);
 
     fprintf(f, "; %d failing sets", sets.size());
+
+    //
+    // Get failure sets sorted by frequency.
+    //
     
-    priority_queue<pq_item<int, list_int *> > top_failures;
+    priority_queue<pq_item<int, list_int *> > sets_by_frequency;
     
     double total_count = 0;
     for(map<list_int *, int, list_int_compare>::iterator iter =
             sets.begin(); iter != sets.end(); ++iter)
     {
         total_count += iter->second;
-        top_failures.push(pq_item<int, list_int *>(iter->second,
-                                                   iter->first));
+        sets_by_frequency.push(pq_item<int, list_int *>(iter->second,
+                                                        iter->first));
     }
     
     fprintf(f, ", total count %.0f:\n;\n",
             total_count);
     total_count /= 100.0;
 
+    //
+    // Select sets below threshold, print selected sets, and sort by size.
+    //
+
     int n = 0;
     double count_so_far = 0;
-    fail_sets.resize(sets.size());
-    fail_weight.resize(sets.size());
-    
-    while(!top_failures.empty())
+    priority_queue<pq_item<int, list_int *> > sets_by_size;
+    int maxpathid = 0;
+
+    while(!sets_by_frequency.empty())
     {
-        pq_item<int, list_int *> top = top_failures.top();
-        top_failures.pop();
+        pq_item<int, list_int *> top = sets_by_frequency.top();
+        sets_by_frequency.pop();
         
         count_so_far += top.prio;
 
-        if(count_so_far / total_count < threshold)
-        {
-            fprintf(f, ";  #%d (%d, %.1f%%) [", n, top.prio,
-                    count_so_far / total_count);
+        if(count_so_far / total_count >= threshold)
+            break;
+
+        fprintf(f, ";  #%d (%d, %.1f%%) [", n, top.prio,
+                count_so_far / total_count);
         
-            list_int *l = top.inf;
-            fail_weight[n] = top.prio;
+        list_int *l = top.inf;
+        while(l)
+        {
+            if(first(l) > maxpathid)
+                maxpathid = first(l);
             
-            while(l)
-            {
-                fail_sets[n].insert(first(l));
-                fprintf(f, "%d%s", first(l), rest(l) == 0 ? "" : " ");
-                l = rest(l);
-            }
-
-            fprintf(f, "]\n");
-
-            n++;
+            fprintf(f, "%d%s", first(l), rest(l) == 0 ? "" : " ");
+     
+            l = rest(l);
         }
+        
+        fprintf(f, "]\n");
+
+        top.prio = -length(top.inf);
+        sets_by_size.push(top);
+        
+        n++;
     }
     
-    // find minimal set of paths covering all (up to max_sets) failure sets
+    //
+    // Construct fail_sets and fail_weight arrays sorted by size of set.
+    //
+    vector<set<int> > fail_sets(sets.size());
+    vector<int> fail_weight(sets.size());
+    vector<list<int> > path_covers(maxpathid+1);
+
+    n = 0;
+    while(!sets_by_size.empty())
     {
-        min_sol_cost = failure_id.size() + 1;
-        set<int> selected;
-        choose_paths(f, selected, 0, n);
+        pq_item<int, list_int *> top = sets_by_size.top();
+        sets_by_size.pop();
+        
+        list_int *l = top.inf;
+        fail_weight[n] = sets[l];
+        
+        while(l)
+        {
+            fail_sets[n].insert(first(l));
+            path_covers[first(l)].push_back(n);
+            l = rest(l);
+        }
+        n++;
     }
     
+    // Find minimal set of paths covering all failure sets
     time_t t = time(NULL);
-    fprintf(f, "; minimal set (%d paths) found %s;  ",
-            min_sol_cost, ctime(&t));
+    fprintf(f, "; searching for minimal number of paths to cover %d sets %s",
+            fail_sets.size(), ctime(&t));
+
+    min_sol_cost = failure_id.size() + 1;
+    searchspace = 1;
+    bool minimal;
+    set<int> selected;
+    set<int> covered;
+    minimal = choose_paths(f, fail_sets, path_covers, selected, covered,
+                           0, n, t + 5*60);
+    
+    t = time(NULL);
+    fprintf(f, "; %s solution (%d paths) found %s;  ",
+            minimal ? "minimal" : "maybe-minimal", min_sol_cost, ctime(&t));
 
     // compute optimal order for selected paths
     
@@ -288,7 +418,7 @@ compute_qc_paths(FILE *f)
     fprintf(f, ";;\n;; quickcheck paths (subsumption)\n;;\n\n");
     compute_qc_traditional(f, failing_paths_subs, 10000);
     fflush(f);
-    compute_qc_sets(f, failing_sets_subs, 65.0);
+    compute_qc_sets(f, failing_sets_subs, 85.0);
 }
 
 #endif
