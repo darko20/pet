@@ -231,18 +231,17 @@ class grammar_rule
   friend class grammar;
 };
 
-struct grammar_info
-{
-  char *version;
-  char *ntypes;
-  char *ntemplates;
-};
-
 class grammar
 {
  public:
   grammar(const char *filename);
   ~grammar();
+
+  // Look up a grammar property.
+  string property(string key);
+  
+  inline map<string, string> &properties()
+    { return _properties; }
 
   bool root(fs &, type_t &rule);
 
@@ -267,7 +266,6 @@ class grammar
     return filter_compatible(mother_r, arg, daughter_r);
   }
 
-  inline grammar_info &info() { return _info; }
   inline int nrules() { return _rules.size(); }
   int nhyperrules();
 
@@ -293,6 +291,8 @@ class grammar
   inline tSM *sm() { return _sm; }
 
  private:
+  map<string, string> _properties;
+
 #ifndef ICU
   string _punctuation_characters;
 #else
@@ -335,8 +335,7 @@ class grammar
   /// Stochastic model.
   class tSM *_sm;
 
-  struct grammar_info _info;
-  void init_grammar_info();
+  void undump_properties(dumper *f);
   void init_parameters();
 
   // friend class le_iter;

@@ -33,6 +33,7 @@
 #include <errno.h>
 
 #include <algorithm>
+#include <sstream>
 
 #include <LEDA/graph.h>
 #include <LEDA/graph_misc.h> 
@@ -51,6 +52,8 @@ symtab<struct templ *> templates;
 symtab<int> attributes;
 
 char *global_inflrs = 0;
+// Grammar properties - these are dumped into the binary representation
+std::map<std::string, std::string> grammar_properties;
 
 settings *flop_settings = 0;
 
@@ -58,7 +61,8 @@ settings *flop_settings = 0;
 
 static char *grammar_version;
 
-void check_undefined_types()
+void
+check_undefined_types()
 {
   for(int i = 0; i < types.number(); i++)
     {
@@ -76,7 +80,8 @@ void check_undefined_types()
     }
 }
 
-void process_conjunctive_subtype_constraints()
+void
+process_conjunctive_subtype_constraints()
 {
   int i, j;
   struct type *t;
@@ -93,7 +98,8 @@ void process_conjunctive_subtype_constraints()
 	  }
 }
 
-char *synth_type_name(int offset = 0)
+char *
+synth_type_name(int offset = 0)
 {
   char name[80];
   sprintf(name, "synth%d", types.number() + offset);
@@ -104,7 +110,8 @@ char *synth_type_name(int offset = 0)
   return strdup(name);
 }
 
-void process_multi_instances()
+void
+process_multi_instances()
 {
   int i, n = types.number();
   struct type *t;
@@ -146,7 +153,8 @@ void process_multi_instances()
       }
 }
 
-void propagate_status()
+void
+propagate_status()
 {
   struct type *t, *chld;
   leda_edge e;
@@ -190,7 +198,8 @@ void propagate_status()
 int *leaftype_order = 0;
 int *rleaftype_order = 0;
 
-void reorder_leaftypes()
+void
+reorder_leaftypes()
 // we want all leaftypes in one consecutive range after all nonleaftypes
 {
   int i;
@@ -231,14 +240,16 @@ void reorder_leaftypes()
     }
 }
 
-void assign_printnames()
+void
+assign_printnames()
 {
   for(int i = 0; i < types.number(); i++)
     if(types[i]->printname == 0)
       types[i]->printname = strdup(types.name(i).c_str());
 }
 
-void preprocess_types()
+void
+preprocess_types()
 {
   expand_templates();
 
@@ -254,7 +265,8 @@ void preprocess_types()
   assign_printnames();
 }
 
-void log_types(char *title)
+void
+log_types(char *title)
 {
   fprintf(stderr, "------ %s\n", title);
   for(int i = 0; i < types.number(); i++)
@@ -264,7 +276,8 @@ void log_types(char *title)
     }
 }
 
-void demote_instances()
+void
+demote_instances()
 {
   // for TDL instances we want the parent's type in the fs
   for(int i = 0; i < types.number(); i++)
@@ -284,7 +297,8 @@ void demote_instances()
     }
 }
 
-void process_types()
+void
+process_types()
 {
   fprintf(fstatus, "- building dag representation\n");
   unify_wellformed = false;
@@ -327,6 +341,24 @@ void process_types()
 }
 
 void
+fill_grammar_properties()
+{
+    std::string s;
+    std::ostringstream ss(s);
+
+    grammar_properties["version"] = grammar_version;
+    
+    ss << templates.number();
+    grammar_properties["ntemplates"] = ss.str();
+
+    grammar_properties["unfilling"] =
+        opt_unfill ? "true" : "false";
+
+    grammar_properties["full-expansion"] =
+        opt_full_expansion ? "true" : "false";
+}
+
+void
 print_morph_info(FILE *f)
 {
     char *path = flop_settings->value("morph-path");
@@ -358,201 +390,212 @@ print_morph_info(FILE *f)
     //    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
 }
 
-char *parse_version()
+char *
+parse_version()
 {
-  char *fname;
-  char *version = 0;
-
-  fname = flop_settings->value("version-file");
-  if(fname)
+    char *fname;
+    char *version = 0;
+    
+    fname = flop_settings->value("version-file");
+    if(fname)
     {
-      fname = find_file(fname, SET_EXT);
-      if(!fname) return 0;
+        fname = find_file(fname, SET_EXT);
+        if(!fname) return 0;
 
-      push_file(fname, "reading");
-      while(LA(0)->tag != T_EOF)
+        push_file(fname, "reading");
+        while(LA(0)->tag != T_EOF)
         {
-          if(LA(0)->tag == T_ID && flop_settings->member("version-string", LA(0)->text))
+            if(LA(0)->tag == T_ID && flop_settings->member("version-string",
+                                                           LA(0)->text))
             {
-              consume(1);
-              if(LA(0)->tag != T_STRING)
+                consume(1);
+                if(LA(0)->tag != T_STRING)
                 {
-                  fprintf(ferr, "string expected for version at %s:%d\n",
-                          LA(0)->loc->fname, LA(0)->loc->linenr);
+                    fprintf(ferr, "string expected for version at %s:%d\n",
+                            LA(0)->loc->fname, LA(0)->loc->linenr);
                 }
-              else
+                else
                 {
-                  version = LA(0)->text; LA(0)->text = 0;
+                    version = LA(0)->text; LA(0)->text = 0;
                 }
             } 
-          consume(1);
+            consume(1);
         }
-      consume(1);
+        consume(1);
     }
-  else
+    else
     {
-      return 0;
+        return 0;
     }
-
-  return version;
+    
+    return version;
 }
 
-void initialize_status()
+void
+initialize_status()
 {
-  // NO_STATUS
-  statustable.add("*none*");
-  // ATOM_STATUS
-  statustable.add("*atom*");
+    // NO_STATUS
+    statustable.add("*none*");
+    // ATOM_STATUS
+    statustable.add("*atom*");
 }
 
 extern int dag_dump_grand_total_nodes, dag_dump_grand_total_atomic,
-  dag_dump_grand_total_arcs;
+    dag_dump_grand_total_arcs;
 
-void process(char *ofname)
+void
+process(char *ofname)
 {
-  char *fname, *outfname;
-  FILE *outf;
+    char *fname, *outfname;
+    FILE *outf;
+    
+    clock_t t_start = clock();
+    
+    fname = find_file(ofname, TDL_EXT);
+    
+    if(!fname)
+    {
+        fprintf(ferr, "file `%s' not found - skipping...\n", ofname);
+        return;
+    }
 
-  clock_t t_start = clock();
+    initialize_builtins();
 
-  fname = find_file(ofname, TDL_EXT);
+    flop_settings = new settings("flop", fname);
+
+    if(flop_settings->member("output-style", "stefan"))
+    {
+        opt_linebreaks = true;
+    }
+
+    grammar_version = parse_version();
+    if(grammar_version == 0)
+        grammar_version = "unknown";
+
+    outfname = output_name(fname, TDL_EXT, opt_pre ? PRE_EXT : GRAMMAR_EXT);
+    outf = fopen(outfname, "wb");
   
-  if(!fname)
+    if(outf)
     {
-      fprintf(ferr, "file `%s' not found - skipping...\n", ofname);
-      return;
+        struct setting *set;
+        int i;
+        
+        initialize_specials(flop_settings);
+        initialize_status();
+        
+        fprintf(fstatus, "\nconverting `%s' (%s) into `%s' ...\n",
+                fname, grammar_version, outfname);
+      
+        if((set = flop_settings->lookup("postload-files")) != 0)
+            for(i = set->n - 1; i >= 0; i--)
+            {
+                char *fname;
+                fname = find_file(set->values[i], TDL_EXT);
+                if(fname) push_file(fname, "postloading");
+            }
+        
+        push_file(fname, "loading");
+        
+        if((set = flop_settings->lookup("preload-files")) != 0)
+            for(i = set->n - 1; i >= 0; i--)
+            {
+                char *fname;
+                fname = find_file(set->values[i], TDL_EXT);
+                if(fname) push_file(fname, "preloading");
+            }
+        
+        tdl_start(1);
+        fprintf(fstatus, "\n");
+        
+        char *fffname;
+        if((fffname = flop_settings->value("fullform-file")) != 0)
+	{
+            if((fffname = find_file(fffname, VOC_EXT)))
+                read_morph(fffname);
+	}
+        
+        char *irregfname;
+        if((irregfname = flop_settings->value("irregs-file")) != 0)
+	{
+            if((irregfname = find_file(irregfname, IRR_EXT)))
+                read_irregs(irregfname);
+	}
+        
+        if(!opt_pre)
+            check_undefined_types();
+        
+        fprintf(fstatus, "\nfinished parsing - %d syntax errors, %d lines "
+                "in %0.3g s\n",
+                syntax_errors, total_lexed_lines,
+                (clock() - t_start) / (float) CLOCKS_PER_SEC);
+        
+        fprintf(fstatus, "processing type constraints (%d types):\n",
+                types.number());
+      
+        t_start = clock();
+        
+        preprocess_types();
+        
+        if(!opt_pre)
+            process_types();
+
+        fill_grammar_properties();
+        
+        if(opt_pre)
+	{
+            write_pre_header(outf, outfname, fname, grammar_version);
+            write_pre(outf);
+	}
+        else
+	{
+            dumper dmp(outf, true);
+            fprintf(fstatus, "dumping grammar (");
+            dump_grammar(&dmp, grammar_version);
+            fprintf(fstatus, ")\n");
+            if(verbosity > 10)
+                fprintf(fstatus,
+                        "%d[%d]/%d (%0.2g) total grammar nodes"
+                        "[atoms]/arcs (ratio) dumped\n",
+                        dag_dump_grand_total_nodes, 
+                        dag_dump_grand_total_atomic,
+                        dag_dump_grand_total_arcs,
+                        double(dag_dump_grand_total_arcs)/
+                        dag_dump_grand_total_atomic);
+	}
+      
+        fclose(outf);
+        
+        fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
+                (clock() - t_start) / (float) CLOCKS_PER_SEC);
+        
+        if(opt_cmi > 0)
+        {
+            char *moifile = output_name(fname, TDL_EXT, ".moi");
+            FILE *moif = fopen(moifile, "wb");
+            fprintf(fstatus, "Extracting morphological information "
+                    "into `%s'...", moifile);
+            print_morph_info(moif);
+            if(opt_cmi > 1)
+            {
+                fprintf(fstatus, " type hierarchy...");
+                fprintf(moif, "\n");
+                print_hierarchy(moif);
+            }
+            fclose(moif);
+            fprintf(fstatus, "\n");
+        }
     }
-
-  initialize_builtins();
-
-  flop_settings = new settings("flop", fname);
-
-  if(flop_settings->member("output-style", "stefan"))
+    else
     {
-      opt_linebreaks = true;
-    }
-
-  grammar_version = parse_version();
-  if(grammar_version == 0) grammar_version = "unknown";
-
-  outfname = output_name(fname, TDL_EXT, opt_pre ? PRE_EXT : GRAMMAR_EXT);
-  outf = fopen(outfname, "wb");
-  
-  if(outf)
-    {
-      struct setting *set;
-      int i;
-
-      initialize_specials(flop_settings);
-      initialize_status();
-
-      fprintf(fstatus, "\nconverting `%s' (%s) into `%s' ...\n", fname, grammar_version, outfname);
-      
-      if((set = flop_settings->lookup("postload-files")) != 0)
-	for(i = set->n - 1; i >= 0; i--)
-	  {
-	    char *fname;
-	    fname = find_file(set->values[i], TDL_EXT);
-	    if(fname) push_file(fname, "postloading");
-	  }
-      
-      push_file(fname, "loading");
-      
-      if((set = flop_settings->lookup("preload-files")) != 0)
-	for(i = set->n - 1; i >= 0; i--)
-	  {
-	    char *fname;
-	    fname = find_file(set->values[i], TDL_EXT);
-	    if(fname) push_file(fname, "preloading");
-	  }
-      
-      tdl_start(1);
-      fprintf(fstatus, "\n");
-
-      char *fffname;
-      if((fffname = flop_settings->value("fullform-file")) != 0)
-	{
-	  if((fffname = find_file(fffname, VOC_EXT)))
-	    read_morph(fffname);
-	}
-
-      char *irregfname;
-      if((irregfname = flop_settings->value("irregs-file")) != 0)
-	{
-	  if((irregfname = find_file(irregfname, IRR_EXT)))
-	    read_irregs(irregfname);
-	}
-
-      if(!opt_pre)
-	check_undefined_types();
-
-      fprintf(fstatus, "\nfinished parsing - %d syntax errors, %d lines in %0.3g s\n",
-	      syntax_errors, total_lexed_lines, (clock() - t_start) / (float) CLOCKS_PER_SEC);
-      
-      fprintf(fstatus, "processing type constraints (%d types):\n",
-	      types.number());
-      
-      t_start = clock();
-
-      if(flop_settings->value("grammar-info") != 0)
-	create_grammar_info(flop_settings->value("grammar-info"),
-			    grammar_version);
-      
-      preprocess_types();
-      
-      if(!opt_pre)
-	process_types();
-
-      if(opt_pre)
-	{
-	  write_pre_header(outf, outfname, fname, grammar_version);
-	  write_pre(outf);
-	}
-      else
-	{
-	  dumper dmp(outf, true);
-	  fprintf(fstatus, "dumping grammar (");
-	  dump_grammar(&dmp, grammar_version);
-	  fprintf(fstatus, ")\n");
-	  if(verbosity > 10)
-	    fprintf(fstatus,
-		    "%d[%d]/%d (%0.2g) total grammar nodes[atoms]/arcs (ratio) dumped\n",
-		    dag_dump_grand_total_nodes, 
-		    dag_dump_grand_total_atomic,
-		    dag_dump_grand_total_arcs,
-		    double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
-	}
-      
-      fclose(outf);
-      
-      fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
-	      (clock() - t_start) / (float) CLOCKS_PER_SEC);
-      
-      if(opt_cmi > 0)
-      {
-          char *moifile = output_name(fname, TDL_EXT, ".moi");
-          FILE *moif = fopen(moifile, "wb");
-          fprintf(fstatus, "Extracting morphological information into `%s'...", moifile);
-          print_morph_info(moif);
-          if(opt_cmi > 1)
-          {
-              fprintf(fstatus, " type hierarchy...");
-              fprintf(moif, "\n");
-              print_hierarchy(moif);
-          }
-          fclose(moif);
-          fprintf(fstatus, "\n");
-      }
-    }
-  else
-    {
-      fprintf(ferr, "couldn't open output file `%s' for `%s' - skipping...\n", outfname, fname);
+        fprintf(ferr, "couldn't open output file `%s' for `%s' - "
+                "skipping...\n", outfname, fname);
     }
 }
 
 FILE *fstatus, *ferr;
 
-void setup_io()
+void
+setup_io()
 {
   // connect fstatus to fd 2, and ferr to fd errors_to, unless -1, 2 otherwise
 
@@ -596,7 +639,8 @@ void setup_io()
   setvbuf(ferr, 0, _IONBF, 0);
 }
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
   // set up the streams for error and status reports
 

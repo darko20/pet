@@ -171,11 +171,6 @@ public:
   // add generic entries
   void add_generics(list<class lex_item *> &input);
 
-  // Discount priorities of lexical items that are covered by a larger
-  // multiword lexical item.
-  void
-  discount_covered_items(list<class lex_item *> &lex_items);
-
   int max_position() { return _positionmap->max_chart_position(); }
 
   void print(FILE * f)

@@ -301,6 +301,9 @@ class irreg_entry
 
 };
 
+// Grammar properties - these are dumped into the binary representation
+extern std::map<std::string, std::string> grammar_properties;
+
 /********************************************************/
 /* global functions - the interface between the modules */
 /********************************************************/
@@ -363,7 +366,6 @@ struct conjunction *copy_conjunction(struct conjunction *C);
 
 /*** from builtins.cc ***/
 void initialize_builtins();
-int create_grammar_info(char *name, char *grammar_version);
 
 /*** from parse-tdl.cc ***/
 void tdl_start(int toplevel);
