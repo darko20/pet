@@ -858,29 +858,29 @@ grammar::grammar(const char * filename)
         _sm = new tMEM(this, sm_file, filename);
     }
 
-#ifdef IQT
+#ifdef EXTDICT
     try
     {
-        _iqt_discount = 0;
+        _extdict_discount = 0;
     
         char *v;
-        if((v = cheap_settings->value("iqt-discount")) != 0)
+        if((v = cheap_settings->value("extdict-discount")) != 0)
         {
-            _iqt_discount = strtoint(v, "as value of iqt-discount");
+            _extdict_discount = strtoint(v, "as value of extdict-discount");
         }
 
-        char *iqtpath = cheap_settings->value("iqt-path");
-        char *mappath = cheap_settings->value("iqt-mapping");
-        if(iqtpath != 0 && mappath)
+        char *extdictpath = cheap_settings->value("extdict-path");
+        char *mappath = cheap_settings->value("extdict-mapping");
+        if(extdictpath != 0 && mappath)
         {
             fprintf(fstatus, "\n");
-            _iqtDict = new iqtDictionary(iqtpath, mappath);
+            _extDict = new extDictionary(extdictpath, mappath);
         }
     }
     catch(error &e)
     {
-        fprintf(fstatus, "IQT disabled: %s\n", e.msg().c_str());
-        _iqtDict = 0;
+        fprintf(fstatus, "EXTDICT disabled: %s\n", e.msg().c_str());
+        _extDict = 0;
     }
 #endif
 
@@ -1065,7 +1065,7 @@ grammar::~grammar()
     free_list(_packing_restrictor);
     free_type_tables();
 
-#ifdef IQT
+#ifdef EXTDICT
     clear_dynamic_stems();
 #endif
 
@@ -1123,7 +1123,7 @@ list<lex_stem *>
 grammar::lookup_stem(string s)
 {
     list<lex_stem *> results;
-#ifdef IQT
+#ifdef EXTDICT
     set<type_t> native_types;
 #endif
   
@@ -1135,30 +1135,30 @@ grammar::lookup_stem(string s)
         it != eq.second; ++it)
     {
         results.push_back(it->second);
-#ifdef IQT
-        if(_iqtDict)
+#ifdef EXTDICT
+        if(_extDict)
         {
-            native_types.insert(_iqtDict->equiv_rep(leaftype_parent(it->second->type())));
+            native_types.insert(_extDict->equiv_rep(leaftype_parent(it->second->type())));
         }
 #endif
     }
   
-#ifdef IQT
-    if(!_iqtDict)
+#ifdef EXTDICT
+    if(!_extDict)
         return results;
 
-    list<iqtMapEntry> iqtMapped;
-    _iqtDict->getMapped(s, iqtMapped);
+    list<extDictMapEntry> extDictMapped;
+    _extDict->getMapped(s, extDictMapped);
 
     if(verbosity > 2)
-        fprintf(fstatus, "[IQT] %s:", s.c_str());
+        fprintf(fstatus, "[EXTDICT] %s:", s.c_str());
 
-    for(list<iqtMapEntry>::iterator it = iqtMapped.begin(); it != iqtMapped.end(); ++it)
+    for(list<extDictMapEntry>::iterator it = extDictMapped.begin(); it != extDictMapped.end(); ++it)
     {
         type_t t = it->type();
 
         // Create stem if not blocked by entry from native lexicon.
-        if(native_types.find(_iqtDict->equiv_rep(t)) != native_types.end())
+        if(native_types.find(_extDict->equiv_rep(t)) != native_types.end())
         {
             if(verbosity > 2)
                 fprintf(fstatus, " (%s)", typenames[t]);
@@ -1181,7 +1181,7 @@ grammar::lookup_stem(string s)
         list<string> orths;
         orths.push_back(s);
 
-        lex_stem *st = new lex_stem(t, mods, orths, _iqt_discount);
+        lex_stem *st = new lex_stem(t, mods, orths, _extdict_discount);
         _dynamicstems.push_back(st);
 
         results.push_back(st);
@@ -1194,7 +1194,7 @@ grammar::lookup_stem(string s)
     return results;
 }
 
-#ifdef IQT
+#ifdef EXTDICT
 void
 grammar::clear_dynamic_stems()
 {

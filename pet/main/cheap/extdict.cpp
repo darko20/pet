@@ -22,7 +22,7 @@
 // the mapping to the grammar lexicon.
 //
 
-#ifdef IQT
+#ifdef EXTDICT
 
 #include "pet-system.h"
 #include "../common/errors.h"
@@ -30,14 +30,14 @@
 #include "cheap.h"
 #include "grammar.h"
 #include "parse.h"
-#include "iqt.h"
+#include "extdict.h"
 
 //
 // Utility functions
 //
 
 // Parse a string of elements seperated by |.
-void iqtParseList(string s, list<string> &L)
+void extDictParseList(string s, list<string> &L)
 {
   L.clear();
   
@@ -60,7 +60,7 @@ void iqtParseList(string s, list<string> &L)
 }
 
 // Parse a string of elements seperated by whitespace, ignoring comments.
-void iqtParseLine(string s, list<string> &L)
+void extDictParseLine(string s, list<string> &L)
 {
   L.clear();
   
@@ -98,29 +98,16 @@ void iqtParseLine(string s, list<string> &L)
 // Dictionary access class
 //
 
-iqtDictionary::iqtDictionary(const string &dictpath, const string &mappath)
+extDictionary::extDictionary(const string &dictpath, const string &mappath)
   : _pMap(0)
 {
-#ifndef IQTEMU
-  long dicterr = -1;
-  
-  _pDict = dctNewDictionary(dictpath.c_str(), DCT_COMPRESSED_ON_DISK,
-                            &dicterr);
-  if(dicterr != 0)
-  {
-    throw error(string("Cannot open Inquizit dictionary in ") + dictpath
-                + string("."));
-  }
-#else
-  readEmu(dictpath + string("/iqt.lex"));
-#endif
+  readEmu(dictpath + string("/extdict.lex"));
 
-  _pMap = new iqtMapping(mappath);
+  _pMap = new extDictMapping(mappath);
 }
 
-#ifdef IQTEMU
 void
-iqtDictionary:: readEmu(const string &dictpath)
+extDictionary:: readEmu(const string &dictpath)
 {
   push_file(dictpath.c_str(), "loading");
   
@@ -163,55 +150,27 @@ iqtDictionary:: readEmu(const string &dictpath)
     
   }
 }
-#endif
       
-iqtDictionary::~iqtDictionary()
+extDictionary::~extDictionary()
 {
-#ifndef IQTEMU
-  long dicterr = -1;
-  dctClose(_pDict, &dicterr);
-#endif
   delete _pMap;
 }
 
-bool iqtDictionary::getHeadlist(const string &word, string &headlist)
+bool extDictionary::getHeadlist(const string &word, string &headlist)
 {
   headlist.erase();
   
-#ifndef IQTEMU
-  long handle;
-  long dicterr = -1;
-
-  if(dctFindHandle(_pDict, word.c_str(), &handle))
-  {
-    char *s = dctHeadlist(_pDict, handle, &dicterr);
-
-    if(s)
-    {
-      headlist = string(s);
-      dctFreeString(s);
-      return true;
-    }
-
-    if(dicterr != 0)
-    {
-      throw error(string("Error accessing Inquizit dictionary entry \"")
-                  + word + string("\"."));
-    }
-  }
-#else
   map<string, string>::iterator it = _dict.find(word);
   if(it != _dict.end())
   {
     headlist = it->second;
     return true;
   }
-#endif
 
   return false;
 }
 
-bool iqtDictionary::getHeadlist(const string &word,
+bool extDictionary::getHeadlist(const string &word,
                                 list<list<string> > &headlist)
 {
   headlist.clear();
@@ -221,7 +180,7 @@ bool iqtDictionary::getHeadlist(const string &word,
     return false;
 
   list<string> L;
-  iqtParseList(s, L);
+  extDictParseList(s, L);
   
   list<string> curr;
   for(list<string>::iterator it = L.begin(); it != L.end(); ++it)
@@ -244,7 +203,7 @@ bool iqtDictionary::getHeadlist(const string &word,
   return true;
 }
 
-bool iqtDictionary::getMapped(const string &word, list<iqtMapEntry> &resmapped)
+bool extDictionary::getMapped(const string &word, list<extDictMapEntry> &resmapped)
 {
   resmapped.clear();
 
@@ -252,11 +211,11 @@ bool iqtDictionary::getMapped(const string &word, list<iqtMapEntry> &resmapped)
   if(word.length() <= 2)
     return true;
 
-  // Get IQT headlist.
+  // Get EXTDICT headlist.
   list<list<string> > headlist;
   getHeadlist(word, headlist);
   
-  list<iqtMapEntry> allmapped;
+  list<extDictMapEntry> allmapped;
   for(list<list<string> >::iterator codeit = headlist.begin();
       codeit != headlist.end(); ++codeit)
   {
@@ -269,11 +228,11 @@ bool iqtDictionary::getMapped(const string &word, list<iqtMapEntry> &resmapped)
       continue;
 
     // Map at most ten elements.
-    list<iqtMapEntry> mapped;
+    list<extDictMapEntry> mapped;
     for(list<string>::iterator elem = code.begin();
         elem != code.end() && mapped.size() < 10; ++elem)
     {
-      iqtMapEntry e = _pMap->get(*elem);
+      extDictMapEntry e = _pMap->get(*elem);
       if(e.valid())
         mapped.push_back(e);
     }
@@ -295,11 +254,11 @@ bool iqtDictionary::getMapped(const string &word, list<iqtMapEntry> &resmapped)
   // For each entry in allmapped, see if there's another entry in allmapped
   // that subsumes it. If not, add it to the output list resmapped.
 
-  for(list<iqtMapEntry>::iterator it1 = allmapped.begin();
+  for(list<extDictMapEntry>::iterator it1 = allmapped.begin();
       it1 != allmapped.end(); ++it1)
   {
     bool subsumed = false;
-    for(list<iqtMapEntry>::iterator it2 = allmapped.begin();
+    for(list<extDictMapEntry>::iterator it2 = allmapped.begin();
         !subsumed && it2 != allmapped.end(); ++it2)
     {
       if(it2 == it1) continue;
@@ -315,12 +274,12 @@ bool iqtDictionary::getMapped(const string &word, list<iqtMapEntry> &resmapped)
   return true;
 }
 
-type_t iqtDictionary::equiv_rep(type_t t)
+type_t extDictionary::equiv_rep(type_t t)
 {
   return _pMap->equiv_rep(t);
 }
 
-int iqtDictionary::equiv_rank(type_t t)
+int extDictionary::equiv_rank(type_t t)
 {
   return _pMap->equiv_rank(t);
 }
@@ -329,7 +288,7 @@ int iqtDictionary::equiv_rank(type_t t)
 // Mapping.
 // 
 
-void iqtMapEntry::print(FILE *f) const
+void extDictMapEntry::print(FILE *f) const
 {
   fprintf(f, " %s [", typenames[_type]);
   for(list<pair<string, string> >::const_iterator it = _paths.begin();
@@ -340,17 +299,17 @@ void iqtMapEntry::print(FILE *f) const
   fprintf(f, " ]");
 }
 
-bool operator==(const iqtMapEntry &a, const iqtMapEntry &b)
+bool operator==(const extDictMapEntry &a, const extDictMapEntry &b)
 {
   return a._type == b._type;
 }
 
-bool operator<(const iqtMapEntry &a, const iqtMapEntry &b)
+bool operator<(const extDictMapEntry &a, const extDictMapEntry &b)
 {
   return a._type < b._type;
 }
 
-iqtMapping::iqtMapping(const string& mappath)
+extDictMapping::extDictMapping(const string& mappath)
 {
   FILE *f = fopen(mappath.c_str(), "r");
   if(!f)
@@ -365,7 +324,7 @@ iqtMapping::iqtMapping(const string& mappath)
     
     list<string> elems;
 
-    iqtParseLine(line, elems);
+    extDictParseLine(line, elems);
     if(elems.empty())
       continue;
     
@@ -457,7 +416,7 @@ iqtMapping::iqtMapping(const string& mappath)
       continue;
     }
 
-    iqtMapEntry entry(type, paths);
+    extDictMapEntry entry(type, paths);
     _map[lhs] = entry;
 
     if(verbosity > 9)
@@ -469,7 +428,7 @@ iqtMapping::iqtMapping(const string& mappath)
 }
 
 void
-iqtMapping::add_equiv(const list<string> &elems)
+extDictMapping::add_equiv(const list<string> &elems)
 {
   list<type_t> ts;
   int rank = 0;
@@ -494,7 +453,7 @@ iqtMapping::add_equiv(const list<string> &elems)
 }
 
 void
-iqtMapping::add_undesired(list<string> elems)
+extDictMapping::add_undesired(list<string> elems)
 {
   string word = elems.front();
   elems.pop_front();
@@ -506,7 +465,7 @@ iqtMapping::add_undesired(list<string> elems)
 }
 
 type_t
-iqtMapping::equiv_rep(type_t t)
+extDictMapping::equiv_rep(type_t t)
 {
   map<type_t, type_t>::iterator it = _equivs.find(t);
   if(it != _equivs.end())
@@ -516,7 +475,7 @@ iqtMapping::equiv_rep(type_t t)
 }
 
 int
-iqtMapping::equiv_rank(type_t t)
+extDictMapping::equiv_rank(type_t t)
 {
   map<type_t, type_t>::iterator it = _equivs.find(t);
   if(it != _equivs.end())
@@ -526,7 +485,7 @@ iqtMapping::equiv_rank(type_t t)
 }
 
 bool
-iqtMapping::undesired(const string &word, const string &tag)
+extDictMapping::undesired(const string &word, const string &tag)
 {
   pair<multimap<string, string>::iterator,
     multimap<string, string>::iterator> eq =
@@ -545,9 +504,8 @@ iqtMapping::undesired(const string &word, const string &tag)
 //
 // 
 
-#ifdef IQTEMU
 void
-iqtDictionary::lookupAll()
+extDictionary::lookupAll()
 {
   for(map<string, string>::iterator it = _dict.begin(); it != _dict.end(); ++it)
   {
@@ -556,7 +514,5 @@ iqtDictionary::lookupAll()
     Grammar->clear_dynamic_stems();
   }
 }
-
-#endif
 
 #endif
