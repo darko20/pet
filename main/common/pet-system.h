@@ -87,7 +87,7 @@
 #ifdef ICU
 #include "unicode/unistr.h"
 #include "unicode/schriter.h"
-#include "unicode/convert.h"
+#include "unicode/ucnv.h"
 #endif
 
 using namespace std;

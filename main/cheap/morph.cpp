@@ -464,7 +464,7 @@ void reverse_subrule(UnicodeString &s)
   
   UTextOffset off = 0;
   while((off = s.indexOf((UChar32) '!', off)) != -1)
-    s.reverse(s.getCharStart(off-1), 2);
+    s.reverse(s.getChar32Start(off-1), 2);
 }
 
 void morph_trie::add_subrule(type_t rule, string subrule)
