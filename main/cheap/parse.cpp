@@ -297,11 +297,11 @@ add_root(item *it)
     // return value: true -> stop parsing; false -> continue parsing
 {
     Chart->trees().push_back(it);
-    stats.readings++;
+    stats.trees++;
     if(stats.first == -1)
     {
         stats.first = ParseTime->convert2ms(ParseTime->elapsed());
-        if(opt_nsolutions > 0 && stats.readings >= opt_nsolutions)
+        if(opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
             return true;
     }
 #ifdef YY
@@ -428,7 +428,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
     }
 
     while(!Agenda->empty() &&
-          (opt_nsolutions == 0 || stats.readings < opt_nsolutions) &&
+          (opt_nsolutions == 0 || stats.trees < opt_nsolutions) &&
 #ifdef YY
           (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning) &&
 #endif
@@ -474,6 +474,9 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
         for(vector<item *>::iterator tree = Chart->trees().begin();
             tree != Chart->trees().end(); ++tree)
         {
+            if((*tree)->frozen())
+                continue;
+
             list<item *> results;
             results = (*tree)->unpack();
             
@@ -485,6 +488,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
                 if((*res)->root(Grammar, Chart->rightmost(), rule, maxp))
                 {
                     Chart->readings().push_back(*res);
+		    stats.readings++;
                     if(verbosity > 2)
                     {
                         fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
@@ -496,6 +500,11 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
             }
         }
         delete UnpackTime;
+    }
+    else
+    {
+        stats.readings = stats.trees;
+        Chart->readings() = Chart->trees();
     }
 }
 

@@ -206,7 +206,7 @@ class temporary_generation
 {
  public:
   inline temporary_generation(int gen) : _save(unify_generation) 
-    { unify_generation = gen; }
+    { if(gen != 0) unify_generation = gen; }
   inline ~temporary_generation()
     { unify_generation = _save; }
 

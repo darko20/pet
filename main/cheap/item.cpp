@@ -645,7 +645,16 @@ phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
     {
         item *combined = unpack_combine(config);
         if(combined)
+        {
+            if(verbosity > 9)
+            {
+                fprintf(stderr, "created edge ");
+                combined->print(stderr);
+                fprintf(stderr, "\n");
+                dag_print(stderr, combined->get_fs().dag());
+            }
             res.push_back(combined);
+        }
 	return;
     }
 
@@ -673,13 +682,18 @@ phrasal_item::unpack_combine(vector<item *> &daughters)
     while(res.valid() && tofill)
     {
         fs arg = res.nth_arg(first(tofill));
-        
         if(rest(tofill))
         {
+            if(res.temp())
+                unify_generation = res.temp();
             res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
         }
         else
         {
+            // _fix_me_ 
+            // the whole _np architecture is rather messy
+            if(res.temp())
+                unify_generation = res.temp();
             res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
                                  arg,
                                  Grammar->deleted_daughters());
