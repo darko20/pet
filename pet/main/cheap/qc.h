@@ -27,6 +27,7 @@
 #include "errors.h"
 #include "failure.h"
 
-void compute_qc_paths(FILE *f, int max);
+void
+compute_qc_paths(FILE *f);
 
 #endif

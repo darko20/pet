@@ -62,10 +62,16 @@ class unification_failure
     int _s1, _s2;
     int _cost;
     list<list_int *> _cyclic_paths;
-    
+
     friend int compare(const unification_failure &,
                        const unification_failure &);
 };
+
+inline bool
+prefix(unification_failure &a, unification_failure &b)
+{
+    return prefix(a.path(), b.path());
+}
 
 inline bool
 operator<(const unification_failure &a, const unification_failure &b)

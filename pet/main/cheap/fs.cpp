@@ -153,12 +153,15 @@ int next_failure_id = 0;
 map<unification_failure, int> failure_id;
 map<int, unification_failure> id_failure;
 
-map<int, double> failing_paths;
-map<list_int *, int, list_int_compare> failing_sets;
+map<int, double> failing_paths_unif;
+map<list_int *, int, list_int_compare> failing_sets_unif;
+
+map<int, double> failing_paths_subs;
+map<list_int *, int, list_int_compare> failing_sets_subs;
 
 void
 record_failures(list<unification_failure *> fails, bool unification,
-                dag_node *root = 0, dag_node *a = 0, dag_node *b = 0)
+                dag_node *a = 0, dag_node *b = 0)
 {
     unification_failure *f;
     list_int *sf = 0;
@@ -178,21 +181,28 @@ record_failures(list<unification_failure *> fails, bool unification,
             if(f->type() == unification_failure::CLASH)
             {
                 bool good = true;
+                // let's see if the quickcheck could have filtered this
+                
+                dag_node *d1, *d2;
+                
+                d1 = dag_get_path_value_l(a, f->path());
+                d2 = dag_get_path_value_l(b, f->path());
+                
+                int s1 = BI_TOP, s2 = BI_TOP;
+                
+                if(d1 != FAIL) s1 = dag_type(d1);
+                if(d2 != FAIL) s2 = dag_type(d2);
+
                 if(unification)
                 {
-                    // let's see if the quickcheck could have filtered this
-
-                    dag_node *d1, *d2;
-
-                    d1 = dag_get_path_value_l(a, f->path());
-                    d2 = dag_get_path_value_l(b, f->path());
-                    
-                    int s1 = BI_TOP, s2 = BI_TOP;
-                    
-                    if(d1 != FAIL) s1 = dag_type(d1);
-                    if(d2 != FAIL) s2 = dag_type(d2);
-              
                     if(glb(s1, s2) != -1)
+                        good = false;
+                }
+                else
+                {
+                    bool st_1_2, st_2_1;
+                    subtype_bidir(s1, s2, st_1_2, st_2_1);
+                    if(st_1_2 == false && st_2_1 == false)
                         good = false;
                 }
 
@@ -216,11 +226,22 @@ record_failures(list<unification_failure *> fails, bool unification,
                     
                     while(p && first(p) < id)
                         q = p, p = rest(p);
-                    
-                    if(q == 0)
-                        sf = cons(id, sf);
-                    else
-                        q -> next = cons(id, p);
+
+                    if((!p) || (first(p) != id))
+                    {
+                        // This is not a duplicate. Insert into list.
+                        // Duplicates can occur when failure paths are also
+                        // recorded inside constraint unification. This is
+                        // now disabled. Duplicates also occur for subsumption.
+                        if(q == 0)
+                            sf = cons(id, sf);
+                        else
+                            q -> next = cons(id, p);
+                    }
+                    else if(unification)
+                    {
+                        throw error("Duplicate failure path");
+                    }
                 }
             }
             i++;
@@ -228,19 +249,37 @@ record_failures(list<unification_failure *> fails, bool unification,
         
         // If this is not a new failure set, free it.
         if(sf)
-            if(failing_sets[sf]++ > 0)
-                free_list(sf);
-        
+        {
+            if(unification)
+            {
+                if(failing_sets_unif[sf]++ > 0)
+                    free_list(sf);
+            }
+            else
+            {
+                if(failing_sets_subs[sf]++ > 0)
+                    free_list(sf);
+            }
+
+        }
+
         i = 0;
         for(list<unification_failure *>::iterator iter = fails.begin();
             iter != fails.end(); ++iter)
         {
             f = *iter;
             if(value[i] > 0)
-                failing_paths[failure_id[*f]] += value[i] / price;
-            
+            {
+                if(unification)
+                    failing_paths_unif[failure_id[*f]] +=
+                        value[i] / double(price);
+                else
+                    failing_paths_subs[failure_id[*f]] +=
+                        value[i] / double(price);
+            }
             i++;
             delete f;
+	    // _fix_me_ may not delete f if opt_print_failure is on
         }
         
         delete[] value;
@@ -256,6 +295,7 @@ record_failures(list<unification_failure *> fails, bool unification,
             (*iter)->print(ferr);
             fprintf(ferr, "\n");
         }
+	// _fix_me_ need to delete f here
     }
 }
 
@@ -286,7 +326,7 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
             list<unification_failure *> fails =
                 dag_unify_get_failures(a._dag, b._dag, true);
 
-            record_failures(fails, true, root._dag, a._dag, b._dag);
+            record_failures(fails, true, a._dag, b._dag);
         }
 #endif
         
@@ -356,7 +396,33 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
         list<unification_failure *> failures =
             dag_subsumes_get_failures(a._dag, b._dag, forward, backward,
                                       true); 
-        record_failures(failures, false);
+
+        // Filter out failures that have a representative with a shorter
+        // (prefix) path. Assumes path with shortest failure path comes
+        // before longer ones with shared prefix.
+
+        list<unification_failure *> filtered;
+        for(list<unification_failure *>::iterator f = failures.begin();
+            f != failures.end(); ++f)
+        {
+            bool good = true;
+            for(list<unification_failure *>::iterator g = filtered.begin(); 
+                g != filtered.end(); ++g)
+            {
+                if(prefix(**g, **f))
+                {
+                    good = false;
+                    break;
+                }
+            }
+            if(good)
+                filtered.push_back(*f);
+	    else
+                delete *f;
+
+        }
+
+        record_failures(filtered, false, a._dag, b._dag);
     }
     else
 #endif

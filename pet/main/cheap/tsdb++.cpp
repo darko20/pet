@@ -322,7 +322,7 @@ cheap_complete_test_run(int run_id, char *custom)
     {
         fprintf(ferr, "computing quick check paths\n");
         FILE *qc = fopen(opt_compute_qc, "w");
-        compute_qc_paths(qc, 10000);
+        compute_qc_paths(qc);
         fclose(qc);
     }
 #endif
