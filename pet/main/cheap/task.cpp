@@ -188,20 +188,12 @@ item *build_combined_item(chart *C, item *active, item *passive)
       if(temporary)
 	{
 	  temporary_generation save(res.temp());
-#ifndef CRASHES_ON_DYNAMIC_CASTS
 	  it = New phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
-#else
-	  it = New phrasal_item((phrasal_item *)(active), passive, res);
-#endif
 	  FSAS.release();
 	}
       else
 	{
-#ifndef CRASHES_ON_DYNAMIC_CASTS
 	  it = New phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
-#else
-	  it = New phrasal_item((phrasal_item *)(active), passive, res);
-#endif
 	}
 
       return it;
