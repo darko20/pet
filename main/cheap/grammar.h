@@ -66,9 +66,15 @@ class tGrammarRule
     }
 
     int
-    arity()
+    remainingArity()
     {
         return length(_toFill);
+    }
+    
+    list_int *
+    restArgs()
+    {
+        return _toFill;
     }
     
     bool

@@ -162,6 +162,11 @@ tGrammarRule::tGrammarRule(type_t t)
         else if(keyarg != -1) 
             _toFill = append(_toFill, keyarg);
     }
+
+    // Desired results for ternary rules with key
+    // 1: 1,2,3
+    // 2: 2,1,3
+    // 3: 3,1,2
     
     if(opt_key != 2)
     {
@@ -199,7 +204,7 @@ tGrammarRule::tGrammarRule(type_t t)
 void
 tGrammarRule::print(FILE *f)
 {
-    fprintf(f, "%s/%d%s (", printnames[_type], arity(),
+    fprintf(f, "%s/%d%s (", printnames[_type], remainingArity(),
             hyperActive() == false ? "[-HA]" : "");
     
     list_int *l = _toFill;
@@ -216,7 +221,9 @@ tPhrasalItem *
 tGrammarRule::instantiate()
 {
     // _fix_me_
-    return 0;
+    fs f;
+    
+    return new tPhrasalItem(this, f);
 }
 
 bool
@@ -730,7 +737,7 @@ tGrammar::initialize_filter()
 
             _filter[daughter->id() + _nrules * mother->id()] = 0;
 
-            for(int arg = 1; arg <= mother->arity(); arg++)
+            for(int arg = 1; arg <= mother->remainingArity(); arg++)
             {
                 fs_alloc_state S2;
                 fs motherFs = motherItem->get_fs();

@@ -141,6 +141,14 @@ same_lexitems(const tLexItem &a, const tLexItem &b)
     return a._dtrs[a._keydtr]->form() == b._dtrs[b._keydtr]->form();
 }
 
+tPhrasalItem::tPhrasalItem(tGrammarRule *R, fs &f)
+    // _fix_me_
+    : tItem(-1, -1, tPaths(), "hallo"),
+      tActive(R->remainingArity(), R->restArgs())
+{
+
+}
+
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     : tItem(-1, -1, active->_paths.common(pasv->_paths),
            f, active->printname()),
