@@ -425,7 +425,7 @@ void tsdb_parse::capi_print()
               "(:trees . %d) "
               "(:frozen . %d) "
               "(:equivalence . %d) "
-              "(:proactice . %d) "
+              "(:proactive . %d) "
               "(:retroactive . %d) "
               "(:utcpu . %d) " 
               "\")",
