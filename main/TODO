@@ -1,0 +1,42 @@
+- cleaning up:
+  - option handling
+  - YY references; split yy.cpp module into seperate modules
+  - runtime selection of online-morphology vs full-forms
+  - remove New hack
+
+- build process
+  - autoconfig
+  - version.h mechanism
+
+- complete lexical database (postgres) integration
+
+- integrate ecls LISP
+- implement mrs/rmrs code - processor interface
+
+- integrate silo
+
+- leda -> boost migration
+
+- lsl completion - minimal
+
+- integrate bernd's (whiteboard) version
+
+- scoring:
+  - offline scoring
+  - simplified model for compatibility 
+
+- packing:
+  - generalise restrictor
+  - simplify/optimise subsume
+  - subtype caching
+  - seperate subsumption quickcheck
+  - re-enable unfilling as far as possible 
+
+- documentation
+
+- japanese multiword bug (requires input chart redesign)
+
+- defaults
+
+- generator
+  
