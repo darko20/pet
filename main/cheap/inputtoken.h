@@ -58,6 +58,11 @@ class input_token
 
   inline int priority() { return _p; }
 
+  inline int identity()
+  {
+      return leaftype_parent(_form.stem()->type());
+  }
+
   inline const postags &get_in_postags() { return _in_pos; }
   inline const postags &get_supplied_postags() { return _supplied_pos; }
 

@@ -20,27 +20,11 @@
 /* Stochastic modelling */
 
 #include "sm.h"
-
-class tSMFeature
-{
- public:
-    tSMFeature(const vector<int> &v)
-        : _v(v)
-    {}
-
-    int
-    hash() const;
-    
- private:
-    vector<int> _v;
-    
-    friend int
-    compare(const tSMFeature &f1, const tSMFeature &f2);
-    friend bool
-    operator<(const tSMFeature &, const tSMFeature&);
-    friend bool
-    operator==(const tSMFeature &, const tSMFeature&);
-};
+#include "pet-system.h"
+#include "lex-tdl.h"
+#include "utility.h"
+#include "settings.h"
+#include "options.h"
 
 int
 tSMFeature::hash() const
@@ -53,6 +37,16 @@ tSMFeature::hash() const
     }
 
     return k;
+}
+
+void
+tSMFeature::print(FILE *f) const
+{
+    for(vector<int>::const_iterator it = _v.begin();
+        it != _v.end(); ++it)
+    {
+        fprintf(f, "%d ", *it);
+    }
 }
 
 inline int
@@ -118,13 +112,24 @@ class tSMMap
 int
 tSMMap::symbolToCode(const tSMFeature &symbol)
 {
+    if(verbosity > 9)
+    {
+        fprintf(fstatus, "symbolToCode(");
+        symbol.print(fstatus);
+        fprintf(fstatus, ") -> ");
+    }
+
     hash_map<tSMFeature, int>::iterator itMatch = _symbolToCode.find(symbol);
     if(itMatch != _symbolToCode.end())
     {
+        if(verbosity > 9)
+            fprintf(fstatus, "%d\n", itMatch->second);
         return itMatch->second;
     }
     else
     {
+        if(verbosity > 9)
+            fprintf(fstatus, "added %d", _n);
         _codeToSymbol.push_back(symbol);
         return _symbolToCode[symbol] = _n++;
     }
@@ -138,7 +143,6 @@ tSMMap::codeToSymbol(int code) const
     else
         return vector<int>();
 }
-
 
 tSM::tSM(grammar *G, const char *fileName, const char *basePath)
     : _G(G), _fileName(0)
@@ -310,6 +314,8 @@ tMEM::parseFeatures(int nFeatures)
 {
     fprintf(fstatus, "[%d features] ", nFeatures);
 
+    _weights.resize(nFeatures);
+
     int n = 0;
     while(LA(0)->tag != T_EOF)
     {
@@ -351,8 +357,7 @@ tMEM::parseFeature(int n)
             free(inst);
             
             if(t == -1)
-            {
-                fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
+            {                fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
                         tmp, n);
                 good = false;
             }
@@ -376,13 +381,19 @@ tMEM::parseFeature(int n)
         int code = _map->symbolToCode(v);
         if(verbosity > 4)
             fprintf(fstatus, " (code %d)\n", code);
+        if(code >= (int) _weights.size()) _weights.resize(code);
+        _weights[code] = w;
     }
 
     free(tmp);
 }
 
 double
-tMEM::score(item *it)
+tMEM::score(const tSMFeature &f)
 {
-    return 0.0;
+    int code = _map->symbolToCode(f);
+    if(code < (int) _weights.size())
+        return _weights[code];
+    else
+        return 0.0;
 }

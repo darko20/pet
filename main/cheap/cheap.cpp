@@ -251,7 +251,12 @@ void interactive()
                     item *it = *iter;
                     
                     nres++;
-                    fprintf(fstatus, "derivation[%d]: ", nres);
+                    fprintf(fstatus, "derivation[%d]", nres);
+                    if(Grammar->sm())
+                    {
+                        fprintf(fstatus, " (%.4g)", it->score(Grammar->sm()));
+                    }
+                    fprintf(fstatus, ":");
                     it->print_yield(fstatus);
                     fprintf(fstatus, "\n");
                     if(verbosity > 2)

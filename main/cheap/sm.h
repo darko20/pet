@@ -23,10 +23,32 @@
 #define _SM_H_
 
 #include "pet-system.h"
-#include "grammar.h"
-#include "item.h"
 
 #define SM_EXT ".sm"
+
+class tSMFeature
+{
+ public:
+    tSMFeature(const vector<int> &v)
+        : _v(v)
+    {}
+
+    int
+    hash() const;
+
+    void
+    print(FILE *f) const;
+    
+ private:
+    vector<int> _v;
+    
+    friend int
+    compare(const tSMFeature &f1, const tSMFeature &f2);
+    friend bool
+    operator<(const tSMFeature &, const tSMFeature&);
+    friend bool
+    operator==(const tSMFeature &, const tSMFeature&);
+};
 
 /** Stochastic Model.
  *  This class represents an abstract stochastic model. It reads the model
@@ -36,15 +58,21 @@
 class tSM
 {
  public:
-    tSM(grammar *, const char *fileName, const char *basePath);
+    tSM(class grammar *, const char *fileName, const char *basePath);
     virtual ~tSM();
        
-    /** Compute score for an item with respect to the model. */
+    /** Compute score for a feature with respect to the model. */
     virtual double
-    score(item *) = 0;
+    score(const tSMFeature &) = 0;
+
+    virtual double
+    neutralScore() = 0;
+
+    virtual double
+    combineScores(double, double) = 0;
 
     /** Return grammar this model corresponds to. */
-    inline grammar *
+    inline class grammar *
     G()
     { return _G; }
 
@@ -57,7 +85,7 @@ class tSM
     char *
     findFile(const char *fileName, const char *basePath);
 
-    grammar *_G;
+    class grammar *_G;
     char *_fileName;
 };
 
@@ -72,19 +100,23 @@ class tMEM : public tSM
     // _fix_me_
     // We'd prefer not to have to pass fileName and basePath here.
     // There should be a central placed to to this sort of thing.
-    tMEM(grammar *G, const char *fileName, const char *basePath);
+    tMEM(class grammar *G, const char *fileName, const char *basePath);
     virtual ~tMEM();
 
     virtual double
-    score(item *);
+    score(const tSMFeature &);
+
+    virtual double
+    neutralScore()
+    { return 0.0 ; }
+
+    virtual double
+    combineScores(double a, double b)
+    { return a + b; }
 
  private:
     
-    /// Number of features in the model.
-    int _nfeatures;
-    /// An array specifying the weight of each feature [0.._nfeatures[.
-    double *_weights;
-    /// Map between features and their identifiers [0.._nfeatures[.
+    vector<double> _weights;
     class tSMMap *_map;
 
     void
