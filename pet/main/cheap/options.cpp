@@ -44,6 +44,8 @@ char *grammar_file_name = 0;
 
 char *opt_compute_qc = 0;
 
+char *opt_mrs = 0;
+
 int opt_packing = 0;
 
 void usage(FILE *f)
@@ -62,6 +64,7 @@ void usage(FILE *f)
   fprintf(f, "  `-qc-subs=n' --- use only top n quickcheck paths (subsumption)\n");
   fprintf(f, "  `-compute-qc[=file]' --- compute quickcheck paths (output to file,\n"
              "                           default /tmp/qc.tdl)\n");
+  fprintf(f, "  `-mrs[=mode]' --- compute MRS semantics (in specified mode)\n");
   fprintf(f, "  `-key=n' --- select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)\n");
   fprintf(f, "  `-no-hyper' --- disable hyper-active parsing\n");
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
@@ -118,6 +121,7 @@ void usage(FILE *f)
 #define OPTION_NO_FULLFORM_MORPH 25
 #define OPTION_PACKING 26
 #define OPTION_NQC_SUBS 27
+#define OPTION_MRS 28
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -154,6 +158,7 @@ void init_options()
   opt_online_morph = true;
   opt_fullform_morph = true;
   opt_packing = 0;
+  opt_mrs = 0;
 #ifdef YY
   opt_yy = false;
   opt_k2y = 0;
@@ -202,6 +207,7 @@ bool parse_options(int argc, char* argv[])
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
+    {"mrs", optional_argument, 0, OPTION_MRS},
 
     {0, 0, 0, 0}
   }; /* struct option */
@@ -328,6 +334,12 @@ bool parse_options(int argc, char* argv[])
               opt_packing = strtoint(optarg, "as argument to `-packing'");
           else
               opt_packing = PACKING_EQUI | PACKING_PRO | PACKING_RETRO;
+          break;
+      case OPTION_MRS:
+          if(optarg != NULL)
+              opt_mrs = strdup(optarg);
+          else
+              opt_mrs = "simple";
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:

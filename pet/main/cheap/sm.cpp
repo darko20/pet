@@ -238,10 +238,8 @@ tSM::findFile(const char *fileName, const char *basePath)
 }
 
 double
-tSM::scoreLocalTree(tPhrasalItem *R, list<tItem *> dtrs)
+tSM::scoreLocalTree(grammar_rule *R, list<tItem *> dtrs)
 {
-#if 0
-    // _fix_me_
     vector<int> v;
     v.push_back(map()->intToSubfeature((unsigned) R->arity() == dtrs.size() ?
                                        1 : 2));
@@ -262,8 +260,6 @@ tSM::scoreLocalTree(tPhrasalItem *R, list<tItem *> dtrs)
     // fprintf(ferr, " -> %.2f\n", score(f));
 
     return combineScores(total, score(f));
-#endif
-    return 0.0;
 }
 
 double

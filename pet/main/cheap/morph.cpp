@@ -462,7 +462,7 @@ void reverse_subrule(UnicodeString &s)
 {
   s.reverse();
   
-  UTextOffset off = 0;
+  int32_t off = 0;
   while((off = s.indexOf((UChar32) '!', off)) != -1)
     s.reverse(s.getChar32Start(off-1), 2);
 }

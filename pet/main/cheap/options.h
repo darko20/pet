@@ -43,6 +43,8 @@ extern char *grammar_file_name;
 
 extern char *opt_compute_qc;
 
+extern char *opt_mrs;
+
 #define PACKING_EQUI  (1 << 0)
 #define PACKING_PRO   (1 << 1)
 #define PACKING_RETRO (1 << 2)

@@ -29,7 +29,6 @@
 #include "mfile.h"
 #include "grammar-dump.h"
 #include "inputchart.h"
-#include "utility.h"
 
 #ifdef QC_PATH_COMP
 #include "qc.h"
@@ -37,6 +36,11 @@
 
 #ifdef YY
 #include "yy.h"
+#endif
+
+#ifdef ECL
+#include "petecl.h"
+#include "cppbridge.h"
 #endif
 
 FILE *ferr, *fstatus, *flog;
@@ -120,11 +124,10 @@ void interactive()
 
             if(verbosity > 0) stats.print(fstatus);
 
-            if(verbosity > 1)
+            if(verbosity > 1 || opt_mrs)
 
             {
                 int nres = 0;
-                struct MFILE *mstream = mopen();
                 
                 for(vector<tItem *>::iterator iter = Chart->readings().begin();
                     iter != Chart->readings().end(); ++iter)
@@ -142,8 +145,15 @@ void interactive()
                         it->print_derivation(fstatus, false);
                         fprintf(fstatus, "\n");
                     }
+#ifdef ECL
+                    if(opt_mrs)
+                    {
+                        string mrs;
+                        mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
+                        fprintf(fstatus, "%s\n", mrs.c_str());
+                    }
+#endif
                 }
-                mclose(mstream);
             }
             fflush(fstatus);
         } /* try */
@@ -287,6 +297,11 @@ void process(char *s)
     fprintf(fstatus, "\n%d types in %0.2g s\n",
             ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
     
+#ifdef ECL
+    char *cl_argv[] = {"cheap", 0};
+    ecl_initialize(1, cl_argv, s);
+#endif
+
     if(opt_pg)
     {
         print_grammar(stdout);

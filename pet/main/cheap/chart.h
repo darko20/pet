@@ -27,7 +27,7 @@
 class chart
 {
  public:
-  chart(int);
+  chart(int, auto_ptr<item_owner>);
   ~chart();
 
   void add(tItem *);
@@ -58,6 +58,8 @@ class chart
   vector< list<tItem *> > _Cp_start, _Cp_end;
   vector< list<tItem *> > _Ca_start, _Ca_end;
   vector< vector < list<tItem*> > > _Cp_span;
+
+  auto_ptr<item_owner> _item_owner;
 
   friend class chart_iter;
   friend class chart_iter_span_passive;
@@ -148,7 +150,7 @@ class chart_iter_adj_passive
  public:
     inline
     chart_iter_adj_passive(chart *C, tItem *active)
-        : _LI(active->leftExtending() ?
+        : _LI(active->left_extending() ?
               C->_Cp_end[active->start()] : C->_Cp_start[active->end()])
     {
         _curr = _LI.begin();

@@ -28,9 +28,9 @@
 #include "inputchart.h"
 #include "tokenizer.h"
 #include "tsdb++.h"
-#include "utility.h"
 #include "mfile.h"
 #include "qc.h"
+#include "cppbridge.h"
 #ifdef YY
 # include "yy.h"
 #endif
@@ -83,7 +83,7 @@ statistics::reset()
   // rule stuff
   for(rule_iter rule(Grammar); rule.valid(); rule++)
     {
-      tGrammarRule *R = rule.current();
+      grammar_rule *R = rule.current();
       R->actives = R->passives = 0;
     }
 }
@@ -185,7 +185,7 @@ initialize_version()
                                     : (opt_key == 2 ? "r-l"
                                        : (opt_key == 3 ? "head" : "unknown"))),
             opt_hyper ? "+HA" : "-HA",
-            Grammar->nHyperActiveRules(),
+            Grammar->nhyperrules(),
             opt_filter ? "+FI" : "-FI",
             opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
             opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
@@ -229,7 +229,7 @@ cheap_tsdb_summarize_run(void)
     capi_printf("(:avms . %d) ", ntypes);
     capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
-    capi_printf("(:rules . %d) ", Grammar->nRules());
+    capi_printf("(:rules . %d) ", Grammar->nrules());
     if(!Grammar->property("ntemplates").empty())
       capi_printf("(:templates . %s) ", 
                   Grammar->property("ntemplates").c_str());
@@ -530,7 +530,7 @@ tsdb_parse_collect_edges(tsdb_parse &T, tItem *root)
         tsdb_edge e;
         e.id = (*it)->id();
         e.status = 0; // (passive edge)
-        e.label = string((*it)->printName());
+        e.label = string((*it)->printname());
         e.start = (*it)->start();
         e.end = (*it)->end();
         e.score = 0.0;
@@ -579,6 +579,13 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_parse_collect_edges(T, *iter);
                 }
                 
+#ifdef ECL
+                if(opt_mrs)
+                {
+                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
+                                                opt_mrs);
+                }
+#endif
                 T.push_result(R);
                 nres++;
             }
@@ -606,9 +613,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         for(rule_iter rule(Grammar); rule.valid(); rule++)
         {
             tsdb_rule_stat S;
-            tGrammarRule *R = rule.current();
+            grammar_rule *R = rule.current();
             
-            S.rule = R->printName();
+            S.rule = R->printname();
             S.actives = R->actives;
             S.passives = R->passives;
             

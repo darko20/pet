@@ -26,11 +26,12 @@
 
 //#define DEBUG
 
-chart::chart(int len)
+chart::chart(int len, auto_ptr<item_owner> owner)
     : _Chart(), _trees(), _readings(), _pedges(0),
       _Cp_start(len + 1), _Cp_end(len + 1),
       _Ca_start(len + 1), _Ca_end(len + 1),
-      _Cp_span(len + 1)
+      _Cp_span(len + 1),
+      _item_owner(owner)
 {
     for(int i = 0; i <= len; i++)
     {
@@ -60,7 +61,7 @@ void chart::add(tItem *it)
     }
     else
     {
-        if(it->leftExtending())
+        if(it->left_extending())
             _Ca_start[it->start()].push_back(it);
         else
             _Ca_end[it->end()].push_back(it);
@@ -99,11 +100,8 @@ void chart::get_statistics()
             if(it -> result_contrib())
                 stats.rpedges++;
             
-#if 0
-            // _fix_me_
             fs f = it -> get_fs();
             totalsize += f.size();
-#endif
 	}
         else
         {
