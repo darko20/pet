@@ -2,17 +2,18 @@
   - option handling
   - YY references; split yy.cpp module into seperate modules
   - runtime selection of online-morphology vs full-forms
+  - logging / debugging info: get rid of global verbosity,
+    implement some central logging facility
 
 - build process
   - autoconfig
   - version.h mechanism
 
 - complete lexical database (postgres) integration
+- integrate silo
 
 - integrate ecls LISP
 - implement mrs/rmrs code - processor interface
-
-- integrate silo
 
 - leda -> boost migration
 
@@ -25,10 +26,11 @@
   - simplified model for compatibility 
 
 - packing:
+  - fix & integrate subsumption quickcheck
+    currently, it gives incorrect results for non-existing paths
   - generalise restrictor
   - simplify/optimise subsume
   - subtype caching
-  - seperate subsumption quickcheck
   - re-enable unfilling as far as possible 
 
 - documentation
