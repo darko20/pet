@@ -1,0 +1,206 @@
+# ---------------------------------------------------------------------------
+!if !$d(BCB)
+BCB = $(MAKEDIR)\..
+!endif
+
+# ---------------------------------------------------------------------------
+# IDE SECTION
+# ---------------------------------------------------------------------------
+# The following section of the project makefile is managed by the BCB IDE.
+# It is recommended to use the IDE to change any of the values in this
+# section.
+# ---------------------------------------------------------------------------
+
+VERSION = BCB.04.04
+# ---------------------------------------------------------------------------
+PROJECT = pet.exe
+OBJFILES = pet.obj cheap\cheap.obj cheap\qc.obj cheap\chart.obj cheap\dag-tomabechi.obj \
+  cheap\errors.obj cheap\fs.obj cheap\grammar.obj cheap\item.obj \
+  cheap\options.obj cheap\parse.obj cheap\agenda.obj cheap\task.obj \
+  cheap\tokenlist.obj cheap\tsdb++.obj COMMON\bitcode.obj common\dag-alloc.obj \
+  common\dag-arced.obj common\dag-common.obj common\dag-io.obj common\failure.obj \
+  common\grammar-dump.obj common\lex-tdl.obj common\settings.obj common\sorts.obj \
+  common\chunk-alloc.obj common\lex-io.obj cheap\k2y.obj cheap\mrs.obj
+RESFILES =
+RESDEPEN = $(RESFILES)
+LIBFILES = C:\LEDA\libL.lib
+IDLFILES =
+IDLGENFILES =
+LIBRARIES = vcl40.lib tee40.lib
+SPARELIBS = tee40.lib vcl40.lib
+PACKAGES = Vcl40.bpi Vclx40.bpi bcbsmp40.bpi Qrpt40.bpi Vcldb40.bpi ibsmp40.bpi \
+  vcldbx40.bpi TeeUI40.bpi teedb40.bpi tee40.bpi nmfast40.bpi dclocx40.bpi
+DEFFILE =
+# ---------------------------------------------------------------------------
+PATHCPP = .;cheap;COMMON
+PATHASM = .;
+PATHPAS = .;
+PATHRC = .;
+DEBUGLIBPATH = $(BCB)\lib\debug
+RELEASELIBPATH = $(BCB)\lib\release
+SYSDEFINES = _NO_VCL
+USERDEFINES = DAG_TOMABECHI;YY
+# ---------------------------------------------------------------------------
+CFLAG1 = -Icheap;$(BCB)\include;c:\Leda\incl\;common -Od -w -Tkh30000 -r- -a8 -k -y -v \
+  -vi- -c -tWM -tWC -D$(SYSDEFINES);$(USERDEFINES)
+IDLCFLAGS = -src_suffixcpp
+PFLAGS = -UCOMMON;cheap;$(BCB)\lib;$(DEBUGLIBPATH) \
+  -Icheap;$(BCB)\include;c:\Leda\incl\;common -DDAG_TOMABECHI;YY -$YD -$W -$O- -v \
+  -JPHN -M
+RFLAGS = -icheap;$(BCB)\include;c:\Leda\incl\;common -DDAG_TOMABECHI;YY
+AFLAGS = /icheap /i$(BCB)\include /ic:\Leda\incl /icommon /dDAG_TOMABECHI /dYY /mx /w2 /zd
+LFLAGS = -LCOMMON;cheap;$(BCB)\lib;$(DEBUGLIBPATH) -ap -Tpe -x -Gn -v
+# ---------------------------------------------------------------------------
+ALLOBJ = c0x32.obj $(OBJFILES)
+ALLRES = $(RESFILES)
+ALLLIB = $(LIBFILES)  import32.lib cw32mt.lib
+# ---------------------------------------------------------------------------
+!ifdef IDEOPTIONS
+
+[Version Info]
+IncludeVerInfo=0
+AutoIncBuild=0
+MajorVer=1
+MinorVer=0
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=1033
+CodePage=1252
+
+[Version Info Keys]
+CompanyName=
+FileDescription=Executable (Console)
+FileVersion=1.0.0.0
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
+Comments=
+
+[HistoryLists\hlIncludePath]
+Count=4
+Item0=cheap;$(BCB)\include;c:\Leda\incl;common
+Item1=cheap;$(BCB)\include;..\..\Leda-4.1\incl;common
+Item2=cheap;$(BCB)\include;..\..\Leda-4.1\incl;E:\cutalk\pet\pet\common
+Item3=cheap;$(BCB)\include;E:\cutalk\Leda-4.1\incl
+
+[HistoryLists\hlLibraryPath]
+Count=2
+Item0=COMMON;cheap;$(BCB)\lib
+Item1=cheap;$(BCB)\lib
+
+[HistoryLists\hlConditionals]
+Count=3
+Item0=DAG_TOMABECHI;YY
+Item1=DAG_TOMABECHI;YY;LEDA_NO_DEFAULT_COMPARE
+Item2=DAG_TOMABECHI
+
+[HistoryLists\hlRunParameters]
+Count=4
+Item0=h:\YY\jan-00\english.gram
+Item1=h:\yy\jan00\english.gram
+Item2=e:\cutalk\pet\jan00\english.gram
+Item3=e:\cutalk\pet\jan00\english.1
+
+[Debugging]
+DebugSourceDirs=
+
+[Parameters]
+RunParams=h:\YY\jan-00\english.gram
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteDebug=0
+
+[Compiler]
+InMemoryExe=0
+ShowInfoMsgs=0
+
+!endif
+
+# ---------------------------------------------------------------------------
+# MAKE SECTION
+# ---------------------------------------------------------------------------
+# This section of the project file is not used by the BCB IDE.  It is for
+# the benefit of building from the command-line using the MAKE utility.
+# ---------------------------------------------------------------------------
+
+.autodepend
+# ---------------------------------------------------------------------------
+!if !$d(BCC32)
+BCC32 = bcc32
+!endif
+
+!if !$d(DCC32)
+DCC32 = dcc32
+!endif
+
+!if !$d(TASM32)
+TASM32 = tasm32
+!endif
+
+!if !$d(LINKER)
+LINKER = ilink32
+!endif
+
+!if !$d(BRCC32)
+BRCC32 = brcc32
+!endif
+
+!if !$d(IDL2CPP)
+IDL2CPP = idl2cpp
+!endif
+
+# ---------------------------------------------------------------------------
+!if $d(PATHCPP)
+.PATH.CPP = $(PATHCPP)
+.PATH.C   = $(PATHCPP)
+!endif
+
+!if $d(PATHPAS)
+.PATH.PAS = $(PATHPAS)
+!endif
+
+!if $d(PATHASM)
+.PATH.ASM = $(PATHASM)
+!endif
+
+!if $d(PATHRC)
+.PATH.RC  = $(PATHRC)
+!endif
+# ---------------------------------------------------------------------------
+$(PROJECT): $(IDLGENFILES) $(OBJFILES) $(RESDEPEN) $(DEFFILE)
+    $(BCB)\BIN\$(LINKER) @&&!
+    $(LFLAGS) +
+    $(ALLOBJ), +
+    $(PROJECT),, +
+    $(ALLLIB), +
+    $(DEFFILE), +
+    $(ALLRES)
+!
+# ---------------------------------------------------------------------------
+.pas.hpp:
+    $(BCB)\BIN\$(DCC32) $(PFLAGS) {$< }
+
+.pas.obj:
+    $(BCB)\BIN\$(DCC32) $(PFLAGS) {$< }
+
+.cpp.obj:
+    $(BCB)\BIN\$(BCC32) $(CFLAG1) -n$(@D) {$< }
+
+.c.obj:
+    $(BCB)\BIN\$(BCC32) $(CFLAG1) -n$(@D) {$< }
+
+.asm.obj:
+    $(BCB)\BIN\$(TASM32) $(AFLAGS) $<, $@
+
+.rc.res:
+    $(BCB)\BIN\$(BRCC32) $(RFLAGS) -fo$@ $<
+# ---------------------------------------------------------------------------

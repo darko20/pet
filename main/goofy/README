@@ -1,0 +1,6 @@
+This directory contains `goofy', a graphical interface to the PET system.
+
+It is only very rudimentary right now, in fact the only useful thing probably
+is the feature structure viewer.
+
+It requires the QT GUI library (http://www.troll.no) to build.
