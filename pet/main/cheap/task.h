@@ -33,7 +33,7 @@ class basic_task
  public:
     static int next_id;
 
-    inline basic_task(class chart *C, class agenda *A) 
+    inline basic_task(class chart *C, class tAgenda *A) 
         : _id(next_id++), _Chart(C), _A(A), _p(0.0)
     {}
 
@@ -51,7 +51,7 @@ class basic_task
     int _id;
     
     class chart *_Chart;
-    class agenda *_A;
+    class tAgenda *_A;
   
     double _p;
     
@@ -61,7 +61,7 @@ class basic_task
 class item_task : public basic_task
 {
  public:
-    item_task(class chart *C, class agenda *A, item *it);
+    item_task(class chart *C, class tAgenda *A, item *it);
     
     virtual item *execute();
 
@@ -72,7 +72,7 @@ class item_task : public basic_task
 class rule_and_passive_task : public basic_task
 {
  public:
-    rule_and_passive_task(class chart *C, class agenda *A,
+    rule_and_passive_task(class chart *C, class tAgenda *A,
                           grammar_rule *R, item *passive);
     
     virtual item *execute();
@@ -86,7 +86,7 @@ class rule_and_passive_task : public basic_task
 class active_and_passive_task : public basic_task
 {
  public:
-    active_and_passive_task(class chart *C, class agenda *A,
+    active_and_passive_task(class chart *C, class tAgenda *A,
                             item *active, item *passive);
 
     virtual item *execute();

@@ -41,7 +41,7 @@
 //
 
 chart *Chart;
-agenda *Agenda;
+tAgenda *Agenda;
 
 timer *ParseTime;
 timer TotalParseTime(false);
@@ -353,7 +353,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
     unify_wellformed = true;
 
     Chart = &C;
-    Agenda = new agenda;
+    Agenda = new tAgenda;
 
     TotalParseTime.start();
     ParseTime = new timer;

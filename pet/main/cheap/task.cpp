@@ -33,7 +33,7 @@ item *
 build_combined_item(chart *C, item *active, item *passive);
 
 item *
-build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
+build_rule_item(chart *C, tAgenda *A, grammar_rule *R, item *passive)
 {
     fs_alloc_state FSAS(false);
     
@@ -182,7 +182,7 @@ double packingscore(int start, int end, int n, bool active)
   //    - (active ? 0.0 : double(end - start) / n) ;
 }
 
-item_task::item_task(class chart *C, class agenda *A, item *it)
+item_task::item_task(class chart *C, class tAgenda *A, item *it)
     : basic_task(C, A), _item(it)
 {
     if(opt_packing)
@@ -201,7 +201,7 @@ item_task::execute()
     return _item;
 }
 
-rule_and_passive_task::rule_and_passive_task(class chart *C, class agenda *A,
+rule_and_passive_task::rule_and_passive_task(class chart *C, class tAgenda *A,
                                              grammar_rule *R, item *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
@@ -231,7 +231,7 @@ rule_and_passive_task::execute()
 }
 
 active_and_passive_task::active_and_passive_task(class chart *C,
-                                                 class agenda *A,
+                                                 class tAgenda *A,
                                                  item *act, item *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {

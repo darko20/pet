@@ -38,8 +38,9 @@ COMMONSOURCES = bitcode.cpp chunk-alloc.cpp errors.cpp mfile.c
                 grammar-dump.cpp grammar.cpp types.cpp tsdb++.cpp
                 utility.cpp hash.cpp ;
 
-PARSESOURCES = parse.cpp item.cpp task.cpp chart.cpp agenda.cpp tokenizer.cpp
-               options.cpp postags.cpp inputtoken.cpp inputchart.cpp paths.cpp 
+PARSESOURCES = parser.cpp parse.cpp item.cpp task.cpp chart.cpp agenda.cpp
+               tokenizer.cpp options.cpp postags.cpp
+               inputtoken.cpp inputchart.cpp paths.cpp 
 	       mrs.cpp sm.cpp lexicon.cpp ;
 
 CHEAPSOURCES = cheap.cpp $(DAGSOURCES) $(COMMONSOURCES) $(PARSESOURCES) ;
