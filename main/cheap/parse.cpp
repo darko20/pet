@@ -407,7 +407,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
         errors.push_back(s.str());
     }
 
-    if(opt_packing)
+    if(opt_packing && !(opt_packing & PACKING_NOUNPACK))
     {
         timer *UnpackTime = New timer();
 	int nres = 0;
