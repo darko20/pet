@@ -528,12 +528,18 @@ void process(char *ofname)
       fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
 	      (clock() - t_start) / (float) CLOCKS_PER_SEC);
       
-      if(opt_cmi)
+      if(opt_cmi > 0)
       {
           char *moifile = output_name(fname, TDL_EXT, ".moi");
           FILE *moif = fopen(moifile, "wb");
           fprintf(fstatus, "Extracting morphological information into `%s'...", moifile);
           print_morph_info(moif);
+          if(opt_cmi > 1)
+          {
+              fprintf(fstatus, " type hierarchy...");
+              fprintf(moif, "\n");
+              print_hierarchy(moif);
+          }
           fclose(moif);
           fprintf(fstatus, "\n");
       }
