@@ -206,7 +206,7 @@ int nprocessed = 0;
 
 int cheap_process_item(int i_id, char *i_input, int parse_id, 
                        int edges, int exhaustive, 
-                       int derivationp, int interactive)
+                       int nderivations, int interactive)
 {
   struct timeval tA, tB; int treal = 0;
   chart *Chart = 0;
@@ -237,7 +237,7 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
 
     tsdb_parse T;
     cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
-			      derivationp, 0, T);
+			      nderivations, 0, T);
     T.capi_print();
 
     delete Chart;
@@ -399,7 +399,8 @@ void tsdb_parse::capi_print()
 static int tsdb_unique_id = 1;
 
 void cheap_tsdb_summarize_item(chart &Chart, int length,
-                               int treal, int derivationp, const char *meaning,
+                               int treal, int nderivations, 
+                               const char *meaning,
                                tsdb_parse &T)
 {
   if(opt_derivation)
@@ -407,10 +408,11 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
     int nres = 1;
     stats.nmeanings = 0;
     struct MFILE *mstream = mopen();
-    if(!derivationp) // default case, report results
+    if(nderivations >= 0) // default case, report results
     {
+      if(!nderivations) nderivations = Chart.Roots().size();
       for(vector<item *>::iterator iter = Chart.Roots().begin();
-          iter != Chart.Roots().end(); ++iter)
+          nderivations && iter != Chart.Roots().end(); ++iter, --nderivations)
       {
         tsdb_result R;
 
