@@ -30,7 +30,8 @@ class postags
   postags() : _tags() {} ;
   postags(const vector<string> &, const vector<double> &);
   postags(const class full_form ff);
-  postags(const list<class tLexItem *> &les);
+  postags(const class lex_stem *le);
+  postags(const list<class tItem *> &les);
   postags(const postags &t) : _tags(t._tags) {} ;
 
   ~postags() {} ;
@@ -46,6 +47,7 @@ class postags
   bool operator==(const postags &b) const;
 
   void add(string s);
+  void add(string s, double prob);
   void add(const postags &s);
 
   void remove(string s);

@@ -39,7 +39,7 @@ item_owner *tItem::_default_owner = 0;
 int tItem::_next_id = 1;
 
 tItem::tItem(int start, int end, const tPaths &paths,
-           fs &f, const char *printname)
+             const fs &f, const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
@@ -52,7 +52,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
 }
 
 tItem::tItem(int start, int end, const tPaths &paths,
-           const char *printname)
+             const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
@@ -72,54 +72,212 @@ tItem::~tItem()
     delete _unpack_cache;
 }
 
-tLexItem::tLexItem(int start, int end, const tPaths &paths,
-                   int ndtrs, int keydtr, input_token **dtrs, 
-                   fs &f, const char *printname)
-    : tItem(start, end, paths, f, printname),
-      _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
+/*****************************************************************************
+ INPUT ITEM
+ *****************************************************************************/
+
+tInputItem::tInputItem(int id, int start, int end, string surface, string stem
+                       , const tPaths &paths, tok_class token_class)
+  : tItem(-1, -1, paths, surface.c_str())
+    , _input_id(id), _startposition(start), _endposition(end)
+    , _class(token_class), _surface(surface), _stem(stem)
 {
+  _trait = INPUT_TRAIT;
+}
+  
+void tInputItem::print(FILE *f, bool compact)
+{
+  fprintf(f, "[%d - %d] (%d) \"%s\" \"%s\" "
+          , _startposition, _endposition, _input_id
+          , _stem.c_str(), _surface.c_str());
+
+  list_int *li = _inflrs_todo;
+  while(li != NULL) {
+    fprintf(f, "+%s", typenames[first(li)]);
+    li = rest(li);
+  }
+
+  // fprintf(f, "@%d", inflpos);
+
+  fprintf(ferr, " {");
+  _postags.print(ferr);
+  fprintf(ferr, "}");
+}
+
+void
+tInputItem::print_gen(class tItemPrinter *ip)
+{
+  ip->real_print(this);
+}
+
+void
+tInputItem::print_derivation(FILE *f, bool quoted) {
+    fprintf (f, "(%s\"%s%s\" %.2f %d %d)",
+             quoted ? "\\" : "", orth().c_str(), quoted ? "\\" : "", score(),
+             _start, _end);
+
+    fprintf(f, ")");
+}
+
+void 
+tInputItem::print_yield(FILE *f)
+{
+  fprintf(f, "%s ", orth().c_str());
+}
+
+string
+tInputItem::tsdb_derivation(int protocolversion)
+{
+    ostringstream res;
+  
+    res << "(\"" << orth() << "\" " << _start << " " << _end << "))";
+
+    return res.str();
+}
+
+void 
+tInputItem::daughter_ids(list<int> &ids)
+{
+  ids.clear();
+}
+
+void 
+tInputItem::collect_children(list<tItem *> &result)
+{
+  return;
+}
+
+void
+tInputItem::set_result_root(type_t rule)
+{
+    set_result_contrib();
+    _result_root = rule;
+}
+
+grammar_rule *
+tInputItem::rule()
+{
+    return NULL;
+}
+
+void
+tInputItem::recreate_fs()
+{
+    throw tError("cannot rebuild lexical item's feature structure");
+}
+
+list<tItem *>
+tInputItem::unpack1(int limit)
+{
+    list<tItem *> res;
+    res.push_back(this);
+    return res;
+}
+
+string tInputItem::orth() {
+  if (_daughters.empty()) {
+    return _surface;
+  } else {
+    string result = dynamic_cast<tInputItem *>(_daughters.front())->orth();
+    for(list<tItem *>::iterator it=(++_daughters.begin())
+          ; it != _daughters.end(); it++){
+      result += " " + dynamic_cast<tInputItem *>(*it)->orth();
+    }
+    return result;
+  }
+}
+
+
+/** Return generic lexical entries for this input token. If \a onlyfor is 
+ * non-empty, only those generic entries corresponding to one of those
+ * POS tags are postulated. The correspondence is defined in posmapping.
+ */
+list<lex_stem *>
+tInputItem::generics(postags onlyfor)
+{
+    list<lex_stem *> result;
+
+    list_int *gens = Grammar->generics();
+
+    if(!gens)
+        return result;
+
+    if(verbosity > 4)
+        fprintf(ferr, "using generics for [%d - %d] `%s':\n", 
+                _start, _end, _surface.c_str());
+
+    for(; gens != 0; gens = rest(gens))
+    {
+        int gen = first(gens);
+
+        char *suffix = cheap_settings->assoc("generic-le-suffixes",
+                                             typenames[gen]);
+        if(suffix)
+          if(_surface.length() <= strlen(suffix) ||
+             strcasecmp(suffix,
+                        _surface.c_str() + _surface.length() - strlen(suffix))
+             != 0)
+            continue;
+
+        if(_postags.license("posmapping", gen)
+           && (onlyfor.empty() || onlyfor.contains(gen)))
+        {
+          if(verbosity > 4)
+              fprintf(ferr, "  ==> %s [%s]\n", printnames[gen],
+                      suffix == 0 ? "*" : suffix);
+	  
+          result.push_back(Grammar->find_stem(gen));
+        }
+    }
+
+    return result;
+}
+
+void tLexItem::init(const fs &f) {
+  if (passive()) {
+    _supplied_pos = postags(_stem);
+
+    for(item_iter it = _daughters.begin(); it != _daughters.end(); it++) {
+      (*it)->parents.push_back(this);
+    }
+
     // _fix_me_
     // Not nice to overwrite the _fs field.
     if(opt_packing)
-        _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
+      _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
 
-    if(_keydtr >= _ndtrs)
-        throw tError("keydtr > ndtrs for tLexItem");
-
-    _dtrs = new input_token*[_ndtrs] ;
-
-    for (int i = 0; i < _ndtrs; i++)
-        _dtrs[i] = dtrs[i] ;
-
-    _inflrs_todo = copy_list(_dtrs[_keydtr]->form().affixes());
     if(_inflrs_todo)
-        _trait = INFL_TRAIT;
+      _trait = INFL_TRAIT;
     else
-        _trait = LEX_TRAIT;
-
+      _trait = LEX_TRAIT;
+    
     if(opt_nqc_unif != 0)
-        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
 
     if(opt_nqc_subs != 0)
-        _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
     // compute _score score for lexical items
     if(Grammar->sm())
-        score(Grammar->sm()->scoreLeaf(this));
+      score(Grammar->sm()->scoreLeaf(this));
 
 #ifdef YY
     if(opt_k2y)
-    {
+      {
+        // _fix_me_ this should be done in some other place, maybe added to the
+        // mods in tokenization?
         mrs_stamp_fs(_fs, _id);
 
-        for(int i = 0; i < _ndtrs; i++)
-            mrs_map_id(_id, _dtrs[i]->id());
+        for(list<tItem *>::iterator it=_daughters.begin()
+              ; it != _daughters.end(); it++)
+          mrs_map_id(_id, (*it)->id());
 
+        // _fix_me_ could somebody please write a comment for this
         set<string> senses = cheap_settings->smap("type-to-sense", _fs.type());
         for(set<string>::iterator it = senses.begin(); it != senses.end();
             ++it)
-            mrs_map_sense(_id, *it);
-    }
+          mrs_map_sense(_id, *it);
+      }
 #endif
 
 #ifdef DEBUG
@@ -128,8 +286,49 @@ tLexItem::tLexItem(int start, int end, const tPaths &paths,
     print(ferr);
     fprintf(ferr, "\n");
 #endif
+  }
 }
 
+tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
+                   , fs &f, const list_int *inflrs_todo)
+  : tItem(i_item->start(), i_item->end(), i_item->_paths
+          , f, stem->printname())
+  , _ldot(stem->inflpos()), _rdot(stem->inflpos() + 1)
+  , _stem(stem)
+{
+  _inflrs_todo = copy_list(inflrs_todo);
+  _daughters.push_back(i_item);
+  _keydaughter = i_item;
+  init(f);
+}
+
+tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
+  : tItem(-1, -1, from->_paths.common(newdtr->_paths)
+          , from->get_fs(), from->printname())
+    , _ldot(from->_ldot), _rdot(from->_rdot)
+    , _keydaughter(from->_keydaughter)
+    , _stem(from->_stem)
+{
+  _daughters = from->_daughters;
+  _inflrs_todo = copy_list(from->_inflrs_todo);
+  if(from->left_extending()) {
+    _start = newdtr->start();
+    _end = from->end();
+    _daughters.push_front(newdtr);
+    _ldot--;
+    // register this expansion to avoid duplicates
+    from->_expanded.push_back(_start);
+  } else {
+    _start = from->start();
+    _end = newdtr->end();
+    _daughters.push_back(newdtr);
+    _rdot++;
+    from->_expanded.push_back(_end);
+  }
+  init(from->get_fs());
+}
+
+#if 0
 bool
 same_lexitems(const tLexItem &a, const tLexItem &b)
 {
@@ -138,11 +337,12 @@ same_lexitems(const tLexItem &a, const tLexItem &b)
 
     return a._dtrs[a._keydtr]->form() == b._dtrs[b._keydtr]->form();
 }
+#endif
 
 tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     : tItem(pasv->_start, pasv->_end, pasv->_paths,
            f, R->printname()),
-    _daughters(), _adaughter(0), _rule(R)
+      _adaughter(0), _rule(R)
 {
     _tofill = R->restargs();
     _nfilled = 1;
@@ -193,8 +393,9 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     : tItem(-1, -1, active->_paths.common(pasv->_paths),
            f, active->printname()),
-    _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
+      _adaughter(active), _rule(active->_rule)
 {
+    _daughters = active->_daughters;
     if(active->left_extending())
     {
         _start = pasv->_start;
@@ -249,7 +450,6 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     : tItem(sponsor->start(), sponsor->end(), sponsor->_paths,
            f, sponsor->printname()),
-      _daughters(),
       _adaughter(0), _rule(sponsor->rule())
 {
     // _fix_me_
@@ -343,21 +543,26 @@ tLexItem::print(FILE *f, bool compact)
     }
 }
 
+void
+tLexItem::print_gen(class tItemPrinter *ip)
+{
+  ip->real_print(this);
+}
+
 string
 tLexItem::description()
 {
-    if(_ndtrs == 0) return string();
-    return _dtrs[_keydtr]->description();
+    if(_daughters.empty()) return string();
+    return _keydaughter->description();
 }
 
 string
 tLexItem::orth()
 {
-    string orth;
-    for(int i = 0; i < _ndtrs; i++)
-    {
-        if(i != 0) orth += " ";
-        orth += _dtrs[i]->orth();
+    string orth = dynamic_cast<tInputItem *>(_daughters.front())->orth();
+    for(list<tItem *>::iterator it=(++_daughters.begin())
+          ; it != _daughters.end(); it++){
+      orth += " " + dynamic_cast<tInputItem *>(*it)->orth();
     }
     return orth;
 }
@@ -373,6 +578,12 @@ tPhrasalItem::print(FILE *f, bool compact)
         fprintf(f, "\n");
         _fs.print(f);
     }
+}
+
+void
+tPhrasalItem::print_gen(class tItemPrinter *ip)
+{
+  ip->real_print(this);
 }
 
 void
@@ -412,31 +623,36 @@ tLexItem::print_derivation(FILE *f, bool quoted)
     else
         fprintf(f, "%*s", derivation_indentation, "");
 
-    _dtrs[_keydtr]->print_derivation(f, quoted, _id, type(), score(),
-                                     _inflrs_todo, orth());
+    //_dtrs[_keydtr]->print_derivation(f, quoted, _id, type(), score(),
+    //                                 _inflrs_todo, orth());
+
+    fprintf (f, "(%d %s/%s %.2f %d %d ", _id, _stem->printname(),
+             printnames[type()], score(), _start, _end);
+
+    fprintf(f, "[");
+    for(list_int *l = _inflrs_todo; l != 0; l = rest(l))
+        fprintf(f, "%s%s", printnames[first(l)], rest(l) == 0 ? "" : " ");
+    fprintf(f, "] ");
+
+    _keydaughter->print_derivation(f, quoted);
 }
 
 void
 tLexItem::print_yield(FILE *f)
 {
-    list<string> orth;
-    for(int i = 0; i < _ndtrs; i++)
-        orth.push_back(_dtrs[i]->orth());
-
-    _dtrs[_keydtr]->print_yield(f, _inflrs_todo, orth);
+  fprintf(f, "%s ", orth().c_str());
 }
 
 string
 tLexItem::tsdb_derivation(int protocolversion)
 {
-    string orth;
-    for(int i = 0; i < _ndtrs; i++)
-    {
-        if(i != 0) orth += string(" ");
-        orth += _dtrs[i]->orth();
-    }
+    ostringstream res;
+  
+    res << "(" << _id << " " << _stem->printname()
+        << " " << score() << " " << _start <<  " " << _end
+        << " " << _keydaughter->tsdb_derivation(protocolversion);
 
-    return _dtrs[_keydtr]->tsdb_derivation(_id, orth);
+    return res.str();
 }
 
 void
@@ -826,3 +1042,64 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
     stats.p_upedges++;
     return new tPhrasalItem(this, daughters, res);
 }
+
+
+#if 0
+tLexItem::tLexItem(int start, int end, const tPaths &paths,
+                   int ndtrs, int keydtr, input_token **dtrs, 
+                   fs &f, const char *printname)
+    : tItem(start, end, paths, f, printname),
+      _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
+{
+    // _fix_me_
+    // Not nice to overwrite the _fs field.
+    if(opt_packing)
+        _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
+
+    if(_keydtr >= _ndtrs)
+        throw tError("keydtr > ndtrs for tLexItem");
+
+    _dtrs = new input_token*[_ndtrs] ;
+
+    for (int i = 0; i < _ndtrs; i++)
+        _dtrs[i] = dtrs[i] ;
+
+    _inflrs_todo = copy_list(_dtrs[_keydtr]->form().affixes());
+    if(_inflrs_todo)
+        _trait = INFL_TRAIT;
+    else
+        _trait = LEX_TRAIT;
+
+    if(opt_nqc_unif != 0)
+        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+
+    if(opt_nqc_subs != 0)
+        _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+
+    // compute _score score for lexical items
+    if(Grammar->sm())
+        score(Grammar->sm()->scoreLeaf(this));
+
+#ifdef YY
+    if(opt_k2y)
+    {
+        mrs_stamp_fs(_fs, _id);
+
+        for(int i = 0; i < _ndtrs; i++)
+            mrs_map_id(_id, _dtrs[i]->id());
+
+        set<string> senses = cheap_settings->smap("type-to-sense", _fs.type());
+        for(set<string>::iterator it = senses.begin(); it != senses.end();
+            ++it)
+            mrs_map_sense(_id, *it);
+    }
+#endif
+
+#ifdef DEBUG
+    fprintf(ferr, "new lexical item (`%s[%s]'):", 
+            le->printname(), le->affixprintname());
+    print(ferr);
+    fprintf(ferr, "\n");
+#endif
+}
+#endif

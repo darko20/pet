@@ -32,7 +32,12 @@ class chart
 
   void add(tItem *);
 
+  /** Remove the item in the set from the chart */
+  void remove(hash_set<tItem *> &to_delete);
+
   void print(FILE *f);
+
+  void print(tItemPrinter *f);
 
   void get_statistics();
 
@@ -46,7 +51,17 @@ class chart
 
   void shortest_path(list <tItem *> &);
 
+  list<tItem *>
+  find_uncovered(unary_function<bool, tItem *> &valid,
+                 unary_function<bool, tItem *> &result);
+
+
  private:
+  void check_uncovered(list<tItem *> &olist
+                       , unary_function<bool, tItem *> &valid
+                       , unary_function<bool, tItem *> &result
+                       , list<tItem *> &uncovered);
+
   static int _next_stamp;
 
   vector<tItem *> _Chart;
@@ -63,6 +78,7 @@ class chart
 
   friend class chart_iter;
   friend class chart_iter_span_passive;
+  friend class chart_iter_topo;
   friend class chart_iter_adj_active;
   friend class chart_iter_adj_passive;
 };
@@ -102,6 +118,8 @@ class chart_iter
     }
 
  private:
+    friend class chart;
+
     vector<class tItem *> &_LI;
     vector<class tItem *>::iterator _curr;
 };
@@ -143,6 +161,60 @@ class chart_iter_span_passive
  private:
     list<tItem *> &_LI;
     list<tItem *>::iterator _curr;
+};
+
+class chart_iter_topo
+{
+  private:
+    inline void next()
+    {
+        while ((_curr == _LI[_currindex].end()) && ++_currindex && valid())
+        {
+            _curr = _LI[_currindex].begin();
+        }
+    }
+
+  public:
+    inline chart_iter_topo(chart *C) : _max(C->rightmost()), _LI(C->_Cp_start)
+    {
+        _currindex = 0;
+        _curr = _LI[_currindex].begin();
+        next();
+    }
+
+    inline chart_iter_topo(chart &C) : _max(C.rightmost()), _LI(C._Cp_start)
+    {
+        _currindex = 0;
+        _curr = _LI[_currindex].begin();
+        next();
+    }
+
+    inline chart_iter_topo &operator++(int)
+    {
+        _curr++;
+        next();
+        return *this;
+    }
+
+    inline bool valid()
+    {
+        return (_currindex <= _max);
+    }
+
+    inline tItem *current()
+    {
+        if(valid())
+            return *_curr;
+        else
+            return 0;
+    }
+
+ private:
+    friend class chart;
+
+    int _max, _currindex;
+    vector< list< class tItem * > > &_LI;
+    list<class tItem *>::iterator _curr;
 };
 
 class chart_iter_adj_passive

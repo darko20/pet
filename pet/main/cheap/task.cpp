@@ -249,7 +249,7 @@ active_and_passive_task::active_and_passive_task(class chart *C,
     {
         tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
 
-        list<tItem *> daughters(active->_daughters);
+        list<tItem *> daughters(active->daughters());
 
         if(active->left_extending())
             daughters.push_front(passive);

@@ -36,6 +36,18 @@ postags::postags(const vector<string> &tags, const vector<double> &probs)
     }
 }
 
+postags::postags(const class lex_stem * ls)
+{
+  if(ls != NULL) {
+    set<string> tags = cheap_settings->smap("type-to-pos", ls->type());
+    
+    for(set<string>::iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+        add(*it);
+    }
+  }
+}
+
 postags::postags(const class full_form ff)
 {
     if(!ff.valid())
@@ -49,12 +61,14 @@ postags::postags(const class full_form ff)
     }
 }
 
-postags::postags(const list<tLexItem *> &les)
+postags::postags(const list<tItem *> &les)
 {
-    for(list<tLexItem *>::const_iterator it = les.begin(); it != les.end();
+    for(list<tItem *>::const_iterator it = les.begin(); it != les.end();
         ++it)
     {
-        add((*it)->get_supplied_postags());
+        tLexItem *le = dynamic_cast<tLexItem *>(*it);
+        if (le != NULL) 
+          add(le->get_supplied_postags());
     }
 }
 
@@ -62,6 +76,13 @@ void
 postags::add(string s) 
 {
     _tags.insert(s);
+}
+
+void
+postags::add(string s, double prob) 
+{
+    _tags.insert(s);
+    _probs[s] = prob;
 }
 
 void

@@ -68,14 +68,60 @@ void chart::add(tItem *it)
     }
 }
 
+class contained : public unary_function< bool, tItem *> {
+public:
+  contained(hash_set<tItem *> &the_set) : _set(the_set) { } 
+  bool operator()(tItem *arg) { return _set.find(arg) != _set.end(); }
+private:
+  hash_set<tItem *> _set;
+};
+
+/** Remove the items in the set from the chart */
+void chart::remove(hash_set<tItem *> &to_delete)
+{ 
+    _Chart.erase(remove_if(_Chart.begin(), _Chart.end(), contained(to_delete))
+                 , _Chart.end());
+    for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
+          ; hit != to_delete.end(); hit++) {
+#ifdef DEBUG
+      it->print(ferr);
+      fprintf(ferr, "removed \n");
+#endif
+      
+      tItem *it = *hit;
+      if(it->passive())
+        {
+          _Cp_start[it->start()].remove(it);
+          _Cp_end[it->end()].remove(it);
+          _Cp_span[it->start()][it->end()-it->start()].remove(it);
+          _pedges--;
+        }
+      else
+        {
+          if(it->left_extending())
+            _Ca_start[it->start()].remove(it);
+          else
+            _Ca_end[it->end()].remove(it);
+        }
+    }
+}
+
 void chart::print(FILE *f)
 {
     int i = 0;
-    for(vector<tItem *>::iterator pos = _Chart.begin(); pos != _Chart.end();
-        ++pos, ++i)
+    for(chart_iter pos(this); pos.valid(); pos++, i++)
     {
-        (*pos)->print(f);
+        (pos.current())->print(f);
         fprintf(f, "\n");
+    }
+}
+
+void chart::print(tItemPrinter *f)
+{
+    int i = 0;
+    for(chart_iter pos(this); pos.valid(); pos++, i++)
+    {
+        f->print(pos.current());
     }
 }
 
@@ -172,3 +218,79 @@ void chart::shortest_path (list <tItem *> &result) {
   delete[] distance;
   delete[] unseen;
 }
+
+#if 0
+/** Find uncovered regions (gaps) in the chart, i.e., regions that are not or
+ *  only partially covered by items considered as \a valid.
+ *
+ * \param narrow if true, the regions will be as narrow as possible, meaning
+ *               that a gap starts at the rightmost loose end on the left side
+ *               and ends on the leftmost loose end on the right
+ *               side. Otherwise, the gaps will include all partially covered
+ *               regions, which leads to some strange uncovered regions, but
+ *               maybe more robustness.
+ */
+vector<bool> 
+chart::uncovered_regions(unary_function<bool, tItem *> &valid, bool narrow)
+{
+    if(verbosity > 4)
+      fprintf(ferr, "finding uncovered regions (0 - %d):", rightmost());
+
+    list<tItem *>::iterator it;
+    // true means that at this chart position a node has zero in/out-degree
+    // with respect to valid() edges
+    vector<bool> zero_in(rightmost() + 1, true);
+    vector<bool> zero_out(rightmost() + 1, true);
+    vector<bool>::size_type pos;
+
+    for(pos = 0; pos <= rightmost(); pos++) {
+      it = _Cp_start[pos].begin();
+      while((it != _Cp_start[pos].end()) && zero_out[pos]) {
+        zero_out[pos] = ! valid(*it);
+        it++;
+      }
+      it = _Cp_end[pos].begin();
+      while(it != _Cp_end[pos].end() && zero_in[pos]) {
+        zero_in[pos] = ! valid(*it);
+        it++;
+      }
+    }
+    
+    vector<bool> uncovered(rightmost() + 1, true);
+
+    if(narrow) {
+      // special cases : start and end of chart
+      uncovered[0] = zero_out[0];
+      uncovered[rightmost()] = zero_in[rightmost()];
+      for(pos = 1; pos < rightmost(); pos++) {
+        uncovered[pos] = ((zero_out[pos] && zero_in[pos + 1])
+                          || (zero_out[pos - 1] && zero_in[pos])) ;
+      }
+    } else {
+      bool gap;
+      // propagate gap first left to right, then vice versa
+      gap = uncovered[0] = zero_out[0];
+      for(pos = 1; pos < rightmost(); pos++) {
+        if(gap) {
+          // l or r dangling node: gap continues
+          uncovered[pos] = gap = (zero_out[pos] || zero_in[pos]);
+        } else {
+          // loose end node starts gap
+          uncovered[pos] = gap = (! zero_in[pos] && zero_out[pos]);
+        }
+      }
+      gap = uncovered[rightmost()] = zero_in[rightmost()];
+      for(int pos = rightmost() - 1; pos > 0; pos--) {
+        if(gap) {
+          // l or r dangling node: gap continues
+          uncovered[pos] = gap = (zero_out[pos] || zero_in[pos]);
+        } else {
+          // loose start node starts gap
+          uncovered[pos] = gap = (! zero_out[pos] && zero_in[pos]);
+        }
+      }
+    }
+
+    return uncovered;
+}
+#endif

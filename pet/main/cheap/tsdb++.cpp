@@ -25,8 +25,8 @@
 #include "parse.h"
 #include "agenda.h"
 #include "chart.h"
-#include "inputchart.h"
-#include "tokenizer.h"
+//#include "inputchart.h"
+//#include "tokenizer.h"
 #include "tsdb++.h"
 #include "mfile.h"
 #include "qc.h"
@@ -259,7 +259,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        input_chart i_chart(new end_proximity_position_map);
+        // input_chart i_chart(new end_proximity_position_map);
         
         pedgelimit = edges;
         opt_nsolutions = nanalyses;
@@ -269,7 +269,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         TotalParseTime.save();
         
         list<tError> errors;
-        analyze(i_chart, i_input, Chart, FSAS, errors, i_id);
+        analyze(i_input, Chart, FSAS, errors, i_id);
         
         nprocessed++;
 
@@ -282,8 +282,9 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         if(!errors.empty())
             cheap_tsdb_summarize_error(errors, treal, T);
         
-        cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
-                                  nderivations, T);
+        cheap_tsdb_summarize_item(*Chart
+                                  , Chart->rightmost() //i_chart.max_position()
+                                  , treal, nderivations, T);
         T.capi_print();
         
         delete Chart;

@@ -36,7 +36,7 @@ extern qc_node *qc_paths_unif;
 extern int qc_len_subs;
 extern qc_node *qc_paths_subs;
 
-enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT };
+enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT, INPUT_TRAIT };
 
 class grammar_rule
 {
@@ -161,6 +161,39 @@ class tGrammar
   
   inline tSM *sm() { return _sm; }
 
+  /** deactivate all rules */
+  void deactivate_all_rules() {
+    _rules.clear();
+  }
+  
+  /** activate all (and only) lexical and inflection rules */
+  void activate_lex_rules() {
+    deactivate_all_rules();
+    _rules = _infl_rules; 
+    _rules.insert(_rules.end(), _lex_rules.begin(), _lex_rules.end());
+  }
+
+  /** activate syntactic rules only */
+  void activate_syn_rules() {
+    deactivate_all_rules();
+    _rules = _syn_rules; 
+  }
+
+  /** activate all available rules */
+  void activate_all_rules() {
+    activate_lex_rules();
+    _rules.insert(_rules.end(), _syn_rules.begin(), _syn_rules.end());
+  }
+
+  grammar_rule * find_rule(type_t type) {
+    map<type_t, grammar_rule *>::iterator it = _rule_dict.find(type);
+    if(it != _rule_dict.end()) {
+      return it->second;
+    } else {
+      return NULL;
+    }
+  }
+
  private:
   map<string, string> _properties;
 
@@ -186,12 +219,29 @@ class tGrammar
   class tMorphAnalyzer *_morph;
 #endif
 
+  /** The number of all rules (syntactic, lex, and infl) for rule filtering */
   int _nrules;
+  /** The list of currently active rules.
+   * If the parser is used to complete lexical processing first, only infl and
+   * lex rules will be active in the first phase. Only syn rules will then be
+   * active in the second phase.
+   */
   list<grammar_rule *> _rules;
+
+  /** The set of syntactic rules */
+  list<grammar_rule *> _syn_rules;
+  /** The set of lexical rules */
+  list<grammar_rule *> _lex_rules;
+  /** The set of inflectional rules */
+  list<grammar_rule *> _infl_rules;
+  /** Map the rule type back to the rule structure */
   map<type_t, grammar_rule *> _rule_dict;
 
   list_int *_root_insts;
 
+  /** Generic lexicon entries, selected via POS tags in case no appropriate
+   *  lexicon entry is found
+   */
   list_int *_generics;
   
   char *_filter;
