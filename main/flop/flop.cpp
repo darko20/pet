@@ -329,6 +329,7 @@ void process_types()
 void
 print_morph_info(FILE *f)
 {
+    char *path = flop_settings->value("morph-path");
     fprintf(f, ";; Morphological information\n");
     // find all infl rules 
     for(int i = 0; i < ntypes; i++)
@@ -337,9 +338,20 @@ print_morph_info(FILE *f)
 					typestatus[i]))
 	{
   	    fprintf(f, "%s:\n", typenames[i]);
-	    dag_node *dag = dag_expand(typedag[i]);
-	    dag = dag_get_path_value(dag, "MORPH.LIST.FIRST.HEAD");
-	    dag_print(f, dag);
+	    dag_node *dag = dag_copy(types[i]->thedag);
+            
+            if(dag != FAIL)
+            {
+                fully_expand(dag, true);
+                dag_invalidate_visited(); 
+	    } 
+            if(dag != FAIL)
+                dag = dag_get_path_value(dag, path);
+
+	    if(dag != FAIL) 
+	      dag_print(f, dag);
+	    else
+	      fprintf(f, "(no structure under %s)\n", path);
 	    fprintf(f, "\n");
 	}
     }
