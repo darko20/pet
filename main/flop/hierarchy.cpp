@@ -26,7 +26,7 @@
 //
 
 // the type hierarchy is represented as a directed graph. the nodes
-// are labeled by integers, that give the id of the type they represent
+// are labeled by integers that give the id of the type they represent
 GRAPH<int, int> hierarchy;
 
 // this maps a type given by id to the node in the graph
