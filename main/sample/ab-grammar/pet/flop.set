@@ -43,7 +43,7 @@ grammar-info := grammar_info.
 
 ;; types to ignore for full expansion (specified by status values), typically
 ;; the lexicon
-dont-expand := preterminal.
+dont-expand := "lex-entry".
 
 ;; `pseudo' types outside the type hierarchy. these are ignored for
 ;; appropriateness, expansion etc.
