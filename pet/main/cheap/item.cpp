@@ -40,26 +40,25 @@ item_owner *tItem::_default_owner = 0;
 int tItem::_next_id = 1;
 
 tItem::tItem(int start, int end, const tPaths &paths,
-           fs &f, const char *printname)
+           fs &f)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0), _printname(printname),
+      _score(0.0),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
 
-tItem::tItem(int start, int end, const tPaths &paths,
-           const char *printname)
+tItem::tItem(int start, int end, const tPaths &paths)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0), _printname(printname),
+      _score(0.0),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
@@ -75,8 +74,8 @@ tItem::~tItem()
 
 tLexItem::tLexItem(int start, int end, const tPaths &paths,
                    int ndtrs, int keydtr, input_token **dtrs, 
-                   fs &f, const char *printname)
-    : tItem(start, end, paths, f, printname),
+                   fs &f)
+    : tItem(start, end, paths, f),
       tActive(0, 0),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
@@ -141,18 +140,19 @@ same_lexitems(const tLexItem &a, const tLexItem &b)
     return a._dtrs[a._keydtr]->form() == b._dtrs[b._keydtr]->form();
 }
 
-tPhrasalItem::tPhrasalItem(tGrammarRule *R, fs &f)
-    // _fix_me_
-    : tItem(-1, -1, tPaths(), "hallo"),
-      tActive(R->remainingArity(), R->restArgs())
+tPhrasalItem::tPhrasalItem(tGrammarRule *R)
+    : tItem(-1, -1, tPaths()),
+      tActive(R->remainingArity(), R->restArgs()),
+      tFSItem(R->type(), R->getFS())
 {
+    // _fix_me_
 
 }
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
-    : tItem(-1, -1, active->_paths.common(pasv->_paths),
-           f, active->printname()),
+    : tItem(-1, -1, active->_paths.common(pasv->_paths), f),
       tActive(active->filledArity(), active->restargs()),
+      tFSItem(active->type(), f),
     _daughters(active->getCombinedDaughters(pasv)), _adaughter(active)
 {
 
@@ -258,8 +258,9 @@ tPhrasalItem::tPhrasalItem(tGrammarRule *R, tItem *pasv, fs &f)
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     : tItem(sponsor->start(), sponsor->end(), sponsor->_paths,
-           f, sponsor->printname()),
+           f),
       tActive(0, 0), // _fix_me_
+      tFSItem(sponsor->type(), f),
       _daughters(),
       _adaughter(0)
 {
@@ -487,7 +488,7 @@ tPhrasalItem::print_derivation(FILE *f, bool quoted)
 
     fprintf(f, 
             "(%d %s %.2f %d %d", 
-            _id, printname(), _score, _start, _end);
+            _id, printName().c_str(), _score, _start, _end);
 
     if(packed.size())
     {
@@ -542,7 +543,7 @@ tPhrasalItem::tsdb_derivation(int protocolversion)
 {
     ostringstream result;
     
-    result << "(" << _id << " " << printname() << " " << _score
+    result << "(" << _id << " " << printName() << " " << _score
            << " " << _start << " " << _end;
 
     for(list<tItem *>::iterator pos = _daughters.begin();
