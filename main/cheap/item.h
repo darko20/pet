@@ -179,7 +179,7 @@ class lex_item : public item
 class generic_le_item : public item
 {
  public:
-  generic_le_item(int instance, int pos, string orth, const postags &POS);
+  generic_le_item(int instance, int pos, string orth, const postags &POS, int discount = 0);
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_derivation(FILE *f, bool quoted, int offset = 0);

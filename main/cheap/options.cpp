@@ -11,7 +11,12 @@
 #include "fs.h"
 #include "cheap.h"
 #include "options.h"
-#include "utility.h"
+#include "../common/utility.h"
+
+
+#ifdef __BORLANDC__
+#define strcasecmp stricmp
+#endif
 
 bool opt_one_solution, opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_compute_qc, opt_print_failure,
@@ -23,8 +28,8 @@ int unsigned opt_k2y;
 #endif
 
 int opt_nqc, verbosity, pedgelimit, opt_key, opt_server;
-char *grammar_file_name;
-
+long int memlimit;
+char *grammar_file_name = 0;
 
 void usage(FILE *f)
 {
@@ -35,6 +40,7 @@ void usage(FILE *f)
   fprintf(f, "  `-one-solution' --- non exhaustive search\n");  
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
+  fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
   fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n"); 
   fprintf(f, "  `-no-filter' --- disable rule filter\n"); 
   fprintf(f, "  `-qc=n' --- use only top n quickcheck paths\n");
@@ -76,6 +82,7 @@ void usage(FILE *f)
 #define OPTION_PG 15
 #define OPTION_NO_CHART_MAN 16
 #define OPTION_LOG 17
+#define OPTION_MEMLIMIT 18
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -84,6 +91,35 @@ void usage(FILE *f)
 
 #endif
 
+void init_options()
+{
+  opt_tsdb = false;
+  opt_one_solution = false;
+  verbosity = 0;
+  pedgelimit = 0;
+  memlimit = 0;
+  opt_shrink_mem = true;
+  opt_shaping = true;
+  opt_filter = true;
+  opt_nqc = -1;
+  opt_compute_qc = false;
+  opt_print_failure = false;
+  opt_key = 0;
+  opt_hyper = 1;
+  opt_derivation = true;
+  opt_rulestatistics = false;
+  opt_default_les = false;
+  opt_server = 0;
+  opt_pg = false;
+  opt_chart_man = true;
+#ifdef YY
+  opt_yy = false;
+  opt_k2y = 0;
+  opt_one_meaning = false;
+#endif
+}
+
+#ifndef __BORLANDC__
 bool parse_options(int argc, char* argv[])
 {
   int c,  res;
@@ -95,6 +131,7 @@ bool parse_options(int argc, char* argv[])
     {"one-solution", no_argument, 0, OPTION_ONE_SOLUTION},
     {"verbose", optional_argument, 0, OPTION_VERBOSE},
     {"limit", required_argument, 0, OPTION_LIMIT},
+    {"memlimit", required_argument, 0, OPTION_MEMLIMIT},
     {"no-shrink-mem", no_argument, 0, OPTION_NO_SHRINK_MEM},
     {"no-filter", no_argument, 0, OPTION_NO_FILTER},
     {"qc", required_argument, 0, OPTION_NQC},
@@ -117,29 +154,8 @@ bool parse_options(int argc, char* argv[])
     {0, 0, 0, 0}
   }; /* struct option */
 
-  opt_tsdb = false;
-  opt_one_solution = false;
-  verbosity = 0;
-  pedgelimit = 0;
-  opt_shrink_mem = true;
-  opt_shaping = true;
-  opt_filter = true;
-  opt_nqc = -1;
-  opt_compute_qc = false;
-  opt_print_failure = false;
-  opt_key = 0;
-  opt_hyper = 1;
-  opt_derivation = true;
-  opt_rulestatistics = false;
-  opt_default_les = false;
-  opt_server = 0;
-  opt_pg = false;
-  opt_chart_man = true;
-#ifdef YY
-  opt_yy = false;
-  opt_k2y = 0;
-  opt_one_meaning = false;
-#endif
+  init_options();
+
   if(!argc) return true;
 
   while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
@@ -161,7 +177,7 @@ bool parse_options(int argc, char* argv[])
 	  opt_chart_man = false;
 	  break;
         case OPTION_SERVER:
-          if(optarg != NULL) 
+          if(optarg != NULL)
 	    opt_server = strtoint(optarg, "as argument to `-server'");
           else
 	    opt_server = CHEAP_SERVER_PORT;
@@ -205,11 +221,15 @@ bool parse_options(int argc, char* argv[])
 	    opt_key = strtoint(optarg, "as argument to `-key'");
           break;
         case OPTION_LIMIT:
-          if(optarg != NULL) 
+          if(optarg != NULL)
             pedgelimit = strtoint(optarg, "as argument to -limit");
           break;
+        case OPTION_MEMLIMIT:
+          if(optarg != NULL)
+            memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
+          break;
         case OPTION_LOG:
-          if(optarg != NULL) 
+          if(optarg != NULL)
             if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
             else flog = fopen(optarg, "w");
           break;
@@ -218,7 +238,7 @@ bool parse_options(int argc, char* argv[])
           opt_one_meaning = true;
           break;
         case OPTION_K2Y:
-          if(optarg != NULL) 
+          if(optarg != NULL)
             opt_k2y = strtoint(optarg, "as argument to -k2y");
           else
             opt_k2y = 50;
@@ -232,10 +252,44 @@ bool parse_options(int argc, char* argv[])
 
   if(optind != argc - 1)
     {
-      fprintf(stderr, "parse_options(): expecting name of grammar to load\n");
+      fprintf(ferr, "parse_options(): expecting name of grammar to load\n");
       return false;
     }
   grammar_file_name = argv[optind];
 
   return true;
+}
+#endif
+
+bool bool_setting(settings *set, const char *s)
+{
+  char *v = set->value(s);
+  if(v == 0 || strcmp(v, "0") == 0 || strcasecmp(v, "false") == 0 ||
+     strcasecmp(v, "nil") == 0)
+    return false;
+
+  return true;
+}
+
+int int_setting(settings *set, const char *s)
+{
+  char *v = set->value(s);
+  if(v == 0)
+    return 0;
+  int i = strtoint(v, "in settings file");
+  return i;
+}
+
+void options_from_settings(settings *set)
+{
+  init_options();
+  opt_one_solution = bool_setting(set, "one-solution");
+  verbosity = int_setting(set, "verbose");
+  pedgelimit = int_setting(set, "limit");
+  memlimit = 1024 * 1024 * int_setting(set, "memlimit");
+  opt_hyper = bool_setting(set, "hyper");
+  opt_default_les = bool_setting(set, "default-les");
+  opt_k2y = int_setting(set, "k2y");
+  opt_yy = bool_setting(set, "yy");
+  opt_one_meaning = bool_setting(set, "one-meaning");
 }

@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 
 #include "byteorder.h"
 #include "dumper.h"
@@ -27,7 +27,7 @@ dumper::dumper(FILE *f, bool write)
   _swap = DUMP_LITTLE_ENDIAN != cpu_little_endian();
 }
 
-dumper::dumper(char *fname, bool write)
+dumper::dumper(const char *fname, bool write)
 {
   _write = write;
   _f = fopen(fname, _write ? "wb" : "rb");

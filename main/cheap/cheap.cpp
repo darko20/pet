@@ -181,7 +181,7 @@ void print_grammar(FILE *f)
 
 void process(char *s)
 {
-  cheap_settings = new settings("cheap", s, "reading");
+  cheap_settings = new settings(settings::basename(s), s, "reading");
   fprintf(fstatus, "\n");
 
   timer t_start;
@@ -206,7 +206,7 @@ void process(char *s)
     {
       initialize_version();
 
-#ifdef YY
+#if defined(YY) && defined(SOCKET_INTERFACE)
       if(opt_server)
 	cheap_server(opt_server);
       else 
@@ -232,13 +232,20 @@ int main(int argc, char* argv[])
   fstatus = stderr;
   flog = (FILE *)NULL;
 
+#ifndef __BORLANDC__
   if(!parse_options(argc, argv))
     {
       usage(ferr);
       exit(1);
     }
+#else
+  if(argc > 1)
+    grammar_file_name = argv[1];
+  else
+    grammar_file_name = "english.gram";
+#endif
 
-#ifdef YY
+#if defined(YY) && defined(SOCKET_INTERFACE)
   if(opt_server)
     {
       if(cheap_server_initialize(opt_server))
@@ -262,6 +269,4 @@ int main(int argc, char* argv[])
 
   if(flog != NULL) fclose(flog);
   return 0;
-
 }
-

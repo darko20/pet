@@ -8,6 +8,8 @@
 #ifndef _UTILITY_H_
 #define _UTILITY_H_
 
+#include <stdio.h>
+
 // allocates .size. bytes of memory - throw error when out of memory
 void *salloc(size_t size);
 
@@ -26,6 +28,8 @@ extern int strtoint(const char *s, const char *errloc, bool = false);
 // return current date and time in static string; client must not free()
 char *current_time(void);
 
-
+#ifdef __BORLANDC__
+void print_borland_heap(FILE *f);
+#endif
 
 #endif

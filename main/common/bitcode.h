@@ -25,14 +25,18 @@ class bitcode {
   static const int SIZE_OF_WORD = (8*sizeof(CODEWORD));
 
   CODEWORD *V, *stop;
+  int first_set, last_set; // index to first/last word != 0, only kept up
+                           // to date where possible without added cost!!
   int sz;
+
+  void find_relevant_parts();
 
  public:
 
-  bitcode(int n); 
-  
+  bitcode(int n);
+
   bitcode(const bitcode&);
-  ~bitcode() { delete[] V; } 
+  ~bitcode() { delete[] V; }
 
   void insert(int x);
   void del(int x);
@@ -44,6 +48,7 @@ class bitcode {
   int max() const;
   void clear();
   int empty() const;
+  void find_relevant_parts() const; // update first_set/last_set
 
   void print(FILE *f) const;
 
@@ -54,6 +59,7 @@ class bitcode {
   bitcode& intersect(const bitcode&);
   bitcode& complement();
 
+  bool subset_fast(const bitcode&);
   bool subset(const bitcode&);
 
   bitcode& operator=(const bitcode& S1);
@@ -72,7 +78,7 @@ class bitcode {
   friend int compare(const bitcode &S1, const bitcode &S2);
   friend bool intersect_empty(const bitcode&, const bitcode&, bitcode *);
 
-  friend ostream& operator<<(ostream& O, const bitcode& C); 
+  friend ostream& operator<<(ostream& O, const bitcode& C);
   friend bool operator<(const bitcode &, const bitcode&);
   friend bool operator>(const bitcode &, const bitcode&);
 };
@@ -81,17 +87,17 @@ inline int bitcode::max() const { return sz - 1; }
 
 inline int  bitcode::member(int x)  const
 {
-  return V[ x / SIZE_OF_WORD ] & (1 << (x % SIZE_OF_WORD)); 
+  return V[ x / SIZE_OF_WORD ] & (1 << (x % SIZE_OF_WORD));
 }
 
-inline void bitcode::insert(int x) 
-{ 
-  V[ x / SIZE_OF_WORD ] |= (1 << (x % SIZE_OF_WORD)); 
-}
-
-inline void bitcode::del(int x)    
+inline void bitcode::insert(int x)
 {
-  V[ x / SIZE_OF_WORD ] &= ~(1 << (x % SIZE_OF_WORD)); 
+  V[ x / SIZE_OF_WORD ] |= (1 << (x % SIZE_OF_WORD));
+}
+
+inline void bitcode::del(int x)
+{
+  V[ x / SIZE_OF_WORD ] &= ~(1 << (x % SIZE_OF_WORD));
 }
 
 inline bitcode& bitcode::operator|=(const bitcode& s) { return join(s); }
@@ -101,22 +107,27 @@ inline bitcode& bitcode::operator&=(const bitcode& s) { return intersect(s); }
 inline bool bitcode::operator==(const bitcode &T) const
 {
   CODEWORD *p, *q;
-  
+
   for(p = V + sz/SIZE_OF_WORD, q = T.V + sz/SIZE_OF_WORD; p >= V; p--, q--)
     if(*p != *q) return 0;
-  
+
   return 1;
 }
 
 inline int compare(const bitcode &S1, const bitcode &S2)
 {
   CODEWORD *p, *q;
-  
+
   for(p = S1.V + S1.sz/S1.SIZE_OF_WORD, q = S2.V + S2.sz/S2.SIZE_OF_WORD; p >= S1.V; p--, q--)
+  {
     if(*p != *q)
       {
 	if (*p < *q) return -1; else return 1;
       }
+#ifdef __BORLANDC__
+    if(p == S1.V) return 0;
+#endif
+  }
   return 0;
 }
 

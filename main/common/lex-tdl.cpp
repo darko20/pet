@@ -185,7 +185,8 @@ struct lex_token *get_next_token()
       start = LMark();
       i = 1;
 
-      while(LLA(i) != '"' && LLA(i) != EOF) i++;
+      while(LLA(i) != EOF && (LLA(i) != '"' || LLA(i-1) == '\\'))
+	i++;
 
       if(LLA(i) == EOF)
 	{ // runaway string

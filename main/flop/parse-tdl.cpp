@@ -133,7 +133,7 @@ int tdl_option(bool readonly)
     return NO_STATUS;
 }
 
-void tdl_subtype_def(char *name)
+void tdl_subtype_def(char *name, char *printname)
 {
   int nr = 0;
   struct type *subt = NULL;
@@ -179,6 +179,7 @@ void tdl_subtype_def(char *name)
 		      subt->constraint = NULL;
 		    }
 		}
+	      subt->printname = printname; printname = 0;
 	      subt->implicit = false;
 	      
 	      if(sup == -1)
@@ -792,7 +793,7 @@ void tdl_opt_inflr(struct type *t)
 }
 
 
-void tdl_avm_def(char *name, bool is_instance, bool readonly)
+void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
 {
   int status = NO_STATUS;
   int t_id;
@@ -822,6 +823,7 @@ void tdl_avm_def(char *name, bool is_instance, bool readonly)
 
       t->def = LA(0)->loc; LA(0)->loc = NULL;
       t->implicit = false;
+      t->printname = printname; printname = 0;
     }
   
   match(T_ISEQ, "avm definition starting with `:='", true);
@@ -854,25 +856,27 @@ void tdl_avm_def(char *name, bool is_instance, bool readonly)
 
 void tdl_type_def()
 {
-  char *name = NULL;
+  char *name , *printname;
   
   if(LA(0)->tag == T_INT)
     name = match(T_INT, "type name", false);
   else
     name = match(T_ID, "type name", false);
 
+  printname = strdup(name);
   strtolower(name);
   
   if(LA(0)->tag == T_ISEQ)
     {
-      tdl_avm_def(name, false, false);
+      tdl_avm_def(name, printname, false, false);
     }
   else if(LA(0)->tag == T_ISA)
     {
-      tdl_subtype_def(name);
+      tdl_subtype_def(name, printname);
     }
   else
     {
+      free(printname);
       syntax_error("avm or subtype definition expected", LA(0));
       recover(T_DOT);
     }
@@ -889,12 +893,14 @@ void tdl_instance_def()
     name = match(T_INT, "instance name", false);
   else
     name = match(T_ID, "instance name", false);
+
+  char *printname = strdup(name);
   strtolower(name);
 
   char *iname = (char *) salloc(strlen(name) + 2);
   sprintf(iname, "$%s", name);
 
-  tdl_avm_def(iname, true, readonly);
+  tdl_avm_def(iname, printname, true, readonly);
   
   free(iname);
 

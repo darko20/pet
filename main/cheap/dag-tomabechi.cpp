@@ -26,6 +26,13 @@ int unify_generation_max = 0;
 static bool create_permanent_dags = true;
 #endif
 
+void stop_creating_permanent_dags()
+{
+#ifdef MARK_PERMANENT
+  create_permanent_dags = false;
+#endif
+}
+
 inline bool dag_permanent(dag_node *dag)
 {
 #ifdef MARK_PERMANENT
@@ -192,7 +199,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
   failures.clear();
   unification_cost = 0;
 
-  if(unify_path_rev != 0) fprintf(stderr, "dag_unify_get_failures: unify_path_rev not empty\n");
+  if(unify_path_rev != 0) fprintf(ferr, "dag_unify_get_failures: unify_path_rev not empty\n");
   unify_path_rev = reverse(initial_path);
 
   dag_unify1(dag1, dag2);
@@ -210,7 +217,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       
       // result might be cyclic
       free_list(unify_path_rev); unify_path_rev = 0;
-      if((cycle = dag_cyclic_rec(*result_root)))
+      if((cycle = dag_cyclic_rec(*result_root)) != 0)
 	{
 	  dag_invalidate_changes();
 	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
@@ -220,7 +227,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
   else
     {
       // result might be cyclic
-      if((cycle = dag_cyclic_rec(dag1)))
+      if((cycle = dag_cyclic_rec(dag1)) != 0)
 	{
 	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
 						unification_cost));
@@ -483,19 +490,19 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
           if((dag_has_arcs(dag1) && featset[s1] != featset[new_type]) || (dag_has_arcs(dag2) && featset[s2] != featset[new_type]))
             {
               if((dag_has_arcs(dag1) && featset[s1] == featset[new_type]) || (dag_has_arcs(dag2) && featset[s2] == featset[new_type]))
-                fprintf(stderr, "glb: one compatible set\n");
+                fprintf(ferr, "glb: one compatible set\n");
               else
-                fprintf(stderr, "glb: %s%s(%d) & %s%s(%d) -> %s(%d)\n",
+                fprintf(ferr, "glb: %s%s(%d) & %s%s(%d) -> %s(%d)\n",
                         typenames[s1], dag_has_arcs(dag1) ? "[]" : "", featset[s1],
                         typenames[s2], dag_has_arcs(dag2) ? "[]" : "", featset[s2],
                         typenames[new_type], featset[new_type]);
             }
           else
-            fprintf(stderr, "glb: compatible feature sets\n");
+            fprintf(ferr, "glb: compatible feature sets\n");
         }
       else
         {
-          fprintf(stderr, "glb: type unchanged\n");
+          fprintf(ferr, "glb: type unchanged\n");
         }
     }
 
@@ -786,7 +793,7 @@ dag_node *dag_copy(dag_node *src, list_int *del)
   else if(copy == FAIL)
     {
       copy = 0;
-      //      fprintf(stderr, "reset copy @ 0x%x\n", (int) src);
+      //      fprintf(ferr, "reset copy @ 0x%x\n", (int) src);
     }
   
   if(copy != 0)
@@ -1321,7 +1328,7 @@ dag_node *dag_cyclic_arcs(dag_arc *arc)
       if(unify_record_failure)
 	unify_path_rev = cons(arc->attr, unify_path_rev);
 	  
-      if((v = dag_cyclic_rec(arc->val)))
+      if((v = dag_cyclic_rec(arc->val)) != 0)
 	return v;
 
       if(unify_record_failure)
@@ -1346,7 +1353,7 @@ dag_node *dag_cyclic_rec(dag_node *dag)
       
       dag_set_copy(dag, INSIDE);
 
-      if((v = dag_cyclic_arcs(dag->arcs)) || (v = dag_cyclic_arcs(dag_get_comp_arcs(dag))))
+      if((v = dag_cyclic_arcs(dag->arcs)) != 0 || (v = dag_cyclic_arcs(dag_get_comp_arcs(dag))) != 0)
 	return v;
       
       dag_set_copy(dag, FAIL);
@@ -1403,7 +1410,7 @@ dag_node *dag_expand_rec(dag_node *dag)
   if(typedag[new_type]->arcs)
     if(dag_unify1(dag, cached_constraint_of(new_type)) == FAIL)
       {
-	fprintf(stderr, "expansion failed @ 0x%x for `%s'\n",
+	fprintf(ferr, "expansion failed @ 0x%x for `%s'\n",
 		(int) dag, typenames[new_type]);
 	return FAIL;
       }
@@ -1437,7 +1444,7 @@ bool dag_valid_rec(dag_node *dag)
 {
   if(dag == 0 || dag == INSIDE || dag == FAIL)
     {
-      fprintf(stderr, "(1) dag is 0x%x\n", (int) dag);
+      fprintf(ferr, "(1) dag is 0x%x\n", (int) dag);
       return false;
     }
 
@@ -1445,7 +1452,7 @@ bool dag_valid_rec(dag_node *dag)
 
   if(dag == 0 || dag == INSIDE || dag == FAIL)
     {
-      fprintf(stderr, "(2) dag is 0x%x\n", (int) dag);
+      fprintf(ferr, "(2) dag is 0x%x\n", (int) dag);
       return false;
     }
 
@@ -1461,14 +1468,14 @@ bool dag_valid_rec(dag_node *dag)
 	{
 	  if(arc->attr > nattrs)
 	    {
-	      fprintf(stderr, "(3) invalid attr: %d, val: 0x%x\n",
+	      fprintf(ferr, "(3) invalid attr: %d, val: 0x%x\n",
 		      arc->attr, (int) arc->val);
 	      return false;
 	    }
 
 	  if(dag_valid_rec(arc->val) == false)
 	    {
-	      fprintf(stderr, "(4) invalid value under %s\n",
+	      fprintf(ferr, "(4) invalid value under %s\n",
 		      attrname[arc->attr]);
 	      return false;
 	    }
@@ -1480,7 +1487,7 @@ bool dag_valid_rec(dag_node *dag)
     }
   else if(v == INSIDE) // cycle found
     {
-      fprintf(stderr, "(5) invalid dag: cyclic\n");
+      fprintf(ferr, "(5) invalid dag: cyclic\n");
       return false;
     }
 

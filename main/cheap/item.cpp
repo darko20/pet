@@ -5,8 +5,10 @@
 
 /* chart items */
 
+#include <assert.h>
+
 #include "cheap.h"
-#include "utility.h"
+#include "../common/utility.h"
 #include "types.h"
 #include "item.h"
 #include "parse.h"
@@ -78,7 +80,7 @@ lex_item::lex_item(class lex_entry *le, int pos,
     }
 
   setting *set;
-  if((set = cheap_settings->lookup("type-to-pos")))
+  if((set = cheap_settings->lookup("type-to-pos")) != 0)
     {
       for(int i = 0; i < set->n; i+=2)
 	{
@@ -107,10 +109,10 @@ lex_item::lex_item(class lex_entry *le, int pos,
 #endif
 
 #ifdef DEBUG
-  fprintf(stderr, "new lexical item (`%s[%s]'):", 
+  fprintf(ferr, "new lexical item (`%s[%s]'):", 
 	  le->name(), le->affixname());
-  print(stderr);
-  fprintf(stderr, "\n");
+  print(ferr);
+  fprintf(ferr, "\n");
 #endif
 }
 
@@ -128,7 +130,7 @@ void generic_le_item::compute_pos_priority(const postags &POS)
   if(set == 0) return;
 
 #ifdef DEBUGPOS
-  fprintf(stderr, "adjusting priority for %s(`%s')\n", typenames[_type],
+  fprintf(ferr, "adjusting priority for %s(`%s')\n", typenames[_type],
           _orth.c_str());
 #endif
 
@@ -144,7 +146,7 @@ void generic_le_item::compute_pos_priority(const postags &POS)
         *rhs = set->values[i+2];
       
 #ifdef DEBUGPOS
-      fprintf(stderr, "checking triple %d (%s %s %s)\n",
+      fprintf(ferr, "checking triple %d (%s %s %s)\n",
               i, lhs, p, rhs);
 #endif
 
@@ -161,13 +163,13 @@ void generic_le_item::compute_pos_priority(const postags &POS)
 	  if(subtype(_type, type))
 	    {
 #ifdef DEBUGPOS
-	      fprintf(stderr, "entry #%d matches rhs (%s, %d, %s)\n",
+	      fprintf(ferr, "entry #%d matches rhs (%s, %d, %s)\n",
 		      i/3, rhs, prio, lhs);
 #endif
 	      if(POS.contains(lhs))
 		{
 #ifdef DEBUGPOS
-		  fprintf(stderr, "  also matches lhs\n");
+		  fprintf(ferr, "  also matches lhs\n");
 #endif
 		  _p = prio;
 		  return;
@@ -180,18 +182,21 @@ void generic_le_item::compute_pos_priority(const postags &POS)
 }
 
 generic_le_item::generic_le_item(int type, int pos, 
-                                 string orth, const postags &POS)
+                                 string orth, const postags &POS, int discount)
   : item(pos, pos+1, typenames[type]), _orth(orth)
 {
   _type = type;
   
-  _fs = fs(_type);
+  fs e(leaftype_parent(_type));
+  if(!e.valid())
+    throw error("unable to instantiate base for generic");
+
+  _fs = unify(e, fs(_type), e);
   if(!_fs.valid())
-    throw error("unable to build fs for generic");
+    throw error("unable to expand generic");
 
   if(opt_nqc != 0)
     _qc_vector = get_qc_vector(_fs);
-
 
   char *v;
   if((v = cheap_settings->value("default-gen-le-priority")) != 0)
@@ -199,17 +204,19 @@ generic_le_item::generic_le_item(int type, int pos,
       _p = strtoint(v, "as value of default-le-priority");
     }
 
-  if((v = cheap_settings->assoc("likely-le-types", typenames[_type])) != 0)
+  if((v = cheap_settings->sassoc("likely-le-types", _type)) != 0)
     {
       _p = strtoint(v, "in value of likely-le-types");
     }
 
-  if((v = cheap_settings->assoc("unlikely-le-types", typenames[_type])) != 0)
+  if((v = cheap_settings->sassoc("unlikely-le-types", _type)) != 0)
     {
       _p = strtoint(v, "in value of unlikely-le-types");
     }
 
   compute_pos_priority(POS);
+  _p -= discount;
+  if(_p < 0) _p = 0;
 
 #ifdef YY
   //
@@ -229,10 +236,10 @@ generic_le_item::generic_le_item(int type, int pos,
 #endif
 
 #if (defined(DEBUG) || defined(DEBUGPOS))
-  fprintf(stderr, "new generic lexical item (`%s'):",
+  fprintf(ferr, "new generic lexical item (`%s'):",
          typenames[_type]);
-  print(stderr);
-  fprintf(stderr, "\n");
+  print(ferr);
+  fprintf(ferr, "\n");
 #endif
 }
 
@@ -262,10 +269,10 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
     R->actives++;
 
 #ifdef DEBUG
-  fprintf(stderr, "new rule item (`%s' + %d@%d):", 
+  fprintf(ferr, "new rule item (`%s' + %d@%d):", 
 	  R->name(), pasv->id(), R->nextarg());
-  print(stderr);
-  fprintf(stderr, "\n");
+  print(ferr);
+  fprintf(ferr, "\n");
 #endif
 }
 
@@ -308,10 +315,10 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
     active->rule()->actives++;
 
 #ifdef DEBUG
-  fprintf(stderr, "new combined item (%d + %d@%d):", 
+  fprintf(ferr, "new combined item (%d + %d@%d):", 
 	  active->id(), pasv->id(), active->nextarg());
-  print(stderr);
-  fprintf(stderr, "\n");
+  print(ferr);
+  fprintf(ferr, "\n");
 #endif
 }
 
@@ -533,9 +540,9 @@ void phrasal_item::recreate_fs()
 #ifdef DEBUG
   {
     temporary_generation t(_fs.temp());
-    fprintf(stderr, "recreated fs of ");
-    print(stderr, false);
-    fprintf(stderr, "\n");
+    fprintf(ferr, "recreated fs of ");
+    print(ferr, false);
+    fprintf(ferr, "\n");
   }
 #endif
 }

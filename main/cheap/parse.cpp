@@ -47,9 +47,9 @@ bool filter_rule_task(grammar_rule *R, item *passive)
 {
 
 #ifdef DEBUG
-  fprintf(stderr, "trying "); R->print(stderr);
-  fprintf(stderr, " & passive "); passive->print(stderr);
-  fprintf(stderr, " ==> ");
+  fprintf(ferr, "trying "); R->print(ferr);
+  fprintf(ferr, " & passive "); passive->print(ferr);
+  fprintf(ferr, " ==> ");
 #endif
 
   if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(), passive->rule()))
@@ -57,7 +57,7 @@ bool filter_rule_task(grammar_rule *R, item *passive)
       stats.ftasks_fi++;
 
 #ifdef DEBUG
-      fprintf(stderr, "filtered (rf)\n");
+      fprintf(ferr, "filtered (rf)\n");
 #endif
 
       return false;
@@ -68,14 +68,14 @@ bool filter_rule_task(grammar_rule *R, item *passive)
       stats.ftasks_qc++;
 
 #ifdef DEBUG
-      fprintf(stderr, "filtered (qc)\n");
+      fprintf(ferr, "filtered (qc)\n");
 #endif
 
       return false;
     }
 
 #ifdef DEBUG
-      fprintf(stderr, "passed filters\n");
+      fprintf(ferr, "passed filters\n");
 #endif
 
   return true;
@@ -84,15 +84,15 @@ bool filter_rule_task(grammar_rule *R, item *passive)
 bool filter_combine_task(item *active, item *passive)
 {
 #ifdef DEBUG
-  fprintf(stderr, "trying active "); active->print(stderr);
-  fprintf(stderr, " & passive "); passive->print(stderr);
-  fprintf(stderr, " ==> ");
+  fprintf(ferr, "trying active "); active->print(ferr);
+  fprintf(ferr, " & passive "); passive->print(ferr);
+  fprintf(ferr, " ==> ");
 #endif
 
   if(opt_filter && !Grammar->filter_compatible(active->rule(), active->nextarg(), passive->rule()))
     {
 #ifdef DEBUG
-      fprintf(stderr, "filtered (rf)\n");
+      fprintf(ferr, "filtered (rf)\n");
 #endif
 
       stats.ftasks_fi++;
@@ -102,7 +102,7 @@ bool filter_combine_task(item *active, item *passive)
   if(opt_nqc != 0 && !qc_compatible(active->qc_vector(), passive->qc_vector()))
     {
 #ifdef DEBUG
-      fprintf(stderr, "filtered (qc)\n");
+      fprintf(ferr, "filtered (qc)\n");
 #endif
 
       stats.ftasks_qc++;
@@ -110,7 +110,7 @@ bool filter_combine_task(item *active, item *passive)
     }
 
 #ifdef DEBUG
-      fprintf(stderr, "passed filters\n");
+      fprintf(ferr, "passed filters\n");
 #endif
 
   return true;
@@ -174,9 +174,9 @@ void fundamental_for_active(phrasal_item *active)
 
 void block(item *it, int mark)
 {
-  fprintf(stderr, "%sing ", mark == 1 ? "frost" : "freez");
-  it->print(stderr);
-  fprintf(stderr, "\n");
+  fprintf(ferr, "%sing ", mark == 1 ? "frost" : "freez");
+  it->print(ferr);
+  fprintf(ferr, "\n");
 
   if(it->passive() && (it->frozen() == 0 || mark == 2))
     {
@@ -202,11 +202,11 @@ bool packed_edge(item *newitem)
 
       if(forward && olditem->frozen() == 0)
 	{
-	  fprintf(stderr, "proactive (%s) packing:\n", backward ? "equi" : "subs");
-	  newitem->print(stderr);
-	  fprintf(stderr, " -> ");
-	  olditem->print(stderr);
-	  fprintf(stderr, "\n");
+	  fprintf(ferr, "proactive (%s) packing:\n", backward ? "equi" : "subs");
+	  newitem->print(ferr);
+	  fprintf(ferr, " -> ");
+	  olditem->print(ferr);
+	  fprintf(ferr, "\n");
 
 	  olditem->packed.push(newitem);
 	  return true;
@@ -214,11 +214,11 @@ bool packed_edge(item *newitem)
       
       if(backward)
 	{
-	  fprintf(stderr, "retroactive packing:\n");
-	  newitem->print(stderr);
-	  fprintf(stderr, " <- ");
-	  olditem->print(stderr);
-	  fprintf(stderr, "\n");
+	  fprintf(ferr, "retroactive packing:\n");
+	  newitem->print(ferr);
+	  fprintf(ferr, " <- ");
+	  olditem->print(ferr);
+	  fprintf(ferr, "\n");
 	  
 	  newitem->packed.conc(olditem->packed);
 	  olditem->packed.clear();
@@ -267,24 +267,24 @@ void add_item(item *it, tokenlist *Input)
 #ifdef PACKING
   if(it->frozen())
     {
-      fprintf(stderr, "ignoring ");
-      it->print(stderr);
-      fprintf(stderr, "\n");
+      fprintf(ferr, "ignoring ");
+      it->print(ferr);
+      fprintf(ferr, "\n");
       return;
     }
 #endif
 
 #ifdef DEBUG
-  fprintf(stderr, "add_item ");
-  it->print(stderr);
-  fprintf(stderr, "\n");
+  fprintf(ferr, "add_item ");
+  it->print(ferr);
+  fprintf(ferr, "\n");
 #endif
 
   if(it->in_chart())
     {
       // item is already in chart -> this is a deferred root node
 #ifdef DEBUG_DEFER
-      fprintf(stderr, " -> deferred root item\n");
+      fprintf(ferr, " -> deferred root item\n");
 #endif
       add_root(it, Input);
       return;
@@ -305,14 +305,14 @@ void add_item(item *it, tokenlist *Input)
 	  if(maxp != 0 && it->priority() > maxp)
 	    {
 #ifdef DEBUG_DEFER
-	      fprintf(stderr, " -> root, but it's too early\n");
+	      fprintf(ferr, " -> root, but it's too early\n");
 #endif
 	      Agenda->push(new item_task(it, maxp));
 	    }
 	  else
 	    {
 #ifdef DEBUG_DEFER
-	      fprintf(stderr, " -> root on time\n");
+	      fprintf(ferr, " -> root on time\n");
 #endif
 	      if(add_root(it, Input))
 		return;
@@ -332,7 +332,7 @@ void add_item(item *it, tokenlist *Input)
 #endif
     }
 #ifdef DEBUG_DEFER
-  fprintf(stderr, "\n");
+  fprintf(ferr, "\n");
 #endif
 }
 
@@ -345,7 +345,7 @@ void add_generics(setting *generics, tokenlist *Input, int i, int offset, postag
     return;
 
 #ifdef DEBUG
-  fprintf(stderr, 
+  fprintf(ferr, 
 	  "using generics for `%s' @ %d:\n", 
 	  (*Input)[i].c_str(), i);
 #endif
@@ -362,9 +362,9 @@ void add_generics(setting *generics, tokenlist *Input, int i, int offset, postag
       int inst = lookup_type(generics->values[j]);
       if(inst == -1)
 	{
-	  fprintf(stderr, "couldn't lookup generic `%s'\n",
+	  fprintf(ferr, "couldn't lookup generic `%s'\n",
 		  generics->values[j]);
-	  exit(1);
+	  throw error("undefined generic");
 	}
 	  
       if(!onlyfor.empty())
@@ -407,13 +407,13 @@ void add_generics(setting *generics, tokenlist *Input, int i, int offset, postag
 	}
 
 #ifdef DEBUG
-      fprintf(stderr, "  ==> %s [%s]\n", generics->values[j], 
+      fprintf(ferr, "  ==> %s [%s]\n", generics->values[j], 
 	      suffix == 0 ? "*" : suffix);
 #endif
 	  
       generic_le_item *lex =
 	new generic_le_item(inst, i, 
-			    (*Input)[i].c_str(), Input->POS(i));
+			    (*Input)[i].c_str(), Input->POS(i), 750);
       
       if(lex)
 	{
@@ -446,16 +446,16 @@ int initialize_chart(tokenlist *Input)
     {
       if(verbosity > 3 && !Input->POS(i).empty())
         {
-          fprintf(stderr, "POS tags for `%s':", (*Input)[i].c_str());
-          Input->POS(i).print(stderr);
-   	  fprintf(stderr, "\n");
+          fprintf(ferr, "POS tags for `%s':", (*Input)[i].c_str());
+          Input->POS(i).print(ferr);
+   	  fprintf(ferr, "\n");
 	}
 
       // start out assuming everything is missing
       missingpos[i] = Input->POS(i);
 
 #ifdef YY
-      if(opt_yy && ((*Input)[i].empty() || Input->punctuatiop(i))) {
+      if(opt_yy && ((*Input)[i].empty() || Input->punctuationp(i))) {
         punctuation[i] = true;
         offset++;
         continue;
@@ -480,16 +480,16 @@ int initialize_chart(tokenlist *Input)
 		}
 
 #ifdef DEBUG
-	      fprintf(stderr, "found le for `%s' at %d:\n",
+	      fprintf(ferr, "found le for `%s' at %d:\n",
 		      (*Input)[i].c_str(), i);
-	      lex->print(stderr);
-	      fprintf(stderr, "\n");
+	      lex->print(ferr);
+	      fprintf(ferr, "\n");
 #endif
 
 	      if(opt_chart_man && deps)
 		{
 #ifdef DEBUG_DEP
-		  fprintf(stderr, "dependency information for %s(`%s'):\n",
+		  fprintf(ferr, "dependency information for %s(`%s'):\n",
 			  it.current()->description().c_str(),
 			  (*Input)[i].c_str());
 #endif
@@ -500,7 +500,7 @@ int initialize_chart(tokenlist *Input)
 		      if(v.valid())
 			{
 #ifdef DEBUG_DEP
-			  fprintf(stderr, "  %s : %s\n",
+			  fprintf(ferr, "  %s : %s\n",
 				  deps->values[j], v.name());
 #endif
 			  satisfied[j].insert(v.type());
@@ -522,7 +522,7 @@ int initialize_chart(tokenlist *Input)
 	{
 	  pair<int, int> req = requires[lex];
 	  if(verbosity > 2)
-	    fprintf(stderr, "`%s' requires %s at %d -> ",
+	    fprintf(ferr, "`%s' requires %s at %d -> ",
 		    lex->description().c_str(),
 		    typenames[req.second], req.first);
 	  
@@ -534,7 +534,7 @@ int initialize_chart(tokenlist *Input)
 	    }
 
 	  if(verbosity > 2)
-	    fprintf(stderr, "%s satisfied\n", lex == 0 ? "not" : "");
+	    fprintf(ferr, "%s satisfied\n", lex == 0 ? "not" : "");
 	}
 	 
       if(lex)
@@ -593,11 +593,17 @@ int initialize_chart(tokenlist *Input)
 	    {
 	      if(!missingpos[i].empty())
 		{
-		  fprintf(stderr, "Missing POS tags for `%s':", (*Input)[i].c_str());
-		  missingpos[i].print(stderr);
-		  fprintf(stderr, "\n");
-		  
+		  if(verbosity > 4)
+		    {
+		      fprintf(fstatus, 
+			      "unsatisfied POS tag(s) for `%s':", 
+			      (*Input)[i].c_str());
+		      missingpos[i].print(fstatus);
+		      fprintf(fstatus, "\n");
+		    }
+#ifdef EXPERIMENTAL
 		  add_generics(generics, Input, i, offset, missingpos[i]);
+#endif
 		}
 	    }
 	}
@@ -620,7 +626,8 @@ int initialize_chart(tokenlist *Input)
 
 inline bool ressources_exhausted()
 {
-  return pedgelimit > 0 && Chart->pedges() >= pedgelimit;
+  return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) || 
+    (memlimit > 0 && t_alloc.max_usage() >= memlimit);
 }
 
 void get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS);
@@ -666,14 +673,19 @@ void parse(chart &C, tokenlist *Input, int id)
 	}
 
       if(verbosity > 8)
-	C.print(stderr);
+	C.print(fstatus);
     }
 
   delete Clock;
   delete Agenda;
 
   if(ressources_exhausted())
-    throw error_ressource_limit("pedges", pedgelimit);
+    {
+      if(pedgelimit == 0 || stats.pedges < pedgelimit)
+	throw error_ressource_limit("memory (MB)", memlimit / (1024 * 1024));
+      else
+	throw error_ressource_limit("pedges", pedgelimit);
+    }
 }
 
 void get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS)

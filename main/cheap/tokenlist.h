@@ -14,6 +14,8 @@
 #include "postags.h"
 #include "errors.h"
 
+string convert_escapes(char *s);
+
 // tokenlist is an abstract base class
 
 class tokenlist
@@ -32,6 +34,7 @@ class tokenlist
     _offset = 0;
     stop_characters = cheap_settings->value("stop-characters");
     if(stop_characters == NULL) stop_characters = "\t?!.:;,()-+*$\n";
+    stop_characters = strdup(convert_escapes(stop_characters).c_str());
   }
   tokenlist(const tokenlist &tl);
   virtual ~tokenlist();
@@ -52,7 +55,7 @@ class tokenlist
 	throw error("index out of bounds for tokenlist");
     }
 
-  bool punctuatiop(int i);
+  bool punctuationp(int i);
 
   void skew(int n) { _offset = n; }
 

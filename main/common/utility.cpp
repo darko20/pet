@@ -54,7 +54,7 @@ void strtoupper(char *s)
 int strtoint(const char *s, const char *errloc, bool quotedp)
 {
   char *endptr = 0;
-  char *foo = NULL;
+  const char *foo = NULL;
   if(quotedp)
     {
       if(!*s == '"' || (foo = strrchr(s, '"')) == NULL)
@@ -70,25 +70,43 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   return val;
 }
 
+char *current_time(void)
+{
+  time_t foo = time(0);
+  struct tm *now = localtime(&foo);
+  static char *result = new char[80];
 
-char *current_time(void) {
+  if(result == 0)
+    return "now";
 
-  time_t foo;
-  struct tm *now;
-  static char *result = (char *)NULL;
-  
-  if(result == NULL) {
-    if((result = (char *)malloc(42)) == NULL) return("now");
-  } /* if */
-
-  if((foo = time(&foo)) > 0 && (now = localtime(&foo)) != NULL) {
-    sprintf(result, "%d-%d-%d %d:%02d:%02d",
-            now->tm_mday, now->tm_mon + 1, now->tm_year + 1900,
-            now->tm_hour, now->tm_min, now->tm_sec);
-  } /* if */
-  else {
+  if(foo > 0 && now != 0)
+    strftime(result, 80, "%c", now);
+  else
     sprintf(result, "now");
-  } /* else */
-  return(result);
 
-} /* current_time() */
+  return(result);
+}
+
+#ifdef __BORLANDC__
+
+#include <alloc.h>
+
+void print_borland_heap(FILE *f)
+{
+  struct heapinfo hi;
+  if(heapcheck() == _HEAPCORRUPT)
+    {
+      fprintf(f, "Heap is corrupted.\n");
+      return;
+    }
+
+   hi.ptr = 0;
+   fprintf(f, "   Block  Size   Status\n");
+   fprintf(f, "   -----  ----   ------\n");
+   while(heapwalk( &hi ) == _HEAPOK)
+   {
+     fprintf(f, "%7u    %s\n", hi.size, hi.in_use ? "used" : "free");
+   }
+}
+
+#endif

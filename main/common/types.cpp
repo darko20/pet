@@ -263,7 +263,7 @@ void dump_hierarchy(dumper *f)
         typecode[rleaftype_order[i]]->dump(f);
       }
     else
-      fprintf(stderr, "leaf type conception error a: `%s' (%d -> %d)\n", 
+      fprintf(ferr, "leaf type conception error a: `%s' (%d -> %d)\n", 
               typenames[rleaftype_order[i]], i, rleaftype_order[i]);
 
   // parents for all leaf types
@@ -273,7 +273,7 @@ void dump_hierarchy(dumper *f)
 	f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
       }
     else
-      fprintf(stderr, "leaf type conception error b: `%s' (%d -> %d)\n", 
+      fprintf(ferr, "leaf type conception error b: `%s' (%d -> %d)\n", 
               typenames[rleaftype_order[i]], i, rleaftype_order[i]);
 }
 
@@ -352,6 +352,7 @@ bool core_subtype(int a, int b)
   if (a == b)
     return true;
 
+  // could use subset_fast here, once it's debugged
   return typecode[a]->subset(*typecode[b]);
 }
 

@@ -62,7 +62,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
 
   fprintf(f, "%s (%x)", typenames[dag->type], (int) dag);
  
-  if((arc = dag->arcs))
+  if((arc = dag->arcs) != 0)
     {
       struct dag_node **print_attrs = (struct dag_node **)
 	malloc(sizeof(struct dag_node *) * nattrs);
@@ -198,15 +198,15 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
 
       dump_n.type = type;
 
-      dump_n.nattrs = nr;
+      dump_n.nattrs = (short int) nr;
       dump_node(f, &dump_n);
       dump_index++;
 
       arc = dag->arcs;
       while(arc)
 	{
-	  dump_a.attr = arc->attr;
-	  dump_a.val = abs(dag_get_visit(dag_deref(arc->val))) - 1;
+	  dump_a.attr = (short int) arc->attr;
+	  dump_a.val = (short int) (abs(dag_get_visit(dag_deref(arc->val))) - 1);
 	  assert(dump_a.val < dump_index);
 	  dump_arc(f, &dump_a);
 	  arc = arc->next;
@@ -250,11 +250,11 @@ struct dag_node *dag_undump(dumper *f)
   dag_dump_total_nodes = f->undump_int();
   dag_dump_total_arcs = f->undump_int();
 
-  if(!(undumped_nodes = (struct dag_node *) dag_alloc_p_nodes(dag_dump_total_nodes)))
+  if((undumped_nodes = (struct dag_node *) dag_alloc_p_nodes(dag_dump_total_nodes)) == 0)
     return FAIL;
 
   if(dag_dump_total_arcs > 0)
-    if(!(undumped_arcs = (struct dag_arc *) dag_alloc_p_arcs(dag_dump_total_arcs)))
+    if((undumped_arcs = (struct dag_arc *) dag_alloc_p_arcs(dag_dump_total_arcs)) == 0)
       return FAIL;
 
   int current_arc = 0;

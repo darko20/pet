@@ -62,7 +62,7 @@ class fs
   int type() { return dag_type(_dag); }
   void set_type(int s) { dag_set_type(_dag, s); }
 
-  inline int size() { return dag_size(_dag); }
+  inline int size() { return 1; /* dag_size(_dag); */ }
   
   inline dag_node *dag() { return _dag; }
   inline int temp() const { return _temp; }

@@ -47,6 +47,8 @@ struct dag_arc
 
 extern int unify_generation, unify_generation_max;
 
+void stop_creating_permanent_dags();
+
 void dag_init(struct dag_node *dag, int s);
 
 inline struct dag_node *dag_deref(struct dag_node *dag) { return dag; }

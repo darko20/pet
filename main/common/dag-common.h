@@ -8,9 +8,8 @@
 #ifndef _DAG_COMMON_H_
 #define _DAG_COMMON_H_
 
-#include <stdio.h>
-
 #include <list>
+#include <stdio.h>
 
 #include "list-int.h"
 #include "dumper.h"

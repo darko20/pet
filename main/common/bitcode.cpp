@@ -16,8 +16,10 @@ bitcode::bitcode(int n)
   V = new CODEWORD[i];
   stop = V + i;
 
+  first_set = last_set = 0; // no bit is set
+
   while (i--) V[i]=0;
-} 
+}
 
 bitcode::bitcode(const bitcode& b)
 {
@@ -26,6 +28,7 @@ bitcode::bitcode(const bitcode& b)
 
   V = new CODEWORD[n];
   stop = V + n;
+  first_set = b.first_set; last_set = b.last_set;
 
   while (n--) V[n] = b.V[n];
 }
@@ -42,15 +45,40 @@ bitcode& bitcode::operator=(const bitcode& b)
       stop = V + n;
     }
 
+  first_set = b.first_set; last_set = b.last_set;
   for(CODEWORD *p = V, *q = b.V; p < stop; p++, q++) *p = *q;
 
   return *this;
+}
+
+void bitcode::find_relevant_parts()
+{
+  first_set = last_set = -1;
+  for(CODEWORD *p = V; p < stop && last_set == -1; p++)
+  {
+    if(first_set == -1)
+    {
+      if(*p != 0)
+        first_set = p - V;
+    }
+    else if(last_set == -1)
+    {
+       if(*p == 0)
+         last_set = p - V;
+    }
+  }
+
+  if(first_set == -1)
+    first_set = last_set = 0; // no bit set
+  if(last_set == -1)
+    last_set = stop - V;
 }
 
 void bitcode::clear()
 {
   register CODEWORD *p = V;
   while (p < stop) *p = 0;
+  first_set = last_set = 0; // no bit set
 }
 
 list_int *bitcode::get_elements()
@@ -63,10 +91,10 @@ list_int *bitcode::get_elements()
     if(*p)
       {
 	w = *p;
-      
+
 	for(int j = 0; j < SIZE_OF_WORD; j++)
 	  {
-	    if(w & (CODEWORD)1 == 1)
+	    if((w & (CODEWORD)1) == 1)
 	      l = cons(i*SIZE_OF_WORD + j, l);
 	    w >>= 1;
 	  }
@@ -75,7 +103,7 @@ list_int *bitcode::get_elements()
   return l;
 }
 
-bitcode& bitcode::join(const bitcode& b) 
+bitcode& bitcode::join(const bitcode& b)
 {
   CODEWORD *p, *q;
 
@@ -84,10 +112,10 @@ bitcode& bitcode::join(const bitcode& b)
   return *this;
 }
 
-bitcode& bitcode::intersect(const bitcode& b) 
+bitcode& bitcode::intersect(const bitcode& b)
 {
   CODEWORD *p, *q;
-  
+
   for(p = V, q = b.V; p<stop; p++, q++) *p &= *q;
 
   return *this;
@@ -114,40 +142,57 @@ bool bitcode::subset(const bitcode &supposed_superset)
   return true;
 }
 
+bool bitcode::subset_fast(const bitcode &supposed_superset)
+{
+  // assumes first_set and last_set is set correctly
+  CODEWORD *sub, *super;
 
-bitcode& bitcode::complement() 
+  if(first_set < supposed_superset.first_set ||
+     last_set > supposed_superset.last_set)
+    return false;
+
+  for(sub = V + supposed_superset.first_set,
+      super = supposed_superset.V + supposed_superset.first_set;
+      sub < V + supposed_superset.last_set; sub++, super++)
+    if((*sub & *super) != *sub) return false;
+
+  return true;
+}
+
+
+bitcode& bitcode::complement()
 {
   for(CODEWORD *p = V; p<stop; p++) *p = ~(*p);
 
   return *this;
 }
 
-bitcode bitcode::operator|(const bitcode& b) 
+bitcode bitcode::operator|(const bitcode& b)
 {
-  bitcode res(*this); 
+  bitcode res(*this);
 
-  return res.join(b); 
+  return res.join(b);
 }
 
-bitcode bitcode::operator&(const bitcode& b) 
+bitcode bitcode::operator&(const bitcode& b)
 {
-  bitcode res(*this); 
+  bitcode res(*this);
 
-  return res.intersect(b); 
+  return res.intersect(b);
 }
 
-bitcode bitcode::operator~()   
+bitcode bitcode::operator~()
 {
-  bitcode res(*this); 
+  bitcode res(*this);
 
-  return res.complement(); 
+  return res.complement();
 }
 
 int bitcode::empty() const
 {
   for(CODEWORD *p = V; p < stop; p++)
     if(*p != 0) return 0;
-  
+
   return 1;
 }
 
@@ -164,7 +209,7 @@ void bitcode::dump(dumper *f)
   short int s = 1 + sz/SIZE_OF_WORD;
 
   f->dump_short(s);
-  
+
   for(CODEWORD *p = V; p < stop; p++)
     f->dump_int(*p);
 }
@@ -177,7 +222,7 @@ void bitcode::undump(dumper *f)
 
   if(s != (1 + sz/SIZE_OF_WORD))
   {
-    fprintf(stderr, "mismatch %d vs %d\n", s, 1+sz/SIZE_OF_WORD);
+    fprintf(ferr, "mismatch %d vs %d\n", s, 1+sz/SIZE_OF_WORD);
   }
 
   for(CODEWORD *p = V; p < stop; p++)
@@ -201,7 +246,7 @@ void bitcode::dump(dumper *f)
 	  while(j < n && V[j] == 0)
 	    j++;
 
-	  f->dump_short(j - i);
+	  f->dump_short((short int) (j - i));
 
 	  i = j;
 	}
@@ -238,6 +283,8 @@ void bitcode::undump(dumper *f)
 
   if( f->undump_int() != 0 || f->undump_short() != 0)
     throw error("invalid compressed bitcode (no end marker)");
+
+  find_relevant_parts();
 }
 
 #endif
