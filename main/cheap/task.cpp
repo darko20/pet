@@ -206,12 +206,15 @@ rule_and_passive_task::rule_and_passive_task(class chart *C, class agenda *A,
     : basic_task(C, A), _R(R), _passive(passive)
 {
     if(opt_packing)
+    {
         priority(packingscore(passive->start(), passive->end(),
                               C->rightmost(), R->arity() > 1));
-    else if(opt_nsolutions > 0)
+    }
+    else if(opt_nsolutions > 0 && Grammar->sm())
     {
         list<item *> daughters;
         daughters.push_back(passive);
+
         priority(Grammar->sm()->scoreLocalTree(R, daughters));
     }
 }
@@ -242,14 +245,17 @@ active_and_passive_task::active_and_passive_task(class chart *C,
             priority(packingscore(active->start(), passive->end(),
                                   C->rightmost(), false));
     }
-    else if(opt_nsolutions > 0)
+    else if(opt_nsolutions > 0 && Grammar->sm())
     {
         phrasal_item *active = dynamic_cast<phrasal_item *>(act); 
+
         list<item *> daughters(active->_daughters);
+
         if(active->left_extending())
             daughters.push_front(passive);
         else
             daughters.push_back(passive);
+
         priority(Grammar->sm()->scoreLocalTree(active->rule(), daughters));
     }
 }
