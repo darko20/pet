@@ -33,55 +33,55 @@ qc_node *qc_paths;
 
 fs::fs(int type)
 {
-  if(type < 0 || type >= last_dynamic)
-    throw error("construction of non-existent dag requested");
+    if(type < 0 || type >= last_dynamic)
+        throw error("construction of non-existent dag requested");
 
-  if (type >= ntypes) {
-    // dynamic symbol, get dag from separate table
-    _dag = dyntypedag[type - ntypes] ;
-  }
-  else _dag = typedag[type];
-  
-  _temp = 0;
+    if (type >= ntypes) {
+        // dynamic symbol, get dag from separate table
+        _dag = dyntypedag[type - ntypes] ;
+    }
+    else _dag = typedag[type];
+    
+    _temp = 0;
 }
 
 fs::fs(char *path, int type)
 {
-  if(type < 0 || type >= last_dynamic)
-    throw error("construction of non-existent dag requested");
-
-  _dag = 0; // dag_create_path_value(path, type);
-
-  _temp = 0;
+    if(type < 0 || type >= last_dynamic)
+        throw error("construction of non-existent dag requested");
+    
+    _dag = 0; // dag_create_path_value(path, type);
+    
+    _temp = 0;
 }
 
 
 fs
 fs::get_attr_value(int attr)
 {
-  return fs(dag_get_attr_value(_dag, attr));
+    return fs(dag_get_attr_value(_dag, attr));
 }
 
 fs
 fs::get_attr_value(char *attr)
 {
-  int a = lookup_attr(attr);
-  if(a == -1) return fs();
+    int a = lookup_attr(attr);
+    if(a == -1) return fs();
 
-  struct dag_node *v = dag_get_attr_value(_dag, a);
-  return fs(v);
+    struct dag_node *v = dag_get_attr_value(_dag, a);
+    return fs(v);
 }
 
 fs
 fs::get_path_value(const char *path)
 {
-  return fs(dag_get_path_value(_dag, path));
+    return fs(dag_get_path_value(_dag, path));
 }
 
 char *
 fs::name()
 {
-  return typenames[dag_type(_dag)];
+    return typenames[dag_type(_dag)];
 }
 
 char *
@@ -93,31 +93,31 @@ fs::printname()
 void
 fs::print(FILE *f)
 {
-  if(temp())
+    if(temp())
     {
-      dag_print_safe(f, _dag, true);
+        dag_print_safe(f, _dag, true);
     }
-  else
-    dag_print_safe(f, _dag, false);
+    else
+        dag_print_safe(f, _dag, false);
 }
 
 void
 fs::restrict(list_int *del)
 {
-  dag_remove_arcs(_dag, del);
+    dag_remove_arcs(_dag, del);
 }
 
 bool
 fs::modify(modlist &mods)
 {
-  for(modlist::iterator mod = mods.begin(); mod != mods.end(); ++mod)
+    for(modlist::iterator mod = mods.begin(); mod != mods.end(); ++mod)
     {
-      dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
-      _dag = dag_unify(_dag, p, _dag, 0);
-      if(_dag == FAIL)
-	return false;
+        dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
+        _dag = dag_unify(_dag, p, _dag, 0);
+        if(_dag == FAIL)
+            return false;
     }
-  return true;
+    return true;
 }
 
 // statistics
@@ -128,22 +128,21 @@ static long int total_cost_succ = 0;
 void
 get_unifier_stats()
 {
-  if(stats.unifications_succ != 0)
+    if(stats.unifications_succ != 0)
     {
-      stats.unify_cost_succ = total_cost_succ / stats.unifications_succ;
-
+        stats.unify_cost_succ = total_cost_succ / stats.unifications_succ;
+        
     }
-  else
-    stats.unify_cost_succ = 0;
+    else
+        stats.unify_cost_succ = 0;
+    
+    if(stats.unifications_fail != 0)
+        stats.unify_cost_fail = total_cost_fail / stats.unifications_fail;
+    else
+        stats.unify_cost_fail = 0;
 
-  if(stats.unifications_fail != 0)
-    stats.unify_cost_fail = total_cost_fail / stats.unifications_fail;
-  else
-    stats.unify_cost_fail = 0;
-
-  total_cost_succ = 0;
-  total_cost_fail = 0;
-
+    total_cost_succ = 0;
+    total_cost_fail = 0;
 }
 
 #ifdef QC_PATH_COMP
@@ -157,31 +156,33 @@ map<int, unification_failure> id_failure;
 map<int, double> failing_paths;
 map<list_int *, int, list_int_compare> failing_sets;
 
-
 void
 record_failures(dag_node *root, dag_node *a, dag_node *b)
 {
-  list<unification_failure *> fails = dag_unify_get_failures(a, b, true);
-  
-  unification_failure *f;
-  list_int *sf = 0;
-
-  if(opt_compute_qc)
+    list<unification_failure *> fails = dag_unify_get_failures(a, b, true);
+    
+    unification_failure *f;
+    list_int *sf = 0;
+    
+    if(opt_compute_qc)
     {
-      int total = fails.size();
-      int *value = New int[total], price = 0;
-      int i = 0;
-      int id;
+        int total = fails.size();
+        int *value = New int[total], price = 0;
+        int i = 0;
+        int id;
+        
+        if(opt_hyper)
+            throw error("quickcheck computation doesn't work "
+                        "in hyperactive mode");
 
-      for(list<unification_failure *>::iterator iter = fails.begin(); iter != fails.end(); ++iter)
+        for(list<unification_failure *>::iterator iter = fails.begin();
+            iter != fails.end(); ++iter)
         {
-	  f = *iter;
-          value[i] = 0;
-          if(f->type() == unification_failure::CLASH)
+            f = *iter;
+            value[i] = 0;
+            if(f->type() == unification_failure::CLASH)
             {
-              // let's see if the quickcheck could have filtered this
-              if(opt_hyper)
-                throw error("quickcheck computation doesn't work in hyperactive mode");
+                // let's see if the quickcheck could have filtered this
 
               dag_node *d1, *d2;
 
@@ -192,62 +193,64 @@ record_failures(dag_node *root, dag_node *a, dag_node *b)
 
               if(d1 != FAIL) s1 = dag_type(d1);
               if(d2 != FAIL) s2 = dag_type(d2);
-
+              
               if(glb(s1, s2) == -1)
-
-                {
+                  
+              {
                   value[i] = f->cost();
                   price += f->cost();
-
+                  
                   if(failure_id.find(*f) == failure_id.end())
-                    {
+                  {
                       id = failure_id[*f] = next_failure_id++;
                       id_failure[id] = *f;
-                    }
+                  }
                   else
-                    id = failure_id[*f];
-
+                      id = failure_id[*f];
+                  
                   list_int *p = sf, *q = 0;
-
+                  
                   while(p && first(p) < id)
-                    q = p, p = rest(p);
+                      q = p, p = rest(p);
                   
                   if(q == 0)
-                    sf = cons(id, sf);
+                      sf = cons(id, sf);
                   else
-                    q -> next = cons(id, p);
-                }
+                      q -> next = cons(id, p);
+              }
             }
-          i++;
+            i++;
         }
-
-      if(sf)
-        if(failing_sets[sf]++ > 0)
-          free_list(sf);
-      
-      i = 0;
-      for(list<unification_failure *>::iterator iter = fails.begin(); iter != fails.end(); ++iter)
+        
+        if(sf)
+            if(failing_sets[sf]++ > 0)
+                free_list(sf);
+        
+        i = 0;
+        for(list<unification_failure *>::iterator iter = fails.begin();
+            iter != fails.end(); ++iter)
         {
-	  f = *iter;
-          if(value[i] > 0)
-            failing_paths[failure_id[*f]] += value[i] / price;
-          
-          i++;
-          delete f;
+            f = *iter;
+            if(value[i] > 0)
+                failing_paths[failure_id[*f]] += value[i] / price;
+            
+            i++;
+            delete f;
         }
-
-      delete[] value;
+        
+        delete[] value;
     }
-
-  if(opt_print_failure)
+    
+    if(opt_print_failure)
     {
-      fprintf(ferr, "failure at\n");
-      for(list<unification_failure *>::iterator iter = fails.begin(); iter != fails.end(); ++iter)
+        fprintf(ferr, "failure at\n");
+        for(list<unification_failure *>::iterator iter = fails.begin();
+            iter != fails.end(); ++iter)
         {
-          fprintf(ferr, "  ");
-          (*iter)->print(ferr);
-          fprintf(ferr, "\n");
-       }
+            fprintf(ferr, "  ");
+            (*iter)->print(ferr);
+            fprintf(ferr, "\n");
+        }
     }
 }
 
@@ -256,87 +259,87 @@ record_failures(dag_node *root, dag_node *a, dag_node *b)
 fs
 unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
 {
-  struct dag_node *res;
-  struct dag_alloc_state s;
-
-  dag_alloc_mark(s);
-
-  res = dag_unify(root._dag, a._dag, b._dag, del);
-
-
-  if(res == FAIL)
+    struct dag_node *res;
+    struct dag_alloc_state s;
+    
+    dag_alloc_mark(s);
+    
+    res = dag_unify(root._dag, a._dag, b._dag, del);
+    
+    
+    if(res == FAIL)
     {
-      if(stat)
+        if(stat)
 	{
-	  total_cost_fail += unification_cost;
-	  stats.unifications_fail++;
+            total_cost_fail += unification_cost;
+            stats.unifications_fail++;
 	}
-
+        
 #ifdef QC_PATH_COMP
-      if(opt_compute_qc || opt_print_failure)
-	record_failures(root._dag, a._dag, b._dag);
+        if(opt_compute_qc || opt_print_failure)
+            record_failures(root._dag, a._dag, b._dag);
 #endif
-
-      dag_alloc_release(s);
+        
+        dag_alloc_release(s);
     }
-  else
+    else
     {
-      if(stat)
+        if(stat)
 	{
-	  total_cost_succ += unification_cost;
-	  stats.unifications_succ++;
+            total_cost_succ += unification_cost;
+            stats.unifications_succ++;
 	}
     }
-
-  return fs(res);
+    
+    return fs(res);
 }
 
 fs
 copy(const fs &a)
 {
-  fs res(dag_full_copy(a._dag));
-  stats.copies++;
-  dag_invalidate_changes();
-  return res;
+    fs res(dag_full_copy(a._dag));
+    stats.copies++;
+    dag_invalidate_changes();
+    return res;
 }
 
 fs
 unify_np(fs &root, const fs &a, fs &b)
 {
-  struct dag_node *res;
-
-  res = dag_unify_np(root._dag, a._dag, b._dag);
-
-  if(res == FAIL)
+    struct dag_node *res;
+    
+    res = dag_unify_np(root._dag, a._dag, b._dag);
+    
+    if(res == FAIL)
     {
-      total_cost_fail += unification_cost;
-      stats.unifications_fail++;
-
+        total_cost_fail += unification_cost;
+        stats.unifications_fail++;
+        
 #ifdef QC_PATH_COMP
-      if(opt_compute_qc || opt_print_failure)
-	record_failures(root._dag, a._dag, b._dag);
+        if(opt_compute_qc || opt_print_failure)
+            record_failures(root._dag, a._dag, b._dag);
 #endif
     }
-  else
+    else
     {
-      total_cost_succ += unification_cost;
-      stats.unifications_succ++;
+        total_cost_succ += unification_cost;
+        stats.unifications_succ++;
     }
-
-  fs f(res, unify_generation);
-  dag_invalidate_changes();
-
-  return f;
+    
+    fs f(res, unify_generation);
+    dag_invalidate_changes();
+    
+    return f;
 }
 
 void
 subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 {
-  dag_subsumes(a._dag, b._dag, forward, backward);
-  if(forward || backward)
-      stats.subsumptions_succ++;
-  else
-      stats.subsumptions_fail++;
+    dag_subsumes(a._dag, b._dag, forward, backward);
+    if(forward || backward)
+        stats.subsumptions_succ++;
+    else
+        stats.subsumptions_fail++;
 }
 
 fs
@@ -347,7 +350,7 @@ packing_partial_copy(const fs &a, list_int *del, bool perm)
     if(perm)
     {
         res = dag_full_p_copy(res);
-
+        
         // _fix_me_ generalize this
 #if 0
         //
@@ -372,38 +375,38 @@ packing_partial_copy(const fs &a, list_int *del, bool perm)
 bool
 compatible(const fs &a, const fs &b)
 {
-  struct dag_alloc_state s;
-  dag_alloc_mark(s);
-
-  bool res = dags_compatible(a._dag, b._dag);
-
-  dag_alloc_release(s);
-  
-  return res;
+    struct dag_alloc_state s;
+    dag_alloc_mark(s);
+    
+    bool res = dags_compatible(a._dag, b._dag);
+    
+    dag_alloc_release(s);
+    
+    return res;
 }
 
 int
 compare(const fs &a, const fs &b)
 {
-  return a._dag - b._dag;
+    return a._dag - b._dag;
 }
 
 type_t *
 get_qc_vector(const fs &f)
 {
-  type_t *vector;
-
-  vector = New type_t [qc_len];
-  for(int i = 0; i < qc_len; i++) vector[i] = 0;
-
-  if(opt_hyper && f.temp())
+    type_t *vector;
+    
+    vector = New type_t [qc_len];
+    for(int i = 0; i < qc_len; i++) vector[i] = 0;
+    
+    if(opt_hyper && f.temp())
     { 
-      dag_get_qc_vector_np(qc_paths, f._dag, vector);
+        dag_get_qc_vector_np(qc_paths, f._dag, vector);
     }
-  else
-    dag_get_qc_vector(qc_paths, f._dag, vector);
-  
-  return vector;
+    else
+        dag_get_qc_vector(qc_paths, f._dag, vector);
+    
+    return vector;
 }
 
 bool
