@@ -656,26 +656,14 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
         mclose(mstream);
     } /* try */
 
-    catch(error_ressource_limit &e)
-    {
-        fprintf(fstatus, " (%d) [%d] --- edge limit exceeded "
-                "(%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-                stats.id, pedgelimit,
-                stats.first / 1000., stats.tcpu / 1000.,
-                stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-        fflush(fstatus);
-
-#ifdef TSDBFILEAPI
-        if(Chart)
-            TsdbParse->set_i_length(Chart->length());
-        cheap_tsdb_summarize_error(e, -1, *TsdbParse);
-#endif
-    }
-
     catch(error &e)
     {
-        fprintf(fstatus, " L2 error: `");
-        e.print(fstatus); fprintf(fstatus, "'.\n");
+        fprintf(fstatus, " (%d) [%d] --- L2 error ` ",
+                stats.id, pedgelimit);
+        e.print(fstatus);
+        fprintf(fstatus, "' (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+                stats.first / 1000., stats.tcpu / 1000.,
+                stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
         fflush(fstatus);
 
 #ifdef TSDBFILEAPI
@@ -1236,36 +1224,19 @@ int cheap_server_child(int socket) {
 	}
       mclose(mstream);
     } /* try */
-    
-    catch(error_ressource_limit &e) {
-      errorp = true;
-      for(list<FILE *>::iterator log = _log_channels.begin();
-          log != _log_channels.end();
-          log++) {
-        fprintf(*log,
-                "[%d] server_child(): "
-                "(%d) [%d] --- edge limit exceeded "
-                "(%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-                getpid(),
-                stats.id, pedgelimit, 
-                stats.first / 1000., stats.tcpu / 1000.,
-                stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-        fflush(*log);
-      } /* for */
-#ifdef TSDBAPI
-      if(opt_tsdb) 
-        yy_tsdb_summarize_error(input, i_chart.max_position(), e);
-#endif
-    } /* catch */
 
     catch(error &e) {
       errorp = true;
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
           log++) {
-        fprintf(*log, "[%d] server_child(): error: `", getpid());
-        e.print(*log); fprintf(*log, "'.\n");
-        fflush(*log);
+          fprintf(*log, "[%d] server_child(): (%d) [%d] --- error ` ",
+                  stats.id, pedgelimit, getpid());
+          e.print(*log);
+          fprintf(*log, "' (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+                  stats.first / 1000., stats.tcpu / 1000.,
+                  stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
+          fflush(*log);
       } /* for */
 
 #ifdef TSDBAPI

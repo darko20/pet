@@ -464,11 +464,16 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 
     if(ressources_exhausted())
     {
+        ostringstream s;
+
         if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
-            errors.push_back(error_ressource_limit("memory (MB)",
-                                                   memlimit / (1024 * 1024)));
+            s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
+              << " MB)";
         else
-            errors.push_back(error_ressource_limit("pedges", pedgelimit));
+            s << "edge limit exhausted (" << pedgelimit 
+              << " pedges)";
+
+        errors.push_back(s.str());
     }
 
     if(opt_packing)

@@ -17,7 +17,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* defines classes representing errors - used in exceptions */
+/* defines class representing errors - used in exceptions */
 
 #include "pet-system.h"
 #include "errors.h"
@@ -61,28 +61,4 @@ void error::tsdb_print()
 }
 #endif
 
-error_ressource_limit::error_ressource_limit(string lim, int val)
-  : _lim(lim), _val(val)
-{
-}
-
-void error_ressource_limit::print(FILE *f)
-{
-  fprintf(f, "%s exhausted: %d", _lim.c_str(), _val);
-}
-
-#ifdef TSDBAPI
-void error_ressource_limit::tsdb_print()
-{
-  capi_printf("%s exhausted: %d", _lim.c_str(), _val);
-}
-#endif
-
-string error_ressource_limit::msg()
-{
-  char foo[42];
-
-  sprintf(foo, "%d", _val);
-  return _lim + string(" exhausted: ") + string(foo);
-}
 
