@@ -30,7 +30,7 @@
 
 #include "chunk-alloc.h"
 
-typedef long typecachekey_t;
+typedef long long typecachekey_t;
 
 // note that the initial cache has to fit in one chunk, thus
 // GLB_CACHE_SIZE*sizeof(typecachebucket) must be <= GLB_CHUNK_SIZE
