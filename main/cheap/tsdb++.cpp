@@ -97,9 +97,9 @@ void statistics::print(FILE *f)
 	   "stat_bytes: %ld\n"
 	   "cycles: %d\nfssize: %d\n"
 	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
-           "trees: %d\nequivalent: %d\nproactive: %d\nretroactive: %d\n"
+           "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\n",
-	   id, trees, readings, words, words_pruned, first, tcpu,
+	   id, p_trees, readings, words, words_pruned, first, tcpu,
            p_utcpu,
 	   ftasks_fi, ftasks_qc, etasks, stasks,
 	   aedges, pedges, raedges, rpedges,
@@ -110,7 +110,7 @@ void statistics::print(FILE *f)
 	   stat_bytes,
 	   cycles, fssize,
 	   unify_cost_succ, unify_cost_fail,
-           p_trees, p_equivalent, p_proactive, p_retroactive,
+           p_equivalent, p_proactive, p_retroactive,
            p_frozen, p_failures
 	   );
 }
