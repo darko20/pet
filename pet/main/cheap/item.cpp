@@ -45,7 +45,7 @@ item::item(int start, int end, const tPaths &paths,
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
       _p(p), _q(0), _r(0), _score_model(0), _printname(printname), _done(0),
-      _frozen(0), parents(), packed()
+      _blocked(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -57,7 +57,7 @@ item::item(int start, int end, const tPaths &paths,
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
       _p(p), _q(0), _r(0), _score_model(0), _printname(printname), _done(0),
-      _frozen(0), parents(), packed()
+      _blocked(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -584,6 +584,34 @@ lex_item::adjust_priority(const char *settingname)
 }
 
 //
+// Blocking (frosting and freezing) for packing
+//
+
+void
+item::block(int mark)
+{
+    if(verbosity > 4)
+    {
+        fprintf(ferr, "%sing ", mark == 1 ? "frost" : "freez");
+        print(ferr);
+        fprintf(ferr, "\n");
+    }
+    if(!blocked() || mark == 2)
+    {
+        if(mark == 2) 
+            stats.p_frozen++;
+
+        _blocked = mark;
+    }  
+
+    for(list<item *>::iterator parent = parents.begin();
+        parent != parents.end(); ++parent)
+    {
+      (*parent)->freeze();
+    }
+}
+
+//
 // Unpacking
 //
 
@@ -600,7 +628,7 @@ item::unpack()
         fprintf(stderr, "%*s> unpack [%d]\n", unpacking_level * 2, "", id());
 
     // Ignore frozen items.
-    if(frozen() == 2)
+    if(frozen())
     {
         if(verbosity > 2)
             fprintf(stderr, "%*s< unpack [%d] ( )\n", unpacking_level * 2, "", id());

@@ -202,7 +202,8 @@ item *build_combined_item(chart *C, item *active, item *passive)
 
 item *item_task::execute()
 {
-  if(opt_packing && _item->frozen())
+    // _fixme_ this will go anyway, and may be wrong
+  if(opt_packing && _item->blocked())
     return 0;
 
   return _item;
