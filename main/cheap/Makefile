@@ -3,16 +3,16 @@
 
 RM = rm
 OBJ = o
-CXX = /opt/gnu/bin/g++
-CC = /opt/gnu/bin/gcc
+CXX = g++
+CC = gcc
 # CC = KCC --
 # CXX = KCC
 
 ITSDBPATH = /home/oe/src/itsdb
 INCLUDE = -I. -I../common  -I$(ITSDBPATH)/include -I$(ICUDIR)/include
 
-#ICUDIR = /usr/local
-ICUDIR = /lt
+ICUDIR = /usr/local
+#ICUDIR = /lt
 
 # for Unix/gcc
 CPPFLAGS1 = -Wall -g -O3 -DHASH_MAP_AVAIL -DUSEMMAP -DYY $(INCLUDE) \
@@ -70,7 +70,7 @@ DAGOBJ = dag-io.$(OBJ) dag-common.$(OBJ) dag-arced.$(OBJ) dag-alloc.$(OBJ) dag-t
 COMMONOBJS = bitcode.$(OBJ) chunk-alloc.$(OBJ) errors.$(OBJ) mfile.$(OBJ) \
 	lex-io.$(OBJ) lex-tdl.$(OBJ) settings.$(OBJ) fs.$(OBJ) dumper.$(OBJ) grammar-dump.$(OBJ) grammar.$(OBJ) types.$(OBJ) tsdb++.$(OBJ) utility.$(OBJ) $(DAGOBJ)
 
-PARSEOBJS = parse.$(OBJ) item.$(OBJ) task.$(OBJ) chart.$(OBJ) agenda.$(OBJ) tokenizer.$(OBJ) options.$(OBJ) postags.$(OBJ) inputtoken.$(OBJ) inputchart.$(OBJ) mrs.$(OBJ) k2y.$(OBJ) yy.$(OBJ) morph.$(OBJ) unicode.$(OBJ) 
+PARSEOBJS = parse.$(OBJ) item.$(OBJ) task.$(OBJ) chart.$(OBJ) agenda.$(OBJ) tokenizer.$(OBJ) options.$(OBJ) postags.$(OBJ) inputtoken.$(OBJ) inputchart.$(OBJ) mrs.$(OBJ) k2y.$(OBJ) yy.$(OBJ) morph.$(OBJ) unicode.$(OBJ) paths.$(OBJ) 
 
 #
 # cheap
