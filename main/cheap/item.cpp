@@ -227,7 +227,11 @@ phrasal_item::phrasal_item(phrasal_item *sponsor, vector<item *> &dtrs, fs &f)
       _daughters(),
       _adaughter(0), _rule(sponsor->rule())
 {
-    copy(dtrs.begin(), dtrs.end(), _daughters.begin());
+    // _fix_me_
+    //  copy(dtrs.begin(), dtrs.end(), _daughters.begin());
+    for(vector<item *>::iterator it = dtrs.begin(); it != dtrs.end(); ++it)
+        _daughters.push_back(*it);
+
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size(); 
 }
@@ -642,6 +646,7 @@ phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
         item *combined = unpack_combine(config);
         if(combined)
             res.push_back(combined);
+	return;
     }
 
     for(list<item *>::iterator i = dtrs[index].begin(); i != dtrs[index].end();
@@ -662,8 +667,6 @@ phrasal_item::unpack_combine(vector<item *> &daughters)
     fs_alloc_state FSAS(false);
 
     fs res = rule()->instantiate(true);
-
-    assert(daughters.size() == rule()->arity());
 
     list_int *tofill = rule()->allargs();
     

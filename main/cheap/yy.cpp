@@ -624,8 +624,8 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
         struct MFILE *mstream = mopen();
     
         int nres = 1, skipped = 0;
-        for(vector<item *>::iterator iter = Chart->Roots().begin();
-            iter != Chart->Roots().end(); ++iter)
+        for(vector<item *>::iterator iter = Chart->readings().begin();
+            iter != Chart->readings().end(); ++iter)
         {	
             mflush(mstream);
             int n = construct_k2y(nres++, *iter, false, mstream);
@@ -1209,8 +1209,8 @@ int cheap_server_child(int socket) {
       struct MFILE *mstream = mopen();
       int nres = 1, skipped = 0;
 
-      for(vector<item *>::iterator iter = Chart->Roots().begin();
-          iter != Chart->Roots().end(); 
+      for(vector<item *>::iterator iter = Chart->readings().begin();
+          iter != Chart->readings().end(); 
           ++iter)
 	{
 	  mflush(mstream);

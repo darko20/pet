@@ -100,8 +100,8 @@ writeSuperTagged(FILE *fTagged, FILE *fData, chart *Chart, int nderivations)
     int j = 0;
     while(j < opt_supertag_norm)
     {
-        for(vector<item *>::iterator iter = Chart->Roots().begin();
-            iter != Chart->Roots().end() && j < opt_supertag_norm;
+        for(vector<item *>::iterator iter = Chart->readings().begin();
+            iter != Chart->readings().end() && j < opt_supertag_norm;
             ++iter, ++j)
         {
             item *it = *iter;
@@ -245,8 +245,8 @@ void interactive()
                 int nres = 0;
                 struct MFILE *mstream = mopen();
                 
-                for(vector<item *>::iterator iter = Chart->Roots().begin();
-                    iter != Chart->Roots().end(); ++iter)
+                for(vector<item *>::iterator iter = Chart->readings().begin();
+                    iter != Chart->readings().end(); ++iter)
                 {
                     item *it = *iter;
                     

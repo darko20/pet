@@ -56,6 +56,8 @@ void statistics::reset()
   medges = 0;
   unifications_succ = 0;
   unifications_fail = 0;
+  subsumptions_succ = 0;
+  subsumptions_fail = 0;
   copies = 0;
   dyn_bytes = 0;
   stat_bytes = 0;
@@ -69,7 +71,7 @@ void statistics::reset()
   p_proactive = 0;
   p_retroactive = 0;
   p_frozen = 0;
-  p_failures = 0;
+  p_utcpu = 0;
 
   // rule stuff
   for(rule_iter rule(Grammar); rule.valid(); rule++)
@@ -83,27 +85,31 @@ void statistics::print(FILE *f)
 {
   fprintf (f,
 	   "id: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\nfirst: %d\ntcpu: %d\n"
+           "utcpu: %d\n"
 	   "ftasks_fi: %d\nftasks_qc: %d\netasks: %d\nstasks: %d\n"
 	   "aedges: %d\npedges: %d\nraedges: %d\nrpedges: %d\n"
 	   "medges: %d\n"
-	   "unifications_succ: %d\nunifications_fail: %d\ncopies: %d\n"
+	   "unifications_succ: %d\nunifications_fail: %d\n"
+	   "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
 	   "dyn_bytes: %ld\n"
 	   "stat_bytes: %ld\n"
 	   "cycles: %d\nfssize: %d\n"
 	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "trees: %d\nequivalent: %d\nproactive: %d\nretroactive: %d\n"
-           "frozen: %d\nfailures: %d\n",
+           "frozen: %d\n",
 	   id, readings, words, words_pruned, first, tcpu,
+           p_utcpu,
 	   ftasks_fi, ftasks_qc, etasks, stasks,
 	   aedges, pedges, raedges, rpedges,
 	   medges,
-	   unifications_succ, unifications_fail, copies,
+	   unifications_succ, unifications_fail,
+	   subsumptions_succ, subsumptions_fail, copies,
 	   dyn_bytes,
 	   stat_bytes,
 	   cycles, fssize,
 	   unify_cost_succ, unify_cost_fail,
            p_trees, p_equivalent, p_proactive, p_retroactive,
-           p_frozen, p_failures
+           p_frozen
 	   );
 }
 
@@ -433,9 +439,9 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
     struct MFILE *mstream = mopen();
     if(nderivations >= 0) // default case, report results
     {
-      if(!nderivations) nderivations = Chart.Roots().size();
-      for(vector<item *>::iterator iter = Chart.Roots().begin();
-          nderivations && iter != Chart.Roots().end(); ++iter, --nderivations)
+      if(!nderivations) nderivations = Chart.readings().size();
+      for(vector<item *>::iterator iter = Chart.readings().begin();
+          nderivations && iter != Chart.readings().end(); ++iter, --nderivations)
       {
         tsdb_result R;
 
