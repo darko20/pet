@@ -379,14 +379,14 @@ void compute_maxapp()
 }
 
 //
-// shrinking
+// unfilling
 //
 
 static int total_nodes = 0;
 
-int shrink_dag_rec(struct dag_node *dag, int root)
+int unfill_dag_rec(struct dag_node *dag, int root)
 {
-  int nshrinked = 0;
+  int nunfilled = 0;
   int coref = dag_get_visit(dag) - 1;
 
   if(coref < 0) // dag is coreferenced, already visited
@@ -409,15 +409,16 @@ int shrink_dag_rec(struct dag_node *dag, int root)
       struct dag_node *dst = dag_deref(arc->val);
       
       if(dst->arcs)
-	nshrinked += shrink_dag_rec(dst, 0);
+	nunfilled += unfill_dag_rec(dst, 0);
       else
 	total_nodes++;
       
       coref = dag_get_visit(dst) - 1;
 
-      if(dst->arcs == 0 && coref == 0 && dst->type == maxapp[arc->attr] && apptype[arc->attr] != root && root != -1)
+      if(dst->arcs == 0 && coref == 0 && dst->type == maxapp[arc->attr]
+         && apptype[arc->attr] != root)
 	{
-	  nshrinked++;
+	  nunfilled++;
 	  arc = arc->next;
 	}
       else
@@ -432,21 +433,21 @@ int shrink_dag_rec(struct dag_node *dag, int root)
   
   dag->arcs = keep;
 
-  return nshrinked;
+  return nunfilled;
 }
 
-void shrink_types()
+void unfill_types()
 {
   int i, n = 0;
 
-  fprintf(fstatus, "- shrinking ");
+  fprintf(fstatus, "- unfilling ");
   
   for(i = 0; i < types.number(); i++)
     {
       struct dag_node *curr = dag_deref(types[i]->thedag);
 
       dag_mark_coreferences(curr);
-      n += shrink_dag_rec(curr, i);
+      n += unfill_dag_rec(curr, i);
       dag_invalidate_visited();
 
     }

@@ -27,7 +27,7 @@
 #include "options.h"
 
 bool opt_pre, opt_expand_all_instances,
-  opt_full_expansion, opt_shrink, opt_minimal, opt_no_sem,
+  opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
   opt_propagate_status, opt_linebreaks, opt_glbdebug;
 
 int verbosity;
@@ -41,7 +41,7 @@ void usage(FILE *f)
   fprintf(f, "  `-pre' --- do only syntactic preprocessing\n");
   fprintf(f, "  `-expand-all-instances' --- expand all (even lexicon) instances\n");
   fprintf(f, "  `-full-expansion' --- don't do partial expansion\n");
-  fprintf(f, "  `-no-shrink' --- don't shrink after expansion\n");
+  fprintf(f, "  `-no-unfill' --- don't unfill after expansion\n");
   fprintf(f, "  `-minimal' --- minimal fixed arity encoding\n");
   fprintf(f, "  `-propagate-status' --- propagate status the PAGE way\n");
   fprintf(f, "  `-no-semantics' --- remove all semantics\n");
@@ -53,7 +53,7 @@ void usage(FILE *f)
 #define OPTION_PRE 0
 #define OPTION_EXPAND_ALL_INSTANCES 3
 #define OPTION_FULL_EXPANSION 4
-#define OPTION_NO_SHRINK 5
+#define OPTION_NO_UNFILL 5
 #define OPTION_VERBOSE 6
 #define OPTION_ERRORS_TO 7
 #define OPTION_MINIMAL 8
@@ -69,7 +69,7 @@ bool parse_options(int argc, char* argv[])
     {"pre", no_argument, 0, OPTION_PRE},
     {"expand-all-instances", no_argument, 0, OPTION_EXPAND_ALL_INSTANCES},
     {"full-expansion", no_argument, 0, OPTION_FULL_EXPANSION},
-    {"no-shrink", no_argument, 0, OPTION_NO_SHRINK},
+    {"no-unfill", no_argument, 0, OPTION_NO_UNFILL},
     {"minimal", no_argument, 0, OPTION_MINIMAL},
     {"no-semantics", no_argument, 0, OPTION_NO_SEM},
     {"propagate-status", no_argument, 0, OPTION_PROPAGATE_STATUS},
@@ -82,7 +82,7 @@ bool parse_options(int argc, char* argv[])
   opt_pre = false;
   opt_expand_all_instances = false;
   opt_full_expansion = false;
-  opt_shrink = true;
+  opt_unfill = true;
   opt_minimal = false;
   opt_no_sem = false;
   opt_propagate_status = false;
@@ -102,8 +102,8 @@ bool parse_options(int argc, char* argv[])
     case OPTION_PRE:
       opt_pre = true;
       break;
-    case OPTION_NO_SHRINK:
-      opt_shrink = false;
+    case OPTION_NO_UNFILL:
+      opt_unfill = false;
       break;
     case OPTION_MINIMAL:
       opt_minimal = true;

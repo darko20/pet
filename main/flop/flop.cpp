@@ -315,8 +315,8 @@ void process_types()
 
   compute_maxapp();
   
-  if(opt_shrink)
-    shrink_types();
+  if(opt_unfill)
+    unfill_types();
 
   demote_instances();
 
