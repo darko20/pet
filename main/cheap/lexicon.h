@@ -77,7 +77,7 @@ class full_form
   full_form(dumper *f, class tGrammar *G);
 
 #ifdef ONLINEMORPH
-  full_form(lex_stem *st, class morph_analysis a);
+  full_form(lex_stem *st, class tMorphAnalysis a);
 #endif
 
   full_form(const full_form &that)

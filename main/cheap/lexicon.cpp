@@ -220,7 +220,7 @@ full_form::full_form(dumper *f, tGrammar *G)
 }
 
 #ifdef ONLINEMORPH
-full_form::full_form(lex_stem *st, morph_analysis a)
+full_form::full_form(lex_stem *st, tMorphAnalysis a)
 {
     _stem = st;
     

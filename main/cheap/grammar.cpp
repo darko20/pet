@@ -462,7 +462,7 @@ tGrammar::tGrammar(const char * filename)
 
 #ifdef ONLINEMORPH
     // inflectional rules
-    _morph = new morph_analyzer();
+    _morph = new tMorphAnalyzer();
 
     if(cheap_settings->lookup("irregular-forms-only"))
         _morph->set_irregular_only(true);
@@ -974,8 +974,8 @@ tGrammar::lookup_form(const string form)
 #ifdef ONLINEMORPH
     if(opt_online_morph)
     {
-        list<morph_analysis> m = _morph->analyze(form);
-        for(list<morph_analysis>::iterator it = m.begin(); it != m.end(); ++it)
+        list<tMorphAnalysis> m = _morph->analyze(form);
+        for(list<tMorphAnalysis>::iterator it = m.begin(); it != m.end(); ++it)
         {
             list<lex_stem *> stems = lookup_stem(it->base());
             for(list<lex_stem *>::iterator st_it = stems.begin();
