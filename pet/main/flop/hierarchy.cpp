@@ -24,59 +24,53 @@
 #include <time.h>
 #include <assert.h>
 
-#include <vector>
 #include <string>
-#include <hash_set>
+#include <vector>
 
-#include "types.h"
+#include <boost/lambda/lambda.hpp>
+
+#include "hashing.h"
 #include "flop.h"
-
-#include <LEDA/graph.h>
-#include <LEDA/graph_misc.h> 
-#include <LEDA/graph_iterator.h>
-#include <LEDA/map.h>
+#include "hierarchy.h"
+#include "reduction.h"
+#include "types.h"
 
 //
 // the main entry point to this module is process_hierarchy
 //
 
-// the type hierarchy is represented as a directed graph. the nodes
-// are labeled by integers that give the id of the type they represent
-GRAPH<int, int> hierarchy;
+// The type hierarchy is represented as a directed graph. The vertex
+// descriptor (implicitely) corresponds to the id of the type it represents.
+tHierarchy hierarchy;
 
-// this maps a type given by id to the node in the graph
-leda_map<int,leda_node> type_node;
-
-// the length of the bitcodes (number of bits)
+// The length of the bitcodes (number of bits).
 int codesize;
 
 //
 // register_type, subtype_constraint and undo_subtype_constraint are
-// called by the TDL reader when parsing the input
+// called by the TDL reader when parsing the input.
 //
 
-// register a new type s in the hierarchy, and
-// establish the mapping from id to graph node
+// Register a new type s in the hierarchy.
 void register_type(int s)
 {
-  leda_node v0 = hierarchy.new_node();
-  hierarchy[v0] = s;
-  type_node[s] = v0;
+    int v = boost::add_vertex(hierarchy);
+    assert(v == s);
 }
 
-// enter the subtype relationship (t1 is an immediate subtype of t2) into
-// the hierarchy
+// Enter the subtype relationship (t1 is an immediate subtype of t2) into
+// the hierarchy.
 void subtype_constraint(int t1, int t2)
 {
-  if(t1 == t2)
+    if(t1 == t2)
     {
-      fprintf(ferr, "warning: `%s' is declared subtype of itself.\n",
-	      types.name(t1).c_str());
+        fprintf(ferr, "warning: `%s' is declared subtype of itself.\n",
+                types.name(t1).c_str());
     }
-  else
+    else
     {
-      assert(t1 >= 0 && t2 >= 0); 
-      hierarchy.new_edge(type_node[t2],type_node[t1]);
+        assert(t1 >= 0 && t2 >= 0); 
+        boost::add_edge(t2, t1, hierarchy);
     }
 }
 
@@ -84,36 +78,60 @@ void subtype_constraint(int t1, int t2)
 // type is redefined (as in the patch files)
 void undo_subtype_constraints(int t)
 {
-  hierarchy.del_edges(hierarchy.out_edges(type_node[t]));
-  hierarchy.del_edges(hierarchy.in_edges(type_node[t]));
+    boost::clear_out_edges(t, hierarchy);
+    boost::clear_in_edges(t, hierarchy);
 }
 
 //
 // functions to find parents and children of a given type
 //
 
+// helper function object to return target of edge; it seems it's not possible
+// to use ptr_fun(boost::target)
+
+struct EdgeTargetExtractor : std::unary_function<tHierarchyEdge, tHierarchyVertex>
+{
+    tHierarchyVertex operator()(const tHierarchyEdge& e) const
+    {
+        return boost::target(e, hierarchy);
+    }
+};
+
+// helper function object to return source of edge; it seems it's not possible
+// to use ptr_fun(boost::source)
+
+struct EdgeSourceExtractor : std::unary_function<tHierarchyEdge, tHierarchyVertex>
+{
+    tHierarchyVertex operator()(const tHierarchyEdge& e) const
+    {
+        return boost::source(e, hierarchy);
+    }
+};
+
 // return the list of all immediate subtypes of t
 list<int> immediate_subtypes(int t)
 {
-  leda_edge e;
-  list<int> l;
-
-  forall_out_edges(e, type_node[t])
-    l.push_front(hierarchy.inf(hierarchy.target(e)));
-
-  return l;
+    std::pair<boost::graph_traits<tHierarchy>::out_edge_iterator,
+              boost::graph_traits<tHierarchy>::out_edge_iterator>
+        e(boost::out_edges(t, hierarchy));
+    
+    list<int> l;
+    std::transform(e.first, e.second, std::front_inserter(l),
+                   EdgeTargetExtractor());
+    return l;
 }
 
 // return the list of all immediate supertypes of t
 list<int> immediate_supertypes(int t)
 {
-  leda_edge e;
-  list<int> l;
+    std::pair<boost::graph_traits<tHierarchy>::in_edge_iterator,
+              boost::graph_traits<tHierarchy>::in_edge_iterator>
+        e(boost::in_edges(t, hierarchy));
 
-  forall_in_edges(e, type_node[t])
-    l.push_front(hierarchy.inf(hierarchy.source(e)));
-
-  return l;
+    list<int> l;
+    std::transform(e.first, e.second, std::front_inserter(l),
+                   EdgeSourceExtractor());
+    return l;
 }
 
 //
@@ -121,59 +139,56 @@ list<int> immediate_supertypes(int t)
 //
 
 // maps from bit position in the bitcode to corresponding type
-leda_map<int,int> idbit_type;
+map<int,int> idbit_type;
 
 // compute the transitive closure encoding
-void compute_code_topo()
+void compute_code_topo() 
 {
-  // the code to be assigned next
-  int codenr = codesize - 1;
-
-  // used to iterate over the children
-  list<int> l; int c;
-
-  // create an iterator `it' that visits the nodes of the
-  // hierarchy in reverse topological order
-  TOPO_rev_It it(hierarchy);
-  
-  while(it.valid()) // iterate over all types in reverse topological order
+    // the code to be assigned next
+    int codenr = codesize - 1;
+    
+    // used to iterate over the children
+    list<int> l; int c;
+    
+    // iterate over the nodes in the hierarchy in reverse topological order
+    vector<int> topo;
+    boost::topological_sort(hierarchy, std::back_inserter(topo));
+    for(vector<int>::iterator it = topo.begin(); it != topo.end(); ++it)
     {
-      // get the corresponding type id
-      int current_type = hierarchy.inf(it.get_node());
+        // get the corresponding type id
+        int current_type = *it;
       
-      if(leaftypeparent[current_type] == -1) // leaf types don't get a code
-	{
-	  // check if this has already been visited - cannot happen
-	  // if iterator works as expected
-	  if(types[current_type]->bcode != NULL)
-	    fprintf(ferr, "conception error: %s already visited...\n",
-		    types.name(current_type).c_str());
+        if(leaftypeparent[current_type] == -1) // leaf types don't get a code
+        {
+            // check if this has already been visited - cannot happen
+            // if iterator works as expected
+            if(types[current_type]->bcode != NULL)
+                fprintf(ferr, "conception error: %s already visited...\n",
+                        types.name(current_type).c_str());
 	  
-	  // create a new bitcode, it's initialized to all zeroes
-	  types[current_type]->bcode = new bitcode(codesize);
+            // create a new bitcode, it's initialized to all zeroes
+            types[current_type]->bcode = new bitcode(codesize);
 
-	  // set the bit identifying this type
-	  types[current_type]->bcode->insert(codenr);
+            // set the bit identifying this type
+            types[current_type]->bcode->insert(codenr);
 
-	  idbit_type[codenr] = current_type;
-	  codenr--;
-
-	  // iterate over all immediate subtypes, ignoring leaf types
-	  l = immediate_subtypes(current_type);
-	  forallint(c, l) if(leaftypeparent[c] == -1)
-	    {
-	      // check that this has already a code assigned - if not,
-	      // there's a horrible flaw somewhere
-	      if(types[c]->bcode == NULL)
-		fprintf(ferr, "conception error: %s not yet computed...\n",
-			types.name(c).c_str());
-	      
-	      // combine with subtypes bitcode using binary or
-	      types[current_type]->bcode->join(*types[c]->bcode);
-	    }
-	}
-
-      ++it;
+            idbit_type[codenr] = current_type;
+            codenr--;
+            
+            // iterate over all immediate subtypes, ignoring leaf types
+            l = immediate_subtypes(current_type);
+            forallint(c, l) if(leaftypeparent[c] == -1)
+            {
+                // check that this has already a code assigned - if not,
+                // there's a horrible flaw somewhere
+                if(types[c]->bcode == NULL)
+                    fprintf(ferr, "conception error: %s not yet computed...\n",
+                            types.name(c).c_str());
+                
+                // combine with subtypes bitcode using binary or
+                types[current_type]->bcode->join(*types[c]->bcode);
+            }
+        }
     }
 }
 
@@ -190,6 +205,42 @@ void debug_print_subtypes(bitcode *b)
            
   free_list(l);
 }
+
+class cycleDetector : public boost::dfs_visitor<>
+{
+public:
+    cycleDetector(bool& has_cycle)
+        : _has_cycle(has_cycle)
+    { }
+    
+    template <class Edge, class Graph>
+    void back_edge(Edge, Graph&)
+    {
+        _has_cycle = true;
+    }
+    
+protected:
+    bool& _has_cycle;
+};
+
+template<typename Graph>
+bool
+isAcyclic(Graph &G)
+{
+    bool hasCycle = false;
+    cycleDetector vis(hasCycle);
+    boost::depth_first_search(G, visitor(vis));
+    return !hasCycle;
+}
+
+// helper predicate: return fixed false/true
+template<typename T, bool V> struct fixedPred : std::unary_function<T, bool>
+{
+    bool operator()(const T& t) const
+    {
+        return V;
+    }
+};
 
 // recompute hierarchy so it's a semilattice
 // theoretical background: (Ait-Kaci et al., 1989)
@@ -299,15 +350,16 @@ void make_semilattice()
   // this is the naive approach: look at all ordered pairs
   // and check if they're in subtype relation
 
-  hierarchy.del_all_edges();
+  boost::remove_edge_if(fixedPred<tHierarchyEdge, true>(), hierarchy);
+  
   for(i = 0; i < types.number(); i++)
-    {
+  {
       for(j = i + 1; j < types.number(); j++)
-	if(core_subtype(i, j))
-	  subtype_constraint(i, j);
-	else if(core_subtype(j, i))
-	  subtype_constraint(j, i);
-    }
+          if(core_subtype(i, j))
+              subtype_constraint(i, j);
+          else if(core_subtype(j, i))
+              subtype_constraint(j, i);
+  }
 
 #else
 
@@ -336,7 +388,7 @@ void make_semilattice()
 #endif
 
   // sanity check: is the new hierarchy still acyclic
-  if(!Is_Acyclic(hierarchy))
+  if(!isAcyclic<tHierarchy>(hierarchy))
     {
       fprintf(ferr, "conception error: new type hierarchy is cyclic...\n");
       exit(1);
@@ -345,20 +397,13 @@ void make_semilattice()
   // now we have to remove the redundant links - this is just
   // computing the transitive reduction of the hierarchy
 
-  leda_edge_array<bool> in_reduction(hierarchy);
-  ACYCLIC_TRANSITIVE_REDUCTION(hierarchy, in_reduction);
-
-  // now all edges that are in the reduction are marked - remove the others
+  acyclicTransitiveReduction(hierarchy);
 
   if(verbosity > 4)
     fprintf(fstatus, " (%ld)", clock());
 
-  leda_list<leda_edge> el = hierarchy.all_edges();
-  leda_edge e;
-  int ndel = 0;
-  forall(e, el)
-    if(!in_reduction[e]) hierarchy.del_edge(e), ndel++;
-
+#if 0
+  //missing sanity checks
   // do a few sanity checks:
 
   if(!Is_Simple(hierarchy))
@@ -376,13 +421,14 @@ void make_semilattice()
   if(verbosity > 4)
     fprintf(fstatus, " (%ld)", clock());
 
+#endif
 }
 
 inline bool simple_leaftype(int i)
 // is `i' a simple leaftype (it has no children and exactly one parent)
 {
-  return hierarchy.outdeg(type_node[i]) == 0 &&
-    hierarchy.indeg(type_node[i]) == 1;
+    return boost::out_degree(i, hierarchy) == 0 &&
+        boost::in_degree(i, hierarchy) == 1;
 }
 
 inline void mark_leaftype(int i)
@@ -398,55 +444,56 @@ inline void mark_leaftype(int i)
 
 void find_leaftypes()
 {
-  int i;
-
-  // initialize the leaftype array to all -1
-  leaftypeparent = (int *) salloc(types.number() * sizeof(int));
-  for(i = 0; i < types.number(); i++) leaftypeparent[i] = -1;
-
+    int i;
+    
+    // initialize the leaftype array to all -1
+    leaftypeparent = (int *) salloc(types.number() * sizeof(int));
+    for(i = 0; i < types.number(); i++) leaftypeparent[i] = -1;
+    
 #ifdef ONLY_SIMPLE_LEAFTYPES
-
-  // a type is a leaf type if it has no children and exactly one parent
-  for(i = 0; i < types.number() ; i++)
-    if(simple_leaftype(i))
-      mark_leaftype(i);
-
+    
+    // a type is a leaf type if it has no children and exactly one parent
+    for(i = 0; i < types.number() ; i++)
+        if(simple_leaftype(i))
+            mark_leaftype(i);
+    
 #else
 
-  // a type is a leaf type if it has exactly one parent, and a) it has no
-  // children (simple leaftype), or b) all its children are leaftypes.
+    // a type is a leaf type if it has exactly one parent, and a) it has no
+    // children (simple leaftype), or b) all its children are leaftypes.
 
-  // create an iterator `it' that visits the nodes of the
-  // hierarchy in reverse topological order
-  TOPO_rev_It it(hierarchy);
-  
-  while(it.valid()) // iterate over all types in reverse topological order
+    vector<int> topo;
+    boost::topological_sort(hierarchy, std::back_inserter(topo));
+    for(vector<int>::iterator it = topo.begin(); it != topo.end(); ++it)
     {
-      // get the corresponding type id
-      i = hierarchy.inf(it.get_node());
+        // get the corresponding type id
+        i = *it;
 
-      if(simple_leaftype(i))
-	{
-	  mark_leaftype(i);
-	}
-      else if (hierarchy.indeg(type_node[i]) == 1) // one parent
-	{
-	  // check if all children are leaftypes
-	  int c; bool good = true;
-	  
-	  list<int> l = immediate_subtypes(i);
-	  forallint(c, l)
-	    if(leaftypeparent[c] == -1)
-	      {
-		good = false;
-		break;
-	      }
-	  
-	  if(good) 
-	    mark_leaftype(i);
-	}
-
-      ++it;
+        if(simple_leaftype(i))
+        {
+          //fprintf(stderr, "SLT %d %s\n", i, types.name(i).c_str());
+            mark_leaftype(i);
+        }
+        else if (boost::in_degree(i, hierarchy) == 1) // one parent
+        {
+            // check if all children are leaftypes
+            int c; bool good = true;
+            
+            list<int> l = immediate_subtypes(i);
+         
+            forallint(c, l)
+                if(leaftypeparent[c] == -1)
+                {
+                    good = false;
+                    break;
+                }
+            
+            if(good) 
+              {
+                //fprintf(stderr, "CLT %d\n", i);
+                mark_leaftype(i);
+              }
+        }
     }
 
 #endif
@@ -454,7 +501,7 @@ void find_leaftypes()
 
 /** Recursively print all subtypes of a given type t */
 void
-print_subtypes(FILE *f, int t, std::hash_set<int> &visited)
+print_subtypes(FILE *f, int t, HASH_SPACE::hash_set<int> &visited)
 {
     if(visited.find(t) != visited.end())
         return;
@@ -473,7 +520,7 @@ print_subtypes(FILE *f, int t, std::hash_set<int> &visited)
 void
 print_hierarchy(FILE *f)
 {
-    std::hash_set<int> visited;
+    HASH_SPACE::hash_set<int> visited;
     for(int i = 1; i < types.number() ; i++)
     {
         visited.clear();
@@ -489,38 +536,40 @@ bool process_hierarchy()
 
   fprintf(fstatus, "- type hierarchy (");
 
+#if 0
   // sanity check: is the hierarchy simple (contains no parallel edges)
   if(!Is_Simple(hierarchy))
     {
       fprintf(ferr, "type hierarchy is not simple (should not happen)\n");
       Make_Simple(hierarchy);
     }
+#endif
 
   // check for cyclicity:
-  if(!Is_Acyclic(hierarchy))
-    {
+  if(!isAcyclic(hierarchy))
+  {
       fprintf(ferr, "type hierarchy is cyclic.\n");
       return false;
-    }
-
+  }
+  
   // make all maximal types subtypes of TOP
   for(i = 1; i < types.number() ; i++)
-    {
-      if(hierarchy.indeg(type_node[i]) == 0)
-	{
-	  subtype_constraint(i, BI_TOP);
-	}
-    }
+  {
+      if(boost::in_degree(i, hierarchy) == 0)
+      {
+          subtype_constraint(i, BI_TOP);
+      }
+  }
 
- fprintf(fstatus, "leaf types ");
+  fprintf(fstatus, "leaf types ");
 
   // for each type t, leaftypeparent[t] is -1 if t is not a leaftype,
   // and the id of the parent type otherwise
-
+  
   find_leaftypes();
-
+  
   fprintf(fstatus, "[%d], ", nleaftypes); 
-
+  
   fprintf(fstatus, "bitcodes, ");
 
   // codesize is number of non-leaf types

@@ -838,7 +838,7 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
           struct avm *A = new_avm();
           add_attr_val(A, attrval);
           struct term *T = new_term();
-	  T->tag = FEAT_TERM;
+          T->tag = FEAT_TERM;
           T->A = A;
           add_term(t->constraint, T);
         }

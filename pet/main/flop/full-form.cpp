@@ -19,8 +19,8 @@
 
 /* read a full form table */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
+#include <cstdlib>
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>

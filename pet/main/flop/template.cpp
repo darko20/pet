@@ -343,7 +343,7 @@ void expand_conjunction(struct conjunction *C)
 		}
 	      else
 		{
-		  fprintf(ferr, "warning: template parameter `$%s' expanding to nothing (???)\n", term -> value);
+		  fprintf(ferr, "warning: template parameter `$%s' expanding to nothing (?)\n", term -> value);
 		  term -> tag = TYPE;
 		  term -> type = 0;
 		}

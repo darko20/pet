@@ -25,8 +25,6 @@
 #include <assert.h>
 #include <ctype.h>
 
-#include <LEDA/h_array.h>
-
 #include "flop.h"
 
 int strcount(char *s, char c)
@@ -47,23 +45,15 @@ int strcount(char *s, char c)
   return n;
 }
 
-leda_h_array<string, int> name_type;
-
-int Hash(const string &s)
-{
-  int h = 0, i, l = s.length();
-  
-  for(i = 0; i < l; i++) h = h*65599 + s[i]; 
-
-  return h;
-}
+map<string, int> name_type;
 
 int lookup(const string &s)
 {
-  if(name_type.defined(s))
-    return name_type[s];
-  else
-    return -1;
+    map<string, int>::iterator it = name_type.find(s);
+    if(it != name_type.end())
+        return it->second;
+    else
+        return -1;
 }
 
 void indent (FILE *f, int nr)
@@ -71,7 +61,7 @@ void indent (FILE *f, int nr)
   fprintf (f, "%*s", nr, "");
 }
 
-struct type *new_type(const string &name, bool is_inst, bool define = true)
+struct type *new_type(const string &name, bool is_inst, bool define)
 {
   struct type *t;
   t = new struct type;
