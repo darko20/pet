@@ -7,7 +7,9 @@ LexItem (Active/Passive)
 PhrasalItem (Active/Passive)
 
 lex items have inflrs_todo list
-active lex items subcategorize for morph items
+active lex items subcategorize for morph items: this is the key property
+that distinguishes them from phrasal items. a passive lex item behaves 
+identical to a passive phrasal item.
 
 Processing:
 1. Map input positions to consecutive/contigous/normalized chart positions
