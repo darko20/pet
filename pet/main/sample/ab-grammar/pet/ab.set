@@ -36,6 +36,7 @@ special-name-attr-args := "ARGS".
 grammar-info := grammar_info.
 
 ;; status values that mark rules
+infl-rule-status-values := inflrule.
 rule-status-values := nonterminal.
 ;lexrule-status-values := lex-rule.
 
