@@ -72,11 +72,6 @@ class tItem
     // Temporary stuff
     //
 
-    /** _fix_me_ This is only used in build_combined_item in task.cpp
-     *  can be removed when that's been cleaned up. */
-    virtual int
-    arity() = 0;
-
     //
     // Old stuff
     //
@@ -119,16 +114,6 @@ class tItem
           recreate_fs();
       return _fs;
   }
-
-  inline int nextarg() { return first(_tofill); }
-  inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
-  inline list_int *restargs() { return rest(_tofill); }
-  inline int nfilled() { return _nfilled; }
-
-#if 0
-  virtual int startposition() = 0;
-  virtual int endposition() = 0;
-#endif
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
@@ -196,10 +181,6 @@ class tItem
   tPaths _paths;
   
   fs _fs;
-
-  list_int *_tofill;
-
-  int _nfilled;
 
   list_int *_inflrs_todo;
 
@@ -300,6 +281,18 @@ class tFSItem
         return _t;
     }
     
+    fs
+    getFS()
+    {
+        return _f;
+    }
+
+    fs
+    getNthArg(int i)
+    {
+        return getFS().nth_arg(i);
+    }
+
  private:
 
     type_t _t;
@@ -321,12 +314,6 @@ class tLexItem : public tItem, private tActive
     passive()
     {
         return tActive::passive();
-    }
-
-    virtual int
-    arity()
-    {
-        return tActive::remainingArity();
     }
 
     virtual bool
@@ -435,12 +422,6 @@ class tPhrasalItem : public tItem, private tActive, private tFSItem
         return tActive::passive();
     }
 
-    virtual int
-    arity()
-    {
-        return tActive::remainingArity();
-    }
-
     virtual bool
     leftExtending()
     {
@@ -485,6 +466,12 @@ class tPhrasalItem : public tItem, private tActive, private tFSItem
         else
             combined.push_back(passive);
         return combined;
+    }
+
+    fs
+    nextArg()
+    {
+        return getNthArg(tActive::nextArg());
     }
 
   tPhrasalItem(class tGrammarRule *); 

@@ -43,7 +43,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
            fs &f)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
-      _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
+      _fs(f), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0),
@@ -55,7 +55,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
 tItem::tItem(int start, int end, const tPaths &paths)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
-      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
+      _fs(), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0),
@@ -151,7 +151,7 @@ tPhrasalItem::tPhrasalItem(tGrammarRule *R)
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     : tItem(-1, -1, active->_paths.common(pasv->_paths), f),
-      tActive(active->filledArity(), active->restargs()),
+      tActive(active->filledArity(), active->restArgs()),
       tFSItem(active->type(), f),
     _daughters(active->getCombinedDaughters(pasv)), _adaughter(active)
 {
@@ -221,9 +221,6 @@ tPhrasalItem::tPhrasalItem(tGrammarRule *R, tItem *pasv, fs &f)
     pasv->parents.push_back(this);
     active->parents.push_back(this);
 
-    _tofill = active->restargs();
-    _nfilled = active->nfilled() + 1;
-
     _trait = SYNTAX_TRAIT;
 
     if(opt_nqc_unif != 0)
@@ -232,7 +229,7 @@ tPhrasalItem::tPhrasalItem(tGrammarRule *R, tItem *pasv, fs &f)
             _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
         else
             _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                            nextarg(f));
+                                            nextArg());
     }
     
     if(opt_nqc_subs != 0)
@@ -270,7 +267,6 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
         _daughters.push_back(*it);
 
     _trait = SYNTAX_TRAIT;
-    _nfilled = dtrs.size(); 
 }
 
 bool
@@ -320,16 +316,7 @@ tItem::print(FILE *f, bool compact)
 
     fprintf(f, " {");
 
-    list_int *l = _tofill;
-    while(l)
-    {
-        fprintf(f, "%d ", first(l));
-        l = rest(l);
-    }
-
-    fprintf(f, "} {");
-
-    l = _inflrs_todo;
+    list_int *l = _inflrs_todo;
     while(l)
     {
         fprintf(f, "%s ", printnames[first(l)]);
