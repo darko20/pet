@@ -2,10 +2,10 @@ UNIFIER = tomabechi ;
 YY = true ;
 
 TSDB = true ;
-ITSDBDIR = /lingo/uc/lkb ;
+ITSDBDIR = /proj/deepthought/uc/src/newlkb ;
 
 ICU = true ;
-ICUDIR = /lingo/local ; 
+ICUDIR = /usr/contrib/lib/icu ; 
 
 IQT = false ;
 IQTDIR = /home/uc/YY/src/lib/iqtsdk/main ;
