@@ -26,15 +26,13 @@
 #include <ctype.h>
 
 #include "flop.h"
+#include "hierarchy.h"
 #include "types.h"
 #include "options.h"
 
-#include <LEDA/set.h>
-#include <LEDA/d_array.h>
-#include <LEDA/basic_graph_alg.h>
-#include <LEDA/graph.h>
-#include <LEDA/graph_iterator.h>
-#include <LEDA/node_partition.h>
+#include "partition.h"
+
+#include <set>
 
 bool pseudo_type(int i)
 {
@@ -61,14 +59,14 @@ bool compute_appropriateness()
   
   for(i = 0; i < attributes.number(); i++)
     apptype[i] = BI_TOP;
-
-  TOPO_It it(hierarchy);
-  
-  while(it.valid())
+    
+  vector<int> topo;
+  boost::topological_sort(hierarchy, std::back_inserter(topo));
+  for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
       struct dag_arc *arc;
-      i = hierarchy.inf(it.get_node());
-
+      i = *it;
+        
       if(!pseudo_type(i))
 	{
 	  arc = dag_deref(types[i]->thedag)->arcs;
@@ -93,8 +91,6 @@ bool compute_appropriateness()
 	      arc = arc->next;
 	    }
 	}
-
-      ++it;
     }
 
   for(i = 0; i < attributes.number(); i++)
@@ -179,13 +175,13 @@ bool delta_expand_types()
   list<int> l;
 
   fprintf(fstatus, "- delta expansion for types\n");
-
-  TOPO_It it(hierarchy);
   
-  while(it.valid())
+  vector<int> topo;
+  boost::topological_sort(hierarchy, std::back_inserter(topo));
+  for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
-      i = hierarchy.inf(it.get_node());
-
+      i = *it;
+      
       if(!pseudo_type(i) && (opt_expand_all_instances || !dont_expand(i)))
 	{
 	  l = immediate_supertypes(i);
@@ -199,14 +195,12 @@ bool delta_expand_types()
 		}
 	    }
 	}
-
-      ++it;
     }
 
   return true;
 }
 
-void critical_types(struct dag_node *dag, leda_set<int> &cs)
+void critical_types(struct dag_node *dag, set<int> &cs)
 {
   dag = dag_deref(dag);
 
@@ -276,44 +270,46 @@ bool fully_expand(struct dag_node *dag, bool full)
 
 bool fully_expand_types()
 {
-  int i, e;
+  int i;
   list<int> l;
-  leda_set<int> cs;
+  set<int> cs;
 
-  GRAPH<int,int> G;
-  leda_map<int,leda_node> s_node;
-
+  tHierarchy G;
+  
   fprintf(fstatus, "- full type expansion\n");
 
   bool fail = false;
-
-  for(i = 0; i<types.number(); i++)
+  
+  for(i = 0; i < types.number(); ++i)
     {
-      leda_node v0 = G.new_node();
-      G[v0] = i;
-      s_node[i] = v0;
+      int v = boost::add_vertex(G);
+      assert(v == i);
     }
 
-  for(i = 0; i<types.number(); i++)
+  for(i = 0; i < types.number(); ++i)
     {
       cs.clear();
       critical_types(types[i]->thedag, cs);
 
       dag_invalidate_visited();
 
-      forall(e, cs)
-	if(i != e && e < types.number()) G.new_edge(s_node[i], s_node[e]);
+      for(set<int>::iterator it = cs.begin(); it != cs.end(); ++it)
+        {
+          if(i != *it && *it < types.number())
+            boost::add_edge(i, *it, G);
+        }
     }
 
   initialize_dags(ntypes);
 
   unify_reset_visited = true;
-
-  TOPO_It it(G);
-  while(it.valid())
+   
+  vector<int> topo;
+  boost::topological_sort(G, std::back_inserter(topo));
+  for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
-      i = G.inf(it.get_node());
-
+      i = *it;
+        
       if(!pseudo_type(i))
 	{
 	  if(!fully_expand(types[i]->thedag, opt_full_expansion))
@@ -332,8 +328,6 @@ bool fully_expand_types()
 	}
 
       register_dag(i, (types[i]->thedag = dag_deref(types[i]->thedag)));
-
-      ++it;
     }
 
   unify_reset_visited = false;
@@ -345,7 +339,8 @@ bool fully_expand_types()
 // maximal appropriate type computation
 //
 
-leda_d_array<int, int> nintro(0); // no of introduced features 
+extern int *maxapp;
+map<int, int> nintro; // no of introduced features 
 
 void compute_maxapp()
 {
@@ -415,7 +410,7 @@ int unfill_dag_rec(struct dag_node *dag, int root)
       coref = dag_get_visit(dst) - 1;
 
       if(dst->arcs == 0 && coref == 0 && dst->type == maxapp[arc->attr]
-         && apptype[arc->attr] != root)
+         && apptype[arc->attr] != root && root != -1)
 	{
 	  nunfilled++;
 	  arc = arc->next;
@@ -463,32 +458,30 @@ void unfill_types()
 // partitioning of hierarchy, for non-minimal encoding
 //
 
-leda_d_array<int, int> nfeat(0); // total no of  features 
-leda_d_array<int, int> prefixl(-1); // prefix ok if >= 0, gives length of prefix
+map<int, int> nfeat; // total no of  features 
+map<int, int> prefixl; // prefix ok if in map and >= 0, gives length of prefix
 
 void prefix_down(int t, int l)
 {
   prefixl[t] = l + nintro[t];
   if(verbosity > 7)
     fprintf(fstatus, "prefix length of `%s' = %d\n",
-	    types.name(t).c_str(), prefixl[t]);
-
-  leda_list<leda_edge> children = hierarchy.out_edges(type_node[t]);
-  leda_edge e;
+            types.name(t).c_str(), prefixl[t]);
+    
+  if(boost::out_degree(t, hierarchy) != 1)
+    return;
   
-  if(children.length() != 1) return;
-
-  forall(e, children)
+  list<int> children = immediate_subtypes(t);
+  for(list<int>::iterator it = children.begin(); it != children.end(); ++it)
     {
-      leda_node dest = hierarchy.opposite(type_node[t], e);
-      prefix_down(hierarchy[dest], l + nintro[t]);
+      prefix_down(*it, l + nintro[*it]);
     }
 }
 
 //
 // merge all types without features into one partition, top-down
 //
-void merge_top_down(int t, leda_node p, leda_node_partition &P)
+void merge_top_down(int t, int p, tPartition &P)
 {
   if(nfeat[t] > 0)
     {
@@ -499,95 +492,90 @@ void merge_top_down(int t, leda_node p, leda_node_partition &P)
     }
   prefixl[t] = 0;
 
-  P.union_blocks(type_node[t], p);
+    P.union_sets(t, p);
   
-  leda_list<leda_edge> children = hierarchy.out_edges(type_node[t]);
-  leda_edge e;
-  
-  forall(e, children)
+    list<int> children = immediate_subtypes(t);
+    for(list<int>::iterator it = children.begin(); it != children.end(); ++it)
     {
-      leda_node dest = hierarchy.opposite(type_node[t], e);
-      
-      if(!P.same_block(dest, p))
-	merge_top_down(hierarchy[dest], p, P);
+        if(!P.same_set(*it, p))
+            merge_top_down(*it, p, P);
     }
 }
 
-void merge_partitions(int t, leda_node p, leda_node_partition &P, int s)
+void merge_partitions(int t, int p, tPartition &P, int s)
 {
-  if(nfeat[t] == 0 || prefixl[t] >= 0 ) return;
+  if(nfeat[t] == 0 || prefixl.find(t) != prefixl.end() && prefixl[t] >= 0) return;
   
-  P.union_blocks(type_node[t], p);
-
-  if(subtype(hierarchy[P(type_node[t])], t))
-    P.make_rep(type_node[t]);
+  P.union_sets(t, p);
+  
+  if(subtype(P(t), t))
+    P.make_rep(t);
   else
     {
       if(verbosity > 7)
-	fprintf(fstatus, "merging %s into %s partition (from %s)\n",
-		types.name(t).c_str(),
-		types.name(hierarchy[P(type_node[t])]).c_str(),
-		types.name(s).c_str());
+        fprintf(fstatus, "merging %s into %s partition (from %s)\n",
+                types.name(t).c_str(),
+                types.name(P(t)).c_str(),
+                types.name(s).c_str());
     }
   
-  leda_list<leda_edge> parents = hierarchy.in_edges(type_node[t]);
-  leda_edge e;
+  list<int> parents = immediate_supertypes(t);
   
-  forall(e, parents)
+  for(list<int>::iterator it = parents.begin(); it != parents.end(); ++it)
     {
-      leda_node dest = hierarchy.opposite(type_node[t], e);
-      
-      if(!P.same_block(dest, p))
-	merge_partitions(hierarchy[dest], p, P, t);
+      if(!P.same_set(*it, p))
+        merge_partitions(*it, p, P, t);
     }
 }
 
 int *featconf; /* minimal feature configuration id for each type */
 
-leda_d_array<int, list_int *> theconf(0);
-leda_d_array<int, list_int *> theset(0);
+map<int, list_int *> theconf;
+map<int, list_int *> theset;
 
 void bottom_up_partitions()
 {
-  leda_node_partition part(hierarchy);
-
+  assert(types.number() == (int) boost::num_vertices(hierarchy));
+  tPartition part(types.number());
+  
   fprintf(fstatus, "- partitioning hierarchy ");
 
-  merge_top_down(0, part(type_node[0]), part);
-
+  merge_top_down(0, part(0), part);
+  
   for(int i = 0; i < types.number(); i++)
     {
-      if(hierarchy.outdeg(type_node[i]) == 0)
-	merge_partitions(i, part(type_node[i]), part, 0);
+      if(boost::out_degree(i, hierarchy) == 0)
+        merge_partitions(i, part(i), part, 0);
     }
-
-  leda_node_array<bool> reached(hierarchy);
+  
+  map<int, bool> reached;
+  
   nfeatsets = 0;
   for(int i = 0; i < types.number(); i++)
-    if(reached[type_node[i]] == false)
+    if(!reached[i])
       {
-	list_int *feats = 0;
-	if(verbosity > 4)
-	  fprintf(fstatus, "partition %d (`%s'):\n",
-		  nfeatsets,
-		  types.name(hierarchy[part(type_node[i])]).c_str());
-	
+        list_int *feats = 0;
+        if(verbosity > 4)
+          fprintf(fstatus, "partition %d (`%s'):\n",
+                  nfeatsets,
+                  types.name(part(i)).c_str());
+
 	for(int j = 0; j < types.number(); j++)
-	  if(reached[type_node[j]] == false && part.same_block(type_node[i], type_node[j]))
-	    {
-	      featset[j] = nfeatsets;
-	      reached[type_node[j]] = true;
-	      if(verbosity > 4)
-		fprintf(fstatus, "  %s\n", types.name(j).c_str());
-
-	      list_int *l = theconf[featconf[j]];
-	      while(l)
-		{
-		  if(!contains(feats, first(l))) feats = cons(first(l), feats);
-		  l = rest(l);
-		}
-	    }
-
+          if(!reached[j] && part.same_set(i, j))
+            {
+              featset[j] = nfeatsets;
+              reached[j] = true;
+              if(verbosity > 4)
+                fprintf(fstatus, "  %s\n", types.name(j).c_str());
+                
+              list_int *l = theconf[featconf[j]];
+              while(l)
+                {
+                  if(!contains(feats, first(l))) feats = cons(first(l), feats);
+                  l = rest(l);
+                }
+            }
+        
 	if(verbosity > 4)
 	  {
 	    fprintf(fstatus, "features (%d):", length(feats));
@@ -617,7 +605,7 @@ int si_compare(const void *a, const void *b)
   return *((short int *) a) - *((short int *) b);
 }
 
-void generate_featsetdescs(int nconfs, leda_d_array<int, list_int*> &conf)
+void generate_featsetdescs(int nconfs, map<int, list_int*> &conf)
 {
   // generate feature table descriptors
 
@@ -644,7 +632,7 @@ void generate_featsetdescs(int nconfs, leda_d_array<int, list_int*> &conf)
 
 void compute_feat_sets(bool minimal)
 {
-  leda_d_array<list_int *, int> feature_confs(0);
+  map<list_int *, int> feature_confs;
   int feature_conf_id = 0;
   int i;
 
@@ -680,18 +668,20 @@ void compute_feat_sets(bool minimal)
 
       if(verbosity > 7 && nintro[i] > 0)
         {
-          leda_node_array<bool> reached(hierarchy);
+#if 0
+          int nsub = DFS(hierarchy, i, reached).length();
+
           fprintf(fstatus, "type `%s': nsub: %d nfeat: %d fconf: %d nintro: %d",
                   types.name(i).c_str(),
-                  DFS(hierarchy, type_node[i], reached).length(),
+                  nsub, 
                   nf,
                   featconf[i],
                   nintro[i]);
           
           int sumintro = 0;
           for(int j = 0; j < types.number(); j++)
-            if(reached[type_node[j]]) sumintro+=nintro[j];
-
+            if(reached[j]) sumintro += nintro[j];
+          
           fprintf(fstatus, " sumintro: %d", sumintro);
 
 	  for(int j = 0; j < attributes.number(); j++)
@@ -699,6 +689,7 @@ void compute_feat_sets(bool minimal)
 	      fprintf(fstatus, " %s", attributes.name(j).c_str());
           
           fprintf(fstatus, "\n");
+#endif
         }
     }
 

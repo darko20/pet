@@ -12,14 +12,18 @@ FLOPSOURCES = flop.cpp builtins.cpp terms.cpp settings.cpp full-form.cpp
 	      bitcode.cpp types.cpp hierarchy.cpp expand.cpp reduction.cpp
 	      dag-arced.cpp dag-simple.cpp dag-common.cpp dag-tdl.cpp
 	      dag-io.cpp dag-alloc.cpp dumper.cpp grammar-dump.cpp dump.cpp
-              errors.cpp chunk-alloc.cpp utility.cpp ;
+              errors.cpp chunk-alloc.cpp utility.cpp partition.cpp ;
 
-C++FLAGS += -DLEDA_PREFIX -DGITSETWK -DUSEMMAP -DDAG_SIMPLE -DWROBLEWSKI3
-	    -DFLOP ;
+C++FLAGS += -DUSEMMAP -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP ;
 
-HDRS += . $(LEDAROOT)/incl ;
+HDRS += . /opt/lib/boost ;
 
-LINKLIBS on flop = $(LEDAROOT)/libG.a $(LEDAROOT)/libL.a -lm -lstdc++ -ldl
-                   -liberty ;
+LINKLIBS on flop = -lm -lstdc++ -ldl -liberty ;
 
 Main flop : $(FLOPSOURCES) ; 
+
+BOOSTSOURCES = boost.cpp reduction.cpp ;
+
+LINKLIBS on boost = -lm -lstdc++ ;
+
+Main boost : $(BOOSTSOURCES) ;

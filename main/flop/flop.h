@@ -25,17 +25,15 @@
 #include <stdio.h>
 #include <locale.h>
 
-#include <LEDA/list.h>
-#include <LEDA/map.h>
-#include <LEDA/graph.h>
-#include <LEDA/d_int_set.h>
-#include <LEDA/h_array.h>
-#include <LEDA/array.h>
+using namespace std;
 
 #include <list>
 #include <string>
 #include <vector>
 #include <map>
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
 
 #include "utility.h"
 #include "list-int.h"
@@ -63,7 +61,7 @@
 #define COREF_TABLE_SIZE 32
 #define LIST_TABLE_SIZE 12
 #define AV_TABLE_SIZE 8 // this grows dynamically
-#define CONJ_TABLE_SIZE 12
+#define CONJ_TABLE_SIZE 24
 
 /* fixed upper limit for tables used for elements of conjunctions,
    lists, avms etc. */
@@ -101,14 +99,13 @@ extern settings *flop_settings;
 
 /* `lexical tie ins' */
 extern int lisp_mode;      /* should lexer recognize lisp expressions */
+//extern int builtin_mode;   /* should lexer translate builtin names  */
 
 /*** parse-tdl.cc ***/
 
 extern int syntax_errors;
 
 /*** types.cc ***/
-extern GRAPH<int,int> hierarchy;
-extern leda_map<int,leda_node> type_node;
 extern int *apptype;
 
 /*** full-form.cc ***/
@@ -397,9 +394,6 @@ void compute_feat_sets(bool minimal);
 void unfill_types();
 
 bool fully_expand(struct dag_node *dag, bool full);
-
-/*** reduction.cc ***/
-void ACYCLIC_TRANSITIVE_REDUCTION(const leda_graph& G, leda_edge_array<bool>& in_reduction);
 
 /*** dump.cc ***/
 void dump_grammar(dumper *f, char *desc);
