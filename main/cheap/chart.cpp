@@ -100,8 +100,11 @@ void chart::get_statistics()
             if(it -> result_contrib())
                 stats.rpedges++;
             
+#if 0
+            // _fix_me_
             fs f = it -> get_fs();
             totalsize += f.size();
+#endif
 	}
         else
         {

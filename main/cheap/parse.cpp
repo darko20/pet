@@ -117,13 +117,17 @@ packed_edge(tItem *newitem)
                                    olditem->qc_vector_subs(),
                                    newitem->qc_vector_subs(),
                                    f1, b1);
-            
+     
+            // _fix_me_
+#if 0
             if(forward ==false && backward == false)
                 stats.fsubs_qc++;
             else
                 subsumes(olditem->get_fs(), newitem->get_fs(),
                          forward, backward);
-            
+#endif            
+
+
             if(f1 == false && forward || b1==false && backward)
             {
                 fprintf(stderr, "S | > %c vs %c | < %c vs %c\n",

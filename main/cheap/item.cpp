@@ -39,19 +39,6 @@
 item_owner *tItem::_default_owner = 0;
 int tItem::_next_id = 1;
 
-tItem::tItem(int start, int end, const tPaths &paths,
-           fs &f)
-    : _id(_next_id++),
-      _start(start), _end(end), _spanningonly(false), _paths(paths),
-      _fs(f), _inflrs_todo(0),
-      _result_root(-1), _result_contrib(false),
-      _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0),
-      _blocked(0), _unpack_cache(0), parents(), packed()
-{
-    if(_default_owner) _default_owner->add(this);
-}
-
 tItem::tItem(int start, int end, const tPaths &paths)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
@@ -75,7 +62,7 @@ tItem::~tItem()
 tLexItem::tLexItem(int start, int end, const tPaths &paths,
                    int ndtrs, int keydtr, input_token **dtrs, 
                    fs &f)
-    : tItem(start, end, paths, f),
+    : tItem(start, end, paths),
       tActive(0, 0),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
@@ -150,7 +137,7 @@ tPhrasalItem::tPhrasalItem(tGrammarRule *R)
 }
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
-    : tItem(-1, -1, active->_paths.common(pasv->_paths), f),
+    : tItem(-1, -1, active->_paths.common(pasv->_paths)),
       tActive(active->filledArity(), active->restArgs()),
       tFSItem(active->type(), f),
     _daughters(active->getCombinedDaughters(pasv)), _adaughter(active)
@@ -254,8 +241,7 @@ tPhrasalItem::tPhrasalItem(tGrammarRule *R, tItem *pasv, fs &f)
 }
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
-    : tItem(sponsor->start(), sponsor->end(), sponsor->_paths,
-           f),
+    : tItem(sponsor->start(), sponsor->end(), sponsor->_paths),
       tActive(0, 0), // _fix_me_
       tFSItem(sponsor->type(), f),
       _daughters(),
@@ -757,8 +743,6 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
                 fprintf(stderr, "\n");
                 combined->print(stderr);
                 fprintf(stderr, "\n");
-                if(verbosity > 14)
-                    dag_print(stderr, combined->get_fs().dag());
             }
             res.push_back(combined);
         }

@@ -75,8 +75,10 @@ class tItem
     //
     // Old stuff
     //
-    
+
+#if 0    
   tItem(int start, int end, const tPaths &paths, fs &f);
+#endif
   tItem(int start, int end, const tPaths &paths);
 
   virtual ~tItem();
@@ -108,12 +110,14 @@ class tItem
   bool
   root(class tGrammar *G, int length, type_t &rule);
   
+#if 0
   virtual fs get_fs(bool full = false)
   {
       if(_fs.temp() && _fs.temp() != unify_generation)
           recreate_fs();
       return _fs;
   }
+#endif
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
