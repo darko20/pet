@@ -43,10 +43,12 @@ unification_failure::unification_failure(failure_type t, list_int *rev_path, int
   : _cyclic_paths()
 {
   _type = t; _path = reverse(rev_path); _s1 = s1; _s2 = s2; _cost = cost;
+#ifdef QC_PATH_COMP
   if(cycle && root)
     {
       _cyclic_paths = dag_paths(root, cycle);
     }
+#endif
 }
 
 unification_failure::~unification_failure()

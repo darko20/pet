@@ -19,6 +19,8 @@
 
 /* computing quick check paths */
 
+#ifdef QC_PATH_COMP
+
 #include "pet-system.h"
 #include "qc.h"
 #include "parse.h"
@@ -249,3 +251,5 @@ void compute_qc_paths(FILE *f, int max)
     }
   fprintf(f, " ].\n\n:end :instance.\n\n");
 }
+
+#endif
