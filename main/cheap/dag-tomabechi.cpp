@@ -274,7 +274,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
 #ifdef QC_PATH_COMP
       if(unify_record_failure)
         {
-          // XXX this is not right
+          // _fix_me_ this is not right
 	  if(!unify_all_failures)
 	    {
 	      save_or_clear_failure();
@@ -534,7 +534,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 
 #endif
 
-  // XXX maybe check if actually changed 
+  // _fix_me_ maybe check if actually changed 
   dag_set_new_type(dag1, new_type);
 
   if(unify_wellformed)
@@ -1290,7 +1290,7 @@ void dag_get_qc_vector_np(qc_node *path, struct dag_node *dag, type_t *qc_vector
   if(path->qc_pos > 0)
     qc_vector[path->qc_pos - 1] = dag_get_new_type(dag);
 
-  // XXX
+  // _fix_me_
   //  if(dag->arcs == 0 && dag_get_comp_arcs(dag) == 0)
   //    return;
 

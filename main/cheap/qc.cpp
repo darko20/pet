@@ -29,7 +29,7 @@
 #include "tsdb++.h"
 
 #define DUMMY_ATTR "ARGS"
-// XXX fix this
+// _fix_me_ fix this
 
 vector< set<int> > fail_sets;
 vector<int> fail_weight;

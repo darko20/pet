@@ -114,7 +114,7 @@ build_combined_item(chart *C, item *active, item *passive)
     fs combined = active->get_fs();
     
     if(opt_hyper && combined.temp())
-        unify_generation = combined.temp(); // XXX this might need to be reset
+        unify_generation = combined.temp(); // _fix_me_ this might need to be reset
     
     fs arg = active->nextarg(combined);
     
