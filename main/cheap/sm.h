@@ -81,6 +81,10 @@ class tSM
     G()
     { return _G; }
 
+    /** Return a description string suitable for printing.*/
+    virtual string
+    description() = 0;
+
  protected:
     const char *
     fileName()
@@ -119,10 +123,18 @@ class tMEM : public tSM
     combineScores(double a, double b)
     { return a + b; }
 
+    /** Return a description string suitable for printing.*/
+    virtual string
+    description();
+
  private:
     
     vector<double> _weights;
     class tSMMap *_map;
+
+    /** Number of contexts this model was trained on. For reporting
+        purposes only. */
+    string _ctxts;
 
     void
     readModel(const char *fileName);
