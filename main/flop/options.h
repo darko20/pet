@@ -26,7 +26,7 @@
 
 extern bool opt_pre, opt_chic, opt_expand, opt_expand_all_instances,
   opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
-  opt_propagate_status, opt_linebreaks, opt_glbdebug;
+  opt_propagate_status, opt_linebreaks, opt_glbdebug, opt_cmi;
 
 extern int verbosity;
 extern int errors_to;

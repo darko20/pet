@@ -24,8 +24,9 @@
 #include <time.h>
 #include <assert.h>
 
-#include <string>
 #include <vector>
+#include <string>
+#include <hash_set>
 
 #include "types.h"
 #include "flop.h"
@@ -123,7 +124,7 @@ list<int> immediate_supertypes(int t)
 leda_map<int,int> idbit_type;
 
 // compute the transitive closure encoding
-void compute_code_topo() 
+void compute_code_topo()
 {
   // the code to be assigned next
   int codenr = codesize - 1;
@@ -451,6 +452,37 @@ void find_leaftypes()
 #endif
 }
 
+/** Recursively print all subtypes of a given type t */
+void
+print_subtypes(FILE *f, int t, std::hash_set<int> &visited)
+{
+    if(visited.find(t) != visited.end())
+        return;
+    
+    visited.insert(t);
+    fprintf(f, " %s", types.name(t).c_str());
+
+    list<int> children = immediate_subtypes(t);
+    for(list<int>::iterator child = children.begin();
+        child != children.end(); ++child)
+    {
+        print_subtypes(f, *child, visited);
+    }
+}
+
+void
+print_hierarchy(FILE *f)
+{
+    std::hash_set<int> visited;
+    for(int i = 1; i < types.number() ; i++)
+    {
+        visited.clear();
+        fprintf(f, "%s:", types.name(i).c_str());
+        print_subtypes(f, i, visited);
+        fprintf(f, "\n");
+    }
+}
+
 bool process_hierarchy()
 {
   int i;
@@ -503,6 +535,11 @@ bool process_hierarchy()
   make_semilattice();
 
   fprintf(fstatus, ")\n");
+
+#ifdef MORPH_STUFF
+  if(opt_cmi)
+      print_hierarchy(fstatus);
+#endif
 
   return true;
 }

@@ -326,6 +326,30 @@ void process_types()
   compute_feat_sets(opt_minimal);
 }
 
+#ifdef MORPH_STUFF
+
+void
+print_morph_info(FILE *f)
+{
+    fprintf(f, ";; Morphological information\n");
+    // find all infl rules 
+    for(int i = 0; i < ntypes; i++)
+    {
+        if(cheap_settings->statusmember("infl-rule-status-values",
+					typestatus[i]))
+	{
+  	    fprintf(f, "%s:\n", typenames[i]);
+	    dag_node *dag = dag_expand(typedag[i]);
+	    dag = dag_get_path_value(dag, "MORPH.LIST.FIRST.HEAD");
+	    dag_print(f, dag);
+	    fprintf(f, "\n");
+	}
+    }
+    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
+}
+
+#endif
+
 char *parse_version()
 {
   char *fname;
