@@ -1,0 +1,455 @@
+New item hierarchy:
+
+InputItem
+MorphItem
+
+LexItem (Active/Passive)
+PhrasalItem (Active/Passive)
+
+lex items have inflrs_todo list
+active lex items subcategorize for morph items
+
+
+Processing:
+1. Map input positions to consecutive/contigous/normalized chart positions
+2. Make input items/morph items from input -> agenda
+3. input items -> morph items
+4. morph items -> lex items
+5. lexical processing
+6. cover gaps with generics
+7. if generics were added, lexical processing
+8. syntactic processing
+
+
+
+rulesForPassive returns iterator over all applicable rules. 
+
+
+Inputchart problem:
+- test file: mwprob1.yy
+- multiword entry for positions 1-3 is not retrieved, should be masen-end
+- but: sentence parses without YY mode
+
+
+Lexicon
+- there can be many lexicons
+- maps from stem to lex entry
+  - a lex entry contains:
+    - the stems
+    - the infl pos
+    - the key pos
+    - a way to build a feature structure  
+
+
+Morphology
+
+
+
+LexEntry
+- 
+
+Terminology
+- morphological rules (affixation required)
+- lexical rules (no affixation)
+- lexical rules differ from syntax rules in that their application
+  can be interleaved with morphological rules
+
+Affixation Site (multiword lexemes)
+Lexeme
+Word
+Stem (terminology)
+
+psql-lex-conn := "host='127.0.0.1' dbname='lingo' user='guest' password='guest'".
+
+
+lex_stem : fuer jede instanz mit status lex-entry gibt es einen lex_stem.
+	   fuer jeden generic auch.
+
+
+
+Classes:
+
+tInputItem : tItem
+tMorphItem : tItem
+tLexItem : tItem, tFSItem, tActiveItem
+tPhrasalItem : tItem, tFSItem, tActiveItem
+
+boost::shared_ptr instead of item_owner
+
+tItem
+---------------
+
+ Responsibilities:
+
+  - Keep track of position and span
+  - Keep track of printable name
+  - Keep track of parents and children
+  - Keep track of permissable paths
+
+ Interface:
+
+  int getStart() const;
+  int getEnd() const;
+  int getSpan() const;
+
+  const string &getPrintName() const;
+
+ Data:
+
+  const int _start;
+  const int _end;
+  const string _printName;
+
+  list<item *> parents;
+  list<item *> _daughters;
+
+  tPaths _paths;
+  
+
+
+tPackableItem
+---------------
+
+ Interface:
+  void block(int mark);
+  inline void frost() { block(1); }
+  inline void freeze() { block(2); }
+  inline bool blocked() { return _blocked != 0; }
+  inline bool frosted() { return _blocked == 1; }
+  inline bool frozen() { return _blocked == 2; }
+
+  list<item *> unpack(int limit);
+  virtual list<item *> unpack1(int limit) = 0;
+
+ Data:
+  list<item *> packed;
+  int _blocked;
+  list<item *> *_unpack_cache;
+
+
+tActiveItem
+---------------
+
+ Responsibilites:
+
+  - Keep track of completion requirements for this item
+    Note that a passive item (in parsing lingo) is just a special case of
+    an active item (with no remaining completion requirements.
+ 
+ Interface:
+  bool passive() const;
+  bool leftExtending() const;
+  bool spanningOnly() const;
+  inline int nextarg() { return first(_tofill); }
+  inline list_int *restargs() { return rest(_tofill); }
+  inline int arity() { return length(_tofill); }
+  inline int nfilled() { return _nfilled; }
+
+ Data:
+  bool _spanningOnly;
+  list_int *_tofill;
+  int _nfilled;
+
+
+tFSItem
+---------------
+
+ Description:
+
+ Responsibilities:
+
+  - Keep track of a feature structure associated with an item
+  - 
+
+ Interface:
+
+  tFS getFs(bool full = false)
+  type_t getFSType();
+  void recreateFs();
+
+ Data:
+  tFS _fs;
+  tQuickCheck _qcUnif;
+  tQuickCheck _qcSubs;
+
+
+tScorable
+---------------
+
+ Interface:
+
+  int getScoringId() const;
+
+  double getScore() const;
+  void setScore(double score);
+
+ Data:
+
+  double _score;
+
+tQuickCheck
+---------------
+ 
+ Interface:
+
+ Data:
+  dag_node *qcStructure;
+  int npaths
+  type_t *_qcVector
+
+
+
+
+
+----------------------------------------
+
+  static void reset_ids() { _next_id = 1; }
+  inline int id() { return _id; }
+
+  inline rule_trait trait() { return _trait; }
+
+
+
+
+  inline bool compatible(class grammar_rule *R, int length)
+  {
+      if(R->trait() == INFL_TRAIT)
+      {
+          if(_trait != INFL_TRAIT)
+              return false;
+          
+          if(first(_inflrs_todo) != R->type())
+              return false;
+      }
+      else if(R->trait() == LEX_TRAIT)
+      {
+          if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
+              return false;
+      }
+      else if(R->trait() == SYNTAX_TRAIT)
+      {
+          if(_trait == INFL_TRAIT)
+              return false;
+      }
+      
+      if(R->spanningonly())
+      {
+          if(R->arity() == 1)
+          {
+              if(span() != length)
+                  return false;
+          }
+          else if(R->nextarg() == 1)
+          {
+              if(_start != 0)
+                  return false;
+          }
+          else if(R->nextarg() == R->arity())
+          {
+              if(_end != length)
+                  return false;
+          }
+      }
+      
+      if(opt_shaping == false)
+          return true;
+      
+      if(R->left_extending())
+          return _end + R->arity() - 1 <= length;
+      else
+          return _start - (R->arity() - 1) >= 0;
+  }
+  
+  inline bool compatible(item *active, int length)
+  {
+      if(_trait == INFL_TRAIT)
+          return false;
+      
+      if(active->spanningonly())
+      {
+          if(active->nextarg() == 1)
+          {
+              if(_start != 0)
+                  return false;
+          }
+          else if(active->nextarg() == active->arity() + active->nfilled())
+          {
+              if(_end != length)
+                  return false;
+          }
+      }
+  
+      if(!opt_lattice && !_paths.compatible(active->_paths))
+          return false;
+    
+      return true;
+  }
+  
+
+  inline bool adjacent(class item *passive) // assumes `this' is an active item
+  {
+      return (left_extending() ? (_start == passive->_end)
+              : (_end == passive->_start));
+  }
+
+  inline bool root(class grammar *G, int length, type_t &rule)
+  {
+      if(_trait == INFL_TRAIT)
+          return false;
+      
+      if(_start == 0 && _end == length)
+          return G->root(_fs, rule);
+      else
+          return false;
+  }
+  
+  
+  inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
+
+  virtual int startposition() = 0;
+  virtual int endposition() = 0;
+
+  virtual void print(FILE *f, bool compact = false);
+  virtual void print_family(FILE *f) = 0;
+  virtual void print_packed(FILE *f);
+  virtual void print_derivation(FILE *f, bool quoted) = 0;
+  
+  virtual void print_yield(FILE *f) = 0;
+
+  virtual string tsdb_derivation(int protocolversion) = 0;
+
+  virtual void daughter_ids(list<int> &ids) = 0;
+  // Collect all (transitive) children. Uses frosting mechanism.
+  virtual void collect_children(list<item *> &result) = 0;
+
+  inline type_t result_root() { return _result_root; }
+  inline bool result_contrib() { return _result_contrib; }
+
+  virtual void set_result_root(type_t rule ) = 0;
+  virtual void set_result_contrib() = 0;
+  
+  virtual grammar_rule *rule() = 0;
+
+
+
+
+ private:
+
+  static int _next_id;
+
+  int _id;
+
+  rule_trait _trait;
+
+  list_int *_inflrs_todo;
+
+  type_t _result_root;
+  bool _result_contrib;
+
+};
+
+class lex_item : public item
+{
+ public:
+  lex_item(int start, int end, const tPaths &paths,
+           int ndtrs, int keydtr, class input_token **dtrs,
+           fs &f, const char *name);
+
+  ~lex_item() { delete[] _dtrs; }
+
+  virtual lex_item &operator=(const item &li)
+  {
+    throw error("unexpected call to assignment operator of lex_item");
+  }
+
+  lex_item(const lex_item &li)
+  {
+    throw error("unexpected call to copy constructor of lex_item");
+  }
+
+  virtual void print(FILE *f, bool compact = false);
+  virtual void print_family(FILE *f) {}
+
+  virtual void print_derivation(FILE *f, bool quoted);
+  virtual void print_yield(FILE *f);
+  virtual string tsdb_derivation(int protocolversion);
+
+  virtual void daughter_ids(list<int> &ids);
+  // Collect all (transitive) children. Uses frosting mechanism.
+  virtual void collect_children(list<item *> &result);
+
+  virtual void set_result_root(type_t rule);
+  virtual void set_result_contrib() { _result_contrib = true; }
+
+  virtual grammar_rule *rule();
+
+  virtual fs get_fs(bool full = false)
+  {
+      return full ? _fs_full : _fs;
+  }
+
+  virtual void recreate_fs();
+
+  string description();
+  string orth();
+
+  virtual inline int startposition() { return _dtrs[0]->startposition() ; }
+  virtual inline int endposition() { 
+    return _dtrs[_ndtrs - 1]->endposition() ; }
+
+  inline const postags &get_in_postags()
+  { return _dtrs[_keydtr]->get_in_postags(); }
+  inline const postags &get_supplied_postags()
+  { return _dtrs[_keydtr]->get_supplied_postags(); }
+
+  bool synthesized() { return _dtrs[_keydtr]->synthesized(); }
+
+  friend bool same_lexitems(const lex_item &a, const lex_item &b);
+
+
+ private:
+  int _ndtrs, _keydtr;
+  class input_token **_dtrs;
+
+  fs _fs_full; // unrestricted (packing) structure
+};
+
+class phrasal_item : public item
+{
+ public:
+  phrasal_item(class grammar_rule *, class item *, fs &);
+  phrasal_item(class phrasal_item *, class item *, fs &);
+  phrasal_item(class phrasal_item *, vector<class item *> &, fs &);
+
+  virtual void print(FILE *f, bool compact = false);
+  virtual void print_family(FILE *f);
+  virtual void print_derivation(FILE *f, bool quoted);
+  virtual void print_yield(FILE *f);
+  virtual string tsdb_derivation(int protocolversion);
+
+  virtual void daughter_ids(list<int> &ids);
+  // Collect all (transitive) children. Uses frosting mechanism.
+  virtual void collect_children(list<item *> &result);
+
+  virtual void set_result_root(type_t rule);
+  virtual void set_result_contrib() { _result_contrib = true; }
+
+  virtual grammar_rule *rule();
+
+  virtual void recreate_fs();
+
+  virtual int startposition() { return _daughters.front()->startposition() ; }
+  virtual int endposition() { return _daughters.back()->endposition() ; }
+
+  virtual list<item *> unpack1(int limit);
+  void unpack_cross(vector<list<item *> > &dtrs,
+                    int index, vector<item *> &config,
+                    list<item *> &res);
+  item *unpack_combine(vector<item *> &config);
+
+ private:
+  item * _adaughter;
+  grammar_rule *_rule;
+
+  friend class active_and_passive_task;
+};
