@@ -176,17 +176,10 @@ build_combined_item(chart *C, item *active, item *passive)
 
 double packingscore(int start, int end, int n, bool active)
 {
-    return 0;
-    //    return end - start;
-    //return end - double(start) / n;
-    /*
-
-           - (active ? 0.0 : double(start) / n) ;
-    */
-    /*
-    return end - double(end - start) / n 
-           - (active ? 0.0 : double(end - start) / n) ;
-    */
+  return end - double(start) / n
+    - (active ? 0.0 : double(start) / n);
+  //return end - double(end - start) / n
+  //    - (active ? 0.0 : double(end - start) / n) ;
 }
 
 item_task::item_task(class chart *C, class agenda *A, item *it)
