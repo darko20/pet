@@ -313,14 +313,11 @@ add_item(item *it)
 }
 
 inline bool
-ressources_exhausted()
+resources_exhausted()
 {
     return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) || 
         (memlimit > 0 && t_alloc.max_usage() >= memlimit);
 }
-
-void
-get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS);
 
 void
 parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS, 
@@ -348,7 +345,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 #ifdef YY
           (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning) &&
 #endif
-          !ressources_exhausted())
+          !resources_exhausted())
     {
         basic_task *t; item *it;
 	  
@@ -359,8 +356,17 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
         delete t;
     }
 
+    ParseTime->stop();
     TotalParseTime.stop();
-    get_statistics(C, ParseTime, FSAS);
+
+    stats.tcpu = ParseTime->convert2ms(ParseTime->elapsed());
+
+    stats.dyn_bytes = FSAS.dynamic_usage();
+    stats.stat_bytes = FSAS.static_usage();
+    FSAS.clear_stats();
+
+    get_unifier_stats();
+    C.get_statistics();
 
     if(opt_shrink_mem)
     {
@@ -374,7 +380,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
     delete ParseTime;
     delete Agenda;
 
-    if(ressources_exhausted())
+    if(resources_exhausted())
     {
         ostringstream s;
 
@@ -401,7 +407,8 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
             stats.p_trees++;
 
             list<item *> results;
-            results = (*tree)->unpack();
+            int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+            results = (*tree)->unpack(upedgelimit);
             
             for(list<item *>::iterator res = results.begin();
                 res != results.end(); ++res)
@@ -420,8 +427,21 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
                     }
                 }
             }
+            if(upedgelimit > 0 && stats.p_upedges > upedgelimit)
+            {
+                ostringstream s;
+
+                s << "unpack edge limit exhausted (" << upedgelimit 
+                  << " pedges)";
+
+                errors.push_back(s.str());
+                break;
+            }
         }
         stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
+        stats.dyn_bytes = FSAS.dynamic_usage();
+        stats.stat_bytes = FSAS.static_usage();
+        FSAS.clear_stats();
         delete UnpackTime;
     }
     else
@@ -492,16 +512,4 @@ analyze(input_chart &i_chart, string input, chart *&C,
     C = Chart = New chart(max_pos, owner);
 
     parse(*Chart, lex_items, FSAS, errors);
-}
-
-void
-get_statistics(chart &C, timer *Clock, fs_alloc_state &FSAS)
-{
-    stats.tcpu = Clock->convert2ms(Clock->elapsed());
-    stats.dyn_bytes = FSAS.dynamic_usage();
-    stats.stat_bytes = FSAS.static_usage();
-
-    get_unifier_stats();
-
-    C.get_statistics();
 }

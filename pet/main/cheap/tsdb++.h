@@ -75,8 +75,11 @@ class statistics
   int p_proactive;
   int p_retroactive;
   int p_frozen;
-  int p_utcpu;
-  int p_failures;
+  int p_utcpu;                /* cpu time for unpacking */
+  int p_upedges;              /* passive items constructed in unpacking */
+  int p_failures;             /* failures in unpacking */
+  long p_dyn_bytes;           /* total dynamic memory in bytes in unpacking */
+  long p_stat_bytes;          /* total static memory in bytes in unpacking */
 
   void reset();
   void print(FILE *f);
@@ -141,87 +144,97 @@ class tsdb_rule_stat
 class tsdb_parse
 {
  public:
-  tsdb_parse() :
-    parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1), pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1), date(), err(), nmeanings(-1), clashes(-1), pruned(-1), results(), rule_stats(), i_input(), i_length(-1)
+    tsdb_parse()
+        : parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1),
+        total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1),
+        p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1),
+        pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1),
+        conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1),
+        date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
+        subsumptions(-1), p_trees(-1), p_equivalent(-1), p_proactive(-1),
+        p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
+        p_upedges(-1),
+        results(), rule_stats(), i_input(), i_length(-1)
+        {
+        }
+
+    void push_result(class tsdb_result &r)
     {
+        results.push_back(r);
     }
 
-  void push_result(class tsdb_result &r)
+    void set_rt(const string &rt);
+
+    void push_rule_stat(class tsdb_rule_stat &r)
     {
-      results.push_back(r);
+        rule_stats.push_back(r);
     }
 
-  void set_rt(const string &rt);
-
-  void push_rule_stat(class tsdb_rule_stat &r)
+    void set_input(const string &s)
     {
-      rule_stats.push_back(r);
+        i_input = s;
     }
 
-  void set_input(const string &s)
+    void set_i_length(int l)
     {
-      i_input = s;
+        i_length = l;
     }
 
-  void set_i_length(int l)
-    {
-      i_length = l;
-    }
-
-  void file_print(FILE *f_parse, FILE *f_result, FILE *f_item);
+    void file_print(FILE *f_parse, FILE *f_result, FILE *f_item);
 
 #ifdef TSDBAPI
-  void capi_print();
+    void capi_print();
 #endif
 
-  int parse_id;                     // unique parse identifier
-  int run_id;                       // test run for this parse
-  int i_id;                         // item parsed
-  int readings;                     // number of readings obtained
-  int first;                        // time to find first reading (msec)
-  int total;                        // total time for parsing (msec)
-  int tcpu;                         // total (cpu) processing time (msec)
-  int tgc;                          // gc time used (msec)
-  int treal;                        // overall real time (msec)
-  int words;                        // lexical entries retrieved
-  int l_stasks;                     // successful lexical rule applications
-  int p_ctasks;                     // parser contemplated tasks (LKB)
-  int p_ftasks;                     // parser filtered tasks
-  int p_etasks;                     // parser executed tasks
-  int p_stasks;                     // parser succeeding tasks
-  int aedges;                       // active items in chart (PAGE)
-  int pedges;                       // passive items in chart
-  int raedges;                      // active items contributing to result
-  int rpedges;                      // passive items contributing to result
-  int unifications;                 // number of (node) unifications
-  int copies;                       // number of (node) copy operations
-  int conses;                       // cons() cells allocated
-  int symbols;                      // symbols allocated
-  long int others;                  // bytes of memory allocated
-  int gcs;                          // number of garbage collections
-  int i_load;                       // initial load (start of parse)
-  int a_load;                       // average load
-  string date;                      // date and time of parse
-  string err;                       // error string (if applicable |:-)
-  int nmeanings;
-  int clashes;                      // number of failed unifications
-  int pruned;                       // number of pruned lexical entries
-
-  int subsumptions;
-  int p_trees;
-  int p_equivalent;
-  int p_proactive;
-  int p_retroactive;
-  int p_frozen;
-  int p_utcpu;
-  int p_failures;
-
+    int parse_id;                     // unique parse identifier
+    int run_id;                       // test run for this parse
+    int i_id;                         // item parsed
+    int readings;                     // number of readings obtained
+    int first;                        // time to find first reading (msec)
+    int total;                        // total time for parsing (msec)
+    int tcpu;                         // total (cpu) processing time (msec)
+    int tgc;                          // gc time used (msec)
+    int treal;                        // overall real time (msec)
+    int words;                        // lexical entries retrieved
+    int l_stasks;                     // successful lexical rule applications
+    int p_ctasks;                     // parser contemplated tasks (LKB)
+    int p_ftasks;                     // parser filtered tasks
+    int p_etasks;                     // parser executed tasks
+    int p_stasks;                     // parser succeeding tasks
+    int aedges;                       // active items in chart (PAGE)
+    int pedges;                       // passive items in chart
+    int raedges;                      // active items contributing to result
+    int rpedges;                      // passive items contributing to result
+    int unifications;                 // number of (node) unifications
+    int copies;                       // number of (node) copy operations
+    int conses;                       // cons() cells allocated
+    int symbols;                      // symbols allocated
+    long int others;                  // bytes of memory allocated
+    int gcs;                          // number of garbage collections
+    int i_load;                       // initial load (start of parse)
+    int a_load;                       // average load
+    string date;                      // date and time of parse
+    string err;                       // error string (if applicable |:-)
+    int nmeanings;
+    int clashes;                      // number of failed unifications
+    int pruned;                       // number of pruned lexical entries
+    
+    int subsumptions;
+    int p_trees;
+    int p_equivalent;
+    int p_proactive;
+    int p_retroactive;
+    int p_frozen;
+    int p_utcpu;
+    int p_failures;
+    int p_upedges;                    // passive items in unpacking 
+    
  private:
-
-  list<tsdb_result> results;
-  list<tsdb_rule_stat> rule_stats;
-  string i_input;
-  int i_length; 
+    
+    list<tsdb_result> results;
+    list<tsdb_rule_stat> rule_stats;
+    string i_input;
+    int i_length; 
 };
 
 // this class provides a clock that starts running on construction

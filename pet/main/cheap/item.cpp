@@ -120,7 +120,8 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
 #endif
 }
 
-bool same_lexitems(const lex_item &a, const lex_item &b)
+bool
+same_lexitems(const lex_item &a, const lex_item &b)
 {
     if(a.start() != b.start() || a.end() != b.end())
         return false;
@@ -240,13 +241,15 @@ phrasal_item::phrasal_item(phrasal_item *sponsor, vector<item *> &dtrs, fs &f)
     _nfilled = dtrs.size(); 
 }
 
-void lex_item::set_result_root(type_t rule)
+void
+lex_item::set_result_root(type_t rule)
 {
     set_result_contrib();
     _result_root = rule;
 }
 
-void phrasal_item::set_result_root(type_t rule)
+void
+phrasal_item::set_result_root(type_t rule)
 {
     if(result_contrib() == false)
     {
@@ -263,7 +266,8 @@ void phrasal_item::set_result_root(type_t rule)
     _result_root = rule;
 }
 
-void item::print(FILE *f, bool compact)
+void
+item::print(FILE *f, bool compact)
 {
     fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
             _trait);
@@ -313,7 +317,8 @@ void item::print(FILE *f, bool compact)
     }
 }
 
-void lex_item::print(FILE *f, bool compact)
+void
+lex_item::print(FILE *f, bool compact)
 {
     fprintf(f, "L ");
     item::print(f);
@@ -331,7 +336,8 @@ lex_item::description()
     return _dtrs[_keydtr]->description();
 }
 
-void phrasal_item::print(FILE *f, bool compact)
+void
+phrasal_item::print(FILE *f, bool compact)
 {
     fprintf(f, "P ");
     item::print(f);
@@ -372,7 +378,8 @@ phrasal_item::print_family(FILE *f)
 
 static int derivation_indentation = 0; // not elegant
 
-void lex_item::print_derivation(FILE *f, bool quoted)
+void
+lex_item::print_derivation(FILE *f, bool quoted)
 {
     if(derivation_indentation == 0)
         fprintf(f, "\n");
@@ -391,7 +398,8 @@ void lex_item::print_derivation(FILE *f, bool quoted)
                                      orth);
 }
 
-void lex_item::print_yield(FILE *f)
+void
+lex_item::print_yield(FILE *f)
 {
     list<string> orth;
     for(int i = 0; i < _ndtrs; i++)
@@ -410,7 +418,8 @@ lex_item::getTagSequence(list<string> &tags, list<list<string> > &words)
     _dtrs[_keydtr]->getTagSequence(_inflrs_todo, orth, tags, words);
 }
 
-string lex_item::tsdb_derivation()
+string
+lex_item::tsdb_derivation()
 {
     string orth;
     for(int i = 0; i < _ndtrs; i++)
@@ -422,7 +431,8 @@ string lex_item::tsdb_derivation()
     return _dtrs[_keydtr]->tsdb_derivation(_id, orth);
 }
 
-void phrasal_item::print_derivation(FILE *f, bool quoted)
+void
+phrasal_item::print_derivation(FILE *f, bool quoted)
 {
     if(derivation_indentation == 0)
         fprintf(f, "\n");
@@ -471,7 +481,8 @@ void phrasal_item::print_derivation(FILE *f, bool quoted)
     fprintf(f, ")");
 }
 
-void phrasal_item::print_yield(FILE *f)
+void
+phrasal_item::print_yield(FILE *f)
 {
     for(list<item *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
@@ -490,7 +501,8 @@ phrasal_item::getTagSequence(list<string> &tags, list<list<string> > &words)
     }
 }
         
-string phrasal_item::tsdb_derivation()
+string
+phrasal_item::tsdb_derivation()
 {
     string result;
 
@@ -513,17 +525,20 @@ string phrasal_item::tsdb_derivation()
     return result;
 }
 
-grammar_rule *lex_item::rule()
+grammar_rule *
+lex_item::rule()
 {
     return NULL;
 }
 
-grammar_rule *phrasal_item::rule()
+grammar_rule *
+phrasal_item::rule()
 {
     return _rule;
 }
 
-void lex_item::recreate_fs()
+void
+lex_item::recreate_fs()
 {
     throw error("cannot rebuild lexical item's feature structure");
 }
@@ -622,7 +637,7 @@ item::block(int mark)
 int unpacking_level;
 
 list<item *>
-item::unpack()
+item::unpack(int upedgelimit)
 {
     list<item *> res;
 
@@ -639,22 +654,28 @@ item::unpack()
         return res;
     }
 
-    if(_unpack_cache) {
+    if(_unpack_cache)
+    {
         unpacking_level--;
         return *_unpack_cache;
     }
+
+    // Check if we reached the unpack edge limit. Caller is responsible for
+    // checking this to verify completeness of results.
+    if(upedgelimit > 0 && stats.p_upedges >= upedgelimit)
+        return res;
 
     // Recursively unpack items that are packed into this item.
     for(list<item *>::iterator p = packed.begin();
         p != packed.end(); ++p)
     {
         // Append result of unpack_item on packed item.
-        list<item *> tmp = (*p)->unpack();
+        list<item *> tmp = (*p)->unpack(upedgelimit);
         res.splice(res.begin(), tmp);
     }
 
     // Unpack children.
-    list<item *> tmp = unpack1();
+    list<item *> tmp = unpack1(upedgelimit);
     res.splice(res.begin(), tmp);
 
     if(verbosity > 3)
@@ -672,7 +693,7 @@ item::unpack()
 }
 
 list<item *>
-lex_item::unpack1()
+lex_item::unpack1(int limit)
 {
     list<item *> res;
     res.push_back(this);
@@ -680,14 +701,14 @@ lex_item::unpack1()
 }
 
 list<item *>
-phrasal_item::unpack1()
+phrasal_item::unpack1(int upedgelimit)
 {
     // Collect expansions for each daughter.
     vector<list<item *> > dtrs;
     for(list<item *>::iterator dtr = _daughters.begin();
         dtr != _daughters.end(); ++dtr)
     {
-        dtrs.push_back((*dtr)->unpack());
+        dtrs.push_back((*dtr)->unpack(upedgelimit));
     }
 
     // Consider all possible combinations of daughter structures
@@ -796,6 +817,7 @@ phrasal_item::unpack_combine(vector<item *> &daughters)
         return 0;
     }
 
+    stats.p_upedges++;
     return New phrasal_item(this, daughters, res);
 }
 
