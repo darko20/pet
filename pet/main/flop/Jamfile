@@ -1,7 +1,7 @@
 C++ = g++ ;
 C++FLAGS += -g -Wall -DNew=new ;
 LINK = g++ ;
-LINKFLAGS += --verbose -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0 ;
+LINKFLAGS += -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0 ;
 OPTIM = -O3 ;
 
 SEARCH_SOURCE += ../common ;
