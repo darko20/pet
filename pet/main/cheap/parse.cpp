@@ -46,7 +46,7 @@
 chart *Chart;
 agenda *Agenda;
 
-timer *Clock;
+timer *ParseTime;
 timer TotalParseTime(false);
 
 //
@@ -249,8 +249,10 @@ packed_edge(item *newitem)
                 fprintf(ferr, "proactive (%s) packing:\n", backward
                         ? "equi" : "subs");
                 newitem->print(ferr);
-                fprintf(ferr, " -> ");
+		dag_print(ferr, newitem->get_fs().dag());
+                fprintf(ferr, "\n --> \n");
                 olditem->print(ferr);
+		dag_print(ferr, olditem->get_fs().dag());
                 fprintf(ferr, "\n");
             }
 
@@ -294,11 +296,11 @@ add_root(item *it)
     // deals with result item
     // return value: true -> stop parsing; false -> continue parsing
 {
-    Chart->Roots().push_back(it);
+    Chart->trees().push_back(it);
     stats.readings++;
     if(stats.first == -1)
     {
-        stats.first = Clock->convert2ms(Clock->elapsed());
+        stats.first = ParseTime->convert2ms(ParseTime->elapsed());
         if(opt_nsolutions > 0 && stats.readings >= opt_nsolutions)
             return true;
     }
@@ -322,7 +324,7 @@ add_item(item *it)
 {
     if(opt_packing && it->frozen())
     {
-        if(verbosity > 4)
+        if(verbosity > 9)
         {
             fprintf(ferr, "ignoring ");
             it->print(ferr);
@@ -416,7 +418,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
     Agenda = New agenda;
 
     TotalParseTime.start();
-    Clock = New timer;
+    ParseTime = New timer;
 
     for(list<lex_item *>::iterator lex_it = initial.begin();
         lex_it != initial.end(); ++lex_it)
@@ -442,7 +444,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
     }
 
     TotalParseTime.stop();
-    get_statistics(C, Clock, FSAS);
+    get_statistics(C, ParseTime, FSAS);
 
     if(opt_shrink_mem)
     {
@@ -453,10 +455,10 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
     if(verbosity > 8)
         C.print(fstatus);
   
-    delete Clock;
+    delete ParseTime;
     delete Agenda;
 
-    if(Chart->Roots().empty() && ressources_exhausted())
+    if(Chart->trees().empty() && ressources_exhausted())
     {
         if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
             throw error_ressource_limit("memory (MB)",
@@ -467,26 +469,33 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
 
     if(opt_packing)
     {
-        for(vector<item *>::iterator root = Chart->Roots().begin();
-            root != Chart->Roots().end(); ++root)
+        timer *UnpackTime = New timer();
+	int nres = 0;
+        for(vector<item *>::iterator tree = Chart->trees().begin();
+            tree != Chart->trees().end(); ++tree)
         {
-            if(verbosity > 2)
-            {
-                fprintf(stderr, "Unpacking ");
-                (*root)->print(stderr);
-                fprintf(stderr, "\n");
-            }
             list<item *> results;
-            results = (*root)->unpack();
-
+            results = (*tree)->unpack();
+            
             for(list<item *>::iterator res = results.begin();
                 res != results.end(); ++res)
             {
-                fprintf(stderr, "Unpacked result ");
-                (*res)->print(stderr);
-                fprintf(stderr, "\n");
+                type_t rule;
+                int maxp; 
+                if((*res)->root(Grammar, Chart->rightmost(), rule, maxp))
+                {
+                    Chart->readings().push_back(*res);
+                    if(verbosity > 2)
+                    {
+                        fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
+                                UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.);
+                        (*res)->print_derivation(stderr, false);
+                        fprintf(stderr, "\n");
+                    }
+                }
             }
         }
+        delete UnpackTime;
     }
 }
 

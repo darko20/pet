@@ -57,6 +57,8 @@ class statistics
   int medges;                 /* inflr items */
   int unifications_succ;      /* nr of successfull unifications */
   int unifications_fail;      /* nr of failed unifications */
+  int subsumptions_succ;      /* nr of successfull subsumptions */
+  int subsumptions_fail;      /* nr of failed subsumptions */
   int copies;                 /* nr of copies */
   long dyn_bytes;             /* total dynamic memory in bytes */
   long stat_bytes;            /* total static memory in bytes */
@@ -72,7 +74,7 @@ class statistics
   int p_proactive;
   int p_retroactive;
   int p_frozen;
-  int p_failures;
+  int p_utcpu;
 
   void reset();
   void print(FILE *f);

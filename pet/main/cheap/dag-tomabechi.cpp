@@ -653,61 +653,131 @@ bool dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward
 
 void dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
+  unify_path_rev = 0;
   dag_subsumes1(dag1, dag2, forward = true, backward = true);
   dag_invalidate_changes();
 }
 
-bool dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
+int subsumption_level = 0;
+
+bool
+dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
-  dag_node *c1 = dag_get_copy(dag1), *c2 = dag_get_copy(dag2);
-
-  if(c1 == dag2 || c2 == dag1)
-    return true;
-
-  if(c1 == 0)
-    dag_set_copy(dag1, dag2);
-  else if(c1 != dag2)
-    forward = false;
-
-  if(c2 == 0)
-    dag_set_copy(dag2, dag1);
-  else if(c2 != dag1)
-    backward = false;
-
-  if(forward == false && backward == false)
-    return false;
-
-  // XXX these two calls could be merged into a specialised one improving
-  // efficiency
-
-  if(!subtype(dag2->type, dag1->type))
-    forward = false;
-  
-  if(!subtype(dag1->type, dag2->type))
-    backward = false;
-
-  if(forward == false && backward == false)
-    return false;
-  
-  if(dag1->arcs && dag2->arcs)
+    dag_node *c1 = dag_get_copy(dag1), *c2 = dag_get_copy(dag2);
+    
+    subsumption_level++;
+    if(verbosity > 9)
     {
-      dag_arc *arc1 = dag1->arcs;
+        fprintf(stderr, "%*s", subsumption_level*2, "");
+        fprintf(stderr,
+                "> subsumes(%x (%x), %x (%x), %s, %s) ",
+                (int) dag1, (int) c1, (int) dag2, (int) c2, forward ? "t" : "f", backward ? "t" : "f");
+        list_int *tmp = reverse(unify_path_rev);
+        print_path(stderr, tmp);
+        free_list(tmp);
+        fprintf(stderr, "\n");
+    }
+    
+    if(forward)
+    {
+        if(c1 == 0)
+            dag_set_copy(dag1, dag2);
+        else if(c1 != dag2)
+            forward = false;
+    }
+    
+    if(backward)
+    {
+        if(c2 == 0)
+            dag_set_copy(dag2, dag1);
+        else if(c2 != dag1)
+            backward = false;
+    }
+    
+    if(forward == false && backward == false)
+    {
+        if(verbosity > 9)
+        {
+            fprintf(stderr, "%*s", subsumption_level*2, "");
+            fprintf(stderr,
+                    "< (f f) (coreferences)\n");
+        }
+        subsumption_level--;
+        return false;
+    }
+    
+    // _fix_me_
+    // these two calls could be merged into a specialised one improving
+    // efficiency
+    
+    if(!subtype(dag2->type, dag1->type))
+        forward = false;
+    
+    if(!subtype(dag1->type, dag2->type))
+        backward = false;
+    
+    if(forward == false && backward == false)
+    {
+        if(verbosity > 9)
+        {
+            fprintf(stderr, "%*s", subsumption_level*2, "");
+            fprintf(stderr,
+                    "< (f f) (types)\n");
+        }
+        subsumption_level--;
+        return false;
+    }
+    
+    if(dag1->arcs || dag2->arcs)
+    {
+        // Unfilling makes this slightly more complicated. We need to visit
+        // a structure even when the corresponding part has been unfilled so
+        // that we find all coreferences. 
+        dag_node *tmpdag1 = dag1, *tmpdag2 = dag2;
+        
+        if(!dag1->arcs && typedag[dag1->type]->arcs)
+            tmpdag1 = cached_constraint_of(dag1->type);
 
-      while(arc1)
+        if(!dag2->arcs && typedag[dag2->type]->arcs)
+            tmpdag2 = cached_constraint_of(dag2->type);
+
+        dag_arc *arc1 = tmpdag1->arcs;
+        
+        while(arc1)
 	{
-	  dag_arc *arc2 = dag_find_attr(dag2->arcs, arc1->attr);
-
-	  if(arc2)
+            dag_arc *arc2 = dag_find_attr(tmpdag2->arcs, arc1->attr);
+            
+            if(arc2)
 	    {
-	      if(!dag_subsumes1(arc1->val, arc2->val, forward, backward))
-		return false;
+                unify_path_rev = cons(arc1->attr, unify_path_rev);
+                if(!dag_subsumes1(arc1->val, arc2->val, forward, backward))
+                {
+                    if(verbosity > 9)
+                    {
+                        fprintf(stderr, "%*s", subsumption_level*2, "");
+                        fprintf(stderr,
+                                "< (f f) (recursive)\n");
+                    }
+                    unify_path_rev = pop_rest(unify_path_rev);
+                    subsumption_level--;
+                    return false;
+                }
+                unify_path_rev = pop_rest(unify_path_rev);
 	    }
-
-	  arc1 = arc1->next;
+            
+            arc1 = arc1->next;
 	}
     }
+    
+    if(verbosity > 9)
+    {
+        fprintf(stderr, "%*s", subsumption_level*2, "");
+        fprintf(stderr,
+                "< (%s %s)\n", forward ? "t" : "f", backward ? "t" : "f");
+    }
 
-  return true;
+    subsumption_level--;
+    return true;
 }
 
 #ifdef QC_PATH_COMP

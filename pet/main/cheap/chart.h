@@ -41,7 +41,8 @@ class chart
   unsigned int length() { return (unsigned int) _Cp_start.size() ; }
   unsigned int rightmost() { return length() - 1; }
 
-  vector<item *> &Roots() { return _Roots; }
+  vector<item *> &trees() { return _trees; }
+  vector<item *> &readings() { return _readings; }
 
   void shortest_path(list <item *> &);
 
@@ -49,7 +50,8 @@ class chart
   static int _next_stamp;
 
   vector<item *> _Chart;
-  vector<item *> _Roots;
+  vector<item *> _trees;
+  vector<item *> _readings;
 
   int _pedges;
 

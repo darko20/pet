@@ -319,6 +319,10 @@ fs unify_np(fs &root, const fs &a, fs &b)
 void subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 {
   dag_subsumes(a._dag, b._dag, forward, backward);
+  if(forward || backward)
+      stats.subsumptions_succ++;
+  else
+      stats.subsumptions_fail++;
 }
 
 fs
