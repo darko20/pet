@@ -26,9 +26,6 @@
 #include "tsdb++.h"
 #include "options.h"
 
-//#define DEBUG
-//#define DEBUG_SUBSUME
-
 dag_node *INSIDE = (dag_node *) -2;
 
 int unify_generation = 0;
@@ -114,6 +111,9 @@ bool dag_set_attr_value(dag_node *dag, int attr, dag_node *val)
 dag_node *dag_unify1(dag_node *dag1, dag_node *dag2);
 dag_node *dag_unify2(dag_node *dag1, dag_node *dag2);
 dag_node *dag_copy(dag_node *src, list_int *del);
+
+bool
+dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
 
 dag_node *dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del)
 {
@@ -253,6 +253,40 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
   unify_record_failure = false;
   return failures; // caller is responsible for free'ing the paths
 }
+
+list<unification_failure *>
+dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
+                          bool &forward, bool &backward,
+                          bool all_failures)
+{
+    unify_record_failure = true;
+    unify_all_failures = all_failures;
+    
+    clear_failure();
+    failures.clear();
+    unification_cost = 0;
+
+    if(unify_path_rev != 0)
+        fprintf(ferr, "dag_subsumes_get_failures: unify_path_rev not empty\n");
+
+    unify_path_rev = 0;
+
+    dag_subsumes1(dag1, dag2, forward, backward);
+
+    if(failure)
+    {
+        failures.push_back(failure);
+        failure = 0;
+    }
+  
+    free_list(unify_path_rev); unify_path_rev = 0;
+
+    dag_invalidate_changes();
+
+    unify_record_failure = false;
+    return failures; // caller is responsible for free'ing the paths
+}
+
 #endif
 
 inline bool dag_has_arcs(dag_node *dag)
@@ -650,45 +684,18 @@ struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
   return dag_partial_copy1(dag, -1, del);
 }
 
-bool
-dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
-
 void
 dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
-#ifdef DEBUG_SUBSUME
-  unify_path_rev = 0;
-#endif
-
-  dag_subsumes1(dag1, dag2, forward, backward);
-  dag_invalidate_changes();
+    dag_subsumes1(dag1, dag2, forward, backward);
+    dag_invalidate_changes();
 }
-
-#ifdef DEBUG_SUBSUME
-int subsumption_level = 0;
-#endif
 
 bool
 dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 {
     dag_node *c1 = dag_get_forward(dag1),
              *c2 = dag_get_copy(dag2);
-    
-#ifdef DEBUG_SUBSUME
-    subsumption_level++;
-    if(verbosity > 14)
-    {
-        fprintf(stderr, "%*s", subsumption_level*2, "");
-        fprintf(stderr,
-                "> subsumes(%x (%x), %x (%x), %s, %s) ",
-                (int) dag1, (int) c1, (int) dag2, (int) c2,
-                forward ? "t" : "f", backward ? "t" : "f");
-        list_int *tmp = reverse(unify_path_rev);
-        print_path(stderr, tmp);
-        free_list(tmp);
-        fprintf(stderr, "\n");
-    }
-#endif
     
     if(forward)
     {
@@ -708,15 +715,6 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     
     if(forward == false && backward == false)
     {
-#ifdef DEBUG_SUBSUME
-        if(verbosity > 14)
-        {
-            fprintf(stderr, "%*s", subsumption_level*2, "");
-            fprintf(stderr,
-                    "< (f f) (coreferences)\n");
-        }
-        subsumption_level--;
-#endif
         return false;
     }
     
@@ -731,15 +729,6 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 
         if(forward == false && backward == false)
         {
-#ifdef DEBUG_SUBSUME
-            if(verbosity > 14)
-            {
-                fprintf(stderr, "%*s", subsumption_level*2, "");
-                fprintf(stderr,
-                        "< (f f) (types)\n");
-            }
-            subsumption_level--;
-#endif
             return false;
         }
     }
@@ -765,41 +754,27 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
             
             if(arc2)
 	    {
-#ifdef DEBUG_SUBSUME
-                unify_path_rev = cons(arc1->attr, unify_path_rev);
+#ifdef QC_PATH_COMP
+                if(unify_record_failure)
+                    unify_path_rev = cons(arc1->attr, unify_path_rev);
 #endif
                 if(!dag_subsumes1(arc1->val, arc2->val, forward, backward))
                 {
-#ifdef DEBUG_SUBSUME
-                    if(verbosity > 14)
-                    {
-                        fprintf(stderr, "%*s", subsumption_level*2, "");
-                        fprintf(stderr,
-                                "< (f f) (recursive)\n");
-                    }
-                    unify_path_rev = pop_rest(unify_path_rev);
-                    subsumption_level--;
+#ifdef QC_PATH_COMP
+                    if(unify_record_failure)
+                        unify_path_rev = pop_rest(unify_path_rev);
 #endif
                     return false;
                 }
-#ifdef DEBUG_SUBSUME
-                unify_path_rev = pop_rest(unify_path_rev);
+#ifdef QC_PATH_COMP
+                if(unify_record_failure)
+                    unify_path_rev = pop_rest(unify_path_rev);
 #endif
 	    }
             
             arc1 = arc1->next;
 	}
     }
-    
-#ifdef DEBUG_SUBSUME
-    if(verbosity > 14)
-    {
-        fprintf(stderr, "%*s", subsumption_level*2, "");
-        fprintf(stderr,
-                "< (%s %s)\n", forward ? "t" : "f", backward ? "t" : "f");
-    }
-    subsumption_level--;
-#endif
 
     return true;
 }
