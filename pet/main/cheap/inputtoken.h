@@ -68,9 +68,9 @@ class input_token
 
   full_form& form() { return _form; }
 
-  void expand(list <class lex_item *> &result);
+  void expand(list <class tLexItem *> &result);
 
-  list<class lex_item *> generics(postags onlyfor = postags());
+  list<class tLexItem *> generics(postags onlyfor = postags());
 
   void print(ostream &f);
   void print(FILE *f);
@@ -103,9 +103,9 @@ private:
   input_chart *_container;
 
   bool add_result(int start, int end, int ndtrs, int keydtr,
-                  input_token ** dtrs, list <class lex_item *> &result);
+                  input_token ** dtrs, list <class tLexItem *> &result);
   bool expand_rec(int arg_position, int start, int end, input_token **dtrs,
-                  list <class lex_item *> &result);
+                  list <class tLexItem *> &result);
 
 };
 

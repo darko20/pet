@@ -49,9 +49,9 @@ postags::postags(const class full_form ff)
     }
 }
 
-postags::postags(const list<lex_item *> &les)
+postags::postags(const list<tLexItem *> &les)
 {
-    for(list<lex_item *>::const_iterator it = les.begin(); it != les.end();
+    for(list<tLexItem *>::const_iterator it = les.begin(); it != les.end();
         ++it)
     {
         add((*it)->get_supplied_postags());

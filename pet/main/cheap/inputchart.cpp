@@ -227,7 +227,7 @@ basis of the input item probabilities and a new parser task is created
 class less_than_topo
 {
 public:
-    bool operator() (lex_item *i, lex_item *j)
+    bool operator() (tLexItem *i, tLexItem *j)
     {
         if(i->start() == j->start())
             return i->end() < j->end();
@@ -237,7 +237,7 @@ public:
 };
 
 input_chart::gaplist
-input_chart::gaps(int max, list<lex_item *> &input)
+input_chart::gaps(int max, list<tLexItem *> &input)
 {
     if(verbosity > 4)
         fprintf(ferr, "finding gaps (0 - %d):", max);
@@ -252,7 +252,7 @@ input_chart::gaps(int max, list<lex_item *> &input)
 
     // after that loop, the following holds: active[j] is the smallest node
     // number reachable from j
-    for(list<lex_item *>::iterator it = input.begin(); it != input.end();
+    for(list<tLexItem *>::iterator it = input.begin(); it != input.end();
         it++)
     {
         if(active[(*it)->start()] < active[(*it)->end()])
@@ -324,12 +324,12 @@ input_chart::uncovered(const gaplist &gaps)
 }
 
 void
-merge_generic_les(list<lex_item *> &res, list<lex_item *> &add)
+merge_generic_les(list<tLexItem *> &res, list<tLexItem *> &add)
 {
-    for(list<lex_item *>::iterator it = add.begin(); it != add.end(); ++it)
+    for(list<tLexItem *>::iterator it = add.begin(); it != add.end(); ++it)
     {
         bool good = true;
-        for(list<lex_item *>::iterator it2 = res.begin();
+        for(list<tLexItem *>::iterator it2 = res.begin();
             it2 != res.end(); ++it2)
             if(same_lexitems(**it, **it2))
             {
@@ -341,17 +341,17 @@ merge_generic_les(list<lex_item *> &res, list<lex_item *> &add)
     }
 }
 
-list<lex_item *>
+list<tLexItem *>
 input_chart::cover_gaps(const gaplist &gaps)
 {
-    list<lex_item *> results;
+    list<tLexItem *> results;
 
     for(gaplist::const_iterator g = gaps.begin(); g != gaps.end(); ++g)
     {
         for(input_chart::iterator it = begin(); it != end(); it++)
             if(((*it)->start() >= g->first) && ((*it)->end() <= g->second))
             {
-                list<lex_item *> gens = (*it)->generics();
+                list<tLexItem *> gens = (*it)->generics();
                 merge_generic_les(results, gens);
             }
     }
@@ -360,12 +360,12 @@ input_chart::cover_gaps(const gaplist &gaps)
     return results;
 }
 
-list<lex_item *>
-spanning_native_les(list<lex_item *> &les, int start, int end)
+list<tLexItem *>
+spanning_native_les(list<tLexItem *> &les, int start, int end)
 {
-    list<lex_item *> res;
+    list<tLexItem *> res;
 
-    for(list<lex_item *>::iterator it = les.begin(); it != les.end(); ++it)
+    for(list<tLexItem *>::iterator it = les.begin(); it != les.end(); ++it)
         if((*it)->start() <= start && (*it)->end() >= end
            && !(*it)->synthesized())
             res.push_back(*it);
@@ -374,7 +374,7 @@ spanning_native_les(list<lex_item *> &les, int start, int end)
 }
 
 void
-input_chart::add_generics(list<lex_item *> &input)
+input_chart::add_generics(list<tLexItem *> &input)
 {
     if(verbosity > 4)
         fprintf(ferr, "adding generic les\n");
@@ -391,8 +391,8 @@ input_chart::add_generics(list<lex_item *> &input)
             fprintf(ferr, "\n");
         }
 
-        list<lex_item *> gens;
-        list<lex_item *> les = spanning_native_les(input, (*it)->start(),
+        list<tLexItem *> gens;
+        list<tLexItem *> les = spanning_native_les(input, (*it)->start(),
                                                    (*it)->end());
 
         if(verbosity > 4)
@@ -434,19 +434,19 @@ input_chart::add_generics(list<lex_item *> &input)
 }
 
 void
-dependency_filter(list <lex_item *> &result, struct setting *deps,
+dependency_filter(list <tLexItem *> &result, struct setting *deps,
                   bool unidirectional)
 {
     if(deps == 0 || opt_chart_man == false)
         return;
 
     vector<set <int> > satisfied(deps->n);
-    multimap<lex_item *, pair <int, int> > requires;
+    multimap<tLexItem *, pair <int, int> > requires;
 
-    lex_item *lex;
+    tLexItem *lex;
     fs f;
 
-    for(list < lex_item * >::iterator it = result.begin();
+    for(list < tLexItem * >::iterator it = result.begin();
         it != result.end(); it++)
     {
         lex = *it;
@@ -480,19 +480,19 @@ dependency_filter(list <lex_item *> &result, struct setting *deps,
         }
     }
   
-    list<lex_item *> filtered;
+    list<tLexItem *> filtered;
   
-    for(list<lex_item *>::iterator it = result.begin();
+    for(list<tLexItem *>::iterator it = result.begin();
         it != result.end(); ++it)
     {
         lex = *it;
 
-        pair<multimap<lex_item *, pair<int, int> >::iterator,
-            multimap<lex_item *, pair<int, int> >::iterator> eq =
+        pair<multimap<tLexItem *, pair<int, int> >::iterator,
+            multimap<tLexItem *, pair<int, int> >::iterator> eq =
             requires.equal_range(lex);
 
         bool ok = true;
-        for(multimap<lex_item *, pair<int, int> >::iterator dep = eq.first;
+        for(multimap<tLexItem *, pair<int, int> >::iterator dep = eq.first;
             ok && dep != eq.second; ++dep)
         {
             // we have to resolve a required dependency
@@ -549,7 +549,7 @@ input_chart::assign_positions()
 }
 
 int
-input_chart::expand_all(list<lex_item *> &result)
+input_chart::expand_all(list<tLexItem *> &result)
 {
     assign_positions();
 

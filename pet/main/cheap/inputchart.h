@@ -150,14 +150,14 @@ public:
 			_inputtokens.end());
   }
 
-  // produces a list of lex_items that can be added to the task list from the
+  // produces a list of tLexItems that can be added to the task list from the
   // list of input items
-  int expand_all(list<class lex_item *> &result);
+  int expand_all(list<class tLexItem *> &result);
 
   typedef list<pair<int, int> > gaplist;
 
   // finds gaps in the input chart
-  gaplist gaps(int max, list<class lex_item *> &input);
+  gaplist gaps(int max, list<class tLexItem *> &input);
 
   // find all forms between chart positions p1 and p2
   set<string> forms(int p1, int p2);
@@ -166,10 +166,10 @@ public:
   string uncovered(const gaplist &gaps);
 
   // cover gaps with generic entries
-  list<class lex_item *> cover_gaps(const gaplist &gaps);
+  list<class tLexItem *> cover_gaps(const gaplist &gaps);
 
   // add generic entries
-  void add_generics(list<class lex_item *> &input);
+  void add_generics(list<class tLexItem *> &input);
 
   int max_position() { return _positionmap->max_chart_position(); }
 
@@ -208,7 +208,7 @@ private:
   list<input_token *> _inputtokens;
 };
 
-void dependency_filter(list<class lex_item *> &result, struct setting *deps,
+void dependency_filter(list<class tLexItem *> &result, struct setting *deps,
                        bool unidirectional);
 
 #endif

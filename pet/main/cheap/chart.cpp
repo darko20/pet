@@ -43,7 +43,7 @@ chart::~chart()
 {
 }
 
-void chart::add(item *it)
+void chart::add(tItem *it)
 {
 #ifdef DEBUG
     it->print(ferr);
@@ -71,7 +71,7 @@ void chart::add(item *it)
 void chart::print(FILE *f)
 {
     int i = 0;
-    for(vector<item *>::iterator pos = _Chart.begin(); pos != _Chart.end();
+    for(vector<tItem *>::iterator pos = _Chart.begin(); pos != _Chart.end();
         ++pos, ++i)
     {
         (*pos)->print(f);
@@ -88,7 +88,7 @@ void chart::get_statistics()
     
     while(iter.valid())
     {
-        item *it = iter.current();
+        tItem *it = iter.current();
         
         if(it->trait() == INFL_TRAIT)
 	{
@@ -119,18 +119,18 @@ void chart::get_statistics()
 // Bernd Kiefer (kiefer@dfki.de)
 //
 
-int weight(item * i) { return 1; }
+int weight(tItem * i) { return 1; }
 
-void chart::shortest_path (list <item *> &result) {
+void chart::shortest_path (list <tItem *> &result) {
 
-  vector<item *>::size_type size = _Cp_start.size() ;
-  vector<item *>::size_type u, v ;
+  vector<tItem *>::size_type size = _Cp_start.size() ;
+  vector<tItem *>::size_type u, v ;
   unsigned int *distance = new unsigned int[size] ;
   unsigned int new_dist ;
 
   vector < list < unsigned int > > pred(size) ;
-  list <item *>::iterator curr ;
-  item *passive ;
+  list <tItem *>::iterator curr ;
+  tItem *passive ;
 
   short int *unseen = new short int[size] ;
   list < unsigned int > current ;

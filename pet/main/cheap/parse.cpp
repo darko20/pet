@@ -51,7 +51,7 @@ timer TotalParseTime(false);
 //
 
 bool
-filter_rule_task(grammar_rule *R, item *passive)
+filter_rule_task(grammar_rule *R, tItem *passive)
 {
 
 #ifdef DEBUG
@@ -93,7 +93,7 @@ filter_rule_task(grammar_rule *R, item *passive)
 }
 
 bool
-filter_combine_task(item *active, item *passive)
+filter_combine_task(tItem *active, tItem *passive)
 {
 #ifdef DEBUG
     fprintf(ferr, "trying active "); active->print(ferr);
@@ -137,7 +137,7 @@ filter_combine_task(item *active, item *passive)
 //
 
 void
-postulate(item *passive)
+postulate(tItem *passive)
 {
     // iterate over all the rules in the grammar
     for(rule_iter rule(Grammar); rule.valid(); rule++)
@@ -152,12 +152,12 @@ postulate(item *passive)
 }
 
 void
-fundamental_for_passive(item *passive)
+fundamental_for_passive(tItem *passive)
 {
     // iterate over all active items adjacent to passive and try combination
     for(chart_iter_adj_active it(Chart, passive); it.valid(); it++)
     {
-        item *active = it.current();
+        tItem *active = it.current();
         if(active->adjacent(passive))
             if(passive->compatible(active, Chart->rightmost()))
                 if(filter_combine_task(active, passive))
@@ -167,7 +167,7 @@ fundamental_for_passive(item *passive)
 }
 
 void
-fundamental_for_active(phrasal_item *active)
+fundamental_for_active(tPhrasalItem *active)
 {
   // iterate over all passive items adjacent to active and try combination
 
@@ -181,7 +181,7 @@ fundamental_for_active(phrasal_item *active)
 }
 
 bool
-packed_edge(item *newitem)
+packed_edge(tItem *newitem)
 {
     if(newitem->trait() == INFL_TRAIT)
       return false;
@@ -190,7 +190,7 @@ packed_edge(item *newitem)
         iter.valid(); iter++)
     {
         bool forward, backward;
-        item *olditem = iter.current();
+        tItem *olditem = iter.current();
 
 	if(olditem->trait() == INFL_TRAIT)
           continue;
@@ -284,7 +284,7 @@ packed_edge(item *newitem)
 }
 
 bool
-add_root(item *it)
+add_root(tItem *it)
     // deals with result item
     // return value: true -> stop parsing; false -> continue parsing
 {
@@ -302,7 +302,7 @@ add_root(item *it)
 }
 
 void
-add_item(item *it)
+add_item(tItem *it)
 {
     assert(!(opt_packing && it->blocked()));
 
@@ -333,7 +333,7 @@ add_item(item *it)
     else
     {
         Chart->add(it);
-        fundamental_for_active(dynamic_cast<phrasal_item *> (it));
+        fundamental_for_active(dynamic_cast<tPhrasalItem *> (it));
     }
 }
 
@@ -345,7 +345,7 @@ resources_exhausted()
 }
 
 void
-parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS, 
+parse(chart &C, list<tLexItem *> &initial, fs_alloc_state &FSAS, 
       list<tError> &errors)
 {
     if(initial.empty()) return;
@@ -358,7 +358,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
     TotalParseTime.start();
     ParseTime = new timer;
 
-    for(list<lex_item *>::iterator lex_it = initial.begin();
+    for(list<tLexItem *>::iterator lex_it = initial.begin();
         lex_it != initial.end(); ++lex_it)
     {
         Agenda->push(new item_task(Chart, Agenda, *lex_it));
@@ -372,7 +372,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 #endif
           !resources_exhausted())
     {
-        basic_task *t; item *it;
+        basic_task *t; tItem *it;
 	  
         t = Agenda->pop();
 #ifdef DEBUG
@@ -431,7 +431,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
                          // are blocked or don't unpack.
         int upedgelimit = 0;
 
-        for(vector<item *>::iterator tree = Chart->trees().begin();
+        for(vector<tItem *>::iterator tree = Chart->trees().begin();
             tree != Chart->trees().end(); ++tree)
         {
             if((*tree)->blocked())
@@ -439,7 +439,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 
             stats.trees++;
 
-            list<item *> results;
+            list<tItem *> results;
 
             if(pedgelimit && Chart->pedges() >= pedgelimit)
                 break;
@@ -447,7 +447,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 
             results = (*tree)->unpack(upedgelimit);
             
-            for(list<item *>::iterator res = results.begin();
+            for(list<tItem *>::iterator res = results.begin();
                 res != results.end(); ++res)
             {
                 type_t rule;
@@ -509,7 +509,7 @@ analyze(input_chart &i_chart, string input, chart *&C,
     stats.id = id;
 
     auto_ptr<item_owner> owner(new item_owner);
-    item::default_owner(owner.get());
+    tItem::default_owner(owner.get());
 
 #ifdef YY
     if(opt_yy)
@@ -518,25 +518,25 @@ analyze(input_chart &i_chart, string input, chart *&C,
 #endif
         i_chart.populate(new lingo_tokenizer(input));
 
-    list<lex_item *> lex_items;
-    int max_pos = i_chart.expand_all(lex_items);
+    list<tLexItem *> tLexItems;
+    int max_pos = i_chart.expand_all(tLexItems);
 
-    dependency_filter(lex_items,
+    dependency_filter(tLexItems,
                       cheap_settings->lookup("chart-dependencies"),
                       cheap_settings->lookup(
                           "unidirectional-chart-dependencies") != 0);
         
     if(opt_default_les)
-        i_chart.add_generics(lex_items);
+        i_chart.add_generics(tLexItems);
 
     if(verbosity > 9)
         i_chart.print(ferr);
 
-    string missing = i_chart.uncovered(i_chart.gaps(max_pos, lex_items));
+    string missing = i_chart.uncovered(i_chart.gaps(max_pos, tLexItems));
     if (!missing.empty()) 
         throw tError("no lexicon entries for " + missing) ;
 
     C = Chart = new chart(max_pos, owner);
 
-    parse(*Chart, lex_items, FSAS, errors);
+    parse(*Chart, tLexItems, FSAS, errors);
 }
