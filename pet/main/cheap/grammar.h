@@ -266,7 +266,7 @@ class grammar
     grammar_rule *mother_r = _rule_dict[mother];
     grammar_rule *daughter_r = _rule_dict[daughter];
     if(mother_r == 0 || daughter_r == 0)
-      throw error("Unknown rule passed to filter_compatible");
+      throw tError("Unknown rule passed to filter_compatible");
     return filter_compatible(mother_r, arg, daughter_r);
   }
 

@@ -346,7 +346,7 @@ resources_exhausted()
 
 void
 parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS, 
-      list<error> &errors)
+      list<tError> &errors)
 {
     if(initial.empty()) return;
 
@@ -502,7 +502,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 
 void
 analyze(input_chart &i_chart, string input, chart *&C,
-        fs_alloc_state &FSAS, list<error> &errors, int id)
+        fs_alloc_state &FSAS, list<tError> &errors, int id)
 {
     FSAS.clear_stats();
     stats.reset();
@@ -534,7 +534,7 @@ analyze(input_chart &i_chart, string input, chart *&C,
 
     string missing = i_chart.uncovered(i_chart.gaps(max_pos, lex_items));
     if (!missing.empty()) 
-        throw error("no lexicon entries for " + missing) ;
+        throw tError("no lexicon entries for " + missing) ;
 
     C = Chart = new chart(max_pos, owner);
 

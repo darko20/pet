@@ -287,7 +287,7 @@ void bitcode::undump(dumper *f)
 	    {
 	      i++;
 	      if(i >= n)
-		throw error("invalid compressed bitcode (too long)");
+		throw tError("invalid compressed bitcode (too long)");
 	      V[i] = 0;
 	    }
 	}
@@ -295,7 +295,7 @@ void bitcode::undump(dumper *f)
     }
 
   if( f->undump_int() != 0 || f->undump_short() != 0)
-    throw error("invalid compressed bitcode (no end marker)");
+    throw tError("invalid compressed bitcode (no end marker)");
 }
 
 #endif

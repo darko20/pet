@@ -58,7 +58,7 @@ void push_file(const char *fname, char *info)
   struct stat statbuf;
 
   if(file_nest >= MAX_LEX_NEST)
-    throw error(string("too many nested includes (in ") + string(fname) + string(") - giving up"));
+    throw tError(string("too many nested includes (in ") + string(fname) + string(") - giving up"));
 
 #ifndef WINDOWS
   f.fd = open(fname, O_RDONLY);
@@ -67,10 +67,10 @@ void push_file(const char *fname, char *info)
 #endif
 
   if(f.fd < 0)
-    throw error("error opening `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("error opening `" + string(fname) + "': " + string(strerror(errno)));
 
   if(fstat(f.fd, &statbuf) < 0)
-    throw error("couldn't fstat `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't fstat `" + string(fname) + "': " + string(strerror(errno)));
 
   f.len = statbuf.st_size;
 
@@ -78,15 +78,15 @@ void push_file(const char *fname, char *info)
   f.buff = (char *) mmap(0, f.len, PROT_READ, MAP_SHARED, f.fd, 0);
 
   if(f.buff == (caddr_t) -1)
-    throw error("couldn't mmap `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't mmap `" + string(fname) + "': " + string(strerror(errno)));
 
 #else
   f.buff = (char *) malloc(f.len + 1);
   if(f.buff == 0)
-    throw error("couldn't malloc for `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't malloc for `" + string(fname) + "': " + string(strerror(errno)));
   
   if((size_t) read(f.fd,f.buff,f.len) != f.len)
-    throw error("couldn't read from `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't read from `" + string(fname) + "': " + string(strerror(errno)));
 
   f.buff[f.len] = '\0';
 #endif
@@ -120,13 +120,13 @@ int pop_file()
 
 #ifdef USEMMAP
   if(munmap(f.buff, f.len) != 0)
-    throw error("couldn't munmap `" + string(f.fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't munmap `" + string(f.fname) + "': " + string(strerror(errno)));
 #else
   free(f.buff);
 #endif
   
   if(close(f.fd) != 0)
-    throw error("couldn't close from `" + string(f.fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't close from `" + string(f.fname) + "': " + string(strerror(errno)));
   
   return 1;
 }

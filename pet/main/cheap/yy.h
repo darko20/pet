@@ -65,7 +65,7 @@ extern int cheap_server_child(int);
 
 extern int yy_tsdb_summarize_item(class chart &, const char *,
 				  int, int, const char *);
-extern int yy_tsdb_summarize_error(const char *, int, error &);
+extern int yy_tsdb_summarize_error(const char *, int, tError &);
 extern int socket_write(int, char *);
 extern int socket_readline(int, char *, int);
 

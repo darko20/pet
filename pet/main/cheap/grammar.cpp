@@ -157,13 +157,13 @@ lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths) :
 
 lex_stem::lex_stem(const lex_stem &le)
 {
-    throw error("unexpected call to copy constructor of lex_stem");
+    throw tError("unexpected call to copy constructor of lex_stem");
 }
 
 lex_stem&
 lex_stem::operator=(const lex_stem &le)
 {
-  throw error("unexpected call to assignment operator of lex_stem");
+  throw tError("unexpected call to assignment operator of lex_stem");
 }
 
 lex_stem::~lex_stem()
@@ -195,7 +195,7 @@ lex_stem::instantiate()
 		     + "' (cannot expand)";
 
         if(!cheap_settings->lookup("lex-entries-can-fail"))
-            throw error(msg);
+            throw tError(msg);
 	else if(verbosity > 4)
 	    fprintf(stderr, "%s\n", msg.c_str());
         return expanded;
@@ -210,7 +210,7 @@ lex_stem::instantiate()
                 ++mod)
                 m += string("[") + mod->first + string(" : ")
                     + typenames[mod->second] + string("]");
-            throw error(string("invalid lex_stem `") + printname()
+            throw tError(string("invalid lex_stem `") + printname()
                         + "' (cannot apply mods " + m + ")");
         }
     }
@@ -259,17 +259,17 @@ fs
 full_form::instantiate()
 {
     if(!valid())
-        throw error("trying to instantiate invalid full form");
+        throw tError("trying to instantiate invalid full form");
 
     // get the base
     fs res = _stem->instantiate();
     
     if(!res.valid()) 
-        throw error("cannot instantiate base of full form");
+        throw tError("cannot instantiate base of full form");
     
     // apply modifications
     if(!res.modify(_mods))
-        throw error("failure applying modifications");
+        throw tError("failure applying modifications");
     
     return res;
 }
@@ -369,7 +369,7 @@ grammar_rule::grammar_rule(type_t t)
    
     if(dag == FAIL)
     {
-        throw error("Feature structure of rule " + string(typenames[t])
+        throw tError("Feature structure of rule " + string(typenames[t])
                     + " does not contain "
                     + string(cheap_settings->req_value("rule-args-path")));
     }	    
@@ -867,9 +867,9 @@ grammar::grammar(const char * filename)
         // Once we have more than just MEMs we need to add a dispatch facility
         // here, or have a factory build the models.
       try { _sm = new tMEM(this, sm_file, filename); }
-      catch(error &e)
+      catch(tError &e)
       {
-        fprintf(ferr, "\n"); e.print(ferr);
+        fprintf(ferr, "\n%s", e.getMessage().c_str());
         _sm = 0;
       }
     }
@@ -893,7 +893,7 @@ grammar::grammar(const char * filename)
             _extDict = new extDictionary(extdictpath, mappath);
         }
     }
-    catch(error &e)
+    catch(tError &e)
     {
         fprintf(fstatus, "EXTDICT disabled: %s\n", e.msg().c_str());
         _extDict = 0;
@@ -956,7 +956,7 @@ grammar::init_parameters()
         {
             _root_insts = cons(lookup_type(set->values[i]), _root_insts);
             if(first(_root_insts) == -1)
-                throw error(string("undefined start symbol `") +
+                throw tError(string("undefined start symbol `") +
                             string(set->values[i]) + string("'"));
         }
     }

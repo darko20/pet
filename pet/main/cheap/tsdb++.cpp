@@ -267,7 +267,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
 
         TotalParseTime.save();
         
-        list<error> errors;
+        list<tError> errors;
         analyze(i_chart, i_input, Chart, FSAS, errors, i_id);
         
         nprocessed++;
@@ -290,7 +290,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         return 0;
     }
 
-    catch(error &e)
+    catch(tError &e)
     {
         gettimeofday(&tB, NULL);
         
@@ -300,7 +300,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         TotalParseTime.restore();
         
         tsdb_parse T;
-        list<error> errors;
+        list<tError> errors;
         errors.push_back(e);
         cheap_tsdb_summarize_error(errors, treal, T);
         T.capi_print();
@@ -658,7 +658,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
 }
 
 void
-cheap_tsdb_summarize_error(list<error> &conditions, int treal, tsdb_parse &T)
+cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
 {
     T.run_id = 1;
     T.parse_id = tsdb_unique_id;
@@ -699,9 +699,9 @@ cheap_tsdb_summarize_error(list<error> &conditions, int treal, tsdb_parse &T)
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
     
-    for(list<error>::iterator it = conditions.begin(); it != conditions.end();
+    for(list<tError>::iterator it = conditions.begin(); it != conditions.end();
         ++it)
-        T.err += string((it == conditions.begin() ? "" : " ")) + it->msg();
+        T.err += string((it == conditions.begin() ? "" : " ")) + it->getMessage();
 }
 
 string

@@ -36,7 +36,7 @@ qc_node *qc_paths_subs;
 fs::fs(int type)
 {
     if(type < 0 || type >= last_dynamic)
-        throw error("construction of non-existent dag requested");
+        throw tError("construction of non-existent dag requested");
 
     if (type >= ntypes) {
         // dynamic symbol, get dag from separate table
@@ -50,7 +50,7 @@ fs::fs(int type)
 fs::fs(char *path, int type)
 {
     if(type < 0 || type >= last_dynamic)
-        throw error("construction of non-existent dag requested");
+        throw tError("construction of non-existent dag requested");
     
     _dag = 0; // dag_create_path_value(path, type);
     
@@ -242,7 +242,7 @@ record_failures(list<unification_failure *> fails, bool unification,
                     }
                     else if(unification)
                     {
-                        throw error("Duplicate failure path");
+                        throw tError("Duplicate failure path");
                     }
                 }
             }

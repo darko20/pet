@@ -183,8 +183,8 @@ tSM::tSM(grammar *G, const char *fileName, const char *basePath)
 {
     _fileName = findFile(fileName, basePath);
     if(!_fileName)
-      throw error(string("Could not open SM file \"") 
-                  + fileName + string("\""));
+      throw tError(string("Could not open SM file \"") 
+                   + fileName + string("\""));
     _map = new tSMMap();
 }
 

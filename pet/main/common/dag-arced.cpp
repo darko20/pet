@@ -97,7 +97,7 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
 	  val = strtoint(typenames[dump_n.type], "in qc structure", true);
 
 	  if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
-	    throw error("invalid node (value too large) in qc structure");
+	    throw tError("invalid node (value too large) in qc structure");
 
 	  val += 1;
 	  if(limit < 0 || val <= limit)

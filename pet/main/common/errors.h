@@ -22,22 +22,27 @@
 #ifndef _ERROR_H_
 #define _ERROR_H_
 
-class error
+#include <string>
+
+/** Represent an error that occured. The implementation is trivial, we just
+ *  store an (optional) error message as a string. */
+class tError
 {
  public:
-  error();
-  error(string s);
-  virtual ~error();
-
-  virtual string msg() { return _msg; }
-  virtual void print(FILE *f);
-#ifdef TSDBAPI
-  virtual void tsdb_print();
-#endif
-
+    tError(std::string message = "Unknown error")
+        : _message(message)
+    {}
+    
+    ~tError()
+    {}
+    
+    std::string getMessage()
+    { 
+        return _message;
+    }
+   
  private:
-  string _msg;
+    std::string _message;
 };
 
 #endif
-

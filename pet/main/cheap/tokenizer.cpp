@@ -115,7 +115,7 @@ list<string> lingo_tokenizer::tokenize()
       else
       {
           if(s.find('\'', apo+1) != STRING_NPOS)
-              throw error("tokenizer: more than one apostroph in word");
+              throw tError("tokenizer: more than one apostroph in word");
 	  
           if(apo == 0 || apo == s.length() - 1)
           {

@@ -28,7 +28,7 @@ void *salloc(size_t size)
   void *p = malloc(size);
 
   if(!p)
-    throw error("out of memory");
+    throw tError("out of memory");
   
   return p;
 }
@@ -71,14 +71,14 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   if(quotedp)
     {
       if(!*s == '"' || (foo = strrchr(s, '"')) == NULL)
-	throw error(string("invalid quoted integer `") + string(s) +
-		    string("' ") + string(errloc));
+	throw tError(string("invalid quoted integer `") + string(s) +
+                     string("' ") + string(errloc));
       s++;
     }
   int val = strtol(s, &endptr, 10);
   if(endptr == 0 || (quotedp ? endptr != foo :  *endptr != '\0'))
-    throw error(string("invalid integer `") + string(s) + string("' ") 
-                + string(errloc));
+    throw tError(string("invalid integer `") + string(s) + string("' ") 
+                 + string(errloc));
 
   return val;
 }
