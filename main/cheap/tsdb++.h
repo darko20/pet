@@ -35,7 +35,7 @@ void cheap_tsdb_summarize_run();
 
 void cheap_tsdb_summarize_item(class chart &, int, int, int,
                                class tsdb_parse &);
-void cheap_tsdb_summarize_error(error &, int treal, class tsdb_parse &);
+void cheap_tsdb_summarize_error(list<error> &, int treal, class tsdb_parse &);
 
 class statistics
 {

@@ -268,7 +268,7 @@ void interactive()
         catch(error &e)
         {
             e.print(ferr); fprintf(ferr, "\n");
-            if(verbosity > 1) stats.print(fstatus);
+            if(verbosity > 0) stats.print(fstatus);
             stats.readings = -1;
         }
 

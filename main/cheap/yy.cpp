@@ -670,7 +670,9 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 #ifdef TSDBFILEAPI
         if(Chart)
             TsdbParse->set_i_length(Chart->length());
-        cheap_tsdb_summarize_error(e, -1, *TsdbParse);
+        list<error> errors;
+        errors.push_back(e);
+        cheap_tsdb_summarize_error(errors, -1, *TsdbParse);
 #endif
 
         delete Chart;
@@ -1448,7 +1450,9 @@ int yy_tsdb_summarize_error(const char *item, int length, error &condition) {
                 escape_string(item == 0 ? "" : item).c_str());
 
     tsdb_parse T;
-    cheap_tsdb_summarize_error(condition, 0, T);
+    list<error> errors;
+    errors.push_back(condition);
+    cheap_tsdb_summarize_error(errors, 0, T);
     T.capi_print();
 
     return client_send_item_summary();
