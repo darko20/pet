@@ -591,7 +591,8 @@ free_constraint_cache()
 // Construct a grammar object from binary representation in a file
 grammar::grammar(const char * filename)
     : _properties(), _nrules(0), _root_insts(0), _generics(0),
-      _filter(0), _qc_inst(0), _deleted_daughters(0), _packing_restrictor(0),
+      _filter(0), _subsumption_filter(0), _qc_inst(0),
+      _deleted_daughters(0), _packing_restrictor(0),
       _sm(0)
 {
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
@@ -799,8 +800,6 @@ grammar::grammar(const char * filename)
         initialize_filter();
         opt_compute_qc = save;
     }
-    else
-        _filter = 0;
 
     s = cheap_settings->value("punctuation-characters");
     string pcs;
@@ -980,6 +979,7 @@ grammar::initialize_filter()
 {
     fs_alloc_state S0;
     _filter = New char[_nrules * _nrules];
+    _subsumption_filter = New char[_nrules * _nrules];
 
     for(rule_iter daughters(this); daughters.valid(); daughters++)
     {
@@ -997,6 +997,21 @@ grammar::initialize_filter()
             {
                 fs_alloc_state S2;
                 fs mother_fs = mother->instantiate();
+
+                if(arg == 1)
+                {
+                    bool forward = true, backward = false;
+                    subsumes(daughter_fs, mother_fs, forward, backward);
+                    
+                    _subsumption_filter[daughter->id() + _nrules * mother->id()] = forward;
+                    
+#if 0
+                    fprintf(stderr, "SF %s %s %c\n",
+                            daughter->printname(), mother->printname(),
+                            forward ? 't' : 'f');
+#endif
+                }
+                
                 fs arg_fs = mother_fs.nth_arg(arg);
 
                 if(unify(mother_fs, daughter_fs, arg_fs).valid())
@@ -1026,6 +1041,9 @@ grammar::~grammar()
 
     if(_filter)
         delete[] _filter;
+
+    if(_subsumption_filter)
+        delete[] _subsumption_filter;
 
 #ifdef ONLINEMORPH
     if(_morph)

@@ -256,6 +256,7 @@ class grammar
       (1 << (arg - 1));
   }
 
+  // This version is used in the morphological analyzer
   inline bool filter_compatible(type_t mother, int arg,
                                 type_t daughter)
   {
@@ -264,6 +265,18 @@ class grammar
     if(mother_r == 0 || daughter_r == 0)
       throw error("Unknown rule passed to filter_compatible");
     return filter_compatible(mother_r, arg, daughter_r);
+  }
+
+  inline void subsumption_filter_compatible(grammar_rule *a, grammar_rule *b,
+                                            bool &forward, bool &backward)
+  {
+      if(a == 0 || b == 0)
+      {
+          forward = backward = true;
+          return;
+      }
+      forward = _subsumption_filter[a->id() + _nrules * b->id()];
+      backward = _subsumption_filter[b->id() + _nrules * a->id()];
   }
 
   inline int nrules() { return _rules.size(); }
@@ -324,6 +337,7 @@ class grammar
   list_int *_generics;
   
   char *_filter;
+  char *_subsumption_filter;
   void initialize_filter();
 
   void init_rule_qc();
