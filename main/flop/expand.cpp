@@ -345,7 +345,6 @@ bool fully_expand_types()
 // maximal appropriate type computation
 //
 
-int *maxapp;
 leda_d_array<int, int> nintro(0); // no of introduced features 
 
 void compute_maxapp()

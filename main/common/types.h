@@ -73,6 +73,7 @@ extern char **attrname;
 extern int *attrnamelen; // for faster printing
 
 extern type_t *apptype; // appropriate type for feature
+extern type_t *maxapp; // maximal appropriate type under feature
 
 // name of dynamic sort
 extern vector<const char *> dynsortname;
@@ -92,6 +93,7 @@ void dump_hierarchy(dumper *f);
 
 void undump_hierarchy(dumper *f);
 void undump_tables(dumper *f);
+void initialize_maxapp();
 
 void free_type_tables();
 

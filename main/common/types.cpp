@@ -42,6 +42,7 @@ static bitcode *temp_bitcode = NULL;
 static int codesize;
 
 int *apptype = 0;
+int *maxapp = 0;
 
 // status
 int nstatus;
@@ -352,6 +353,7 @@ void free_type_tables()
   delete temp_bitcode;
   delete[] leaftypeparent;
   delete[] apptype;
+  delete[] maxapp;
   delete[] featset;
   for(int i = 0; i < nfeatsets; i++)
     delete[] featsetdesc[i].attr;
@@ -409,6 +411,19 @@ void undump_hierarchy(dumper *f)
   leaftypeparent = New int[nleaftypes];
   for(int i = 0; i < nleaftypes; i++)
     leaftypeparent[i] = f->undump_int();
+}
+
+void
+initialize_maxapp()
+{
+    maxapp = new int[nattrs];
+    for(int i = 0; i < nattrs; i++)
+    {
+        maxapp[i] = 0;
+        dag_node *cval = dag_get_attr_value(typedag[apptype[i]], i);
+        if(cval && cval != FAIL)
+            maxapp[i] = dag_type(cval);
+    }
 }
 
 void undump_tables(dumper *f)
