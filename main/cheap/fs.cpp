@@ -349,10 +349,12 @@ packing_partial_copy(const fs &a, list_int *del, bool perm)
         res = dag_full_p_copy(res);
 
         // _fix_me_ generalize this
+#if 0
         if(subtype(res->type, lookup_type("rule")))
             res->type = lookup_type("rule");
         else if(subtype(res->type, lookup_type("lexrule_supermost")))
             res->type = lookup_type("lexrule_supermost");
+#endif
 
         dag_invalidate_changes();
         return res;
