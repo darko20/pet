@@ -28,7 +28,22 @@
 #include "options.h"
 #include "dag.h"
 
-void dump_symbol_tables(dumper *f)
+void
+dump_properties(dumper *f)
+{
+    // nproperties
+    f->dump_int(grammar_properties.size());
+    
+    for(std::map<std::string, std::string>::iterator it =
+            grammar_properties.begin(); it != grammar_properties.end(); ++it)
+    {
+        f->dump_string(it->first.c_str());
+        f->dump_string(it->second.c_str());
+    }
+}
+
+void
+dump_symbol_tables(dumper *f)
 {
   // nstatus
   f->dump_int(nstatus);
@@ -58,7 +73,8 @@ void dump_symbol_tables(dumper *f)
     f->dump_string(attrname[i]);
 }
 
-void dump_tables(dumper *f)
+void
+dump_tables(dumper *f)
 {
   // write encoding type
   if(opt_minimal == false)
@@ -86,7 +102,8 @@ void dump_tables(dumper *f)
     f->dump_int(leaftype_order[apptype[i]]);
 }
 
-void dump_print_names(dumper *f)
+void
+dump_print_names(dumper *f)
 {
   // print names
   for(int i = 0; i < ntypes; i++)
@@ -99,7 +116,8 @@ void dump_print_names(dumper *f)
     }
 }
 
-void dump_fullforms(dumper *f)
+void
+dump_fullforms(dumper *f)
 {
   f->dump_int(fullforms.size());
   
@@ -108,13 +126,15 @@ void dump_fullforms(dumper *f)
     currentff->dump(f);
 }
 
-void dump_inflr(dumper *f, int t, char *r)
+void
+dump_inflr(dumper *f, int t, char *r)
 {
   f->dump_int(t);
   f->dump_string(r);
 }
 
-void dump_inflrs(dumper *f)
+void
+dump_inflrs(dumper *f)
 {
   int ninflr = 0;
   int ninflr_var = f->dump_int_variable();
@@ -137,7 +157,8 @@ void dump_inflrs(dumper *f)
   f->set_int_variable(ninflr_var, ninflr);
 }
 
-void dump_irregs(dumper *f)
+void
+dump_irregs(dumper *f)
 {
   f->dump_int(irregforms.size());
   for(list<irreg_entry>::iterator it = irregforms.begin();
@@ -145,7 +166,8 @@ void dump_irregs(dumper *f)
     it->dump(f);
 }
 
-int kbwritten(dumper *f)
+int
+kbwritten(dumper *f)
 {
   static long int lpos = 0;
 
@@ -155,11 +177,13 @@ int kbwritten(dumper *f)
   return diff / 1024;
 }
 
-void dump_grammar(dumper *f, char *desc)
+void
+dump_grammar(dumper *f, char *desc)
 {
   dump_header(f, desc);
 
   dump_toc_maker toc(f);
+  toc.add_section(SEC_PROPERTIES);
   toc.add_section(SEC_SYMTAB);
   toc.add_section(SEC_PRINTNAMES);
   toc.add_section(SEC_HIERARCHY);
@@ -169,6 +193,9 @@ void dump_grammar(dumper *f, char *desc)
   toc.add_section(SEC_IRREGS);
   toc.add_section(SEC_CONSTRAINTS);
   toc.close();
+
+  toc.start_section(SEC_PROPERTIES);
+  dump_properties(f);
 
   toc.start_section(SEC_SYMTAB);
   dump_symbol_tables(f);

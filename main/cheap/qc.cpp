@@ -106,7 +106,7 @@ void compute_qc_sets(FILE *f)
 {
   time_t t = time(NULL);
   fprintf(f, ";; qc paths [set based] -- generated for %s for %d items on %s\n",
-	  Grammar->info().version, stats.id, ctime(&t));
+	  Grammar->property("version").c_str(), stats.id, ctime(&t));
 
   {
     fprintf(f, ";; %d failing paths:\n", next_failure_id);
@@ -225,7 +225,7 @@ void compute_qc_paths(FILE *f, int max)
   time_t t = time(NULL);
   
   fprintf(f, ";; qc paths [traditional] -- generated for %s for %d items on %s\n",
-	  Grammar->info().version, stats.id, ctime(&t));
+	  Grammar->property("version").c_str(), stats.id, ctime(&t));
 
   fprintf(f, ":begin :instance.\n\nqc_paths_traditional := *top* &\n[ ");
 

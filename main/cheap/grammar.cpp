@@ -611,6 +611,10 @@ grammar::grammar(const char * filename)
     
     dump_toc toc(&dmp);
     
+    // properties
+    toc.goto_section(SEC_PROPERTIES);
+    undump_properties(&dmp);
+
     // symbol tables
     toc.goto_section(SEC_SYMTAB);
     undump_symbol_tables(&dmp);
@@ -798,8 +802,6 @@ grammar::grammar(const char * filename)
     else
         _filter = 0;
 
-    init_grammar_info();
-
     s = cheap_settings->value("punctuation-characters");
     string pcs;
     if(s == 0)
@@ -854,6 +856,39 @@ grammar::grammar(const char * filename)
 #endif
 
     get_unifier_stats();
+}
+
+void
+grammar::undump_properties(dumper *f)
+{
+    if(verbosity > 4)
+        fprintf(fstatus, " [");
+
+    int nproperties = f->undump_int();
+    for(int i = 0; i < nproperties; i++)
+    {
+        char *key, *val;
+        key = f->undump_string();
+        val = f->undump_string();
+        _properties[key] = val;
+        if(verbosity > 4)
+            fprintf(fstatus, "%s%s=%s", i ? ", " : "", key, val);
+        delete[] key;
+        delete[] val;
+    }
+
+    if(verbosity > 4)
+        fprintf(fstatus, "]");
+}
+
+string
+grammar::property(string key)
+{
+    map<string, string>::iterator it = _properties.find(key);
+    if (it != _properties.end())
+        return it->second;
+    else
+        return string();
 }
 
 void
@@ -919,23 +954,6 @@ grammar::init_parameters()
                       set->values[i]);
             }
         }
-    }
-}
-
-void
-grammar::init_grammar_info()
-{
-    _info.version =
-        _info.ntypes =
-        _info.ntemplates = "";
-
-    int ind = lookup_type("grammar_info"); // _fix_me_ make configurable
-    if(ind != -1)
-    {
-        fs f(ind);
-        _info.version = f.get_attr_value("GRAMMAR_VERSION").printname();
-        _info.ntypes =  f.get_attr_value("GRAMMAR_NTYPES").printname();
-        _info.ntemplates =  f.get_attr_value("GRAMMAR_NTEMPLATES").printname();
     }
 }
 

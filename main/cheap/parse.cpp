@@ -480,10 +480,6 @@ analyze(input_chart &i_chart, string input, chart *&C,
     if(opt_default_les)
         i_chart.add_generics(lex_items);
 
-    // Discount priorities of lexical items that are covered by a larger
-    // multiword lexical item.
-    i_chart.discount_covered_items(lex_items);
-
     if(verbosity > 9)
         i_chart.print(ferr);
 

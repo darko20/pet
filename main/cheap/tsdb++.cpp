@@ -214,16 +214,21 @@ cheap_tsdb_summarize_run(void)
 {
     capi_printf("(:application . \"%s\") ", CHEAP_VERSION);
     capi_printf("(:platform . \"%s\") ", CHEAP_PLATFORM);
-    capi_printf("(:grammar . %s) ", Grammar->info().version);
+    capi_printf("(:grammar . \"%s\") ", Grammar->property("version").c_str());
     capi_printf("(:avms . %d) ", ntypes);
     capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
     capi_printf("(:rules . %d) ", Grammar->nrules());
-#if 0
-    capi_printf("(:templates . %s) ", Grammar->info().ntemplates);
-#else
-    capi_printf("(:templates . -1) ");
-#endif
+    capi_printf("(:templates . \"%s\") ", Grammar->property("ntemplates").c_str());
+    capi_printf("(:run-comment . \"");
+    map<string, string> properties = Grammar->properties();
+    for(map<string, string>::iterator it = properties.begin(); 
+        it != properties.end(); ++it)
+    {
+        capi_printf("(:%s . \"%s\") ", it->first.c_str(), it->second.c_str()); 
+    }
+    capi_printf("\") ");
+
 }
 
 int nprocessed = 0;
