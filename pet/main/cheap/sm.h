@@ -92,6 +92,15 @@ class tMEM : public tSM
 
     void
     parseModel();
+
+    void
+    parseOptions();
+
+    void
+    parseFeatures(int);
+
+    void
+    parseFeature(int);
 };
 
 #endif
