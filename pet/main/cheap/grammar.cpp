@@ -651,6 +651,10 @@ grammar::grammar(const char * filename)
     toc.goto_section(SEC_FEATTABS);
     undump_tables(&dmp);
     
+    // supertypes
+    if(toc.goto_section(SEC_SUPERTYPES))
+        undumpSupertypes(&dmp);
+
     // call unifier specific initialization
     dag_initialize();
     

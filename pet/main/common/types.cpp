@@ -57,6 +57,8 @@ int *typestatus = 0;
 
 int BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
 
+vector<list<int> > immediateSupertype;
+
 // attributes
 char **attrname = 0;
 int nattrs;
@@ -465,6 +467,22 @@ void undump_tables(dumper *f)
   apptype = New int[nattrs];
   for(int i = 0; i < nattrs; i++)
     apptype[i] = f->undump_int();
+}
+
+void
+undumpSupertypes(dumper *f)
+{
+    for(int i = 0; i < first_leaftype; i++)
+    {
+        int n = f->undump_short();
+        list<int> l;
+        for(int j = 0; j < n; j++)
+        {
+            int t = f->undump_int();
+            l.push_back(t);
+        }
+        immediateSupertype.push_back(l);
+    }
 }
 
 int core_glb(int a, int b)

@@ -89,6 +89,9 @@ void register_codetype(const bitcode &b, type_t i);
 void register_typecode(type_t i, bitcode *b);
 type_t lookup_code(const bitcode &b);
 
+// Immediate supertypes for each non-leaftype.
+extern vector<list<int> > immediateSupertype;
+
 void dump_hierarchy(dumper *f);
 
 void undump_hierarchy(dumper *f);
@@ -107,6 +110,9 @@ void clear_dynamic_symbols () ;
 void dump_symbol_tables(dumper *f);
 void undump_symbol_tables(dumper *f);
 void undump_printnames(dumper *f);
+
+void
+undumpSupertypes(dumper *f);
 
 bool core_subtype(type_t a, type_t b);
 bool subtype(type_t a, type_t b);
