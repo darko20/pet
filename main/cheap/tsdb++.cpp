@@ -153,8 +153,10 @@ initialize_version()
     char da[ABSBS]="unknown";
 #endif
     
-    char *qcs = cheap_settings->value("qc-structure");
-    if(qcs == NULL) qcs = "";
+    char *qcsu = cheap_settings->value("qc-structure-unif");
+    if(qcsu == NULL) qcsu = "";
+    char *qcss = cheap_settings->value("qc-structure-subs");
+    if(qcss == NULL) qcss = "";
     
     string sts("");
     struct setting *set;
@@ -169,7 +171,8 @@ initialize_version()
     }
     
     sprintf(CHEAP_VERSION,
-            "PET(%s cheap) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s %s[%d(%s)]"
+            "PET(%s cheap) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s "
+            "%s[%d(%s)] %s[%d(%s)]"
             " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
             da,
             pedgelimit,
@@ -183,7 +186,8 @@ initialize_version()
             opt_hyper ? "+HA" : "-HA",
             Grammar->nhyperrules(),
             opt_filter ? "+FI" : "-FI",
-            opt_nqc != 0 ? "+QC" : "-QC", opt_nqc, qcs,
+            opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
+            opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
             ((opt_nsolutions != 0) ? "+OS" : "-OS"), opt_nsolutions, 
             opt_shrink_mem ? "+SM" : "-SM", 
             opt_shaping ? "+SH" : "-SH",

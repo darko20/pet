@@ -43,7 +43,8 @@ item::item(int start, int end, const tPaths &paths,
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
-      _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
+      _result_root(-1), _result_contrib(false), _nparents(0),
+      _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
@@ -55,7 +56,8 @@ item::item(int start, int end, const tPaths &paths,
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
-      _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
+      _result_root(-1), _result_contrib(false), _nparents(0),
+      _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
@@ -64,7 +66,8 @@ item::item(int start, int end, const tPaths &paths,
 
 item::~item()
 {
-    if(_qc_vector) delete[] _qc_vector;
+    delete[] _qc_vector_unif;
+    delete[] _qc_vector_subs;
     free_list(_inflrs_todo);
     delete _unpack_cache;
 }
@@ -94,8 +97,11 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
     else
         _trait = LEX_TRAIT;
 
-    if(opt_nqc != 0)
-        _qc_vector = get_qc_vector(f);
+    if(opt_nqc_unif != 0)
+        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+
+    if(opt_nqc_subs != 0)
+        _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
     // compute _score score for lexical items
     if(Grammar->sm())
@@ -157,13 +163,18 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
 #endif
     pasv->_nparents++; pasv->parents.push_back(this);
 
-    if(opt_nqc != 0)
+    if(opt_nqc_unif != 0)
     {
         if(passive())
-            _qc_vector = get_qc_vector(f);
+            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
         else
-            _qc_vector = get_qc_vector(nextarg(f));
+            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
+                                            nextarg(f));
     }
+
+    if(opt_nqc_subs != 0)
+        if(passive())
+            _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
     // rule stuff
     if(passive())
@@ -208,13 +219,18 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
 
     _trait = SYNTAX_TRAIT;
 
-    if(opt_nqc != 0)
+    if(opt_nqc_unif != 0)
     {
         if(passive())
-            _qc_vector = get_qc_vector(f);
+            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
         else
-            _qc_vector = get_qc_vector(nextarg(f));
+            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
+                                            nextarg(f));
     }
+    
+    if(opt_nqc_subs != 0)
+        if(passive())
+            _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
     // rule stuff
     if(passive())

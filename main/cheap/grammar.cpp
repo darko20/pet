@@ -410,7 +410,7 @@ grammar_rule::grammar_rule(type_t t)
         }
     }
     
-    _qc_vector = New type_t *[_arity];
+    _qc_vector_unif = New type_t *[_arity];
     
     //
     // Build the _tofill list which determines the order in which arguments
@@ -447,7 +447,7 @@ grammar_rule::grammar_rule(type_t t)
     }
     
     for(int i = 0; i < _arity; i++)
-        _qc_vector[i] = 0;
+        _qc_vector_unif[i] = 0;
     
     //
     // Disable hyper activity if this is a more than binary-branching
@@ -497,7 +497,7 @@ grammar_rule::instantiate(bool full)
 }
 
 void
-grammar_rule::init_qc_vector()
+grammar_rule::init_qc_vector_unif()
 {
     fs_alloc_state FSAS;
     
@@ -506,7 +506,7 @@ grammar_rule::init_qc_vector()
     {
         fs arg = f.nth_arg(i);
         
-        _qc_vector[i-1] = get_qc_vector(arg);
+        _qc_vector_unif[i-1] = get_qc_vector(qc_paths_unif, qc_len_unif, arg);
     }
 }
 
@@ -549,7 +549,7 @@ genle_status(type_t t)
 typedef constraint_info *constraint_info_p;
 
 void
-undump_dags(dumper *f, int qc_inst)
+undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
 {
     struct dag_node *dag;
     
@@ -561,11 +561,18 @@ undump_dags(dumper *f, int qc_inst)
     
     for(int i = 0; i < ntypes; i++)
     {
-        if(i == qc_inst)
+        if(i == qc_inst_unif)
         {
-            if(verbosity > 4) fprintf(fstatus, "[qc structure `%s'] ",
-                                      printnames[qc_inst]);
-            qc_paths = dag_read_qc_paths(f, opt_nqc, qc_len);
+            if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
+                                      printnames[qc_inst_unif]);
+            qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
+            dag = 0;
+        }
+        else if(i == qc_inst_subs)
+        {
+            if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
+                                      printnames[qc_inst_subs]);
+            qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
             dag = 0;
         }
         else
@@ -600,7 +607,7 @@ free_constraint_cache()
 // Construct a grammar object from binary representation in a file
 grammar::grammar(const char * filename)
     : _properties(), _nrules(0), _root_insts(0), _generics(0),
-      _filter(0), _subsumption_filter(0), _qc_inst(0),
+      _filter(0), _subsumption_filter(0), _qc_inst_unif(0), _qc_inst_subs(0),
       _deleted_daughters(0), _packing_restrictor(0),
       _sm(0)
 {
@@ -645,7 +652,7 @@ grammar::grammar(const char * filename)
     
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
-    undump_dags(&dmp, _qc_inst);
+    undump_dags(&dmp, _qc_inst_unif, _qc_inst_subs);
     initialize_maxapp();
 
     // Tell unifier that all dags created from now an are not considered to
@@ -655,10 +662,16 @@ grammar::grammar(const char * filename)
     // is hard-coded by using t_alloc or p_alloc. Ugly? Yes.
     stop_creating_permanent_dags();
 
-    if(opt_nqc && _qc_inst == 0)
+    if(opt_nqc_unif && _qc_inst_unif == 0)
     {
-        fprintf(fstatus, "[ disabling quickcheck ] ");
-        opt_nqc = 0;
+        fprintf(fstatus, "[ disabling unification quickcheck ] ");
+        opt_nqc_unif = 0;
+    }
+
+    if(opt_nqc_subs && _qc_inst_subs == 0)
+    {
+        fprintf(fstatus, "[ disabling subsumption quickcheck ] ");
+        opt_nqc_subs = 0;
     }
 
     // find grammar rules and stems
@@ -795,12 +808,18 @@ grammar::grammar(const char * filename)
     }
 #endif
 
-    if(opt_nqc != 0)
+    if(opt_nqc_unif != 0)
     {
-        if(opt_nqc > 0 && opt_nqc < qc_len)
-            qc_len = opt_nqc;
+        if(opt_nqc_unif > 0 && opt_nqc_unif < qc_len_unif)
+            qc_len_unif = opt_nqc_unif;
 
-        init_rule_qc();
+        init_rule_qc_unif();
+    }
+
+    if(opt_nqc_subs != 0)
+    {
+        if(opt_nqc_subs > 0 && opt_nqc_subs < qc_len_subs)
+            qc_len_subs = opt_nqc_subs;
     }
 
     if(opt_filter)
@@ -927,13 +946,21 @@ grammar::init_parameters()
     else
         _root_insts = 0;
 
-    if((v = cheap_settings->value("qc-structure")) != 0)
+    if((v = cheap_settings->value("qc-structure-unif")) != 0)
     {
-        _qc_inst = lookup_type(v);
-        if(_qc_inst == -1) _qc_inst = 0;
+        _qc_inst_unif = lookup_type(v);
+        if(_qc_inst_unif == -1) _qc_inst_unif = 0;
     }
     else
-        _qc_inst = 0;
+        _qc_inst_unif = 0;
+
+    if((v = cheap_settings->value("qc-structure-subs")) != 0)
+    {
+        _qc_inst_subs = lookup_type(v);
+        if(_qc_inst_subs == -1) _qc_inst_subs = 0;
+    }
+    else
+        _qc_inst_subs = 0;
 
     // _fix_me_
     // the following two sections should be unified
@@ -974,13 +1001,13 @@ grammar::init_parameters()
 }
 
 void
-grammar::init_rule_qc()
+grammar::init_rule_qc_unif()
 {
     for(rule_iter iter(this); iter.valid(); iter++)
     {
         grammar_rule *rule = iter.current();
 
-        rule->init_qc_vector();
+        rule->init_qc_vector_unif();
     }
 }
 

@@ -97,7 +97,7 @@ class fs
   friend fs unify_restrict(fs &root, const fs &, fs &, list_int *del = 0, bool stat = true);
   friend fs copy(const fs &);
   friend bool compatible(const fs &, const fs &);
-  friend type_t *get_qc_vector(const fs &);
+  friend type_t *get_qc_vector(qc_node *qc_paths, int qc_len, const fs &);
 
   friend fs unify_np(fs &root, const fs &, fs &);
   friend void subsumes(const fs &a, const fs &b, bool &forward, bool &backward);
@@ -132,11 +132,14 @@ extern bool compatible(const fs &, const fs &);
 
 extern void get_unifier_stats();
 
-extern type_t *get_qc_vector(const fs &);
-extern bool qc_compatible(type_t *, type_t *);
+extern type_t *get_qc_vector(qc_node *qc_paths, int qc_len, const fs &);
+
+extern bool
+qc_compatible_unif(int qc_len, type_t *, type_t *);
 
 extern void
-qc_subsumption_compatible(type_t *a, type_t *b, bool &forward, bool &backward);
+qc_compatible_subs(int qc_len, type_t *a, type_t *b,
+                   bool &forward, bool &backward);
 
 //
 // feature structure memory allocation
