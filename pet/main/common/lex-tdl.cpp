@@ -210,8 +210,15 @@ struct lex_token *get_next_token()
       LConsume(i);
 
     }
+  else if(c == '-' && LLA(1) == '-' && LLA(2) == '>')
+    // this has to be checked before we check for identifiers, because
+    // -- is the start of a valid TDL identifier
+    {
+      t = make_token(T_ARROW, "-->", 3);
+      LConsume(3);
+    }
   else if(is_idchar(c) || isdigit(c) || c == '-')
-  { /* identifier/number (or command etc.) */
+    { /* identifier/number (or command etc.) */
 
       // _fix_me_
       // This isn't particularly elegant or robust. The error
