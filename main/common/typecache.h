@@ -163,7 +163,7 @@ class typecache
       init_bucket(b);
 
       b -> key = key;
-      b -> value = 0;
+      b -> value = _no_value;
       return b->value;
     }
 
