@@ -27,11 +27,16 @@
 //#define DEBUG
 
 chart::chart(int len, auto_ptr<item_owner> owner)
-  : _Chart(), _trees(), _readings(), _pedges(0),
-    _Cp_start(len + 1), _Cp_end(len + 1),
-    _Ca_start(len + 1), _Ca_end(len + 1),
-    _item_owner(owner)
+    : _Chart(), _trees(), _readings(), _pedges(0),
+      _Cp_start(len + 1), _Cp_end(len + 1),
+      _Ca_start(len + 1), _Ca_end(len + 1),
+      _Cp_span(len + 1),
+      _item_owner(owner)
 {
+    for(int i = 0; i <= len; i++)
+    {
+        _Cp_span[i].resize(len + 1 - i);
+    }
 }
 
 chart::~chart()
@@ -41,71 +46,72 @@ chart::~chart()
 void chart::add(item *it)
 {
 #ifdef DEBUG
-  it->print(ferr);
-  fprintf(ferr, "\n");
+    it->print(ferr);
+    fprintf(ferr, "\n");
 #endif
 
-  _Chart.push_back(it);
+    _Chart.push_back(it);
 
-  if(it->passive())
+    if(it->passive())
     {
-      _Cp_start[it->start()].push_back(it);
-      _Cp_end[it->end()].push_back(it);
-      _pedges++;
+        _Cp_start[it->start()].push_back(it);
+        _Cp_end[it->end()].push_back(it);
+        _Cp_span[it->start()][it->end()-it->start()].push_back(it);
+        _pedges++;
     }
-  else
+    else
     {
-      if(it->left_extending())
-        _Ca_start[it->start()].push_back(it);
-      else
-        _Ca_end[it->end()].push_back(it);
+        if(it->left_extending())
+            _Ca_start[it->start()].push_back(it);
+        else
+            _Ca_end[it->end()].push_back(it);
     }
 }
 
 void chart::print(FILE *f)
 {
-  int i = 0;
-  for(vector<item *>::iterator pos = _Chart.begin(); pos != _Chart.end();
-      ++pos, ++i)
+    int i = 0;
+    for(vector<item *>::iterator pos = _Chart.begin(); pos != _Chart.end();
+        ++pos, ++i)
     {
-      (*pos)->print(f);
-      fprintf(f, "\n");
+        (*pos)->print(f);
+        fprintf(f, "\n");
     }
 }
 
 void chart::get_statistics()
 {
-  // calculate aedges, pedges, raedges, rpedges
-  chart_iter iter(this);
-
-  long int totalsize = 0;
-  
-  while(iter.valid())
+    // calculate aedges, pedges, raedges, rpedges
+    chart_iter iter(this);
+    
+    long int totalsize = 0;
+    
+    while(iter.valid())
     {
-      item *it = iter.current();
-
-      if(it->trait() == INFL_TRAIT)
+        item *it = iter.current();
+        
+        if(it->trait() == INFL_TRAIT)
 	{
-	  stats.medges++;
+            stats.medges++;
 	}
-      else if(it -> passive())
+        else if(it -> passive())
 	{
-	  stats.pedges++;
-	  if(it -> result_contrib())
-	    stats.rpedges++;
-	  
-          fs f = it -> get_fs();
-          totalsize += f.size();
+            stats.pedges++;
+            if(it -> result_contrib())
+                stats.rpedges++;
+            
+            fs f = it -> get_fs();
+            totalsize += f.size();
 	}
-      else
-	{
-	  stats.aedges++;
-	  if(it -> result_contrib())
-	    stats.raedges++;
-	}
-      iter++;
+        else
+        {
+            stats.aedges++;
+            if(it -> result_contrib())
+                stats.raedges++;
+        }
+        iter++;
     }
-  stats.fssize = (stats.pedges > 0) ? totalsize / stats.pedges : 0;
+    stats.fssize = (stats.pedges > 0) ? totalsize / stats.pedges : 0;
 }
 
 //
