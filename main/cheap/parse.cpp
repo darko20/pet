@@ -240,7 +240,7 @@ packed_edge(item *newitem)
             }
         }
       
-        if(backward && (opt_packing & PACKING_RETRO))
+        if(backward && (opt_packing & PACKING_RETRO) && !olditem->frosted())
         {
             if(verbosity > 4)
             {
