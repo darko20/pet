@@ -101,7 +101,6 @@ extern settings *flop_settings;
 
 /* `lexical tie ins' */
 extern int lisp_mode;      /* should lexer recognize lisp expressions */
-extern int builtin_mode;   /* should lexer translate builtin names  */
 
 /*** parse-tdl.cc ***/
 
