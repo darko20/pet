@@ -7,6 +7,8 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 
+using namespace std;
+
 #include "paths.h"
 
 class tPathsTest : public CppUnit::TestFixture
