@@ -5,7 +5,7 @@ TSDB = true ;
 ITSDBDIR = /proj/collate/home/uc/src/newlkb ;
 
 ICU = true ;
-ICUDIR = /opt/lib/icu-2.1 ; 
+ICUDIR = /usr/contrib/lib/icu ; 
 
 IQT = false ;
 IQTDIR = /home/uc/YY/src/lib/iqtsdk/main ;
