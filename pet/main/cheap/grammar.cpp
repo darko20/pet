@@ -702,6 +702,9 @@ grammar::grammar(const char * filename)
         if(verbosity > 4) fprintf(fstatus, ", %d full form entries", nffs);
     }
 
+    if(_fullforms.size() == 0)
+        opt_fullform_morph = false;
+
 #ifdef ONLINEMORPH
     // inflectional rules
     _morph = New morph_analyzer(this);
@@ -749,6 +752,10 @@ grammar::grammar(const char * filename)
 
             delete[] r;
         }
+
+        if(_morph->empty())
+            opt_online_morph = false;
+        
         if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
         if(verbosity >14) _morph->print(fstatus);
     }
@@ -1144,20 +1151,25 @@ grammar::lookup_form(const string form)
     list<full_form> result;
   
 #ifdef ONLINEMORPH
-    list<morph_analysis> m = _morph->analyze(form);
-    for(list<morph_analysis>::iterator it = m.begin(); it != m.end(); ++it)
+    if(opt_online_morph)
     {
-        for(list<lex_stem *>::iterator st_it = it->stems().begin();
-            st_it != it->stems().end(); ++st_it)
-            result.push_back(full_form(*st_it, *it));
-    }
-#else
-    pair<ffdict::iterator,ffdict::iterator> p = _fullforms.equal_range(form);
-    for(ffdict::iterator it = p.first; it != p.second; ++it)
-    {
-        result.push_back(*it->second);
+        list<morph_analysis> m = _morph->analyze(form);
+        for(list<morph_analysis>::iterator it = m.begin(); it != m.end(); ++it)
+        {
+            for(list<lex_stem *>::iterator st_it = it->stems().begin();
+                st_it != it->stems().end(); ++st_it)
+                result.push_back(full_form(*st_it, *it));
+        }
     }
 #endif
+    if(opt_fullform_morph)
+    {
+        pair<ffdict::iterator,ffdict::iterator> p = _fullforms.equal_range(form);
+        for(ffdict::iterator it = p.first; it != p.second; ++it)
+        {
+            result.push_back(*it->second);
+        }
+    }
   
     return result;
 }

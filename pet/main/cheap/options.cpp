@@ -31,7 +31,7 @@ bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_compute_qc, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_nbest;
+  opt_nbest, opt_online_morph, opt_fullform_morph;
 #ifdef YY
 bool opt_yy, opt_k2y_segregation;
 int opt_k2y, opt_nth_meaning;
@@ -77,7 +77,9 @@ void usage(FILE *f)
   fprintf(f, "  `-failure-print' --- print failure paths\n");
 #ifdef ONLINEMORPH
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
+  fprintf(f, "  `-no-online-morph' --- disable online morphology\n");
 #endif
+  fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
   fprintf(f, "  `-nbest' --- n-best parsing mode\n");
   fprintf(f, "  `-supertag=file' --- write supertagged data into file\n");
@@ -111,6 +113,8 @@ void usage(FILE *f)
 #define OPTION_SUPERTAGNORM 21
 #define OPTION_LATTICE 22
 #define OPTION_NBEST 23
+#define OPTION_NO_ONLINE_MORPH 24
+#define OPTION_NO_FULLFORM_MORPH 25
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -145,6 +149,8 @@ void init_options()
   opt_supertag_file = 0;
   opt_supertag_norm = 10;
   opt_nbest = false;
+  opt_online_morph = true;
+  opt_fullform_morph = true;
 #ifdef YY
   opt_yy = false;
   opt_k2y = 0;
@@ -191,6 +197,9 @@ bool parse_options(int argc, char* argv[])
     {"supertagnorm", required_argument, 0, OPTION_SUPERTAGNORM},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"nbest", no_argument, 0, OPTION_NBEST},
+    {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
+    {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
+
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -292,6 +301,12 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NBEST:
           opt_nbest = true;
+          break;
+      case OPTION_NO_ONLINE_MORPH:
+          opt_online_morph = false;
+          break;
+      case OPTION_NO_FULLFORM_MORPH:
+          opt_fullform_morph = false;
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:
