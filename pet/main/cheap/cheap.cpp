@@ -42,8 +42,8 @@ FILE *ferr, *fstatus, *flog;
 
 // global variables for parsing
 
-grammar *Grammar;
-settings *cheap_settings;
+grammar *Grammar = 0;
+settings *cheap_settings = 0;
 
 #ifdef ONLINEMORPH
 #include "morph.h"
@@ -391,13 +391,15 @@ void print_grammar(FILE *f)
 
 void process(char *s)
 {
-    cheap_settings = New settings(settings::basename(s), s, "reading");
-    fprintf(fstatus, "\n");
-    
     timer t_start;
-    fprintf(fstatus, "loading `%s' ", s);
-    
-    try { Grammar = New grammar(s); }
+  
+
+    try {
+      cheap_settings = New settings(settings::basename(s), s, "reading");
+      fprintf(fstatus, "\n");
+      fprintf(fstatus, "loading `%s' ", s);
+      Grammar = New grammar(s); 
+    }
     
     catch(error &e)
     {

@@ -859,7 +859,12 @@ grammar::grammar(const char * filename)
         // _fix_me_
         // Once we have more than just MEMs we need to add a dispatch facility
         // here, or have a factory build the models.
-        _sm = new tMEM(this, sm_file, filename);
+      try { _sm = new tMEM(this, sm_file, filename); }
+      catch(error &e)
+      {
+        fprintf(ferr, "\n"); e.print(ferr);
+        _sm = 0;
+      }
     }
 
 #ifdef EXTDICT
