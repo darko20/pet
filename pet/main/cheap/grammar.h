@@ -332,7 +332,7 @@ class grammar
   map<type_t, int> _root_weight;
 
   list_int *_generics;
-
+  
   char *_filter;
   void initialize_filter();
 
@@ -341,6 +341,9 @@ class grammar
 
   list_int *_deleted_daughters;
   list_int *_packing_restrictor;
+
+  /// Stochastic model.
+  class tSM *_sm;
 
   struct grammar_info _info;
   void init_grammar_info();

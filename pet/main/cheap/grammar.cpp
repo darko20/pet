@@ -29,6 +29,7 @@
 #include "dumper.h"
 #include "grammar-dump.h"
 #include "tsdb++.h"
+#include "sm.h"
 #ifdef ICU
 #include "unicode.h"
 #endif
@@ -626,7 +627,8 @@ free_constraint_cache()
 // Construct a grammar object from binary representation in a file
 grammar::grammar(const char * filename)
     : _nrules(0), _weighted_roots(false), _root_insts(0), _generics(0),
-      _filter(0), _qc_inst(0), _deleted_daughters(0), _packing_restrictor(0) 
+      _filter(0), _qc_inst(0), _deleted_daughters(0), _packing_restrictor(0),
+      _sm(0)
 {
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
 
@@ -846,6 +848,15 @@ grammar::grammar(const char * filename)
 #else
     _punctuation_characters = Conv->convert(pcs);
 #endif  
+
+    char *sm_file;
+    if((sm_file = cheap_settings->value("sm")) != 0)
+    {
+        // _fix_me_
+        // Once we have more than just MEMs we need to add a dispatch facility
+        // here, or have a factory build the models.
+        _sm = new tMEM(this, sm_file, filename);
+    }
 
 #ifdef IQT
     try
