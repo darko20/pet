@@ -42,4 +42,8 @@
 
 - whenever dag_get_path_value is called, structure should be filled, at least
   under that path.
-  
+
+- apply chart dependencies after lexical processing
+
+- extend chart dependencies to allow a dependency to be conditioned on
+  a specified path-value pair.  
