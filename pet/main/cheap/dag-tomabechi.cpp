@@ -62,16 +62,20 @@ int unify_nr_newtype, unify_nr_comparc, unify_nr_forward, unify_nr_copy;
 
 dag_node *dag_cyclic_rec(dag_node *dag);
 
-inline dag_node *dag_deref1(dag_node *dag)
+inline dag_node *
+dag_deref1(dag_node *dag)
 {
-  dag_node *res;
-
-  res = dag_get_forward(dag);
-
-  while(dag != res)
-    dag = res, res = dag_get_forward(res);
-
-  return res;
+    dag_node *res;
+    
+    res = dag_get_forward(dag);
+    
+    while(res)
+    {
+        dag = res;
+        res = dag_get_forward(dag);
+    }
+    
+    return dag;
 }
 
 dag_arc *dag_find_attr(dag_arc *arc, int attr)
