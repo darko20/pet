@@ -114,17 +114,6 @@ class tGrammar
       (1 << (arg - 1));
   }
 
-  // This version is used in the morphological analyzer
-  inline bool filter_compatible(type_t mother, int arg,
-                                type_t daughter)
-  {
-    grammar_rule *mother_r = _rule_dict[mother];
-    grammar_rule *daughter_r = _rule_dict[daughter];
-    if(mother_r == 0 || daughter_r == 0)
-      throw tError("Unknown rule passed to filter_compatible");
-    return filter_compatible(mother_r, arg, daughter_r);
-  }
-
   inline void subsumption_filter_compatible(grammar_rule *a, grammar_rule *b,
                                             bool &forward, bool &backward)
   {
@@ -188,7 +177,6 @@ class tGrammar
 
   int _nrules;
   list<grammar_rule *> _rules;
-  map<type_t, grammar_rule *> _rule_dict;
 
   list_int *_root_insts;
 

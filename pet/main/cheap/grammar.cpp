@@ -429,7 +429,6 @@ tGrammar::tGrammar(const char * filename)
         {
             grammar_rule *R = new grammar_rule(i);
             _rules.push_front(R);
-            _rule_dict[i] = R;
         }
         else if(genle_status(i))
         {

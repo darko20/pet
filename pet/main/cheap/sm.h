@@ -82,7 +82,7 @@ class tSM
     { return _G; }
 
     virtual double
-    scoreLocalTree(class grammar_rule *, list<class tItem *>);
+    scoreLocalTree(class tPhrasalItem *, list<class tItem *>);
 
     virtual double
     scoreLeaf(class tLexItem *);
