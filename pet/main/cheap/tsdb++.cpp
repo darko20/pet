@@ -373,7 +373,7 @@ tsdb_edge::capi_print()
     capi_printf("(:score . \"%g\") ", score);
     capi_printf("(:start . %d) ", start);
     capi_printf("(:end . %d) ", end);
-    capi_printf("(:daughters . %s) ", daughters.c_str());
+    capi_printf("(:daughters . \"%s\") ", daughters.c_str());
     capi_printf("(:status . %d) ", status);
     capi_printf(")\n");
 }
