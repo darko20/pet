@@ -2,12 +2,12 @@ UNIFIER = tomabechi ;
 YY = true ;
 
 TSDB = true ;
-ITSDBDIR = /home/uc/newlkb ;
+ITSDBDIR = /proj/collate/home/uc/src/newlkb ;
 
 ICU = true ;
-ICUDIR = /opt/icu ; 
+ICUDIR = /opt/lib/icu-2.1 ; 
 
-IQT = true ;
+IQT = false ;
 IQTDIR = /home/uc/YY/src/lib/iqtsdk/main ;
 
 CC = gcc ;
@@ -17,7 +17,6 @@ C++FLAGS += -g -Wall ;
 CFLAGS += -g -Wall ;
 
 LINK = g++ ;
-
 OPTIM = -O3 ;
 
 SEARCH_SOURCE += ../common ;
@@ -82,13 +81,13 @@ LINKLIBS on cheap = -lm -lstdc++ -liberty ;
 
 if $(TSDB) = true
 {
-  LINKFLAGS on cheap += -L$(ITSDBDIR)/lib/linux ;
+  LINKFLAGS on cheap += -L$(ITSDBDIR)/lib/linux -Xlinker -rpath -Xlinker $(ITSDBDIR)/lib/linux ;
   LINKLIBS on cheap += -litsdb -lpvm3 ;
 }
 
 if $(ICU) = true
 {
-  LINKFLAGS on cheap += -L$(ICUDIR)/lib ;
+  LINKFLAGS on cheap += -L$(ICUDIR)/lib -Xlinker -rpath -Xlinker $(ICUDIR)/lib ;
   LINKLIBS on cheap += -licuuc -licui18n -lpthread -ldl ;
 }
 

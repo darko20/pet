@@ -467,7 +467,7 @@ yy_tokenizer::read_token()
 // all strings coming in over this interface are UTF8 encoded. Ignore this
 // for now on filenames. Do appropriate conversion for rest.
 
-#include "../l2lib.h"
+#include "../borland/l2lib.h"
 
 // initialize parser with specified grammar
 
