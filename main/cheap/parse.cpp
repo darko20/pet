@@ -426,8 +426,8 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
             }
         }
         stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
-        stats.dyn_bytes = FSAS.dynamic_usage();
-        stats.stat_bytes = FSAS.static_usage();
+        stats.p_dyn_bytes = FSAS.dynamic_usage();
+        stats.p_stat_bytes = FSAS.static_usage();
         FSAS.clear_stats();
         delete UnpackTime;
     }
