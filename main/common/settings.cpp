@@ -95,7 +95,11 @@ settings::settings(const char *name, const char *base, char *message)
     {
       push_file(_fname, message);
       free(_fname);
+      char *sv = lexer_idchars;
+      lexer_idchars = "_+-*?$";
       parse();
+      lexer_idchars = sv;
+
     }
   _lloc = 0;
 }
