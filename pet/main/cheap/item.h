@@ -468,6 +468,7 @@ class tPhrasalItem : public tItem, private tActive
         return combined;
     }
 
+  tPhrasalItem(class tGrammarRule *, fs &); 
   tPhrasalItem(class tPhrasalItem *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, vector<class tItem *> &, fs &);
 
