@@ -1,6 +1,6 @@
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+ * (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
  *
  *   This program is free software; you can redistribute it and/or
  *   modify it under the terms of the GNU Lesser General Public
@@ -17,7 +17,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* class `item' */
+/* Chart item hierarchy */
 
 #ifndef _ITEM_H_
 #define _ITEM_H_
@@ -28,6 +28,10 @@
 #include "options.h"
 #include "grammar.h"
 #include "inputtoken.h"
+
+/** Represent an item in a chart. Conceptually there are input items,
+ *  morphological items, lexical items and phrasal items. 
+ */
 
 class item
 {
@@ -181,8 +185,6 @@ class item
   virtual int startposition() = 0;
   virtual int endposition() = 0;
 
-  virtual int age() = 0;
-
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
   virtual void print_packed(FILE *f);
@@ -334,8 +336,6 @@ class lex_item : public item
   virtual inline int endposition() { 
     return _dtrs[_ndtrs - 1]->endposition() ; }
 
-  virtual inline int age() { return _id; }
-
   inline const postags &get_in_postags()
   { return _dtrs[_keydtr]->get_in_postags(); }
   inline const postags &get_supplied_postags()
@@ -387,8 +387,6 @@ class phrasal_item : public item
 
   virtual int startposition() { return _daughters.front()->startposition() ; }
   virtual int endposition() { return _daughters.back()->endposition() ; }
-
-  virtual inline int age() { return _id; }
 
   virtual int identity()
   {
