@@ -25,32 +25,39 @@
 #include "grammar.h"
 #include "item.h"
 
-// _fix_me_ required for global Grammar only
-#include "parse.h"
-
 class basic_task
 {
  public:
-    static int next_id;
 
-    inline basic_task(class chart *C, class tAgenda *A) 
-        : _id(next_id++), _Chart(C), _A(A), _p(0.0)
+    basic_task(class chart *C, class tAgenda *A) 
+        : _id(next_id++), _C(C), _A(A), _p(0.0)
     {}
 
-    virtual tItem * execute() = 0;
+    virtual tItem *
+    execute() = 0;
     
-    inline double priority() const
-    { return _p; }
+    inline double
+    priority() const
+    {
+        return _p;
+    }
     
-    inline void priority(double p)
-    { _p = p; }
+    inline void
+    setPriority(double p)
+    {
+        _p = p;
+    }
 
-    virtual void print(FILE *f);
+    virtual void
+    print(FILE *f);
 
  protected:
+    
+    static int next_id;
+
     int _id;
     
-    class chart *_Chart;
+    class chart *_C;
     class tAgenda *_A;
   
     double _p;
@@ -63,36 +70,28 @@ class item_task : public basic_task
  public:
     item_task(class chart *C, class tAgenda *A, tItem *it);
     
-    virtual tItem *execute();
+    virtual tItem *
+    execute();
 
  private:
     tItem *_item;
 };
 
-class rule_and_passive_task : public basic_task
-{
- public:
-    rule_and_passive_task(class chart *C, class tAgenda *A,
-                          grammar_rule *R, tItem *passive);
-    
-    virtual tItem *execute();
-    virtual void print(FILE *f);
-    
- private:
-    grammar_rule *_R;
-    tItem *_passive;
-};
-
 class active_and_passive_task : public basic_task
 {
  public:
+    
     active_and_passive_task(class chart *C, class tAgenda *A,
                             tItem *active, tItem *passive);
 
-    virtual tItem *execute();
-    virtual void print(FILE *f);
+    virtual tItem *
+    execute();
+    
+    virtual void
+    print(FILE *f);
 
  private:
+    
     tItem *_active;
     tItem *_passive;
 };

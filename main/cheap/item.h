@@ -37,9 +37,17 @@ class tItem
 {
  public:
 
+
     /** Does this item have any further completion requirements? */
     virtual bool
     passive() = 0;
+
+    /* Active items need not have a position */
+    bool
+    positioned()
+    {
+        return start() != -1 && end() != -1;
+    }
 
     /** If this item is not passive(), i.e. it has further completion
      *  requirements, does it extend to the left? If the item is
@@ -47,13 +55,26 @@ class tItem
     virtual bool
     leftExtending() = 0;
 
-    virtual int
-    arity() = 0;
-
     /** _fix_me_ length shouldn't be passed here; also it should do
      *  a more complete job */
     virtual bool
     compatible(tItem *passive, int length) = 0;
+
+    virtual tItem *
+    combine(class tItem *passive) = 0;
+
+    //
+    // Temporary stuff
+    //
+
+    /** _fix_me_ This is only used in build_combined_item in task.cpp
+     *  can be removed when that's been cleaned up. */
+    virtual int
+    arity() = 0;
+
+    //
+    // Old stuff
+    //
     
   tItem(int start, int end, const tPaths &paths, fs &f,
        const char *printname);
@@ -86,55 +107,6 @@ class tItem
 
   bool spanningonly() { return _spanningonly; }
 
-  inline bool compatible(class grammar_rule *R, int length)
-  {
-      if(R->trait() == INFL_TRAIT)
-      {
-          if(_trait != INFL_TRAIT)
-              return false;
-          
-          if(first(_inflrs_todo) != R->type())
-              return false;
-      }
-      else if(R->trait() == LEX_TRAIT)
-      {
-          if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
-              return false;
-      }
-      else if(R->trait() == SYNTAX_TRAIT)
-      {
-          if(_trait == INFL_TRAIT)
-              return false;
-      }
-      
-      if(R->spanningonly())
-      {
-          if(R->arity() == 1)
-          {
-              if(span() != length)
-                  return false;
-          }
-          else if(R->nextarg() == 1)
-          {
-              if(_start != 0)
-                  return false;
-          }
-          else if(R->nextarg() == R->arity())
-          {
-              if(_end != length)
-                  return false;
-          }
-      }
-      
-      if(opt_shaping == false)
-          return true;
-      
-      if(R->left_extending())
-          return _end + R->arity() - 1 <= length;
-      else
-          return _start - (R->arity() - 1) >= 0;
-  }
-  
   inline bool root(class tGrammar *G, int length, type_t &rule)
   {
       if(_trait == INFL_TRAIT)
@@ -158,15 +130,15 @@ class tItem
       return get_fs().type();
   }
   
-  // inline int arity() { return length(_tofill); }
-
   inline int nextarg() { return first(_tofill); }
   inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
   inline list_int *restargs() { return rest(_tofill); }
   inline int nfilled() { return _nfilled; }
 
+#if 0
   virtual int startposition() = 0;
   virtual int endposition() = 0;
+#endif
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
@@ -189,8 +161,6 @@ class tItem
   
   inline type_t *qc_vector_unif() { return _qc_vector_unif; }
   inline type_t *qc_vector_subs() { return _qc_vector_subs; }
-
-  virtual grammar_rule *rule() = 0;
 
   virtual void recreate_fs() = 0;
 
@@ -271,26 +241,38 @@ class tActive
 {
  public:
 
-    tActive(list_int *toFill)
-        : _toFill(toFill)
+    tActive(int filled, list_int *toFill)
+        : _filled(filled), _toFill(toFill) 
     {}
 
+    int 
+    filledArity()
+    {
+        return _filled;
+    }
+
     int
-    arity()
+    remainingArity()
     {
         return length(_toFill);
+    }
+
+    int
+    totalArity()
+    {
+        return filledArity() + remainingArity();
     }
 
     bool
     passive()
     {
-        return arity() == 0;
+        return remainingArity() == 0;
     }
 
     int
     nextArg()
     {
-        if(arity() == 0)
+        if(remainingArity() == 0)
             return 0;
         return first(_toFill);
     }
@@ -298,7 +280,7 @@ class tActive
     list_int *
     restArgs()
     {
-        if(arity() == 0)
+        if(remainingArity() == 0)
             return 0;
         return rest(_toFill);
     }
@@ -311,7 +293,24 @@ class tActive
  
  private:
 
+    int _filled;
     list_int *_toFill;
+};
+
+class tFSItem
+{
+ public:
+
+    tFSItem(fs &f)
+        : _f(f)
+    {
+    }
+
+    
+    
+ private:
+    
+    fs _f;
 };
 
 class tLexItem : public tItem, private tActive
@@ -327,7 +326,7 @@ class tLexItem : public tItem, private tActive
     virtual int
     arity()
     {
-        return tActive::arity();
+        return tActive::remainingArity();
     }
 
     virtual bool
@@ -337,32 +336,12 @@ class tLexItem : public tItem, private tActive
     }
 
     virtual bool
-    compatible(tItem *passive, int length)
-    {
-        if(passive->_trait == INFL_TRAIT)
-            return false;
+    compatible(class tItem *passive, int length);
 
-        if(spanningonly())
-        {
-            if(nextarg() == 1)
-            {
-                if(passive->start() != 0)
-                    return false;
-            }
-            else if(arity() == 1 && !leftExtending())
-            {
-                if(passive->end() != length)
-                    return false;
-            }
-        }
-  
-        if(!opt_lattice && !passive->_paths.compatible(_paths))
-            return false;
+    virtual tItem *
+    combine(class tItem *passive);
+
     
-        return true;
-    }
-  
-
 
   tLexItem(int start, int end, const tPaths &paths,
            int ndtrs, int keydtr, class input_token **dtrs,
@@ -376,7 +355,7 @@ class tLexItem : public tItem, private tActive
   }
 
   tLexItem(const tLexItem &li)
-      : tActive(0)
+      : tActive(0, 0)
   {
     throw tError("unexpected call to copy constructor of tLexItem");
   }
@@ -395,8 +374,6 @@ class tLexItem : public tItem, private tActive
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
 
-  virtual grammar_rule *rule();
-
   virtual fs get_fs(bool full = false)
   {
       return full ? _fs_full : _fs;
@@ -407,9 +384,11 @@ class tLexItem : public tItem, private tActive
   string description();
   string orth();
 
+#if 0
   virtual inline int startposition() { return _dtrs[0]->startposition() ; }
   virtual inline int endposition() { 
     return _dtrs[_ndtrs - 1]->endposition() ; }
+#endif
 
   inline const postags &get_in_postags()
   { return _dtrs[_keydtr]->get_in_postags(); }
@@ -447,7 +426,7 @@ class tPhrasalItem : public tItem, private tActive
     virtual int
     arity()
     {
-        return tActive::arity();
+        return tActive::remainingArity();
     }
 
     virtual bool
@@ -457,32 +436,45 @@ class tPhrasalItem : public tItem, private tActive
     }
 
     virtual bool
-    compatible(tItem *passive, int length)
-    {
-        if(passive->_trait == INFL_TRAIT)
-            return false;
+    compatible(class tItem *passive, int length);
 
-        if(spanningonly())
+    virtual tItem *
+    combine(class tItem *passive);
+
+    void
+    getCombinedPositions(class tItem *passive, int &resStart, int &resEnd)
+    {
+        if(positioned())
         {
-            if(nextarg() == 1)
+            if(leftExtending())
             {
-                if(passive->start() != 0)
-                    return false;
+                resStart = passive->start();
+                resEnd = end();
             }
-            else if(arity() == 1 && !leftExtending())
+            else
             {
-                if(passive->end() != length)
-                    return false;
-            }
+                resStart = start();
+                resEnd = passive->end();
         }
-  
-        if(!opt_lattice && !passive->_paths.compatible(_paths))
-            return false;
+        }
+        else
+        {
+            resStart = passive->start();
+            resEnd = passive->end();
+        }
+    }
     
-        return true;
+    list<tItem *>
+    getCombinedDaughters(class tItem *passive)
+    {
+        list<tItem *> combined(_daughters);
+        if(leftExtending())
+            combined.push_front(passive);
+        else
+            combined.push_back(passive);
+        return combined;
     }
 
-  tPhrasalItem(class grammar_rule *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, vector<class tItem *> &, fs &);
 
@@ -499,17 +491,17 @@ class tPhrasalItem : public tItem, private tActive
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
 
-  virtual grammar_rule *rule();
-
   virtual void recreate_fs();
 
+#if 0
   virtual int startposition() { return _daughters.front()->startposition() ; }
   virtual int endposition() { return _daughters.back()->endposition() ; }
+#endif
 
   virtual int identity()
   {
-      if(_rule)
-          return _rule->type();
+      if(_adaughter)
+          return _adaughter->type();
       else
           return 0;
   }
@@ -522,7 +514,6 @@ class tPhrasalItem : public tItem, private tActive
  private:
   list<tItem *> _daughters;
   tItem * _adaughter;
-  grammar_rule *_rule;
 
   friend class active_and_passive_task;
 };

@@ -76,7 +76,7 @@ tLexItem::tLexItem(int start, int end, const tPaths &paths,
                    int ndtrs, int keydtr, input_token **dtrs, 
                    fs &f, const char *printname)
     : tItem(start, end, paths, f, printname),
-      tActive(0),
+      tActive(0, 0),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
     // _fix_me_
@@ -140,11 +140,22 @@ same_lexitems(const tLexItem &a, const tLexItem &b)
     return a._dtrs[a._keydtr]->form() == b._dtrs[b._keydtr]->form();
 }
 
+tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
+    : tItem(-1, -1, active->_paths.common(pasv->_paths),
+           f, active->printname()),
+      tActive(active->filledArity(), active->restargs()),
+    _daughters(active->getCombinedDaughters(pasv)), _adaughter(active)
+{
+
+    active->getCombinedPositions(pasv, _start, _end);
+
+#if 0
+    // _fix_me_ merge this
 tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     : tItem(pasv->_start, pasv->_end, pasv->_paths,
            f, R->printname()),
       tActive(R->restargs()),
-    _daughters(), _adaughter(0), _rule(R)
+    _daughters(), _adaughter(0)
 {
     _tofill = R->restargs();
     _nfilled = 1;
@@ -185,32 +196,16 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
         R->actives++;
 
 #ifdef DEBUG
-    fprintf(ferr, "new rule tItem (`%s' + %d@%d):", 
+    fprintf(ferr, "new rule item (`%s' + %d@%d):", 
             R->printname(), pasv->id(), R->nextarg());
     print(ferr);
     fprintf(ferr, "\n");
 #endif
 }
 
-tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
-    : tItem(-1, -1, active->_paths.common(pasv->_paths),
-           f, active->printname()),
-      tActive(active->restargs()),
-    _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
-{
-    if(active->leftExtending())
-    {
-        _start = pasv->_start;
-        _end = active->_end;
-        _daughters.push_front(pasv);
-    }
-    else
-    {
-        _start = active->_start;
-        _end = pasv->_end;
-        _daughters.push_back(pasv);
-    }
-  
+#endif
+
+        
 #ifdef DEBUG
     fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
 #endif
@@ -235,11 +230,14 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
         if(passive())
             _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
+#if 0
+    //_fix_me_
     // rule stuff
     if(passive())
         active->rule()->passives++;
     else
         active->rule()->actives++;
+#endif
 
 #ifdef DEBUG
     fprintf(ferr, "new combined item (%d + %d@%d):", 
@@ -252,9 +250,9 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     : tItem(sponsor->start(), sponsor->end(), sponsor->_paths,
            f, sponsor->printname()),
-      tActive(0), // _fix_me_
+      tActive(0, 0), // _fix_me_
       _daughters(),
-      _adaughter(0), _rule(sponsor->rule())
+      _adaughter(0)
 {
     // _fix_me_
     //  copy(dtrs.begin(), dtrs.end(), _daughters.begin());
@@ -568,18 +566,6 @@ tPhrasalItem::collect_children(list<tItem *> &result)
     }
 }
 
-grammar_rule *
-tLexItem::rule()
-{
-    return NULL;
-}
-
-grammar_rule *
-tPhrasalItem::rule()
-{
-    return _rule;
-}
-
 void
 tLexItem::recreate_fs()
 {
@@ -590,12 +576,15 @@ void tPhrasalItem::recreate_fs()
 {
     if(!passive())
     {
+#if 0
+        //_fix_me_
         assert(_rule->arity() <= 2);
         _fs = _rule->instantiate();
         fs arg = _rule->nextarg(_fs);
         _fs = unify_np(_fs, _daughters.front()->get_fs(), arg);
         if(!_fs.valid())
             throw tError("trouble rebuilding active item (1)");
+#endif
     }
     else
     {
@@ -723,7 +712,7 @@ tPhrasalItem::unpack1(int upedgelimit)
 
     // Consider all possible combinations of daughter structures
     // and collect the ones that combine. 
-    vector<tItem *> config(rule()->arity());
+    vector<tItem *> config(totalArity());
     list<tItem *> res;
     unpack_cross(dtrs, 0, config, res);
  
@@ -746,7 +735,7 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
                            int index, vector<tItem *> &config,
                            list<tItem *> &res)
 {
-    if(index >= rule()->arity())
+    if(index >= totalArity())
     {
         tItem *combined = unpack_combine(config);
         if(combined)
@@ -793,6 +782,8 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
 tItem *
 tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
 {
+    #if 0
+    // _fix_me_
     fs_alloc_state FSAS(false);
 
     fs res = rule()->instantiate(true);
@@ -829,4 +820,391 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
 
     stats.p_upedges++;
     return new tPhrasalItem(this, daughters, res);
+    #endif
+    return 0;
+}
+
+bool
+tLexItem::compatible(tItem *passive, int length)
+{
+    return true;
+    
+    // _fix_me_
+#if 0
+    
+    if(trait() == INFL_TRAIT)
+    {
+        if(passive->trait() != INFL_TRAIT)
+            return false;
+        
+        if(first(passive->_inflrs_todo) != type())
+            return false;
+    }
+    else if(trait() == LEX_TRAIT)
+    {
+        if(passive->trait() == INFL_TRAIT
+           && first(passive->_inflrs_todo) != type())
+            return false;
+    }
+    else if(trait() == SYNTAX_TRAIT)
+    {
+        if(passive->trait() == INFL_TRAIT)
+            return false;
+    }
+    
+    if(opt_shaping == false)
+        return true;
+    
+    if(R->left_extending())
+        return _end + R->arity() - 1 <= length;
+    else
+        return _start - (R->arity() - 1) >= 0;
+    
+    
+    if(passive->_trait == INFL_TRAIT)
+        return false;
+    
+    
+    if(spanningonly())
+    {
+        if(nextArg() == 1)
+        {
+            if(passive->start() != 0)
+                return false;
+        }
+        else if(arity() == 1)
+        {
+            if(span() != length)
+                return false;
+            
+            if(!leftExtending() && passive->end() != length)
+                return false;
+        }
+    }
+    
+    if(!opt_lattice && !passive->_paths.compatible(_paths))
+        return false;
+    
+    return true;
+#endif
+}
+
+bool
+tPhrasalItem::compatible(tItem *passive, int length)
+{
+    return true;
+    
+    // _fix_me_
+#if 0
+
+//
+// filtering
+//
+
+bool
+filter_rule_task(grammar_rule *R, tItem *passive)
+{
+
+#ifdef DEBUG
+    fprintf(ferr, "trying "); R->print(ferr);
+    fprintf(ferr, " & passive "); passive->print(ferr);
+    fprintf(ferr, " ==> ");
+#endif
+
+    if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(),
+                                                 passive->rule()))
+    {
+        stats.ftasks_fi++;
+
+#ifdef DEBUG
+        fprintf(ferr, "filtered (rf)\n");
+#endif
+
+        return false;
+    }
+
+    if(opt_nqc_unif != 0
+       && !qc_compatible_unif(qc_len_unif, R->qc_vector_unif(R->nextarg()),
+                              passive->qc_vector_unif()))
+    {
+        stats.ftasks_qc++;
+
+#ifdef DEBUG
+        fprintf(ferr, "filtered (qc)\n");
+#endif
+
+        return false;
+    }
+
+#ifdef DEBUG
+    fprintf(ferr, "passed filters\n");
+#endif
+
+    return true;
+}
+
+bool
+filter_combine_task(tItem *active, tItem *passive)
+{
+#ifdef DEBUG
+    fprintf(ferr, "trying active "); active->print(ferr);
+    fprintf(ferr, " & passive "); passive->print(ferr);
+    fprintf(ferr, " ==> ");
+#endif
+
+    if(opt_filter && !Grammar->filter_compatible(active->rule(),
+                                                 active->nextarg(),
+                                                 passive->rule()))
+    {
+#ifdef DEBUG
+        fprintf(ferr, "filtered (rf)\n");
+#endif
+
+        stats.ftasks_fi++;
+        return false;
+    }
+
+    if(opt_nqc_unif != 0
+       && !qc_compatible_unif(qc_len_unif, active->qc_vector_unif(),
+                              passive->qc_vector_unif()))
+    {
+#ifdef DEBUG
+        fprintf(ferr, "filtered (qc)\n");
+#endif
+
+        stats.ftasks_qc++;
+        return false;
+    }
+
+#ifdef DEBUG
+    fprintf(ferr, "passed filters\n");
+#endif
+
+    return true;
+}
+
+
+
+    
+    if(trait() == INFL_TRAIT)
+    {
+        if(passive->trait() != INFL_TRAIT)
+            return false;
+        
+        if(first(passive->_inflrs_todo) != type())
+            return false;
+    }
+    else if(trait() == LEX_TRAIT)
+    {
+        if(passive->trait() == INFL_TRAIT
+           && first(passive->_inflrs_todo) != type())
+            return false;
+    }
+    else if(trait() == SYNTAX_TRAIT)
+    {
+        if(passive->trait() == INFL_TRAIT)
+            return false;
+    }
+    
+    if(opt_shaping == false)
+        return true;
+    
+    if(R->left_extending())
+        return _end + R->arity() - 1 <= length;
+    else
+        return _start - (R->arity() - 1) >= 0;
+    
+    
+    if(passive->_trait == INFL_TRAIT)
+        return false;
+    
+    
+    if(spanningonly())
+    {
+        if(nextArg() == 1)
+        {
+            if(passive->start() != 0)
+                return false;
+        }
+        else if(arity() == 1)
+        {
+            if(span() != length)
+                return false;
+            
+            if(!leftExtending() && passive->end() != length)
+                return false;
+        }
+    }
+    
+    if(!opt_lattice && !passive->_paths.compatible(_paths))
+        return false;
+    
+    return true;
+#endif
+}
+  
+
+tItem *
+tLexItem::combine(tItem *passive)
+{
+    return 0;
+}
+
+
+tItem *
+tPhrasalItem::combine(tItem *passive)
+{
+
+    return 0;
+
+#if 0
+tItem *
+build_combined_item(chart *C, tItem *active, tItem *passive);
+
+tItem *
+build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
+{
+    fs_alloc_state FSAS(false);
+    
+    stats.etasks++;
+    
+    fs res;
+    
+    bool temporary = false;
+    
+    fs rule = R->instantiate();
+    fs arg = R->nextarg(rule);
+    
+    if(!arg.valid())
+    {
+        fprintf(ferr, "trouble getting arg of rule\n");
+        return 0;
+    }
+    
+    if(!opt_hyper || R->hyperactive() == false)
+    {
+        res = unify_restrict(rule,
+                             passive->get_fs(),
+                             arg,
+                             R->arity() == 1 ?
+                             Grammar->deleted_daughters() : 0);
+    }
+    else
+    {
+        if(R->arity() > 1)
+        {
+            res = unify_np(rule, passive->get_fs(), arg);
+            temporary = true;
+        }
+        else
+        {
+            res = unify_restrict(rule, passive->get_fs(), arg,
+                                 Grammar->deleted_daughters());
+        }
+    }
+    
+    if(!res.valid())
+    {
+        FSAS.release();
+        return 0;
+    }
+    else
+    {
+        stats.stasks++;
+        
+        tPhrasalItem *it;
+        
+        if(temporary)
+	{
+            temporary_generation save(res.temp());
+            it = new tPhrasalItem(R, passive, res);
+            FSAS.release();
+	}
+        else
+	{
+            it = new tPhrasalItem(R, passive, res);
+	}
+        
+        return it;
+    }
+}
+
+tItem *
+build_combined_item(chart *C, tItem *active, tItem *passive)
+{
+    fs_alloc_state FSAS(false);
+    
+    stats.etasks++;
+    
+    fs res;
+    
+    bool temporary = false;
+    
+    fs combined = active->get_fs();
+    
+    if(opt_hyper && combined.temp())
+        unify_generation = combined.temp(); // _fix_me_ this might need to be reset
+    
+    fs arg = active->nextarg(combined);
+    
+    if(!arg.valid())
+    {
+        fprintf(ferr, "trouble getting arg of active item\n");
+        return 0;
+    }
+    
+    if(!opt_hyper || active->rule()->hyperactive() == false)
+    {
+        res = unify_restrict(combined,
+                             passive->get_fs(),
+                             arg,
+                             active->arity() == 1 ? 
+                             Grammar->deleted_daughters() : 0); 
+    }
+    else
+    {
+        if(active->arity() > 1)
+        {
+            res = unify_np(combined, passive->get_fs(), arg);
+            temporary = true;
+        }
+        else
+        {
+            res = unify_restrict(combined, passive->get_fs(), arg,
+                                 Grammar->deleted_daughters());
+        }
+    }
+    
+    if(!res.valid())
+    {
+        FSAS.release();
+        return 0;
+    }
+    else
+    {
+        stats.stasks++;
+        
+        tPhrasalItem *it;
+        
+        if(temporary)
+	{
+            temporary_generation save(res.temp());
+            it = new tPhrasalItem(dynamic_cast<tPhrasalItem *>(active),
+                                  passive, res);
+            FSAS.release();
+	}
+        else
+	{
+            it = new tPhrasalItem(dynamic_cast<tPhrasalItem *>(active),
+                                  passive, res);
+	}
+        
+        return it;
+    }
+}
+
+
+#endif
+
+
 }
