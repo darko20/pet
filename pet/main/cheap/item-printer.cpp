@@ -81,7 +81,7 @@ tCompactDerivationPrinter::real_print(const tInputItem *item) {
 void 
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
   fprintf(_out, "(%d %s/%s %.2f %d %d "
-           , id(item), stem(item)->printname()
+           , item->id(), stem(item)->printname()
            , print_name(const_cast<tLexItem *>(item)->type()), item->score()
            , item->start(), item->end());
   
@@ -97,7 +97,7 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 void 
 tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
   fprintf(_out, "(%d %s %.2f %d %d"
-          , id(item), item->printname(), item->score()
+          , item->id(), item->printname(), item->score()
           , item->start(), item->end());
   
   if(item->packed.size())
@@ -177,4 +177,58 @@ void tFegramedPrinter::print(const tItem *arg) {
   open_stream(out.str().c_str());
   dag_print_fed_safe(_out, const_cast<tItem *>(arg)->get_fs().dag());
   close_stream();
+}
+
+
+void 
+tJxchgPrinter::print(const tItem *arg) { arg->print_gen(this); }
+
+
+/** Print the yield of an input item, recursively or not */
+void tJxchgPrinter::print_yield(const tInputItem *item) {
+  if (item->daughters().empty()) {
+    _out << '"' << item->form() << '"';
+  } else {
+    item_citer it = item->daughters().begin();
+    print(*it);
+    while(++it != item->daughters().end()) {
+      _out << " ";
+      print(*it++);
+    }
+  }
+}
+
+/** Input items don't print themselves */
+void tJxchgPrinter::real_print(const tInputItem *item) { }
+
+void 
+tJxchgPrinter::real_print(const tLexItem *item) {
+  _out << item->id() << " " << item->start() << " " << item->end() << " "
+       << print_name(item->identity()) << "[";
+  for(const list_int *l = inflrs_todo(item); l != 0; l = rest(l)) {
+    _out << print_name(first(l));
+    if (rest(l) != 0) _out << " ";
+  }
+  _out << "] ( "; 
+  // This prints only the yield, because all daughters are tInputItems
+  for(item_citer it = item->daughters().begin(); it != item->daughters().end()
+        ; it++)
+    print_yield(dynamic_cast<tInputItem *>(*it));
+  _out << " ) ";
+  dag_print_jxchg(_out, get_fs(item).dag());
+  _out << endl;
+}
+
+void 
+tJxchgPrinter::real_print(const tPhrasalItem *item) {
+  _out << item->id() << " " << item->start() << " " << item->end() << " "
+       << print_name(item->identity()) 
+       << " (";
+  for(item_citer it = item->daughters().begin(); it != item->daughters().end()
+        ; it++) {
+    _out << " " << (*it)->id();
+  }
+  _out << " ) ";
+  dag_print_jxchg(_out, get_fs(item).dag());
+  _out << endl;
 }

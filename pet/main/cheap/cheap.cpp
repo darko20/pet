@@ -19,6 +19,7 @@
 
 /* main module (standalone parser) */
 
+#include "config.h"
 #include "pet-system.h"
 #include "cheap.h"
 #include "parse.h"
@@ -44,7 +45,7 @@
 #include "yy.h"
 #endif
 
-#ifdef ECL
+#ifdef HAVE_ECL
 #include "petecl.h"
 #include "cppbridge.h"
 #endif
@@ -69,13 +70,13 @@ void interactive()
     //chp.print(type_dag(lookup_type("quant-rel")));
     //exit(1);
 
-    tTsdbDump tsdb_dump(opt_tsdb_file);
+    tTsdbDump tsdb_dump(opt_tsdb_dir);
     if (tsdb_dump.active()) {
       opt_tsdb = 1;
     } else {
-      if (! opt_tsdb_file.empty())
+      if (! opt_tsdb_dir.empty())
         fprintf(ferr, "Could not open TSDB dump files in directory %s\n"
-                , opt_tsdb_file.c_str());
+                , opt_tsdb_dir.c_str());
     }
 
     while(!(input = read_line(stdin)).empty())
@@ -112,6 +113,20 @@ void interactive()
             //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
             //tFegramedPrinter chp("/tmp/fed-", true);
             //Chart->print(&chp);
+
+            if (! opt_jxchg_dir.empty()) {
+              string yieldname = input;
+              replace(yieldname.begin(), yieldname.end(), ' ', '_');
+              yieldname = opt_jxchg_dir + yieldname;
+              ofstream out(yieldname.c_str());
+              if (! out) {
+                fprintf(ferr, "Can not open file %s\n", yieldname.c_str());
+              } else {
+                out << "0 " << Chart->rightmost() << endl;
+                tJxchgPrinter chp(out);
+                Chart->print(&chp);
+              }
+            }
             
             if(verbosity > 1 || opt_mrs)
             {
@@ -141,7 +156,7 @@ void interactive()
                         deriv.print(it);
                         fprintf(fstatus, "\n");
                     }
-#ifdef ECL
+#ifdef HAVE_ECL
                     if(opt_mrs)
                     {
                         string mrs;
@@ -159,7 +174,7 @@ void interactive()
 #endif
                 }
 
-#ifdef ECL
+#ifdef HAVE_ECL
                 if(opt_partial && (Chart->readings().empty())) {
                   list< tItem * > partials;
                   Chart->shortest_path(partials);
@@ -325,7 +340,9 @@ void process(char *s)
     }
     
     try {
+#ifdef DYNAMIC_SYMBOLS
       init_characterization();
+#endif
       Lexparser.init();
 
       dumper dmp(s);
@@ -387,7 +404,7 @@ void process(char *s)
     fprintf(fstatus, "\n%d types in %0.2g s\n",
             ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
     
-#ifdef ECL
+#ifdef HAVE_ECL
     char *cl_argv[] = {"cheap", 0};
     ecl_initialize(1, cl_argv, s);
 #endif

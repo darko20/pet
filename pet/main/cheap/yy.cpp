@@ -19,6 +19,8 @@
 
 // YY input format and server mode (oe, uc)
 
+#include "config.h"
+
 #ifdef SOCKET_INTERFACE
 #include <unistd.h>
 #include <signal.h>
@@ -34,6 +36,9 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <strings.h>
+#ifdef __SUNOS__
+#include <sys/ioctl.h>
+#endif
 #endif
 
 #include "pet-system.h"
@@ -47,9 +52,15 @@
 #include "typecache.h"
 #include "tsdb++.h"
 #include "yy.h"
-#ifdef ICU
+#ifdef HAVE_ICU
 #include "unicode.h"
+#define massageUTF8(str) Conv->convert(ConvUTF8->convert(str))
+#define massagetoUTF8(str) ConvUTF8->convert(Conv->convert(str))
+#else
+#define massageUTF8(str) str
+#define massagetoUTF8(str) str
 #endif
+
 
 #if 0
 //
@@ -466,6 +477,7 @@ yy_tokenizer::read_token()
     return res.release();
 }
 #endif
+
 //
 // library based interface to language server
 //
@@ -475,7 +487,7 @@ yy_tokenizer::read_token()
 // all strings coming in over this interface are UTF8 encoded. Ignore this
 // for now on filenames. Do appropriate conversion for rest.
 
-#include "../borland/l2lib.h"
+#include "l2lib.h"
 
 // initialize parser with specified grammar
 
@@ -571,7 +583,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
     fs_alloc_state FSAS;
 
-    string input = Conv->convert(ConvUTF8->convert(inputUTF8));
+    string input = massageUTF8(inputUTF8);
 
     fprintf(fstatus, "[%s] (%d) l2_parser_parse(\"%s\", %d)\n", current_time(),
             stats.id, input.c_str(), nskip);
@@ -676,7 +688,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
     delete Chart;
     fflush(fstatus);
-    return ConvUTF8->convert(Conv->convert(result));
+    return massagetoUTF8(result);
 }
 
 void l2_tsdb_write(FILE *f_parse, FILE *f_result, FILE *f_item, const string& roletable)
@@ -697,7 +709,7 @@ vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
 {
   vector<l2_tMorphAnalysis> results;
 
-  string form = Conv->convert(ConvUTF8->convert(formUTF8));
+  string form = massageUTF8(formUTF8);
 
 #ifndef ONLINEMORPH
   throw l2_error("L2 morphology component not available");
@@ -712,12 +724,12 @@ vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
 	for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();
             ++f)
-	  a.forms.push_back(ConvUTF8->convert(Conv->convert(*f)));
+	  a.forms.push_back(massagetoUTF8(*f));
 
 	for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r)
-	  a.rules.push_back(ConvUTF8->convert(Conv->convert(string(type_name(*r)))));
+	  a.rules.push_back(massagetoUTF8(string(type_name(*r))));
 
 	results.push_back(a);
       }
@@ -738,7 +750,7 @@ vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
 string l2_morph_analyse_imp(const string& formUTF8)
 {
   string results = "";
-  string form = Conv->convert(ConvUTF8->convert(formUTF8));
+  string form = massageUTF8(formUTF8);
 
 #ifndef ONLINEMORPH
   throw l2_error("L2 morphology component not available");
@@ -751,14 +763,14 @@ string l2_morph_analyse_imp(const string& formUTF8)
 	for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();
             ++f) {
-          results += ConvUTF8->convert(Conv->convert(*f));
+          results += massagetoUTF8(*f);
           results += "\f+\nF";
         }
 
 	for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r) {
-          results += ConvUTF8->convert(Conv->convert(string(type_name(*r))));
+          results += massagetoUTF8(string(type_name(*r)));
           results += "\f+\nR";
         }
         results += "\f+\nA";
@@ -1150,7 +1162,7 @@ int cheap_server_child(int socket) {
         return 0;
       } /* if */
 
-      string foo = Conv->convert(ConvUTF8->convert(string(input)));
+      string foo = massageUTF8(string(input));
 
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
@@ -1267,7 +1279,7 @@ int cheap_server_child(int socket) {
       kaerb = true;
     } /* if */
     else {
-      string foo = Conv->convert(ConvUTF8->convert(string(input)));
+      string foo = massageUTF8(string(input));
 
       if(opt_yy && yy_output != NULL) {
         fprintf(yy_output, "%s\f\n", foo.c_str());

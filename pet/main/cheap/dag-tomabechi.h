@@ -27,6 +27,8 @@
 /** Enable cache for typedags that are used during unification */
 #define CONSTRAINT_CACHE
 
+#include "config.h"
+
 #include <list>
 #include "types.h"
 
@@ -260,12 +262,16 @@ void dag_print_safe(FILE *f, dag_node *dag, bool temporary);
 /** Print \a dag to \a f in \em fegramed syntax. */
 void dag_print_fed_safe(FILE *f, dag_node *dag);
 
+/** Print \a dag to \a f in a special, compact syntax, originally intended for
+ *  exchange with Java servers/clients.
+ */
+void dag_print_jxchg(ostream &f, dag_node *dag);
+
 /** @name Generation Protected Slots
  * Accessor functions for the generation protected slots -- inlined for
  * efficiency.
  */
 /*@{*/
-
 inline type_t dag_get_new_type(dag_node *dag)
 {
   return (dag->generation == unify_generation) ? dag->new_type : dag->type ;

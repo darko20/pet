@@ -379,12 +379,13 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
 	}
         
 #ifdef QC_PATH_COMP
-        if(opt_compute_qc || opt_print_failure)
+        if(opt_compute_qc_unif || opt_print_failure)
         {
             list<unification_failure *> fails =
                 dag_unify_get_failures(a._dag, b._dag, true);
-
-            record_failures(fails, true, a._dag, b._dag);
+            
+            if (opt_compute_qc_unif) 
+              record_failures(fails, true, a._dag, b._dag);
         }
 #endif
         
@@ -452,7 +453,7 @@ void
 subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 {
 #ifdef QC_PATH_COMP
-    if(opt_compute_qc || opt_print_failure)
+    if(opt_compute_qc_subs || opt_print_failure)
     {
         list<unification_failure *> failures =
             dag_subsumes_get_failures(a._dag, b._dag, forward, backward,
@@ -483,7 +484,8 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 
         }
 
-        record_failures(filtered, false, a._dag, b._dag);
+        if (opt_compute_qc_subs)
+          record_failures(filtered, false, a._dag, b._dag);
     }
     else
 #endif

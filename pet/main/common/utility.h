@@ -27,6 +27,8 @@
 #include <list> 
 #include <string>
 
+using namespace std;
+
 /** allocates \a size bytes of memory - throw error when out of memory */
 void *salloc(size_t size);
 

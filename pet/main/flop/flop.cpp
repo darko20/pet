@@ -41,9 +41,6 @@
 #include "options.h"
 #include "version.h"
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/topological_sort.hpp>
-
 /*** global variables ***/
 
 char * version_string = VERSION ;

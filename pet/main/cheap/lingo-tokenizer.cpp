@@ -20,10 +20,11 @@
 
 /* tokenizer base class and simple lingo tokenizer */
 
+#include "config.h"
 #include "pet-system.h"
 #include "settings.h"
 #include "lingo-tokenizer.h"
-#ifdef ICU
+#ifdef HAVE_ICU
 #include "unicode.h"
 #endif
 
@@ -37,7 +38,7 @@ tTokenizer::tTokenizer() {
   else
     pcs = convert_escapes(string(s));
   
-#ifndef ICU
+#ifndef HAVE_ICU
   _punctuation_characters = pcs;
 #else
   _punctuation_characters = Conv->convert(pcs);
@@ -46,7 +47,7 @@ tTokenizer::tTokenizer() {
 
 bool tTokenizer::punctuationp(const string &s)
 {
-#ifndef ICU
+#ifndef HAVE_ICU
   if(_punctuation_characters.empty())
     return false;
     
@@ -109,7 +110,7 @@ tLingoTokenizer::do_it(string s) {
     translate_iso_chars(s);
 
   // replace all punctuation characters by blanks
-#ifndef ICU
+#ifndef HAVE_ICU
   for(string::size_type i = 0; i < s.length(); i++)
     if(punctuationp(string(1, s[i])))
       s[i] = ' ';

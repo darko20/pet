@@ -24,6 +24,7 @@
 #include "pet-system.h"
 #include "dag.h"
 #include "dumper.h"
+#include "hashing.h"
 
 #ifdef FLOP
 #include "flop.h"
@@ -112,7 +113,7 @@ void register_typecode(int i, bitcode *b)
   typecode[i] = b;
 }
 
-#ifdef HAVE_HASH_MAP
+#ifdef HASH_SPACE
 namespace HASH_SPACE {
 template<> struct hash<string>
 {
@@ -126,9 +127,19 @@ template<> struct hash<string>
   }
 };
 }
+
+struct string_equal : public binary_function<string, string, bool> {
+  inline bool operator()(const string &s1, const string &s2) {
+    return s1 == s2;
+  }
+};
+
+typedef hash_map<string, int, hash< string >, string_equal> string_map;
+#else
+typedef map<string, int> string_map;
 #endif
 
-hash_map<string, int> _typename_memo;
+string_map _typename_memo;
 
 int lookup_type(const char *s)
 {
@@ -141,7 +152,7 @@ int lookup_type(const char *s)
       initialized_cache = true;
     }
   
-  hash_map<string, int>::iterator pos = _typename_memo.find(s);
+  string_map::iterator pos = _typename_memo.find(s);
   if(pos != _typename_memo.end())
     {
       return (*pos).second;
@@ -247,7 +258,6 @@ int get_special_name(settings *sett, char *suff, bool attr = false)
   char *buff = new char[strlen(suff) + 25];
   sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
   char *v = sett->req_value(buff);
-  delete[] buff;
   int id;
 #ifdef FLOP
   if(attr)
@@ -270,9 +280,13 @@ int get_special_name(settings *sett, char *suff, bool attr = false)
     }
 #else 
  id = attr ? lookup_attr(v) : lookup_type(v);
-  if(id == -1)
-    throw tError(string(buff) + " not defined (but referenced in settings file)");
+ if(id == -1) {
+   string s(buff);
+   delete[] buff;
+   throw tError(s + ":=" + v + " not defined (but referenced in settings file)");
+ }
 #endif
+  delete[] buff;
   return id;
 }
 

@@ -1,3 +1,4 @@
+# -*- makefile -*-
 #%.o: %.cpp
 #	$(COMPILE.cc) $< $(OUTPUT_OPTION)
 
@@ -11,8 +12,10 @@ LD = gcc
 cpp=cpp
 c=c
 
+DEPDIR=.deps
+
 ifeq ($(shell test -d /project/cl/deepthought && echo "yes"), yes)
-ECLPATH = /project/cl/deepthought/local/ecl
+ECLPATH = /project/cl/deepthought/local
 ICUDIR = /project/cl/deepthought/local
 ITSDBPATH = /project/cl/deepthought/lkb
 XERCESPATH = /project/cl/deepthought/local/lib/xerces-c
@@ -23,14 +26,18 @@ ITSDBPATH = /home/kiefer/Lisp/lkb
 XERCESPATH = /usr/local/lib/xerces-c
 endif
 
-INCLUDE = -I. -I../common  -I$(ITSDBPATH)/include -I$(ICUDIR)/include
-
 #PROFILING=-pg
-MRS=-DECL
-#XML=-DHAVE_XML
+MRS=-DHAVE_ECL
+XML=-DHAVE_XML
+ICU=-DHAVE_ICU
+TSDB=-DTSDBAPI
 
-DEFINES =-DHAVE_HASH_MAP -DHAVE_MMAP -DYY -DTSDBAPI -DSOCKET_INTERFACE -DONLINEMORPH -DICU -DDYNAMIC_SYMBOLS -DTSDBFILEAPI $(MRS) $(XML)
+DEFINES=-DDYNAMIC_SYMBOLS 
+#	-DHAVE_EXT_HASH_MAP -DHAVE_MMAP $(TSDB) $(ICU) $(MRS) $(XML)
 
+INCLUDE = -I. -I.. -I../common
+
+LIBS = -lstdc++
 #
 # choice here has to correspond to choice for DAGOBJ (see below):
 #
@@ -40,38 +47,9 @@ DEFINES += -DDAG_TOMABECHI -DQC_PATH_COMP # -DPACKING
 # DEFINES += -DDAG_FIXED -DNO_CAST
 # DEFINES += -DDAG_SYNTH1
 
-# for Unix/gcc
 CPPFLAGS = $(DEFINES) $(INCLUDE)
-# for CygWin
-# CPPFLAGS1 = -Wall -g -DYY $(INCLUDE)
-
 CXXFLAGS = -g -Wall $(PROFILING) $(CPPFLAGS)
 CFLAGS = -g -Wall $(PROFILING) $(CPPFLAGS)
-
-# solaris
-# LIBS = -Wl,-R,/proj/perform/uc/5lib -lm -lstdc++ -ldl -liberty
-# linux dynamic: all standard libraries are provided by the compiler
-# LIBS = -lm -lstdc++ -lc -ldl
-# cygwin
-# LIBS = -lm -lstdc++ -liberty
-
-# solaris
-# ITSDBLIBS = $(ITSDBPATH)/lib/solaris/libitsdb.a $(ITSDBPATH)/lib/solaris/libpvm3.a -lsocket -lnsl -lkstat -lposix4
-# linux dynamic
-#ITSDBLIBS = -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3 -liberty
-# linux static
-ITSDBLIBS = -Wl,-R,$(ITSDBPATH)/lib/linux -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3
-#ITSDBLIBS = -L$(ITSDBPATH)/lib/linux $(ITSDBPATH)/lib/linux/libitsdb.a -lpvm3 -liberty
-# cygwin (no itsdb available)
-# ITSDBLIBS =
-
-ICULIBS = -Wl,-R,$(ICUDIR)/lib -L$(ICUDIR)/lib -licuuc -licui18n -lpthread
-
-ECLLIBS = -Wl,-R,$(ECLPATH)/lib/ecl -L$(ECLPATH)/lib/ecl -lecl -L$(ITSDBPATH)/lib/linux -lmrs
-
-XERCESLIBS = -Wl,-R,$(XERCESPATH)/lib -L$(XERCESPATH)/lib -lxerces-c
-
-LIBS+=$(ITSDBLIBS) $(ICULIBS)
 
 VPATH = .:../common
 
@@ -84,35 +62,43 @@ DAGSRC = dag-io.$(cpp) dag-common.$(cpp) dag-arced.$(cpp) dag-alloc.$(cpp) dag-t
 # DAGSRC = dag-common.$(cpp) dag-fixed.$(cpp)
 # DAGSRC = dag-io.$(cpp) dag-common.$(cpp) dag-arced.$(cpp) dag-alloc.$(cpp) dag-synth1.$(cpp)
 
-COMMONSRCS = bitcode.$(cpp) chunk-alloc.$(cpp) mfile.$(c) \
-	     lex-io.$(cpp) lex-tdl.$(cpp) settings.$(cpp) fs.$(cpp)\
-             dumper.$(cpp) grammar-dump.$(cpp) grammar.$(cpp) types.$(cpp)\
-	     tsdb++.$(cpp) utility.$(cpp) $(DAGSRC)
+COMMONSRCS = bitcode.$(cpp) chunk-alloc.$(cpp) mfile.$(c)\
+	     lex-io.$(cpp) lex-tdl.$(cpp) settings.$(cpp) dumper.$(cpp)\
+             grammar-dump.$(cpp) types.$(cpp) utility.$(cpp) $(DAGSRC)
 
 PARSESRCS = chart.$(cpp) hash.$(cpp) item.$(cpp) item-printer.$(cpp) \
 	    lexicon.$(cpp) lexparser.$(cpp) lingo-tokenizer.$(cpp)\
             morph.$(cpp) options.$(cpp)\
             parse.$(cpp) paths.$(cpp) postags.$(cpp)\
-	    sm.$(cpp) task.$(cpp) unicode.$(cpp)\
-	    yy.$(cpp) yy-tokenizer.$(cpp) # mrs.$(cpp) 
+	    sm.$(cpp) task.$(cpp) tsdb++.$(cpp)\
+	    yy.$(cpp) yy-tokenizer.$(cpp)  fs.$(cpp) grammar.$(cpp)
 
-ECLSRCS = cppbridge.$(cpp) petecl.$(c) petmrs.$(c) 
-
-XMLSRCS = pic-handler.$(cpp) xmlparser.$(cpp)
-
-# inputtoken.$(cpp) inputchart.$(cpp) tokenizer.$(cpp)
 
 CHEAPSRCS = cheap.$(cpp) $(COMMONSRCS) $(PARSESRCS)
 
-ifdef XML
-  INCLUDE+= -I$(XERCESPATH)/include
-  LIBS+= $(XERCESLIBS)
-  CHEAPSRCS+= $(XMLSRCS)
+ifdef TSDB
+  LIBS += -Wl,-R,$(ITSDBPATH)/lib/linux -L$(ITSDBPATH)/lib/linux -litsdb
+  INCLUDE += -I$(ICUDIR)/include
 endif
 
-ifeq "$(MRS)" "-DECL"
-  LIBS+= $(ECLLIBS)
-  CHEAPSRCS+= $(ECLSRCS)
+ifdef ICU
+  LIBS += -Wl,-R,$(ICUDIR)/lib -L$(ICUDIR)/lib -licuuc -licui18n -lpthread
+  INCLUDE += -I$(ICUDIR)/include
+  CHEAPSRCS += unicode.$(cpp)
+endif
+
+ifeq "$(MRS)" "-DHAVE_ECL"
+  LIBS += -Wl,-R,$(ECLPATH)/lib/ecl -L$(ECLPATH)/lib/ecl -lecl
+  # This is not nice: it requires the tsdb path
+  LIBS += -L$(ITSDBPATH)/lib/linux -lmrs
+  INCLUDE += -I$(ECLDIR)/include
+  CHEAPSRCS+= cppbridge.$(cpp) petecl.$(c) petmrs.$(c) 
+endif
+
+ifdef XML
+  LIBS += -Wl,-R,$(XERCESPATH)/lib -L$(XERCESPATH)/lib -lxerces-c
+  INCLUDE+= -I$(XERCESPATH)/include
+  CHEAPSRCS+= pic-handler.$(cpp) xmlparser.$(cpp)
 endif
 
 CHEAPOBJS = $(patsubst %.$(c), %.o, $(CHEAPSRCS:.$(cpp)=.o))
@@ -121,12 +107,12 @@ CHEAPOBJS = $(patsubst %.$(c), %.o, $(CHEAPSRCS:.$(cpp)=.o))
 # dependencies
 #
 
-.%.d: %.c
+$DEPDIR/%.Po: %.c
 	set -e; $(CC) -MM $(CFLAGS) -I$(ECLPATH)/lib/ecl/h $< \
 	    | sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
 	    [ -s $@ ] || rm -f $@
 
-.%.d: %.cpp
+$DEPDIR/%.Po: %.cpp
 	set -e; $(CPP) -MM $(CPPFLAGS) -I$(ECLPATH)/lib/ecl/h $< \
 	    | sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
 	    [ -s $@ ] || rm -f $@
@@ -145,19 +131,19 @@ deap: $(CHEAPOBJS)
 # cheap: full optimization and global libs
 #
 
-cheap: CPPFLAGS+= -O3
-cheap: CFLAGS+= -O3
+cheap: CPPFLAGS+= -O2
+cheap: CFLAGS+= -O2
 cheap: $(CHEAPOBJS)
 	$(LD) $(CFLAGS) -o $@ $^ $(LIBS)
 
-
+ifeq "$(MRS)" "-DHAVE_ECL"
 petecl.$(OBJ): petecl.$(c) 
 	$(CC) $(CFLAGS) -I$(ECLPATH)/lib/ecl/h \
 	  -o $@ -Dlinux -fstrict-aliasing -c $<
 petmrs.$(OBJ): petmrs.$(c) 
 	$(CC) $(CFLAGS) -I$(ECLPATH)/lib/ecl/h \
 	  -o $@ -Dlinux -fstrict-aliasing -c $<
-
+endif
 
 #
 # goofy
@@ -193,12 +179,13 @@ mtest: $(MTESTOBJS)
 #
 
 clean:
-	$(RM) *.$(OBJ)
+	$(RM) *.$(OBJ) $(patsubst %.$(c), .%.d, $(patsubst %.$(cpp), .%.d, $(CHEAPSRCS)))
 
 #
 # rebuild MRS library, using an installed ECL binary (in the PATH)
 #
 mrs:
+	test -d $(ITSDBPATH)/src/.lecl/ || mkdir -p $(ITSDBPATH)/src/.lecl/
 	find $(ITSDBPATH)/src/.lecl/ -type f -exec rm {} \;
 	( \
 	  echo "(load \"$(ITSDBPATH)/src/general/loadup.lisp\")"; \
@@ -206,4 +193,22 @@ mrs:
 	) | $(ECLPATH)/bin/ecl
 	if test -f cheap ; then rm cheap ; fi
 
-include $(patsubst %.$(c), .%.d, $(patsubst %.$(cpp), .%.d, $(CHEAPSRCS)))
+include $(patsubst %.$(c), .%.d, $(patsubst %.$(cpp), $(DEPDIR)/%.Po, $(CHEAPSRCS)))
+
+# old junk
+# solaris
+# LIBS = -Wl,-R,/proj/perform/uc/5lib -lm -lstdc++ -ldl -liberty
+# linux dynamic: all standard libraries are provided by the compiler
+# LIBS = -lm -lstdc++ -lc -ldl
+# cygwin
+# LIBS = -lm -lstdc++ -liberty
+
+# solaris
+# ITSDBLIBS = $(ITSDBPATH)/lib/solaris/libitsdb.a $(ITSDBPATH)/lib/solaris/libpvm3.a -lsocket -lnsl -lkstat -lposix4
+# linux dynamic
+#ITSDBLIBS = -L$(ITSDBPATH)/lib/linux -litsdb -lpvm3 -liberty
+# linux static
+#ITSDBLIBS = -Wl,-R,$(ITSDBPATH)/lib/linux -L$(ITSDBPATH)/lib/linux -litsdb
+# cygwin (no itsdb available)
+# ITSDBLIBS =
+

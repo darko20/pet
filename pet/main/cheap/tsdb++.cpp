@@ -19,12 +19,12 @@
 
 /* interface to the [incr tsdb()] system */
 
+#include "tsdb++.h"
 #include "pet-system.h"
 
 #include "cheap.h"
 #include "parse.h"
 #include "chart.h"
-#include "tsdb++.h"
 #include "qc.h"
 #include "cppbridge.h"
 #include "version.h"
@@ -578,7 +578,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_parse_collect_edges(T, *iter);
                 }
                 
-#ifdef ECL
+#ifdef HAVE_ECL
                 if(opt_mrs)
                 {
                     R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag()

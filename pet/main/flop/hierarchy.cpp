@@ -23,16 +23,13 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <boost/lambda/lambda.hpp>
-
 #include "bitcode.h"
 #include "flop.h"
 #include "hierarchy.h"
 #include "reduction.h"
 #include "types.h"
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/topological_sort.hpp>
+#include <boost/lambda/lambda.hpp>
 
 //
 // the main entry point to this module is process_hierarchy

@@ -19,9 +19,64 @@
 
 /* implementation of LKB style morphological analysis and generation */
 
+#include "config.h"
 #include "pet-system.h"
 #include "morph.h"
+#ifdef HAVE_ICU
 #include "unicode.h"
+typedef UChar32 MChar;
+typedef UnicodeString MString;
+#else
+typedef char MChar;
+// typedef string MString;
+
+class MString {
+  friend class StringCharacterIterator;
+  string _str;
+public:
+  MString() {}
+  MString(const string &s) : _str(s) {} 
+  void remove(unsigned int start = 0, unsigned int len = string::npos) {
+    _str.erase(start, len);
+  }
+  string str() { return _str; }
+  MChar char32At(int index) { return _str[index]; }
+  int getChar32Start(int offset) { return offset; }
+  void reverse() { std::reverse(_str.begin(), _str.end()); }
+  void reverse(int start, int length) {
+    std::reverse(_str.begin() + start, _str.begin() + start + length); 
+  }
+  int indexOf(MChar c, int offset) { return _str.find(c, offset); }
+  int indexOf(const MString s) { return _str.find(s._str); }
+  void append(MChar c) { _str += c ; }
+  void append(const MString s) { _str += s._str; }
+  const char *c_str() { return _str.c_str(); }
+  int length() { return _str.length(); }
+};
+
+class StringCharacterIterator {
+  string &_str;
+  string::iterator _it;
+public:
+  StringCharacterIterator(MString str) : _str(str._str) {
+    _it = _str.begin();
+  }
+  bool hasNext() { return (_it != _str.end()) ; }
+  MChar next32PostInc() { return *_it++; }
+};
+
+class Converter {
+public:
+  Converter() {} 
+  string convert(MString s) { return s.str() ; }
+  MString convert(string s) { return s ; }
+  MString convert(MChar c) { return string() + c ; }
+};
+
+Converter Convert;
+Converter *Conv = &Convert;
+
+#endif
 #include "cheap.h"
 #include "grammar-dump.h"
 
@@ -100,10 +155,10 @@ public:
 
   morph_letterset(string name, string elems);
 
-  const set<UChar32> &elems() { return _elems; }
+  const set<MChar> &elems() { return _elems; }
 
-  void bind(UChar32 c) { _bound = c; }
-  UChar32 bound() { return _bound; }
+  void bind(MChar c) { _bound = c; }
+  MChar bound() { return _bound; }
 
   const string &name() const { return _name; }
   
@@ -111,8 +166,8 @@ public:
 
 private:
   string _name;
-  set<UChar32> _elems;
-  UChar32 _bound;
+  set<MChar> _elems;
+  MChar _bound;
 };
 
 // collection of morph_letterset's
@@ -137,13 +192,13 @@ class morph_subrule
 {
 public:
   morph_subrule(tMorphAnalyzer *a, type_t rule,
-                UnicodeString left, UnicodeString right)
+                MString left, MString right)
     : _analyzer(a), _rule(rule), _left(left), _right(right) {}
   
   type_t rule() { return _rule; }
 
-  bool base_form(UnicodeString matched, UnicodeString rest,
-                 UnicodeString &result);
+  bool base_form(MString matched, MString rest,
+                 MString &result);
 
   void print(FILE *f);
 
@@ -152,9 +207,9 @@ private:
 
   type_t _rule;
   
-  UnicodeString _left, _right;
+  MString _left, _right;
 
-  bool establish_and_check_bindings(UnicodeString matched);
+  bool establish_and_check_bindings(MString matched);
 };
 
 class trie_node
@@ -164,9 +219,9 @@ public:
     _analyzer(a)
   {};
 
-  trie_node *get_node(UChar32 c, bool add = false);
+  trie_node *get_node(MChar c, bool add = false);
 
-  void add_path(UnicodeString path, morph_subrule *rule);
+  void add_path(MString path, morph_subrule *rule);
 
   bool has_rules() { return _rules.size() > 0; }
   vector<morph_subrule *> &rules() { return _rules; }
@@ -176,7 +231,7 @@ public:
 private:
   tMorphAnalyzer *_analyzer;
 
-  map<UChar32, trie_node *> _s;
+  map<MChar, trie_node *> _s;
 
   vector<morph_subrule *> _rules;
 };
@@ -211,11 +266,11 @@ private:
 morph_letterset::morph_letterset(string name, string elems_u8) :
   _name(name), _bound(0)
 {
-  UnicodeString elems = Conv->convert(elems_u8);
+  MString elems = Conv->convert(elems_u8);
 
   StringCharacterIterator it(elems);
 
-  UChar32 c;
+  MChar c;
   while(it.hasNext())
   {
     c = it.next32PostInc();
@@ -227,7 +282,7 @@ void morph_letterset::print(FILE *f)
 {
   fprintf(f, "!%s -> ", _name.c_str());
 
-  for(set<UChar32>::iterator it = _elems.begin(); it != _elems.end(); ++it)
+  for(set<MChar>::iterator it = _elems.begin(); it != _elems.end(); ++it)
     fprintf(f, "%s", Conv->convert(*it).c_str());
 
   fprintf(f, " [%s]", Conv->convert(_bound).c_str());
@@ -306,11 +361,11 @@ void morph_lettersets::print(FILE *f)
 // morph subrule
 //
 
-bool morph_subrule::establish_and_check_bindings(UnicodeString matched)
+bool morph_subrule::establish_and_check_bindings(MString matched)
 {
   StringCharacterIterator it1(_right);
   StringCharacterIterator it2(matched);
-  UChar32 c1, c2;
+  MChar c1, c2;
 
   _analyzer->undo_letterset_bindings();
 
@@ -338,9 +393,9 @@ bool morph_subrule::establish_and_check_bindings(UnicodeString matched)
   return true;
 }
 
-bool morph_subrule::base_form(UnicodeString matched,
-                              UnicodeString rest,
-                              UnicodeString &result)
+bool morph_subrule::base_form(MString matched,
+                              MString rest,
+                              MString &result)
 {
   if(establish_and_check_bindings(matched) == false)
     return false;
@@ -351,7 +406,7 @@ bool morph_subrule::base_form(UnicodeString matched,
 
   StringCharacterIterator it(_left);
 
-  UChar32 c;
+  MChar c;
   while(it.hasNext())
   {
     c = it.next32PostInc();
@@ -383,9 +438,9 @@ void morph_subrule::print(FILE *f)
 // trie node
 //
 
-trie_node *trie_node::get_node(UChar32 c, bool add)
+trie_node *trie_node::get_node(MChar c, bool add)
 {
-  map<UChar32, trie_node *>::iterator it = _s.find(c);
+  map<MChar, trie_node *>::iterator it = _s.find(c);
 
   if(it == _s.end())
   {
@@ -402,7 +457,7 @@ trie_node *trie_node::get_node(UChar32 c, bool add)
     return it->second;
 }
 
-void trie_node::add_path(UnicodeString path, morph_subrule *rule)
+void trie_node::add_path(MString path, morph_subrule *rule)
 {
   if(path.length() == 0)
   {
@@ -415,8 +470,8 @@ void trie_node::add_path(UnicodeString path, morph_subrule *rule)
     if(path.char32At(0) != '!')
     {
       // it's not a letterset
-      UChar32 c = path.char32At(0);
-      UnicodeString rest(path);
+      MChar c = path.char32At(0);
+      MString rest(path);
       rest.remove(0, 1);
 
       trie_node *n = get_node(c, true);
@@ -425,8 +480,8 @@ void trie_node::add_path(UnicodeString path, morph_subrule *rule)
     else
     {
       // it's a letterset
-      UChar32 c = path.char32At(1);
-      UnicodeString rest(path);
+      MChar c = path.char32At(1);
+      MString rest(path);
       rest.remove(0, 2);
 
       string lsname = string(1, (char) c);
@@ -435,8 +490,8 @@ void trie_node::add_path(UnicodeString path, morph_subrule *rule)
       if(ls == 0)
         throw tError("Referencing undefined letterset !" + lsname);
 
-      const set<UChar32> &elems = ls->elems();
-      for(set<UChar32>::const_iterator it = elems.begin();
+      const set<MChar> &elems = ls->elems();
+      for(set<MChar>::const_iterator it = elems.begin();
           it != elems.end(); ++it)
       {
         trie_node *n = get_node(*it, true);
@@ -460,7 +515,7 @@ void trie_node::print(FILE *f, int depth)
   }
   fprintf(f, ")\n");
 
-  for(map<UChar32, trie_node *>::iterator it = _s.begin();
+  for(map<MChar, trie_node *>::iterator it = _s.begin();
       it != _s.end(); ++it)
   {
     fprintf(f, "%*s", depth, "");
@@ -475,13 +530,13 @@ void trie_node::print(FILE *f, int depth)
 // Trie
 //
 
-void reverse_subrule(UnicodeString &s)
+void reverse_subrule(MString &s)
   // basically just a reverse, but restoring !-sequences 
 {
   s.reverse();
   
   int32_t off = 0;
-  while((off = s.indexOf((UChar32) '!', off)) != -1)
+  while((off = s.indexOf((MChar) '!', off)) != -1)
     s.reverse(s.getChar32Start(off-1), 2);
 }
 
@@ -506,8 +561,8 @@ void morph_trie::add_subrule(type_t rule, string subrule)
 
   right_u8 = subrule.substr(curr, subrule.length() - curr);
 
-  UnicodeString left = Conv->convert(left_u8);
-  UnicodeString right = Conv->convert(right_u8);
+  MString left = Conv->convert(left_u8);
+  MString right = Conv->convert(right_u8);
 
   if(_suffix)
   {
@@ -538,17 +593,17 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a, int max_infls)
   list<tMorphAnalysis> res;
   //  int infls = 0;
 
-  UnicodeString s = Conv->convert(a.base());
+  MString s = Conv->convert(a.base());
   if(_suffix) s.reverse();
 
-  UnicodeString matched;
+  MString matched;
 
   trie_node *n = &_root;
 
   while((s.length() > 0) //&& ((max_infls == 0) || (infls < max_infls))
         )
   {
-    UChar32 c = s.char32At(0);
+    MChar c = s.char32At(0);
     s.remove(0, 1);
     matched.append(c);
 
@@ -558,7 +613,7 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a, int max_infls)
     for(vector<morph_subrule *>::iterator r = n->rules().begin();
         r != n->rules().end(); ++r)
     {
-      UnicodeString base;
+      MString base;
       if((*r)->base_form(matched, s, base) == false)
         continue;
 	  

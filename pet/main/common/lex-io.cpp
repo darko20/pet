@@ -30,6 +30,7 @@
    for windows - read the whole file
 */
 
+#include "config.h"
 #include "pet-system.h"
 #include "lex-io.h"
 #include "errors.h"
