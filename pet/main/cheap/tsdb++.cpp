@@ -246,7 +246,8 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
 
     TotalParseTime.save();
 
-    analyze(i_chart, i_input, Chart, FSAS, i_id);
+    list<error> errors;
+    analyze(i_chart, i_input, Chart, FSAS, errors, i_id);
  
     nprocessed++;
 
@@ -256,6 +257,9 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
       (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
 
     tsdb_parse T;
+    if(!errors.empty())
+        cheap_tsdb_summarize_error(errors.front(), treal, T);
+    
     cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
 			      nderivations, 0, T);
     T.capi_print();

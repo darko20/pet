@@ -604,7 +604,10 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
         input_chart i_chart(New end_proximity_position_map);
 
-        analyze(i_chart, input, Chart, FSAS, item_id);
+        list<error> errors;
+        analyze(i_chart, input, Chart, FSAS, errors, item_id);
+        if(!errors.empty())
+            throw errors.front();
 
         fprintf(fstatus," (%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
                 stats.id, pedgelimit, stats.readings,
@@ -1187,8 +1190,11 @@ int cheap_server_child(int socket) {
       assert(tsdbitem != NULL);
       strcpy(tsdbitem, input);
 
-      analyze(i_chart, foo, Chart, FSAS, ntsdbitems);
-
+      list<error> errors;
+      analyze(i_chart, foo, Chart, FSAS, errors, ntsdbitems);
+      if(!errors.empty())
+          throw errors.front();
+                
       gettimeofday(&tend, NULL);
       treal = (tend.tv_sec - tstart.tv_sec) * 1000 
 	+ (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);

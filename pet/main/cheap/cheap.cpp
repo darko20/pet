@@ -216,8 +216,11 @@ void interactive()
 
             input_chart i_chart(New end_proximity_position_map);
 
-            analyze(i_chart, input, Chart, FSAS, id);
-        
+            list<error> errors;
+            analyze(i_chart, input, Chart, FSAS, errors, id);
+            if(!errors.empty())
+                throw errors.front();
+                
             if(verbosity == -1)
                 fprintf(stdout, "%d\t%d\t%d\n",
                         stats.id, stats.readings, stats.pedges);
@@ -334,7 +337,10 @@ void nbest()
                 
                 input_chart i_chart(New end_proximity_position_map);
                 
-                analyze(i_chart, input, Chart, FSAS, id);
+                list<error> errors;
+                analyze(i_chart, input, Chart, FSAS, errors, id);
+                if(!errors.empty())
+                    throw errors.front();
                 
                 if(stats.readings > 0)
                 {
