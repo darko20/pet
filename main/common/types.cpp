@@ -57,7 +57,9 @@ int *typestatus = 0;
 
 int BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
 
+#ifndef FLOP
 vector<list<int> > immediateSupertype;
+#endif
 
 // attributes
 char **attrname = 0;
@@ -469,6 +471,7 @@ void undump_tables(dumper *f)
     apptype[i] = f->undump_int();
 }
 
+#ifndef FLOP
 void
 undumpSupertypes(dumper *f)
 {
@@ -484,6 +487,7 @@ undumpSupertypes(dumper *f)
         immediateSupertype.push_back(l);
     }
 }
+#endif
 
 int core_glb(int a, int b)
 {
