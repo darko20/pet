@@ -63,6 +63,23 @@ string EncodingConverter::convert(const UnicodeString from)
   return to;
 };
 
+string EncodingConverter::convert(const UChar* from, int32_t length)
+{
+  int32_t sz = length * ucnv_getMaxCharSize(_conv) + 1;
+  char *s = new char [sz];
+
+  sz = ucnv_fromUChars(_conv, s, sz, from, length, &_status);
+  if(U_FAILURE(_status))
+    throw tError("Couldn't convert to " + _encoding);
+
+  s[sz] = '\0';
+
+  string to(s);
+  delete[] s;
+  
+  return to;
+};
+
 UnicodeString EncodingConverter::convert(const string from)
 {
   UnicodeString to;

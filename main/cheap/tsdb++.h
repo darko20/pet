@@ -403,10 +403,10 @@ public:
   bool active() { return _item_file != NULL; }
 
   /** Call this method at the start of a parse */
-  void start(string input);
+  void start();
 
   /** Call this method at the end of a successful parse */
-  void finish(class chart *Chart);
+  void finish(class chart *Chart, string input);
 
   /** Call this method at the end of a parse that produced an error */
   void error(class chart *Chart, const class tError &e);

@@ -209,22 +209,26 @@ class tFegramedPrinter : public tItemPrinter {
 public:
   tFegramedPrinter(FILE *f): _out(f) {}
 
-  tFegramedPrinter(const char *filename, bool make_unique) {
+  tFegramedPrinter(const char *filename, bool make_unique = false) {
     if (! make_unique) {
+      // This printer is set up to print exactly one feature structure
       if ((_out = fopen(filename, "w")) == NULL) {
         throw(tError((string) "could not open file" + filename));
       }
       _filename_prefix = NULL;
     } else {
       _out = NULL;
-      _filename_prefix = filename;
+      _filename_prefix = strdup(filename);
     }
   }
   
   virtual ~tFegramedPrinter() {
-    if ((_out != NULL) && (_filename_prefix != NULL)) { 
+    if (_out != NULL) { 
       fclose(_out);
       _out = NULL;
+    }
+    if (_filename_prefix != NULL) {
+      free(_filename_prefix);
     }
   }
 
@@ -239,6 +243,11 @@ public:
   void print(const dag_node *dag);
 
 private:
+  /** This function is only useful when more than one item shall be printed
+   *  with the same prefix, i.e., the constructor has been called with \c
+   *  make_unique == \c true.
+   *  \param name The name to append to the given prefix.
+   */
   void open_stream(const char *name = "") {
     if (_filename_prefix != NULL) {
       if (_out != NULL) { 
@@ -257,6 +266,10 @@ private:
     }
   }
 
+  /** This function is only useful when more than one item shall be printed
+   *  with the same prefix, i.e., the constructor has been called with \c
+   *  make_unique == \c true.
+   */
   void close_stream() {
     if ((_filename_prefix != NULL) && (_out != NULL)) { 
       fclose(_out);
@@ -265,7 +278,7 @@ private:
   }
 
   FILE *_out;
-  const char *_filename_prefix;
+  char *_filename_prefix;
 };
 
 /** Print chart items for the exchange with Ulrich Krieger's jfs, mainly for

@@ -8,6 +8,9 @@
 
 #include "input-modules.h"
 #include "pic-handler.h"
+#include "xercesc/framework/MemBufInputSource.hpp"
+#include "xercesc/framework/LocalFileInputSource.hpp"
+#include "xercesc/util/XMLString.hpp"
 
 /** Tokenizer similar to the yy mode tokenizer, using a custom XML DTD giving
  *  more flexibility for the input stage, and also maybe more clarity.
@@ -23,14 +26,14 @@ public:
   
   virtual ~tXMLTokenizer() {}
 
-  /** Produce a set of tokens from the given string. */
-  virtual void tokenize(myString inputfile, inp_list &result) {
-      PICHandler picreader;
-      if (parse_file(inputfile.c_str(), &picreader)
-          && (! picreader.error())) {
-        result.splice(result.begin(), picreader.items());
-      }
+  /** Produce a set of tokens from the given XML input. */
+  virtual void tokenize(string input, inp_list &result) {
+    if (input.compare(0, 2, "<?") == 0)
+      tokenize_from_stream(input, result);
+    else
+      tokenize_from_file(input, result);
   }
+
   
   /** A string to describe the module */
   virtual string description() { return "XML input chart reader"; }
@@ -41,6 +44,56 @@ public:
   virtual bool positions_are_counts() { return _positions_are_counts ; }
 
 private:
+  /** Produce a set of tokens from the given XML input on stdin. */
+  void tokenize_from_stream(string input, inp_list &result) {
+    string buffer = input;
+    const int bufsize = 2048;
+    char *inbuf = new char[bufsize];
+    inbuf[bufsize - 1] = '\0';
+    int onelinecount;
+    bool partialread;
+
+    do {
+      onelinecount = 0;
+      // Now read one line, maybe in several pieces if it is longer than the
+      // buffer
+      do {
+        partialread = false;
+        cin.getline(inbuf, bufsize - 1, '\n');
+        onelinecount += cin.gcount() - 1;
+        buffer += inbuf ;
+        if (cin.fail()) {
+          cin.clear(cin.rdstate() & ~ios::failbit);
+          partialread = true;
+        } else {
+          buffer += '\n';
+        }
+      } while (partialread);  // line too long, only read partially?
+      // exit if we read an empty line or we got an end_of_file
+    } while ((onelinecount > 0) && cin) ;
+
+    PICHandler picreader(true, _translate_iso_chars);
+    MemBufInputSource xmlinput((const XMLByte *) buffer.c_str()
+                               , buffer.length(), "STDIN");
+    if (parse_file(xmlinput, &picreader)
+        && (! picreader.error())) {
+      result.splice(result.begin(), picreader.items());
+    }
+  }
+
+  /** Produce a set of tokens from the given XML file. */
+  void tokenize_from_file(string filename, inp_list &result) {
+    PICHandler picreader(true, _translate_iso_chars);
+    XMLCh * XMLFilename = XMLString::transcode(filename.c_str());
+    LocalFileInputSource inputfile(XMLFilename);
+    if (parse_file(inputfile, &picreader)
+        && (! picreader.error())) {
+      result.splice(result.begin(), picreader.items());
+    }
+    XMLString::release(&XMLFilename);
+  }
+
+
   bool _positions_are_counts;
 };
 

@@ -71,11 +71,23 @@ class chart
   /** Return the readings found during parsing */
   vector<tItem *> &readings() { return _readings; }
 
-  /** If the parse was not successful, this function computes a shortest path
-   *  through the chart based on some heuristic built into the tItem score()
-   *  function to get the best partial results.
+  /** Compute a shortest path through the chart based on the \a weight_fn
+   *  function that returns a weight for every chart item.
+   *
+   * This function can for example be used to get the best partial results or
+   * to extract an input item sequence. \c weight_t is the numeric type
+   * returned by \a weight_fn, i.e., weight_fn has to be of type 
+   * \code unary_function< tItem *, weight_t >
+   * \param result a list of items constituting the minimum overall weight path
+   * \param weight_fn a \code unary_function< tItem *, weight_t > \endcode
+   *        determining the weight for a passive chart edge (smaller is better)
+   * \param all if there is more than one optimal path, passing \c true will
+   *        return all items on the optimal paths, otherwise, only the items on
+   *        one of the optimal paths (the default)
    */
-  void shortest_path(list <tItem *> &items, bool all = false);
+  template < typename weight_t, typename weight_fn_t >
+  void shortest_path(list <tItem *> &result, weight_fn_t weight_fn
+                     , bool all = false);
   
   /** Return \c true if the chart is connected using only edges considered \a
    *  valid, i.e., there is a path from the first to the last node.
@@ -371,5 +383,71 @@ class chart_iter_adj_active
     
     list<tItem *>::iterator _curr;
 };
+
+
+//
+// shortest path algorithm for chart 
+// Bernd Kiefer (kiefer@dfki.de)
+//
+
+/** Implemenation of shortest path function template */
+template< typename weight_t, typename weight_fn_t > 
+void chart::shortest_path(list <tItem *> &result, weight_fn_t weight_fn
+                          , bool all) {
+  // unary_function< tItem *, weight_t >
+  vector<tItem *>::size_type size = _Cp_start.size() ;
+  vector<tItem *>::size_type u, v ;
+
+  vector < list < weight_t > > pred(size) ;
+
+  weight_t *distance = new weight_t[size + 1] ;
+  weight_t new_dist ;
+
+  list <tItem *>::iterator curr ;
+  tItem *passive ;
+
+  // compute the minimal distance and minimal distance predecessor nodes for
+  // each node
+  for (u = 1 ; u <= size ; u++) { distance[u] = UINT_MAX ; }
+  distance[0] = 0 ;
+
+  for (u = 0 ; u < size ; u++) {
+    /* this is topologically sorted order */
+    for (curr = _Cp_start[u].begin() ; curr != _Cp_start[u].end() ; curr++) {
+      passive = *curr ;
+      v = passive->end() ; new_dist = distance[u] + weight_fn(passive) ;
+      if (distance[v] >= new_dist) {
+        if (distance[v] > new_dist) {
+          distance[v] = new_dist ;
+          pred[v].clear() ;
+        }
+        pred[v].push_front(u) ;
+      } 
+    }
+  }
+
+  /** Extract all best paths */
+  queue < weight_t > current ;
+  bool *unseen = new bool[size + 1] ;
+  for (u = 0 ; u <= size ; u++) unseen[u] = true ;
+
+  current.push(size - 1) ;
+  while (! current.empty()) {
+    u = current.front() ; current.pop() ;
+    for (curr = _Cp_end[u].begin() ; curr != _Cp_end[u].end() ; curr++) {
+      passive = *curr ;
+      v = passive->start() ;
+      if ((find (pred[u].begin(), pred[u].end(), v) != pred[u].end())
+          && (distance[u] == weight_fn(passive) + distance[v])) {
+        result.push_front(passive) ;
+        if (unseen[v]) { current.push(v) ; unseen[v] = false ; }
+        if (! all) break; // only extract one path  
+      }
+    }
+  }
+
+  delete[] distance;
+  delete[] unseen;
+}
 
 #endif

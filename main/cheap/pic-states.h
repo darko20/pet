@@ -10,41 +10,19 @@
 #include "fs.h"
 #include <xercesc/sax/AttributeList.hpp>
 #include <xercesc/util/XMLString.hpp>
+#include <xercesc/util/XMLChar.hpp>
 #include <iostream>
 #include <cstdio>
+#include "hashing.h"
+#include "hash.h"
 #include "xmlparser.h"
 #include "pic-handler.h"
 #include "item.h"
 
 namespace pic {
 
-class error {
-  const char *_msg;
-  const XMLCh *_arg;
-  bool _arg_is_char_ptr;
-
-public:
-  error(const char *message, const XMLCh *arg)
-    : _msg(message), _arg(arg), _arg_is_char_ptr(false)  {}
-  error(const char *message, string arg) 
-    : _msg(message), _arg((const XMLCh *) arg.c_str())
-    , _arg_is_char_ptr(true)  {}
-
-  void print(FILE *f);
-};
-
 XERCES_CPP_NAMESPACE_USE
 using namespace std;
-
-/** Double Dispatch Functions.
- * These two functions have to be implemented in every subclass of
- * pic_base_state in the same way. They only exist to implement the double
- * dispatch. Use this macro for clarity and to avoid typos.
- */
-#define STATE_DOUBLE_DISPATCH \
-  virtual void changeTo(pic_base_state* target, AttributeList& attr) \
-    { target->enterState(this, attr); } \
-  virtual void changeFrom(pic_base_state* curr) { curr->leaveState(this); }
 
 /**
  * The base class to parse PetInputChart XML files.
@@ -65,7 +43,7 @@ public:
   /** @name Double Dispatch Functions
    * The next two functions have to be implemented in every subclass in the
    * same way. They only exist to implement the double dispatch. Use the macro
-   * \c STATE_DOUBLE_DISPATCH for clarity and to avoid typos.
+   * \c STATE_COMMON_CODE for clarity and to avoid typos.
    */
   /*@{*/  
   /* Change into a new state. This function is called in the startElement
@@ -83,6 +61,12 @@ public:
   /* { curr->leaveState(this); } */
   /*@}*/
   
+  /** Virtual clone function that mimics a virtual copy constructor */
+  virtual pic_base_state *clone() = 0;
+
+  /** Return the tag name this state corresponds to */
+  virtual const XMLCh * const tag() const = 0;
+
   /** @name Enter State
    * Enter a state from another state.
    *
@@ -105,6 +89,8 @@ public:
   virtual void enterState(class surface* state, AttributeList& attr);
   virtual void enterState(class path* state, AttributeList& attr);
   virtual void enterState(class typeinfo* state, AttributeList& attr);
+  virtual void enterState(class stem* state, AttributeList& attr);
+  virtual void enterState(class infl* state, AttributeList& attr);
   virtual void enterState(class fsmod* state, AttributeList& attr);
   virtual void enterState(class pos* state, AttributeList& attr);
   virtual void enterState(class ne* state, AttributeList& attr);
@@ -124,12 +110,14 @@ public:
    */
   /*@{*/
   virtual void leaveState(class pic_base_state* previous){}
-  virtual void leaveState(class TOP* previous){}
+  virtual void leaveState(class TOP_state* previous){}
   virtual void leaveState(class pet_input_chart* previous){}
   virtual void leaveState(class w* previous){}
   virtual void leaveState(class surface* previous){}
   virtual void leaveState(class path* previous){}
   virtual void leaveState(class typeinfo* previous){}
+  virtual void leaveState(class stem* previous){}
+  virtual void leaveState(class infl* previous){}
   virtual void leaveState(class fsmod* previous){}
   virtual void leaveState(class pos* previous){}
   virtual void leaveState(class ne* previous){}
@@ -140,8 +128,19 @@ public:
   virtual void
   characters(const XMLCh *const chars, const unsigned int length) { }
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const = 0 ;
+/** @name Attribute Helper Functions
+ * Helper Functions for different types of attributes with error handling.
+ */
+/*@{*/
+bool req_bool_attr(AttributeList& attr, char *aname);
+bool opt_bool_attr(AttributeList& attr, char *aname, bool def);
+int req_int_attr(AttributeList& attr, char *aname);
+int opt_int_attr(AttributeList& attr, char *aname, int def);
+double req_double_attr(AttributeList& attr, char *aname);
+double opt_double_attr(AttributeList& attr, char *aname, double def);
+string req_string_attr(AttributeList &attr, char *aname);
+string opt_string_attr(AttributeList &attr, char *aname);
+/*@}*/
 
 protected:
   /** The XML SAX parser handler this state belongs to */
@@ -149,31 +148,56 @@ protected:
   
 };
 
+
+/** Code common to all classes that may not be put into the base class
+ * 
+ * Double Dispatch Functions:
+ * These two functions have to be implemented in every subclass of
+ * pic_base_state in the same way. They only exist to implement the double
+ * dispatch. Use this macro for clarity and to avoid typos.
+ *
+ * Naming Function:
+ * This function returns the tag name that corresponds to the state. Because it
+ * accesses the static tag name in every class, it can not be put into the base
+ * class.
+ *
+ * Virtual Clone Function:
+ * Needed for the state factory to be able to construct the right state on
+ * demand.
+ */
+#define STATE_COMMON_CODE(CLASSNAME) \
+private: \
+  static const XMLCh tagname[]; \
+public: \
+  virtual void changeTo(pic_base_state* target, AttributeList& attr) \
+    { target->enterState(this, attr); } \
+  virtual void changeFrom(pic_base_state* curr) { curr->leaveState(this); } \
+  virtual const XMLCh * const tag() const { return tagname ; } \
+  virtual CLASSNAME *clone() { return new CLASSNAME(*this) ; }
+
+
 /** virtual top state not representing a token in the XML file. The parsing of
  *  the XML file starts with this state as current state.
  */
 class TOP_state : public pic_base_state {
+  STATE_COMMON_CODE(TOP_state)
 public:
   TOP_state(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~TOP_state() {}
 
-  STATE_DOUBLE_DISPATCH
 
   /* The top state can not be entered or left. It is created at the beginning
      of the XML parser and the topmost element on the stack. This state has no
      valid events because it does not correspond to a XML tag. */
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "top state"; }
 };
 
 /** pic state representing the pet_input_chart token: the top level token */
 class pet_input_chart : public pic_base_state {
+  STATE_COMMON_CODE(pet_input_chart)
 public:
   pet_input_chart(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~pet_input_chart() {}
-
-  STATE_DOUBLE_DISPATCH
 
   /**
    * TOP_state --> pet_input_chart state.
@@ -187,20 +211,15 @@ public:
   //virtual void
   //leaveState(TOP_state* previous) { }
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "pic state"; }
-
-private:
 };
 
 /** pic state representing the w token: a "word" */
 class w : public pic_base_state {
+  STATE_COMMON_CODE(w)
 public:
   w(PICHandler *picreader) : pic_base_state(picreader), _items(0) {} ;
   virtual ~w() {}
 
-  STATE_DOUBLE_DISPATCH
-  
   /**
    * pet_input_chart state --> w state.
    * Get the basic attributes of the w node.
@@ -232,9 +251,6 @@ public:
     // previous->splice(_items);
   }
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "w state"; }
-
   /** Add path number \a pathnum to our valid paths */
   void add_path(int pathnum) { _paths.push_back(pathnum); }
 
@@ -252,7 +268,7 @@ public:
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
       if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
-        throw(error("Unknown Type", stem));
+        throw(Error((string) "unknown type in w tag '" + stem + "'"));
     }
     tInputItem *new_item 
       = new tInputItem(id, _cstart, _cend, _surface, stem
@@ -261,7 +277,6 @@ public:
     new_item->score(prio);
     new_item->set_inflrs(infls);
     new_item->set_in_postags(_pos);
-    //_items.push_back(new_item);
     _items++;
     _reader->add_item(new_item);
   }
@@ -286,11 +301,10 @@ private:
  *  tokens)
  */
 class ne : public pic_base_state {
+  STATE_COMMON_CODE(ne)
 public:
   ne(PICHandler *picreader) : pic_base_state(picreader), _items(0) {} ;
   virtual ~ne() {}
-
-  STATE_DOUBLE_DISPATCH
   
   /** pet_input_chart state --> ne state. */
   virtual void
@@ -305,13 +319,10 @@ public:
   /** pet_input_start state <-- ne state. */
   virtual void
   leaveState(pet_input_chart* previous) {
-    if (_items == 0) throw(error("No valid typeinfo in ne tag", ""));
+    if (_items == 0) throw(Error("No valid typeinfo in ne tag"));
     // Add the new items to the enclosing state
     // previous->splice(_items);
   }
-
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "ne state"; }
 
   /** Add POS \a tag with weight \a prio to the current list */
   void add_pos(string tag, double prio) {
@@ -322,7 +333,7 @@ public:
   void append_dtr(const string &id) { 
     //tInputItem *item = _pic_state->get_item(id);
     tInputItem *item = _reader->get_item(id);
-    if (item == NULL) throw( error("unknown item" , id.c_str()) );
+    if (item == NULL) throw( Error((string) "unknown item '" + id + "'") );
     _dtrs.push_back(item);
   }
 
@@ -338,14 +349,13 @@ public:
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
       if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
-        throw(error("Unknown Type", stem));
+        throw(Error((string) "unknown type in ne tag '" + stem + "'"));
     }
 
     tInputItem *new_item = new tInputItem(id, _dtrs, stem, tokenclass, mods);
     new_item->score(prio);
     new_item->set_inflrs(infls);
     new_item->set_in_postags(_pos);
-    // _items.push_back(new_item);
     _items++;
     _reader->add_item(new_item);
     _dtrs.clear();
@@ -364,30 +374,25 @@ private:
 
 /** pic state representing the path token */
 class path : public pic_base_state {
+  STATE_COMMON_CODE(path)
 public:
   path(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~path() {}
-  
-  STATE_DOUBLE_DISPATCH
   
   /** w state --> path state: Add the new path to the enclosing w item */
   virtual void enterState(w* state, AttributeList& attr) {
     state->add_path(req_int_attr(attr, "num")); 
   }
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "path state"; }
-
-private:
-
 };
 
 /** pic state representing the typeinfo token */
 class typeinfo : public pic_base_state {
+  STATE_COMMON_CODE(typeinfo)
 private:
-  
   inline void get_attributes(AttributeList& attr) {
     _id = req_string_attr(attr, "id");
+    // baseform == yes means: this is a stem (base form), not a type name
     _base = req_bool_attr(attr, "baseform");
     _prio = opt_double_attr(attr, "prio", 0.0);
   }
@@ -396,8 +401,6 @@ public:
   typeinfo(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~typeinfo() {}
   
-  STATE_DOUBLE_DISPATCH
-
   /** @name w state <--> typeinfo state. */
   /*@{*/  
   /** Get base attributes*/
@@ -424,9 +427,6 @@ public:
   }
   /*@}*/
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "typeinfo state"; }
-
   /** set the stem for this typeinfo */
   void set_stem(string str){
     _stem = str;
@@ -434,9 +434,9 @@ public:
 
   /** Append the inflection rule \a name to the current list. */
   void append_infl(string name){
-    type_t infl_rule_type;
-    if((infl_rule_type = lookup_type(name.c_str())) == T_BOTTOM)
-      throw(error("unknown type", name));
+    type_t infl_rule_type = lookup_type(name.c_str());
+    if(infl_rule_type == T_BOTTOM)
+      throw(Error((string) "unknown infl type '" + name + "'"));
     _infls.push_back(infl_rule_type);
   }
 
@@ -444,9 +444,7 @@ public:
    *  current list.
    */
   void add_fsmod(string path, string val) {
-    type_t value = lookup_type(val.c_str());
-    if (value == T_BOTTOM) throw(error("unknown type", val));
-    _mods.push_back(pair<string, type_t>(path, value));
+    _mods.push_back(pair<string, type_t>(path, lookup_symbol(val.c_str())));
   }
 
 private:
@@ -461,11 +459,10 @@ private:
 
 /** pic state representing the infl token (an inflection rule) */
 class infl : public pic_base_state {
+  STATE_COMMON_CODE(infl)
 public:
   infl(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~infl() {}
-
-  STATE_DOUBLE_DISPATCH
 
   /** typeinfo state --> infl state: Add a new inflection rule to the
    * enclosing node.
@@ -474,21 +471,16 @@ public:
     state->append_infl(req_string_attr(attr, "name"));
   }
 
-
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "infl state"; }
-
 };
 
 /** pic state representing the fsmod token (a feature structure modification) 
  */
 class fsmod : public pic_base_state {
+  STATE_COMMON_CODE(fsmod)
 public:
   fsmod(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~fsmod() {}
- 
-  STATE_DOUBLE_DISPATCH
-  
+
   /** typeinfostate --> fsmod state: Add a new feature structure modification
    *  to the enclosing node.
    */
@@ -497,18 +489,14 @@ public:
                       , req_string_attr(attr, "value"));
   }
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "fsmod state"; }
-
 };
 
 /** pic state representing the pos token (a part of speech with score) */
 class pos : public pic_base_state {
+  STATE_COMMON_CODE(pos)
 public:
   pos(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~pos() {}
-  
-  STATE_DOUBLE_DISPATCH
   
   /** w state --> pos state. */
   virtual void enterState(w* state, AttributeList& attr) {
@@ -522,18 +510,17 @@ public:
                    , req_double_attr(attr, "prio"));
   }
   
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "pos state"; }
-
 };
 
 /** pic state representing a surface token (a string) */
 class surface : public pic_base_state {
+  STATE_COMMON_CODE(surface)
+private:
+  string _surface;
+
 public:
   surface(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~surface() {}
-
-  STATE_DOUBLE_DISPATCH
 
   /** @name w state <--> surface state. */
   /*@{*/
@@ -544,7 +531,26 @@ public:
   virtual void leaveState(w* prev) { prev->set_surface(_surface); }
   /*@}*/
 
-  /** @name typeinfo state <--> surface state. */
+  /** the characters event */
+  virtual void
+  characters(const XMLCh *const chars, const unsigned int length) {
+    // translate the chars into a surface string feasible for the system
+    _surface += _reader->surface_string(chars, length) ;
+  }
+
+};
+
+/** pic state representing a stem token (a string) */
+class stem : public pic_base_state {
+  STATE_COMMON_CODE(stem)
+private:
+  string _surface;
+
+public:
+  stem(PICHandler *picreader) : pic_base_state(picreader) {} ;
+  virtual ~stem() {}
+
+  /** @name typeinfo state <--> stem state. */
   /*@{*/
   /** A do nothing */
   virtual void enterState(typeinfo* state, AttributeList& attr) {} 
@@ -556,37 +562,68 @@ public:
   /** the characters event */
   virtual void
   characters(const XMLCh *const chars, const unsigned int length) {
-    XMLCh *res = XMLString::replicate(chars);
-    XMLString::trim(res);   // strip blanks
-    if (_reader->downcase_strings()) { XMLString::lowerCase(res); }
-    // transfer to unicode UTF-8 string
-    _surface = XMLCh2UTF8(res) ;
-    XMLString::release(&res);
+    // translate the chars into a surface string feasible for the system
+    _surface += _reader->surface_string(chars, length);
   }
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "surface state"; }
-
-private:
-  string _surface;
 };
 
 /** pic state representing the ref xml token (reference to a w or ne token) */
 class ref : public pic_base_state {
+  STATE_COMMON_CODE(ref)
 public:
   ref(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~ref() {}
   
-  STATE_DOUBLE_DISPATCH
-
   /** ne state --> ref state: Add the next daughter to the enclosing ne node */
   virtual void enterState(ne* state, AttributeList& attr) {
     state->append_dtr(req_string_attr(attr, "dtr"));
   }
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << "ref state"; }
+};
 
+class pic_state_factory {
+  struct hash_xmlstring {
+    unsigned int operator()(const XMLCh *s) const {
+      return bjhash((const ub1 *) s
+                    , XMLString::stringLen(s) * sizeof(XMLCh), 0);
+    }
+  };
+
+  struct xmlstring_equal {
+    bool operator()(const XMLCh *s1, const XMLCh *s2) {
+      return (XMLString::compareString(s1, s2) == 0);
+    }
+  };
+
+  typedef hash_map< const XMLCh *, pic_base_state *, struct hash_xmlstring
+                    , struct xmlstring_equal > xs_hash_map;
+
+  xs_hash_map _state_table;
+
+  void register_state(pic_base_state *state) {
+    _state_table[state->tag()] = state;
+  }
+
+public:
+  pic_state_factory(class PICHandler *handler) {
+    register_state(new pet_input_chart(handler));
+    register_state(new w(handler));
+    register_state(new surface(handler));
+    register_state(new path(handler));
+    register_state(new typeinfo(handler));
+    register_state(new stem(handler));
+    register_state(new infl(handler));
+    register_state(new fsmod(handler));
+    register_state(new pos(handler));
+    register_state(new ne(handler));
+    register_state(new ref(handler));
+  }
+
+  pic_base_state *get_state(const XMLCh *tag) {
+    xs_hash_map::iterator it = _state_table.find(tag);
+    return (it == _state_table.end()) ? NULL : (it->second)->clone();
+  }
 };
 
 }
@@ -597,11 +634,11 @@ operator <<(std::ostream &out, const pic::pic_base_state &s);
 
 #endif
 #if 0
-class : public pic_base_state {
+class STATE_CLASS : public pic_base_state {
 public:
-  virtual ~() {}
+  virtual ~STATE_CLASS() {}
 
-  STATE_DOUBLE_DISPATCH
+  STATE_COMMON_CODE(STATE_CLASS)
   
   /** state <--> state. */
   /*@{*/  
@@ -612,27 +649,27 @@ public:
   virtual void leaveState(* prev) {}
   /*@}*/
 
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << " state"; }
-
 private:
-
+  static const XMLCh tagname[] = {
+    chLatin_t, chLatin_a, chLatin_g, chNull
+  };
 };
 
-class : public pic_base_state {
-public:
-  virtual ~() {}
+class STATE_CLASS : public pic_base_state {
+  static const XMLCh tagname[] = {
+    chLatin_t, chLatin_a, chLatin_g, chNull
+  };
 
-  STATE_DOUBLE_DISPATCH
+public:
+  virtual ~STATE_CLASS() {}
+
+  STATE_COMMON_CODE(STATE_CLASS)
   
   /** state <--> state. */
   /*@{*/  
   /** */
   virtual void enterState(* state, AttributeList& attr) { }
   /*@}*/
-
-  /** Diagnostic printing */
-  virtual void print(std::ostream &out) const { out << " state"; }
 
 };
 #endif

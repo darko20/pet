@@ -89,7 +89,7 @@ cheap_SOURCES += $(ECL_MRS_FILES)
 cheap_LDADD = libmrs.a
 endif
 
-XML_FILES = pic-handler.cpp pic-handler.h xmlparser.cpp xmlparser.h xml-tokenizer.h
+XML_FILES = pic-handler.cpp pic-handler.h pic-states.h xmlparser.cpp xmlparser.h xml-tokenizer.h
 if XML
 cheap_SOURCES += $(XML_FILES)
 endif

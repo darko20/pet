@@ -821,16 +821,16 @@ tTsdbDump::~tTsdbDump() {
   if (_parse_file != NULL) fclose(_parse_file);
 }
 
-void tTsdbDump::start(string input) {
+void tTsdbDump::start() {
   if(_current != NULL) delete _current;
   if (active()) {
     _current = new tsdb_parse();
-    _current->set_input(input);
   }
 }
 
-void tTsdbDump::finish(chart *Chart) {
+void tTsdbDump::finish(chart *Chart, string input) {
   if (_current != NULL) {
+    _current->set_input(input);
     _current->set_i_length(Chart->length());
     cheap_tsdb_summarize_item(*Chart, Chart->rightmost(), -1, 0, *_current);
     dump_current();

@@ -227,8 +227,7 @@ tYYTokenizer::read_token()
     throw tError("yy_tokenizer: ill-formed token (expected stem)");
 
   // translate iso-8859-1 german umlaut and sz
-  if(cheap_settings->lookup("translate-iso-chars"))
-    translate_iso_chars(stem);
+  translate_iso(stem);
 
   // skip empty tokens and punctuation
   if(stem.empty() || punctuationp(stem)) {
@@ -254,8 +253,7 @@ tYYTokenizer::read_token()
     surface = stem;
   } else {
     // translate iso-8859-1 german umlaut and sz
-    if(cheap_settings->lookup("translate-iso-chars"))
-      translate_iso_chars(surface);
+    translate_iso(surface);
   }
 
   if(!read_special(','))

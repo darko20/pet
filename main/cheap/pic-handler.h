@@ -11,12 +11,14 @@
 #include "xmlparser.h"
 #include <stack>
 #include <list>
+//#include <string>
 
 XERCES_CPP_NAMESPACE_USE
 
 /** Namespace for pet input chart xml parser */
 namespace pic {
   class pic_base_state;
+  class pic_state_factory;
 }
 
 /** A SAX parser handler class to read xtdl grammar definitions 
@@ -31,7 +33,7 @@ namespace pic {
 class PICHandler : public HandlerBase {
 public:
   /** Constructor: Make a new PICHandler */
-  PICHandler();
+  PICHandler(bool downcase, bool translate_iso);
   /** Destructor */
   ~PICHandler();
   
@@ -42,6 +44,8 @@ public:
   /** The characters event */
   virtual void characters (const XMLCh *const chars, const unsigned int len);
 
+  /** ErrorHandler Interface */
+  /*@{*/
   /** An XML error occured */
   virtual void error(const SAXParseException& e){
     print_sax_exception("Error", e);
@@ -57,12 +61,21 @@ public:
     print_sax_exception("Warning", e);
     _error_occurred = true;
   }
+  /*@}*/
   
   /** Did an error occur during processing? */
   bool error() const { return _error_occurred; }
 
-  /** Should all strings be made lowercase? */
-  bool downcase_strings() const { return _downcase_strings; }
+  /** Transform the XMLCh string into the internally used representation.
+   *
+   * The string is translated into UTF-8 and all leading and trailing
+   * whitespace is removed. if \c _downcase_strings is \c true, the string is
+   * converted to lower case, if \c _translate_iso_chars is \c true, german
+   * umlaut characters are converted to their isomorphix counterpart (ae, ue,
+   * ss, etc.)
+   */
+  string
+  surface_string(const XMLCh *chars, const unsigned int len) const;
 
   /** The list of all input items produced during processing */
   std::list<class tInputItem *> &items() { return _items; }
@@ -81,13 +94,30 @@ public:
   /** Add \a new_item to the list of already produced input items */
   void add_item(class tInputItem *new_item);
 
+  void setDocumentLocator(const Locator* const locator) { 
+    _loc = locator;
+  }
+
 private:
   /** The copy constructor is disallowed */
   PICHandler(const PICHandler &x) {}
 
-  /** The current state (XML node) */
-  class pic::pic_base_state *_state;
-  
+  /** Print a SAX exception in a convenient form */
+  void print_sax_exception(const char * errtype, const SAXParseException& e);
+
+  /** The state factory that produces the appropriate state for each XML tag */
+  class pic::pic_state_factory *_state_factory;
+
+  const Locator *_loc;
+
+  XMLCh *_errbuf;
+
+  const XMLCh * errmsg(std::string msg) {
+    if (_errbuf != NULL) XMLString::release(&_errbuf) ;
+    _errbuf = XMLString::transcode(msg.c_str());
+    return _errbuf;
+  }
+
   /** The embedding level of erroneous subunits to skip */
   int _err;
 
@@ -99,6 +129,11 @@ private:
 
   /** A flag to indicate that all strings should be lower case (or not) */
   bool _downcase_strings;
+
+  /** If \c true, translate all german umlaut characters to isomorphix (ae, ue,
+   *  etc.)
+   */
+  bool _translate_iso_chars;
 
   struct string_hash
   {

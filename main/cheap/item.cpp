@@ -146,7 +146,7 @@ void tInputItem::print(FILE *f, bool compact)
 
   fprintf(ferr, " {");
   _postags.print(ferr);
-  fprintf(ferr, "}");
+  fprintf(ferr, " }");
 }
 
 void

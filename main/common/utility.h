@@ -60,11 +60,6 @@ string convert_escapes(const string &s);
 /** escape all '"' and '\' in string \a s using '\' */
 string escape_string(const string &s);
 
-/** Replace all german Umlaut and sz characters in \a s by their isomorphix
- *  (ae, ue, ss, ...) counterparts.
- */
-void translate_iso_chars(string &s);
-
 /** return current date and time in static string; client must not free() */
 char *current_time(void);
 

@@ -298,7 +298,7 @@ record_failures(list<unification_failure *> fails, bool unification,
                     }
                     else if(unification)
                     {
-                        throw tError("Duplicate failure path");
+                      //throw tError("Duplicate failure path");
                     }
                 }
             }
