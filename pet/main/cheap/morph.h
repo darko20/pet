@@ -130,6 +130,8 @@ class tMorphAnalyzer
   /** Print the contents of this analyzer for debugging purposes */
   void print(FILE *f);
 
+  bool infl_rule_filter() { return _infl_rule_filter ; }
+  
  private:
   void parse_rule(type_t t, string rule, bool suffix);
 
@@ -155,6 +157,11 @@ class tMorphAnalyzer
    */
   unsigned int _max_infls;
 
+  /** Check inflection rules during morph analysis for applicability with the
+   *  rule filter.
+   */
+  bool _infl_rule_filter;
+  
   friend class morph_trie;
 };
 

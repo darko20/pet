@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.5], [pet@coli.uni-saarland.de])
+AC_INIT([PET], [0.99.6], [pet@coli.uni-saarland.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
@@ -468,6 +468,9 @@ AC_HEADER_TIME
 AC_STRUCT_TM
 
 # Checks for library functions.
+AC_SEARCH_LIBS([getopt_long_only], [iberty], [],
+               [AC_MSG_ERROR([No library containing getopt_long_only()], [1])])
+
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
 AC_PROG_GCC_TRADITIONAL
