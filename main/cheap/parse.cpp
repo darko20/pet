@@ -146,7 +146,7 @@ postulate(item *passive)
 
         if(passive->compatible(R, Chart->rightmost()))
             if(filter_rule_task(R, passive))
-                Agenda->push(New rule_and_passive_task(Chart, Agenda, R,
+                Agenda->push(new rule_and_passive_task(Chart, Agenda, R,
                                                        passive));
     }
 }
@@ -161,7 +161,7 @@ fundamental_for_passive(item *passive)
         if(active->adjacent(passive))
             if(passive->compatible(active, Chart->rightmost()))
                 if(filter_combine_task(active, passive))
-                    Agenda->push(New active_and_passive_task(Chart, Agenda,
+                    Agenda->push(new active_and_passive_task(Chart, Agenda,
                                                              active, passive));
     }
 }
@@ -175,7 +175,7 @@ fundamental_for_active(phrasal_item *active)
     if(opt_packing == 0 || !it.current()->blocked())
       if(it.current()->compatible(active, Chart->rightmost()))
         if(filter_combine_task(active, it.current()))
-          Agenda->push(New
+          Agenda->push(new
                        active_and_passive_task(Chart, Agenda,
                                                active, it.current()));
 }
@@ -353,15 +353,15 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
     unify_wellformed = true;
 
     Chart = &C;
-    Agenda = New agenda;
+    Agenda = new agenda;
 
     TotalParseTime.start();
-    ParseTime = New timer;
+    ParseTime = new timer;
 
     for(list<lex_item *>::iterator lex_it = initial.begin();
         lex_it != initial.end(); ++lex_it)
     {
-        Agenda->push(New item_task(Chart, Agenda, *lex_it));
+        Agenda->push(new item_task(Chart, Agenda, *lex_it));
         stats.words++;
     }
 
@@ -425,7 +425,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
 
     if(opt_packing && !(opt_packing & PACKING_NOUNPACK))
     {
-        timer *UnpackTime = New timer();
+        timer *UnpackTime = new timer();
 	int nres = 0;
         stats.trees = 0; // We want to recount the trees in case some
                          // are blocked or don't unpack.
@@ -508,15 +508,15 @@ analyze(input_chart &i_chart, string input, chart *&C,
     stats.reset();
     stats.id = id;
 
-    auto_ptr<item_owner> owner(New item_owner);
+    auto_ptr<item_owner> owner(new item_owner);
     item::default_owner(owner.get());
 
 #ifdef YY
     if(opt_yy)
-        i_chart.populate(New yy_tokenizer(input));
+        i_chart.populate(new yy_tokenizer(input));
     else
 #endif
-        i_chart.populate(New lingo_tokenizer(input));
+        i_chart.populate(new lingo_tokenizer(input));
 
     list<lex_item *> lex_items;
     int max_pos = i_chart.expand_all(lex_items);
@@ -536,7 +536,7 @@ analyze(input_chart &i_chart, string input, chart *&C,
     if (!missing.empty()) 
         throw error("no lexicon entries for " + missing) ;
 
-    C = Chart = New chart(max_pos, owner);
+    C = Chart = new chart(max_pos, owner);
 
     parse(*Chart, lex_items, FSAS, errors);
 }

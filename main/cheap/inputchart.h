@@ -137,7 +137,7 @@ public:
                          const tPaths &paths,
                          bool synthesized = false)
   {
-    return add_token(New input_token(id, start, end, ff, orth, p, pos, paths,
+    return add_token(new input_token(id, start, end, ff, orth, p, pos, paths,
                                      this, synthesized));
   }
 

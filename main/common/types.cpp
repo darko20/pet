@@ -70,7 +70,7 @@ int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 void initialize_codes(int n)
 {
   codesize = n;
-  temp_bitcode = New bitcode(codesize);
+  temp_bitcode = new bitcode(codesize);
   codetable[bitcode(codesize)] = -1;
   typecode.resize(n);
 }
@@ -210,7 +210,7 @@ int lookup_code(const bitcode &b)
 
 int get_special_name(settings *sett, char *suff, bool attr = false)
 {
-  char *buff = New char[strlen(suff) + 25];
+  char *buff = new char[strlen(suff) + 25];
   sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
   char *v = sett->req_value(buff);
   delete[] buff;
@@ -409,10 +409,10 @@ void undump_hierarchy(dumper *f)
       temp_bitcode->undump(f);
       register_codetype(*temp_bitcode, i);
       register_typecode(i, temp_bitcode);
-      temp_bitcode = New bitcode(codesize);
+      temp_bitcode = new bitcode(codesize);
     }
 
-  leaftypeparent = New int[nleaftypes];
+  leaftypeparent = new int[nleaftypes];
   for(int i = 0; i < nleaftypes; i++)
     leaftypeparent[i] = f->undump_int();
 }
@@ -443,7 +443,7 @@ void undump_tables(dumper *f)
   else
     throw error("unknown encoding");
 
-  featset = New int[first_leaftype];
+  featset = new int[first_leaftype];
 
   for(int i = 0; i < first_leaftype; i++)
     {
@@ -453,12 +453,12 @@ void undump_tables(dumper *f)
   // read feature sets
 
   nfeatsets = f->undump_int();
-  featsetdesc = New featsetdescriptor[nfeatsets];
+  featsetdesc = new featsetdescriptor[nfeatsets];
   
   for(int i = 0; i < nfeatsets; i++)
     {
       short int na = featsetdesc[i].n = f->undump_short();
-      featsetdesc[i].attr = na > 0 ? New short int[na] : 0;
+      featsetdesc[i].attr = na > 0 ? new short int[na] : 0;
 
       for(int j = 0; j < na; j++)
 	featsetdesc[i].attr[j] = f->undump_short();
@@ -466,7 +466,7 @@ void undump_tables(dumper *f)
 
   // read appropriate sorts table
 
-  apptype = New int[nattrs];
+  apptype = new int[nattrs];
   for(int i = 0; i < nattrs; i++)
     apptype[i] = f->undump_int();
 }

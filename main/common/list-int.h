@@ -32,7 +32,7 @@ inline list_int *cons(int v, list_int *n)
 {
   list_int *c;
 
-  c = New list_int;
+  c = new list_int;
   c->next = n;
   c->val = v;
   

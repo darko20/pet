@@ -28,7 +28,7 @@ bitcode::bitcode(int n)
   sz = n; 
   register int i = 1 + sz/SIZE_OF_WORD;
 
-  V = New CODEWORD[i];
+  V = new CODEWORD[i];
   stop = V + i;
 
   while (i--) V[i]=0;
@@ -39,7 +39,7 @@ bitcode::bitcode(const bitcode& b)
   sz = b.sz;
   register int n = 1 + sz/SIZE_OF_WORD;
 
-  V = New CODEWORD[n];
+  V = new CODEWORD[n];
   stop = V + n;
 
   while (n--) V[n] = b.V[n];
@@ -53,7 +53,7 @@ bitcode& bitcode::operator=(const bitcode& b)
     {
       delete[] V;
       sz = b.sz;
-      V = New CODEWORD[n];
+      V = new CODEWORD[n];
       stop = V + n;
     }
 

@@ -239,7 +239,7 @@ void morph_lettersets::add(string s)
       if(verbosity > 14)
         fprintf(fstatus, " -> <%s> <%s>\n", name.c_str(), elems.c_str());
 	  
-      morph_letterset *ls = New morph_letterset(name, elems);
+      morph_letterset *ls = new morph_letterset(name, elems);
       _m[name] = ls;
     }
     else
@@ -373,7 +373,7 @@ trie_node *trie_node::get_node(UChar32 c, bool add)
   {
     if(add) 
     {
-      trie_node *n = New trie_node(_analyzer);
+      trie_node *n = new trie_node(_analyzer);
       _s[c] = n;
       return n;
     }
@@ -502,7 +502,7 @@ void morph_trie::add_subrule(type_t rule, string subrule)
             printnames[rule], subrule.c_str(),
             Conv->convert(left).c_str(), Conv->convert(right).c_str());
 
-  morph_subrule *sr = New morph_subrule(_analyzer, rule, left, right);
+  morph_subrule *sr = new morph_subrule(_analyzer, rule, left, right);
   _analyzer->add_subrule(sr);
   _root.add_path(right, sr);
 
@@ -641,9 +641,9 @@ void morph_analysis::print_lkb(FILE *f)
 
 morph_analyzer::morph_analyzer(grammar *G)
   : _grammar(G),
-    _lettersets(New morph_lettersets),
-    _suffixrules(New morph_trie(this, true)),
-    _prefixrules(New morph_trie(this, false)),
+    _lettersets(new morph_lettersets),
+    _suffixrules(new morph_trie(this, true)),
+    _prefixrules(new morph_trie(this, false)),
     _irregs_only(false)
 {
 }
@@ -750,7 +750,7 @@ void morph_analyzer::add_irreg(string stem, type_t t, string form)
   forms.push_front(form);
   forms.push_front(stem);
 
-  morph_analysis *a = New morph_analysis(forms, rules, stems);
+  morph_analysis *a = new morph_analysis(forms, rules, stems);
 
   _irregs_by_stem.insert(make_pair(stem, a));
   _irregs_by_form.insert(make_pair(form, a));

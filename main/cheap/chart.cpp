@@ -125,14 +125,14 @@ void chart::shortest_path (list <item *> &result) {
 
   vector<item *>::size_type size = _Cp_start.size() ;
   vector<item *>::size_type u, v ;
-  unsigned int *distance = New unsigned int[size] ;
+  unsigned int *distance = new unsigned int[size] ;
   unsigned int new_dist ;
 
   vector < list < unsigned int > > pred(size) ;
   list <item *>::iterator curr ;
   item *passive ;
 
-  short int *unseen = New short int[size] ;
+  short int *unseen = new short int[size] ;
   list < unsigned int > current ;
 
   for (u = 1 ; u <= size ; u++) {

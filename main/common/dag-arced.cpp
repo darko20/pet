@@ -71,10 +71,10 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
   dag_dump_total_nodes = f->undump_int();
   dag_dump_total_arcs = f->undump_int();
 
-  dag_qc_undumped_nodes = New qc_node[dag_dump_total_nodes];
+  dag_qc_undumped_nodes = new qc_node[dag_dump_total_nodes];
   
   if(dag_dump_total_arcs > 0)
-    dag_qc_undumped_arcs = New qc_arc[dag_dump_total_arcs];
+    dag_qc_undumped_arcs = new qc_arc[dag_dump_total_arcs];
 
   int current_arc = 0;
   qc_len = 0;

@@ -86,7 +86,7 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
     if(_keydtr >= _ndtrs)
         throw error("keydtr > ndtrs for lex_item");
 
-    _dtrs = New input_token*[_ndtrs] ;
+    _dtrs = new input_token*[_ndtrs] ;
 
     for (int i = 0; i < _ndtrs; i++)
         _dtrs[i] = dtrs[i] ;
@@ -844,5 +844,5 @@ phrasal_item::unpack_combine(vector<item *> &daughters)
     }
 
     stats.p_upedges++;
-    return New phrasal_item(this, daughters, res);
+    return new phrasal_item(this, daughters, res);
 }

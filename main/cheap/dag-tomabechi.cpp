@@ -233,7 +233,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       if((cycle = dag_cyclic_rec(*result_root)) != 0)
 	{
 	  dag_invalidate_changes();
-	  failures.push_back(New unification_failure(unification_failure::CYCLE, unify_path_rev,
+	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
 						unification_cost, -1, -1, cycle, *result_root));
 	}
     }
@@ -242,7 +242,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       // result might be cyclic
       if((cycle = dag_cyclic_rec(dag1)) != 0)
 	{
-	  failures.push_back(New unification_failure(unification_failure::CYCLE, unify_path_rev,
+	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
 						unification_cost));
 	}
     }
@@ -315,7 +315,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
 	  if(!unify_all_failures)
 	    {
 	      save_or_clear_failure();
-	      failure = New unification_failure(unification_failure::CYCLE, unify_path_rev, unification_cost);
+	      failure = new unification_failure(unification_failure::CYCLE, unify_path_rev, unification_cost);
 	      return FAIL;
 	    }
 	  else
@@ -395,7 +395,7 @@ constraint_info **constraint_cache;
 
 inline constraint_info *fresh_p_constraint(int s, constraint_info *next)
 {
-  constraint_info *c = New constraint_info;
+  constraint_info *c = new constraint_info;
   c -> next = next;
   c -> gen = 0;
 
@@ -538,7 +538,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
       if(unify_record_failure)
         { 
 	  save_or_clear_failure();
-	  failure = New unification_failure(unification_failure::CLASH, unify_path_rev, unification_cost, s1, s2);
+	  failure = new unification_failure(unification_failure::CLASH, unify_path_rev, unification_cost, s1, s2);
 
 	  if(!unify_all_failures)
 	    return FAIL;
@@ -589,7 +589,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 	  if(unify_record_failure)
             { 
 	      save_or_clear_failure();
-	      failure = New unification_failure(unification_failure::CONSTRAINT, unify_path_rev, unification_cost, s1, s2);
+	      failure = new unification_failure(unification_failure::CONSTRAINT, unify_path_rev, unification_cost, s1, s2);
 
 	      if(!unify_all_failures)
 		return FAIL;

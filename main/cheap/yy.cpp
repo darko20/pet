@@ -408,7 +408,7 @@ bool yy_tokenizer::read_pos(string &tag, double &prob)
 class yy_token *
 yy_tokenizer::read_token()
 {
-    auto_ptr<yy_token> res(New yy_token);
+    auto_ptr<yy_token> res(new yy_token);
     
     read_ws();
     
@@ -496,7 +496,7 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
 	    current_time(), grammar_path.c_str(), log_file_path.c_str(),
 	    k2y_segregation_p);
 
-    cheap_settings = New settings(settings::basename(grammar_path.c_str()),
+    cheap_settings = new settings(settings::basename(grammar_path.c_str()),
 				  grammar_path.c_str(), "reading");
     fprintf(fstatus, "\n");
 
@@ -542,7 +542,7 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
 
     timer t_start;
     fprintf(fstatus, "loading `%s' ", grammar_path.c_str());
-    Grammar = New grammar(grammar_path.c_str());
+    Grammar = new grammar(grammar_path.c_str());
 
     fprintf(fstatus, "\n%d types in %0.2g s\n",
 	    ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
@@ -603,7 +603,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
     {
         item_id++;
 
-        input_chart i_chart(New end_proximity_position_map);
+        input_chart i_chart(new end_proximity_position_map);
 
         list<error> errors;
         analyze(i_chart, input, Chart, FSAS, errors, item_id);
@@ -1121,7 +1121,7 @@ int cheap_server_child(int socket) {
     fs_alloc_state FSAS;
     chart *Chart = 0;
 
-    input_chart i_chart(New end_proximity_position_map);
+    input_chart i_chart(new end_proximity_position_map);
 
     try {
       int status = socket_readline(socket, input, size);
@@ -1179,7 +1179,7 @@ int cheap_server_child(int socket) {
 
       gettimeofday(&tstart, NULL);
 
-      tsdbitem = New char[strlen(input) + 1];
+      tsdbitem = new char[strlen(input) + 1];
       assert(tsdbitem != NULL);
       strcpy(tsdbitem, input);
 

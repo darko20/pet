@@ -171,7 +171,7 @@ record_failures(list<unification_failure *> fails, bool unification,
     if(opt_compute_qc)
     {
         int total = fails.size();
-        int *value = New int[total], price = 0;
+        int *value = new int[total], price = 0;
         int i = 0;
         int id;
         
@@ -490,7 +490,7 @@ get_qc_vector(qc_node *qc_paths, int qc_len, const fs &f)
 {
     type_t *vector;
     
-    vector = New type_t [qc_len];
+    vector = new type_t [qc_len];
     for(int i = 0; i < qc_len; i++) vector[i] = 0;
     
     if(opt_hyper && f.temp())

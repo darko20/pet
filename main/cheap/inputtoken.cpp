@@ -225,7 +225,7 @@ input_token::generics(postags onlyfor)
         fs f = fs(gen); 
 
         lex_item *lex =
-            New lex_item(_start, _end, _paths, 1, 0, dtrs, f,
+            new lex_item(_start, _end, _paths, 1, 0, dtrs, f,
                          _orth.c_str());
 
         result.push_back(lex);
@@ -258,7 +258,7 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
     // if fs is valid, create a new lex item and task
     if(f.valid())
     {
-        lex_item *it = New lex_item(start, end, _paths, 
+        lex_item *it = new lex_item(start, end, _paths, 
                                     ndtrs, keydtr, dtrs, f,
                                     _form.description().c_str());
 
@@ -347,14 +347,14 @@ input_token::expand(list<lex_item *> &result)
         // used in multi-word lexemes
         if(_form.stem()->length() == _end - _start)
         {
-            input_token **dtrs = New input_token* [1];
+            input_token **dtrs = new input_token* [1];
             dtrs[0] = this;
             add_result(_start, _end, 1, 0, dtrs, result);
             delete[] dtrs;  
         }
         else
         {
-            input_token **dtrs = New input_token* [_form.stem()->length()];
+            input_token **dtrs = new input_token* [_form.stem()->length()];
             dtrs[_form.offset()] = this;
             expand_rec(_form.offset() - 1, _start, _end, dtrs, result);
             delete[] dtrs;  

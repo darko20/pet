@@ -185,7 +185,7 @@ char *current_time(void)
 {
   time_t foo = time(0);
   struct tm *now = localtime(&foo);
-  static char *result = New char[80];
+  static char *result = new char[80];
 
   if(result == 0)
     return "now";
