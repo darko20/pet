@@ -32,12 +32,22 @@ AM_CPPFLAGS = -I$(top_srcdir)/common $(CHEAPCPPFLAGS)
 AM_LDFLAGS = $(CHEAPLDFLAGS)
 LIBS += $(CHEAPLIBS)
 
-DAGSOURCES = dag-alloc.cpp dag-arced.cpp dag-common.cpp dag-io.cpp
-
 # In $(top_srcdir)/common
-nodist_cheap_SOURCES = bitcode.cpp chunk-alloc.cpp dumper.cpp		\
-	grammar-dump.cpp hash.cpp lex-io.cpp lex-tdl.cpp mfile.c	\
-	settings.cpp types.cpp utility.cpp $(DAGSOURCES)
+nodist_cheap_SOURCES = bitcode.cpp 	\
+	chunk-alloc.cpp			\
+	dag-alloc.cpp			\
+	dag-arced.cpp			\
+	dag-common.cpp			\
+	dag-io.cpp			\
+	dumper.cpp			\
+	grammar-dump.cpp		\
+	hash.cpp			\
+	lex-io.cpp			\
+	lex-tdl.cpp			\
+	mfile.c				\
+	settings.cpp 			\
+	types.cpp			\
+	utility.cpp
 
 cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
 	fs.cpp fs.h grammar.cpp grammar.h		 		\
@@ -48,7 +58,6 @@ cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
 	paths.cpp paths.h postags.cpp postags.h restrictor.h 		\
 	sm.cpp sm.h task.cpp task.h itsdb.h tsdb++.h tsdb++.cpp		\
 	yy-tokenizer.cpp yy-tokenizer.h
-
 
 TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h	\
 	failure.cpp qc.h qc.cpp
@@ -96,16 +105,16 @@ if ICU
 cheap_SOURCES += $(ICU_FILES)
 endif
 
-RCU_FILES = rcu-types.h rcu-types.cpp rcu-dag-node.h
-if RCU
+#RCU_FILES = rcu-types.h rcu-types.cpp rcu-dag-node.h
+#if RCU
 # QC_PATH_COMP could be done robustly, ie with weights.  The aim would be
 # to find the paths that most quickly find out the biggest losses.
-DEFS += -DROBUST
-cheap_SOURCES += $(RCU_FILES)
+#DEFS += -DROBUST
+#cheap_SOURCES += $(RCU_FILES)
 # nodist_cheap_SOURCES += dag-chunk-alloc.h dag-chunk-alloc.cpp	\
 #                         type-chunk-alloc.cpp type-chunk-alloc.h	\
 # 	                type-alloc.h type-alloc.cpp
-endif
+#endif
 
 PSQL_FILES = psqllex.h psqllex.cpp
 if PSQLLEX
@@ -150,9 +159,11 @@ CFLAGS =
 EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp			\
 	$(ECL_MRS_FILES) $(EXTDICT_FILES) $(ICU_FILES)			\
 	$(RCU_FILES) $(TOMABECHI_UNIF_FILES) $(YY_FILES) $(XML_FILES)	\
-	$(PSQL_FILES) psqltest.c version.h 
+	$(PSQL_FILES) psqltest.c
 
 EXTRA_DIST = Jamfile
+
+MOSTLYCLEANFILES = libmrs.a
 
 # ADDED :I686 TO *FEATURES*
 # Executed unconditionally!  Dependencies should be done by ECL

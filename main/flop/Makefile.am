@@ -15,16 +15,44 @@ AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
 # Shared libraries are added to flop_LDADD via configure.ac
 
 # In ../common (without headers)
-nodist_flop_SOURCES = bitcode.cpp chunk-alloc.cpp dag-alloc.cpp		\
-	dag-arced.cpp dag-common.cpp dag-io.cpp	dag-simple.cpp		\
-	dumper.cpp grammar-dump.cpp lex-io.cpp lex-tdl.cpp		\
-	settings.cpp types.cpp utility.cpp
+nodist_flop_SOURCES = bitcode.cpp	\
+	chunk-alloc.cpp			\
+	dag-alloc.cpp			\
+	dag-arced.cpp 			\
+	dag-common.cpp			\
+	dag-io.cpp			\
+	dag-simple.cpp			\
+	dumper.cpp 			\
+	grammar-dump.cpp		\
+	lex-io.cpp			\
+	lex-tdl.cpp			\
+	settings.cpp 			\
+	types.cpp			\
+	utility.cpp
 
-flop_SOURCES = flop.h flop.cpp builtins.cpp terms.cpp full-form.cpp	\
-	parse-tdl.cpp print-chic.cpp print-tdl.cpp template.cpp		\
-	corefs.cpp util.cpp options.h options.cpp hierarchy.h		\
-        hierarchy.cpp expand.cpp reduction.h reduction.cpp dag-tdl.cpp	\
-        dump.cpp symtab.h partition.h partition.cpp hashing.h
+flop_SOURCES = builtins.cpp	\
+	corefs.cpp		\
+	dag-tdl.cpp		\
+	dump.cpp		\
+	expand.cpp		\
+	flop.cpp		\
+	flop.h			\
+	full-form.cpp		\
+	hierarchy.cpp		\
+	hierarchy.h		\
+	options.cpp		\
+	options.h		\
+	parse-tdl.cpp		\
+	partition.cpp		\
+	partition.h		\
+	print-chic.cpp		\
+	print-tdl.cpp		\
+	reduction.cpp		\
+	reduction.h		\
+	symtab.h		\
+	template.cpp		\
+	terms.cpp		\
+	util.cpp
 
 
 # boost libraries: -lm -lstdc++
