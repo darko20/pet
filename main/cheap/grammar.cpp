@@ -583,6 +583,12 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
         constraint_cache[i] = 0;
 #endif
     }
+
+    if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs)
+    {
+        qc_paths_subs = qc_paths_unif;
+        qc_len_subs = qc_len_unif;
+    }
 }
 
 #ifdef CONSTRAINT_CACHE
