@@ -26,6 +26,7 @@
 #include "../common/utility.h"
 #include "types.h"
 #include "fs.h"
+#include "sm.h"
 #ifdef IQT
 #include "iqt.h"
 #endif
@@ -300,6 +301,8 @@ class grammar
   class morph_analyzer *morph() { return _morph; }
 #endif
   
+  inline tSM *sm() { return _sm; }
+
  private:
 #ifndef ICU
   string _punctuation_characters;

@@ -219,6 +219,9 @@ class item
   inline void priority(int p) { _p = p; }
   inline void rriority(int r) { _r = r; }
 
+  virtual int identity() = 0;
+  virtual double score(tSM *) = 0;
+
   inline int frozen() { return _frozen; }
   inline void freeze(int mark) { _frozen = mark; }
 
@@ -260,6 +263,9 @@ class item
   type_t *_qc_vector;
 
   int _p, _q, _r;
+  
+  tSM *_score_model;
+  double _score;
 
   const char *_printname;
 
@@ -337,6 +343,13 @@ class lex_item : public item
   
   void adjust_priority(const char *setting);
 
+  virtual int identity()
+  {
+      return _dtrs[_keydtr]->identity();
+  }
+
+  virtual double score(tSM *);
+
   virtual list<item *> unpack1();
 
  private:
@@ -373,6 +386,15 @@ class phrasal_item : public item
 
   virtual inline int age() { return _id; }
 
+  virtual int identity()
+  {
+      if(_rule)
+          return _rule->type();
+      else
+          return 0;
+  }
+  virtual double score(tSM *);
+
   virtual list<item *> unpack1();
   void unpack_cross(vector<list<item *> > &dtrs,
                     int index, vector<item *> &config,
@@ -383,6 +405,20 @@ class phrasal_item : public item
   list<item *> _daughters;
   item * _adaughter;
   grammar_rule *_rule;
+};
+
+class less_than_score
+{
+public:
+    less_than_score(tSM *sm)
+        : _sm(sm) {}
+
+    bool operator() (item *i, item *j)
+    {
+        return i->score(_sm) < j->score(_sm);
+    }
+ private:
+    tSM *_sm;
 };
 
 class item_owner

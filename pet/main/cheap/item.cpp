@@ -26,6 +26,7 @@
 #include "item.h"
 #include "parse.h"
 #include "tsdb++.h"
+#include "sm.h"
 
 #ifdef YY
 #include "mrs.h"
@@ -43,8 +44,8 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _q(0), _r(0), _printname(printname), _done(0), _frozen(0),
-      parents(), packed()
+      _p(p), _q(0), _r(0), _score_model(0), _printname(printname), _done(0),
+      _frozen(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -55,8 +56,8 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(p), _q(0), _r(0), _printname(printname), _done(0), _frozen(0),
-      parents(), packed()
+      _p(p), _q(0), _r(0), _score_model(0), _printname(printname), _done(0),
+      _frozen(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -261,8 +262,18 @@ void phrasal_item::set_result_root(type_t rule)
 
 void item::print(FILE *f, bool compact)
 {
-    fprintf(f, "[%d %d-%d %s (%d) %d {", _id, _start, _end, _fs.printname(),
-            _trait, _p);
+    fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
+            _trait);
+    if(_score_model)
+    {
+        fprintf(f, "%.4g", _score);
+    }
+    else
+    {
+        fprintf(f, "%d", _p);
+    }
+
+    fprintf(f, " {");
 
     list_int *l = _tofill;
     while(l)
@@ -746,4 +757,51 @@ phrasal_item::unpack_combine(vector<item *> &daughters)
     }
 
     return New phrasal_item(this, daughters, res);
+}
+
+//
+// Scoring
+//
+
+
+double lex_item::score(tSM *sm)
+{
+    if(_score_model == sm)
+    {
+        // Score was already computed for this model.
+        return _score;
+    }
+
+    // _fix_me_
+    // Compute something useful here
+
+    _score_model = sm;
+    return _score = sm->neutralScore();
+}
+
+double phrasal_item::score(tSM *sm)
+{
+    if(_score_model == sm)
+    {
+        // Score was already computed for this model.
+        return _score;
+    }
+
+    vector<int> v;
+    v.push_back(1);
+    v.push_back(rule()->type());
+
+    double total = sm->neutralScore();
+
+    for(list<item *>::iterator dtr = _daughters.begin();
+        dtr != _daughters.end(); ++dtr)
+    {
+        v.push_back((*dtr)->identity());
+        total = sm->combineScores(total, (*dtr)->score(sm));
+    }
+
+    tSMFeature f(v);
+
+    _score_model = sm;
+    return _score = sm->combineScores(total, sm->score(f));
 }
