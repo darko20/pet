@@ -244,28 +244,32 @@ packed_edge(item *newitem)
 
         if(forward && olditem->frozen() == 0)
         {
-            if(verbosity > 4)
+            if((!backward && (opt_packing & PACKING_PRO))
+               || (backward && (opt_packing & PACKING_EQUI)))
             {
-                fprintf(ferr, "proactive (%s) packing:\n", backward
-                        ? "equi" : "subs");
-                newitem->print(ferr);
-		dag_print(ferr, newitem->get_fs().dag());
-                fprintf(ferr, "\n --> \n");
-                olditem->print(ferr);
-		dag_print(ferr, olditem->get_fs().dag());
-                fprintf(ferr, "\n");
+                if(verbosity > 4)
+                {
+                    fprintf(ferr, "proactive (%s) packing:\n", backward
+                            ? "equi" : "subs");
+                    newitem->print(ferr);
+                    dag_print(ferr, newitem->get_fs().dag());
+                    fprintf(ferr, "\n --> \n");
+                    olditem->print(ferr);
+                    dag_print(ferr, olditem->get_fs().dag());
+                    fprintf(ferr, "\n");
+                }
+                
+                if(backward)
+                    stats.p_equivalent++;
+                else
+                    stats.p_proactive++;
+                
+                olditem->packed.push_back(newitem);
+                return true;
             }
-
-            if(backward)
-              stats.p_equivalent++;
-            else
-              stats.p_proactive++;
-
-            olditem->packed.push_back(newitem);
-            return true;
         }
       
-        if(backward)
+        if(backward && (opt_packing & PACKING_RETRO))
         {
             if(verbosity > 4)
             {
@@ -276,12 +280,13 @@ packed_edge(item *newitem)
                 fprintf(ferr, "\n");
             }
 
-            stats.p_retroactive++;
-
 	    newitem->packed.splice(newitem->packed.begin(), olditem->packed);
 
             if(olditem->frozen() == 0)
+            {
+                stats.p_retroactive++;
                 newitem->packed.push_back(olditem);
+            }
 
             block(olditem, 1);
 

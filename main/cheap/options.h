@@ -43,9 +43,9 @@ extern char *grammar_file_name;
 extern char *opt_supertag_file;
 extern int opt_supertag_norm;
 
-#define PACKING_EQUI  (1 << 0);
-#define PACKING_PRO   (1 << 1);
-#define PACKING_RETRO (1 << 2);
+#define PACKING_EQUI  (1 << 0)
+#define PACKING_PRO   (1 << 1)
+#define PACKING_RETRO (1 << 2)
 
 extern int opt_packing;
 
