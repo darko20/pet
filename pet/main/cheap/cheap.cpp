@@ -75,94 +75,279 @@ void interactive_morph()
 }
 #endif
 
+map<string, set<string> > supertagMap;
+map<string, int> overflowMap;
+
+#define MAX_WORDS_PER_TAG 10
+
+void
+writeSuperTagged(FILE *fTagged, FILE *fData, chart *Chart, int nderivations)
+{
+    int j = 0;
+    while(j < opt_supertag_norm)
+    {
+        for(vector<item *>::iterator iter = Chart->Roots().begin();
+            iter != Chart->Roots().end() && j < opt_supertag_norm;
+            ++iter, ++j)
+        {
+            item *it = *iter;
+            list<string> tags;
+            list<list<string> > words;
+            
+            it->getTagSequence(tags, words);
+            assert(tags.size() == words.size());
+
+            list<string>::iterator itTags;
+            list<list<string> >::iterator itWords;
+            
+            for(itTags = tags.begin(), itWords = words.begin();
+                itTags != tags.end(); ++itTags, ++itWords)
+            {
+                int i = 1, n = itWords->size();                for(list<string>::iterator itWord = itWords->begin();
+                    itWord != itWords->end(); ++itWord)
+                {
+                    string thisTag = string("LinGO-") + *itTags;
+
+                    if(n > 1)
+                    {
+                        // This is part of a multi word
+                        char tmp[42];
+                        sprintf(tmp, "-%d", i);
+                        thisTag += string(tmp);
+                    }
+                    else
+                    {
+                        string wordPlusTag = *itWord + thisTag;
+                        if(overflowMap[wordPlusTag] == 0)
+                        {
+                            // This is a new pair
+
+                            int n;
+                            
+                            n = overflowMap[thisTag]++;
+                            overflowMap[wordPlusTag] =
+                                (n / MAX_WORDS_PER_TAG) + 1;
+                        }
+
+                        char tmp[42];
+                        sprintf(tmp, "-%d", overflowMap[wordPlusTag]);
+                        thisTag += string(tmp);
+                    }
+                        
+                    supertagMap[thisTag].insert(*itWord);
+
+                    fprintf(fTagged, "%s ", thisTag.c_str());
+                    if(fData)
+                    {
+                        fprintf(fData, "%s ", itWord->c_str());
+                    }
+                }
+            }
+            fprintf(fTagged, "\n");
+            if(fData)
+                fprintf(fData, "\n");
+        }
+    }
+}
+
+void
+writeSuperTagVoc(FILE *f, const map<string, set<string> > &tagMap)
+{
+    fprintf(f, ";; LinGO vocabulary\n\n");
+
+    for(map<string, set<string> >::const_iterator itMap = tagMap.begin();
+        itMap != tagMap.end(); ++itMap)
+    {
+        fprintf(f, "%s [", itMap->first.c_str());
+        for(set<string>::const_iterator itSet = itMap->second.begin();
+            itSet != itMap->second.end(); ++itSet)
+            fprintf(f, " %s", itSet->c_str());
+        fprintf(f, " ]\n");
+    }
+}
+
 void interactive()
 {
-  string input;
-  int id = 1;
+    string input;
+    int id = 1;
 
-  while(!(input = read_line(stdin)).empty())
+    FILE *fTags = 0;
+    FILE *fData = 0;
+    FILE *fVoc = 0;
+    
+    if(opt_supertag_file)
     {
-      chart *Chart = 0;
-      try {
-	fs_alloc_state FSAS;
+        char *tmp = new char[strlen(opt_supertag_file) + 42];
 
-	input_chart i_chart(New end_proximity_position_map);
+        strcpy(tmp, opt_supertag_file);
+        strcat(tmp, ".tagged");
+        fTags = fopen(tmp, "w");
 
-	analyze(i_chart, input, Chart, FSAS, id);
+        strcpy(tmp, opt_supertag_file);
+        strcat(tmp, ".data");
+        fData = fopen(tmp, "w");
+
+        strcpy(tmp, opt_supertag_file);
+        strcat(tmp, ".voc");
+        fVoc = fopen(tmp, "w");
+
+        delete[] tmp;
+    }
+
+    while(!(input = read_line(stdin)).empty())
+    {
+        chart *Chart = 0;
+        try {
+            fs_alloc_state FSAS;
+
+            input_chart i_chart(New end_proximity_position_map);
+
+            analyze(i_chart, input, Chart, FSAS, id);
         
-	if(verbosity == -1)
-	  fprintf(stdout, "%d\t%d\t%d\n",
-		  stats.id, stats.readings, stats.pedges);
+            if(verbosity == -1)
+                fprintf(stdout, "%d\t%d\t%d\n",
+                        stats.id, stats.readings, stats.pedges);
 
-        fprintf(fstatus, 
-                "(%d) `%s' [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
-                stats.id, input.c_str(), pedgelimit, stats.readings, 
-                stats.first/1000., stats.tcpu / 1000.,
-                stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-		TotalParseTime.elapsed_ts() / 10.);
+            fprintf(fstatus, 
+                    "(%d) `%s' [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
+                    stats.id, input.c_str(), pedgelimit, stats.readings, 
+                    stats.first/1000., stats.tcpu / 1000.,
+                    stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+                    TotalParseTime.elapsed_ts() / 10.);
 
-        if(verbosity > 1) stats.print(fstatus);
+            if(verbosity > 2) stats.print(fstatus);
+
+            if(fTags && stats.readings > 0)
+                writeSuperTagged(fTags, fData, Chart,
+                                   stats.readings);
 
 #ifdef YY
-        if(opt_k2y || verbosity > 1)
+            if(opt_k2y || verbosity > 1)
 #else
-        if(verbosity > 1)
+            if(verbosity > 1)
 #endif
 
-	  {
-	    int nres = 0;
-	    struct MFILE *mstream = mopen();
-
-	    for(vector<item *>::iterator iter = Chart->Roots().begin();
-		iter != Chart->Roots().end(); ++iter)
-	      {
-		item *it = *iter;
-
-		nres++;
-		fprintf(fstatus, "derivation[%d]: ", nres);
-		it->print_derivation(fstatus, false);
-		fprintf(fstatus, "\n");
+            {
+                int nres = 0;
+                struct MFILE *mstream = mopen();
+                
+                for(vector<item *>::iterator iter = Chart->Roots().begin();
+                    iter != Chart->Roots().end(); ++iter)
+                {
+                    item *it = *iter;
+                    
+                    nres++;
+                    fprintf(fstatus, "derivation[%d]: ", nres);
+                    it->print_yield(fstatus);
+                    fprintf(fstatus, "\n");
+                    if(verbosity > 2)
+                    {
+                        it->print_derivation(fstatus, false);
+                        fprintf(fstatus, "\n");
+                    }
+                    
 #ifdef YY
-		if(opt_k2y)
-		  {
-		    mflush(mstream);
-		    int n = construct_k2y(nres, it, false, mstream);
-		    if(n >= 0)
-		      fprintf(fstatus, "\n%s\n\n", mstring(mstream));
-		    else 
-		      {
-			fprintf(fstatus, 
-				"\n K2Y error:  %s .\n\n", 
-				mstring(mstream));
-		      }
-		  }
+                    if(opt_k2y)
+                    {
+                        mflush(mstream);
+                        int n = construct_k2y(nres, it, false, mstream);
+                        if(n >= 0)
+                            fprintf(fstatus, "\n%s\n\n", mstring(mstream));
+                        else 
+                        {
+                            fprintf(fstatus, 
+                                    "\n K2Y error:  %s .\n\n", 
+                                    mstring(mstream));
+                        }
+                    }
 #endif
-	      }
-	    mclose(mstream);
-	  }
-        fflush(fstatus);
-      } /* try */
-      
-      catch(error &e)
-	{
-	  e.print(ferr); fprintf(ferr, "\n");
-	  if(verbosity > 1) stats.print(fstatus);
-	  stats.readings = -1;
-	}
+                }
+                mclose(mstream);
+            }
+            fflush(fstatus);
+        } /* try */
+        
+        catch(error &e)
+        {
+            e.print(ferr); fprintf(ferr, "\n");
+            if(verbosity > 1) stats.print(fstatus);
+            stats.readings = -1;
+        }
 
-      if(Chart != 0) delete Chart;
+        if(Chart != 0) delete Chart;
 
-      id++;
+        id++;
     } /* while */
 
-#ifdef QC_PATH_COMP
-  if(opt_compute_qc)
+    if(opt_supertag_file && fVoc)
     {
-      FILE *qc = fopen("/tmp/qc.tdl", "w");
-      compute_qc_paths(qc, 10000);
-      fclose(qc);
+        writeSuperTagVoc(fVoc, supertagMap);
+    }
+
+#ifdef QC_PATH_COMP
+    if(opt_compute_qc)
+    {
+        FILE *qc = fopen("/tmp/qc.tdl", "w");
+        compute_qc_paths(qc, 10000);
+        fclose(qc);
     }
 #endif
+}
+void nbest()
+{
+    string input;
+
+    while(!feof(stdin))
+    {
+        int id = 0;
+        int selected = -1;
+        int time = 0;
+        
+        while(!(input = read_line(stdin)).empty())
+        {
+            if(selected != -1)
+                continue;
+
+            chart *Chart = 0;
+            try
+            {
+                fs_alloc_state FSAS;
+                
+                input_chart i_chart(New end_proximity_position_map);
+                
+                analyze(i_chart, input, Chart, FSAS, id);
+                
+                if(stats.readings > 0)
+                {
+                    selected = id;
+                    fprintf(stdout, "[%d] %s\n", selected, input.c_str());
+                }
+                
+                stats.print(fstatus);
+                fflush(fstatus);
+            } /* try */
+            
+            catch(error &e)
+            {
+                e.print(ferr); fprintf(ferr, "\n");
+                stats.print(fstatus);
+                fflush(fstatus);
+                stats.readings = -1;
+            }
+            
+            if(Chart != 0) delete Chart;
+            
+            time += stats.tcpu;
+            
+            id++;
+        }
+        if(selected == -1)
+            fprintf(stdout, "[]\n");
+
+        fflush(stdout);
+
+        fprintf(fstatus, "ttcpu: %d\n", time);
+    }
 }
 
 void dump_glbs(FILE *f)
@@ -207,56 +392,61 @@ void print_grammar(FILE *f)
 
 void process(char *s)
 {
-  cheap_settings = New settings(settings::basename(s), s, "reading");
-  fprintf(fstatus, "\n");
-
-  timer t_start;
-  fprintf(fstatus, "loading `%s' ", s);
-
-  try { Grammar = New grammar(s); }
-
-  catch(error &e)
+    cheap_settings = New settings(settings::basename(s), s, "reading");
+    fprintf(fstatus, "\n");
+    
+    timer t_start;
+    fprintf(fstatus, "loading `%s' ", s);
+    
+    try { Grammar = New grammar(s); }
+    
+    catch(error &e)
     {
-      fprintf(fstatus, "\naborted\n");
-      e.print(ferr);
-      delete Grammar;
-      delete cheap_settings;
-      return;
+        fprintf(fstatus, "\naborted\n");
+        e.print(ferr);
+        delete Grammar;
+        delete cheap_settings;
+        return;
     }
-
-  fprintf(fstatus, "\n%d types in %0.2g s\n",
-	  ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
-
-  if(opt_pg)
+    
+    fprintf(fstatus, "\n%d types in %0.2g s\n",
+            ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+    
+    if(opt_pg)
     {
-      print_grammar(stdout);
+        print_grammar(stdout);
     }
-  else
+    else
     {
-      initialize_version();
-
+        initialize_version();
+        
 #if defined(YY) && defined(SOCKET_INTERFACE)
-      if(opt_server)
-	cheap_server(opt_server);
-      else 
+        if(opt_server)
+            cheap_server(opt_server);
+        else 
 #endif
 #ifdef TSDBAPI
-      if(opt_tsdb)
-	tsdb_mode();
-      else
+            if(opt_tsdb)
+                tsdb_mode();
+            else
 #endif
-	{
+            {
 #ifdef ONLINEMORPH
-	  if(opt_interactive_morph)
-	    interactive_morph();
-	  else
+                if(opt_interactive_morph)
+                    interactive_morph();
+                else
 #endif
-	    interactive();
-	}
+                {
+                    if(opt_nbest)
+                        nbest();
+                    else
+                        interactive();
+                }
+            }
     }
-
-  delete Grammar;
-  delete cheap_settings;
+    
+    delete Grammar;
+    delete cheap_settings;
 }
 
 #ifdef __BORLANDC__

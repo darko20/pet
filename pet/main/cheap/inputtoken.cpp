@@ -11,11 +11,12 @@
 #include "dag-common.h"
 
 input_token::input_token(int id, int s, int e, class full_form ff, string o,
-                         int p, const postags &pos, input_chart *cont,
-                         bool synthesized) :
+                         int p, const postags &pos, const tPaths &paths,
+                         input_chart *cont, bool synthesized) :
     _synthesized(synthesized), _id(id), _start(-1), _end(-1),
     _startposition(s), _endposition(e),
     _orth(o), _in_pos(pos), _supplied_pos(ff), _p(p), _form(ff),
+    _paths(paths),
     _container(cont)
 {
 }
@@ -70,6 +71,74 @@ input_token::print_derivation(FILE *f, bool quoted,
              start, end);
 
     fprintf(f, ")");
+}
+
+void
+split_strings(list<string> &strs)
+{
+    list<string> result;
+    
+    for(list<string>::iterator it = strs.begin(); it != strs.end(); ++it)
+    {
+        string::size_type p;
+        while((p = it->find(' ')) != string::npos)
+        {
+            string s = it->substr(0, p);
+            it->erase(0, p + 1);
+            result.push_back(s);
+        }
+        result.push_back(*it);
+    }
+    
+    strs.swap(result);
+}
+
+void
+input_token::print_yield(FILE *f, list_int *inflrs, list<string> &orth)
+{
+    for(list<string>::iterator it = orth.begin(); it != orth.end(); ++it)
+    {
+        fprintf(f, "%s ", it->c_str());
+    }
+}
+
+void
+input_token::getTagSequence(list_int *inflrs, list<string> &orth,
+                            list<string> &tags, list<list<string> > &words)
+{
+    type_t lextype = _form.stem()->type();
+    lextype = leaftype_parent(lextype);
+    
+    if(lextype == -1)
+        return;
+    
+    string tag(printnames[lextype]);
+    
+    for(list_int *l = inflrs; l != 0; l = rest(l))
+        tag += string("-") + printnames[first(l)];
+
+    // Make tag a little nicer looking
+    findAndReplace(tag, "_", "-");
+    findAndReplace(tag, "*", "-star");
+    findAndReplace(tag, "infl-rule", "inflr");
+    
+    // if an element in orth contains whitespace, we'll split
+    split_strings(orth);
+    
+    // attach word starting with apostrophe onto previous word, unless
+    // this is a multiword, or there's no previous word
+
+    if(!words.empty() && words.back().size() == 1 && orth.size() == 1
+       && orth.front().size() > 0 && orth.front()[0] == '\'')
+    {
+        words.back().front() += orth.front();
+        tags.back() += string("-") + tag;
+    }
+    else
+    {
+        tags.push_back(tag);
+        words.push_back(orth);
+    }
 }
 
 string
@@ -155,14 +224,16 @@ input_token::generics(int discount, postags onlyfor)
         input_token *dtrs[1];
         dtrs[0] = _container->add_token(_id, _startposition, _endposition,
                                         full_form(Grammar->lookup_stem(gen)),
-                                        _orth, p, _in_pos, true);
+                                        _orth, p, _in_pos, list<int>(), 
+                                        true);
 
         _container->assign_position(dtrs[0]);
 
         fs f = fs(gen); 
 
         lex_item *lex =
-            New lex_item(_start, _end, 1, 0, dtrs, p, f, _orth.c_str());
+            New lex_item(_start, _end, _paths, 1, 0, dtrs, p, f,
+                         _orth.c_str());
 
         result.push_back(lex);
     }
@@ -196,8 +267,8 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
     {
         int p = dtrs[keydtr]->priority();
     
-        lex_item *it = New lex_item(start, end, ndtrs, keydtr,
-                                    dtrs, p, f,
+        lex_item *it = New lex_item(start, end, _paths, 
+                                    ndtrs, keydtr, dtrs, p, f,
                                     _form.description().c_str());
     
         if(contains(result, it))

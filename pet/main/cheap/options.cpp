@@ -13,18 +13,22 @@
 #include "options.h"
 #include "../common/utility.h"
 
-bool opt_one_solution, opt_shrink_mem, opt_shaping, opt_default_les,
+bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_compute_qc, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
-  opt_linebreaks, opt_chart_man, opt_interactive_morph;
+  opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
+  opt_nbest;
 #ifdef YY
 bool opt_yy, opt_k2y_segregation;
 int opt_k2y, opt_nth_meaning;
 #endif
 
-int opt_nqc, verbosity, pedgelimit, opt_key, opt_server;
+int opt_nsolutions, opt_nqc, verbosity, pedgelimit, opt_key, opt_server;
 long int memlimit;
 char *grammar_file_name = 0;
+
+char *opt_supertag_file = 0;
+int opt_supertag_norm;
 
 void usage(FILE *f)
 {
@@ -32,7 +36,7 @@ void usage(FILE *f)
 #ifdef TSDBAPI
   fprintf(f, "  `-tsdb' --- self explanatory, isn't it?\n");
 #endif
-  fprintf(f, "  `-one-solution' --- non exhaustive search\n");  
+  fprintf(f, "  `-nsolutions[=n]' --- find best n only, 1 if n is not given\n");
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
@@ -45,8 +49,9 @@ void usage(FILE *f)
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
   fprintf(f, "  `-rulestats' --- enable tsdb output of rule statistics\n");
   fprintf(f, "  `-no-chart-man' --- disable chart manipulation\n");
+  fprintf(f, "  `-default-les' --- enable use of default lexical entries\n");
+  fprintf(f, "  `-lattice' --- word lattice parsing\n");
   fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
-  fprintf(f, "  `-default-les' --- enable use of default lexical entries)\n");
 #ifdef YY
   fprintf(f, "  `-k2y[=n]' --- "
           "output K2Y, filter at `n' %% of raw atoms (default: 50)\n");
@@ -60,12 +65,16 @@ void usage(FILE *f)
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
 #endif
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
+  fprintf(f, "  `-nbest' --- n-best parsing mode\n");
+  fprintf(f, "  `-supertag=file' --- write supertagged data into file\n");
+  fprintf(f, "  `-supertagnorm=n' --- set normalization value to n "
+              "(default: 10)\n");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
 }
 
 #define OPTION_TSDB 0
-#define OPTION_ONE_SOLUTION 1
+#define OPTION_NSOLUTIONS 1
 #define OPTION_VERBOSE 2
 #define OPTION_LIMIT 3
 #define OPTION_NO_SHRINK_MEM 4
@@ -84,6 +93,10 @@ void usage(FILE *f)
 #define OPTION_LOG 17
 #define OPTION_MEMLIMIT 18
 #define OPTION_INTERACTIVE_MORPH 19
+#define OPTION_SUPERTAGFILE 20
+#define OPTION_SUPERTAGNORM 21
+#define OPTION_LATTICE 22
+#define OPTION_NBEST 23
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -95,7 +108,7 @@ void usage(FILE *f)
 void init_options()
 {
   opt_tsdb = false;
-  opt_one_solution = false;
+  opt_nsolutions = 0;
   verbosity = 0;
   pedgelimit = 0;
   memlimit = 0;
@@ -114,6 +127,10 @@ void init_options()
   opt_pg = false;
   opt_chart_man = true;
   opt_interactive_morph = false;
+  opt_lattice = false;
+  opt_supertag_file = 0;
+  opt_supertag_norm = 10;
+  opt_nbest = false;
 #ifdef YY
   opt_yy = false;
   opt_k2y = 0;
@@ -131,7 +148,7 @@ bool parse_options(int argc, char* argv[])
 #ifdef TSDBAPI
     {"tsdb", no_argument, 0, OPTION_TSDB},
 #endif
-    {"one-solution", no_argument, 0, OPTION_ONE_SOLUTION},
+    {"nsolutions", optional_argument, 0, OPTION_NSOLUTIONS},
     {"verbose", optional_argument, 0, OPTION_VERBOSE},
     {"limit", required_argument, 0, OPTION_LIMIT},
     {"memlimit", required_argument, 0, OPTION_MEMLIMIT},
@@ -156,6 +173,10 @@ bool parse_options(int argc, char* argv[])
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", no_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
+    {"supertag", required_argument, 0, OPTION_SUPERTAGFILE},
+    {"supertagnorm", required_argument, 0, OPTION_SUPERTAGNORM},
+    {"lattice", no_argument, 0, OPTION_LATTICE},
+    {"nbest", no_argument, 0, OPTION_NBEST},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -164,100 +185,117 @@ bool parse_options(int argc, char* argv[])
   if(!argc) return true;
 
   while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
-    {
+  {
       switch(c)
-        {
-        case '?':
+      {
+      case '?':
           return false;
-        case OPTION_TSDB:
+      case OPTION_TSDB:
           opt_tsdb = true;
           break;
-        case OPTION_ONE_SOLUTION:
-          opt_one_solution = true;
+      case OPTION_NSOLUTIONS:
+          if(optarg != NULL)
+              opt_nsolutions = strtoint(optarg, "as argument to -nsolutions");
+          else
+              opt_nsolutions = 1;
           break;
-        case OPTION_DEFAULT_LES:
+      case OPTION_DEFAULT_LES:
           opt_default_les = true;
           break;
-	case OPTION_NO_CHART_MAN:
-	  opt_chart_man = false;
-	  break;
-        case OPTION_SERVER:
-          if(optarg != NULL)
-	    opt_server = strtoint(optarg, "as argument to `-server'");
-          else
-	    opt_server = CHEAP_SERVER_PORT;
+      case OPTION_NO_CHART_MAN:
+          opt_chart_man = false;
           break;
-        case OPTION_NO_SHRINK_MEM:
+      case OPTION_SERVER:
+          if(optarg != NULL)
+              opt_server = strtoint(optarg, "as argument to `-server'");
+          else
+              opt_server = CHEAP_SERVER_PORT;
+          break;
+      case OPTION_NO_SHRINK_MEM:
           opt_shrink_mem = false;
           break;
-        case OPTION_NO_FILTER:
+      case OPTION_NO_FILTER:
           opt_filter = false;
           break;
-        case OPTION_NO_HYPER:
+      case OPTION_NO_HYPER:
           opt_hyper = false;
           break;
-        case OPTION_NO_DERIVATION:
+      case OPTION_NO_DERIVATION:
           opt_derivation = false;
           break;
-        case OPTION_RULE_STATISTICS:
+      case OPTION_RULE_STATISTICS:
           opt_rulestatistics = true;
           break;
-        case OPTION_COMPUTE_QC:
+      case OPTION_COMPUTE_QC:
           opt_compute_qc = true;
           break;
-        case OPTION_PRINT_FAILURE:
+      case OPTION_PRINT_FAILURE:
           opt_print_failure = true;
           break;
-        case OPTION_PG:
+      case OPTION_PG:
           opt_pg = true;
           break;
-	case OPTION_INTERACTIVE_MORPH:
-	  opt_interactive_morph = true;
-	  break;
-        case OPTION_VERBOSE:
+      case OPTION_INTERACTIVE_MORPH:
+          opt_interactive_morph = true;
+          break;
+      case OPTION_LATTICE:
+          opt_lattice = true;
+          break;
+      case OPTION_VERBOSE:
           if(optarg != NULL)
-	    verbosity = strtoint(optarg, "as argument to `-verbose'");
+              verbosity = strtoint(optarg, "as argument to `-verbose'");
           else
-            verbosity++;
+              verbosity++;
           break;
-        case OPTION_NQC:
+      case OPTION_NQC:
           if(optarg != NULL)
-	    opt_nqc = strtoint(optarg, "as argument to `-qc'");
+              opt_nqc = strtoint(optarg, "as argument to `-qc'");
           break;
-        case OPTION_KEY:
+      case OPTION_KEY:
           if(optarg != NULL)
-	    opt_key = strtoint(optarg, "as argument to `-key'");
+              opt_key = strtoint(optarg, "as argument to `-key'");
           break;
-        case OPTION_LIMIT:
+      case OPTION_LIMIT:
           if(optarg != NULL)
-            pedgelimit = strtoint(optarg, "as argument to -limit");
+              pedgelimit = strtoint(optarg, "as argument to -limit");
           break;
-        case OPTION_MEMLIMIT:
+      case OPTION_MEMLIMIT:
           if(optarg != NULL)
-            memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
+              memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
           break;
-        case OPTION_LOG:
+      case OPTION_LOG:
           if(optarg != NULL)
-            if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
-            else flog = fopen(optarg, "w");
+              if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
+              else flog = fopen(optarg, "w");
+          break;
+      case OPTION_SUPERTAGFILE:
+          if(optarg != NULL)
+              opt_supertag_file = strdup(optarg);
+          break;
+      case OPTION_SUPERTAGNORM:
+          if(optarg != NULL)
+              opt_supertag_norm = strtoint(optarg, "as argument to -supertagnorm");
+          break;
+      case OPTION_NBEST:
+          opt_nbest = true;
           break;
 #ifdef YY
-        case OPTION_ONE_MEANING:
+      case OPTION_ONE_MEANING:
           if(optarg != NULL)
-            opt_nth_meaning = strtoint(optarg, "as argument to -one-meaning");
+              opt_nth_meaning = strtoint(optarg, "as argument to -one-meaning");
           else
-            opt_nth_meaning = 1;
+              opt_nth_meaning = 1;
           break;
-        case OPTION_K2Y:
+      case OPTION_K2Y:
           if(optarg != NULL)
-            opt_k2y = strtoint(optarg, "as argument to -k2y");
+              opt_k2y = strtoint(optarg, "as argument to -k2y");
           else
-            opt_k2y = 50;
+              opt_k2y = 50;
           break;
-        case OPTION_K2Y_SEGREGATION:
+      case OPTION_K2Y_SEGREGATION:
           opt_k2y_segregation = true;
           break;
-        case OPTION_YY:
+      case OPTION_YY:
           opt_yy = true;
           break;
 #endif
@@ -297,7 +335,10 @@ int int_setting(settings *set, const char *s)
 void options_from_settings(settings *set)
 {
   init_options();
-  opt_one_solution = bool_setting(set, "one-solution");
+  if(bool_setting(set, "one-solution"))
+      opt_nsolutions = 1;
+  else
+      opt_nsolutions = 0;
   verbosity = int_setting(set, "verbose");
   pedgelimit = int_setting(set, "limit");
   memlimit = 1024 * 1024 * int_setting(set, "memlimit");

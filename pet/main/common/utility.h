@@ -43,6 +43,10 @@ char *output_name(char *in, char *oldextension, const char *newextension);
 // can be read.
 string read_line(FILE *f);
 
+// Replace all occurences of oldText in s by newText.
+void
+findAndReplace(string &s, const string &oldText, const string &newText);
+
 struct cstr_eq
 {
   bool operator()(const char* s, const char* t) const

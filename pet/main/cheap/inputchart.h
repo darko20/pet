@@ -118,11 +118,12 @@ public:
   
   input_token *add_token(const string &tokenstring);
   input_token *add_token(int id, int start, int end, class full_form ff,
-			 string orth, int p, const postags &pos,
-			 bool synthesized = false)
+                         string orth, int p, const postags &pos,
+                         const tPaths &paths,
+                         bool synthesized = false)
   {
-    return add_token(New input_token(id, start, end, ff, orth, p, pos, this,
-				     synthesized));
+    return add_token(New input_token(id, start, end, ff, orth, p, pos, paths,
+                                     this, synthesized));
   }
 
   void assign_position(input_token *t);
