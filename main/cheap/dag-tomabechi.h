@@ -133,7 +133,7 @@ inline struct dag_arc *dag_get_comp_arcs(struct dag_node *dag)
 
 inline struct dag_node *dag_get_forward(struct dag_node *dag)
 {
-  if(dag->generation == unify_generation) return dag->forward; else return dag;
+  if(dag->generation == unify_generation) return dag->forward; else return 0;
 }
 
 inline struct dag_node *dag_get_copy(struct dag_node *dag)
@@ -148,7 +148,7 @@ inline void dag_set_new_type(struct dag_node *dag, int s)
     {
       dag->generation = unify_generation;
       dag->comp_arcs = 0;
-      dag->forward = dag;
+      dag->forward = 0;
       dag->copy = 0;
     }
 }
@@ -160,7 +160,7 @@ inline void dag_set_comp_arcs(struct dag_node *dag, struct dag_arc *a)
     {
       dag->generation = unify_generation;
       dag->new_type = dag->type;
-      dag->forward = dag;
+      dag->forward = 0;
       dag->copy = 0;
     }
 }
@@ -184,7 +184,7 @@ inline void dag_set_copy(struct dag_node *dag, struct dag_node *c)
     {
       dag->generation = unify_generation;
       dag->comp_arcs = 0;
-      dag->forward = dag;
+      dag->forward = 0;
       dag->new_type = dag->type;
     }
 }
