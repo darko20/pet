@@ -174,10 +174,26 @@ build_combined_item(chart *C, item *active, item *passive)
     }
 }
 
+double packingscore(int start, int end, int n, bool active)
+{
+    //    return end - start;
+    return end - double(start) / n;
+    /*
+
+           - (active ? 0.0 : double(start) / n) ;
+    */
+    /*
+    return end - double(end - start) / n 
+           - (active ? 0.0 : double(end - start) / n) ;
+    */
+}
+
 item_task::item_task(class chart *C, class agenda *A, item *it)
     : basic_task(C, A), _item(it)
 {
-    if(opt_nsolutions > 0)
+    if(opt_packing)
+        priority(packingscore(it->start(), it->end(), C->rightmost(), false));
+    else if(opt_nsolutions > 0)
         priority(it->score());
 }
 
@@ -195,7 +211,10 @@ rule_and_passive_task::rule_and_passive_task(class chart *C, class agenda *A,
                                              grammar_rule *R, item *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
-    if(opt_nsolutions > 0)
+    if(opt_packing)
+        priority(packingscore(passive->start(), passive->end(),
+                              C->rightmost(), R->arity() > 1));
+    else if(opt_nsolutions > 0)
     {
         list<item *> daughters;
         daughters.push_back(passive);
@@ -219,7 +238,17 @@ active_and_passive_task::active_and_passive_task(class chart *C,
                                                  item *act, item *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {
-    if(opt_nsolutions > 0)
+    if(opt_packing)
+    {
+        phrasal_item *active = dynamic_cast<phrasal_item *>(act); 
+        if(active->left_extending())
+            priority(packingscore(passive->start(), active->end(),
+                                  C->rightmost(), false));
+        else
+            priority(packingscore(active->start(), passive->end(),
+                                  C->rightmost(), false));
+    }
+    else if(opt_nsolutions > 0)
     {
         phrasal_item *active = dynamic_cast<phrasal_item *>(act); 
         list<item *> daughters(active->_daughters);

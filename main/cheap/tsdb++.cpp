@@ -243,10 +243,13 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         input_chart i_chart(New end_proximity_position_map);
         
         pedgelimit = edges;
+        // _fix_me_
+#if 0
         if(exhaustive)
             opt_nsolutions = 0;
         else
             opt_nsolutions = 1;
+#endif
         
         gettimeofday(&tA, NULL);
 
