@@ -167,7 +167,7 @@ struct dag_node *dag_create_attr_value(int attr, dag_node *val)
   if(attr < 0 || attr >= nattrs || apptype[attr] < 0 || apptype[attr] >= ntypes)
     return FAIL;
 
-  res = dag_full_copy(typedag[apptype[attr]]);
+  res = dag_full_copy(type_dag(apptype[attr]));
   dag_invalidate_changes();
   dag_set_attr_value(res, attr, val);
 
@@ -176,6 +176,7 @@ struct dag_node *dag_create_attr_value(int attr, dag_node *val)
 
 struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
 {
+  if(val == FAIL) return FAIL;
   int a = lookup_attr(attr);
   if(a == -1) return FAIL;
 
@@ -184,16 +185,14 @@ struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
 
 struct dag_node *dag_create_path_value(const char *path, int type)
 {
+  if(! is_type(type) || type_dag(type) == 0) return FAIL;
   dag_node *res = 0;
 
   // base case
   if(path == 0 || strlen(path) == 0)
     {
-      if(type >= 0 && type < ntypes && typedag[type] != 0)
-	{
-	  res = dag_full_copy(typedag[type]);
-	  dag_invalidate_changes();
-	}
+      res = dag_full_copy(type_dag(type));
+      dag_invalidate_changes();
       return res;
     }
 
@@ -210,7 +209,126 @@ struct dag_node *dag_create_path_value(const char *path, int type)
       return res;
     }
   else
-    return dag_create_attr_value(path, dag_create_path_value(0, type));
+    return dag_create_attr_value(path, 
+                                 dag_create_path_value((const char *)NULL, type));
 }
+
+struct dag_node *
+dag_find_attr_value(dag_node *dag, attr_t attr, type_t intype, type_t type) {
+  if (dag == NULL) return FAIL;
+  dag_node *res = NULL;
+  dag_arc *arc = dag->arcs;
+  while (arc != NULL && res == NULL) {
+    if((arc->attr == attr) && (arc->val->type == intype)) {
+      res = dag_full_copy(type_dag(type));
+      dag_invalidate_changes();
+    } else {
+      res = dag_find_attr_value(arc->val, attr, intype, type);
+    }
+    if (res != NULL) return dag_create_attr_value(arc->attr, res);
+    arc = arc->next;
+  }
+  return NULL;
+}
+
+struct dag_node *
+dag_find_all_attr_value(dag_node *dag, attr_t attr, type_t in, type_t type) {
+  if (dag == NULL) return FAIL;
+  dag_node *res = NULL;
+  dag_arc *arc = dag->arcs;
+  while (arc != NULL) {
+    dag_node *curr = NULL;
+    if((arc->attr == attr) && (arc->val->type == in)) {
+      curr = dag_full_copy(type_dag(type));
+      dag_invalidate_changes();
+    } else {
+      curr = dag_find_all_attr_value(arc->val, attr, in, type);
+    }
+    if (curr != NULL) {
+      if (res != NULL) {
+        res = dag_unify(res, res, dag_create_attr_value(arc->attr, curr)
+                        , NULL);
+      } else {
+        res = dag_create_attr_value(arc->attr, curr);
+      }
+    }
+    if (res == FAIL) return NULL;
+    arc = arc->next;
+  }
+  return res;
+}
+
+struct dag_node *
+dag_c_p_v_s_rec(struct dag_node *dag, char *path, type_t intype, type_t type) {
+  dag_node *res = NULL;
+
+  char *dot = strchr(path, '.');
+  if(dot != 0)
+    {
+      *dot = '\0';
+      dag_node *subdag = dag_get_attr_value(dag, path);
+      if(subdag == FAIL) return FAIL;
+
+      res = dag_create_attr_value(path, dag_c_p_v_s_rec(subdag, dot + 1
+                                                        , intype, type));
+    }
+  else {
+    res = dag_find_all_attr_value(dag, lookup_attr(path), intype, type);
+    if (res == NULL) res = FAIL;
+  }
+  return res;
+}
+
+struct dag_node *
+dag_create_path_value_search(struct dag_node *dag, const char *path
+                             , type_t intype, type_t type)
+{
+  if(! is_type(type) || type_dag(type) == 0
+     || path == 0 || strlen(path) == 0) return FAIL;
+  char *newstr = new char[strlen(path) + 1];
+  strcpy(newstr,path);
+  dag_node *res = dag_c_p_v_s_rec(dag, newstr, intype, type);
+  delete[] newstr;
+  return res;
+}
+
+struct dag_node *dag_create_path_value(list_int *path, type_t type)
+{
+  if(! is_type(type) || type_dag(type) == NULL) return FAIL;
+  if(path == 0) {
+      dag_node *res = dag_full_copy(type_dag(type));
+      dag_invalidate_changes();
+      return res;
+  } else {
+    return dag_create_attr_value(first(path)
+                                 , dag_create_path_value(rest(path), type));
+  }
+}
+
+struct list_int *path_to_lpath(const char *path, grammar *gram)
+{
+  if(path == 0 || strlen(path) == 0) return NULL;
+
+  const char *dot = strchr(path, '.');
+  if(dot != 0)
+    { // copy the feature name into attr and get its code
+      char *attr = new char[dot - path + 1];
+      strncpy(attr, path, dot - path);
+      attr[dot - path] = '\0';
+      attr_t feat = lookup_attr(attr);
+      delete[] attr;
+      if (feat == -1) return NULL;
+      list_int *sub = path_to_lpath(dot + 1, gram);
+      if (sub == NULL) return NULL;
+      return cons(feat, sub);
+    }
+  else
+    {
+    attr_t feat = lookup_attr(path);
+    if (feat == -1) return NULL;
+    return cons(feat, NULL);
+    }
+}
+
 
 #endif

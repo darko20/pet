@@ -22,8 +22,11 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+using namespace std;
+
 #include "bitcode.h"
 #include "builtins.h"
+#include <vector>
 
 // types, attributes, and status are represented by (small) integers
 
@@ -55,6 +58,9 @@ extern char **statusnames;
 // parent type is stored. a status value is stored for each type.
 
 typedef int type_t;
+typedef int attr_t;
+
+#define T_BOTTOM -1       // failure of type unification
 
 extern int nleaftypes, ntypes;
 extern type_t first_leaftype;
@@ -64,6 +70,9 @@ extern int *typestatus;
 extern char **typenames;
 extern char **printnames; // preferred way to print a type name
 
+#ifdef DYNAMIC_SYMBOLS
+extern vector<string> dyntypename;
+#endif
 //
 // attributes
 //
@@ -102,12 +111,57 @@ void initialize_maxapp();
 
 void free_type_tables();
 
+/** Check the validity of type code \a a. */
+inline bool is_type(type_t a)
+{ 
+  return a >= 0 && a < last_dynamic;
+}
+
+/** Return \c true if type code \a a is a type from the hierarchy and not a
+ *  dynamic type.
+ */
+inline bool is_resident_type(type_t a)
+{
+  assert(a >= 0);  // save one test in production code
+  return a < ntypes;
+}
+
+#ifdef DYNAMIC_SYMBOLS
+/** Return \c true if type code \a a is a dynamic type. */
+inline bool is_dynamic_type(type_t a)
+{
+  assert((a >= 0) && (a < last_dynamic));  // save two tests in production code
+  return a >= ntypes;
+}
+#endif
+
+inline bool dag_arc_valid(attr_t attr)
+{ 
+  return (attr <= nattrs);
+}
+
 int lookup_status(const char *s);
-int lookup_attr(const char *s);
+attr_t lookup_attr(const char *s);
 type_t lookup_type(const char *s);
 
+// code for use with dynamic types
+#ifdef DYNAMIC_SYMBOLS
 type_t lookup_symbol(const char *s);
+type_t lookup_unsigned_symbol(unsigned int i);
 void clear_dynamic_symbols () ;
+
+inline const char *type_name(type_t type) {
+  return is_resident_type(type) 
+    ? typenames[type] : dyntypename[type - ntypes].c_str();
+}
+inline const char *print_name(type_t type) {
+  return is_resident_type(type) 
+    ? printnames[type] : dyntypename[type - ntypes].c_str();
+}
+#else
+inline const char *type_name(type_t type) { return typenames[type]; }
+inline const char *print_name(type_t type) { return printnames[type]; }
+#endif
 
 void dump_symbol_tables(dumper *f);
 void undump_symbol_tables(dumper *f);
@@ -120,16 +174,11 @@ bool core_subtype(type_t a, type_t b);
 bool subtype(type_t a, type_t b);
 #ifndef FLOP
 void
-subtype_bidir(int A, int B, bool &a, bool &b);
+subtype_bidir(type_t A, type_t B, bool &a, bool &b);
 #endif
 type_t glb(type_t a, type_t b);
 
 type_t leaftype_parent(type_t t);
-
-inline bool is_type(type_t a)
-{
-  return a >= 0 && a < ntypes;
-}
 
 #ifndef FLOP
 void prune_glbcache();

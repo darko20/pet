@@ -56,6 +56,7 @@ class bitcode {
   list_int *get_elements();
 
   int max() const;
+  int size() const;
   void clear();
   int empty() const;
 #ifdef ZONING
@@ -96,6 +97,8 @@ class bitcode {
 };
 
 inline int bitcode::max() const { return sz - 1; }
+
+inline int bitcode::size() const { return sz; }
 
 inline int  bitcode::member(int x)  const
 {

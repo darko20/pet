@@ -23,6 +23,9 @@
 #define _GRAMMAR_DUMP_H_
 
 #include <dumper.h>
+#include <map>
+
+using namespace std;
 
 #define GRAMMAR_EXT ".grm"
 

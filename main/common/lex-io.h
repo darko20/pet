@@ -22,6 +22,8 @@
 #ifndef _LEX_IO_H_
 #define _LEX_IO_H_
 
+using namespace std;
+
 #define MAX_LEX_NEST 16 
 /* maximal nesting depth of include files */
 

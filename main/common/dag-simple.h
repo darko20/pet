@@ -150,12 +150,12 @@ bool dags_compatible(struct dag_node *dag1, struct dag_node *dag2);
 bool dag_cyclic(struct dag_node *dag);
 
 void dag_init(struct dag_node *dag, int s);
-struct dag_node *new_dag(int s);
-struct dag_arc *new_arc(int attr, struct dag_node *val);
+struct dag_node *new_dag(type_t s);
+struct dag_arc *new_arc(attr_t attr, struct dag_node *val);
 
 void add_arc(struct dag_node *dag, struct dag_arc *newarc);
 
-struct dag_arc *dag_find_attr(struct dag_arc *arc, int attr);
+struct dag_arc *dag_find_attr(struct dag_arc *arc, attr_t attr);
 
 bool dag_dump(dumper *f, struct dag_node *dag);
 

@@ -23,6 +23,8 @@
 #ifndef _LIST_INT_H_
 #define _LIST_INT_H_
 
+#include <list>
+
 typedef struct list_int {
   int val;
   list_int *next;
@@ -66,7 +68,7 @@ inline void free_list(list_int *l)
     l = pop_rest(l);
 }
 
-inline bool contains(list_int *l, int e)
+inline bool contains(const list_int *l, int e)
 {
   while(l)
     {
@@ -95,7 +97,7 @@ inline list_int *append(list_int *l, int e)
   return l;
 }
 
-inline int length(list_int *l)
+inline int length(const list_int *l)
 {
   int n = 0;
   while(l) n++, l = rest(l);
@@ -115,7 +117,7 @@ inline list_int *reverse(list_int *l)
   return rev;
 }
 
-inline list_int *copy_list(list_int *l)
+inline list_int *copy_list(const list_int *l)
 {
   list_int *head = 0, **tail = &head;
   
@@ -127,6 +129,19 @@ inline list_int *copy_list(list_int *l)
     }
 
   return head;
+}
+
+inline list_int *copy_list(const std::list<int> &li)
+{
+  list_int *res = 0;
+
+  for(std::list<int>::const_reverse_iterator it = li.rbegin()
+        ; it != li.rend(); ++it)
+    {
+      res = cons(*it, res);
+    }
+
+  return res;
 }
 
 inline bool
