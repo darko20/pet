@@ -44,7 +44,6 @@ class fs
   inline fs(const fs &f)
     { _dag = f._dag; _temp = f._temp; }
 
-
   inline ~fs() {};
   
   inline fs &operator=(const fs &f)

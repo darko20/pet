@@ -666,7 +666,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     dag_node *c1 = dag_get_copy(dag1), *c2 = dag_get_copy(dag2);
     
     subsumption_level++;
-    if(verbosity > 9)
+    if(verbosity > 14)
     {
         fprintf(stderr, "%*s", subsumption_level*2, "");
         fprintf(stderr,
@@ -696,7 +696,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     
     if(forward == false && backward == false)
     {
-        if(verbosity > 9)
+        if(verbosity > 14)
         {
             fprintf(stderr, "%*s", subsumption_level*2, "");
             fprintf(stderr,
@@ -718,7 +718,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     
     if(forward == false && backward == false)
     {
-        if(verbosity > 9)
+        if(verbosity > 14)
         {
             fprintf(stderr, "%*s", subsumption_level*2, "");
             fprintf(stderr,
@@ -752,7 +752,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
                 unify_path_rev = cons(arc1->attr, unify_path_rev);
                 if(!dag_subsumes1(arc1->val, arc2->val, forward, backward))
                 {
-                    if(verbosity > 9)
+                    if(verbosity > 14)
                     {
                         fprintf(stderr, "%*s", subsumption_level*2, "");
                         fprintf(stderr,
@@ -769,7 +769,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 	}
     }
     
-    if(verbosity > 9)
+    if(verbosity > 14)
     {
         fprintf(stderr, "%*s", subsumption_level*2, "");
         fprintf(stderr,

@@ -41,6 +41,7 @@ class statistics
 {
  public:
   int id;                     /* item id */
+  int trees;		      /* nr of trees (packed readings) */
   int readings;               /* nr of readings */
   int words;                  /* nr of words */
   int words_pruned;           /* nr of words pruned by chart manipulation */
