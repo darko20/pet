@@ -90,7 +90,9 @@
 #include "unicode/ucnv.h"
 #endif
 
+#ifndef FLOP
 using namespace std;
+#endif
 
 // platform specifics
 
