@@ -203,14 +203,13 @@ packed_edge(item *newitem)
     if(newitem->trait() == INFL_TRAIT)
       return false;
 
-    for(chart_iter_span iter(Chart, newitem->start(), newitem->end());
+    for(chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
         iter.valid(); iter++)
     {
         bool forward, backward;
         item *olditem = iter.current();
 
-	if(olditem->passive() == false
-           || olditem->trait() == INFL_TRAIT)
+	if(olditem->trait() == INFL_TRAIT)
           continue;
 
         subsumes(olditem->get_fs(), newitem->get_fs(), forward, backward);
