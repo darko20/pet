@@ -1,16 +1,17 @@
 This directory contains the `cheap' parser framework.
 
-`cheap' can be built using various (three at the moment) different
-unifiers.  the `standard' unifier is dag-tomabechi (based on Tomabechi
-(1991)), the most basic one is dag-simple (based on Wroblewski (1987),
-and an experimental one is dag-fixed, using a novel fixed arity
-representation of feature structures.
+The cheap parser can be built using two different unifiers. The standard
+unifier is dag-tomabechi (based on Tomabechi (1991)), the most basic
+one is dag-simple (based on Wroblewski (1987). An experimental one
+based on a novel fixed arity representation of feature structures has
+been removed because it could no longer be maintained. If you're interested
+in it you can obtain it by email from uc@coli.uni-sb.de.
 
 The main function of the parser is `parse'. It works on feature
 structures (class `fs', abstracting from the concrete dag module
 used), generating parser tasks (class `task') that are managed by an
-agenda (class `agenda'). The input to the `parse' function is a list
-of tokens (class `tokenlist'), the result is a completed parse chart
+agenda (class `agenda'). The input to the `parse' function is an 
+input chart, the result is a completed parse chart
 (class `chart') containing all items (class `item') licenced by the
 grammar for the given input. Optionally the parser can stop after the
 first item spanning the input is found, or when a certain number of
