@@ -31,8 +31,6 @@ bitcode::bitcode(int n)
   V = New CODEWORD[i];
   stop = V + i;
 
-  first_set = last_set = 0; // no bit is set
-
   while (i--) V[i]=0;
 }
 
@@ -43,7 +41,6 @@ bitcode::bitcode(const bitcode& b)
 
   V = New CODEWORD[n];
   stop = V + n;
-  first_set = b.first_set; last_set = b.last_set;
 
   while (n--) V[n] = b.V[n];
 }
@@ -60,12 +57,12 @@ bitcode& bitcode::operator=(const bitcode& b)
       stop = V + n;
     }
 
-  first_set = b.first_set; last_set = b.last_set;
   for(CODEWORD *p = V, *q = b.V; p < stop; p++, q++) *p = *q;
 
   return *this;
 }
 
+#ifdef ZONING
 void bitcode::find_relevant_parts()
 {
   first_set = last_set = -1;
@@ -88,12 +85,12 @@ void bitcode::find_relevant_parts()
   if(last_set == -1)
     last_set = stop - V;
 }
+#endif
 
 void bitcode::clear()
 {
   register CODEWORD *p = V;
   while (p < stop) *p = 0;
-  first_set = last_set = 0; // no bit set
 }
 
 list_int *bitcode::get_elements()
@@ -136,6 +133,25 @@ bitcode& bitcode::intersect(const bitcode& b)
   return *this;
 }
 
+void
+subset_bidir(const bitcode&A, const bitcode &B, bool &a, bool &b)
+{
+    // postcondition: a == subset(A, B) && b == subset(B, A)
+
+    CODEWORD *cA, *cB;
+    a = b = true;
+
+    for(cA = A.V, cB = B.V; cA < A.stop; cA++, cB++)
+    {
+        CODEWORD join = *cA & *cB;
+        if(join != *cA) a = false;
+        if(join != *cB) b = false;
+
+        if(a == false && b == false)
+            return;
+    }
+}
+
 bool intersect_empty(const bitcode &A, const bitcode &B, bitcode *C)
 {
   CODEWORD *p, *q, *s;
@@ -156,24 +172,6 @@ bool bitcode::subset(const bitcode &supposed_superset)
 
   return true;
 }
-
-bool bitcode::subset_fast(const bitcode &supposed_superset)
-{
-  // assumes first_set and last_set is set correctly
-  CODEWORD *sub, *super;
-
-  if(first_set < supposed_superset.first_set ||
-     last_set > supposed_superset.last_set)
-    return false;
-
-  for(sub = V + supposed_superset.first_set,
-      super = supposed_superset.V + supposed_superset.first_set;
-      sub < V + supposed_superset.last_set; sub++, super++)
-    if((*sub & *super) != *sub) return false;
-
-  return true;
-}
-
 
 bitcode& bitcode::complement()
 {
@@ -298,8 +296,6 @@ void bitcode::undump(dumper *f)
 
   if( f->undump_int() != 0 || f->undump_short() != 0)
     throw error("invalid compressed bitcode (no end marker)");
-
-  find_relevant_parts();
 }
 
 #endif

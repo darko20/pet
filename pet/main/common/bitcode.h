@@ -21,6 +21,11 @@
 // represents set of integers in the interval [ 0 .. sz [
 // performance of some operations is critical for efficient glb computation
 
+// _fixme_
+// Could try a `zoning' approach here: since most bits are 0, restrict 
+// operations like subtype to just the region containing 1. Need to 
+// keep track of left and right limit for this. See #ifdef ZONING 
+
 #ifndef _BITCODE_H_
 #define _BITCODE_H_
 
@@ -34,11 +39,7 @@ class bitcode {
   static const int SIZE_OF_WORD = (8*sizeof(CODEWORD));
 
   CODEWORD *V, *stop;
-  int first_set, last_set; // index to first/last word != 0, only kept up
-                           // to date where possible without added cost!!
   int sz;
-
-  void find_relevant_parts();
 
  public:
 
@@ -57,7 +58,9 @@ class bitcode {
   int max() const;
   void clear();
   int empty() const;
+#ifdef ZONING
   void find_relevant_parts() const; // update first_set/last_set
+#endif
 
   void print(FILE *f) const;
 
@@ -68,7 +71,6 @@ class bitcode {
   bitcode& intersect(const bitcode&);
   bitcode& complement();
 
-  bool subset_fast(const bitcode&);
   bool subset(const bitcode&);
 
   bitcode& operator=(const bitcode& S1);
@@ -85,6 +87,7 @@ class bitcode {
 
   friend int Hash(const bitcode& C);
   friend int compare(const bitcode &S1, const bitcode &S2);
+  friend void subset_bidir(const bitcode&, const bitcode &, bool &, bool &);
   friend bool intersect_empty(const bitcode&, const bitcode&, bitcode *);
 
   friend ostream& operator<<(ostream& O, const bitcode& C);

@@ -706,6 +706,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
         return false;
     }
     
+#if 0
     // _fix_me_
     // these two calls could be merged into a specialised one improving
     // efficiency
@@ -715,7 +716,15 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
     
     if(!subtype(dag1->type, dag2->type))
         backward = false;
-    
+#else
+    bool st_12, st_21;
+    subtype_bidir(dag1->type, dag2->type, st_12, st_21);
+    if(!st_12)
+        backward = false;
+    if(!st_21)
+        forward = false;
+#endif    
+
     if(forward == false && backward == false)
     {
 #ifdef DEBUG_SUBSUME
