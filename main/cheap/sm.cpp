@@ -132,7 +132,7 @@ class tSMMap
 int
 tSMMap::featureToCode(const tSMFeature &feature)
 {
-    if(verbosity > 9)
+    if(verbosity > 14)
     {
         fprintf(fstatus, "featureToCode(");
         feature.print(fstatus);
@@ -142,13 +142,13 @@ tSMMap::featureToCode(const tSMFeature &feature)
     hash_map<tSMFeature, int>::iterator itMatch = _featureToCode.find(feature);
     if(itMatch != _featureToCode.end())
     {
-        if(verbosity > 9)
+        if(verbosity > 14)
             fprintf(fstatus, "%d\n", itMatch->second);
         return itMatch->second;
     }
     else
     {
-        if(verbosity > 9)
+        if(verbosity > 14)
             fprintf(fstatus, "added %d", _n);
         _codeToFeature.push_back(feature);
         return _featureToCode[feature] = _n++;
@@ -416,7 +416,7 @@ void
 tMEM::parseFeature(int n)
 {
     char *tmp;
-    if(verbosity > 4)
+    if(verbosity > 9)
         fprintf(fstatus, "\n[%d]", n);
 
     match(T_LBRACKET, "begin of feature vector", true);
@@ -431,7 +431,7 @@ tMEM::parseFeature(int n)
         {
             // This can be an integer or an identifier.
             tmp = match(T_ID, "subfeature in feature vector", false);
-            if(verbosity > 4)
+            if(verbosity > 9)
                 fprintf(fstatus, " %s", tmp);
 
             char *endptr;
@@ -468,7 +468,7 @@ tMEM::parseFeature(int n)
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
-            if(verbosity > 4)
+            if(verbosity > 9)
                 fprintf(fstatus, " \"%s\"", tmp);
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
@@ -482,13 +482,13 @@ tMEM::parseFeature(int n)
     // check syntax of number
     double w = strtod(tmp, NULL);
     free(tmp);
-    if(verbosity > 4)
+    if(verbosity > 9)
         fprintf(fstatus, ": %g", w);
 
     if(good)
     {
         int code = map()->featureToCode(v);
-        if(verbosity > 4)
+        if(verbosity > 9)
             fprintf(fstatus, " (code %d)\n", code);
         if(code >= (int) _weights.size()) _weights.resize(code);
         _weights[code] = w;
