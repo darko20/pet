@@ -119,9 +119,12 @@ void dump_inflrs(dumper *f)
   int ninflr = 0;
   int ninflr_var = f->dump_int_variable();
 
-  ninflr++;
-  dump_inflr(f, -1, global_inflrs);
-
+  if(global_inflrs != 0)
+  {
+      ninflr++;
+      dump_inflr(f, -1, global_inflrs);
+  }
+  
   for(int i = 0; i < ntypes; i++)
     {
       if(types[i]->inflr != 0)
