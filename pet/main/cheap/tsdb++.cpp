@@ -67,7 +67,6 @@ statistics::reset()
   unify_cost_succ = 0;
   unify_cost_fail = 0;
 
-  p_trees = 0;
   p_equivalent = 0;
   p_proactive = 0;
   p_retroactive = 0;
@@ -104,7 +103,7 @@ statistics::print(FILE *f)
 	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\n",
-	   id, p_trees, readings, words, words_pruned,
+	   id, trees, readings, words, words_pruned,
            first, tcpu, p_utcpu,
 	   ftasks_fi, ftasks_qc, etasks, stasks,
 	   aedges, pedges, p_upedges, 
@@ -488,7 +487,7 @@ tsdb_parse::capi_print()
                 "\")",
                 nmeanings, clashes, pruned,
                 subsumptions,
-                p_trees,
+                trees,
                 p_frozen,
                 p_equivalent,
                 p_proactive, 
@@ -631,7 +630,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.pruned = stats.words_pruned;
     
     T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
-    T.p_trees = stats.p_trees;
+    T.trees = stats.trees;
     T.p_equivalent = stats.p_equivalent;
     T.p_proactive = stats.p_proactive; 
     T.p_retroactive = stats.p_retroactive;           
@@ -674,7 +673,7 @@ cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
     T.copies = stats.copies;
     
     T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
-    T.p_trees = stats.p_trees;
+    T.trees = stats.trees;
     T.p_equivalent = stats.p_equivalent;
     T.p_proactive = stats.p_proactive; 
     T.p_retroactive = stats.p_retroactive;           

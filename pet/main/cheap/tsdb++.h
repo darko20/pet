@@ -70,7 +70,6 @@ class statistics
   int unify_cost_fail;
 
   // for packing
-  int p_trees;
   int p_equivalent;
   int p_proactive;
   int p_retroactive;
@@ -169,13 +168,14 @@ class tsdb_parse
 {
  public:
     tsdb_parse()
-        : parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1),
-        total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1),
-        p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1),
-        pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1),
-        conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1),
+        : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
+        first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1),
+        l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
+        aedges(-1), pedges(-1), raedges(-1), rpedges(-1),
+        unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1),
+        gcs(-1), i_load(-1), a_load(-1),
         date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
-        subsumptions(-1), p_trees(-1), p_equivalent(-1), p_proactive(-1),
+        subsumptions(-1), p_equivalent(-1), p_proactive(-1),
         p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
         p_upedges(-1),
         results(), edges(), rule_stats(), i_input(), i_length(-1)
@@ -216,6 +216,7 @@ class tsdb_parse
     int parse_id;                     // unique parse identifier
     int run_id;                       // test run for this parse
     int i_id;                         // item parsed
+    int trees;		              // number of trees (packed readings) */
     int readings;                     // number of readings obtained
     int first;                        // time to find first reading (msec)
     int total;                        // total time for parsing (msec)
@@ -247,7 +248,6 @@ class tsdb_parse
     int pruned;                       // number of pruned lexical entries
     
     int subsumptions;
-    int p_trees;
     int p_equivalent;
     int p_proactive;
     int p_retroactive;
