@@ -57,6 +57,7 @@ class chart
 
   vector< list<item *> > _Cp_start, _Cp_end;
   vector< list<item *> > _Ca_start, _Ca_end;
+  vector< vector < list<item*> > > _Cp_span;
 
   auto_ptr<item_owner> _item_owner;
 
@@ -73,17 +74,18 @@ class chart_iter
   public:
     inline chart_iter(chart *C) : _LI(C->_Chart)
     {
-        _curr = _LI.begin(); filter();
+        _curr = _LI.begin();
     }
 
     inline chart_iter(chart &C) : _LI(C._Chart)
     {
-        _curr = _LI.begin(); filter();
+        _curr = _LI.begin();
     }
 
     inline chart_iter &operator++(int)
     {
-        ++_curr; filter(); return *this;
+        ++_curr;
+        return *this;
     }
 
     inline bool valid()
@@ -93,11 +95,10 @@ class chart_iter
 
     inline item *current()
     {
-        if(valid()) return *_curr; else return 0;
-    }
-
-    inline void filter()
-    { 
+        if(valid())
+            return *_curr;
+        else
+            return 0;
     }
 
  private:
@@ -109,21 +110,21 @@ class chart_iter_span_passive
 {
   public:
     inline chart_iter_span_passive(chart *C, int i1, int i2) :
-        _LI(C->_Cp_start[i1]), _end(i2)
+        _LI(C->_Cp_span[i1][i2-i1])
     {
         _curr = _LI.begin();
-        filter();
     }
 
     inline chart_iter_span_passive(chart &C, int i1, int i2) :
-        _LI(C._Cp_start[i1]), _end(i2)
+        _LI(C._Cp_span[i1][i2-i1])
     {
-        _curr = _LI.begin(); filter();
+        _curr = _LI.begin();
     }
 
     inline chart_iter_span_passive &operator++(int)
     {
-        ++_curr; filter(); return *this;
+        ++_curr;
+        return *this;
     }
 
     inline bool valid()
@@ -133,19 +134,15 @@ class chart_iter_span_passive
 
     inline item *current()
     {
-        if(valid()) return *_curr; else return 0;
-    }
-
-    inline void filter()
-    { 
-        while(valid() && (*_curr)->end() != _end)
-            ++_curr;
+        if(valid())
+            return *_curr;
+        else
+            return 0;
     }
 
  private:
     list<item *> &_LI;
     list<item *>::iterator _curr;
-    int _end;
 };
 
 class chart_iter_adj_passive
@@ -155,11 +152,28 @@ class chart_iter_adj_passive
     chart_iter_adj_passive(chart *C, item *active)
         : _LI(active->left_extending() ?
               C->_Cp_end[active->start()] : C->_Cp_start[active->end()])
-    { _curr = _LI.begin(); }
+    {
+        _curr = _LI.begin();
+    }
 
-    inline chart_iter_adj_passive &operator++(int) { ++_curr; return *this; }
-    inline bool valid() {   return _curr != _LI.end(); }
-    inline item *current() { if(valid()) return *_curr; else return 0; }
+    inline chart_iter_adj_passive &operator++(int)
+    {
+        ++_curr;
+        return *this;
+    }
+
+    inline bool valid()
+    {  
+        return _curr != _LI.end();
+    }
+
+    inline item *current()
+    {
+        if(valid())
+            return *_curr;
+        else
+            return 0;
+    }
 
  private:
   list<item *> &_LI;
