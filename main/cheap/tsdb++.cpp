@@ -133,7 +133,7 @@ void initialize_version()
     }
 
   sprintf(CHEAP_VERSION,
-          "PET(%s cheap) [%d] {RI[%s] %s(%d) %s %s[%d(%s)] %s "
+          "PET(%s cheap) [%d] {RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
 #ifdef YY
           "%s K2Y(%d) "
 #endif
@@ -145,7 +145,7 @@ void initialize_version()
           Grammar->nhyperrules(),
           opt_filter ? "+FI" : "-FI",
           opt_nqc != 0 ? "+QC" : "-QC", opt_nqc, qcs,
-          opt_one_solution ? "+OS" : "-OS", 
+          ((opt_nsolutions != 0) ? "+OS" : "-OS"), opt_nsolutions, 
 #ifdef YY
           ((opt_nth_meaning != 0) ? "+OM" : "-OM"), opt_k2y,
 #endif
@@ -203,8 +203,11 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
     input_chart i_chart(New end_proximity_position_map);
 
     pedgelimit = edges;
-    opt_one_solution = !exhaustive;
-
+    if(exhaustive)
+        opt_nsolutions = 0;
+    else
+        opt_nsolutions = 1;
+    
     gettimeofday(&tA, NULL);
 
     TotalParseTime.save();

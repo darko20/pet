@@ -186,7 +186,8 @@ input_chart::add_token(const string &tokenstring)
         list_int *affixes = cons(affix_nr, 0);
         input_token *new_token =
             New input_token(0, start, end, full_form(stem, *mods, affixes),
-                            orth, int(prob), postags(), this);
+                            orth, int(prob), postags(), tPaths(),
+                            this);
         free_list(affixes);
 
         return add_token(new_token);

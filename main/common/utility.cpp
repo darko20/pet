@@ -265,6 +265,26 @@ string read_line(FILE *f)
   return string(buff);
 }
 
+void
+findAndReplace(string &s, const string &oldText, const string &newText)
+{
+    if(s.empty() || oldText.empty())
+        return;
+    
+    string::size_type start = 0, len;
+    len = s.length();
+
+    while(len > 0 && len >= oldText.length())
+    {
+        string::size_type pos = s.find(oldText, start);
+        if(pos == string::npos)
+            break;
+        s.replace(pos, oldText.length(), newText);
+        len -= pos + oldText.length() - start;
+        start = pos + newText.length();
+    }
+}
+
 #ifdef __BORLANDC__
 
 #include <alloc.h>

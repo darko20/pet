@@ -5,7 +5,7 @@ TSDB = true ;
 ITSDBDIR = /home/uc/newlkb ;
 
 ICU = true ;
-ICUDIR = /lt ; 
+ICUDIR = /opt/icu ; 
 
 IQT = true ;
 IQTDIR = /home/uc/YY/src/lib/iqtsdk/main ;
@@ -18,7 +18,7 @@ CFLAGS += -g -Wall ;
 
 LINK = g++ ;
 
-OPTIM = ;
+OPTIM = -O3 ;
 
 SEARCH_SOURCE += ../common ;
 
@@ -41,7 +41,8 @@ COMMONSOURCES = bitcode.cpp chunk-alloc.cpp errors.cpp mfile.c
                 utility.cpp ;
 
 PARSESOURCES = parse.cpp item.cpp task.cpp chart.cpp agenda.cpp tokenizer.cpp
-               options.cpp postags.cpp inputtoken.cpp inputchart.cpp mrs.cpp ;
+               options.cpp postags.cpp inputtoken.cpp inputchart.cpp paths.cpp 
+	       mrs.cpp ;
 
 CHEAPSOURCES = cheap.cpp $(DAGSOURCES) $(COMMONSOURCES) $(PARSESOURCES) ;
 

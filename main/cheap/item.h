@@ -18,8 +18,10 @@
 class item
 {
  public:
-  item(int start, int end, int p, fs &f, const char *printname);
-  item(int start, int end, int p, const char *printname);
+  item(int start, int end, const tPaths &paths, int p, fs &f,
+       const char *printname);
+  item(int start, int end, const tPaths &paths, int p,
+       const char *printname);
 
   virtual ~item();
 
@@ -53,102 +55,108 @@ class item
   bool spanningonly() { return _spanningonly; }
 
   inline bool compatible(class grammar_rule *R, int length)
-    {
+  {
       if(R->trait() == INFL_TRAIT)
-	{
-	  if(_trait != INFL_TRAIT)
-	    return false;
-	  
-	  if(first(_inflrs_todo) != R->type())
-	    return false;
-	}
+      {
+          if(_trait != INFL_TRAIT)
+              return false;
+          
+          if(first(_inflrs_todo) != R->type())
+              return false;
+      }
       else if(R->trait() == LEX_TRAIT)
-	{
-	  if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
-	    return false;
-	}
+      {
+          if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
+              return false;
+      }
       else if(R->trait() == SYNTAX_TRAIT)
-	{
-	  if(_trait == INFL_TRAIT)
-	    return false;
-	}
-
+      {
+          if(_trait == INFL_TRAIT)
+              return false;
+      }
+      
       if(R->spanningonly())
-	{
-	  if(R->arity() == 1)
-	    {
-	      if(span() != length)
-		return false;
-	    }
-	  else if(R->nextarg() == 1)
-	    {
-	      if(_start != 0)
-		return false;
-	    }
-	  else if(R->nextarg() == R->arity())
-	    {
-	      if(_end != length)
-		return false;
-	    }
-	}
-
+      {
+          if(R->arity() == 1)
+          {
+              if(span() != length)
+                  return false;
+          }
+          else if(R->nextarg() == 1)
+          {
+              if(_start != 0)
+                  return false;
+          }
+          else if(R->nextarg() == R->arity())
+          {
+              if(_end != length)
+                  return false;
+          }
+      }
+      
       if(opt_shaping == false)
-	return true;
-
+          return true;
+      
       if(R->left_extending())
-	return _end + R->arity() - 1 <= length;
+          return _end + R->arity() - 1 <= length;
       else
-	return _start - (R->arity() - 1) >= 0;
-    }
-
+          return _start - (R->arity() - 1) >= 0;
+  }
+  
   inline bool compatible(item *active, int length)
-    {
+  {
       if(_trait == INFL_TRAIT)
-	return false;
-
+          return false;
+      
       if(active->spanningonly())
-	{
-	  if(active->nextarg() == 1)
-	    {
-	      if(_start != 0)
-		return false;
-	    }
-	  else if(active->nextarg() == active->arity() + active->nfilled())
-	    {
-	      if(_end != length)
-		return false;
-	    }
-	}
-
+      {
+          if(active->nextarg() == 1)
+          {
+              if(_start != 0)
+                  return false;
+          }
+          else if(active->nextarg() == active->arity() + active->nfilled())
+          {
+              if(_end != length)
+                  return false;
+          }
+      }
+  
+      if(!opt_lattice && !_paths.compatible(active->_paths))
+          return false;
+    
       return true;
-    }
-
-  inline bool left_extending() { return _tofill == 0 || first(_tofill) == 1; }
+  }
+  
+  inline bool left_extending()
+  {
+      return _tofill == 0 || first(_tofill) == 1;
+  }
 
   inline bool adjacent(class item *passive) // assumes `this' is an active item
-    {
+  {
       return (left_extending() ? (_start == passive->_end)
-	      : (_end == passive->_start));
-    }
+              : (_end == passive->_start));
+  }
 
   inline bool root(class grammar *G, int length, type_t &rule, int &maxp)
-    {
+  {
       if(_trait == INFL_TRAIT)
-	return false;
-
+          return false;
+      
       if(_start == 0 && _end == length)
-	return G->root(_fs, rule, maxp);
+          return G->root(_fs, rule, maxp);
       else
-	return false;
-    }
+          return false;
+  }
   
   inline fs get_fs()
-    {
+  {
       if(_fs.temp() && _fs.temp() != unify_generation)
-	recreate_fs();
+          recreate_fs();
       return _fs;
-    }
-
+  }
+  
   inline void set_fs(const fs &f) { _fs = f; }
 
   inline int nextarg() { return first(_tofill); }
@@ -163,7 +171,12 @@ class item
   virtual int age() = 0;
 
   virtual void print(FILE *f, bool compact = false);
+  virtual void print_daughters(FILE *f) = 0;
   virtual void print_derivation(FILE *f, bool quoted) = 0;
+  
+  virtual void print_yield(FILE *f) = 0;
+
+  virtual void getTagSequence(list<string> &tags, list<list<string> > &words) = 0;
 
   //
   // on 14-jan-02, the UDF steering committee (with consultation from EMB)
@@ -208,11 +221,13 @@ class item
                     // -1 for items not yet in the chart
 
   rule_trait _trait;
-  
+
   int _start, _end;
 
   bool _spanningonly;
 
+  tPaths _paths;
+  
   fs _fs;
 
   list_int *_tofill;
@@ -247,8 +262,9 @@ class item
 class lex_item : public item
 {
  public:
-  lex_item(int start, int end, int ndtrs, int keydtr, class input_token **dtrs,
-	   int priority, fs &f, const char *name);
+  lex_item(int start, int end, const tPaths &paths,
+           int ndtrs, int keydtr, class input_token **dtrs,
+           int priority, fs &f, const char *name);
 
   ~lex_item() { delete[] _dtrs; }
 
@@ -263,8 +279,12 @@ class lex_item : public item
   }
 
   virtual void print(FILE *f, bool compact = false);
+  virtual void print_daughters(FILE *f) {}
   virtual void print_derivation(FILE *f, bool quoted);
+  virtual void print_yield(FILE *f);
   virtual string tsdb_derivation();
+
+  virtual void getTagSequence(list<string> &tags, list<list<string> > &words);
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
@@ -308,8 +328,12 @@ class phrasal_item : public item
   phrasal_item(class phrasal_item *, class item *, fs &);
   
   virtual void print(FILE *f, bool compact = false);
+  virtual void print_daughters(FILE *f);
   virtual void print_derivation(FILE *f, bool quoted);
+  virtual void print_yield(FILE *f);
   virtual string tsdb_derivation();
+
+  virtual void getTagSequence(list<string> &tags, list<list<string> > &words);
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }

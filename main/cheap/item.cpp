@@ -23,10 +23,11 @@
 item_owner *item::_default_owner = 0;
 int item::_next_id = 1;
 
-item::item(int start, int end, int p, fs &f, const char *printname)
+item::item(int start, int end, const tPaths &paths,
+           int p, fs &f, const char *printname)
     : _id(_next_id++), _stamp(-1),
-      _start(start), _end(end), _spanningonly(false), _fs(f), _tofill(0), 
-      _nfilled(0), _inflrs_todo(0),
+      _start(start), _end(end), _spanningonly(false), _paths(paths),
+      _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
       _p(p), _q(0), _r(0), _printname(printname), _done(0), _frozen(0),
       parents(), packed()
@@ -34,10 +35,11 @@ item::item(int start, int end, int p, fs &f, const char *printname)
     if(_default_owner) _default_owner->add(this);
 }
 
-item::item(int start, int end, int p, const char *printname)
+item::item(int start, int end, const tPaths &paths,
+           int p, const char *printname)
     : _id(_next_id++), _stamp(-1),
-      _start(start), _end(end), _spanningonly(false), _fs(), _tofill(0),
-      _nfilled(0), _inflrs_todo(0),
+      _start(start), _end(end), _spanningonly(false), _paths(paths),
+      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
       _p(p), _q(0), _r(0), _printname(printname), _done(0), _frozen(0),
       parents(), packed()
@@ -51,9 +53,10 @@ item::~item()
     free_list(_inflrs_todo);
 }
 
-lex_item::lex_item(int start, int end, int ndtrs, int keydtr,
-                   input_token **dtrs, int p, fs &f, const char *printname)
-    : item(start, end, p, f, printname), _ndtrs(ndtrs), _keydtr(keydtr)
+lex_item::lex_item(int start, int end, const tPaths &paths,
+                   int ndtrs, int keydtr, input_token **dtrs, 
+                   int p, fs &f, const char *printname)
+    : item(start, end, paths, p, f, printname), _ndtrs(ndtrs), _keydtr(keydtr)
 {
     if(_keydtr >= _ndtrs)
         throw error("keydtr > ndtrs for lex_item");
@@ -104,8 +107,9 @@ bool same_lexitems(const lex_item &a, const lex_item &b)
 }
 
 phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
-    : item(pasv->_start, pasv->_end, R->priority(pasv->priority()), f,
-           R->printname()), _daughters(), _adaughter(0), _rule(R)
+    : item(pasv->_start, pasv->_end, pasv->_paths,
+           R->priority(pasv->priority()), f, R->printname()),
+    _daughters(), _adaughter(0), _rule(R)
 {
     _tofill = R->restargs();
     _nfilled = 1;
@@ -148,8 +152,9 @@ phrasal_item::phrasal_item(grammar_rule *R, item *pasv, fs &f)
 }
 
 phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
-    : item(-1, -1, active->priority(), f, active->printname()),
-      _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
+    : item(-1, -1, active->_paths.common(pasv->_paths),
+           active->priority(), f, active->printname()),
+    _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
 {
     if(active->left_extending())
     {
@@ -239,12 +244,21 @@ void item::print(FILE *f, bool compact)
         fprintf(f, "%s ", printnames[first(l)]);
         l = rest(l);
     }
+
+    fprintf(f, "} {");
+
+    list<int> paths = _paths.get();
+    for(list<int>::iterator it = paths.begin(); it != paths.end(); ++it)
+    {
+        fprintf(f, "%s%d", it == paths.begin() ? "" : " ", *it);
+    }
   
     fprintf(f, "}]");
 
+    print_daughters(f);
+
     if(verbosity > 2 && compact == false)
     {
-        fprintf(f, "\n");
         print_derivation(f, false);
     }
 }
@@ -272,12 +286,6 @@ void phrasal_item::print(FILE *f, bool compact)
     fprintf(f, "P ");
     item::print(f);
 
-    fprintf(f, " <");
-    for(list<item *>::iterator pos = _daughters.begin();
-        pos != _daughters.end(); ++pos)
-        fprintf(f, "%d ",(*pos)->_id);
-    fprintf(f, ">");
-
     if(verbosity > 10 && compact == false)
     {
         fprintf(f, "\n");
@@ -285,11 +293,24 @@ void phrasal_item::print(FILE *f, bool compact)
     }
 }
 
+void
+phrasal_item::print_daughters(FILE *f)
+{
+    fprintf(f, " <");
+    for(list<item *>::iterator pos = _daughters.begin();
+        pos != _daughters.end(); ++pos)
+        fprintf(f, "%d ",(*pos)->_id);
+    fprintf(f, ">");
+}
+
 static int derivation_indentation = 0; // not elegant
 
 void lex_item::print_derivation(FILE *f, bool quoted)
 {
-    fprintf(f, "%*s", derivation_indentation, "");
+    if(derivation_indentation == 0)
+        fprintf(f, "\n");
+    else
+        fprintf(f, "%*s", derivation_indentation, "");
 
     string orth;
 
@@ -301,6 +322,25 @@ void lex_item::print_derivation(FILE *f, bool quoted)
 
     _dtrs[_keydtr]->print_derivation(f, quoted, _id, _p, _q, _inflrs_todo,
                                      orth);
+}
+
+void lex_item::print_yield(FILE *f)
+{
+    list<string> orth;
+    for(int i = 0; i < _ndtrs; i++)
+        orth.push_back(_dtrs[i]->orth());
+
+    _dtrs[_keydtr]->print_yield(f, _inflrs_todo, orth);
+}
+
+void
+lex_item::getTagSequence(list<string> &tags, list<list<string> > &words)
+{
+    list<string> orth;
+    for(int i = 0; i < _ndtrs; i++)
+        orth.push_back(_dtrs[i]->orth());
+
+    _dtrs[_keydtr]->getTagSequence(_inflrs_todo, orth, tags, words);
 }
 
 string lex_item::tsdb_derivation()
@@ -353,6 +393,25 @@ void phrasal_item::print_derivation(FILE *f, bool quoted)
     fprintf(f, ")");
 }
 
+void phrasal_item::print_yield(FILE *f)
+{
+    for(list<item *>::iterator pos = _daughters.begin();
+        pos != _daughters.end(); ++pos)
+    {
+        (*pos)->print_yield(f);
+    }
+}
+
+void
+phrasal_item::getTagSequence(list<string> &tags, list<list<string> > &words)
+{
+    for(list<item *>::iterator pos = _daughters.begin();
+        pos != _daughters.end(); ++pos)
+    {
+        (*pos)->getTagSequence(tags, words);
+    }
+}
+        
 string phrasal_item::tsdb_derivation()
 {
     string result;

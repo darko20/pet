@@ -56,7 +56,7 @@ class yy_token
 public:
   int id;
   int start, end;
-  vector<int> paths;
+  list<int> paths;
   string stem;
   string surface;
   int inflpos;
@@ -80,6 +80,11 @@ void yy_token::print(FILE *f)
 void
 yy_tokenizer::add_tokens(input_chart *i_chart)
 {
+
+#ifdef CREATE_INPUT_LOG
+    FILE *fx = fopen("f.x", "a");
+#endif    
+
     if(verbosity > 4)
         fprintf(ferr, "yy_tokenizer:");
 
@@ -99,6 +104,21 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
             fprintf(ferr, "}");
         }
 
+#ifdef CREATE_INPUT_LOG
+        for(vector<string>::reverse_iterator it = tok->inflrs.rbegin();
+            it != tok->inflrs.rend();
+            ++it)
+        {
+            if(*it == "zero")
+            {
+                if(tok->start + 1 == tok->end
+                   && !poss.contains("SpellCorrection"))
+                    fprintf(fx, "%s ", tok->surface.c_str());
+                break;
+            }
+        }
+#endif
+
         // skip empty tokens and punctuation
         if(tok->stem.empty() || Grammar->punctuationp(tok->stem))
         {
@@ -113,6 +133,10 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
         // `formlookup' will be set, and we do morphological analysis in house.
         bool formlookup = false;
 
+        // We want to ignore tokens containing unknown infl rules.
+        bool ignore;
+        ignore = false;
+        
         list_int *inflrs = 0;
         for(vector<string>::reverse_iterator it = tok->inflrs.rbegin();
             it != tok->inflrs.rend();
@@ -129,11 +153,23 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
 	  
             int rule = lookup_type(it->c_str());
             if(rule == -1)
-                throw error("Unknown infl rule " + *it + ".");
-
+            {
+                if(verbosity > 4)
+                    fprintf(ferr, "Ignoring token containing unknown "
+                            "infl rule %s.\n", it->c_str());
+                ignore = true;
+                break;
+            }
+            
             inflrs = cons(rule, inflrs);
         }
 
+        if(ignore)
+        {
+            free_list(inflrs);
+            continue;
+        }
+        
         if(formlookup)
         {
             list<full_form> forms = Grammar->lookup_form(tok->stem);
@@ -141,7 +177,8 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
             if(forms.empty())
             {
                 i_chart->add_token(tok->id, tok->start, tok->end,
-                                   full_form(), tok->surface, 0, poss);
+                                   full_form(), tok->surface, 0, poss,
+                                   tok->paths);
             }
             else
             {
@@ -150,7 +187,7 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
                 {
                     i_chart->add_token(tok->id, tok->start, tok->end,
                                        *currf, tok->surface, currf->priority(),
-                                       poss);
+                                       poss, tok->paths);
                 }
             }
         }
@@ -162,7 +199,7 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
             {
                 i_chart->add_token(tok->id, tok->start, tok->end,
                                    full_form(0, modlist(), inflrs),
-                                   tok->surface, 0, poss);
+                                   tok->surface, 0, poss, tok->paths);
             }
             else
             {
@@ -171,13 +208,19 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
                 {
                     full_form f(*currs, modlist(), inflrs);
                     i_chart->add_token(tok->id, tok->start, tok->end,
-                                       f, tok->surface, f.priority(), poss);
+                                       f, tok->surface, f.priority(), poss,
+                                       tok->paths);
                 }
             }
         }
 
         free_list(inflrs);
     }
+
+#ifdef CREATE_INPUT_LOG
+    fprintf(fx, "\n");
+    fclose(fx);
+#endif
 
     if(verbosity > 4)
     {
@@ -314,7 +357,7 @@ bool yy_tokenizer::read_string(string &target, bool quotedp, bool downcasep)
     }
   else
     {
-      while(!eos() && is_idchar(cur()))
+      while(!eos() && (is_idchar(cur())))
 	{
 	  target +=
             (downcasep && (unsigned char)cur() < 127 ? tolower(cur()) : cur());

@@ -268,7 +268,7 @@ add_root(item *it)
     if(stats.first == -1)
     {
         stats.first = Clock->convert2ms(Clock->elapsed());
-        if(opt_one_solution) 
+        if(opt_nsolutions > 0 && stats.readings >= opt_nsolutions)
             return true;
     }
 #ifdef YY
@@ -395,7 +395,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
     }
 
     while(!Agenda->empty() &&
-          (opt_one_solution == false || stats.first == -1) &&
+          (opt_nsolutions == 0 || stats.readings < opt_nsolutions) &&
 #ifdef YY
           (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning) &&
 #endif

@@ -12,6 +12,7 @@
 #include "grammar.h"
 #include "settings.h"
 #include "postags.h"
+#include "paths.h"
 
 class input_chart;
 
@@ -19,11 +20,11 @@ class input_token
 {
  public:
   input_token(int id, int s, int e, class full_form ff, string o,
-              int p, const postags &pos, input_chart *cont,
-              bool synthesized = false);
+              int p, const postags &pos, const tPaths &paths,
+              input_chart *cont, bool synthesized = false);
 
   ~input_token()
-    {}
+      {}
 
   inline bool synthesized() { return _synthesized; }
 
@@ -58,8 +59,11 @@ class input_token
 
   void print_derivation(FILE *f, bool quoted, int id,
 			int p, int q, list_int *l, string orth);
+  void print_yield(FILE *f, list_int *l, list<string> &orth);
   string tsdb_derivation(int id, string orth);
-
+  void getTagSequence(list_int *l, list<string> &orth,
+                      list<string> &tags, list<list<string> > &words);
+  
   string description();
 
 private:
@@ -77,6 +81,8 @@ private:
   int _p;
 
   full_form _form;
+
+  tPaths _paths;
 
   input_chart *_container;
 

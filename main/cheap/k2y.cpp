@@ -488,12 +488,9 @@ void k2y_mod(mrs &m, int clause, int id, int arg)
                          lookup_type(k2y_pred_name("k2y_verb_rel"))) ||
                  // 10-Feb-02 DPF now treat numeral-adjs as reduced rels, to
                  // allow degree modifiers as in "more than eighty percent"
-                 // subtype(mod.type(),
+                 // subtype(mod.type(), 
                  //         lookup_type(k2y_pred_name("k2y_const_rel"))) ||
-                 // 05-Jun-02 UC Don't segregate japanese integers
-                 subtype(mod.type(),
-                          lookup_type(k2y_pred_name("k2y_jconst_rel"))) ||
-                 subtype(mod.type(),
+                 subtype(mod.type(), 
                          lookup_type(k2y_pred_name("k2y_adv_rel"))) ||
                  !opt_k2y_segregation)
                 {

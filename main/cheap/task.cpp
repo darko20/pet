@@ -79,7 +79,7 @@ item *build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
           // in best-first mode, it is more important to stick to the ordering
           // of tasks, as governed by the scoring mechanism. (9-apr-01  -  oe)
           //
-          if(!opt_one_solution
+          if(opt_nsolutions == 0
 #ifdef YY
              && (opt_nth_meaning == 0)
 #endif
