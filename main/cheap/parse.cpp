@@ -253,6 +253,8 @@ add_root(item *it)
     // return value: true -> stop parsing; false -> continue parsing
 {
     Chart->trees().push_back(it);
+    // Count all trees for now, some of these may still be blocked in
+    // the packing parser.
     stats.trees++;
     if(stats.first == -1)
     {
@@ -385,13 +387,15 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
     {
         timer *UnpackTime = New timer();
 	int nres = 0;
+        stats.trees = 0; // We want to recount the trees in case some
+                         // are blocked or don't unpack.
         for(vector<item *>::iterator tree = Chart->trees().begin();
             tree != Chart->trees().end(); ++tree)
         {
             if((*tree)->blocked())
                 continue;
 
-            stats.p_trees++;
+            stats.trees++;
 
             list<item *> results;
             int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;

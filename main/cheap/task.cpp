@@ -29,149 +29,159 @@
 
 int basic_task::next_id = 0;
 
-item *build_combined_item(chart *C, item *active, item *passive);
+item *
+build_combined_item(chart *C, item *active, item *passive);
 
-item *build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
+item *
+build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
 {
-  fs_alloc_state FSAS(false);
-
-  stats.etasks++;
-
-  fs res;
-
-  bool temporary = false;
-
-  fs rule = R->instantiate();
-  fs arg = R->nextarg(rule);
-
-  if(!arg.valid())
+    fs_alloc_state FSAS(false);
+    
+    stats.etasks++;
+    
+    fs res;
+    
+    bool temporary = false;
+    
+    fs rule = R->instantiate();
+    fs arg = R->nextarg(rule);
+    
+    if(!arg.valid())
     {
-      fprintf(ferr, "trouble getting arg of rule\n");
-      return NULL;
+        fprintf(ferr, "trouble getting arg of rule\n");
+        return NULL;
     }
-
-  if(!opt_hyper || R->hyperactive() == false)
+    
+    if(!opt_hyper || R->hyperactive() == false)
     {
-      res = unify_restrict(rule,
-			   passive->get_fs(),
-			   arg,
-                           R->arity() == 1 ? Grammar->deleted_daughters() : 0);
+        res = unify_restrict(rule,
+                             passive->get_fs(),
+                             arg,
+                             R->arity() == 1 ?
+                             Grammar->deleted_daughters() : 0);
     }
-  else
+    else
     {
-      if(R->arity() > 1)
+        if(R->arity() > 1)
         {
-          res = unify_np(rule, passive->get_fs(), arg);
-          temporary = true;
+            res = unify_np(rule, passive->get_fs(), arg);
+            temporary = true;
         }
-      else
+        else
         {
-          res = unify_restrict(rule, passive->get_fs(), arg, Grammar->deleted_daughters());
+            res = unify_restrict(rule, passive->get_fs(), arg,
+                                 Grammar->deleted_daughters());
         }
     }
-
-  if(!res.valid())
+    
+    if(!res.valid())
     {
-      FSAS.release();
-      return NULL;
+        FSAS.release();
+        return NULL;
     }
-  else
+    else
     {
-      stats.stasks++;
-
-      phrasal_item *it;
-
-      if(temporary)
+        stats.stasks++;
+        
+        phrasal_item *it;
+        
+        if(temporary)
 	{
-	  temporary_generation save(res.temp());
-	  it = New phrasal_item(R, passive, res);
-          FSAS.release();
+            temporary_generation save(res.temp());
+            it = New phrasal_item(R, passive, res);
+            FSAS.release();
 	}
-      else
+        else
 	{
-	  it = New phrasal_item(R, passive, res);
+            it = New phrasal_item(R, passive, res);
 	}
-
-      return it;
+        
+        return it;
     }
 }
 
-item *build_combined_item(chart *C, item *active, item *passive)
+item *
+build_combined_item(chart *C, item *active, item *passive)
 {
-  fs_alloc_state FSAS(false);
-
-  stats.etasks++;
-
-  fs res;
-
-  bool temporary = false;
-
-  fs combined = active->get_fs();
-
-  if(opt_hyper && combined.temp())
-    unify_generation = combined.temp(); // XXX this might need to be reset
-
-  fs arg = active->nextarg(combined);
-
-  if(!arg.valid())
+    fs_alloc_state FSAS(false);
+    
+    stats.etasks++;
+    
+    fs res;
+    
+    bool temporary = false;
+    
+    fs combined = active->get_fs();
+    
+    if(opt_hyper && combined.temp())
+        unify_generation = combined.temp(); // XXX this might need to be reset
+    
+    fs arg = active->nextarg(combined);
+    
+    if(!arg.valid())
     {
-      fprintf(ferr, "trouble getting arg of active item\n");
-      return NULL;
+        fprintf(ferr, "trouble getting arg of active item\n");
+        return NULL;
     }
-
-  if(!opt_hyper || active->rule()->hyperactive() == false)
+    
+    if(!opt_hyper || active->rule()->hyperactive() == false)
     {
-      res = unify_restrict(combined,
-			   passive->get_fs(),
-			   arg,
-                           active->arity() == 1 ? Grammar->deleted_daughters() : 0); 
+        res = unify_restrict(combined,
+                             passive->get_fs(),
+                             arg,
+                             active->arity() == 1 ? 
+                             Grammar->deleted_daughters() : 0); 
     }
-  else
+    else
     {
-      if(active->arity() > 1)
+        if(active->arity() > 1)
         {
-          res = unify_np(combined, passive->get_fs(), arg);
-          temporary = true;
+            res = unify_np(combined, passive->get_fs(), arg);
+            temporary = true;
         }
-      else
+        else
         {
-          res = unify_restrict(combined, passive->get_fs(), arg, Grammar->deleted_daughters());
+            res = unify_restrict(combined, passive->get_fs(), arg,
+                                 Grammar->deleted_daughters());
         }
     }
-
-  if(!res.valid())
+    
+    if(!res.valid())
     {
-      FSAS.release();
-      return NULL;
+        FSAS.release();
+        return NULL;
     }
-  else
+    else
     {
-      stats.stasks++;
-
-      phrasal_item *it;
-
-      if(temporary)
+        stats.stasks++;
+        
+        phrasal_item *it;
+        
+        if(temporary)
 	{
-	  temporary_generation save(res.temp());
-	  it = New phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
-	  FSAS.release();
+            temporary_generation save(res.temp());
+            it = New phrasal_item(dynamic_cast<phrasal_item *>(active),
+                                  passive, res);
+            FSAS.release();
 	}
-      else
+        else
 	{
-	  it = New phrasal_item(dynamic_cast<phrasal_item *>(active), passive, res);
+            it = New phrasal_item(dynamic_cast<phrasal_item *>(active),
+                                  passive, res);
 	}
-
-      return it;
+        
+        return it;
     }
 }
 
 double 
-basic_task::score(grammar_rule *rule, list<item *> &daughters, tSM *model) {
+basic_task::score(grammar_rule *rule, list<item *> &daughters, tSM *model)
+{
     return 0.0;
 }
 
-
-item *item_task::execute()
+item *
+item_task::execute()
 {
     // There should be no way this item (which must be a lex_item)
     // has been blocked.
@@ -180,37 +190,40 @@ item *item_task::execute()
     return _item;
 }
 
-item *rule_and_passive_task::execute()
+item *
+rule_and_passive_task::execute()
 {
-  if(opt_packing && _passive->blocked())
-    return 0;
-
-  item *result = build_rule_item(_C, _A, _R, _passive);
-  if(result) result->priority(priority());
-  return result;
-
+    if(opt_packing && _passive->blocked())
+        return 0;
+    
+    item *result = build_rule_item(_C, _A, _R, _passive);
+    if(result) result->priority(priority());
+    return result;
 }
 
-item *active_and_passive_task::execute()
+item *
+active_and_passive_task::execute()
 {
-  if(opt_packing && (_passive->blocked() || _active->blocked()))
-    return 0;
-
-  item *result = build_combined_item(_C, _active, _passive);
-  if(result) result->priority(priority());
-  return result;
+    if(opt_packing && (_passive->blocked() || _active->blocked()))
+        return 0;
+    
+    item *result = build_combined_item(_C, _active, _passive);
+    if(result) result->priority(priority());
+    return result;
 }
 
-void basic_task::print(FILE *f)
+void
+basic_task::print(FILE *f)
 {
-  fprintf(f, "task #%d (%.2f)", _id, _p);
+    fprintf(f, "task #%d (%.2f)", _id, _p);
 }
 
-void rule_and_passive_task::print(FILE *f)
+void
+rule_and_passive_task::print(FILE *f)
 {
-  fprintf(f,
-          "task #%d {%s + %d} (%.2f)",
-          _id,
-          _R->printname(), _passive->id(),
-          _p);
+    fprintf(f,
+            "task #%d {%s + %d} (%.2f)",
+            _id,
+            _R->printname(), _passive->id(),
+            _p);
 }
