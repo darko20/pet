@@ -184,7 +184,7 @@ void compute_qc_sets(FILE *f)
       top_paths.push(pq_item<int,int>(v, i));
     }
 
-  fprintf(f, "\n\n:begin :instance.\n\nqc_paths := *top* &\n[ ");
+  fprintf(f, "\n\n:begin :instance.\n\nqc_paths_set := *top* &\n[ ");
 
   n = 0;
   while(!top_paths.empty())
@@ -227,7 +227,7 @@ void compute_qc_paths(FILE *f, int max)
   fprintf(f, ";; qc paths [traditional] -- generated for %s for %d items on %s\n",
 	  Grammar->info().version, stats.id, ctime(&t));
 
-  fprintf(f, ":begin :instance.\n\nqc_paths := *top* &\n[ ");
+  fprintf(f, ":begin :instance.\n\nqc_paths_traditional := *top* &\n[ ");
 
   int n = 0;
   while(!top_failures.empty() && n < max)
