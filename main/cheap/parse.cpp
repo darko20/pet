@@ -208,17 +208,27 @@ packed_edge(item *newitem)
         }
         else
         {
+            bool f1 = true, b1 = true;
             if(opt_nqc_subs != 0)
                 qc_compatible_subs(qc_len_subs,
                                    olditem->qc_vector_subs(),
                                    newitem->qc_vector_subs(),
-                                   forward, backward);
+                                   f1, b1);
             
             if(forward ==false && backward == false)
                 stats.fsubs_qc++;
             else
                 subsumes(olditem->get_fs(), newitem->get_fs(),
                          forward, backward);
+            
+            if(f1 == false && forward || b1==false && backward)
+            {
+                fprintf(stderr, "S | > %c vs %c | < %c vs %c\n",
+                        f1 ? 't' : 'f', 
+                        forward ? 't' : 'f', 
+                        b1 ? 't' : 'f', 
+                        backward ? 't' : 'f');
+            }
         }
 
         if(forward && !olditem->blocked())
