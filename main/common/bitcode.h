@@ -147,7 +147,7 @@ inline bool operator>(const bitcode& a, const bitcode &b)
 { return compare(a, b) ==  1; }
 
 #ifdef HASH_MAP_AVAIL
-namespace std {
+namespace HASH_SPACE {
 template<> struct hash<bitcode>
 {
   inline size_t operator()(const bitcode &key) const

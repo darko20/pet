@@ -4,8 +4,8 @@
 #ifndef _L2LIB_H
 #define _L2LIB_H
 
-#include <string.h>
-#include <vector.h>
+#include <string>
+#include <vector>
 
 /*	The entire contents of this file, in printed or electronic form, are
 	(c) Copyright YY Technologies, Mountain View, CA 1999,2000,2001

@@ -85,7 +85,7 @@ void register_typecode(int i, bitcode *b)
 }
 
 #ifdef HASH_MAP_AVAIL
-namespace std {
+namespace HASH_SPACE {
 template<> struct hash<string>
 {
   inline size_t operator()(const string &key) const
