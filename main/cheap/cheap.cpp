@@ -401,11 +401,6 @@ void print_grammar(FILE *f)
     dump_glbs(f);
 
   print_symbol_tables(f);
-
-#ifdef IQTEMU
-  if(Grammar->iqtDict())
-    Grammar->iqtDict()->lookupAll();
-#endif
 }
 
 

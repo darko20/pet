@@ -2,13 +2,10 @@ UNIFIER = tomabechi ;
 YY = true ;
 
 TSDB = true ;
-ITSDBDIR = /proj/deepthought/uc/src/newlkb ;
+ITSDBDIR = /project/cl/systems/lkb ;
 
 ICU = true ;
-ICUDIR = /usr/contrib/lib/icu ; 
-
-IQT = false ;
-IQTDIR = /home/uc/YY/src/lib/iqtsdk/main ;
+ICUDIR = /project/cl/deepthought/local/ ;
 
 CC = gcc ;
 C++ = g++ ;
@@ -17,7 +14,7 @@ C++FLAGS += -g -Wall ;
 CFLAGS += -g -Wall ;
 
 LINK = g++ ;
-OPTIM = ;
+OPTIM = -O3 ;
 
 SEARCH_SOURCE += ../common ;
 
@@ -64,13 +61,6 @@ if $(YY) = true
 {
   CHEAPSOURCES += k2y.cpp yy.cpp ;
   C++FLAGS += -DYY ;
-}
-
-if $(IQT) = true
-{
-  CHEAPSOURCES += iqt.cpp ;
-  HDRS += $(IQTDIR)/include ;
-  C++FLAGS += -DIQT -DIQTEMU ;
 }
 
 C++FLAGS += -DHASH_MAP_AVAIL -DUSEMMAP ;
