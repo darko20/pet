@@ -150,7 +150,7 @@ class chart_iter_adj_passive
  public:
     inline
     chart_iter_adj_passive(chart *C, tItem *active)
-        : _LI(active->left_extending() ?
+        : _LI(active->leftExtending() ?
               C->_Cp_end[active->start()] : C->_Cp_start[active->end()])
     {
         _curr = _LI.begin();
