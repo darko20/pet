@@ -590,7 +590,7 @@ free_constraint_cache()
 
 // Construct a grammar object from binary representation in a file
 grammar::grammar(const char * filename)
-    : _nrules(0), _root_insts(0), _generics(0),
+    : _properties(), _nrules(0), _root_insts(0), _generics(0),
       _filter(0), _qc_inst(0), _deleted_daughters(0), _packing_restrictor(0),
       _sm(0)
 {
@@ -612,8 +612,8 @@ grammar::grammar(const char * filename)
     dump_toc toc(&dmp);
     
     // properties
-    toc.goto_section(SEC_PROPERTIES);
-    undump_properties(&dmp);
+    if(toc.goto_section(SEC_PROPERTIES))
+        undump_properties(&dmp);
 
     // symbol tables
     toc.goto_section(SEC_SYMTAB);
@@ -860,7 +860,7 @@ grammar::grammar(const char * filename)
     if(property("unfilling") == "true" && opt_packing)
     {
         fprintf(ferr, "warning: cannot using packing on unfilled grammar -"
-                "packing disabled\n");
+                " packing disabled\n");
         opt_packing = 0;
     }
 }

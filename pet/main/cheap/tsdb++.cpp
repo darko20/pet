@@ -225,7 +225,8 @@ cheap_tsdb_summarize_run(void)
     for(map<string, string>::iterator it = properties.begin(); 
         it != properties.end(); ++it)
     {
-        capi_printf("(:%s . \"%s\") ", it->first.c_str(), it->second.c_str()); 
+        capi_printf("(:%s . \\\"%s\\\") ",
+                    it->first.c_str(), it->second.c_str()); 
     }
     capi_printf("\") ");
 
