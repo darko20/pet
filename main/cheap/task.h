@@ -38,9 +38,7 @@ class basic_task
 
     virtual item *execute() = 0;
     
-    double score(grammar_rule *rule, list<item *> &daughters, tSM *model);
-
-    inline double priority() { return _p; }
+    inline double priority() const { return _p; }
     inline void priority(double p) { _p = p; }
 
     virtual void print(FILE *f);
@@ -63,7 +61,7 @@ class item_task : public basic_task
     inline item_task(class chart *C, class agenda *A, item *it)
         : basic_task(C, A), _item(it)
     {
-        _p = it->priority();
+        priority(it->score());
     }
     
     virtual item *execute();
@@ -81,7 +79,7 @@ class rule_and_passive_task : public basic_task
 
         list<item *> daughters;
         daughters.push_back(passive);
-        score(R, daughters, Grammar->sm());
+        priority(Grammar->sm()->scoreLocalTree(R, daughters));
     }
     
     virtual item *execute();
@@ -102,7 +100,7 @@ class active_and_passive_task : public basic_task
         list<item *> daughters(dynamic_cast<phrasal_item *>(active)->
                                _daughters);
         daughters.push_back(passive);
-        score(active->rule(), daughters, Grammar->sm());
+        priority(Grammar->sm()->scoreLocalTree(active->rule(), daughters));
     }
     virtual item *execute();
  private:
@@ -116,7 +114,7 @@ class task_priority_less
     inline bool
     operator() (const basic_task* x, const basic_task* y) const
     {
-        return x->_p < y->_p;
+        return x->priority() < y->priority();
     }
 };
 

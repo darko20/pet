@@ -250,10 +250,7 @@ void interactive()
                     
                     nres++;
                     fprintf(fstatus, "derivation[%d]", nres);
-                    if(Grammar->sm())
-                    {
-                        fprintf(fstatus, " (%.4g)", it->score(Grammar->sm()));
-                    }
+                    fprintf(fstatus, " (%.4g)", it->score());
                     fprintf(fstatus, ":");
                     it->print_yield(fstatus);
                     fprintf(fstatus, "\n");

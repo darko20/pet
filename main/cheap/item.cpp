@@ -44,7 +44,7 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(0.0), _score_model(0), _score(0.0), _printname(printname),
+      _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
@@ -56,7 +56,7 @@ item::item(int start, int end, const tPaths &paths,
       _start(start), _end(end), _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
-      _p(0.0), _score_model(0), _score(0.0), _printname(printname),
+      _score(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
@@ -75,9 +75,6 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
     : item(start, end, paths, f, printname),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
-    // _fix_me_
-    // compute _p score for lexical items
-
     // _fix_me_
     // Not nice to overwrite the _fs field.
     if(opt_packing)
@@ -99,6 +96,9 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
 
     if(opt_nqc != 0)
         _qc_vector = get_qc_vector(f);
+
+    // compute _score score for lexical items
+    score(Grammar->sm()->scoreLeaf(this));
 
 #ifdef YY
     if(opt_k2y)
@@ -274,14 +274,8 @@ item::print(FILE *f, bool compact)
 {
     fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
             _trait);
-    if(_score_model)
-    {
-        fprintf(f, "%.4g", _score);
-    }
-    else
-    {
-        fprintf(f, "%.2f", _p);
-    }
+
+    fprintf(f, "%.4g", _score);
 
     fprintf(f, " {");
 
@@ -397,7 +391,7 @@ lex_item::print_derivation(FILE *f, bool quoted)
         orth += _dtrs[i]->orth();
     }
 
-    _dtrs[_keydtr]->print_derivation(f, quoted, _id, _p, _inflrs_todo,
+    _dtrs[_keydtr]->print_derivation(f, quoted, _id, _score, _inflrs_todo,
                                      orth);
 }
 
@@ -459,7 +453,7 @@ phrasal_item::print_derivation(FILE *f, bool quoted)
 
     fprintf(f, 
             "(%d %s %.2f %d %d", 
-            _id, printname(), _p, _start, _end);
+            _id, printname(), _score, _start, _end);
 
     if(packed.size())
     {
@@ -524,7 +518,7 @@ phrasal_item::tsdb_derivation(int protocolversion)
 {
     ostringstream result;
     
-    result << "(" << _id << " " << printname() << " " << _p
+    result << "(" << _id << " " << printname() << " " << _score
            << " " << _start << " " << _end;
 
     for(list<item *>::iterator pos = _daughters.begin();
@@ -830,51 +824,4 @@ phrasal_item::unpack_combine(vector<item *> &daughters)
 
     stats.p_upedges++;
     return New phrasal_item(this, daughters, res);
-}
-
-//
-// Scoring
-//
-
-
-double lex_item::score(tSM *sm)
-{
-    if(_score_model == sm)
-    {
-        // Score was already computed for this model.
-        return _score;
-    }
-
-    // _fix_me_
-    // Compute something useful here
-
-    _score_model = sm;
-    return _score = sm->neutralScore();
-}
-
-double phrasal_item::score(tSM *sm)
-{
-    if(_score_model == sm)
-    {
-        // Score was already computed for this model.
-        return _score;
-    }
-
-    vector<int> v;
-    v.push_back(1);
-    v.push_back(rule()->type());
-
-    double total = sm->neutralScore();
-
-    for(list<item *>::iterator dtr = _daughters.begin();
-        dtr != _daughters.end(); ++dtr)
-    {
-        v.push_back((*dtr)->identity());
-        total = sm->combineScores(total, (*dtr)->score(sm));
-    }
-
-    tSMFeature f(v);
-
-    _score_model = sm;
-    return _score = sm->combineScores(total, sm->score(f));
 }

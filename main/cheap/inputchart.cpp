@@ -328,14 +328,14 @@ merge_generic_les(list<lex_item *> &res, list<lex_item *> &add)
 {
     for(list<lex_item *>::iterator it = add.begin(); it != add.end(); ++it)
     {
-        if(!(*it)->priority()) continue;
+        if((*it)->score() == 0.0) continue;
         bool good = true;
         for(list<lex_item *>::iterator it2 = res.begin();
             it2 != res.end(); ++it2)
             if(same_lexitems(**it, **it2))
             {
-                if((*it)->priority() > (*it2)->priority())
-                    (*it2)->priority((*it)->priority());
+                if((*it)->score() > (*it2)->score())
+                    (*it2)->score((*it)->score());
                 good = false;
                 break;
             }

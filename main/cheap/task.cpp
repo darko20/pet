@@ -49,7 +49,7 @@ build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
     if(!arg.valid())
     {
         fprintf(ferr, "trouble getting arg of rule\n");
-        return NULL;
+        return 0;
     }
     
     if(!opt_hyper || R->hyperactive() == false)
@@ -77,7 +77,7 @@ build_rule_item(chart *C, agenda *A, grammar_rule *R, item *passive)
     if(!res.valid())
     {
         FSAS.release();
-        return NULL;
+        return 0;
     }
     else
     {
@@ -121,7 +121,7 @@ build_combined_item(chart *C, item *active, item *passive)
     if(!arg.valid())
     {
         fprintf(ferr, "trouble getting arg of active item\n");
-        return NULL;
+        return 0;
     }
     
     if(!opt_hyper || active->rule()->hyperactive() == false)
@@ -149,7 +149,7 @@ build_combined_item(chart *C, item *active, item *passive)
     if(!res.valid())
     {
         FSAS.release();
-        return NULL;
+        return 0;
     }
     else
     {
@@ -174,12 +174,6 @@ build_combined_item(chart *C, item *active, item *passive)
     }
 }
 
-double 
-basic_task::score(grammar_rule *rule, list<item *> &daughters, tSM *model)
-{
-    return 0.0;
-}
-
 item *
 item_task::execute()
 {
@@ -197,7 +191,7 @@ rule_and_passive_task::execute()
         return 0;
     
     item *result = build_rule_item(_C, _A, _R, _passive);
-    if(result) result->priority(priority());
+    if(result) result->score(priority());
     return result;
 }
 
@@ -208,7 +202,7 @@ active_and_passive_task::execute()
         return 0;
     
     item *result = build_combined_item(_C, _active, _passive);
-    if(result) result->priority(priority());
+    if(result) result->score(priority());
     return result;
 }
 

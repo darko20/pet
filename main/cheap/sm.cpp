@@ -26,11 +26,13 @@
 #include "utility.h"
 #include "settings.h"
 #include "options.h"
+#include "grammar.h"
+#include "item.h"
 
 int
 tSMFeature::hash() const
 {
-	return ::bjhash2(_v, 0);
+    return ::bjhash2(_v, 0);
 }
 
 void
@@ -177,18 +179,20 @@ tSMMap::stringToSubfeature(const string &s)
 }
 
 tSM::tSM(grammar *G, const char *fileName, const char *basePath)
-    : _G(G), _fileName(0)
+    : _G(G), _fileName(0), _map(0)
 {
     _fileName = findFile(fileName, basePath);
     if(!_fileName)
       throw error(string("Could not open SM file \"") 
                   + fileName + string("\""));
+    _map = new tSMMap();
 }
 
 tSM::~tSM()
 {
     if(_fileName)
         free(_fileName);
+    delete _map;
 }
 
 char *
@@ -233,16 +237,46 @@ tSM::findFile(const char *fileName, const char *basePath)
     return res;
 }
 
-tMEM::tMEM(grammar *G, const char *fileNameIn, const char *basePath)
-    : tSM(G, fileNameIn, basePath), _map(0)
+double
+tSM::scoreLocalTree(grammar_rule *R, list<item *> dtrs)
 {
-    _map = new tSMMap();
+    vector<int> v;
+    v.push_back(map()->intToSubfeature((unsigned) R->arity() == dtrs.size() ?
+                                       1 : 2));
+    v.push_back(map()->typeToSubfeature(R->type()));
+
+    double total = neutralScore();
+
+    for(list<item *>::iterator dtr = dtrs.begin();
+        dtr != dtrs.end(); ++dtr)
+    {
+        v.push_back((*dtr)->identity());
+        total = combineScores(total, (*dtr)->score());
+    }
+
+    tSMFeature f(v);
+
+    return combineScores(total, score(f));
+}
+
+double
+tSM::scoreLeaf(lex_item *it)
+{
+    vector<int> v;
+    v.push_back(map()->intToSubfeature(1));
+    v.push_back(map()->typeToSubfeature(it->type()));
+
+    return score(tSMFeature(v));
+}
+
+tMEM::tMEM(grammar *G, const char *fileNameIn, const char *basePath)
+    : tSM(G, fileNameIn, basePath)
+{
     readModel(fileName());
 }
 
 tMEM::~tMEM()
 {
-    delete _map;
 }
 
 string
@@ -417,13 +451,13 @@ tMEM::parseFeature(int n)
                 }
                 else
                 {
-                    v.push_back(_map->typeToSubfeature(t));
+                    v.push_back(map()->typeToSubfeature(t));
                 }
             }
             else
             {
                 // This is an integer.
-                v.push_back(_map->intToSubfeature(t));
+                v.push_back(map()->intToSubfeature(t));
             }
             free(tmp);
         }
@@ -432,7 +466,7 @@ tMEM::parseFeature(int n)
             tmp = match(T_STRING, "subfeature in feature vector", false);
             if(verbosity > 4)
                 fprintf(fstatus, " \"%s\"", tmp);
-            v.push_back(_map->stringToSubfeature(string(tmp)));
+            v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
     }
@@ -449,7 +483,7 @@ tMEM::parseFeature(int n)
 
     if(good)
     {
-        int code = _map->featureToCode(v);
+        int code = map()->featureToCode(v);
         if(verbosity > 4)
             fprintf(fstatus, " (code %d)\n", code);
         if(code >= (int) _weights.size()) _weights.resize(code);
@@ -460,7 +494,7 @@ tMEM::parseFeature(int n)
 double
 tMEM::score(const tSMFeature &f)
 {
-    int code = _map->featureToCode(f);
+    int code = map()->featureToCode(f);
     if(code < (int) _weights.size())
         return _weights[code];
     else
