@@ -457,7 +457,7 @@ int main(int argc, char* argv[])
   fstatus = stderr;
   flog = (FILE *)NULL;
 
-  setlocale(LC_ALL, "" );
+  setlocale(LC_ALL, "C" );
 
 #ifndef __BORLANDC__
   if(!parse_options(argc, argv))
