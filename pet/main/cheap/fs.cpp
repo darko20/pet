@@ -350,6 +350,13 @@ packing_partial_copy(const fs &a, list_int *del, bool perm)
 
         // _fix_me_ generalize this
 #if 0
+        //
+        // one contrastive test run on the 700-item PARC (WSJ) dependency bank
+        // seems to suggest that this is not worth it: we get a small increase
+        // in pro- and retro-active packings, at the cost of fewer equivalence 
+        // packings, a hand-full reduction in edges, and a two percent increase
+        // in parsing time.  may need more research             (7-jun-03; oe)
+        //
         if(subtype(res->type, lookup_type("rule")))
             res->type = lookup_type("rule");
         else if(subtype(res->type, lookup_type("lexrule_supermost")))
