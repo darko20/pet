@@ -336,11 +336,11 @@ void tsdb_result::capi_print()
 
 void tsdb_rule_stat::capi_print()
 {
-  capi_printf(" ((");
+  capi_printf("(");
   capi_printf("(:rule . \"%s\") ", escape_string(rule).c_str());
   capi_printf("(:actives . %d) ", actives);
   capi_printf("(:passives . %d) ", passives);
-  capi_printf("))\n");
+  capi_printf(")\n");
 }
 
 void tsdb_parse::capi_print()
@@ -356,11 +356,11 @@ void tsdb_parse::capi_print()
 
   if(!rule_stats.empty())
   {
-    capi_printf("(:statistics\n");
+    capi_printf("(:statistics . (\n");
     for(list<tsdb_rule_stat>::iterator it = rule_stats.begin();
         it != rule_stats.end(); ++it)
       it->capi_print();
-    capi_printf(")\n");
+    capi_printf("))\n");
   }
   
   if(!err.empty())
