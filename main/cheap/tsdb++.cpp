@@ -402,7 +402,7 @@ tsdb_parse::capi_print()
 
     if(!edges.empty())
     {
-        capi_printf("(:edges . (\n");
+        capi_printf("(:chart . (\n");
         for(list<tsdb_edge>::iterator it = edges.begin();
             it != edges.end(); ++it)
             it->capi_print();
@@ -513,7 +513,7 @@ tsdb_parse_collect_edges(tsdb_parse &T, item *root)
         tsdb_edge e;
         e.id = (*it)->id();
         e.status = 0; // (passive edge)
-        e.label = (*it)->printname();
+        e.label = string((*it)->printname());
         e.start = (*it)->start();
         e.end = (*it)->end();
         e.score = 0.0;
@@ -521,7 +521,8 @@ tsdb_parse_collect_edges(tsdb_parse &T, item *root)
         ostringstream tmp;
         tmp << "(";
         (*it)->daughter_ids(dtrs);
-        for(list<int>::iterator it_dtr; it_dtr != dtrs.end(); ++it_dtr)
+        for(list<int>::iterator it_dtr = dtrs.begin(); 
+            it_dtr != dtrs.end(); ++it_dtr)
             tmp << " " << *it_dtr;
         tmp << ")";
         e.daughters = tmp.str();
