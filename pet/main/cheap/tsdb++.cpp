@@ -198,61 +198,64 @@ initialize_version()
 
 int
 cheap_create_test_run(char *data, int run_id, char *comment,
-                         int interactive, char *custom)
+                      int interactive, int protocol_version,
+                      char *custom)
 {
-  cheap_tsdb_summarize_run();
-  return 0;
-}
+    if(protocol_version > 0 && protocol_version <= 2)
+        opt_tsdb = protocol_version;
 
+    cheap_tsdb_summarize_run();
+    return 0;
+}
 
 void
 cheap_tsdb_summarize_run(void)
 {
-  capi_printf("(:application . \"%s\") ", CHEAP_VERSION);
-  capi_printf("(:platform . \"%s\") ", CHEAP_PLATFORM);
-  capi_printf("(:grammar . %s) ", Grammar->info().version);
-  capi_printf("(:avms . %d) ", ntypes);
-  capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
-  capi_printf("(:lexicon . %d) ", Grammar->nstems());
-  capi_printf("(:rules . %d) ", Grammar->nrules());
+    capi_printf("(:application . \"%s\") ", CHEAP_VERSION);
+    capi_printf("(:platform . \"%s\") ", CHEAP_PLATFORM);
+    capi_printf("(:grammar . %s) ", Grammar->info().version);
+    capi_printf("(:avms . %d) ", ntypes);
+    capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
+    capi_printf("(:lexicon . %d) ", Grammar->nstems());
+    capi_printf("(:rules . %d) ", Grammar->nrules());
 #if 0
-  capi_printf("(:templates . %s) ", Grammar->info().ntemplates);
+    capi_printf("(:templates . %s) ", Grammar->info().ntemplates);
 #else
-  capi_printf("(:templates . -1) ");
+    capi_printf("(:templates . -1) ");
 #endif
-} /* cheap_tsdb_summarize_run() */
+}
 
 int nprocessed = 0;
 
 int
 cheap_process_item(int i_id, char *i_input, int parse_id, 
-                       int edges, int exhaustive, 
-                       int nderivations, int interactive)
+                   int edges, int exhaustive, 
+                   int nderivations, int interactive)
 {
-  struct timeval tA, tB; int treal = 0;
-  chart *Chart = 0;
-
-  try {
-    fs_alloc_state FSAS;
-
-    input_chart i_chart(New end_proximity_position_map);
-
-    pedgelimit = edges;
-    if(exhaustive)
-        opt_nsolutions = 0;
-    else
-        opt_nsolutions = 1;
+    struct timeval tA, tB; int treal = 0;
+    chart *Chart = 0;
     
-    gettimeofday(&tA, NULL);
+    try {
+        fs_alloc_state FSAS;
+        
+        input_chart i_chart(New end_proximity_position_map);
+        
+        pedgelimit = edges;
+        if(exhaustive)
+            opt_nsolutions = 0;
+        else
+            opt_nsolutions = 1;
+        
+        gettimeofday(&tA, NULL);
 
-    TotalParseTime.save();
+        TotalParseTime.save();
+        
+        list<error> errors;
+        analyze(i_chart, i_input, Chart, FSAS, errors, i_id);
+        
+        nprocessed++;
 
-    list<error> errors;
-    analyze(i_chart, i_input, Chart, FSAS, errors, i_id);
- 
-    nprocessed++;
-
-    gettimeofday(&tB, NULL);
+        gettimeofday(&tB, NULL);
 
     treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
       (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
@@ -262,7 +265,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         cheap_tsdb_summarize_error(errors.front(), treal, T);
     
     cheap_tsdb_summarize_item(*Chart, i_chart.max_position(), treal,
-			      nderivations, 0, T);
+			      nderivations, T);
     T.capi_print();
 
     delete Chart;
@@ -293,10 +296,11 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
 int
 cheap_complete_test_run(int run_id, char *custom)
 {
-  fprintf(ferr, "total elapsed parse time %.3fs; %d items; avg time per item %.4fs\n",
-	  TotalParseTime.elapsed_ts() / 10.,
-	  nprocessed,
-	  (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
+    fprintf(ferr, "total elapsed parse time %.3fs; %d items;"
+            " avg time per item %.4fs\n",
+            TotalParseTime.elapsed_ts() / 10.,
+            nprocessed,
+            (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
 
 #ifdef QC_PATH_COMP
     if(opt_compute_qc)
@@ -308,7 +312,7 @@ cheap_complete_test_run(int run_id, char *custom)
     }
 #endif
 
-  return 0;
+    return 0;
 }
 
 int
@@ -321,26 +325,40 @@ cheap_reconstruct_item(char *derivation)
 void
 tsdb_mode()
 {
-  if(!capi_register(cheap_create_test_run, cheap_process_item, 
-                    cheap_reconstruct_item, cheap_complete_test_run))
-  {
-    slave();
-  }
+    if(!capi_register(cheap_create_test_run, cheap_process_item, 
+                      cheap_reconstruct_item, cheap_complete_test_run))
+    {
+        slave();
+    }
 }
 
 void
 tsdb_result::capi_print()
 {
-  capi_printf(" (");
-  capi_printf("(:result-id . %d) ", result_id);
-  if(scored)
-      capi_printf("(:score . %.g) ", score);
-  capi_printf("(:derivation . \"%s\") ",  escape_string(derivation).c_str());
-  if(!mrs.empty())
-    capi_printf("(:mrs . \"%s\") ", escape_string(mrs).c_str());
-  if(!tree.empty())
-    capi_printf("(:tree . \"%s\") ", escape_string(tree).c_str());
-  capi_printf(")\n");
+    capi_printf(" (");
+
+    capi_printf("(:result-id . %d) ", result_id);
+
+    if(scored)
+        capi_printf("(:score . %.g) ", score);
+
+    if(opt_tsdb == 1)
+    {
+        capi_printf("(:derivation . \"%s\") ", 
+                    escape_string(derivation).c_str());
+    }
+    else
+    {
+        capi_printf("(:edge . %d) ", edge_id);
+    }
+
+    if(!mrs.empty())
+        capi_printf("(:mrs . \"%s\") ", escape_string(mrs).c_str());
+
+    if(!tree.empty())
+        capi_printf("(:tree . \"%s\") ", escape_string(tree).c_str());
+
+    capi_printf(")\n");
 }
 
 void
@@ -358,11 +376,11 @@ tsdb_parse::capi_print()
 {
   if(!results.empty())
   {
-    capi_printf("(:results\n");
+    capi_printf("(:results . (\n");
     for(list<tsdb_result>::iterator it = results.begin();
         it != results.end(); ++it)
       it->capi_print();
-    capi_printf(")\n");
+    capi_printf("))\n");
   }
 
   if(!rule_stats.empty())
@@ -459,21 +477,45 @@ tsdb_parse::capi_print()
 static int tsdb_unique_id = 1;
 
 void
+tsdb_parse_collect_edges(tsdb_parse &T, item *root)
+{
+    list<item *> edges;
+    root->collect_children(edges);
+    
+    for(list<item *>::iterator it = edges.begin(); it != edges.end(); ++it)
+    {
+        tsdb_edge e;
+        e.id = (*it)->id();
+        e.label = (*it)->printname();
+        e.start = (*it)->start();
+        e.end = (*it)->end();
+        e.score = 0.0;
+        list<int> dtrs;
+        ostringstream tmp;
+        tmp << "(";
+        (*it)->daughter_ids(dtrs);
+        for(list<int>::iterator it_dtr; it_dtr != dtrs.end(); ++it_dtr)
+            tmp << " " << *it_dtr;
+        tmp << ")";
+        e.daughters = tmp.str();
+        T.push_edge(e);
+    }
+}
+
+void
 cheap_tsdb_summarize_item(chart &Chart, int length,
                           int treal, int nderivations, 
-                          const char *meaning,
                           tsdb_parse &T)
 {
   if(opt_derivation)
   {
     int nres = 1;
-    stats.nmeanings = 0;
-    struct MFILE *mstream = mopen();
     if(nderivations >= 0) // default case, report results
     {
       if(!nderivations) nderivations = Chart.readings().size();
       for(vector<item *>::iterator iter = Chart.readings().begin();
-          nderivations && iter != Chart.readings().end(); ++iter, --nderivations)
+          nderivations && iter != Chart.readings().end();
+          ++iter, --nderivations)
       {
         tsdb_result R;
 
@@ -484,8 +526,14 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
             R.scored = true;
             R.score = (*iter)->score(Grammar->sm());
         }
-        R.derivation = (*iter)->tsdb_derivation();
-
+        if(opt_tsdb == 1)
+            R.derivation = (*iter)->tsdb_derivation(opt_tsdb);
+        else
+        {
+            R.edge_id = (*iter)->id();
+            tsdb_parse_collect_edges(T, *iter);
+        }
+        
         T.push_result(R);
         nres++;
       } // for
@@ -499,15 +547,15 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
           tsdb_result R;
           
           R.result_id = nres;
-          R.derivation = it.current()->tsdb_derivation();
+          R.derivation = it.current()->tsdb_derivation(opt_tsdb);
           
           T.push_result(R);
           nres++;
         }
       }
     }
-    mclose(mstream);
   }
+
 
   if(opt_rulestatistics)
   {  // slow in tsdb++, thus disabled by default
@@ -551,7 +599,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
   T.unifications = stats.unifications_succ + stats.unifications_fail;
   T.copies = stats.copies;
   
-  T.nmeanings = (meaning != NULL && *meaning ? 1 : 0);
+  T.nmeanings = 0;
   T.clashes = stats.unifications_fail;
   T.pruned = stats.words_pruned;
 
@@ -609,20 +657,6 @@ cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
   T.p_failures = stats.p_failures;
   
   T.err = condition.msg();
-}
-
-void
-tsdb_parse::set_rt(const string &rt)
-{
-  if(results.empty())
-    return;
-  
-  tsdb_result r = results.front();
-  results.pop_front();
-  
-  r.tree = rt;
-  
-  results.push_front(r);
 }
 
 string

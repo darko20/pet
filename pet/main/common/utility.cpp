@@ -83,18 +83,6 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   return val;
 }
 
-string inttostr(int i)
-{
-  char buff[255];
-  
-  int l = snprintf(buff, 254, "%d", i);
-  
-  if(l <= 0)
-    throw error(string("could not convert number to string"));
-
-  return string(buff);
-}
-
 string convert_escapes(const string &s)
 // convert standard C string mnemonic escape sequences
 {

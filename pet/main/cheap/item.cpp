@@ -419,7 +419,7 @@ lex_item::getTagSequence(list<string> &tags, list<list<string> > &words)
 }
 
 string
-lex_item::tsdb_derivation()
+lex_item::tsdb_derivation(int protocolversion)
 {
     string orth;
     for(int i = 0; i < _ndtrs; i++)
@@ -429,6 +429,21 @@ lex_item::tsdb_derivation()
     }
 
     return _dtrs[_keydtr]->tsdb_derivation(_id, orth);
+}
+
+void
+lex_item::daughter_ids(list<int> &ids)
+{
+    ids.clear();
+}
+
+void 
+lex_item::collect_children(list<item *> &result)
+{
+    if(blocked())
+        return;
+    frost();
+    result.push_back(this);
 }
 
 void
@@ -502,27 +517,53 @@ phrasal_item::getTagSequence(list<string> &tags, list<list<string> > &words)
 }
         
 string
-phrasal_item::tsdb_derivation()
+phrasal_item::tsdb_derivation(int protocolversion)
 {
-    string result;
-
-    result = string("(") +
-        inttostr(_id) + string(" ") +
-        string(printname()) + string(" ") +
-        inttostr(_p) + string(" ") +
-        inttostr(_start) + string(" ") +
-        inttostr(_end);
+    ostringstream result;
+    
+    result << "(" << _id << " " << printname() << " " << _p
+           << " " << _start << " " << _end;
 
     for(list<item *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
     {
-        result += string(" ");
-        result += (*pos)->tsdb_derivation();
+        result << " ";
+        if(protocolversion == 1)
+            result << (*pos)->tsdb_derivation(protocolversion);
+        else
+            result << (*pos)->id();
     }
 
-    result += string(")");
+    result << ")";
 
-    return result;
+    return result.str();
+}
+
+void
+phrasal_item::daughter_ids(list<int> &ids)
+{
+    ids.clear();
+
+    for(list<item *>::iterator pos = _daughters.begin();
+        pos != _daughters.end(); ++pos)
+    {
+        ids.push_back((*pos)->id());
+    }
+}
+
+void 
+phrasal_item::collect_children(list<item *> &result)
+{
+    if(blocked())
+        return;
+    frost();
+    result.push_back(this);
+    
+    for(list<item *>::iterator pos = _daughters.begin();
+        pos != _daughters.end(); ++pos)
+    {
+        (*pos)->collect_children(result);
+    }
 }
 
 grammar_rule *

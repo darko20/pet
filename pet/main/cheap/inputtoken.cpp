@@ -159,22 +159,13 @@ input_token::getTagSequence(list_int *inflrs, list<string> &orth,
 string
 input_token::tsdb_derivation(int id, string orth)
 {
-    string res;
+    ostringstream res;
   
-    int start = _start; 
-    int end = _end;
+    res << "(" << id << " " << _form.stemprintname()
+        << " " << _p << " " << _start <<  " " << _end
+        << " (\"" << orth << "\" " << _start << " " << _end << "))";
 
-    res = string("(") +
-        inttostr(id) + string(" ") +
-        string(_form.stemprintname()) + string(" ") +
-        inttostr(_p) + string(" ") +
-        inttostr(start) + string(" ") +
-        inttostr(end) + string(" (\"") +
-        orth + string("\" ") +
-        inttostr(start) + string(" ") +
-        inttostr(end) + string("))");
-
-    return res;
+    return res.str();
 }
 
 fs
