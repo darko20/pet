@@ -18,7 +18,7 @@
  */
 
 //
-// This modules implements the link to the Inquizit dictionary, including
+// This modules implements the link to an external dictionary, including
 // the mapping to the grammar lexicon.
 //
 
