@@ -64,6 +64,8 @@ class morph_analyzer
   void add_rule(type_t t, string rule);
   void add_irreg(string stem, type_t t, string form);
 
+  bool empty();  
+
   void set_irregular_only(bool b)
     { _irregs_only = b; }
 

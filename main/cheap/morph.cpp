@@ -756,6 +756,11 @@ void morph_analyzer::add_irreg(string stem, type_t t, string form)
   _irregs_by_form.insert(make_pair(form, a));
 }
 
+bool morph_analyzer::empty()
+{
+    return _irregs_by_stem.size() == 0 && _subrules.size() == 0;
+}
+
 void morph_analyzer::print(FILE *f)
 {
   fprintf(stderr, "morph_analyzer[%x]:\n", (int) this);

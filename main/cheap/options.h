@@ -37,7 +37,7 @@ extern int opt_k2y, opt_nth_meaning;
 #endif
 extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc, opt_key, opt_server;
 extern long int memlimit;
-extern bool opt_linebreaks, opt_chart_man, opt_interactive_morph;
+extern bool opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_online_morph, opt_fullform_morph;
 extern char *grammar_file_name;
 
 extern char *opt_supertag_file;
