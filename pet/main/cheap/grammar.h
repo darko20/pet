@@ -44,7 +44,7 @@ class lex_stem
 
   lex_stem & operator=(const lex_stem &le);
 
-  fs instantiate(bool full = false);
+  fs instantiate();
 
   inline char *name() const { return typenames[_type]; }
   inline char *printname() const { return printnames[_type]; }
@@ -130,7 +130,7 @@ class full_form
       // it's ok to compare pointers here, as stems are not copied
   }
 
-  fs instantiate(bool full = false);
+  fs instantiate();
 
   inline const lex_stem *stem() const { return _stem; }
 
@@ -208,6 +208,7 @@ class grammar_rule
 
   inline fs nextarg(fs &f) { return f.nth_arg(first(_tofill)); }
   inline list_int *restargs() { return rest(_tofill); }
+  inline list_int *allargs() { return _tofill; }
 
   inline type_t *qc_vector(int arg) { return _qc_vector[arg - 1]; }
 

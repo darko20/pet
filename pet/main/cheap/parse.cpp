@@ -277,7 +277,6 @@ packed_edge(item *newitem)
             stats.p_retroactive++;
 
 	    newitem->packed.splice(newitem->packed.begin(), olditem->packed);
-            olditem->packed = list<item *>();
 
             if(olditem->frozen() == 0)
                 newitem->packed.push_back(olditem);
@@ -464,6 +463,30 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
                                         memlimit / (1024 * 1024));
         else
             throw error_ressource_limit("pedges", pedgelimit);
+    }
+
+    if(opt_packing)
+    {
+        for(vector<item *>::iterator root = Chart->Roots().begin();
+            root != Chart->Roots().end(); ++root)
+        {
+            if(verbosity > 2)
+            {
+                fprintf(stderr, "Unpacking ");
+                (*root)->print(stderr);
+                fprintf(stderr, "\n");
+            }
+            list<item *> results;
+            results = (*root)->unpack();
+
+            for(list<item *>::iterator res = results.begin();
+                res != results.end(); ++res)
+            {
+                fprintf(stderr, "Unpacked result ");
+                (*res)->print(stderr);
+                fprintf(stderr, "\n");
+            }
+        }
     }
 }
 
