@@ -637,6 +637,7 @@ grammar::grammar(const char * filename)
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
     undump_dags(&dmp, _qc_inst);
+    initialize_maxapp();
 
     // Tell unifier that all dags created from now an are not considered to
     // be part of the grammar. This is needed for the smart copying algorithm.
@@ -997,11 +998,18 @@ grammar::initialize_filter()
             {
                 fs_alloc_state S2;
                 fs mother_fs = mother->instantiate();
-
+                
                 if(arg == 1)
                 {
                     bool forward = true, backward = false;
-                    subsumes(daughter_fs, mother_fs, forward, backward);
+                    fs a = packing_partial_copy(daughter_fs,
+                                                Grammar->deleted_daughters(),
+                                                false);
+                    fs b = packing_partial_copy(mother_fs,
+                                                Grammar->deleted_daughters(),
+                                                false);
+                    
+                    subsumes(a, b, forward, backward);
                     
                     _subsumption_filter[daughter->id() + _nrules * mother->id()] = forward;
                     

@@ -609,38 +609,45 @@ dag_node *dag_full_copy(dag_node *dag)
   return copy;
 }
 
-struct dag_node *dag_partial_copy1(dag_node *dag, int attr, list_int *del)
+struct dag_node *
+dag_partial_copy1(dag_node *dag, int attr, list_int *del)
 {
-  dag_node *copy;
-  
-  copy = dag_get_copy(dag);
-  
-  if(copy == 0)
+    dag_node *copy;
+    
+    copy = dag_get_copy(dag);
+    
+    if(copy == 0)
     {
-      dag_arc *arc;
-
-      copy = new_dag(dag->type);
-
-      dag_set_copy(dag, copy);
-
-
-      if(!contains(del, attr))
-	{
-	  arc = dag->arcs;
-	  while(arc != 0)
+        dag_arc *arc;
+        
+        copy = new_dag(dag->type);
+        
+        dag_set_copy(dag, copy);
+        
+        if(!contains(del, attr))
+        {
+            arc = dag->arcs;
+            while(arc != 0)
 	    {
-	      dag_add_arc(copy, new_arc(arc->attr, dag_partial_copy1(arc->val, arc->attr, del)));
-	      arc = arc->next;
+                dag_add_arc(copy,
+                            new_arc(arc->attr,dag_partial_copy1(arc->val,
+                                                                arc->attr,
+                                                                del)));
+                arc = arc->next;
 	    }
 	}
+        else if(attr != -1)
+        {
+            copy->type = maxapp[attr];
+        }
     }
-
-  return copy;
+    
+    return copy;
 }
 
 struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
 {
-  return dag_partial_copy1(dag, 0, del);
+  return dag_partial_copy1(dag, -1, del);
 }
 
 bool
