@@ -34,7 +34,7 @@ int unify_generation = 0;
 int unify_generation_max = 0;
 
 #ifdef MARK_PERMANENT
-static bool create_permanent_dags = true;
+bool create_permanent_dags = true;
 #endif
 
 // _fix_me_
@@ -58,17 +58,6 @@ inline bool dag_permanent(dag_node *dag)
 #ifdef EXTENDED_STATISTICS
 int unify_nr_newtype, unify_nr_comparc, unify_nr_forward, unify_nr_copy;
 #endif
-
-void dag_init(dag_node *dag, int s)
-{
-  dag->type = s;
-  dag->arcs = 0;
-  dag->generation = -1;
-
-#ifdef MARK_PERMANENT
-  dag->permanent = create_permanent_dags;
-#endif
-}
 
 dag_node *dag_cyclic_rec(dag_node *dag);
 
