@@ -221,7 +221,7 @@ lex_stem::instantiate()
 full_form::full_form(dumper *f, grammar *G)
 {
     int preterminal = f->undump_int();
-    _stem = G->lookup_stem(preterminal);
+    _stem = G->find_stem(preterminal);
     
     int affix = f->undump_int();
     _affixes = (affix == -1) ? 0 : cons(affix, 0);
@@ -1144,7 +1144,7 @@ grammar::root(fs &candidate, type_t &rule)
 }
 
 lex_stem *
-grammar::lookup_stem(type_t inst_key)
+grammar::find_stem(type_t inst_key)
 {
     map<type_t, lex_stem *>::iterator it = _lexicon.find(inst_key);
     if (it != _lexicon.end())

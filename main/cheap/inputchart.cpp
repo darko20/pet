@@ -169,7 +169,7 @@ input_chart::add_token(const string &tokenstring)
     {
 
         int instance = lookup_type(instance_name.c_str());
-        lex_stem *stem = Grammar->lookup_stem(instance);
+        lex_stem *stem = Grammar->find_stem(instance);
 
         int affix_nr = lookup_type(affix_name.c_str());
         string path, value;

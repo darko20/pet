@@ -21,11 +21,35 @@
 // This modules implements the link to an external lexical database.
 //
 
-#ifndef _LEXDB_H_
-#define _LEXDB_H_
+#include "pet-system.h"
+#include "lexdb.h"
 
-#include <libpq-fe.h>
+tPSQLLex::tPSQLLex(const string &connection,
+                   const string &descTable,
+                   const string &lexTable)
+    : _conn(0)
+{
+    // Connect to database.
+    _conn = PQconnectdb(connection.c_str());
+    if (PQstatus(_conn) == CONNECTION_BAD)
+    {
+        fprintf(stderr, "Connection to lexical database [%s] failed.\n",
+                connection.c_str());
+        fprintf(stderr, "%s", PQerrorMessage(_conn));
+        PQfinish(_conn);
+        _conn = 0;
+    }
+    
+    // Obtain descriptor table.
+    
+ 
 
 
 
-#endif
+}
+
+tPSQLLex::~tPSQLLex()
+{
+    if(_conn)
+        PQfinish(_conn);
+}

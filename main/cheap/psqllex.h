@@ -18,9 +18,35 @@
  */
 
 //
-// This modules implements the link to an external lexical database.
+// This modules implements the link to an external (Postgres) lexical database.
 //
 
-#include "pet-system.h"
-#include "lexdb.h"
+#ifndef _PSQLLEX_H_
+#define _PSQLLEX_H_
 
+#include <libpq-fe.h>
+
+/** Implements the tLexicon interface accessing a Postgres database. */
+class tPSQLLex : public tLexicon
+{
+ public:
+    /** Construct from a connection info string, and the names of the
+        descriptor table, and the lexicon table. */
+    tPSQLLex(const string &connectionInfo,
+             const string &descTable,
+             const string &lexTable);
+
+    /** Destructor. Shuts down open connection. */
+    ~tPSQLLex();
+
+    /** Obtain list of stems for given orthography. */
+    list<tLexStem>
+    lookupWord(const string &orth);
+    
+ private:
+    PGconn *_conn;
+
+}
+
+
+#endif

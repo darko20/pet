@@ -216,7 +216,7 @@ input_token::generics(postags onlyfor)
 	  
         input_token *dtrs[1];
         dtrs[0] = _container->add_token(_id, _startposition, _endposition,
-                                        full_form(Grammar->lookup_stem(gen)),
+                                        full_form(Grammar->find_stem(gen)),
                                         _orth, 0.0, _in_pos, list<int>(), 
                                         true);
 
