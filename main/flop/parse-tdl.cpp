@@ -291,6 +291,8 @@ struct attr_val *tdl_attr_val(struct coref_table *co, bool readonly)
 
   while(LA(0)->tag == T_DOT)
     {
+      // build a "path" of attribute-value structs, av_inner is the attr_val
+      // struct at the bottom, av_outer at the top of the path
       struct term *T = NULL;
       
       consume(1);
@@ -817,6 +819,32 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
     }
   else
     tdl_conjunction(NULL, readonly);
+
+  // process TDL rule definition code, if present
+  if (LA(0)->tag == T_ARROW)
+    {
+      consume(1);
+      if (LA(0)->tag != T_LANGLE)
+        syntax_error("rule definintion not followed by a list", LA(0));
+
+      if (! readonly)
+        {
+          // read the list and build the ARGS attribute value pair
+          struct attr_val *attrval = new_attr_val();
+          attrval->val = new_conjunction();
+          add_term(attrval->val, tdl_term(t->coref, readonly));
+          char *s = (char *) malloc(strlen("ARGS"));
+          attrval->attr = strcpy(s, "ARGS");
+          struct avm *A = new_avm();
+          add_attr_val(A, attrval);
+          struct term *T = new_term();
+	  T->tag = FEAT_TERM;
+          T->A = A;
+          add_term(t->constraint, T);
+        }
+      else
+        tdl_term(NULL, readonly);
+    }
 
   while(LA(0)->tag == T_COMMA)
     {

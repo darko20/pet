@@ -33,4 +33,7 @@ flop: $(FLOPOBJS)
 clean:
 	/bin/rm -f *.o *~
 
+depend:
+	makedepend -f- $(INCLUDE) *.cpp > .depend
+
 include .depend
