@@ -274,6 +274,7 @@ class item
   int _done;
 
   int _blocked;
+  list<item *> *_unpack_cache;
 
  public:
   list<item *> parents;

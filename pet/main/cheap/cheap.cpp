@@ -232,7 +232,7 @@ void interactive()
                     stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
                     TotalParseTime.elapsed_ts() / 10.);
 
-            if(verbosity > 2) stats.print(fstatus);
+            if(verbosity > 0) stats.print(fstatus);
 
             if(fTags && stats.readings > 0)
                 writeSuperTagged(fTags, fData, Chart,

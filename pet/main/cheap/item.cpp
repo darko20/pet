@@ -45,7 +45,7 @@ item::item(int start, int end, const tPaths &paths,
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
       _p(p), _score_model(0), _printname(printname), _done(0),
-      _blocked(0), parents(), packed()
+      _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -57,7 +57,7 @@ item::item(int start, int end, const tPaths &paths,
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false), _nparents(0), _qc_vector(0),
       _p(p), _score_model(0), _printname(printname), _done(0),
-      _blocked(0), parents(), packed()
+      _blocked(0), _unpack_cache(0), parents(), packed()
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -66,6 +66,7 @@ item::~item()
 {
     if(_qc_vector) delete[] _qc_vector;
     free_list(_inflrs_todo);
+    delete _unpack_cache;
 }
 
 lex_item::lex_item(int start, int end, const tPaths &paths,
@@ -620,17 +621,20 @@ item::unpack()
     list<item *> res;
 
     unpacking_level++;
-    if(verbosity > 2)
+    if(verbosity > 3)
         fprintf(stderr, "%*s> unpack [%d]\n", unpacking_level * 2, "", id());
 
     // Ignore frozen items.
     if(frozen())
     {
-        if(verbosity > 2)
+        if(verbosity > 3)
             fprintf(stderr, "%*s< unpack [%d] ( )\n", unpacking_level * 2, "", id());
         unpacking_level--;
         return res;
     }
+
+    if(_unpack_cache)
+        return *_unpack_cache;
 
     // Recursively unpack items that are packed into this item.
     for(list<item *>::iterator p = packed.begin();
@@ -645,7 +649,7 @@ item::unpack()
     list<item *> tmp = unpack1();
     res.splice(res.begin(), tmp);
 
-    if(verbosity > 2)
+    if(verbosity > 3)
     {
         fprintf(stderr, "%*s< unpack [%d] ( ", unpacking_level * 2, "", id());
         for(list<item *>::iterator i = res.begin(); i != res.end(); ++i)
@@ -653,6 +657,7 @@ item::unpack()
         fprintf(stderr, ")\n");
     }
 
+    _unpack_cache = new list<item *>(res);
     return res;
 }
 
