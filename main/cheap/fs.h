@@ -120,6 +120,9 @@ inline fs unify(fs &root, const fs &a, fs &b) { return unify_restrict(root, a, b
 
 extern fs unify_np(fs &root, const fs &, fs &);
 
+// Caution: this function does not reset forward and backward on entry.
+// If forward or backward are set to false on entry, subsumption in that
+// direction is not checked.
 extern void subsumes(const fs &a, const fs &b, bool &forward, bool &backward);
 
 fs packing_partial_copy(const fs &a, list_int *del, bool perm);
@@ -131,6 +134,9 @@ extern void get_unifier_stats();
 
 extern type_t *get_qc_vector(const fs &);
 extern bool qc_compatible(type_t *, type_t *);
+
+extern void
+qc_subsumption_compatible(type_t *a, type_t *b, bool &forward, bool &backward);
 
 //
 // feature structure memory allocation

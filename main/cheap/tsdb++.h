@@ -49,6 +49,8 @@ class statistics
   int tcpu;                   /* total cpu time */
   int ftasks_fi;              /* filtered tasks (by rule filter) */
   int ftasks_qc;              /* filtered tasks (by quickcheck) */
+  int fsubs_fi;               /* filtered subsumptions (by rule filter) */
+  int fsubs_qc;               /* filtered subsumptions (by quickcheck) */
   int etasks;                 /* executed tasks */
   int stasks;                 /* suceeding tasks */
   int aedges;                 /* active items in chart */

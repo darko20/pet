@@ -56,12 +56,14 @@ fs::fs(char *path, int type)
 }
 
 
-fs fs::get_attr_value(int attr)
+fs
+fs::get_attr_value(int attr)
 {
   return fs(dag_get_attr_value(_dag, attr));
 }
 
-fs fs::get_attr_value(char *attr)
+fs
+fs::get_attr_value(char *attr)
 {
   int a = lookup_attr(attr);
   if(a == -1) return fs();
@@ -70,22 +72,26 @@ fs fs::get_attr_value(char *attr)
   return fs(v);
 }
 
-fs fs::get_path_value(const char *path)
+fs
+fs::get_path_value(const char *path)
 {
   return fs(dag_get_path_value(_dag, path));
 }
 
-char *fs::name()
+char *
+fs::name()
 {
   return typenames[dag_type(_dag)];
 }
 
-char *fs::printname()
+char *
+fs::printname()
 {
   return printnames[dag_type(_dag)];
 }
 
-void fs::print(FILE *f)
+void
+fs::print(FILE *f)
 {
   if(temp())
     {
@@ -95,12 +101,14 @@ void fs::print(FILE *f)
     dag_print_safe(f, _dag, false);
 }
 
-void fs::restrict(list_int *del)
+void
+fs::restrict(list_int *del)
 {
   dag_remove_arcs(_dag, del);
 }
 
-bool fs::modify(modlist &mods)
+bool
+fs::modify(modlist &mods)
 {
   for(modlist::iterator mod = mods.begin(); mod != mods.end(); ++mod)
     {
@@ -117,7 +125,8 @@ bool fs::modify(modlist &mods)
 static long int total_cost_fail = 0;
 static long int total_cost_succ = 0;
 
-void get_unifier_stats()
+void
+get_unifier_stats()
 {
   if(stats.unifications_succ != 0)
     {
@@ -149,7 +158,8 @@ map<int, double> failing_paths;
 map<list_int *, int, list_int_compare> failing_sets;
 
 
-void record_failures(dag_node *root, dag_node *a, dag_node *b)
+void
+record_failures(dag_node *root, dag_node *a, dag_node *b)
 {
   list<unification_failure *> fails = dag_unify_get_failures(a, b, true);
   
@@ -243,7 +253,8 @@ void record_failures(dag_node *root, dag_node *a, dag_node *b)
 
 #endif
 
-fs unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
+fs
+unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
 {
   struct dag_node *res;
   struct dag_alloc_state s;
@@ -280,7 +291,8 @@ fs unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
   return fs(res);
 }
 
-fs copy(const fs &a)
+fs
+copy(const fs &a)
 {
   fs res(dag_full_copy(a._dag));
   stats.copies++;
@@ -288,7 +300,8 @@ fs copy(const fs &a)
   return res;
 }
 
-fs unify_np(fs &root, const fs &a, fs &b)
+fs
+unify_np(fs &root, const fs &a, fs &b)
 {
   struct dag_node *res;
 
@@ -316,7 +329,8 @@ fs unify_np(fs &root, const fs &a, fs &b)
   return f;
 }
 
-void subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
+void
+subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 {
   dag_subsumes(a._dag, b._dag, forward, backward);
   if(forward || backward)
@@ -339,7 +353,8 @@ packing_partial_copy(const fs &a, list_int *del, bool perm)
     return res;
 }
 
-bool compatible(const fs &a, const fs &b)
+bool
+compatible(const fs &a, const fs &b)
 {
   struct dag_alloc_state s;
   dag_alloc_mark(s);
@@ -351,12 +366,14 @@ bool compatible(const fs &a, const fs &b)
   return res;
 }
 
-int compare(const fs &a, const fs &b)
+int
+compare(const fs &a, const fs &b)
 {
   return a._dag - b._dag;
 }
 
-type_t *get_qc_vector(const fs &f)
+type_t *
+get_qc_vector(const fs &f)
 {
   type_t *vector;
 
@@ -373,19 +390,36 @@ type_t *get_qc_vector(const fs &f)
   return vector;
 }
 
-bool qc_compatible(type_t *a, type_t *b)
+bool
+qc_compatible(type_t *a, type_t *b)
 {
-  for(int i = 0; i < qc_len; i++)
+    for(int i = 0; i < qc_len; i++)
     {
-      if(glb(a[i], b[i]) < 0)
+        if(glb(a[i], b[i]) < 0)
         {
 #ifdef DEBUG
-          fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
-                  i, printnames[a[i]], printnames[b[i]]);
+            fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
+                    i, printnames[a[i]], printnames[b[i]]);
 #endif
-          return false;
+            return false;
         }
     }
-  
-  return true;
+    
+    return true;
+}
+
+void
+qc_subsumption_compatible(type_t *a, type_t *b, bool &forward, bool &backward)
+{
+    bool st_a_b, st_b_a;
+    for(int i = 0; i < qc_len; i++)
+    {
+        if(a[i] == b[i])
+            continue;
+        subtype_bidir(a[i], b[i], st_a_b, st_b_a);
+        if(st_a_b == false) backward = false;
+        if(st_b_a == false) forward = false;
+        if(forward == false && backward == false)
+            break;
+    }
 }
