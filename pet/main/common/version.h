@@ -25,7 +25,7 @@
 #ifndef _VERSION_H
 #define _VERSION_H
 
-#define VERSION "0.99.0"
+#define VERSION "0.99.1"
 
 #define VERSION_DATETIME "$LastChangedDate$"
 #define VERSION_CHANGE "$Change: 850 $"
