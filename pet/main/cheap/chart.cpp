@@ -61,7 +61,7 @@ void chart::add(tItem *it)
     }
     else
     {
-        if(it->left_extending())
+        if(it->leftExtending())
             _Ca_start[it->start()].push_back(it);
         else
             _Ca_end[it->end()].push_back(it);

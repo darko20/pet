@@ -76,6 +76,7 @@ tLexItem::tLexItem(int start, int end, const tPaths &paths,
                    int ndtrs, int keydtr, input_token **dtrs, 
                    fs &f, const char *printname)
     : tItem(start, end, paths, f, printname),
+      tActive(0),
       _ndtrs(ndtrs), _keydtr(keydtr), _fs_full(f)
 {
     // _fix_me_
@@ -142,6 +143,7 @@ same_lexitems(const tLexItem &a, const tLexItem &b)
 tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     : tItem(pasv->_start, pasv->_end, pasv->_paths,
            f, R->printname()),
+      tActive(R->restargs()),
     _daughters(), _adaughter(0), _rule(R)
 {
     _tofill = R->restargs();
@@ -193,9 +195,10 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     : tItem(-1, -1, active->_paths.common(pasv->_paths),
            f, active->printname()),
+      tActive(active->restargs()),
     _daughters(active->_daughters), _adaughter(active), _rule(active->_rule)
 {
-    if(active->left_extending())
+    if(active->leftExtending())
     {
         _start = pasv->_start;
         _end = active->_end;
@@ -249,6 +252,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     : tItem(sponsor->start(), sponsor->end(), sponsor->_paths,
            f, sponsor->printname()),
+      tActive(0), // _fix_me_
       _daughters(),
       _adaughter(0), _rule(sponsor->rule())
 {

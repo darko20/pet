@@ -238,7 +238,7 @@ active_and_passive_task::active_and_passive_task(class chart *C,
     if(opt_packing)
     {
         tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-        if(active->left_extending())
+        if(active->leftExtending())
             priority(packingscore(passive->start(), active->end(),
                                   C->rightmost(), false));
         else
@@ -251,7 +251,7 @@ active_and_passive_task::active_and_passive_task(class chart *C,
 
         list<tItem *> daughters(active->_daughters);
 
-        if(active->left_extending())
+        if(active->leftExtending())
             daughters.push_front(passive);
         else
             daughters.push_back(passive);

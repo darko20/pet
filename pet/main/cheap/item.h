@@ -36,6 +36,25 @@
 class tItem
 {
  public:
+
+    /** Does this item have any further completion requirements? */
+    virtual bool
+    passive() = 0;
+
+    /** If this item is not passive(), i.e. it has further completion
+     *  requirements, does it extend to the left? If the item is
+     *  passive(), returns true. */
+    virtual bool
+    leftExtending() = 0;
+
+    virtual int
+    arity() = 0;
+
+    /** _fix_me_ length shouldn't be passed here; also it should do
+     *  a more complete job */
+    virtual bool
+    compatible(tItem *passive, int length) = 0;
+    
   tItem(int start, int end, const tPaths &paths, fs &f,
        const char *printname);
   tItem(int start, int end, const tPaths &paths, 
@@ -61,7 +80,6 @@ class tItem
   inline int id() { return _id; }
   inline rule_trait trait() { return _trait; }
 
-  inline bool passive() const { return _tofill == 0; }
   inline int start() const { return _start; }
   inline int end() const { return _end; }
   inline int span() const { return (_end - _start); }
@@ -117,42 +135,6 @@ class tItem
           return _start - (R->arity() - 1) >= 0;
   }
   
-  inline bool compatible(tItem *active, int length)
-  {
-      if(_trait == INFL_TRAIT)
-          return false;
-      
-      if(active->spanningonly())
-      {
-          if(active->nextarg() == 1)
-          {
-              if(_start != 0)
-                  return false;
-          }
-          else if(active->nextarg() == active->arity() + active->nfilled())
-          {
-              if(_end != length)
-                  return false;
-          }
-      }
-  
-      if(!opt_lattice && !_paths.compatible(active->_paths))
-          return false;
-    
-      return true;
-  }
-  
-  inline bool left_extending()
-  {
-      return _tofill == 0 || first(_tofill) == 1;
-  }
-
-  inline bool adjacent(class tItem *passive) // assumes `this' is an active item
-  {
-      return (left_extending() ? (_start == passive->_end)
-              : (_end == passive->_start));
-  }
-
   inline bool root(class tGrammar *G, int length, type_t &rule)
   {
       if(_trait == INFL_TRAIT)
@@ -176,10 +158,11 @@ class tItem
       return get_fs().type();
   }
   
+  // inline int arity() { return length(_tofill); }
+
   inline int nextarg() { return first(_tofill); }
   inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
   inline list_int *restargs() { return rest(_tofill); }
-  inline int arity() { return length(_tofill); }
   inline int nfilled() { return _nfilled; }
 
   virtual int startposition() = 0;
@@ -281,9 +264,106 @@ class tItem
   friend class tPhrasalItem;
 };
 
-class tLexItem : public tItem
+/** Represent the combination requirements of an item. Note that passive
+ *  items are represented here as a active items with no further combination
+ *  requirements. */
+class tActive
 {
  public:
+
+    tActive(list_int *toFill)
+        : _toFill(toFill)
+    {}
+
+    int
+    arity()
+    {
+        return length(_toFill);
+    }
+
+    bool
+    passive()
+    {
+        return arity() == 0;
+    }
+
+    int
+    nextArg()
+    {
+        if(arity() == 0)
+            return 0;
+        return first(_toFill);
+    }
+
+    list_int *
+    restArgs()
+    {
+        if(arity() == 0)
+            return 0;
+        return rest(_toFill);
+    }
+
+    bool
+    leftExtending()
+    {
+        return nextArg() == 1;
+    }
+ 
+ private:
+
+    list_int *_toFill;
+};
+
+class tLexItem : public tItem, private tActive
+{
+ public:
+
+    virtual bool
+    passive()
+    {
+        return tActive::passive();
+    }
+
+    virtual int
+    arity()
+    {
+        return tActive::arity();
+    }
+
+    virtual bool
+    leftExtending()
+    {
+        return tActive::leftExtending();
+    }
+
+    virtual bool
+    compatible(tItem *passive, int length)
+    {
+        if(passive->_trait == INFL_TRAIT)
+            return false;
+
+        if(spanningonly())
+        {
+            if(nextarg() == 1)
+            {
+                if(passive->start() != 0)
+                    return false;
+            }
+            else if(arity() == 1 && !leftExtending())
+            {
+                if(passive->end() != length)
+                    return false;
+            }
+        }
+  
+        if(!opt_lattice && !passive->_paths.compatible(_paths))
+            return false;
+    
+        return true;
+    }
+  
+
+
   tLexItem(int start, int end, const tPaths &paths,
            int ndtrs, int keydtr, class input_token **dtrs,
            fs &f, const char *name);
@@ -296,6 +376,7 @@ class tLexItem : public tItem
   }
 
   tLexItem(const tLexItem &li)
+      : tActive(0)
   {
     throw tError("unexpected call to copy constructor of tLexItem");
   }
@@ -353,9 +434,54 @@ class tLexItem : public tItem
   fs _fs_full; // unrestricted (packing) structure
 };
 
-class tPhrasalItem : public tItem
+class tPhrasalItem : public tItem, private tActive
 {
  public:
+
+    virtual bool
+    passive()
+    {
+        return tActive::passive();
+    }
+
+    virtual int
+    arity()
+    {
+        return tActive::arity();
+    }
+
+    virtual bool
+    leftExtending()
+    {
+        return tActive::leftExtending();
+    }
+
+    virtual bool
+    compatible(tItem *passive, int length)
+    {
+        if(passive->_trait == INFL_TRAIT)
+            return false;
+
+        if(spanningonly())
+        {
+            if(nextarg() == 1)
+            {
+                if(passive->start() != 0)
+                    return false;
+            }
+            else if(arity() == 1 && !leftExtending())
+            {
+                if(passive->end() != length)
+                    return false;
+            }
+        }
+  
+        if(!opt_lattice && !passive->_paths.compatible(_paths))
+            return false;
+    
+        return true;
+    }
+
   tPhrasalItem(class grammar_rule *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, class tItem *, fs &);
   tPhrasalItem(class tPhrasalItem *, vector<class tItem *> &, fs &);

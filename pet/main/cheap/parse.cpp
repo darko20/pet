@@ -158,8 +158,11 @@ fundamental_for_passive(tItem *passive)
     for(chart_iter_adj_active it(Chart, passive); it.valid(); it++)
     {
         tItem *active = it.current();
-        if(active->adjacent(passive))
-            if(passive->compatible(active, Chart->rightmost()))
+
+        // _fix_me This condition should be checked in the iterator.
+        if(active->leftExtending() ? (active->start() == passive->end())
+           : (active->end() == passive->start()))
+            if(active->compatible(passive, Chart->rightmost()))
                 if(filter_combine_task(active, passive))
                     Agenda->push(new active_and_passive_task(Chart, Agenda,
                                                              active, passive));
@@ -173,7 +176,7 @@ fundamental_for_active(tPhrasalItem *active)
 
   for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
     if(opt_packing == 0 || !it.current()->blocked())
-      if(it.current()->compatible(active, Chart->rightmost()))
+      if(active->compatible(it.current(), Chart->rightmost()))
         if(filter_combine_task(active, it.current()))
           Agenda->push(new
                        active_and_passive_task(Chart, Agenda,
