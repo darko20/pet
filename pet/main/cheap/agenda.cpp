@@ -23,7 +23,6 @@
 #include "agenda.h"
 
 //#define DEBUG
-#define PLATEAU_PARSING
 
 void agenda::push(basic_task *t)
 {
@@ -48,15 +47,6 @@ basic_task *agenda::pop()
   basic_task *t = top();
 
   _A.pop();
-
-#ifdef PLATEAU_PARSING
-  if(t->plateau() && !empty() && top()->priority() == t->priority())
-    {
-      basic_task *same_plateau = pop(); // recursive
-      same_plateau->priority(MAX_TASK_PRIORITY);
-      push(same_plateau);
-    }
-#endif
 
   return t;
 }
