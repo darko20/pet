@@ -112,7 +112,7 @@ dump_supertypes(dumper *f)
       f->dump_short(supertypes.size());
       for(list<int>::iterator it = supertypes.begin(); it != supertypes.end();
           ++it)
-          f->dump_int(*it);
+          f->dump_int(rleaftype_order[*it]);
   }
 }
 
