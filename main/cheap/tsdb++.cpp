@@ -73,6 +73,7 @@ void statistics::reset()
   p_retroactive = 0;
   p_frozen = 0;
   p_utcpu = 0;
+  p_failures = 0;
 
   // rule stuff
   for(rule_iter rule(Grammar); rule.valid(); rule++)
@@ -97,7 +98,7 @@ void statistics::print(FILE *f)
 	   "cycles: %d\nfssize: %d\n"
 	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "trees: %d\nequivalent: %d\nproactive: %d\nretroactive: %d\n"
-           "frozen: %d\n",
+           "frozen: %d\nfailures: %d\n",
 	   id, trees, readings, words, words_pruned, first, tcpu,
            p_utcpu,
 	   ftasks_fi, ftasks_qc, etasks, stasks,
@@ -110,7 +111,7 @@ void statistics::print(FILE *f)
 	   cycles, fssize,
 	   unify_cost_succ, unify_cost_fail,
            p_trees, p_equivalent, p_proactive, p_retroactive,
-           p_frozen
+           p_frozen, p_failures
 	   );
 }
 
@@ -413,7 +414,7 @@ void tsdb_parse::capi_print()
   
   capi_printf("(:comment . \""
               "(:nmeanings . %d) "
-              "(:failures . %d) "
+              "(:clashes . %d) "
               "(:pruned . %d) "
               "(:subsumptions . %d) "
               "(:trees . %d) "
@@ -422,15 +423,17 @@ void tsdb_parse::capi_print()
               "(:proactive . %d) "
               "(:retroactive . %d) "
               "(:utcpu . %d) " 
+              "(:failures . %d) " 
               "\")",
-              nmeanings, failures, pruned,
+              nmeanings, clashes, pruned,
               subsumptions,
               p_trees,
               p_frozen,
               p_equivalent,
               p_proactive, 
               p_retroactive, 
-              p_utcpu);
+              p_utcpu,
+              p_failures);
 }
 
 #endif
@@ -559,7 +562,7 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
   T.copies = stats.copies;
   
   T.nmeanings = (meaning != NULL && *meaning ? 1 : 0);
-  T.failures = stats.unifications_fail;
+  T.clashes = stats.unifications_fail;
   T.pruned = stats.words_pruned;
 
   T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
@@ -569,6 +572,7 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
   T.p_retroactive = stats.p_retroactive;           
   T.p_frozen = stats.p_frozen;               
   T.p_utcpu = stats.p_utcpu;                    
+  T.p_failures = stats.p_failures;
 }
 
 void cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
@@ -687,10 +691,10 @@ void tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
           others, gcs, i_load, a_load);
 
   fprintf(f_parse, "%s@%s@(:nmeanings . %d) "
-          "(:failures . %d) (:pruned . %d)\n",
+          "(:clashes . %d) (:pruned . %d)\n",
           tsdb_escape_string(date).c_str(),
           tsdb_escape_string(err).c_str(),
-          nmeanings, failures, pruned);
+          nmeanings, clashes, pruned);
 
   fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
           parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());

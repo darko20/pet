@@ -725,6 +725,7 @@ phrasal_item::unpack_cross(vector<list<item *> > &dtrs,
         }
         else
         {
+            stats.p_failures++;
             if(verbosity > 9)
             {
                 fprintf(stderr, "%*sfailure instantiating ",
