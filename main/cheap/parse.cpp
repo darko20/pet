@@ -386,11 +386,7 @@ add_item(item *it)
     else
     {
         Chart->add(it);
-#ifndef CRASHES_ON_DYNAMIC_CASTS
         fundamental_for_active(dynamic_cast<phrasal_item *> (it));
-#else
-        fundamental_for_active((phrasal_item *) it);
-#endif
     }
 #ifdef DEBUG_DEFER
     fprintf(ferr, "\n");
