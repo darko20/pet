@@ -175,7 +175,7 @@ input_token::instantiate()
 }  
 
 list<lex_item *>
-input_token::generics(int discount, postags onlyfor)
+input_token::generics(postags onlyfor)
 // Add generic lexical entries for token at position `i'. If `onlyfor' is 
 // non-empty, only those generic entries corresponding to one of those
 // POS tags are postulated. The correspondence is defined in posmapping.
@@ -203,6 +203,9 @@ input_token::generics(int discount, postags onlyfor)
                           _orth.c_str() + _orth.length() - strlen(suffix))
                != 0)
                 continue;
+
+        if(!_in_pos.license("posmapping", gen))
+            continue;
 
         if(!onlyfor.empty() && !onlyfor.contains(gen))
             continue;

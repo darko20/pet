@@ -133,16 +133,16 @@ postags::contains(type_t t) const
     setting *set = cheap_settings->lookup("posmapping");
     if(set)
     {
-        for(int i = 0; i < set->n; i+=3)
+        for(int i = 0; i < set->n; i+=2)
         {
-            if(i+3 > set->n)
+            if(i+2 > set->n)
             {
                 fprintf(ferr, "warning: incomplete last entry "
                         "in POS mapping - ignored\n");
                 break;
             }
             
-            char *lhs = set->values[i], *rhs = set->values[i+2];
+            char *lhs = set->values[i], *rhs = set->values[i+1];
             
             int type = lookup_type(rhs);
             if(type == -1)
@@ -166,19 +166,18 @@ postags::contains(type_t t) const
     return contained;
 }
 
-// Compute priority of given type under posmapping
-// Find first matching tuple in mapping, and return this priority
-// If no match found, return initialp
-int
-postags::priority(const char *settingname, type_t t, int initialp) const
+// Determine if given type is licensed under posmapping
+// Find first matching tuple in mapping.
+bool
+postags::license(const char *settingname, type_t t) const
 {
     setting *set = cheap_settings->lookup(settingname);
     if(set == 0)
-        return initialp;
+        return true;
     
-    for(int i = 0; i < set->n; i+=3)
+    for(int i = 0; i < set->n; i+=2)
     {
-        if(i+3 > set->n)
+        if(i+2 > set->n)
         {
             fprintf(ferr, "warning: incomplete last entry "
                     "in POS mapping `%s' - ignored\n", settingname);
@@ -186,10 +185,8 @@ postags::priority(const char *settingname, type_t t, int initialp) const
         }
         
         char *lhs = set->values[i],
-               *p = set->values[i+1],
-             *rhs = set->values[i+2];
+             *rhs = set->values[i+1];
         
-        int prio = strtoint(p, "as priority value in POS mapping");
         int type = lookup_type(rhs);
         
         if(type == -1)
@@ -200,8 +197,8 @@ postags::priority(const char *settingname, type_t t, int initialp) const
         else
         {
             if(subtype(t, type) && contains(lhs))
-                return prio;
+                return true;
         }
     }
-    return initialp;
+    return false;
 }

@@ -112,7 +112,6 @@ settings::~settings()
     for(int j = 0; j < _set[i]->n; j++)
       free(_set[i]->values[j]);
     free(_set[i]->values);
-    free(_set[i]->t_values);
     delete _set[i];
   }
 
@@ -187,48 +186,6 @@ char *settings::assoc(const char *name, const char *key, int arity, int nth)
     {
       if(i+nth >= set->n) return 0;
       if(strcasecmp(set->values[i], key) == 0)
-	return set->values[i+nth];
-    }
-
-  return 0;
-}
-
-// initialize type name cache in settings (temporary solution)
-void t_initialize(setting *set)
-{
-  for(int i = 0; i < set->n; i++)
-    {
-      char *v_lc = strdup(set->values[i]);
-      strtolower(v_lc);
-      set->t_values[i] = lookup_type(v_lc);
-      free(v_lc);
-    }
-  set->t_initialized = true;
-}
-
-char *settings::sassoc(const char *name, int key_t, int arity, int nth)
-{
-  setting *set = lookup(name);
-  if(set == 0) return 0;
-  if(key_t == -1) return 0;
-
-  assert(nth <= arity && arity > 1);
-
-  if(!set->t_initialized)
-    t_initialize(set);
-
-  for(int i = 0; i < set->n; i+=arity)
-    {
-      if(i+nth >= set->n) return 0;
-      int v_t = set->t_values[i];
-      if(v_t == -1)
-	{
-	  fprintf(ferr, "warning: ignoring unknown type `%s' in setting `%s'\n",
-		  set->values[i], name);
-	  continue;
-	}
-
-      if(subtype(key_t, v_t))
 	return set->values[i+nth];
     }
 
@@ -318,8 +275,6 @@ void settings::parse_one()
       set->n = 0;
       set->allocated = SET_TABLE_SIZE;
       set->values = (char **) malloc(set->allocated * sizeof(char *));
-      set->t_values = (int *) malloc(set->allocated * sizeof(int));
-      set->t_initialized = false;
     }
 
   if(LA(0)->tag != T_DOT)
@@ -335,7 +290,6 @@ void settings::parse_one()
 		{
 		  set->allocated += SET_TABLE_SIZE;
 		  set->values = (char **) realloc(set->values, set->allocated * sizeof(char *));
-		  set->t_values = (int *) realloc(set->t_values, set->allocated * sizeof(int));
 
 		}
 	      set->values[set->n++] = LA(0)->text; LA(0)->text=NULL;

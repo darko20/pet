@@ -70,7 +70,7 @@ class input_token
 
   void expand(list <class lex_item *> &result);
 
-  list<class lex_item *> generics(int discount, postags onlyfor = postags());
+  list<class lex_item *> generics(postags onlyfor = postags());
 
   void print(ostream &f);
   void print(FILE *f);
