@@ -419,21 +419,26 @@ struct dag_node *cached_constraint_of(int s)
   return c->dag;
 }
 
-inline bool dag_make_wellformed(int new_type, dag_node *dag1, int s1, dag_node *dag2, int s2)
+inline bool
+dag_make_wellformed(int new_type, dag_node *dag1, int s1, dag_node *dag2,
+                    int s2)
 {
-  if((s1 == new_type && s2 == new_type) ||
-     (!dag_has_arcs(dag1) && !dag_has_arcs(dag2)) ||
-     (s1 == new_type && dag_has_arcs(dag1)) ||
-     (s2 == new_type && dag_has_arcs(dag2)))
-    return true;
+    if((s1 == new_type && s2 == new_type) ||
+       (!dag_has_arcs(dag1) && !dag_has_arcs(dag2)) ||
+       (s1 == new_type && dag_has_arcs(dag1)) ||
+       (s2 == new_type && dag_has_arcs(dag2)))
+        return true;
 
-  if(typedag[new_type]->arcs)
+    bool res = true;
+    if(typedag[new_type]->arcs)
     {
-      if(dag_unify1(dag1, cached_constraint_of(new_type)) == FAIL)
-	return false;
+        bool sv = unify_record_failure;
+        unify_record_failure = false;
+        res = dag_unify1(dag1, cached_constraint_of(new_type)) != FAIL;
+        unify_record_failure = sv;
     }
 
-  return true;
+    return res;
 }
 
 inline dag_arc *dag_cons_arc(int attr, dag_node *val, dag_arc *next)
