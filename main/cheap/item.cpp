@@ -194,7 +194,7 @@ phrasal_item::phrasal_item(phrasal_item *active, item *pasv, fs &f)
   
 #ifdef DEBUG
     fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
-#ifdef DEBUG
+#endif
     pasv->_nparents++; pasv->parents.push_back(this);
     active->_nparents++; active->parents.push_back(this);
 
