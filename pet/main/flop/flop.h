@@ -410,4 +410,8 @@ struct dag_node *dagify_tdl_term(struct conjunction *C, int type, int crefs);
 void dagify_symtabs();
 void dagify_types();
 
+/*** flop.cc ***/
+void
+mem_checkpoint(char *where);
+
 #endif
