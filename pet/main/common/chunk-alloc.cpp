@@ -54,7 +54,7 @@ chunk_allocator::chunk_allocator(int chunk_size, bool down)
   _chunk_pos = 0;
   _nchunks = 0;
 
-  _chunk = New char* [MAX_CHUNKS];
+  _chunk = new char* [MAX_CHUNKS];
   if(_chunk == 0)
     throw error("alloc: out of memory"); 
 
@@ -273,7 +273,7 @@ void chunk_allocator::_init_core(bool down)
 
 void *chunk_allocator::_core_alloc(int size)
 {
-  void *p = (void *) New char[size];
+  void *p = (void *) new char[size];
   return p;
 }
 

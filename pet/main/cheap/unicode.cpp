@@ -47,7 +47,7 @@ EncodingConverter::~EncodingConverter()
 string EncodingConverter::convert(const UnicodeString from)
 {
   int32_t sz = from.length() * ucnv_getMaxCharSize(_conv) + 1;
-  char *s = New char [sz];
+  char *s = new char [sz];
 
   sz = ucnv_fromUChars(_conv, s, sz, from.getBuffer(), from.length(), &_status);
   if(U_FAILURE(_status))

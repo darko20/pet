@@ -175,7 +175,7 @@ input_chart::add_token(const string &tokenstring)
         string path, value;
 
         // now we have to process the (path_with_dots value) pairs
-        modlist *mods = New modlist;
+        modlist *mods = new modlist;
 
         while(get_open_paren(tokenstring, position))
         {
@@ -200,7 +200,7 @@ input_chart::add_token(const string &tokenstring)
 
         list_int *affixes = cons(affix_nr, 0);
         input_token *new_token =
-            New input_token(0, start, end, full_form(stem, *mods, affixes),
+            new input_token(0, start, end, full_form(stem, *mods, affixes),
                             orth, prob, postags(), tPaths(),
                             this);
         free_list(affixes);
@@ -246,7 +246,7 @@ input_chart::gaps(int max, list<lex_item *> &input)
     // in a topologically sorted chart graph
     input.sort(less_than_topo());
 
-    short int *active = New short int[max + 1];
+    short int *active = new short int[max + 1];
     for(int i = 0; i <= max; i++)
         active[i] = i;
 

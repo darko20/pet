@@ -32,15 +32,6 @@
 #include <new>
 #include <memory>
 
-#ifdef SMARTHEAP
-#include "smrtheap.hpp"
-#include "yymemory.h"
-#undef LOCAL_POOL
-#define LOCAL_POOL yy_l2_pool
-#else
-#define New new
-#endif
-
 // include system header files that we need everywhere
 
 // standard C library

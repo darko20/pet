@@ -72,7 +72,7 @@ void undump_arc(dumper *f, dag_arc_dump *x)
 void initialize_dags(int n)
 {
   int i;
-  typedag = New dag_node *[n];
+  typedag = new dag_node *[n];
 
   for(i = 0; i < n; i++) typedag[i] = 0;
 }
@@ -146,7 +146,7 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
   const char *dot = strchr(path, '.');
   if(dot != 0)
     {
-      char *attr = New char[strlen(path)+1];
+      char *attr = new char[strlen(path)+1];
       strncpy(attr, path, dot - path);
       attr[dot - path] = '\0';
       dag_node *f = dag_get_attr_value(dag, attr);
@@ -200,7 +200,7 @@ struct dag_node *dag_create_path_value(const char *path, int type)
   const char *dot = strchr(path, '.');
   if(dot != 0)
     {
-      char *firstpart = New char[strlen(path)+1];
+      char *firstpart = new char[strlen(path)+1];
       strncpy(firstpart, path, dot - path);
       firstpart[dot - path] = '\0';
 

@@ -258,7 +258,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        input_chart i_chart(New end_proximity_position_map);
+        input_chart i_chart(new end_proximity_position_map);
         
         pedgelimit = edges;
         opt_nsolutions = nanalyses;

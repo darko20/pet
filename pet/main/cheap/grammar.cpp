@@ -128,7 +128,7 @@ lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths) :
         if(_nwords == 0) // invalid entry
             return;
         
-        _orth = New char*[_nwords];
+        _orth = new char*[_nwords];
         
         for(int j = 0; j < _nwords; j++)
         {
@@ -139,7 +139,7 @@ lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths) :
     else
     {
         _nwords = orths.size();
-        _orth = New char *[_nwords];
+        _orth = new char *[_nwords];
         int j = 0;
         for(list<string>::const_iterator it = orths.begin(); it != orths.end();
             ++it, ++j)
@@ -417,7 +417,7 @@ grammar_rule::grammar_rule(type_t t)
         }
     }
     
-    _qc_vector_unif = New type_t *[_arity];
+    _qc_vector_unif = new type_t *[_arity];
     
     //
     // Build the _tofill list which determines the order in which arguments
@@ -563,7 +563,7 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
     initialize_dags(ntypes);
     
 #ifdef CONSTRAINT_CACHE
-    constraint_cache = New constraint_info_p [ntypes];
+    constraint_cache = new constraint_info_p [ntypes];
 #endif
     
     for(int i = 0; i < ntypes; i++)
@@ -696,7 +696,7 @@ grammar::grammar(const char * filename)
     {
         if(lexentry_status(i))
         {
-            lex_stem *st = New lex_stem(i);
+            lex_stem *st = new lex_stem(i);
             _lexicon[i] = st;
             _stemlexicon.insert(make_pair(st->orth(st->inflpos()), st));
 #if defined(YY)
@@ -712,14 +712,14 @@ grammar::grammar(const char * filename)
         }
         else if(rule_status(i))
         {
-            grammar_rule *R = New grammar_rule(i);
+            grammar_rule *R = new grammar_rule(i);
             _rules.push_front(R);
             _rule_dict[i] = R;
         }
         else if(genle_status(i))
         {
             _generics = cons(i, _generics);
-            _lexicon[i] = New lex_stem(i);
+            _lexicon[i] = new lex_stem(i);
         }
     }
     _nrules = _rules.size();
@@ -732,7 +732,7 @@ grammar::grammar(const char * filename)
         int nffs = dmp.undump_int();
         for(int i = 0; i < nffs; i++)
         {
-            full_form *ff = New full_form(&dmp, this);
+            full_form *ff = new full_form(&dmp, this);
             if(ff->valid())
                 _fullforms.insert(make_pair(ff->key(), ff));
             else
@@ -747,7 +747,7 @@ grammar::grammar(const char * filename)
 
 #ifdef ONLINEMORPH
     // inflectional rules
-    _morph = New morph_analyzer(this);
+    _morph = new morph_analyzer(this);
 
     if(cheap_settings->lookup("irregular-forms-only"))
         _morph->set_irregular_only(true);
@@ -1032,8 +1032,8 @@ void
 grammar::initialize_filter()
 {
     fs_alloc_state S0;
-    _filter = New char[_nrules * _nrules];
-    _subsumption_filter = New char[_nrules * _nrules];
+    _filter = new char[_nrules * _nrules];
+    _subsumption_filter = new char[_nrules * _nrules];
 
     for(rule_iter daughters(this); daughters.valid(); daughters++)
     {

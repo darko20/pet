@@ -50,7 +50,7 @@ settings::settings(const char *name, const char *base, char *message)
   : _li_cache()
 {
   _n = 0;
-  _set = New setting*[SET_TABLE_SIZE];
+  _set = new setting*[SET_TABLE_SIZE];
 
   _prefix = 0;
   _fname = 0;
@@ -269,7 +269,7 @@ void settings::parse_one()
   else
     {
       assert(_n < SET_TABLE_SIZE);
-      set = _set[_n++] = New setting;
+      set = _set[_n++] = new setting;
       set->name = option;
       set->loc = LA(0)->loc; LA(0)->loc = NULL;
       set->n = 0;

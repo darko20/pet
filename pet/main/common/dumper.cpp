@@ -46,7 +46,7 @@ dumper::dumper(const char *fname, bool write)
   if(_f == NULL)
     throw error("unable to open file `" + string(fname) + "'");
 
-  _buff = New char[BUFF_SIZE];
+  _buff = new char[BUFF_SIZE];
   setvbuf(_f, _buff, _IOFBF, BUFF_SIZE);
 
   _coe = true;
@@ -145,7 +145,7 @@ char *dumper::undump_string()
   if(len == 0)
     return 0;
 
-  s = New char[len];
+  s = new char[len];
   
   if(s == 0 || fread(s, sizeof(char), len, _f) != (unsigned int) len)
     throw error("error reading string from file");

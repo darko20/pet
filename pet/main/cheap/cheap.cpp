@@ -213,7 +213,7 @@ void interactive()
         try {
             fs_alloc_state FSAS;
 
-            input_chart i_chart(New end_proximity_position_map);
+            input_chart i_chart(new end_proximity_position_map);
 
             list<error> errors;
             analyze(i_chart, input, Chart, FSAS, errors, id);
@@ -311,7 +311,7 @@ void nbest()
             {
                 fs_alloc_state FSAS;
                 
-                input_chart i_chart(New end_proximity_position_map);
+                input_chart i_chart(new end_proximity_position_map);
                 
                 list<error> errors;
                 analyze(i_chart, input, Chart, FSAS, errors, id);
@@ -392,10 +392,10 @@ void process(char *s)
   
 
     try {
-      cheap_settings = New settings(settings::basename(s), s, "reading");
+      cheap_settings = new settings(settings::basename(s), s, "reading");
       fprintf(fstatus, "\n");
       fprintf(fstatus, "loading `%s' ", s);
-      Grammar = New grammar(s); 
+      Grammar = new grammar(s); 
     }
     
     catch(error &e)
