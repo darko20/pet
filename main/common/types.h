@@ -108,6 +108,10 @@ void undump_printnames(dumper *f);
 
 bool core_subtype(type_t a, type_t b);
 bool subtype(type_t a, type_t b);
+#ifndef FLOP
+void
+subtype_bidir(int A, int B, bool &a, bool &b);
+#endif
 type_t glb(type_t a, type_t b);
 
 type_t leaftype_parent(type_t t);

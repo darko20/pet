@@ -29,6 +29,7 @@
 #include "flop.h"
 #else
 #include "cheap.h"
+#undef SUBTYPECACHE
 #endif
 
 int nleaftypes;
@@ -477,9 +478,16 @@ inline bool is_leaftype(int s)
 #include <typecache.h>
 typecache glbcache(0);
 
+#ifdef SUBTYPECACHE
+typecache subtypecache(-1);
+#endif
+
 void prune_glbcache()
 {
   glbcache.prune();
+#ifdef SUBTYPECACHE
+  subtypecache.prune();
+#endif
 }
 
 #endif
@@ -504,10 +512,68 @@ bool subtype(int a, int b)
     return subtype(leaftypeparent[a - first_leaftype], b);
   if(is_leaftype(b))
     return false; // only leaftypes can be subtypes of a leaftype
+
+#ifdef SUBTYPECACHE
+  // result is a _reference_ to the cache entry -> automatic writeback
+  int &result = subtypecache[ (typecachekey_t) a*ntypes + b ];
+  if(result != -1) return result;
+  return (result = core_subtype(a, b));
+#endif
+
 #endif
 
   return core_subtype(a, b);
 }
+
+#ifndef FLOP
+void
+subtype_bidir(int A, int B, bool &a, bool &b)
+{
+    if(A == B) // every type is subtype of itself
+    {
+        a = b = true;
+        return;
+    }
+
+    if(A == BI_TOP)
+    {
+        a = false;
+        b = true;
+        return;
+    }
+
+    if(B == BI_TOP)
+    {
+        a = true;
+        b = false;
+        return;
+    }
+
+    if(A == -1)
+    {
+        a = true;
+        b = false;
+        return;
+    }
+
+    if(B == -1)
+    {
+        a = false;
+        b = true;
+        return;
+    }
+
+    if(is_leaftype(A) || is_leaftype(B))
+    {
+        // _fixme_ this is inefficient
+        a = subtype(A, B);
+        b = subtype(B, A);
+        return;
+    }
+    
+    subset_bidir(*typecode[A], *typecode[B], a, b);
+}
+#endif
 
 #ifndef FLOP
 int leaftype_parent(int t)
