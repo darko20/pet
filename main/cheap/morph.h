@@ -22,16 +22,13 @@
 #ifndef _MORPH_H_
 #define _MORPH_H_
 
-#include "grammar.h"
-
 class morph_analysis
 {
  public:
   morph_analysis() {}
 
-  morph_analysis(list<string> forms, list<type_t> rules,
-		 list<lex_stem *> stems)
-    : _forms(forms), _rules(rules), _stems(stems) 
+  morph_analysis(list<string> forms, list<type_t> rules)
+    : _forms(forms), _rules(rules)
     {}
 
   list<string> &forms() { return _forms; }
@@ -41,23 +38,18 @@ class morph_analysis
 
   list<type_t> &rules() { return _rules; }
 
-  list<lex_stem *> &stems() { return _stems; }
-
-  bool valid() { return !_stems.empty(); }
-  
   void print(FILE *f);
   void print_lkb(FILE *f);
 
  private:
   list<string> _forms;
   list<type_t> _rules;
-  list<lex_stem *> _stems;
 };
 
 class morph_analyzer
 {
  public:
-  morph_analyzer(class tGrammar *G);
+  morph_analyzer();
   ~morph_analyzer();
 
   void add_global(string rule);
@@ -72,7 +64,7 @@ class morph_analyzer
   class morph_letterset *letterset(string name);
   void undo_letterset_bindings();
 
-  list<morph_analysis> analyze(string form, bool lexfilter = true);
+  list<morph_analysis> analyze(string form);
   string generate(morph_analysis);
 
   void print(FILE *f);
@@ -85,8 +77,6 @@ class morph_analyzer
 
   void add_subrule(class morph_subrule *sr) 
     { _subrules.push_back(sr); }
-
-  class tGrammar *_grammar;
 
   class morph_lettersets *_lettersets;
   class morph_trie *_suffixrules;

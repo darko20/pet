@@ -56,7 +56,7 @@ void interactive_morph()
   while(!(input = read_line(stdin)).empty())
     {
 #if 1
-      list<morph_analysis> res = m->analyze(input, false);
+      list<morph_analysis> res = m->analyze(input);
       for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
 	{
 	  fprintf(stdout, "%s\t", it->base().c_str());

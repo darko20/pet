@@ -546,16 +546,6 @@ list<morph_analysis> morph_trie::analyze(morph_analysis a)
       list<string>::iterator form;
 
       //
-      // See if sequence of rule applications is compatible with
-      // the rule filter.
-      //
-      if(rules.size() > 0 && 
-         !_analyzer->_grammar->filter_compatible(rules.front(), 1, candidate))
-      {
-        continue;
-      }
-
-      //
       // now test for potentially cyclic rule applications: if this rule
       // has been used on the same form before, re-applying it here must
       // take us into a cyclic derivation.  ERB assures us, it is fully
@@ -574,12 +564,10 @@ list<morph_analysis> morph_trie::analyze(morph_analysis a)
       }
       if(cyclep) continue;
 
-      list<lex_stem *> stems = _analyzer->_grammar->lookup_stem(st);
-
       rules.push_front(candidate);
       forms.push_front(st);
 	  
-      res.push_back(morph_analysis(forms, rules, stems));
+      res.push_back(morph_analysis(forms, rules));
     }
   }
 
@@ -603,18 +591,10 @@ void morph_trie::print(FILE *f)
 
 void morph_analysis::print(FILE *f)
 {
-  fprintf(f, "%s = %s (%d stem%s", complex().c_str(), base().c_str(),
-          _stems.size(), _stems.size() == 1 ? "" : "s");
+    fprintf(f, "%s = %s", complex().c_str(), base().c_str());
 
-#ifdef DEBUG
-  for(list<lex_stem *>::iterator it = _stems.begin(); it != _stems.end(); ++it)
-    fprintf(f, " %x", (int) *it);
-#endif
-
-  fprintf(f, ")");
-
-  for(list<type_t>::iterator it = _rules.begin(); it != _rules.end(); ++it)
-    fprintf(f, " + %s", printnames[*it]);
+    for(list<type_t>::iterator it = _rules.begin(); it != _rules.end(); ++it)
+        fprintf(f, " + %s", printnames[*it]);
 }
 
 void morph_analysis::print_lkb(FILE *f)
@@ -639,9 +619,8 @@ void morph_analysis::print_lkb(FILE *f)
 // Analzer
 //
 
-morph_analyzer::morph_analyzer(tGrammar *G)
-  : _grammar(G),
-    _lettersets(new morph_lettersets),
+morph_analyzer::morph_analyzer()
+  : _lettersets(new morph_lettersets),
     _suffixrules(new morph_trie(this, true)),
     _prefixrules(new morph_trie(this, false)),
     _irregs_only(false)
@@ -735,14 +714,6 @@ void morph_analyzer::add_irreg(string stem, type_t t, string form)
     fprintf(fstatus, "IRREG: %s + %s = %s\n",
             stem.c_str(), printnames[t], form.c_str());
 
-  list<lex_stem *> stems = _grammar->lookup_stem(stem);
-  if(stems.empty())
-  {
-    fprintf(ferr, "Ignoring entry with unknown stem `%s' "
-            "in irregular forms\n", stem.c_str());
-    return;
-  }
-
   list<type_t> rules;
   rules.push_front(t);
   
@@ -750,7 +721,7 @@ void morph_analyzer::add_irreg(string stem, type_t t, string form)
   forms.push_front(form);
   forms.push_front(stem);
 
-  morph_analysis *a = new morph_analysis(forms, rules, stems);
+  morph_analysis *a = new morph_analysis(forms, rules);
 
   _irregs_by_stem.insert(make_pair(stem, a));
   _irregs_by_form.insert(make_pair(form, a));
@@ -823,10 +794,10 @@ bool morph_analyzer::matching_irreg_form(morph_analysis a)
   return false;
 }
 
-list<morph_analysis> morph_analyzer::analyze(string form, bool lexfilter)
+list<morph_analysis> morph_analyzer::analyze(string form)
 {
   if(verbosity > 7)
-    fprintf(fstatus, "morph_analyzer::analyze(%s, %d)\n", form.c_str(), (int) lexfilter);
+    fprintf(fstatus, "morph_analyzer::analyze(%s)\n", form.c_str());
 
   // least fixpoint iteration
   
@@ -837,11 +808,10 @@ list<morph_analysis> morph_analyzer::analyze(string form, bool lexfilter)
 
   list<morph_analysis> final_results, prev_results;
 
-  list<lex_stem *> stems = _grammar->lookup_stem(form);
   list<string> forms;
   forms.push_front(form);
 
-  prev_results.push_back(morph_analysis(forms, list<type_t>(), stems));
+  prev_results.push_back(morph_analysis(forms, list<type_t>()));
   
   while(prev_results.size() > 0)
   {
@@ -858,8 +828,7 @@ list<morph_analysis> morph_analyzer::analyze(string form, bool lexfilter)
     {
       list<morph_analysis> r = analyze1(*it);
       current_results.splice(current_results.end(), r);
-      if(!lexfilter || it->valid())
-        final_results.push_back(*it);
+      final_results.push_back(*it);
     }
 
     prev_results.clear();
