@@ -26,8 +26,10 @@
 #include "list-int.h"
 #include "fs.h"
 #include "options.h"
-#include "grammar.h"
+#include "paths.h"
 #include "inputtoken.h"
+
+enum tItemTrait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT };
 
 /** Represent an item in a chart. Conceptually there are input items,
  *  morphological items, lexical items and phrasal items. 
@@ -36,7 +38,6 @@
 class tItem
 {
  public:
-
 
     /** Does this item have any further completion requirements? */
     virtual bool
@@ -99,7 +100,7 @@ class tItem
   static void reset_ids() { _next_id = 1; }
 
   inline int id() { return _id; }
-  inline rule_trait trait() { return _trait; }
+  inline tItemTrait trait() { return _trait; }
 
   inline int start() const { return _start; }
   inline int end() const { return _end; }
@@ -107,16 +108,8 @@ class tItem
 
   bool spanningonly() { return _spanningonly; }
 
-  inline bool root(class tGrammar *G, int length, type_t &rule)
-  {
-      if(_trait == INFL_TRAIT)
-          return false;
-      
-      if(_start == 0 && _end == length)
-          return G->root(_fs, rule);
-      else
-          return false;
-  }
+  bool
+  root(class tGrammar *G, int length, type_t &rule);
   
   virtual fs get_fs(bool full = false)
   {
@@ -197,7 +190,7 @@ class tItem
 
   int _id;
 
-  rule_trait _trait;
+  tItemTrait _trait;
 
   int _start, _end;
 

@@ -28,6 +28,7 @@
 #include "inputchart.h"
 #include "tokenizer.h"
 #include "tsdb++.h"
+#include "utility.h"
 #include "mfile.h"
 #include "qc.h"
 #ifdef YY
@@ -82,7 +83,7 @@ statistics::reset()
   // rule stuff
   for(rule_iter rule(Grammar); rule.valid(); rule++)
     {
-      grammar_rule *R = rule.current();
+      tGrammarRule *R = rule.current();
       R->actives = R->passives = 0;
     }
 }
@@ -184,7 +185,7 @@ initialize_version()
                                     : (opt_key == 2 ? "r-l"
                                        : (opt_key == 3 ? "head" : "unknown"))),
             opt_hyper ? "+HA" : "-HA",
-            Grammar->nhyperrules(),
+            Grammar->nHyperActiveRules(),
             opt_filter ? "+FI" : "-FI",
             opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
             opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
@@ -228,7 +229,7 @@ cheap_tsdb_summarize_run(void)
     capi_printf("(:avms . %d) ", ntypes);
     capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
-    capi_printf("(:rules . %d) ", Grammar->nrules());
+    capi_printf("(:rules . %d) ", Grammar->nRules());
     if(!Grammar->property("ntemplates").empty())
       capi_printf("(:templates . %s) ", 
                   Grammar->property("ntemplates").c_str());
@@ -605,9 +606,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         for(rule_iter rule(Grammar); rule.valid(); rule++)
         {
             tsdb_rule_stat S;
-            grammar_rule *R = rule.current();
+            tGrammarRule *R = rule.current();
             
-            S.rule = R->printname();
+            S.rule = R->printName();
             S.actives = R->actives;
             S.passives = R->passives;
             

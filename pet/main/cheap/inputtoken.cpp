@@ -24,6 +24,7 @@
 #include "inputchart.h"
 #include "item.h"
 #include "dag-common.h"
+#include "grammar.h"
 
 input_token::input_token(int id, int s, int e, class full_form ff, string o,
                          double p, const postags &pos, const tPaths &paths,
