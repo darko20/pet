@@ -38,13 +38,14 @@ class EncodingConverter
 {
 public:
   EncodingConverter(string encodingname);
+  ~EncodingConverter();
 
   string convert(const UnicodeString from);
   UnicodeString convert(const string from);
 
 private:
   UErrorCode _status;
-  UnicodeConverter _conv;
+  UConverter *_conv;
   string _encoding;
 };
 
