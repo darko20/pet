@@ -37,6 +37,8 @@ int unify_generation_max = 0;
 static bool create_permanent_dags = true;
 #endif
 
+// _fix_me_
+// This should be better integrated with the t_alloc and p_alloc stuff.
 void stop_creating_permanent_dags()
 {
 #ifdef MARK_PERMANENT
@@ -613,10 +615,10 @@ dag_node *dag_full_copy(dag_node *dag)
   return copy;
 }
 
-struct dag_node *dag_partial_copy1(dag_node *dag, int attr, int rattr)
+struct dag_node *dag_partial_copy1(dag_node *dag, int attr, list_int *del)
 {
   dag_node *copy;
-
+  
   copy = dag_get_copy(dag);
   
   if(copy == 0)
@@ -627,13 +629,13 @@ struct dag_node *dag_partial_copy1(dag_node *dag, int attr, int rattr)
 
       dag_set_copy(dag, copy);
 
-      if(attr != rattr)
-	{
 
+      if(!contains(del, attr))
+	{
 	  arc = dag->arcs;
 	  while(arc != 0)
 	    {
-	      dag_add_arc(copy, new_arc(arc->attr, dag_partial_copy1(arc->val, arc->attr, rattr)));
+	      dag_add_arc(copy, new_arc(arc->attr, dag_partial_copy1(arc->val, arc->attr, del)));
 	      arc = arc->next;
 	    }
 	}
@@ -642,9 +644,9 @@ struct dag_node *dag_partial_copy1(dag_node *dag, int attr, int rattr)
   return copy;
 }
 
-struct dag_node *dag_partial_copy(dag_node *dag, int rattr)
+struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
 {
-  return dag_partial_copy1(dag, 0, rattr);
+  return dag_partial_copy1(dag, 0, del);
 }
 
 bool dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);

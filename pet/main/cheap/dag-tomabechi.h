@@ -78,7 +78,10 @@ bool dags_compatible(struct dag_node *dag1, struct dag_node *dag2);
 
 void dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
 
-struct dag_node *dag_partial_copy(dag_node *src, int attr);
+struct dag_node *dag_partial_copy(dag_node *src, list_int *del);
+
+dag_node *
+dag_full_p_copy(dag_node *dag);
 
 // for debugging
 bool dag_valid(dag_node *dag);
