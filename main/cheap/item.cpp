@@ -25,6 +25,7 @@
 #include "types.h"
 #include "item.h"
 #include "parse.h"
+#include "grammar.h"
 #include "tsdb++.h"
 #include "sm.h"
 
@@ -151,7 +152,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 
 #if 0
     // _fix_me_ merge this
-tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
+tPhrasalItem::tPhrasalItem(tGrammarRule *R, tItem *pasv, fs &f)
     : tItem(pasv->_start, pasv->_end, pasv->_paths,
            f, R->printname()),
       tActive(R->restargs()),
@@ -261,6 +262,18 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
 
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size(); 
+}
+
+bool
+tItem::root(class tGrammar *G, int length, type_t &rule)
+{
+    if(_trait == INFL_TRAIT)
+        return false;
+    
+    if(_start == 0 && _end == length)
+        return G->root(_fs, rule);
+    else
+        return false;
 }
 
 void
@@ -902,7 +915,7 @@ tPhrasalItem::compatible(tItem *passive, int length)
 //
 
 bool
-filter_rule_task(grammar_rule *R, tItem *passive)
+filter_rule_task(tGrammarRule *R, tItem *passive)
 {
 
 #ifdef DEBUG
@@ -1062,7 +1075,7 @@ tItem *
 build_combined_item(chart *C, tItem *active, tItem *passive);
 
 tItem *
-build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
+build_rule_item(chart *C, tAgenda *A, tGrammarRule *R, tItem *passive)
 {
     fs_alloc_state FSAS(false);
     

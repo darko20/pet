@@ -24,6 +24,7 @@
 #include "grammar.h"
 #include "parse.h"
 #include "inputchart.h"
+#include "utility.h"
 #include "tokenizer.h"
 #ifdef ICU
 #include "unicode.h"

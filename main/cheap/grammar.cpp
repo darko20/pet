@@ -37,8 +37,6 @@
 #include "morph.h"
 #endif
 
-int grammar_rule::next_id = 0;
-
 bool
 lexentry_status(type_t t)
 {
@@ -56,70 +54,73 @@ genle_status(type_t t)
 bool
 rule_status(type_t t)
 {
-    return cheap_settings->statusmember("rule-status-values", typestatus[t])
-        || cheap_settings->statusmember("lexrule-status-values", typestatus[t])
-        || cheap_settings->statusmember("infl-rule-status-values", typestatus[t]);
+    return cheap_settings->statusmember("rule-status-values",
+                                        typestatus[t])
+        || cheap_settings->statusmember("lexrule-status-values",
+                                        typestatus[t])
+        || cheap_settings->statusmember("infl-rule-status-values",
+                                        typestatus[t]);
 }
 
-grammar_rule::grammar_rule(type_t t)
-    : _tofill(0), _hyper(true), _spanningonly(false)
+int tGrammarRule::nextId = 0;
+
+tGrammarRule::tGrammarRule(type_t t)
+    : _id(nextId++), _type(t), _toFill(0),
+      _hyperActive(true), _spanningOnly(false)
 {
-    _id = next_id++;
-    _type = t;
-    
-    if(cheap_settings->statusmember("infl-rule-status-values", typestatus[t]))
+    //
+    // Determine the trait of this rule.
+    //
+
+    if(cheap_settings->statusmember("infl-rule-status-values",
+                                    typestatus[t]))
         _trait = INFL_TRAIT;
-    else if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
+    else if(cheap_settings->statusmember("lexrule-status-values",
+                                         typestatus[t]))
         _trait = LEX_TRAIT;
     else
         _trait = SYNTAX_TRAIT;
     
-    if(opt_packing)
-        _f_restriced = packing_partial_copy(fs(_type),
-                                            Grammar->packing_restrictor(),
-                                            true);
-
     //
-    // Determine arity, determine head and key daughters.
+    // Determine arity; determine head and key daughters.
     // 
     
-    struct dag_node *dag, *head_dtr;
-    list <struct dag_node *> argslist;
-
-    dag = dag_get_path_value(typedag[t],
-                             cheap_settings->req_value("rule-args-path"));
+    struct dag_node *ruleDag;
+    ruleDag = dag_get_path_value(typedag[t],
+                                 cheap_settings->req_value("rule-args-path"));
    
-    if(dag == FAIL)
+    if(ruleDag == FAIL)
     {
         throw tError("Feature structure of rule " + string(typenames[t])
-                    + " does not contain "
-                    + string(cheap_settings->req_value("rule-args-path")));
+                     + " does not contain "
+                     + string(cheap_settings->req_value("rule-args-path")));
     }	    
 
-    argslist = dag_get_list(dag);
+    list <struct dag_node *> argsList = dag_get_list(ruleDag);
     
-    _arity = argslist.size();
+    int arity = argsList.size();
     
-    head_dtr = dag_get_path_value(typedag[t],
-                                  cheap_settings->req_value("head-dtr-path"));
+    struct dag_node *headDtrDag;
+    headDtrDag = dag_get_path_value(typedag[t],
+                     cheap_settings->req_value("head-dtr-path"));
     
     int n = 1, keyarg = -1, head = -1;
-    for(list<dag_node *>::iterator currentdag = argslist.begin();
-        currentdag != argslist.end(); ++ currentdag)
+    for(list<dag_node *>::iterator currDag = argsList.begin();
+        currDag != argsList.end(); ++currDag)
     {
         if(cheap_settings->lookup("keyarg-marker-path"))
         {
-            struct dag_node *k;
+            struct dag_node *keyDag;
             
-            k = dag_get_path_value(*currentdag,
-                                   cheap_settings->value("keyarg-marker-path"));
+            keyDag = dag_get_path_value(*currDag,
+                         cheap_settings->value("keyarg-marker-path"));
             
-            if(k != FAIL && dag_type(k) ==
+            if(keyDag != FAIL && dag_type(keyDag) ==
                lookup_type(cheap_settings->req_value("true-type")))
                 keyarg = n;
         }
         
-        if(*currentdag == head_dtr)
+        if(*currDag == headDtrDag)
             head = n;
         
         n++;
@@ -139,8 +140,6 @@ grammar_rule::grammar_rule(type_t t)
         }
     }
     
-    _qc_vector_unif = new type_t *[_arity];
-    
     //
     // Build the _tofill list which determines the order in which arguments
     // are filled. The opt_key option determines the strategy:
@@ -154,44 +153,41 @@ grammar_rule::grammar_rule(type_t t)
     if(opt_key == 0)
     {
         if(keyarg != -1) 
-            _tofill = append(_tofill, keyarg);
+            _toFill = append(_toFill, keyarg);
     }
     else if(opt_key == 3)
     {
         if(head != -1) 
-            _tofill = append(_tofill, head);
+            _toFill = append(_toFill, head);
         else if(keyarg != -1) 
-            _tofill = append(_tofill, keyarg);
+            _toFill = append(_toFill, keyarg);
     }
     
     if(opt_key != 2)
     {
-        for(int i = 1; i <= _arity; i++)
-            if(!contains(_tofill, i)) _tofill = append(_tofill, i);
+        for(int i = 1; i <= arity; i++)
+            if(!contains(_toFill, i)) _toFill = append(_toFill, i);
     }
     else
     {
-        for(int i = _arity; i >= 1; i--)
-            if(!contains(_tofill, i)) _tofill = append(_tofill, i);
+        for(int i = arity; i >= 1; i--)
+            if(!contains(_toFill, i)) _toFill = append(_toFill, i);
     }
-    
-    for(int i = 0; i < _arity; i++)
-        _qc_vector_unif[i] = 0;
     
     //
     // Disable hyper activity if this is a more than binary-branching
     // rule or if it's explicitely disabled by a setting.
     //
 
-    if(_arity > 2
+    if(arity > 2
        || cheap_settings->member("depressive-rules", typenames[_type]))
     {
-        _hyper = false;
+        _hyperActive = false;
     }
 
     if(cheap_settings->member("spanning-only-rules", typenames[_type]))
     {
-        _spanningonly = true;
+        _spanningOnly = true;
     }
     
     if(verbosity > 14)
@@ -201,12 +197,12 @@ grammar_rule::grammar_rule(type_t t)
 }
 
 void
-grammar_rule::print(FILE *f)
+tGrammarRule::print(FILE *f)
 {
-    fprintf(f, "%s/%d%s (", printnames[_type], _arity,
-            _hyper == false ? "[-HA]" : "");
+    fprintf(f, "%s/%d%s (", printnames[_type], arity(),
+            hyperActive() == false ? "[-HA]" : "");
     
-    list_int *l = _tofill;
+    list_int *l = _toFill;
     while(l)
     {
         fprintf(f, " %d", first(l));
@@ -216,27 +212,11 @@ grammar_rule::print(FILE *f)
     fprintf(f, ")");
 }
 
-fs
-grammar_rule::instantiate(bool full)
+tPhrasalItem *
+tGrammarRule::instantiate()
 {
-  if(opt_packing && !full)
-    return _f_restriced;
-  else
-    return fs(_type);
-}
-
-void
-grammar_rule::init_qc_vector_unif()
-{
-    fs_alloc_state FSAS;
-    
-    fs f = instantiate();
-    for(int i = 1; i <= _arity; i++)
-    {
-        fs arg = f.nth_arg(i);
-        
-        _qc_vector_unif[i-1] = get_qc_vector(qc_paths_unif, qc_len_unif, arg);
-    }
+    // _fix_me_
+    return 0;
 }
 
 bool
@@ -427,7 +407,7 @@ tGrammar::tGrammar(const char * filename)
         }
         else if(rule_status(i))
         {
-            grammar_rule *R = new grammar_rule(i);
+            tGrammarRule *R = new tGrammarRule(i);
             _rules.push_front(R);
         }
         else if(genle_status(i))
@@ -493,7 +473,7 @@ tGrammar::tGrammar(const char * filename)
                                     "with attached infl rule `%s'\n",
                                     printnames[t], r);
 		      
-                        iter.current()->trait(INFL_TRAIT);
+                        iter.current()->setTrait(INFL_TRAIT);
                         found = true;
                     }
                 }
@@ -543,8 +523,6 @@ tGrammar::tGrammar(const char * filename)
     {
         if(opt_nqc_unif > 0 && opt_nqc_unif < qc_len_unif)
             qc_len_unif = opt_nqc_unif;
-
-        init_rule_qc_unif();
     }
 
     if(opt_nqc_subs != 0)
@@ -732,17 +710,6 @@ tGrammar::init_parameters()
 }
 
 void
-tGrammar::init_rule_qc_unif()
-{
-    for(rule_iter iter(this); iter.valid(); iter++)
-    {
-        grammar_rule *rule = iter.current();
-
-        rule->init_qc_vector_unif();
-    }
-}
-
-void
 tGrammar::initialize_filter()
 {
     fs_alloc_state S0;
@@ -752,27 +719,29 @@ tGrammar::initialize_filter()
     for(rule_iter daughters(this); daughters.valid(); daughters++)
     {
         fs_alloc_state S1;
-        grammar_rule *daughter = daughters.current();
-        fs daughter_fs = copy(daughter->instantiate());
+        tGrammarRule *daughter = daughters.current();
+        tPhrasalItem *daughterItem = daughter->instantiate();
+        fs daughterFs = copy(daughterItem->get_fs());
       
         for(rule_iter mothers(this); mothers.valid(); mothers++)
         {
-            grammar_rule *mother = mothers.current();
+            tGrammarRule *mother = mothers.current();
+            tPhrasalItem *motherItem = mother->instantiate();
 
             _filter[daughter->id() + _nrules * mother->id()] = 0;
 
             for(int arg = 1; arg <= mother->arity(); arg++)
             {
                 fs_alloc_state S2;
-                fs mother_fs = mother->instantiate();
+                fs motherFs = motherItem->get_fs();
                 
                 if(arg == 1)
                 {
                     bool forward = true, backward = false;
-                    fs a = packing_partial_copy(daughter_fs,
+                    fs a = packing_partial_copy(daughterFs,
                                                 Grammar->deleted_daughters(),
                                                 false);
-                    fs b = packing_partial_copy(mother_fs,
+                    fs b = packing_partial_copy(motherFs,
                                                 Grammar->deleted_daughters(),
                                                 false);
                     
@@ -787,14 +756,16 @@ tGrammar::initialize_filter()
 #endif
                 }
                 
-                fs arg_fs = mother_fs.nth_arg(arg);
+                fs argFs = motherFs.nth_arg(arg);
 
-                if(unify(mother_fs, daughter_fs, arg_fs).valid())
+                if(unify(motherFs, daughterFs, argFs).valid())
                 {
                     _filter[daughter->id() + _nrules * mother->id()] |= (1 << (arg - 1));
                 }
             }
+            delete motherItem;
         }
+        delete daughterItem;
     }
 
     S0.clear_stats();
@@ -810,7 +781,7 @@ tGrammar::~tGrammar()
         pos != _fullforms.end(); ++pos)
         delete pos->second;
 
-    for(list<grammar_rule *>::iterator pos = _rules.begin();
+    for(list<tGrammarRule *>::iterator pos = _rules.begin();
         pos != _rules.end(); ++pos)
         delete *pos;
 
@@ -844,11 +815,12 @@ tGrammar::~tGrammar()
 }
 
 int
-tGrammar::nhyperrules()
+tGrammar::nHyperActiveRules()
 {
     int n = 0;
     for(rule_iter iter(this); iter.valid(); iter++)
-        if(iter.current()->hyperactive()) n++;
+        if(iter.current()->hyperActive())
+            n++;
 
     return n;
 }

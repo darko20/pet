@@ -23,11 +23,11 @@
 #define _GRAMMAR_H_
 
 #include "list-int.h"
-#include "../common/utility.h"
 #include "types.h"
 #include "fs.h"
 #include "sm.h"
 #include "lexicon.h"
+#include "item.h"
 
 // global variables for quick check
 extern int qc_len_unif;
@@ -36,57 +36,78 @@ extern qc_node *qc_paths_unif;
 extern int qc_len_subs;
 extern qc_node *qc_paths_subs;
 
-enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT };
-
-class grammar_rule
+class tGrammarRule
 {
  public:
-  grammar_rule(type_t t);
+    tGrammarRule(type_t t);
 
-  inline int arity() { return _arity; }
-  inline int nextarg() { return first(_tofill); }
-  inline bool left_extending() { return first(_tofill) == 1; }
+    int
+    id()
+    {
+        return _id;
+    }
 
-  inline int type() { return _type; }
-  inline char *printname() { return printnames[_type]; }
-  inline int id() { return _id; }
-  inline rule_trait trait() { return _trait; }
-  inline void trait(rule_trait t) { _trait = t; }
+    type_t
+    type()
+    {
+        return _type;
+    }
 
-  void print(FILE *f);
+    tItemTrait
+    trait()
+    {
+        return _trait;
+    }
 
-  fs instantiate(bool full = false);
+    void
+    setTrait(tItemTrait trait)
+    {
+        _trait = trait;
+    }
 
-  inline fs nextarg(fs &f) { return f.nth_arg(first(_tofill)); }
-  inline list_int *restargs() { return rest(_tofill); }
-  inline list_int *allargs() { return _tofill; }
+    int
+    arity()
+    {
+        return length(_toFill);
+    }
+    
+    bool
+    hyperActive()
+    {
+        return _hyperActive;
+    }
 
-  inline type_t *qc_vector_unif(int arg) { return _qc_vector_unif[arg - 1]; }
+    bool
+    spanningOnly()
+    {
+        return _spanningOnly;
+    }
 
-  inline bool hyperactive() { return _hyper; }
-  inline bool spanningonly() { return _spanningonly; }
+    const string
+    printName()
+    {
+        return string(printnames[type()]);
+    }
 
-  int actives, passives;
+    void
+    print(FILE *f);
+
+    tPhrasalItem *
+    instantiate();
+
+    int actives, passives;
 
  private:
-  static int next_id;
+    static int nextId;
+    
+    int _id;
+    type_t _type;        // type index
+    tItemTrait _trait;
 
-  int _id;
-  int _type;        // type index
-  rule_trait _trait;
-  int _arity;
-  list_int *_tofill;
+    list_int *_toFill;
   
-  fs _f_restriced;  // The feature structure corresponding to this rule
-                    // with the packing restrictor applied.
-  
-  type_t **_qc_vector_unif;
-  void init_qc_vector_unif();
-
-  bool _hyper;
-  bool _spanningonly;
-
-  friend class tGrammar;
+    bool _hyperActive;
+    bool _spanningOnly;
 };
 
 class tGrammar
@@ -106,15 +127,15 @@ class tGrammar
   list_int *deleted_daughters() { return _deleted_daughters; }
   list_int *packing_restrictor() { return _packing_restrictor; }
 
-  inline bool filter_compatible(grammar_rule *mother, int arg,
-                                grammar_rule *daughter)
+  inline bool filter_compatible(tGrammarRule *mother, int arg,
+                                tGrammarRule *daughter)
   {
     if(daughter == NULL) return true;
     return _filter[daughter->id() + _nrules * mother->id()] &
       (1 << (arg - 1));
   }
 
-  inline void subsumption_filter_compatible(grammar_rule *a, grammar_rule *b,
+  inline void subsumption_filter_compatible(tGrammarRule *a, tGrammarRule *b,
                                             bool &forward, bool &backward)
   {
       if(a == 0 || b == 0)
@@ -126,8 +147,14 @@ class tGrammar
       backward = _subsumption_filter[b->id() + _nrules * a->id()];
   }
 
-  inline int nrules() { return _rules.size(); }
-  int nhyperrules();
+  int
+  nRules()
+  {
+      return _rules.size();
+  }
+  
+  int
+  nHyperActiveRules();
 
   inline int nstems() { return _lexicon.size(); }
   lex_stem *find_stem(int inst_key);
@@ -176,7 +203,7 @@ class tGrammar
 #endif
 
   int _nrules;
-  list<grammar_rule *> _rules;
+  list<tGrammarRule *> _rules;
 
   list_int *_root_insts;
 
@@ -216,7 +243,7 @@ class rule_iter
       return _curr != _G->_rules.end();
     }
 
-  inline grammar_rule *current()
+  inline tGrammarRule *current()
     {
       if(valid()) return *_curr; else return 0;
     }
@@ -227,7 +254,7 @@ class rule_iter
     }
 
  private:
-  list<grammar_rule *>::iterator _curr;
+  list<tGrammarRule *>::iterator _curr;
   tGrammar *_G;
 };
 

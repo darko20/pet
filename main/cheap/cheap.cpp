@@ -29,6 +29,7 @@
 #include "mfile.h"
 #include "grammar-dump.h"
 #include "inputchart.h"
+#include "utility.h"
 
 #ifdef QC_PATH_COMP
 #include "qc.h"

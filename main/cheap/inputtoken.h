@@ -24,10 +24,10 @@
 #define _INPUTTOKEN_H_
 
 #include "dag-common.h"
-#include "grammar.h"
 #include "settings.h"
 #include "postags.h"
 #include "paths.h"
+#include "lexicon.h"
 
 class input_chart;
 
