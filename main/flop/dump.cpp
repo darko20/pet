@@ -103,6 +103,20 @@ dump_tables(dumper *f)
 }
 
 void
+dump_supertypes(dumper *f)
+{
+  // write (immediate) supertypes for each type
+  for(int i = 0; i < first_leaftype; i++)
+  {
+      list<int> supertypes = immediate_supertypes(rleaftype_order[i]);
+      f->dump_short(supertypes.size());
+      for(list<int>::iterator it = supertypes.begin(); it != supertypes.end();
+          ++it)
+          f->dump_int(*it);
+  }
+}
+
+void
 dump_print_names(dumper *f)
 {
   // print names
@@ -188,6 +202,7 @@ dump_grammar(dumper *f, char *desc)
   toc.add_section(SEC_PRINTNAMES);
   toc.add_section(SEC_HIERARCHY);
   toc.add_section(SEC_FEATTABS);
+  toc.add_section(SEC_SUPERTYPES);
   toc.add_section(SEC_FULLFORMS);
   toc.add_section(SEC_INFLR);
   toc.add_section(SEC_IRREGS);
@@ -210,6 +225,9 @@ dump_grammar(dumper *f, char *desc)
 
   toc.start_section(SEC_FEATTABS);
   dump_tables(f);
+
+  toc.start_section(SEC_SUPERTYPES);
+  dump_supertypes(f);
 
   fprintf(fstatus, ", hierarchy %dk", kbwritten(f));
 
