@@ -167,7 +167,7 @@ class item
       return _fs;
   }
 
-  virtual type_t type()
+  type_t type()
   {
       return get_fs().type();
   }
@@ -302,6 +302,7 @@ class lex_item : public item
 
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) {}
+
   virtual void print_derivation(FILE *f, bool quoted);
   virtual void print_yield(FILE *f);
   virtual string tsdb_derivation(int protocolversion);
@@ -322,14 +323,10 @@ class lex_item : public item
       return full ? _fs_full : _fs;
   }
 
-  virtual type_t type()
-  {
-      return leaftype_parent(get_fs().type());
-  }
-
   virtual void recreate_fs();
 
   string description();
+  string orth();
 
   virtual inline int startposition() { return _dtrs[0]->startposition() ; }
   virtual inline int endposition() { 

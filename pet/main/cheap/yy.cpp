@@ -196,7 +196,7 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
                     currf != forms.end(); ++currf)
                 {
                     i_chart->add_token(tok->id, tok->start, tok->end,
-                                       *currf, tok->surface, currf->priority(),
+                                       *currf, tok->surface, 0,
                                        poss, tok->paths);
                 }
             }
@@ -218,7 +218,7 @@ yy_tokenizer::add_tokens(input_chart *i_chart)
                 {
                     full_form f(*currs, modlist(), inflrs);
                     i_chart->add_token(tok->id, tok->start, tok->end,
-                                       f, tok->surface, f.priority(), poss,
+                                       f, tok->surface, 0, poss,
                                        tok->paths);
                 }
             }

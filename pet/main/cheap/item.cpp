@@ -333,6 +333,18 @@ lex_item::description()
     return _dtrs[_keydtr]->description();
 }
 
+string
+lex_item::orth()
+{
+    string orth;
+    for(int i = 0; i < _ndtrs; i++)
+    {
+        if(i != 0) orth += " ";
+        orth += _dtrs[i]->orth();
+    }
+    return orth;
+}
+
 void
 phrasal_item::print(FILE *f, bool compact)
 {
@@ -383,16 +395,8 @@ lex_item::print_derivation(FILE *f, bool quoted)
     else
         fprintf(f, "%*s", derivation_indentation, "");
 
-    string orth;
-
-    for(int i = 0; i < _ndtrs; i++)
-    {
-        if(i != 0) orth += " ";
-        orth += _dtrs[i]->orth();
-    }
-
-    _dtrs[_keydtr]->print_derivation(f, quoted, _id, _score, _inflrs_todo,
-                                     orth);
+    _dtrs[_keydtr]->print_derivation(f, quoted, _id, type(), score(),
+                                     _inflrs_todo, orth());
 }
 
 void

@@ -56,8 +56,6 @@ class input_token
 
   inline string orth() { return _orth; }
 
-  inline double priority() { return _p; }
-
   inline int identity()
   {
       return leaftype_parent(_form.stem()->type());
@@ -77,7 +75,7 @@ class input_token
   void print(ostream &f);
   void print(FILE *f);
 
-  void print_derivation(FILE *f, bool quoted, int id,
+  void print_derivation(FILE *f, bool quoted, int id, type_t letype,
 			double p, list_int *l, string orth);
   void print_yield(FILE *f, list_int *l, list<string> &orth);
   string tsdb_derivation(int id, string orth);

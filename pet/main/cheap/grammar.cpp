@@ -116,9 +116,8 @@ lexentry_status(type_t t)
                                         typestatus[t]);
 }
 
-lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths,
-                   int discount) :
-    _id(next_id++), _type(t), _mods(mods), _orth(0), _p(0)
+lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths) :
+    _id(next_id++), _type(t), _mods(mods), _orth(0)
 {
     if(orths.size() == 0)
     {
@@ -149,28 +148,6 @@ lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths,
         }
     }
 
-    char *v;
-    if((v = cheap_settings->value("default-le-priority")) != 0)
-    {
-        _p = strtoint(v, "as value of default-le-priority");
-    }
-    if((v = cheap_settings->value("default-le-priority")) != 0)
-    {
-        _p = strtoint(v, "as value of default-le-priority");
-    }
-    
-    if((v = cheap_settings->sassoc("likely-le-types", _type)) != 0)
-    {
-        _p = strtoint(v, "in value of likely-le-types");
-    }
-    
-    if((v = cheap_settings->sassoc("unlikely-le-types", _type)) != 0)
-    {
-        _p = strtoint(v, "in value of unlikely-le-types");
-    }
-    
-    _p -= discount;
-    
     if(verbosity > 14)
     {
         print(fstatus); fprintf(fstatus, "\n");
@@ -199,7 +176,7 @@ lex_stem::~lex_stem()
 void
 lex_stem::print(FILE *f) const
 {
-  fprintf(f, "%s <%d>:", printname(), _p);
+  fprintf(f, "%s:", printname());
   for(int i = 0; i < _nwords; i++)
     fprintf(f, " \"%s\"", _orth[i]);
 }
@@ -464,23 +441,6 @@ grammar_rule::grammar_rule(type_t t)
         _qc_vector[i] = 0;
     
     //
-    // Determine our priority.
-    //
-
-    _p = 0;
-    
-    char *v;
-    if((v = cheap_settings->value("default-rule-priority")) != 0)
-    {
-        _p = strtoint(v, "as value of default-rule-priority");
-    }
-    
-    if((v = cheap_settings->sassoc("rule-priorities", _type)) != 0)
-    {
-        _p = strtoint(v, "in value of rule-priorities");
-    }
-
-    //
     // Disable hyper activity if this is a more than binary-branching
     // rule or if it's explicitely disabled by a setting.
     //
@@ -505,8 +465,8 @@ grammar_rule::grammar_rule(type_t t)
 void
 grammar_rule::print(FILE *f)
 {
-    fprintf(f, "%s/%d%s <%d> (", printnames[_type], _arity,
-            _hyper == false ? "[-HA]" : "", _p);
+    fprintf(f, "%s/%d%s (", printnames[_type], _arity,
+            _hyper == false ? "[-HA]" : "");
     
     list_int *l = _tofill;
     while(l)

@@ -174,6 +174,13 @@ build_combined_item(chart *C, item *active, item *passive)
     }
 }
 
+item_task::item_task(class chart *C, class agenda *A, item *it)
+    : basic_task(C, A), _item(it)
+{
+    if(opt_nsolutions > 0)
+        priority(it->score());
+}
+
 item *
 item_task::execute()
 {
@@ -182,6 +189,18 @@ item_task::execute()
     assert(!(opt_packing && _item->blocked()));
 
     return _item;
+}
+
+rule_and_passive_task::rule_and_passive_task(class chart *C, class agenda *A,
+                                             grammar_rule *R, item *passive)
+    : basic_task(C, A), _R(R), _passive(passive)
+{
+    if(opt_nsolutions > 0)
+    {
+        list<item *> daughters;
+        daughters.push_back(passive);
+        priority(Grammar->sm()->scoreLocalTree(R, daughters));
+    }
 }
 
 item *
@@ -193,6 +212,23 @@ rule_and_passive_task::execute()
     item *result = build_rule_item(_C, _A, _R, _passive);
     if(result) result->score(priority());
     return result;
+}
+
+active_and_passive_task::active_and_passive_task(class chart *C,
+                                                 class agenda *A,
+                                                 item *act, item *passive)
+    : basic_task(C, A), _active(act), _passive(passive)
+{
+    if(opt_nsolutions > 0)
+    {
+        phrasal_item *active = dynamic_cast<phrasal_item *>(act); 
+        list<item *> daughters(active->_daughters);
+        if(active->left_extending())
+            daughters.push_front(passive);
+        else
+            daughters.push_back(passive);
+        priority(Grammar->sm()->scoreLocalTree(active->rule(), daughters));
+    }
 }
 
 item *
@@ -219,5 +255,15 @@ rule_and_passive_task::print(FILE *f)
             "task #%d {%s + %d} (%.2f)",
             _id,
             _R->printname(), _passive->id(),
+            _p);
+}
+
+void
+active_and_passive_task::print(FILE *f)
+{
+    fprintf(f,
+            "task #%d {%d + %d} (%.2f)",
+            _id,
+            _active->id(), _passive->id(),
             _p);
 }
