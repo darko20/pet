@@ -29,7 +29,6 @@
 #ifndef _BITCODE_H_
 #define _BITCODE_H_
 
-#include "pet-system.h"
 #include <list-int.h>
 #include <dumper.h>
 
@@ -150,6 +149,8 @@ inline bool operator<(const bitcode& a, const bitcode &b)
 inline bool operator>(const bitcode& a, const bitcode &b)
 { return compare(a, b) ==  1; }
 
+#ifndef FLOP
+#include "pet-system.h"
 #ifdef HASH_MAP_AVAIL
 namespace HASH_SPACE {
 template<> struct hash<bitcode>
@@ -160,6 +161,7 @@ template<> struct hash<bitcode>
   }
 };
 }
+#endif
 #endif
 
 #endif

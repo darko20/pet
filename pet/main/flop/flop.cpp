@@ -683,9 +683,9 @@ main(int argc, char* argv[])
   setup_io();
 
   try { process(grammar_file_name); }
-  catch(error &e)
+  catch(tError &e)
     {
-      e.print(ferr);  fprintf(ferr, "\n");
+      fprintf(ferr, "%s\n", e.getMessage().c_str());
       exit(1);
     }
 
