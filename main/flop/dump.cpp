@@ -99,7 +99,7 @@ dump_tables(dumper *f)
     }
 
   for(int i = 0; i < nattrs; i++)
-    f->dump_int(leaftype_order[apptype[i]]);
+    f->dump_int(rleaftype_order[apptype[i]]);
 }
 
 void
