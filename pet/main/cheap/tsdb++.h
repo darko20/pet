@@ -76,6 +76,7 @@ class statistics
   int p_retroactive;
   int p_frozen;
   int p_utcpu;
+  int p_failures;
 
   void reset();
   void print(FILE *f);
@@ -141,7 +142,7 @@ class tsdb_parse
 {
  public:
   tsdb_parse() :
-    parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1), pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1), date(), err(), nmeanings(-1), failures(-1), pruned(-1), results(), rule_stats(), i_input(), i_length(-1)
+    parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1), pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1), date(), err(), nmeanings(-1), clashes(-1), pruned(-1), results(), rule_stats(), i_input(), i_length(-1)
     {
     }
 
@@ -203,8 +204,8 @@ class tsdb_parse
   string date;                      // date and time of parse
   string err;                       // error string (if applicable |:-)
   int nmeanings;
-  int failures;
-  int pruned;
+  int clashes;                      // number of failed unifications
+  int pruned;                       // number of pruned lexical entries
 
   int subsumptions;
   int p_trees;
@@ -213,6 +214,7 @@ class tsdb_parse
   int p_retroactive;
   int p_frozen;
   int p_utcpu;
+  int p_failures;
 
  private:
 
