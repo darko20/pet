@@ -24,7 +24,7 @@
 
 #include "lex-io.h"
 
-#define N_KEYWORDS 19
+#define N_KEYWORDS 18
 extern char *keywords[N_KEYWORDS];
 
 enum TOKEN_TAG {T_NONE, T_EOF, T_WS, T_COMM, T_STRING, T_ID, T_DOT, T_COMMA,
