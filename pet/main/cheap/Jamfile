@@ -7,7 +7,7 @@ ITSDBDIR = /home/uc/src/lkb ;
 ICU = true ;
 ICUDIR = /opt ; 
 
-LEXDB = true ;
+PSQLLEX = false ;
 
 CC = gcc ;
 C++ = g++ ;
@@ -65,10 +65,10 @@ if $(YY) = true
   C++FLAGS += -DYY ;
 }
 
-if $(LEXDB) = true
+if $(PSQLLEX) = true
 {
-  CHEAPSOURCES += lexdb.cpp ;
-  C++FLAGS += -DLEXDB ;
+  CHEAPSOURCES += psqllex.cpp ;
+  C++FLAGS += -DPSQLLEX ;
 }
 
 C++FLAGS += -DHASH_MAP_AVAIL -DUSEMMAP ;

@@ -286,7 +286,7 @@ class grammar
   int nhyperrules();
 
   inline int nstems() { return _lexicon.size(); }
-  lex_stem *lookup_stem(int inst_key);
+  lex_stem *find_stem(int inst_key);
   list<lex_stem *> lookup_stem(string s);
 
 #ifdef EXTDICT
