@@ -286,7 +286,7 @@ void interactive()
     if(opt_compute_qc)
     {
         FILE *qc = fopen(opt_compute_qc, "w");
-        compute_qc_paths(qc, 10000);
+        compute_qc_paths(qc);
         fclose(qc);
     }
 #endif

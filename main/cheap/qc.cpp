@@ -67,7 +67,7 @@ choose_paths(FILE *f, set<int> &selected, int d, int n)
             min_sol_cost = selected.size();
             
             time_t t = time(NULL);
-            fprintf(f, ";; found solution with %d paths on %s",
+            fprintf(f, "; found solution with %d paths on %s",
                     min_sol_cost, ctime(&t));
         }
         return;
@@ -110,70 +110,71 @@ operator<(const pq_item<TPrio, TInf> &a, const pq_item<TPrio, TInf> &b)
 }
 
 void
-compute_qc_sets(FILE *f)
+compute_qc_sets(FILE *f, map<list_int *, int, list_int_compare> &sets,
+                double threshold)
 {
-    time_t t = time(NULL);
-    fprintf(f, ";; qc paths [set based] -- "
-            "generated for %s for %d items on %s\n",
-            Grammar->property("version").c_str(), stats.id, ctime(&t));
+    fprintf(f, ";; set based paths (threshold %.1f%%)\n\n",
+            threshold);
 
-    {
-        fprintf(f, ";; %d failing paths:\n", next_failure_id);
-        
-        for(int i = 0; i < next_failure_id; i++)
-        {
-            fprintf(f, ";; #%d ", i);
-            id_failure[i].print_path(f);
-            fprintf(f, "\n");
-        }
-        fprintf(f, "\n");
-    }
-    
-    fprintf(f, ";; %d failing sets:\n", failing_sets.size());
+    fprintf(f, "; %d failing sets", sets.size());
     
     priority_queue<pq_item<int, list_int *> > top_failures;
     
+    double total_count = 0;
     for(map<list_int *, int, list_int_compare>::iterator iter =
-            failing_sets.begin(); iter != failing_sets.end(); ++iter)
+            sets.begin(); iter != sets.end(); ++iter)
     {
-        top_failures.push(pq_item<int, list_int *>((*iter).second,
-                                                   (*iter).first));
+        total_count += iter->second;
+        top_failures.push(pq_item<int, list_int *>(iter->second,
+                                                   iter->first));
     }
     
+    fprintf(f, ", total count %.0f:\n;\n",
+            total_count);
+    total_count /= 100.0;
+
     int n = 0;
-    fail_sets.resize(failing_sets.size());
-    fail_weight.resize(failing_sets.size());
+    double count_so_far = 0;
+    fail_sets.resize(sets.size());
+    fail_weight.resize(sets.size());
     
     while(!top_failures.empty())
     {
         pq_item<int, list_int *> top = top_failures.top();
         top_failures.pop();
         
-        fprintf(f, ";;  #%d (%d) [", n, top.prio);
-        
-        list_int *l = top.inf;
-        fail_weight[n] = top.prio;
-        
-        while(l)
+        count_so_far += top.prio;
+
+        if(count_so_far / total_count < threshold)
         {
-            fail_sets[n].insert(first(l));
-            fprintf(f, "%d%s", first(l), rest(l) == 0 ? "" : " ");
-            l = rest(l);
-        }
-        fprintf(f, "]\n");
+            fprintf(f, ";  #%d (%d, %.1f%%) [", n, top.prio,
+                    count_so_far / total_count);
         
-        n++;
+            list_int *l = top.inf;
+            fail_weight[n] = top.prio;
+            
+            while(l)
+            {
+                fail_sets[n].insert(first(l));
+                fprintf(f, "%d%s", first(l), rest(l) == 0 ? "" : " ");
+                l = rest(l);
+            }
+
+            fprintf(f, "]\n");
+
+            n++;
+        }
     }
     
-    // find minimal set of paths covering all (up to 1000) failure sets
+    // find minimal set of paths covering all (up to max_sets) failure sets
     {
         min_sol_cost = failure_id.size() + 1;
         set<int> selected;
-        choose_paths(f, selected, 0, n > 1000 ? 1000 : n);
+        choose_paths(f, selected, 0, n);
     }
     
-    t = time(NULL);
-    fprintf(f, ";; minimal set (%d paths) found %s;;  ",
+    time_t t = time(NULL);
+    fprintf(f, "; minimal set (%d paths) found %s;  ",
             min_sol_cost, ctime(&t));
 
     // compute optimal order for selected paths
@@ -186,7 +187,7 @@ compute_qc_sets(FILE *f)
         // compute sum of value of all sets that contain `*iter'
         int v = 0, i = *iter;
         
-        for(map<int,int>::size_type j = 0; j < failing_sets.size(); j++)
+        for(map<int,int>::size_type j = 0; j < sets.size(); j++)
         {
             if(fail_sets[j].find(i) != fail_sets[j].end())
                 v += fail_weight[j];
@@ -224,23 +225,18 @@ compute_qc_sets(FILE *f)
 }
 
 void
-compute_qc_paths(FILE *f, int max)
+compute_qc_traditional(FILE *f, map<int, double> &paths, int max)
 {
-    compute_qc_sets(f);
-    
     priority_queue< pq_item<double, int> > top_failures;
     
-    for(map<int, double>::iterator iter = failing_paths.begin();
-        iter != failing_paths.end(); ++iter)
+    for(map<int, double>::iterator iter = paths.begin();
+        iter != paths.end(); ++iter)
     {
         top_failures.push(pq_item<double, int>((*iter).second, (*iter).first));
     }
     
-    time_t t = time(NULL);
-    
-    fprintf(f, ";; qc paths [traditional] -- "
-            "generated for %s for %d items on %s\n",
-            Grammar->property("version").c_str(), stats.id, ctime(&t));
+    fprintf(f, "; traditional paths (max %d)\n\n",
+            max);
     
     fprintf(f, ":begin :instance.\n\nqc_paths_traditional := *top* &\n[ ");
     
@@ -265,6 +261,34 @@ compute_qc_paths(FILE *f, int max)
       n++;
     }
     fprintf(f, " ].\n\n:end :instance.\n\n");
+}
+
+void
+compute_qc_paths(FILE *f)
+{
+    time_t t = time(NULL);
+    fprintf(f, ";;;\n;;; Quickcheck paths for %s, generated"
+            " on %d items on %s;;;\n\n",
+            Grammar->property("version").c_str(), stats.id, ctime(&t));
+
+    fprintf(f, ";; %d total failing paths:\n;;\n", next_failure_id);
+    for(int i = 0; i < next_failure_id; i++)
+    {
+        fprintf(f, ";; #%d ", i);
+        id_failure[i].print_path(f);
+        fprintf(f, "\n");
+    }
+    fprintf(f, "\n");
+
+    fprintf(f, ";;\n;; quickcheck paths (unification)\n;;\n\n");
+    compute_qc_traditional(f, failing_paths_unif, 10000);
+    fflush(f);
+    compute_qc_sets(f, failing_sets_unif, 99.0);
+
+    fprintf(f, ";;\n;; quickcheck paths (subsumption)\n;;\n\n");
+    compute_qc_traditional(f, failing_paths_subs, 10000);
+    fflush(f);
+    compute_qc_sets(f, failing_sets_subs, 65.0);
 }
 
 #endif

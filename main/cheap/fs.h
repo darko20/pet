@@ -207,8 +207,10 @@ class fs_alloc_state
 
 extern map<unification_failure, int> failure_id;
 extern map<int, unification_failure> id_failure;
-extern map<int, double> failing_paths;
-extern map<list_int *, int, list_int_compare> failing_sets;
+extern map<int, double> failing_paths_unif;
+extern map<list_int *, int, list_int_compare> failing_sets_unif;
+extern map<int, double> failing_paths_subs;
+extern map<list_int *, int, list_int_compare> failing_sets_subs;
 
 #endif
 

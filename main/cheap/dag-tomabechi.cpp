@@ -222,6 +222,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       failure = 0;
     }
   
+#ifdef COMPLETE_FAILURE_REPORTING
   dag_node *cycle;
   if(result_root != 0)
     {
@@ -245,6 +246,7 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
 						unification_cost));
 	}
     }
+#endif
 
   free_list(unify_path_rev); unify_path_rev = 0;
 
@@ -306,6 +308,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
       stats.cycles++;
 
 #ifdef QC_PATH_COMP
+#ifdef COMPLETE_FAILURE_REPORTING
       if(unify_record_failure)
         {
           // _fix_me_ this is not right
@@ -319,6 +322,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
 	    return dag1; // continue with cyclic structure
         }
       else
+#endif
 #endif
 	return FAIL;
     }
@@ -581,6 +585,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
       if(!dag_make_wellformed(new_type, dag1, s1, dag2, s2))
 	{
 #ifdef QC_PATH_COMP
+#ifdef COMPLETE_FAILURE_REPORTING
 	  if(unify_record_failure)
             { 
 	      save_or_clear_failure();
@@ -590,6 +595,7 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 		return FAIL;
             }
 	  else
+#endif
 #endif
 	    return FAIL;
 	}
@@ -715,13 +721,15 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
         {
             forward = false;
 #ifdef QC_PATH_COMP
+#ifdef COMPLETE_FAILURE_REPORTING
             if(unify_record_failure)
             {
                 save_or_clear_failure();
                 failure =new unification_failure(unification_failure::COREF,
                                                  unify_path_rev,
-                                                 unification_cost);
+                                                 1);
             }
+#endif
 #endif
         }
     }
@@ -736,13 +744,15 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
         {
             backward = false;
 #ifdef QC_PATH_COMP
+#ifdef COMPLETE_FAILURE_REPORTING
             if(unify_record_failure)
             {
                 save_or_clear_failure();
                 failure =new unification_failure(unification_failure::COREF,
                                                  unify_path_rev,
-                                                 unification_cost);
+                                                 1);
             }
+#endif
 #endif
         }
     }
@@ -763,10 +773,10 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
             if(unify_record_failure)
             {
                 save_or_clear_failure();
-                failure =new unification_failure(unification_failure::CLASH,
-                                                 unify_path_rev,
-                                                 unification_cost,
-                                                 dag2->type, dag1->type);
+                failure = new unification_failure(unification_failure::CLASH,
+                                                  unify_path_rev,
+                                                  1,
+                                                  dag2->type, dag1->type);
             }
 #endif
         }
@@ -777,10 +787,10 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
             if(unify_record_failure)
             {
                 save_or_clear_failure();
-                failure =new unification_failure(unification_failure::COREF,
-                                                 unify_path_rev,
-                                                 unification_cost,
-                                                 dag1->type, dag2->type);
+                failure = new unification_failure(unification_failure::CLASH,
+                                                  unify_path_rev,
+                                                  1,
+                                                  dag1->type, dag2->type);
             }
 #endif
         }

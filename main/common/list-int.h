@@ -129,6 +129,22 @@ inline list_int *copy_list(list_int *l)
   return head;
 }
 
+inline bool
+prefix(const list_int *a, const list_int *b)
+// Is a a prefix of b?
+{
+    if(a == 0)
+        return true;
+
+    if(b == 0)
+        return false;
+
+    if(first(a) == first(b))
+        return prefix(rest(a), rest(b));
+
+    return false;
+}
+
 inline int compare(const list_int *a, const list_int *b)
 {
   while(a && b)
