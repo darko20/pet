@@ -156,7 +156,7 @@ class tGrammar
   bool punctuationp(const string &s);
 
 #ifdef ONLINEMORPH
-  class morph_analyzer *morph() { return _morph; }
+  class tMorphAnalyzer *morph() { return _morph; }
 #endif
   
   inline tSM *sm() { return _sm; }
@@ -183,7 +183,7 @@ class tGrammar
   ffdict _fullforms;
 
 #ifdef ONLINEMORPH
-  class morph_analyzer *_morph;
+  class tMorphAnalyzer *_morph;
 #endif
 
   int _nrules;

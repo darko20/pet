@@ -50,22 +50,22 @@ settings *cheap_settings = 0;
 
 void interactive_morph()
 {
-  morph_analyzer *m = Grammar->morph();
+  tMorphAnalyzer *m = Grammar->morph();
 
   string input;
   while(!(input = read_line(stdin)).empty())
     {
 #if 1
-      list<morph_analysis> res = m->analyze(input);
-      for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+      list<tMorphAnalysis> res = m->analyze(input);
+      for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
 	{
 	  fprintf(stdout, "%s\t", it->base().c_str());
 	  it->print_lkb(stdout);
 	  fprintf(stdout, "\n");
 	}
 #elif 0
-      list<morph_analysis> res = m->analyze(input);
-      for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+      list<tMorphAnalysis> res = m->analyze(input);
+      for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
 	{
 	  fprintf(stdout, "%s: ", input.c_str());
 	  it->print_lkb(stdout);

@@ -698,9 +698,9 @@ void l2_tsdb_write(FILE *f_parse, FILE *f_result, FILE *f_item, const string& ro
 #endif
 }
 
-vector<l2_morph_analysis> l2_morph_analyse(const string& formUTF8)
+vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
 {
-  vector<l2_morph_analysis> results;
+  vector<l2_tMorphAnalysis> results;
 
   string form = Conv->convert(ConvUTF8->convert(formUTF8));
 
@@ -709,10 +709,10 @@ vector<l2_morph_analysis> l2_morph_analyse(const string& formUTF8)
 #else
   try
   {
-    list<morph_analysis> res = Grammar->morph()->analyze(form, false);
-    for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+    list<tMorphAnalysis> res = Grammar->morph()->analyze(form, false);
+    for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
       {
-	l2_morph_analysis a;
+	l2_tMorphAnalysis a;
 
 	for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();
@@ -750,8 +750,8 @@ string l2_morph_analyse_imp(const string& formUTF8)
 #else
   try
   {
-    list<morph_analysis> res = Grammar->morph()->analyze(form, false);
-    for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+    list<tMorphAnalysis> res = Grammar->morph()->analyze(form, false);
+    for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
       {
 	for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();

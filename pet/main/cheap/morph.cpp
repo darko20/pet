@@ -20,9 +20,9 @@
 /* implementation of LKB style morphological analysis and generation */
 
 #include "pet-system.h"
-#include "cheap.h"
-#include "unicode.h"
 #include "morph.h"
+#include "unicode.h"
+#include "cheap.h"
 
 //
 // utility functions
@@ -58,10 +58,10 @@ string get_next_list(string &s, string::size_type start,
   return s.substr(openp+1, closep-openp-1);
 }
 
-void print_analyses(FILE *f, list<morph_analysis> res)
+void print_analyses(FILE *f, list<tMorphAnalysis> res)
 {
   int id = 0;
-  for(list<morph_analysis>::iterator it = res.begin(); it != res.end(); ++it)
+  for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
   {
     fprintf(f, "[%d]: ", id++);
     it->print(f);
@@ -118,7 +118,7 @@ private:
 class morph_subrule
 {
 public:
-  morph_subrule(morph_analyzer *a, type_t rule,
+  morph_subrule(tMorphAnalyzer *a, type_t rule,
                 UnicodeString left, UnicodeString right)
     : _analyzer(a), _rule(rule), _left(left), _right(right) {}
   
@@ -130,7 +130,7 @@ public:
   void print(FILE *f);
 
 private:
-  morph_analyzer *_analyzer;
+  tMorphAnalyzer *_analyzer;
 
   type_t _rule;
   
@@ -142,7 +142,7 @@ private:
 class trie_node
 {
 public:
-  trie_node(morph_analyzer *a) :
+  trie_node(tMorphAnalyzer *a) :
     _analyzer(a)
   {};
 
@@ -156,7 +156,7 @@ public:
   void print(FILE *f, int depth = 0);
   
 private:
-  morph_analyzer *_analyzer;
+  tMorphAnalyzer *_analyzer;
 
   map<UChar32, trie_node *> _s;
 
@@ -166,18 +166,18 @@ private:
 class morph_trie
 {
 public:
-  morph_trie(morph_analyzer *a, bool suffix) :
+  morph_trie(tMorphAnalyzer *a, bool suffix) :
     _analyzer(a), _suffix(suffix), _root(_analyzer)
   {};
 
   void add_subrule(type_t rule, string subrule);
 
-  list<morph_analysis> analyze(morph_analysis a);
+  list<tMorphAnalysis> analyze(tMorphAnalysis a);
 
   void print(FILE *f);
 
 private:
-  morph_analyzer *_analyzer;
+  tMorphAnalyzer *_analyzer;
   bool _suffix;
   trie_node _root;
 };
@@ -508,9 +508,9 @@ void morph_trie::add_subrule(type_t rule, string subrule)
 
 }
 
-list<morph_analysis> morph_trie::analyze(morph_analysis a)
+list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
 {
-  list<morph_analysis> res;
+  list<tMorphAnalysis> res;
 
   UnicodeString s = Conv->convert(a.base());
   if(_suffix) s.reverse();
@@ -567,7 +567,7 @@ list<morph_analysis> morph_trie::analyze(morph_analysis a)
       rules.push_front(candidate);
       forms.push_front(st);
 	  
-      res.push_back(morph_analysis(forms, rules));
+      res.push_back(tMorphAnalysis(forms, rules));
     }
   }
 
@@ -589,7 +589,7 @@ void morph_trie::print(FILE *f)
 // Analysis
 //
 
-void morph_analysis::print(FILE *f)
+void tMorphAnalysis::print(FILE *f)
 {
     fprintf(f, "%s = %s", complex().c_str(), base().c_str());
 
@@ -597,7 +597,7 @@ void morph_analysis::print(FILE *f)
         fprintf(f, " + %s", printnames[*it]);
 }
 
-void morph_analysis::print_lkb(FILE *f)
+void tMorphAnalysis::print_lkb(FILE *f)
 {
   list<string>::iterator form = _forms.begin();
 
@@ -619,7 +619,7 @@ void morph_analysis::print_lkb(FILE *f)
 // Analzer
 //
 
-morph_analyzer::morph_analyzer()
+tMorphAnalyzer::tMorphAnalyzer()
   : _lettersets(new morph_lettersets),
     _suffixrules(new morph_trie(this, true)),
     _prefixrules(new morph_trie(this, false)),
@@ -627,13 +627,13 @@ morph_analyzer::morph_analyzer()
 {
 }
 
-morph_analyzer::~morph_analyzer()
+tMorphAnalyzer::~tMorphAnalyzer()
 {
   for(vector<morph_subrule *>::iterator it = _subrules.begin();
       it != _subrules.end(); ++it)
     delete *it;
 
-  for(multimap<string, morph_analysis *>::iterator it =
+  for(multimap<string, tMorphAnalysis *>::iterator it =
         _irregs_by_stem.begin(); it != _irregs_by_stem.end(); ++it)
     delete it->second;
 
@@ -642,7 +642,7 @@ morph_analyzer::~morph_analyzer()
   delete _lettersets;
 }
 
-void morph_analyzer::add_global(string rule)
+void tMorphAnalyzer::add_global(string rule)
 {
   if(verbosity > 9)
     fprintf(fstatus, "INFLR<global>: %s\n", rule.c_str());
@@ -674,7 +674,7 @@ void morph_analyzer::add_global(string rule)
   }
 }
 
-void morph_analyzer::parse_rule(type_t t, string rule, bool suffix)
+void tMorphAnalyzer::parse_rule(type_t t, string rule, bool suffix)
 {
   string::size_type start, stop;
   
@@ -695,7 +695,7 @@ void morph_analyzer::parse_rule(type_t t, string rule, bool suffix)
   }
 }
 
-void morph_analyzer::add_rule(type_t t, string rule)
+void tMorphAnalyzer::add_rule(type_t t, string rule)
 {
   if(verbosity > 9)
     fprintf(fstatus, "INFLR<%s>: %s\n", printnames[t], rule.c_str());
@@ -708,7 +708,7 @@ void morph_analyzer::add_rule(type_t t, string rule)
     throw tError(string("unknown type of morphological rule [") + printnames[t] + "]: " + rule);
 }
 
-void morph_analyzer::add_irreg(string stem, type_t t, string form)
+void tMorphAnalyzer::add_irreg(string stem, type_t t, string form)
 {
   if(verbosity > 14)
     fprintf(fstatus, "IRREG: %s + %s = %s\n",
@@ -721,38 +721,38 @@ void morph_analyzer::add_irreg(string stem, type_t t, string form)
   forms.push_front(form);
   forms.push_front(stem);
 
-  morph_analysis *a = new morph_analysis(forms, rules);
+  tMorphAnalysis *a = new tMorphAnalysis(forms, rules);
 
   _irregs_by_stem.insert(make_pair(stem, a));
   _irregs_by_form.insert(make_pair(form, a));
 }
 
-bool morph_analyzer::empty()
+bool tMorphAnalyzer::empty()
 {
     return _irregs_by_stem.size() == 0 && _subrules.size() == 0;
 }
 
-void morph_analyzer::print(FILE *f)
+void tMorphAnalyzer::print(FILE *f)
 {
-  fprintf(stderr, "morph_analyzer[%x]:\n", (int) this);
+  fprintf(stderr, "tMorphAnalyzer[%x]:\n", (int) this);
   _lettersets->print(f);
   _prefixrules->print(f);
   _suffixrules->print(f);
 }
 
-morph_letterset *morph_analyzer::letterset(string name)
+morph_letterset *tMorphAnalyzer::letterset(string name)
 {
   return _lettersets->get(name);
 }
 
-void morph_analyzer::undo_letterset_bindings()
+void tMorphAnalyzer::undo_letterset_bindings()
 {
   _lettersets->undo_bindings();
 }
 
-list<morph_analysis> morph_analyzer::analyze1(morph_analysis form)
+list<tMorphAnalysis> tMorphAnalyzer::analyze1(tMorphAnalysis form)
 {
-  list<morph_analysis> pre, suf;
+  list<tMorphAnalysis> pre, suf;
 
   pre = _prefixrules->analyze(form);
   suf = _suffixrules->analyze(form);
@@ -762,10 +762,10 @@ list<morph_analysis> morph_analyzer::analyze1(morph_analysis form)
   return pre;
 }
 
-bool morph_analyzer::matching_irreg_form(morph_analysis a)
+bool tMorphAnalyzer::matching_irreg_form(tMorphAnalysis a)
 {
-  pair<multimap<string, morph_analysis *>::iterator,
-    multimap<string, morph_analysis *>::iterator> eq =
+  pair<multimap<string, tMorphAnalysis *>::iterator,
+    multimap<string, tMorphAnalysis *>::iterator> eq =
     _irregs_by_stem.equal_range(a.base());
 
   if(a.rules().size() == 0)
@@ -773,7 +773,7 @@ bool morph_analyzer::matching_irreg_form(morph_analysis a)
 
   type_t first = a.rules().front();
 
-  for(multimap<string, morph_analysis *>::iterator it = eq.first;
+  for(multimap<string, tMorphAnalysis *>::iterator it = eq.first;
       it != eq.second; ++it)
   {
     if(it->second->rules().front() == first)
@@ -794,10 +794,10 @@ bool morph_analyzer::matching_irreg_form(morph_analysis a)
   return false;
 }
 
-list<morph_analysis> morph_analyzer::analyze(string form)
+list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
 {
   if(verbosity > 7)
-    fprintf(fstatus, "morph_analyzer::analyze(%s)\n", form.c_str());
+    fprintf(fstatus, "tMorphAnalyzer::analyze(%s)\n", form.c_str());
 
   // least fixpoint iteration
   
@@ -806,27 +806,27 @@ list<morph_analysis> morph_analyzer::analyze(string form)
   // input form. the new results found in one iteration are accumulated in
   // current_results.
 
-  list<morph_analysis> final_results, prev_results;
+  list<tMorphAnalysis> final_results, prev_results;
 
   list<string> forms;
   forms.push_front(form);
 
-  prev_results.push_back(morph_analysis(forms, list<type_t>()));
+  prev_results.push_back(tMorphAnalysis(forms, list<type_t>()));
   
   while(prev_results.size() > 0)
   {
     if(verbosity > 9)
     {
-      fprintf(fstatus, "morph_analyzer working on:\n");
+      fprintf(fstatus, "tMorphAnalyzer working on:\n");
       print_analyses(fstatus, prev_results);
       fprintf(fstatus, "--------------------------\n");
     }
 
-    list<morph_analysis> current_results;
-    for(list<morph_analysis>::iterator it = prev_results.begin();
+    list<tMorphAnalysis> current_results;
+    for(list<tMorphAnalysis>::iterator it = prev_results.begin();
         it != prev_results.end(); ++it)
     {
-      list<morph_analysis> r = analyze1(*it);
+      list<tMorphAnalysis> r = analyze1(*it);
       current_results.splice(current_results.end(), r);
       final_results.push_back(*it);
     }
@@ -844,7 +844,7 @@ list<morph_analysis> morph_analyzer::analyze(string form)
     prev_results.clear();
     prev_results.splice(prev_results.end(), final_results);
 
-    for(list<morph_analysis>::iterator it = prev_results.begin();
+    for(list<tMorphAnalysis>::iterator it = prev_results.begin();
         it != prev_results.end(); ++it)
       if(!matching_irreg_form(*it))
         final_results.push_back(*it);
@@ -852,18 +852,18 @@ list<morph_analysis> morph_analyzer::analyze(string form)
 
   // 2) add irregular analyses from table
 
-  pair<multimap<string, morph_analysis *>::iterator,
-    multimap<string, morph_analysis *>::iterator> eq =
+  pair<multimap<string, tMorphAnalysis *>::iterator,
+    multimap<string, tMorphAnalysis *>::iterator> eq =
     _irregs_by_form.equal_range(form);
 
-  for(multimap<string, morph_analysis *>::iterator it = eq.first;
+  for(multimap<string, tMorphAnalysis *>::iterator it = eq.first;
       it != eq.second; ++it)
     final_results.push_back(*it->second);
 
   return final_results;
 }
 
-string morph_analyzer::generate(morph_analysis m)
+string tMorphAnalyzer::generate(tMorphAnalysis m)
 {
   return string("");
 }

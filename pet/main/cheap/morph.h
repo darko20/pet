@@ -22,12 +22,14 @@
 #ifndef _MORPH_H_
 #define _MORPH_H_
 
-class morph_analysis
+#include "types.h"
+
+class tMorphAnalysis
 {
  public:
-  morph_analysis() {}
+  tMorphAnalysis() {}
 
-  morph_analysis(list<string> forms, list<type_t> rules)
+  tMorphAnalysis(list<string> forms, list<type_t> rules)
     : _forms(forms), _rules(rules)
     {}
 
@@ -46,11 +48,11 @@ class morph_analysis
   list<type_t> _rules;
 };
 
-class morph_analyzer
+class tMorphAnalyzer
 {
  public:
-  morph_analyzer();
-  ~morph_analyzer();
+  tMorphAnalyzer();
+  ~tMorphAnalyzer();
 
   void add_global(string rule);
   void add_rule(type_t t, string rule);
@@ -64,16 +66,16 @@ class morph_analyzer
   class morph_letterset *letterset(string name);
   void undo_letterset_bindings();
 
-  list<morph_analysis> analyze(string form);
-  string generate(morph_analysis);
+  list<tMorphAnalysis> analyze(string form);
+  string generate(tMorphAnalysis);
 
   void print(FILE *f);
 
  private:
   void parse_rule(type_t t, string rule, bool suffix);
 
-  list<morph_analysis> analyze1(morph_analysis form);
-  bool matching_irreg_form(morph_analysis a);
+  list<tMorphAnalysis> analyze1(tMorphAnalysis form);
+  bool matching_irreg_form(tMorphAnalysis a);
 
   void add_subrule(class morph_subrule *sr) 
     { _subrules.push_back(sr); }
@@ -86,8 +88,8 @@ class morph_analyzer
 
   bool _irregs_only;
 
-  multimap<string, morph_analysis *> _irregs_by_stem;
-  multimap<string, morph_analysis *> _irregs_by_form;
+  multimap<string, tMorphAnalysis *> _irregs_by_stem;
+  multimap<string, tMorphAnalysis *> _irregs_by_form;
 
   friend class morph_trie;
 };
