@@ -362,6 +362,10 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS,
         basic_task *t; item *it;
 	  
         t = Agenda->pop();
+#ifdef DEBUG
+        t->print(stderr);
+        fprintf(stderr, "\n");
+#endif
         if((it = t->execute()) != 0)
             add_item(it);
 	  
