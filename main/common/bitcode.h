@@ -29,6 +29,7 @@
 #ifndef _BITCODE_H_
 #define _BITCODE_H_
 
+#include "pet-system.h"
 #include <list-int.h>
 #include <dumper.h>
 
@@ -90,7 +91,7 @@ class bitcode {
   friend void subset_bidir(const bitcode&, const bitcode &, bool &, bool &);
   friend bool intersect_empty(const bitcode&, const bitcode&, bitcode *);
 
-  friend ostream& operator<<(ostream& O, const bitcode& C);
+  friend std::ostream& operator<<(std::ostream& O, const bitcode& C);
   friend bool operator<(const bitcode &, const bitcode&);
   friend bool operator>(const bitcode &, const bitcode&);
 };

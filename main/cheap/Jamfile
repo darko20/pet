@@ -16,7 +16,7 @@ C++FLAGS += -g -Wall ;
 CFLAGS += -g -Wall ;
 
 LINK = g++ ;
-OPTIM = -O3 ;
+OPTIM = ;
 
 SEARCH_SOURCE += ../common ;
 
@@ -40,7 +40,7 @@ COMMONSOURCES = bitcode.cpp chunk-alloc.cpp errors.cpp mfile.c
 
 PARSESOURCES = parse.cpp item.cpp task.cpp chart.cpp agenda.cpp tokenizer.cpp
                options.cpp postags.cpp inputtoken.cpp inputchart.cpp paths.cpp 
-	       mrs.cpp sm.cpp ;
+	       mrs.cpp sm.cpp lexicon.cpp ;
 
 CHEAPSOURCES = cheap.cpp $(DAGSOURCES) $(COMMONSOURCES) $(PARSESOURCES) ;
 
