@@ -328,14 +328,11 @@ merge_generic_les(list<lex_item *> &res, list<lex_item *> &add)
 {
     for(list<lex_item *>::iterator it = add.begin(); it != add.end(); ++it)
     {
-        if((*it)->score() == 0.0) continue;
         bool good = true;
         for(list<lex_item *>::iterator it2 = res.begin();
             it2 != res.end(); ++it2)
             if(same_lexitems(**it, **it2))
             {
-                if((*it)->score() > (*it2)->score())
-                    (*it2)->score((*it)->score());
                 good = false;
                 break;
             }
@@ -354,7 +351,7 @@ input_chart::cover_gaps(const gaplist &gaps)
         for(input_chart::iterator it = begin(); it != end(); it++)
             if(((*it)->start() >= g->first) && ((*it)->end() <= g->second))
             {
-                list<lex_item *> gens = (*it)->generics(0);
+                list<lex_item *> gens = (*it)->generics();
                 merge_generic_les(results, gens);
             }
     }
@@ -403,7 +400,7 @@ input_chart::add_generics(list<lex_item *> &input)
 
         if(les.empty())
         {
-            gens = (*it)->generics(0);
+            gens = (*it)->generics();
         }
         else if(cheap_settings->lookup("pos-completion"))
         {
@@ -427,9 +424,7 @@ input_chart::add_generics(list<lex_item *> &input)
                 fprintf(ferr, "\n");
             }
             if(!missing.empty())
-                gens = (*it)->generics(strtoint(
-                    cheap_settings->req_value("discount-gen-le-priority"),
-                    "as value of discount-gen-le-priority"), missing);
+                gens = (*it)->generics(missing);
         }
         if(!gens.empty())
             merge_generic_les(input, gens);

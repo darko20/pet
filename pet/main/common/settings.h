@@ -35,11 +35,6 @@ struct setting
   int n, allocated;
   char **values;
 
-  // store result of lookup_type on the corresponding value
-  // used to improve speed of sassoc
-  bool t_initialized;
-  int *t_values;
-  
   struct lex_location* loc;
 };
 
@@ -62,9 +57,6 @@ class settings
 
   // string equality based assoc
   char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
-
-  // subtype based assoc
-  char *sassoc(const char *name, int key_type, int arity = 2, int nth = 1);
 
 #ifndef FLOP
   // subtype based map

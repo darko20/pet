@@ -54,7 +54,7 @@ class postags
   bool contains(string s) const;
   bool contains(type_t t) const;
 
-  int priority(const char *setting, type_t t, int initialp = 0) const;
+  bool license(const char *setting, type_t t) const;
 
   void print(FILE *) const;
 
