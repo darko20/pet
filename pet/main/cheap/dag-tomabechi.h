@@ -33,6 +33,10 @@
 #define MARK_PERMANENT
 #endif
 
+#ifdef MARK_PERMANENT
+extern bool create_permanent_dags;
+#endif
+
 struct dag_node
 {
   type_t type; type_t new_type;
@@ -63,7 +67,16 @@ extern int unify_generation, unify_generation_max;
 
 void stop_creating_permanent_dags();
 
-void dag_init(struct dag_node *dag, int s);
+inline void dag_init(dag_node *dag, int s)
+{
+  dag->type = s;
+  dag->arcs = 0;
+  dag->generation = -1;
+
+#ifdef MARK_PERMANENT
+  dag->permanent = create_permanent_dags;
+#endif
+}
 
 inline struct dag_node *dag_deref(struct dag_node *dag) { return dag; }
 inline int dag_type(struct dag_node *dag) { return dag->type; }
