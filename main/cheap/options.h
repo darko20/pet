@@ -27,7 +27,7 @@
 #define CHEAP_SERVER_PORT 4711
 
 extern bool opt_shrink_mem, opt_shaping, opt_default_les,
-  opt_filter, opt_compute_qc, opt_print_failure,
+  opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
   opt_nbest;
@@ -39,6 +39,8 @@ extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc, opt_key, opt_server;
 extern long int memlimit;
 extern bool opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_online_morph, opt_fullform_morph;
 extern char *grammar_file_name;
+
+extern char *opt_compute_qc;
 
 extern char *opt_supertag_file;
 extern int opt_supertag_norm;

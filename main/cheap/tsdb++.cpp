@@ -300,7 +300,7 @@ int cheap_complete_test_run(int run_id, char *custom)
     if(opt_compute_qc)
     {
         fprintf(ferr, "computing quick check paths\n");
-        FILE *qc = fopen("/tmp/qc.tdl", "w");
+        FILE *qc = fopen(opt_compute_qc, "w");
         compute_qc_paths(qc, 10000);
         fclose(qc);
     }

@@ -28,7 +28,7 @@
 #include "../common/utility.h"
 
 bool opt_shrink_mem, opt_shaping, opt_default_les,
-  opt_filter, opt_compute_qc, opt_print_failure,
+  opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_tsdb, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
   opt_nbest, opt_online_morph, opt_fullform_morph;
@@ -40,6 +40,8 @@ int opt_k2y, opt_nth_meaning;
 int opt_nsolutions, opt_nqc, verbosity, pedgelimit, opt_key, opt_server;
 long int memlimit;
 char *grammar_file_name = 0;
+
+char *opt_compute_qc = 0;
 
 char *opt_supertag_file = 0;
 int opt_supertag_norm;
@@ -59,7 +61,8 @@ void usage(FILE *f)
   fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n"); 
   fprintf(f, "  `-no-filter' --- disable rule filter\n"); 
   fprintf(f, "  `-qc=n' --- use only top n quickcheck paths\n");
-  fprintf(f, "  `-compute-qc' --- compute quickcheck paths\n");
+  fprintf(f, "  `-compute-qc[=file]' --- compute quickcheck paths (output to file,\n"
+             "                           default /tmp/qc.tdl)\n");
   fprintf(f, "  `-key=n' --- select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)\n");
   fprintf(f, "  `-no-hyper' --- disable hyper-active parsing\n");
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
@@ -73,7 +76,8 @@ void usage(FILE *f)
           "output K2Y, filter at `n' %% of raw atoms (default: 50)\n");
   fprintf(f, "  `-k2y-segregation' --- "
           "pre-nominal modifiers in analogy to reduced relatives\n");
-  fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth] valid semantic formula\n");
+  fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth]\n"
+             "                         valid semantic formula\n");
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
@@ -87,7 +91,7 @@ void usage(FILE *f)
   fprintf(f, "  `-supertag=file' --- write supertagged data into file\n");
   fprintf(f, "  `-supertagnorm=n' --- set normalization value to n "
               "(default: 10)\n");
-  fprintf(f, "  `-packing=n' --- set packing to n (bit coded)");
+  fprintf(f, "  `-packing=n' --- set packing to n (bit coded)\n");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
 }
@@ -138,7 +142,7 @@ void init_options()
   opt_shaping = true;
   opt_filter = true;
   opt_nqc = -1;
-  opt_compute_qc = false;
+  opt_compute_qc = 0;
   opt_print_failure = false;
   opt_key = 0;
   opt_hyper = 1;
@@ -180,7 +184,7 @@ bool parse_options(int argc, char* argv[])
     {"no-shrink-mem", no_argument, 0, OPTION_NO_SHRINK_MEM},
     {"no-filter", no_argument, 0, OPTION_NO_FILTER},
     {"qc", required_argument, 0, OPTION_NQC},
-    {"compute-qc", no_argument, 0, OPTION_COMPUTE_QC},
+    {"compute-qc", optional_argument, 0, OPTION_COMPUTE_QC},
     {"failure-print", no_argument, 0, OPTION_PRINT_FAILURE},
     {"key", required_argument, 0, OPTION_KEY},
     {"no-hyper", no_argument, 0, OPTION_NO_HYPER},
@@ -256,7 +260,10 @@ bool parse_options(int argc, char* argv[])
           opt_rulestatistics = true;
           break;
       case OPTION_COMPUTE_QC:
-          opt_compute_qc = true;
+          if(optarg != NULL)
+              opt_compute_qc = strdup(optarg);
+          else
+              opt_compute_qc = "/tmp/qc.tdl";
           break;
       case OPTION_PRINT_FAILURE:
           opt_print_failure = true;
