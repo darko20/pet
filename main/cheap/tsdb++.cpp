@@ -415,12 +415,10 @@ void tsdb_parse::capi_print()
     capi_printf("(:copies . %d) ", copies);
   
   capi_printf("(:comment . \""
-              "(:nk2ys . %d) "
               "(:nmeanings . %d) "
-              "(:k2ystatus . %d) "
               "(:failures . %d) "
               "(:pruned . %d)\")",
-              nk2ys, nmeanings, k2ystatus, failures, pruned);
+              nmeanings, failures, pruned);
   
 }
 
@@ -466,7 +464,6 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
             T.err +=
               string(T.err.empty() ? "" : " ") +
               string(mstring(mstream));
-            T.k2ystatus = nrelations;
           }
           //
           // _hack_
@@ -477,7 +474,7 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
           if(nres == stats.readings && meaning != NULL)
           {
             R.tree = string(meaning);
-		}
+          }
         } // if
 #endif
         T.push_result(R);
@@ -545,7 +542,6 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
   T.unifications = stats.unifications_succ + stats.unifications_fail;
   T.copies = stats.copies;
   
-  T.nk2ys = stats.nmeanings;
   T.nmeanings = (meaning != NULL && *meaning ? 1 : 0);
   T.failures = stats.unifications_fail;
   T.pruned = stats.words_pruned;
@@ -666,11 +662,11 @@ void tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
           unifications, copies, conses, symbols, 
           others, gcs, i_load, a_load);
 
-  fprintf(f_parse, "%s@%s@(:nk2ys . %d) (:nmeanings . %d) "
-          "(:k2ystatus . %d) (:failures . %d) (:pruned . %d)\n",
+  fprintf(f_parse, "%s@%s@(:nmeanings . %d) "
+          "(:failures . %d) (:pruned . %d)\n",
           tsdb_escape_string(date).c_str(),
           tsdb_escape_string(err).c_str(),
-          nk2ys, nmeanings, k2ystatus, failures, pruned);
+          nmeanings, failures, pruned);
 
   fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
           parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
