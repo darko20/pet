@@ -31,8 +31,11 @@
 
 enum tItemTrait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT };
 
-/** Represent an item in a chart. Conceptually there are input items,
- *  morphological items, lexical items and phrasal items. 
+/** Represent an item in a chart. There are input items,
+ *  morphological items, lexical items and phrasal items.
+ *  This class defines a common interface for filtering and
+ *  computing combinations of items. The class also implements
+ *  the basic position bookkeeping.
  */
 
 class tItem
@@ -127,12 +130,6 @@ class tItem
     // Old stuff
     //
 
-
-#if 0
-  bool
-  root(type_t &rule);
-#endif  
-
   virtual void print(FILE *f, bool compact = false);
   virtual void print_family(FILE *f) = 0;
   virtual void print_packed(FILE *f);
@@ -223,9 +220,104 @@ class tItem
   
 };
 
-/** Represent the combination requirements of an item. Note that passive
- *  items are represented here as a active items with no further combination
- *  requirements. */
+/** Input items represent tokens in the input. All input items are
+ *  passive.  Input items feed only into morphological items.
+ */
+class tInputItem : public tItem
+{
+ public:
+
+    tInputItem();
+
+    virtual const string
+    printName() const;
+
+    virtual bool
+    passive()
+    {
+        return true;
+    }
+
+    virtual bool
+    leftExtending()
+    {
+        return true;
+    }
+
+    virtual bool
+    compatible(tItem *passive, int length)
+    {
+        return false;
+    }
+
+    virtual tItem *
+    combine(class tItem *passive)
+    {
+        return 0;
+    }
+    
+    virtual bool
+    root(class tGrammar *G, int length, type_t &rootType) 
+    {
+        return false;
+    }
+
+ private:
+    
+
+};
+
+/** Morphological items represent morphologically analyzed input
+ *  items. All morphological items are passive. Morphological items
+ *  feed only into lexical items.
+ */
+class tMorphItem : public tItem
+{
+ public:
+
+    tMorphItem();
+
+    virtual const string
+    printName() const;
+
+    virtual bool
+    passive()
+    {
+        return true;
+    }
+
+    virtual bool
+    leftExtending()
+    {
+        return true;
+    }
+
+    virtual bool
+    compatible(tItem *passive, int length)
+    {
+        return false;
+    }
+
+    virtual tItem *
+    combine(class tItem *passive)
+    {
+        return 0;
+    }
+    
+    virtual bool
+    root(class tGrammar *G, int length, type_t &rootType) 
+    {
+        return false;
+    }
+
+
+ private:
+
+};
+
+/** Represent the combination requirements of an item. Note that
+ *  passive items are represented here as a active items with no
+ *  further combination requirements. */
 class tActive
 {
  public:
@@ -286,6 +378,9 @@ class tActive
     list_int *_toFill;
 };
 
+/** Implement the functionality common to all items that have an
+ *  associated feature structure.
+ */
 class tFSItem
 {
  public:
@@ -319,6 +414,12 @@ class tFSItem
     fs _f;
 };
 
+/** Lexical items represent morphological items that have undergone
+ *  lexical lookup. There are active and passive lexical items. Active
+ *  lexical items represent multi-word lexical entries and require
+ *  combination with suitable morphological items to result in a
+ *  passive lexical item.
+ */
 class tLexItem : public tItem, private tActive, private tFSItem
 {
  public:
@@ -405,6 +506,10 @@ class tLexItem : public tItem, private tActive, private tFSItem
   fs _fs_full; // unrestricted (packing) structure
 };
 
+/** Phrasal items represent lexical items or phrasal items that have
+ *  undergone application of a grammar rule. There are active and
+ *  passive phrasal items.
+ */
 class tPhrasalItem : public tItem, private tActive, private tFSItem
 {
  public:
