@@ -225,8 +225,8 @@ class item
   inline bool frosted() { return _blocked == 1; }
   inline bool frozen() { return _blocked == 2; }
 
-  list<item *> unpack();
-  virtual list<item *> unpack1() = 0;
+  list<item *> unpack(int limit);
+  virtual list<item *> unpack1(int limit) = 0;
 
   inline const char *printname() { return _printname; }
 
@@ -349,7 +349,7 @@ class lex_item : public item
 
   virtual double score(tSM *);
 
-  virtual list<item *> unpack1();
+  virtual list<item *> unpack1(int limit);
 
  private:
   int _ndtrs, _keydtr;
@@ -394,7 +394,7 @@ class phrasal_item : public item
   }
   virtual double score(tSM *);
 
-  virtual list<item *> unpack1();
+  virtual list<item *> unpack1(int limit);
   void unpack_cross(vector<list<item *> > &dtrs,
                     int index, vector<item *> &config,
                     list<item *> &res);

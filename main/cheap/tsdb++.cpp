@@ -37,7 +37,8 @@
 
 statistics stats;
 
-void statistics::reset()
+void
+statistics::reset()
 {
   id = 0;
   trees = 0;
@@ -73,7 +74,10 @@ void statistics::reset()
   p_retroactive = 0;
   p_frozen = 0;
   p_utcpu = 0;
+  p_upedges = 0;
   p_failures = 0;
+  p_dyn_bytes = 0;
+  p_stat_bytes = 0;
 
   // rule stuff
   for(rule_iter rule(Grammar); rule.valid(); rule++)
@@ -83,31 +87,34 @@ void statistics::reset()
     }
 }
 
-void statistics::print(FILE *f)
+void
+statistics::print(FILE *f)
 {
   fprintf (f,
-	   "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\nfirst: %d\ntcpu: %d\n"
-           "utcpu: %d\n"
+	   "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
+           "first: %d\ntcpu: %d\nutcpu: %d\n"
 	   "ftasks_fi: %d\nftasks_qc: %d\netasks: %d\nstasks: %d\n"
-	   "aedges: %d\npedges: %d\nraedges: %d\nrpedges: %d\n"
+	   "aedges: %d\npedges: %d\nupedges: %d\n"
+           "raedges: %d\nrpedges: %d\n"
 	   "medges: %d\n"
 	   "unifications_succ: %d\nunifications_fail: %d\n"
 	   "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
-	   "dyn_bytes: %ld\n"
-	   "stat_bytes: %ld\n"
+	   "dyn_bytes: %ld\nstat_bytes: %ld\n"
+	   "p_dyn_bytes: %ld\np_nstat_bytes: %ld\n"
 	   "cycles: %d\nfssize: %d\n"
 	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\n",
-	   id, p_trees, readings, words, words_pruned, first, tcpu,
-           p_utcpu,
+	   id, p_trees, readings, words, words_pruned,
+           first, tcpu, p_utcpu,
 	   ftasks_fi, ftasks_qc, etasks, stasks,
-	   aedges, pedges, raedges, rpedges,
+	   aedges, pedges, p_upedges, 
+           raedges, rpedges,
 	   medges,
 	   unifications_succ, unifications_fail,
 	   subsumptions_succ, subsumptions_fail, copies,
-	   dyn_bytes,
-	   stat_bytes,
+	   dyn_bytes, stat_bytes,
+	   p_dyn_bytes, p_stat_bytes,
 	   cycles, fssize,
 	   unify_cost_succ, unify_cost_fail,
            p_equivalent, p_proactive, p_retroactive,
@@ -119,7 +126,8 @@ void statistics::print(FILE *f)
 char CHEAP_VERSION [4096];
 char CHEAP_PLATFORM [1024];
 
-void initialize_version()
+void
+initialize_version()
 {
 #if defined(DAG_TOMABECHI)
   char da[ABSBS]="tom";
@@ -189,7 +197,8 @@ void initialize_version()
 
 #ifdef TSDBAPI
 
-int cheap_create_test_run(char *data, int run_id, char *comment,
+int
+cheap_create_test_run(char *data, int run_id, char *comment,
                          int interactive, char *custom)
 {
   cheap_tsdb_summarize_run();
@@ -197,7 +206,8 @@ int cheap_create_test_run(char *data, int run_id, char *comment,
 }
 
 
-void cheap_tsdb_summarize_run(void)
+void
+cheap_tsdb_summarize_run(void)
 {
   capi_printf("(:application . \"%s\") ", CHEAP_VERSION);
   capi_printf("(:platform . \"%s\") ", CHEAP_PLATFORM);
@@ -215,7 +225,8 @@ void cheap_tsdb_summarize_run(void)
 
 int nprocessed = 0;
 
-int cheap_process_item(int i_id, char *i_input, int parse_id, 
+int
+cheap_process_item(int i_id, char *i_input, int parse_id, 
                        int edges, int exhaustive, 
                        int nderivations, int interactive)
 {
@@ -280,7 +291,8 @@ int cheap_process_item(int i_id, char *i_input, int parse_id,
 }
 
 
-int cheap_complete_test_run(int run_id, char *custom)
+int
+cheap_complete_test_run(int run_id, char *custom)
 {
   fprintf(ferr, "total elapsed parse time %.3fs; %d items; avg time per item %.4fs\n",
 	  TotalParseTime.elapsed_ts() / 10.,
@@ -300,13 +312,15 @@ int cheap_complete_test_run(int run_id, char *custom)
   return 0;
 }
 
-int cheap_reconstruct_item(char *derivation)
+int
+cheap_reconstruct_item(char *derivation)
 {
   fprintf(ferr, "cheap_reconstruct_item(%s)\n", derivation);
   return 0;
 }
 
-void tsdb_mode()
+void
+tsdb_mode()
 {
   if(!capi_register(cheap_create_test_run, cheap_process_item, 
                     cheap_reconstruct_item, cheap_complete_test_run))
@@ -315,7 +329,8 @@ void tsdb_mode()
   }
 }
 
-void tsdb_result::capi_print()
+void
+tsdb_result::capi_print()
 {
   capi_printf(" (");
   capi_printf("(:result-id . %d) ", result_id);
@@ -329,7 +344,8 @@ void tsdb_result::capi_print()
   capi_printf(")\n");
 }
 
-void tsdb_rule_stat::capi_print()
+void
+tsdb_rule_stat::capi_print()
 {
   capi_printf("(");
   capi_printf("(:rule . \"%s\") ", escape_string(rule).c_str());
@@ -338,7 +354,8 @@ void tsdb_rule_stat::capi_print()
   capi_printf(")\n");
 }
 
-void tsdb_parse::capi_print()
+void
+tsdb_parse::capi_print()
 {
   if(!results.empty())
   {
@@ -423,6 +440,7 @@ void tsdb_parse::capi_print()
               "(:proactive . %d) "
               "(:retroactive . %d) "
               "(:utcpu . %d) " 
+              "(:upedges . %d) " 
               "(:failures . %d) " 
               "\")",
               nmeanings, clashes, pruned,
@@ -433,6 +451,7 @@ void tsdb_parse::capi_print()
               p_proactive, 
               p_retroactive, 
               p_utcpu,
+              p_upedges,
               p_failures);
 }
 
@@ -440,10 +459,11 @@ void tsdb_parse::capi_print()
 
 static int tsdb_unique_id = 1;
 
-void cheap_tsdb_summarize_item(chart &Chart, int length,
-                               int treal, int nderivations, 
-                               const char *meaning,
-                               tsdb_parse &T)
+void
+cheap_tsdb_summarize_item(chart &Chart, int length,
+                          int treal, int nderivations, 
+                          const char *meaning,
+                          tsdb_parse &T)
 {
   if(opt_derivation)
   {
@@ -543,18 +563,18 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
   T.readings = stats.readings;
   T.words = stats.words;
   T.first = stats.first;
-  T.total = stats.tcpu;
+  T.total = stats.tcpu + stats.p_utcpu;
   T.tcpu = stats.tcpu;
   T.tgc = 0;
   T.treal = treal;
   
-  T.others = stats.stat_bytes;
+  T.others = stats.stat_bytes + stats.p_stat_bytes;
   
   T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
   T.p_etasks = stats.etasks;
   T.p_stasks = stats.stasks;
   T.aedges = stats.aedges;
-  T.pedges = stats.pedges;
+  T.pedges = stats.pedges + stats.p_upedges;
   T.raedges = stats.raedges;
   T.rpedges = stats.rpedges;
   
@@ -572,10 +592,12 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
   T.p_retroactive = stats.p_retroactive;           
   T.p_frozen = stats.p_frozen;               
   T.p_utcpu = stats.p_utcpu;                    
+  T.p_upedges = stats.p_upedges;
   T.p_failures = stats.p_failures;
 }
 
-void cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
+void
+cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
 {
   T.run_id = 1;
   T.parse_id = tsdb_unique_id;
@@ -605,11 +627,22 @@ void cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)
   
   T.unifications = stats.unifications_succ + stats.unifications_fail;
   T.copies = stats.copies;
+
+  T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
+  T.p_trees = stats.p_trees;
+  T.p_equivalent = stats.p_equivalent;
+  T.p_proactive = stats.p_proactive; 
+  T.p_retroactive = stats.p_retroactive;           
+  T.p_frozen = stats.p_frozen;               
+  T.p_utcpu = stats.p_utcpu;                    
+  T.p_upedges = stats.p_upedges;
+  T.p_failures = stats.p_failures;
   
   T.err = condition.msg();
 }
 
-void tsdb_parse::set_rt(const string &rt)
+void
+tsdb_parse::set_rt(const string &rt)
 {
   if(results.empty())
     return;
@@ -622,7 +655,8 @@ void tsdb_parse::set_rt(const string &rt)
   results.push_front(r);
 }
 
-string tsdb_escape_string(const string &s)
+string
+tsdb_escape_string(const string &s)
 {
   string res;
 
@@ -655,7 +689,8 @@ string tsdb_escape_string(const string &s)
   return res;
 }
 
-void tsdb_result::file_print(FILE *f)
+void
+tsdb_result::file_print(FILE *f)
 {
   fprintf(f, "%d@%d@%d@%d@%d@%d@%d@%d@%d@%d@",
           parse_id, result_id, time,
@@ -667,7 +702,8 @@ void tsdb_result::file_print(FILE *f)
           tsdb_escape_string(mrs).c_str());
 }
 
-void tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
+void
+tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
 {
   if(!results.empty())
   {
