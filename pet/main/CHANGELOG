@@ -1,6 +1,7 @@
 v0.99.7
   - merge in oe branch: pass_through_comments, LUI dumping, orthographemic-...
   - minor code cleanup
+  - bug fix in derivation printer concerning multi word entries
 
 v0.99.6
   - small fix in common/hashing.h and configure.ac to be able to configure

@@ -90,7 +90,10 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
     fprintf(_out, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
   fprintf(_out, "]");
   
-  print(keydaughter(item));
+  for(list<tItem *>::const_iterator pos = item->daughters().begin();
+      pos != item->daughters().end(); ++pos)
+    print(*pos);
+  
   fprintf(_out, ")");
 }
 
