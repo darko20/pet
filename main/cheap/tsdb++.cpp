@@ -219,7 +219,7 @@ cheap_tsdb_summarize_run(void)
     capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
     capi_printf("(:rules . %d) ", Grammar->nrules());
-    capi_printf("(:templates . \"%s\") ", Grammar->property("ntemplates").c_str());
+    capi_printf("(:templates . %s) ", Grammar->property("ntemplates").c_str());
     capi_printf("(:run-comment . \"");
     map<string, string> properties = Grammar->properties();
     for(map<string, string>::iterator it = properties.begin(); 
