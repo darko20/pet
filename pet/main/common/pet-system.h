@@ -105,6 +105,7 @@ using namespace HASH_SPACE;
 #include <ext/hash_map>
 #include <ext/hash_set>
 #else
+#define HASH_SPACE std
 #include <hash_map>
 #include <hash_set>
 #endif
