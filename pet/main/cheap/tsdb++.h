@@ -139,7 +139,7 @@ class tsdb_parse
 {
  public:
   tsdb_parse() :
-    parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1), pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1), date(), err(), nk2ys(-1), nmeanings(-1), k2ystatus(-1), failures(-1), pruned(-1), results(), rule_stats(), i_input(), i_length(-1)
+    parse_id(-1), run_id(-1), i_id(-1), readings(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), words(-1), l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1), aedges(-1), pedges(-1), raedges(-1), rpedges(-1), unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1), gcs(-1), i_load(-1), a_load(-1), date(), err(), nmeanings(-1), failures(-1), pruned(-1), results(), rule_stats(), i_input(), i_length(-1)
     {
     }
 
@@ -200,9 +200,7 @@ class tsdb_parse
   int a_load;                       // average load
   string date;                      // date and time of parse
   string err;                       // error string (if applicable |:-)
-  int nk2ys;
   int nmeanings;
-  int k2ystatus;
   int failures;
   int pruned;
 
