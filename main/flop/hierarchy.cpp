@@ -388,6 +388,10 @@ inline void mark_leaftype(int i)
 // mark `i' as a leaftype
 {
   leaftypeparent[i] = immediate_supertypes(i).front();
+
+  if(verbosity > 4)
+    fprintf(stderr, "LT: %d [%d]\n", i, leaftypeparent[i]);
+
   nleaftypes++;
 }
 
