@@ -166,12 +166,13 @@ void initialize_version()
     }
 
   sprintf(CHEAP_VERSION,
-          "PET(%s cheap) [%d] {RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
+          "PET(%s cheap) %s [%d] {RI[%s] %s(%d) %s %s[%d(%s)] %s[%d] "
 #ifdef YY
           "%s K2Y(%d) "
 #endif
           "%s %s} {ns %d} (%s/%s) <%s>",
           da,
+          opt_packing ? "packing" : "",
           pedgelimit,
           opt_key == 0 ? "key" : (opt_key == 1 ? "l-r" : (opt_key == 2 ? "r-l" : (opt_key == 3 ? "head" : "unknown"))),
           opt_hyper ? "+HA" : "-HA",
@@ -417,9 +418,23 @@ void tsdb_parse::capi_print()
   capi_printf("(:comment . \""
               "(:nmeanings . %d) "
               "(:failures . %d) "
-              "(:pruned . %d)\")",
-              nmeanings, failures, pruned);
-  
+              "(:pruned . %d) "
+              "(:subsumption . %d) "
+              "(:trees . %d) "
+              "(:frozen . %d) "
+              "(:equivalence . %d) "
+              "(:proactice . %d) "
+              "(:retroactive . %d) "
+              "(:utcpu . %d) " 
+              "\")",
+              nmeanings, failures, pruned,
+              subsumptions,
+              p_trees,
+              p_equivalent,
+              p_proactive, 
+              p_retroactive, 
+              p_frozen,
+              p_utcpu);
 }
 
 #endif
@@ -545,6 +560,14 @@ void cheap_tsdb_summarize_item(chart &Chart, int length,
   T.nmeanings = (meaning != NULL && *meaning ? 1 : 0);
   T.failures = stats.unifications_fail;
   T.pruned = stats.words_pruned;
+
+  T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
+  T.p_trees = stats.p_trees;
+  T.p_equivalent = stats.p_equivalent;
+  T.p_proactive = stats.p_proactive; 
+  T.p_retroactive = stats.p_retroactive;           
+  T.p_frozen = stats.p_frozen;               
+  T.p_utcpu = stats.p_utcpu;                    
 }
 
 void cheap_tsdb_summarize_error(error &condition, int treal, tsdb_parse &T)

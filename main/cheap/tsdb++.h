@@ -204,6 +204,14 @@ class tsdb_parse
   int failures;
   int pruned;
 
+  int subsumptions;
+  int p_trees;
+  int p_equivalent;
+  int p_proactive;
+  int p_retroactive;
+  int p_frozen;
+  int p_utcpu;
+
  private:
 
   list<tsdb_result> results;

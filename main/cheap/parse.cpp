@@ -499,6 +499,7 @@ parse(chart &C, list<lex_item *> &initial, fs_alloc_state &FSAS)
                 }
             }
         }
+        stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
         delete UnpackTime;
     }
     else
