@@ -30,7 +30,9 @@
 #include "morph.h"
 #include "yy-tokenizer.h"
 #include "lingo-tokenizer.h"
+#ifdef HAVE_XML
 #include "xml-tokenizer.h"
+#endif
 #include "item-printer.h"
 #include "version.h"
 
@@ -356,11 +358,17 @@ void process(char *s)
       case TOKENIZER_STRING: 
       case TOKENIZER_INVALID: 
         tok = new tLingoTokenizer(); break;
+
       case TOKENIZER_XML:
       case TOKENIZER_XML_COUNTS: 
+#ifdef HAVE_XML
         xml_initialize();
         XMLServices = true;
         tok = new tXMLTokenizer(opt_tok == TOKENIZER_XML_COUNTS); break;
+#else
+        fprintf(ferr, "No XML input mode compiled into this cheap\n");
+        exit(1);
+#endif
       default:
         tok = new tLingoTokenizer(); break;
       }
@@ -416,8 +424,10 @@ void process(char *s)
                 }
             }
     }
-    
+
+#ifdef HAVE_XML
     if (XMLServices) xml_finalize();
+#endif
     delete Grammar;
     delete cheap_settings;
 }
