@@ -91,6 +91,7 @@ struct option
 #define optional_argument	2
 
 #if __STDC__
+#if 0
 #if defined(__GNU_LIBRARY__)
 /* Many other libraries have conflicting prototypes for getopt, with
    differences in the consts, in stdlib.h.  To avoid compilation
@@ -99,6 +100,8 @@ extern int getopt (int argc, char *const *argv, const char *shortopts);
 #else /* not __GNU_LIBRARY__ */
 extern int getopt ();
 #endif /* not __GNU_LIBRARY__ */
+#endif
+
 extern int getopt_long (int argc, char *const *argv, const char *shortopts,
 		        const struct option *longopts, int *longind);
 extern int getopt_long_only (int argc, char *const *argv,

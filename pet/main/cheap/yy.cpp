@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
+#include <strings.h>
 #endif
 
 #include "pet-system.h"
@@ -1023,7 +1024,7 @@ void cheap_server(int port) {
 
   listen(server, SOMAXCONN);
 
-#if defined(__CYGWIN__) || defined(__svr4__ )
+#if defined(__CYGWIN__)
 #  define socklen_t int
 #endif
 

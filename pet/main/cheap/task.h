@@ -34,7 +34,7 @@ class basic_task
     static int next_id;
 
     inline basic_task(class chart *C, class agenda *A) 
-        : _id(next_id++), _C(C), _A(A), _p(0.0)
+        : _id(next_id++), _Chart(C), _A(A), _p(0.0)
     {}
 
     virtual item * execute() = 0;
@@ -50,7 +50,7 @@ class basic_task
  protected:
     int _id;
     
-    class chart *_C;
+    class chart *_Chart;
     class agenda *_A;
   
     double _p;
