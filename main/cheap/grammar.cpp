@@ -45,11 +45,12 @@ lex_stem::get_stems()
 {
     fs_alloc_state FSAS;
     vector <string> orth;
-    struct dag_node *dag;
+    struct dag_node *dag = FAIL;
     fs e = instantiate();
-    
-    dag = dag_get_path_value(e.dag(),
-                             cheap_settings->req_value("orth-path"));
+   
+    if(e.valid()) 
+      dag = dag_get_path_value(e.dag(),
+                               cheap_settings->req_value("orth-path"));
     if(dag == FAIL)
     {
         fprintf(ferr, "no orth-path in `%s'\n", typenames[_type]);
@@ -189,8 +190,16 @@ lex_stem::instantiate()
     fs expanded = unify(e, (fs(_type)), e);
 
     if(!expanded.valid())
-        throw error(string("invalid lex_stem `") + printname()
-                    + "' (cannot expand)");
+    {
+	string msg = string("invalid lex_stem `") + printname()
+		     + "' (cannot expand)";
+
+        if(!cheap_settings->lookup("lex-entries-can-fail"))
+            throw error(msg);
+	else if(verbosity > 4)
+	    fprintf(stderr, "%s\n", msg.c_str());
+        return expanded;
+    }
 
     if(!_mods.empty())
     {
