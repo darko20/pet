@@ -9,6 +9,7 @@
   - Grammar rules and stems are no longer identified in the preprocessor;
   this is now done in the runtime system using status values
 
+
 2001-06-01 Ulrich Callmeier
   - Abolished notion of symbols and instances. Everything is a type now;
   there are two kinds of types: proper types and leaf types. For leaf
