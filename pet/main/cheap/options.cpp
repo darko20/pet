@@ -44,9 +44,6 @@ char *grammar_file_name = 0;
 
 char *opt_compute_qc = 0;
 
-char *opt_supertag_file = 0;
-int opt_supertag_norm;
-
 int opt_packing = 0;
 
 void usage(FILE *f)
@@ -90,9 +87,6 @@ void usage(FILE *f)
   fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
   fprintf(f, "  `-nbest' --- n-best parsing mode\n");
-  fprintf(f, "  `-supertag=file' --- write supertagged data into file\n");
-  fprintf(f, "  `-supertagnorm=n' --- set normalization value to n "
-              "(default: 10)\n");
   fprintf(f, "  `-packing=n' --- set packing to n (bit coded)\n");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
@@ -118,8 +112,6 @@ void usage(FILE *f)
 #define OPTION_LOG 17
 #define OPTION_MEMLIMIT 18
 #define OPTION_INTERACTIVE_MORPH 19
-#define OPTION_SUPERTAGFILE 20
-#define OPTION_SUPERTAGNORM 21
 #define OPTION_LATTICE 22
 #define OPTION_NBEST 23
 #define OPTION_NO_ONLINE_MORPH 24
@@ -158,8 +150,6 @@ void init_options()
   opt_chart_man = true;
   opt_interactive_morph = false;
   opt_lattice = false;
-  opt_supertag_file = 0;
-  opt_supertag_norm = 10;
   opt_nbest = false;
   opt_online_morph = true;
   opt_fullform_morph = true;
@@ -207,8 +197,6 @@ bool parse_options(int argc, char* argv[])
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", no_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
-    {"supertag", required_argument, 0, OPTION_SUPERTAGFILE},
-    {"supertagnorm", required_argument, 0, OPTION_SUPERTAGNORM},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"nbest", no_argument, 0, OPTION_NBEST},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
@@ -325,14 +313,6 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
               if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
               else flog = fopen(optarg, "w");
-          break;
-      case OPTION_SUPERTAGFILE:
-          if(optarg != NULL)
-              opt_supertag_file = strdup(optarg);
-          break;
-      case OPTION_SUPERTAGNORM:
-          if(optarg != NULL)
-              opt_supertag_norm = strtoint(optarg, "as argument to -supertagnorm");
           break;
       case OPTION_NBEST:
           opt_nbest = true;

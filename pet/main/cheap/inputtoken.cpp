@@ -89,70 +89,11 @@ input_token::print_derivation(FILE *f, bool quoted,
 }
 
 void
-split_strings(list<string> &strs)
-{
-    list<string> result;
-    
-    for(list<string>::iterator it = strs.begin(); it != strs.end(); ++it)
-    {
-        string::size_type p;
-        while((p = it->find(' ')) != string::npos)
-        {
-            string s = it->substr(0, p);
-            it->erase(0, p + 1);
-            result.push_back(s);
-        }
-        result.push_back(*it);
-    }
-    
-    strs.swap(result);
-}
-
-void
 input_token::print_yield(FILE *f, list_int *inflrs, list<string> &orth)
 {
     for(list<string>::iterator it = orth.begin(); it != orth.end(); ++it)
     {
         fprintf(f, "%s ", it->c_str());
-    }
-}
-
-void
-input_token::getTagSequence(list_int *inflrs, list<string> &orth,
-                            list<string> &tags, list<list<string> > &words)
-{
-    type_t lextype = _form.stem()->type();
-    lextype = leaftype_parent(lextype);
-    
-    if(lextype == -1)
-        return;
-    
-    string tag(printnames[lextype]);
-    
-    for(list_int *l = inflrs; l != 0; l = rest(l))
-        tag += string("-") + printnames[first(l)];
-
-    // Make tag a little nicer looking
-    findAndReplace(tag, "_", "-");
-    findAndReplace(tag, "*", "-star");
-    findAndReplace(tag, "infl-rule", "inflr");
-    
-    // if an element in orth contains whitespace, we'll split
-    split_strings(orth);
-    
-    // attach word starting with apostrophe onto previous word, unless
-    // this is a multiword, or there's no previous word
-
-    if(!words.empty() && words.back().size() == 1 && orth.size() == 1
-       && orth.front().size() > 0 && orth.front()[0] == '\'')
-    {
-        words.back().front() += orth.front();
-        tags.back() += string("-") + tag;
-    }
-    else
-    {
-        tags.push_back(tag);
-        words.push_back(orth);
     }
 }
 

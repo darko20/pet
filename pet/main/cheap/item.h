@@ -192,8 +192,6 @@ class item
   
   virtual void print_yield(FILE *f) = 0;
 
-  virtual void getTagSequence(list<string> &tags, list<list<string> > &words) = 0;
-
   virtual string tsdb_derivation(int protocolversion) = 0;
 
   virtual void daughter_ids(list<int> &ids) = 0;
@@ -315,8 +313,6 @@ class lex_item : public item
   // Collect all (transitive) children. Uses frosting mechanism.
   virtual void collect_children(list<item *> &result);
 
-  virtual void getTagSequence(list<string> &tags, list<list<string> > &words);
-
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }
 
@@ -375,8 +371,6 @@ class phrasal_item : public item
   virtual void daughter_ids(list<int> &ids);
   // Collect all (transitive) children. Uses frosting mechanism.
   virtual void collect_children(list<item *> &result);
-
-  virtual void getTagSequence(list<string> &tags, list<list<string> > &words);
 
   virtual void set_result_root(type_t rule);
   virtual void set_result_contrib() { _result_contrib = true; }

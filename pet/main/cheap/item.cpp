@@ -426,16 +426,6 @@ lex_item::print_yield(FILE *f)
     _dtrs[_keydtr]->print_yield(f, _inflrs_todo, orth);
 }
 
-void
-lex_item::getTagSequence(list<string> &tags, list<list<string> > &words)
-{
-    list<string> orth;
-    for(int i = 0; i < _ndtrs; i++)
-        orth.push_back(_dtrs[i]->orth());
-
-    _dtrs[_keydtr]->getTagSequence(_inflrs_todo, orth, tags, words);
-}
-
 string
 lex_item::tsdb_derivation(int protocolversion)
 {
@@ -524,16 +514,6 @@ phrasal_item::print_yield(FILE *f)
     }
 }
 
-void
-phrasal_item::getTagSequence(list<string> &tags, list<list<string> > &words)
-{
-    for(list<item *>::iterator pos = _daughters.begin();
-        pos != _daughters.end(); ++pos)
-    {
-        (*pos)->getTagSequence(tags, words);
-    }
-}
-        
 string
 phrasal_item::tsdb_derivation(int protocolversion)
 {

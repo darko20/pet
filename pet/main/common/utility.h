@@ -59,6 +59,10 @@ string read_line(FILE *f);
 void
 findAndReplace(string &s, const string &oldText, const string &newText);
 
+// Split each string in a list of strings into tokens seperated by blanks.
+void
+splitStrings(list<string> &strs);
+
 struct cstr_eq
 {
   bool operator()(const char* s, const char* t) const
