@@ -237,7 +237,7 @@ void read_irregs(string fname)
   FILE *f = fopen(fname.c_str(), "r");
 
   if(f == 0)
-    throw error("Could not open irregular form file `" + fname + "'");
+    throw tError("Could not open irregular form file `" + fname + "'");
 
   if(flop_settings->lookup("affixes-are-instances"))
     opt_inst_affixes = true;
