@@ -105,6 +105,9 @@ dag_arc *dag_find_attr(dag_arc *arc, int attr)
 dag_node *dag_get_attr_value(dag_node *dag, int attr)
 {
   dag_arc *arc;
+
+  if(dag == FAIL)
+	  return FAIL;
   dag = dag_deref(dag);
   
   arc = dag_find_attr(dag->arcs, attr);
@@ -544,10 +547,16 @@ bool dag_cyclic(dag_node *dag)
   return res;
 }
 
+//
+// de-shrinking: make fs totally wellformed
+//
+
 dag_node *dag_expand(dag_node *dag)
 {
-  // XXX not implemented
-  return FAIL;
+    // fix me: this is not yet implemented
+    // but refer to fully_expand in flop/expand.cpp which contains
+    // the necessary code 
+    return FAIL;
 }
 
 void dag_initialize()
