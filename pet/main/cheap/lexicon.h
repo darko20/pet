@@ -17,56 +17,86 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* Lexicon classes */
+/* \file lexicon.h 
+ * Lexicon classes
+ */
 
 #ifndef _LEXICON_H_
 #define _LEXICON_H_
 
 #include "fs.h"
 
+/** A lexicon entry. */
 class lex_stem
 {
  public:
-
-  lex_stem(type_t t, const modlist &mods = modlist(), const list<string> &orths = list<string>());
-  lex_stem(const lex_stem &le);
+  
+  /** Create a lex_stem for the type dag of type \a t.
+   * \param t The type that has to be a valid lexicon entry (instance)
+   * \param mods Possible feature structure modifications (default: empty)
+   * \param orths The surface forms for this entry. If this list is empty, the
+   *              forms are computed from the type dag using the global setting
+   *              \c orth-path.
+   */
+  lex_stem(type_t t, const modlist &mods = modlist(),
+           const list<string> &orths = list<string>());
   ~lex_stem();
 
-  lex_stem & operator=(const lex_stem &le);
-
+  /** (Re)create the feature structure for this entry from the dags of the
+   *  instance and the root type of the instance.
+   */
   fs instantiate();
 
-  inline char *name() const { return typenames[_type]; }
-  inline char *printname() const { return printnames[_type]; }
+  /** Return the (internal) type name for this entry */
+  inline const char *name() const { return type_name(_type); }
+  /** Return the (external) type name for this entry */
+  inline const char *printname() const { return print_name(_type); }
 
+  /** Return the type of this entry */
   inline int type() const { return _type; }
+  /** Return the arity of this lexicon entry */
   inline int length() const { return _nwords; }
+  /** Return the inflected argument of this lexicon entry.
+   *  \todo This has to be made variable.
+   */
   inline int inflpos() const { return _nwords - 1; }
 
+  /** Return the \a i th surface element */
   inline const char *orth(int i) const { 
     assert(i < _nwords);
     return _orth[i];
   }
   
+  /** Print readable representation for debugging purposes */
   void print(FILE *f) const;
 
  private:
+  /** Inhibited copy constructor */
+  lex_stem(const lex_stem &le) {}
+  /** Inhibited assignment operator */
+  lex_stem & operator=(const lex_stem &le) { return *this; } 
+
   static int next_id;
 
+  /** unique internal id */
   int _id;
-
-  int _type;        // type index
+  /** type index */
+  int _type;
 
   modlist _mods;
 
-  int _nwords;      // length of _orth
-  char **_orth;     // array of _nwords strings
+  /** length of _orth */
+  int _nwords;
+  /** array of _nwords strings */
+  char **_orth;
 
   vector<string> get_stems();
 
   friend class tGrammar;
 };
 
+#if 0
+//obsolete
 class full_form
 {
  public:
@@ -169,5 +199,6 @@ class full_form
 
   friend class tGrammar;
 };
+#endif
 
 #endif

@@ -23,8 +23,7 @@
 #include "task.h"
 #include "parse.h"
 #include "chart.h"
-#include "agenda.h"
-#include "options.h"
+#include "cheap.h"
 #include "tsdb++.h"
 
 int basic_task::next_id = 0;
@@ -182,7 +181,8 @@ double packingscore(int start, int end, int n, bool active)
   //    - (active ? 0.0 : double(end - start) / n) ;
 }
 
-item_task::item_task(class chart *C, class tAgenda *A, tItem *it)
+/* Obsolete: old input_chart functionality
+item_task::item_task(chart *C, tAgenda *A, tItem *it)
     : basic_task(C, A), _item(it)
 {
     if(opt_packing)
@@ -200,8 +200,9 @@ item_task::execute()
 
     return _item;
 }
+*/
 
-rule_and_passive_task::rule_and_passive_task(class chart *C, class tAgenda *A,
+rule_and_passive_task::rule_and_passive_task(chart *C, tAgenda *A,
                                              grammar_rule *R, tItem *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
@@ -230,8 +231,7 @@ rule_and_passive_task::execute()
     return result;
 }
 
-active_and_passive_task::active_and_passive_task(class chart *C,
-                                                 class tAgenda *A,
+active_and_passive_task::active_and_passive_task(chart *C, tAgenda *A,
                                                  tItem *act, tItem *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {

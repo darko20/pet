@@ -25,19 +25,21 @@
 #include "fs.h"
 #include "cheap.h"
 #include "options.h"
-#include "../common/utility.h"
+#include "utility.h"
+#include "version.h"
+#include <string>
 
 bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_nbest, opt_online_morph, opt_fullform_morph;
+  opt_nbest, opt_online_morph, opt_fullform_morph, opt_partial;
 #ifdef YY
 bool opt_yy, opt_k2y_segregation;
 int opt_k2y, opt_nth_meaning;
 #endif
 
-int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server;
+int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults;
 int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
@@ -46,10 +48,15 @@ char *opt_compute_qc = 0;
 
 char *opt_mrs = 0;
 
+tokenizer_id opt_tok = TOKENIZER_STRING;
+
+string opt_tsdb_file;
+
 int opt_packing = 0;
 
 void usage(FILE *f)
 {
+  fprintf(f, "cheap version %s\n", version_string);
   fprintf(f, "usage: `cheap [options] grammar-file'; valid options are:\n");
 #ifdef TSDBAPI
   fprintf(f, "  `-tsdb[=n]' --- enable tsdb++ slave mode (protocol version = n)\n");
@@ -93,6 +100,12 @@ void usage(FILE *f)
   fprintf(f, "  `-packing=n' --- set packing to n (bit coded)\n");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
+  fprintf(f, "  `-tsdbdump directory' --- "
+             "write incr[tsdb] item, result and parse files to `directory'\n");
+  fprintf(f, "  `-partial' --- "
+             "print partial results in case of parse failure\n");  
+  fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
+  fprintf(f, "  `-tok=(string|yy|yy_counts|xml|xml_counts)' --- select input method (default string)\n");  
 }
 
 #define OPTION_TSDB 0
@@ -122,6 +135,10 @@ void usage(FILE *f)
 #define OPTION_PACKING 26
 #define OPTION_NQC_SUBS 27
 #define OPTION_MRS 28
+#define OPTION_TSDB_DUMP 29
+#define OPTION_PARTIAL 30
+#define OPTION_NRESULTS 31
+#define OPTION_TOK 32
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -129,6 +146,7 @@ void usage(FILE *f)
 #define OPTION_K2Y 102
 #define OPTION_K2Y_SEGREGATION 103
 #endif
+
 
 void init_options()
 {
@@ -159,6 +177,11 @@ void init_options()
   opt_fullform_morph = true;
   opt_packing = 0;
   opt_mrs = 0;
+  opt_tsdb_file = "";
+  opt_partial = false;
+  opt_nresults = 0;
+  opt_tok = TOKENIZER_STRING;
+
 #ifdef YY
   opt_yy = false;
   opt_k2y = 0;
@@ -208,6 +231,10 @@ bool parse_options(int argc, char* argv[])
     {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
     {"mrs", optional_argument, 0, OPTION_MRS},
+    {"tsdbdump", required_argument, 0, OPTION_TSDB_DUMP},
+    {"partial", no_argument, 0, OPTION_PARTIAL},
+    {"results", required_argument, 0, OPTION_NRESULTS},
+    {"tok", required_argument, 0, OPTION_TOK},
 
     {0, 0, 0, 0}
   }; /* struct option */
@@ -340,6 +367,33 @@ bool parse_options(int argc, char* argv[])
               opt_mrs = strdup(optarg);
           else
               opt_mrs = "simple";
+          break;
+      case OPTION_TSDB_DUMP:
+          opt_tsdb_file = optarg;
+          break;
+      case OPTION_PARTIAL:
+          opt_partial = true;
+          break;
+      case OPTION_NRESULTS:
+          if(optarg != NULL)
+              opt_nresults = strtoint(optarg, "as argument to -results");
+          break;
+      case OPTION_TOK:
+          if(optarg != NULL) {
+            opt_tok = TOKENIZER_INVALID;
+            if (strcasecmp(optarg, "string") == 0) opt_tok = TOKENIZER_STRING;
+            if (strcasecmp(optarg, "yy") == 0) opt_tok = TOKENIZER_YY;
+            if (strcasecmp(optarg, "yy_counts") == 0)
+              opt_tok = TOKENIZER_YY_COUNTS;
+            if (strcasecmp(optarg, "xml") == 0) opt_tok = TOKENIZER_XML;
+            if (strcasecmp(optarg, "xml_counts") == 0)
+              opt_tok = TOKENIZER_XML_COUNTS;
+            if (opt_tok == TOKENIZER_INVALID) {
+              fprintf(ferr, "Unknown input method %s, setting it to 'string'\n"
+                      , optarg);
+              opt_tok = TOKENIZER_STRING;
+            }
+          }
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:

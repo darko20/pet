@@ -23,6 +23,7 @@
 #include "cheap.h"
 #include "chart.h"
 #include "tsdb++.h"
+#include "item-printer.h"
 
 //#define DEBUG
 
@@ -68,6 +69,7 @@ void chart::add(tItem *it)
     }
 }
 
+/** A predicate testing the existence of some item in a hash_set */
 class contained : public unary_function< bool, tItem *> {
 public:
   contained(hash_set<tItem *> &the_set) : _set(the_set) { } 
@@ -116,12 +118,14 @@ void chart::print(FILE *f)
     }
 }
 
-void chart::print(tItemPrinter *f)
+void chart::print(tItemPrinter *f, bool passives, bool actives)
 {
     int i = 0;
     for(chart_iter pos(this); pos.valid(); pos++, i++)
     {
-        f->print(pos.current());
+      tItem *curr = pos.current();
+      if ((curr->passive() && passives) || (! curr->passive() && actives))
+        f->print(curr);
     }
 }
 
@@ -165,27 +169,32 @@ void chart::get_statistics()
 // Bernd Kiefer (kiefer@dfki.de)
 //
 
-int weight(tItem * i) { return 1; }
+// _fix_me_ this should be a method of the item, not a function
+int weight(tItem * i) {
+  // return a weight close to infinity if this is not a phrasal item
+  // thus, we guarantee that phrasal items are drastically preferred
+  if (dynamic_cast<tPhrasalItem *>(i) != NULL) return 1;
+  else if (dynamic_cast<tLexItem *>(i) != NULL) return 1000;
+  else return 1000000;
+}
 
-void chart::shortest_path (list <tItem *> &result) {
+void chart::shortest_path (list <tItem *> &result, bool all) {
 
   vector<tItem *>::size_type size = _Cp_start.size() ;
   vector<tItem *>::size_type u, v ;
-  unsigned int *distance = new unsigned int[size] ;
-  unsigned int new_dist ;
 
   vector < list < unsigned int > > pred(size) ;
+
+  unsigned int *distance = new unsigned int[size + 1] ;
+  unsigned int new_dist ;
+
   list <tItem *>::iterator curr ;
   tItem *passive ;
 
-  short int *unseen = new short int[size] ;
-  list < unsigned int > current ;
-
-  for (u = 1 ; u <= size ; u++) {
-    distance[u] = UINT_MAX ;
-    unseen[u] = 1 ; 
-  }
-  distance[0] = 0 ; unseen[0] = 1 ;
+  // compute the minimal distance and minimal distance predecessor nodes for
+  // each node
+  for (u = 1 ; u <= size ; u++) { distance[u] = UINT_MAX ; }
+  distance[0] = 0 ;
 
   for (u = 0 ; u < size ; u++) {
     /* this is topologically sorted order */
@@ -202,24 +211,56 @@ void chart::shortest_path (list <tItem *> &result) {
     }
   }
 
-  current.push_front(size - 1) ;
+  /** Extract all best paths */
+  queue < unsigned int > current ;
+  bool *unseen = new bool[size + 1] ;
+  for (u = 0 ; u <= size ; u++) unseen[u] = true ;
+
+  current.push(size - 1) ;
   while (! current.empty()) {
-    u = current.front() ; current.pop_front() ;
+    u = current.front() ; current.pop() ;
     for (curr = _Cp_end[u].begin() ; curr != _Cp_end[u].end() ; curr++) {
       passive = *curr ;
       v = passive->start() ;
       if ((find (pred[u].begin(), pred[u].end(), v) != pred[u].end())
           && ((int) (distance[u] - distance[v])) == weight(passive)) {
         result.push_front(passive) ;
-        if (unseen[v]) { current.push_front(v) ; unseen[v] = 0 ; }
+        if (unseen[v]) { current.push(v) ; unseen[v] = false ; }
+        if (! all) break; // only extract one path  
       }
     }
   }
+
   delete[] distance;
   delete[] unseen;
 }
 
+/** Return \c true if the chart is connected using only edges considered \a
+ *  valid, i.e., there is a path from the first to the last node.
+ */
+bool
+chart::connected(item_predicate &valid) {
+  vector<bool> reached(rightmost() + 1, false);
+  queue<int> current;
+  int pos;
+
+  reached[0] = true;
+  current.push(0);
+  while(! reached[rightmost()] && ! current.empty()) {
+    pos = current.front(); current.pop();
+    for(list<tItem *>::iterator it = _Cp_start[pos].begin()
+          ; it != _Cp_start[pos].end(); it++) {
+      if (! reached[(*it)->end()] && valid(*it)) {
+        reached[(*it)->end()] = true;
+        current.push((*it)->end());
+      }
+    }
+  }
+  return reached[rightmost()];
+}
+
 #if 0
+// This function is not really useful
 /** Find uncovered regions (gaps) in the chart, i.e., regions that are not or
  *  only partially covered by items considered as \a valid.
  *
@@ -231,7 +272,7 @@ void chart::shortest_path (list <tItem *> &result) {
  *               maybe more robustness.
  */
 vector<bool> 
-chart::uncovered_regions(unary_function<bool, tItem *> &valid, bool narrow)
+chart::uncovered_regions(item_predicate &valid, bool narrow)
 {
     if(verbosity > 4)
       fprintf(ferr, "finding uncovered regions (0 - %d):", rightmost());

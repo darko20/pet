@@ -83,7 +83,15 @@ dump_toc::goto_section(sectiontype s)
 {
     if(_toc.find(s) != _toc.end())
     {
-        _dump->seek(_toc[s]);
+        try 
+        {
+            _dump->seek(_toc[s]);
+        }
+        catch (tError &e) 
+        {
+            throw tError("grammar file is corrupted");
+        }
+        
         sectiontype actual = sectiontype(_dump->undump_int());
         if(actual != s)
             throw tError("grammar file is corrupted");

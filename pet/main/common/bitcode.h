@@ -17,144 +17,255 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// class to represent bitvectors of fixed size
-// represents set of integers in the interval [ 0 .. sz [
-// performance of some operations is critical for efficient glb computation
-
-// _fixme_
-// Could try a `zoning' approach here: since most bits are 0, restrict 
-// operations like subtype to just the region containing 1. Need to 
-// keep track of left and right limit for this. See #ifdef ZONING 
+/** \file bitcode.h
+ * Class to represent bitvectors of fixed size
+ * represents set of integers in the interval [ 0 .. sz [
+ * performance of some operations is critical for efficient glb computation
+ *
+ * \todo
+ * Could try a `zoning' approach here: since most bits are 0, restrict 
+ * operations like subtype to just the region containing 1. Need to 
+ * keep track of left and right limit for this. See #ifdef ZONING 
+ */
 
 #ifndef _BITCODE_H_
 #define _BITCODE_H_
 
-#include <list-int.h>
-#include <dumper.h>
+#include <cassert>
+#include <ostream>
 
+/** \c CODEWORD should be an unsigned numeric type that fits best into a CPU
+ *  register.
+ */
 typedef unsigned int CODEWORD;
 
+/** Implementation of efficient fixed size bit vectors.
+ * \attention Most functions assume that all bit vectors are of the same size.
+ */ 
 class bitcode {
 
   static const int SIZE_OF_WORD = (8*sizeof(CODEWORD));
 
+  inline CODEWORD *end() const { return stop ; }
+
+  inline int wordindex(int pos) const { return pos / SIZE_OF_WORD ; }
+
+  inline CODEWORD bitmask(int pos) const { return (1 << (pos % SIZE_OF_WORD));}
+
+  /** compare this bitcode and \a S2 in lexicographic order 
+   *  \return 0 if \a this == \a S2, -1 if \a this < \a S2
+   *  , +1 if \a this < \a S2
+   */
+  int compare(const bitcode &S2) const {
+    CODEWORD *p, *q;
+    
+    for(p = V, q = S2.V; p < end() ; p++, q++) {
+      if(*p != *q) {
+        if (*p < *q) return -1; else return 1;
+      }
+    }
+    return 0;
+  }
+
+  /** Destructive bitwise OR */
+  bitcode& join(const bitcode& b) {
+    assert(sz == b.sz);
+    CODEWORD *p, *q;
+    for(p = V, q = b.V; p < end(); p++, q++) *p |= *q;
+    return *this;
+  }
+
+  /** Destructive bitwise AND */
+  bitcode& intersect(const bitcode& b) {
+    assert(sz == b.sz);
+    CODEWORD *p, *q;
+    for(p = V, q = b.V; p < end(); p++, q++) *p &= *q;
+    return *this;
+  }
+
   CODEWORD *V, *stop;
   int sz;
 
+#ifdef ZONING
+  /** Zoning is not tested. Does it work? */
+  int first_set, last_set;
+#endif
+
  public:
 
+  /** Create a bit vector of \a n bits */
   bitcode(int n);
 
+  /** Clone a bit vector */
   bitcode(const bitcode&);
+
+  /** Destroy bit vector */
   ~bitcode() { delete[] V; }
 
-  void insert(int x);
-  void del(int x);
+  /** Set bit at position \a x to one */
+  void insert(int x) { V[ wordindex(x) ] |= bitmask(x); }
 
-  int  member(int x) const;
+  /** Set bit at position \a x to zero */
+  void del(int x){ V[ wordindex(x) ] &= ~ bitmask(x); }
 
-  list_int *get_elements();
+  /** Return true if the bit at position \a x is set to one */
+  bool member(int x) const { return ((V[ wordindex(x) ] & bitmask(x)) != 0); }
 
-  int max() const;
-  int size() const;
-  void clear();
-  int empty() const;
+  /** Collect the positions of all bits that are 1 into the result list */
+  struct list_int *get_elements();
+
+  /** Return the index of the last bit in this bitvector (== size() - 1) */
+  int max() const { return sz - 1; }
+  /** Return the number of bits in this bitvector */
+  int size() const { return sz; }
+
+  /** Set all bits to zero */
+  void clear() {
+    register CODEWORD *p = V;
+    while (p < end()) *p++ = 0;
+  }
+  
+  /** Test if the bitvector only contains zeros */
+  bool empty() const {
+    for(CODEWORD *p = V; p < end(); p++) if(*p != 0) return false;
+    return true;
+  }
+
 #ifdef ZONING
   void find_relevant_parts() const; // update first_set/last_set
 #endif
 
-  void print(FILE *f) const;
+  /** Print bitcode for debugging purposes */
+  void print(FILE *f) const {
+    for(CODEWORD *p = V; p < end(); p++)
+      fprintf(f, "%.8X", *p);
+  }
 
-  void  dump(dumper *f);
-  void undump(dumper *f);
+  /** @name Serialize/Deserialize bitvector.
+   * The Serialization is optimized for bitvectors containing sequences of
+   * empty codewords, which are stored using a run-length encoding.
+   *
+   * Plain (naive) bitcode dumping can be used by defining the symbol
+   * \c NAIVE_BITCODE_DUMP, but the same method has to be used in the undumping
+   * application then.
+   */
+  /*@{*/
+  void dump(class dumper *f);
+  void undump(class dumper *f);
+  /*@}*/
 
-  bitcode& join(const bitcode& );
-  bitcode& intersect(const bitcode&);
-  bitcode& complement();
+  /** Return \c true if the bitvector \f$ \mbox{this}\wedge a = \mbox{this}\f$,
+   *  i.e., the bits set in this bitvector are a subset of the bits set in \a a
+   *  \pre The bitvectors have to be of equal size for this function to work
+   *  correctly.
+   */
+  bool subset(const bitcode& a);
 
-  bool subset(const bitcode&);
-
+  /** Assignment. Works also for bit vectors of different size. */
   bitcode& operator=(const bitcode& S1);
 
-  bitcode& operator|=(const bitcode&);
-  bitcode& operator&=(const bitcode&);
+  /** Destructive  bitwise OR
+   *  \pre The bitvectors have to be of equal size.
+   */
+  bitcode& operator|=(const bitcode& s) { return join(s); }
+  /** Destructive bitwise AND
+   *  \pre The bitvectors have to be of equal size.
+   */
+  bitcode& operator&=(const bitcode& s) { return intersect(s); }
+  /** Destructive bitwise NOT */
+  bitcode& complement(){
+    for(CODEWORD *p = V; p<end(); p++) *p = ~(*p);
+    /* Delete the bits that are not used because they are beyond max()
+    --p; 
+    *p &= (((CODEWORD) -1) >> SIZE_OF_WORD - (sz % SIZE_OF_WORD))
+    */
+    return *this;
+  }
 
-  bitcode  operator|(const bitcode& S1);
-  bitcode  operator&(const bitcode& S1);
+  /** Non-destructive bitwise OR
+   *  \pre The bitvectors have to be of equal size.
+   */
+  bitcode& operator|(const bitcode& b){
+    bitcode res(*this);
+    return res.intersect(b);
+  }
+  /** Non-destructive bitwise AND
+   *  \pre The bitvectors have to be of equal size.
+   */
+  bitcode& operator&(const bitcode& b){
+    bitcode res(*this);
+    return res.join(b);
+  }
+  /** Non-destructive bitwise NOT.
+   *  \pre The bitvectors have to be of equal size.
+   */
+  bitcode operator~(){
+    bitcode res(*this);
+    return res.complement();
+  }
+  
+  /** Return \c true if this bitvector is bitwise equal to \a T
+   *  \pre The bitvectors have to be of equal size for this function to work
+   *  correctly.
+   */
+  bool operator==(const bitcode& T) const {
+    CODEWORD *p, *q;
+    assert(sz == T.sz);
+    for(p = V, q = T.V; p < end(); p++, q++)
+      if(*p != *q) return 0;
+    
+    return 1;
+  }
 
-  bitcode  operator~();
-
-  bool operator==(const bitcode& T) const;
-
+  /** A more efficient hash function for bitcodes in type hierarchies: return
+   *  the number of the first nonzero bit.
+   */
   friend int Hash(const bitcode& C);
-  friend int compare(const bitcode &S1, const bitcode &S2);
-  friend void subset_bidir(const bitcode&, const bitcode &, bool &, bool &);
-  friend bool intersect_empty(const bitcode&, const bitcode&, bitcode *);
 
+  /** Check subset relations between \a A and \a B in parallel and store result
+   *  in \a a and \a b.
+   *  \return \a a is true iff \f$ A \subseteq B \f$ and \a b is true iff \f$ B
+   *  \subseteq A \f$ 
+   *  \pre The bitvectors have to be of equal size for this function to work
+   *  correctly.
+   */
+  friend void subset_bidir(const bitcode&A, const bitcode &B, bool &a, bool &b);
+  /** Return true if the bitwise \c and of \a A and \a B is empty, and return
+   *  the result of the \c and operation in \a C.
+   *  \pre All bitvectors have to be of equal size for this function to work
+   *  correctly.
+   */
+  friend bool intersect_empty(const bitcode&A, const bitcode&B, bitcode *C);
+  
+  /** Print bitcode for debugging purposes */
   friend std::ostream& operator<<(std::ostream& O, const bitcode& C);
+
+  /** @name Comparison
+   * Compare bitvectors in reverse lexicographic order
+   */
+  /*@{*/
   friend bool operator<(const bitcode &, const bitcode&);
   friend bool operator>(const bitcode &, const bitcode&);
+  /*@}*/
 };
 
-inline int bitcode::max() const { return sz - 1; }
+/** Print bitcode for debugging purposes */
+std::ostream& operator<<(std::ostream& O, const bitcode& C);
 
-inline int bitcode::size() const { return sz; }
-
-inline int  bitcode::member(int x)  const
-{
-  return V[ x / SIZE_OF_WORD ] & (1 << (x % SIZE_OF_WORD));
-}
-
-inline void bitcode::insert(int x)
-{
-  V[ x / SIZE_OF_WORD ] |= (1 << (x % SIZE_OF_WORD));
-}
-
-inline void bitcode::del(int x)
-{
-  V[ x / SIZE_OF_WORD ] &= ~(1 << (x % SIZE_OF_WORD));
-}
-
-inline bitcode& bitcode::operator|=(const bitcode& s) { return join(s); }
-
-inline bitcode& bitcode::operator&=(const bitcode& s) { return intersect(s); }
-
-inline bool bitcode::operator==(const bitcode &T) const
-{
-  CODEWORD *p, *q;
-
-  for(p = V + sz/SIZE_OF_WORD, q = T.V + sz/SIZE_OF_WORD; p >= V; p--, q--)
-    if(*p != *q) return 0;
-
-  return 1;
-}
-
-inline int compare(const bitcode &S1, const bitcode &S2)
-{
-  CODEWORD *p, *q;
-
-  for(p = S1.V + S1.sz/S1.SIZE_OF_WORD, q = S2.V + S2.sz/S2.SIZE_OF_WORD; p >= S1.V; p--, q--)
-  {
-    if(*p != *q)
-      {
-	if (*p < *q) return -1; else return 1;
-      }
-#ifdef __BORLANDC__
-    if(p == S1.V) return 0;
-#endif
-  }
-  return 0;
-}
-
+/** @name Comparison
+ * Compare bitvectors in reverse lexicographic order
+ */
+/*@{*/
 inline bool operator<(const bitcode& a, const bitcode &b)
-{ return compare(a, b) == -1; }
+{ return a.compare(b) == -1; }
 
 inline bool operator>(const bitcode& a, const bitcode &b)
-{ return compare(a, b) ==  1; }
+{ return a.compare(b) ==  1; }
+/*@}*/
 
-#ifndef FLOP
-#include "pet-system.h"
-#ifdef HASH_MAP_AVAIL
+#ifdef HAVE_HASH_MAP
+#include "hashing.h"
+
 namespace HASH_SPACE {
 template<> struct hash<bitcode>
 {
@@ -163,8 +274,8 @@ template<> struct hash<bitcode>
     return Hash(key);
   }
 };
+
 }
-#endif
 #endif
 
 #endif

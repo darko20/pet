@@ -17,33 +17,28 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* class to manage chunks of memory for efficient allocation of objects */
+/** class to manage chunks of memory for efficient allocation of objects
 
-/* this class has several implementations of its low-level memory allocation,
+   this class has several implementations of its low-level memory allocation,
    one that is unix dependend, supporting two heaps with disjunct and
    easy to distinguish address rooms to allow zero-overhead seperation
    of permanent and non-permant dags (colored pointers); another windows-
    specific implementation that uses VirtualAlloc; and a third one that
    relies on standard C++ memory management only */
 
-#ifdef USEMMAP
+#ifdef HAVE_MMAP
 #include <unistd.h>
 #endif
 
-#include "pet-system.h"
 #include "chunk-alloc.h"
-#ifdef FLOP
-#include "flop.h"
-#else
-#include "cheap.h"
-#endif
+#include "errors.h"
 
 chunk_allocator t_alloc(CHUNK_SIZE, false);
 chunk_allocator p_alloc(CHUNK_SIZE, true);
 
 chunk_allocator::chunk_allocator(int chunk_size, bool down)
 {
-#ifdef USEMMAP
+#ifdef HAVE_MMAP
   int pagesize = sysconf(_SC_PAGESIZE);
   _chunk_size = (((chunk_size-1)/pagesize)+1)*pagesize;
 #else
@@ -108,7 +103,8 @@ void chunk_allocator::may_shrink()
 
   int avg_chunks = _stats_chunk_sum / _stats_chunk_n;
 
-  // we want to shrink if _nchunks is way above average & current usage is not above average
+  // we want to shrink if _nchunks is way above average & current usage is
+  // not above average
 
   if(_nchunks > avg_chunks * 2 && _curr_chunk <= avg_chunks + 1)
     {
@@ -143,7 +139,7 @@ void chunk_allocator::reset()
   may_shrink();
 }
 
-#ifdef USEMMAP
+#ifdef HAVE_MMAP
 
 //
 // core memory allocation for UNIX using mmap
@@ -195,9 +191,13 @@ void chunk_allocator::_init_core(bool down)
 inline void *mmap_mmap(void *addr, int size)
 {
 #ifndef _MMAP_ANONYMOUS
-  return mmap((char *) addr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|(addr == 0 ? 0 : MAP_FIXED), dev_zero_fd, 0);
+  return mmap((char *) addr, size
+              , PROT_READ|PROT_WRITE, MAP_PRIVATE|(addr == 0 ? 0 : MAP_FIXED)
+              , dev_zero_fd, 0);
 #else
-  return mmap(addr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+  return mmap(addr, size
+              , PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS
+              , -1, 0);
 #endif
 }
 
@@ -205,22 +205,26 @@ void *chunk_allocator::_core_alloc(int size)
 {
   void *p = MAP_FAILED;
 
+  while((p == MAP_FAILED) && (_mmap_up_mark < _mmap_down_mark)) {
 #ifdef _MMAP_DOWN
-  if(_core_down)
-    p = mmap_mmap(0, size);
-  else
-    p = mmap_mmap(_mmap_up_mark, size);
+    if(_core_down)
+      p = mmap_mmap(0, size);
+    else
+      p = mmap_mmap(_mmap_up_mark, size);
 #else
-  if(!_core_down)
-    p = mmap_mmap(0, size);
-  else
-    p = mmap_mmap(_mmap_down_mark - size, size);
+    if(!_core_down)
+      p = mmap_mmap(0, size);
+    else
+      p = mmap_mmap(_mmap_down_mark - size, size);
 #endif
+
+    if (p == MAP_FAILED) { _mmap_down_mark -= size ; }
+  }
 
   if(p == MAP_FAILED)
     {
       perror("chunk_allocator::_core_alloc");
-      fprintf(ferr,
+      fprintf(stderr,
 	      "couldn't mmap %d bytes %s (up = %xd, down = %xd)\n",
 	      size,
 	      _core_down ? "down" : "up",
@@ -235,7 +239,7 @@ void *chunk_allocator::_core_alloc(int size)
 
   if(_mmap_up_mark >= _mmap_down_mark)
     {
-      fprintf(ferr, "alloc: no space (up = %xd, down = %xd)\n",
+      fprintf(stderr, "alloc: no space (up = %xd, down = %xd)\n",
 	      (int) _mmap_up_mark, (int) _mmap_down_mark);
       throw tError("alloc: out of mmap space");
     }
@@ -258,35 +262,7 @@ int chunk_allocator::_core_free(void *p, int size)
   return res;
 }
 
-#else
-
-#ifdef GENERIC_CHUNKALLOC
-
-//
-// generic core memory allocation for Windows et al
-//
-
-#pragma argsused
-void chunk_allocator::_init_core(bool down)
-{
-}
-
-void *chunk_allocator::_core_alloc(int size)
-{
-  void *p = (void *) new char[size];
-  return p;
-}
-
-#pragma argsused
-int chunk_allocator::_core_free(void *p, int size)
-{
-  delete[] (char *) p;
-  return 1;
-}
-
-#else
-
-#ifdef __BORLANDC__
+#elif defined(__BORLANDC__)
 // Use WinAPI VirtualAlloc and VirtualFree
 
 #include <windows.h>
@@ -312,9 +288,27 @@ int chunk_allocator::_core_free(void *p, int size)
 }
 
 #else
-#error "No platform specific allocator defined"
-#endif
 
-#endif
+//
+// generic core memory allocation for Windows et al
+//
 
-#endif
+#pragma argsused
+void chunk_allocator::_init_core(bool down)
+{
+}
+
+void *chunk_allocator::_core_alloc(int size)
+{
+  void *p = (void *) new char[size];
+  return p;
+}
+
+#pragma argsused
+int chunk_allocator::_core_free(void *p, int size)
+{
+  delete[] (char *) p;
+  return 1;
+}
+
+#endif  // core memory allocation

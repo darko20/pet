@@ -17,13 +17,19 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// YY input format and server mode (oe, uc)
+/** \file yy.h
+ * YY input format and server mode (oe, uc).
+ * The input format reader has already been moved to yy-tokenizer.h .
+ * \todo The socket server code might be of use, too. Do a little refactoring,
+ * rename this file to server.h or socket.h and delete all references to 
+ * YY Inc.
+ */
 
 #ifndef _YY_H_
 #define _YY_H_
 
-#include <stdio.h>
-#include <assert.h>
+#include <cstdio>
+#include <cassert>
 
 #if 0
 #include "tokenizer.h"
@@ -39,6 +45,7 @@ class yy_tokenizer : public tokenizer
   virtual void add_tokens(class input_chart *i_chart);
 
   virtual string description() { return "YY Inc tokenization"; }
+
 
  private:
   string _yyinput;

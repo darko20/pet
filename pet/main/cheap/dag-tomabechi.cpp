@@ -20,6 +20,8 @@
 /* tomabechi quasi destructive graph unification  */
 /* inspired by the LKB implementation */
 
+#include "dag-tomabechi.h"
+#include "list-int.h"
 #include "pet-system.h"
 #include "dag.h"
 #include "types.h"
@@ -35,8 +37,6 @@ int unify_generation_max = 0;
 bool create_permanent_dags = true;
 #endif
 
-// _fix_me_
-// This should be better integrated with the t_alloc and p_alloc stuff.
 void stop_creating_permanent_dags()
 {
 #ifdef MARK_PERMANENT
@@ -75,19 +75,7 @@ dag_deref1(dag_node *dag)
     return dag;
 }
 
-dag_arc *dag_find_attr(dag_arc *arc, int attr)
-{
-  while(arc)
-    {
-      if(arc->attr == attr)
-	return arc;
-      arc = arc->next;
-    }
-
-  return 0;
-}
-
-dag_node *dag_get_attr_value(dag_node *dag, int attr)
+dag_node *dag_get_attr_value(dag_node *dag, attr_t attr)
 {
   dag_arc *arc;
   
@@ -97,7 +85,7 @@ dag_node *dag_get_attr_value(dag_node *dag, int attr)
   return arc->val;
 }
 
-bool dag_set_attr_value(dag_node *dag, int attr, dag_node *val)
+bool dag_set_attr_value(dag_node *dag, attr_t attr, dag_node *val)
 {
   dag_arc *arc;
   
@@ -132,7 +120,7 @@ dag_node *dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *de
   return res;
 }
 
-dag_node *dag_unify_np(dag_node *root, dag_node *dag1, dag_node *dag2)
+dag_node *dag_unify_temp(dag_node *root, dag_node *dag1, dag_node *dag2)
 {
   unification_cost = 0;
   if(dag_unify1(dag1, dag2) == FAIL)
@@ -142,11 +130,25 @@ dag_node *dag_unify_np(dag_node *root, dag_node *dag1, dag_node *dag2)
 }
 
 #ifdef QC_PATH_COMP
+#include "failure.h"
+
+/** Global flag to trigger failure recording during unification/subsumption */
 static bool unify_record_failure = false;
+
+/** Global flag deciding if all or only the first failure during
+ *  unification/subsumption will be recorded.
+ */
 static bool unify_all_failures = false;
 
+/** The last unification failure, if not equal to \c NULL */
 unification_failure *failure = 0;
+
+/** contains the reverse feature path to the current dag node during
+ *  unification.
+ */
 list_int *unify_path_rev = 0;
+
+/** A list of all failures occured when \c unify_all_failures is \c true */
 list<unification_failure *> failures;
 #endif
 
@@ -201,8 +203,9 @@ void save_or_clear_failure()
 dag_node *dag_cyclic_copy(dag_node *src, list_int *del);
 
 #ifdef QC_PATH_COMP
-list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool all_failures,
-						   list_int *initial_path, dag_node **result_root)
+list<unification_failure *> 
+dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool all_failures,
+                       list_int *initial_path, dag_node **result_root)
 {
   unify_record_failure = true;
   unify_all_failures = all_failures;
@@ -211,7 +214,8 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
   failures.clear();
   unification_cost = 0;
 
-  if(unify_path_rev != 0) fprintf(ferr, "dag_unify_get_failures: unify_path_rev not empty\n");
+  if(unify_path_rev != 0)
+    fprintf(ferr, "dag_unify_get_failures: unify_path_rev not empty\n");
   unify_path_rev = reverse(initial_path);
 
   dag_unify1(dag1, dag2);
@@ -233,8 +237,11 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       if((cycle = dag_cyclic_rec(*result_root)) != 0)
 	{
 	  dag_invalidate_changes();
-	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
-						unification_cost, -1, -1, cycle, *result_root));
+	  failures.push_back(new unification_failure(unification_failure::CYCLE
+                                                     , unify_path_rev
+                                                     , unification_cost
+                                                     , -1, -1, cycle
+                                                     , *result_root));
 	}
     }
   else
@@ -242,8 +249,9 @@ list<unification_failure *> dag_unify_get_failures(dag_node *dag1, dag_node *dag
       // result might be cyclic
       if((cycle = dag_cyclic_rec(dag1)) != 0)
 	{
-	  failures.push_back(new unification_failure(unification_failure::CYCLE, unify_path_rev,
-						unification_cost));
+	  failures.push_back(new unification_failure(unification_failure::CYCLE
+                                                     , unify_path_rev
+                                                     , unification_cost));
 	}
     }
 #endif
@@ -312,10 +320,13 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
       if(unify_record_failure)
         {
           // _fix_me_ this is not right
+          // _fix_doc_ But what is the problem ??
 	  if(!unify_all_failures)
 	    {
 	      save_or_clear_failure();
-	      failure = new unification_failure(unification_failure::CYCLE, unify_path_rev, unification_cost);
+	      failure = new unification_failure(unification_failure::CYCLE
+                                                , unify_path_rev
+                                                , unification_cost);
 	      return FAIL;
 	    }
 	  else
@@ -340,7 +351,7 @@ dag_node *dag_unify1(dag_node *dag1, dag_node *dag2)
 // constraint stuff
 //
 
-dag_node *new_p_dag(int s)
+dag_node *new_p_dag(type_t s)
 {
   dag_node *dag = dag_alloc_p_node();
   dag_init(dag, s);
@@ -352,12 +363,12 @@ dag_node *new_p_dag(int s)
   return dag;
 }
 
-dag_arc *new_p_arc(int attr, dag_node *val)
+dag_arc *new_p_arc(attr_t attr, dag_node *val, dag_arc *next = NULL)
 {
   dag_arc *newarc = dag_alloc_p_arc();
   newarc->attr = attr;
   newarc->val = val;
-  newarc->next = 0;
+  newarc->next = next;
   return newarc;
 }
 
@@ -385,27 +396,73 @@ dag_node *dag_full_p_copy(dag_node *dag)
 
 int total_cached_constraints = 0;
 
-inline dag_node *fresh_constraint_of(int s)
+/* 
+// Seems to be obsolete
+inline dag_node *fresh_constraint_of(type_t s)
 {
   temporary_generation save(++unify_generation_max);
-  return dag_full_copy(typedag[s]);
+  return dag_full_copy(type_dag(s));
+}
+*/
+
+/** Cache for type dags that have been allocated but not used due to
+ *  unification failure. Only type dags containing arcs are cached here, so we
+ *  do not need to worry about dynamic types, since their type dags don't
+ *  contain arcs
+ */
+constraint_info **constraint_cache = NULL;
+
+/** Initialize the constraint cache to the given \a size (must be the number
+ *  of static types).
+ */
+void init_constraint_cache(type_t size) {
+  if (constraint_cache) { delete[] constraint_cache; }
+  constraint_cache = new constraint_info *[size];
+  for(type_t i = 0; i < size; i++) constraint_cache[i] = NULL;
 }
 
-constraint_info **constraint_cache;
+/** Free the constraint cache */
+void free_constraint_cache(type_t size)
+{
+  for(type_t i = 0; i < size; i++)
+  {
+    constraint_info *c = constraint_cache[i];
+    while(c != NULL)
+    {
+      constraint_info *n = c->next;
+      delete c;
+      c = n;
+    }
+  }
 
-inline constraint_info *fresh_p_constraint(int s, constraint_info *next)
+  delete[] constraint_cache;
+}
+
+/** Create a new permanent type dag (by coping) in a constraint_info bucket for
+ *  use with the constraint_cache.
+ *
+ *  \todo Explain why the copy has to be made with an increased generation
+ *  counter. If all type dag unifications come from the constraint cache, which
+ *  makes full permanent copies of the type dags, the original dag from the
+ *  data base should never be involved. What fact am i missing here?
+ */
+inline constraint_info *fresh_p_constraint(type_t s, constraint_info *next)
 {
   constraint_info *c = new constraint_info;
   c -> next = next;
   c -> gen = 0;
 
   temporary_generation save(++unify_generation_max);
-  c -> dag = dag_full_p_copy(typedag[s]);
+  c -> dag = dag_full_p_copy(type_dag(s));
 
   return c;
 }
 
-struct dag_node *cached_constraint_of(int s)
+/** Return an unused type dag for type \a s. 
+ *  Either an unused dag can be found in the cache and is returned or another
+ *  (permanent) copy is made, added to the cache, and returned.
+ */
+struct dag_node *cached_constraint_of(type_t s)
 {
   constraint_info *c = constraint_cache[s];
 
@@ -424,8 +481,8 @@ struct dag_node *cached_constraint_of(int s)
 }
 
 inline bool
-dag_make_wellformed(int new_type, dag_node *dag1, int s1, dag_node *dag2,
-                    int s2)
+dag_make_wellformed(type_t new_type, dag_node *dag1, type_t s1, dag_node *dag2,
+                    type_t s2)
 {
     if((s1 == new_type && s2 == new_type) ||
        (!dag_has_arcs(dag1) && !dag_has_arcs(dag2)) ||
@@ -434,7 +491,9 @@ dag_make_wellformed(int new_type, dag_node *dag1, int s1, dag_node *dag2,
         return true;
 
     bool res = true;
-    if(typedag[new_type]->arcs)
+    // dynamic types have no arcs, so the next test is always true for dynamic
+    // types, which is why we don't need cached constraints for them
+    if(type_dag(new_type)->arcs)
     {
         bool sv = unify_record_failure;
         unify_record_failure = false;
@@ -445,7 +504,7 @@ dag_make_wellformed(int new_type, dag_node *dag1, int s1, dag_node *dag2,
     return res;
 }
 
-inline dag_arc *dag_cons_arc(int attr, dag_node *val, dag_arc *next)
+inline dag_arc *dag_cons_arc(attr_t attr, dag_node *val, dag_arc *next)
 {
   dag_arc *arc;
 
@@ -455,7 +514,11 @@ inline dag_arc *dag_cons_arc(int attr, dag_node *val, dag_arc *next)
   return arc;
 }
 
-inline dag_node *find_attr2(int attr, dag_arc *a, dag_arc *b)
+/** Look for an arc with feature \a attr first in the arc list \a a, then in
+ * the arg list \a b and return the first arc you find, or \c NULL, in case
+ * there is no such arc 
+ */
+inline dag_node *find_attr2(attr_t attr, dag_arc *a, dag_arc *b)
 {
   dag_arc *res;
   
@@ -467,7 +530,14 @@ inline dag_node *find_attr2(int attr, dag_arc *a, dag_arc *b)
   return 0;
 }
 
-inline bool unify_arcs1(dag_arc *arcs, dag_arc *arcs1, dag_arc *comp_arcs1, dag_arc **new_arcs1)
+/** Unify all arcs in \a arcs against the arcs in \a arcs1 and \a comp_arcs1.
+ * Unification with an arc in \a comp_arcs1 is only performed when no
+ * corresponding arc exists in \a arcs1.
+ * \return \c false if a unification failure occured, \c true otherwise, and in
+ * this case return the unified arcs in \a new_arcs1
+ */
+inline bool 
+unify_arcs1(dag_arc *arcs, dag_arc *arcs1, dag_arc *comp_arcs1, dag_arc **new_arcs1)
 {
   dag_node *n;
   
@@ -477,7 +547,8 @@ inline bool unify_arcs1(dag_arc *arcs, dag_arc *arcs1, dag_arc *comp_arcs1, dag_
       if(n != 0)
 	{
 #ifdef QC_PATH_COMP
-	  if(unify_record_failure) unify_path_rev = cons(arcs->attr, unify_path_rev);
+	  if(unify_record_failure)
+            unify_path_rev = cons(arcs->attr, unify_path_rev);
 #endif
 	  if(dag_unify1(n, arcs->val) == FAIL)
 	    {
@@ -512,6 +583,9 @@ inline bool dag_unify_arcs(dag_node *dag1, dag_node *dag2)
   arcs1 = dag1->arcs;
   new_arcs1 = comp_arcs1 = dag_get_comp_arcs(dag1);
 
+  // What is the reason that an arc can not appear in the arcs and in the
+  // comp_arcs of a dag? If that would be the case, two arcs with the same
+  // feature could be in new_arcs1
   if(!unify_arcs1(dag2->arcs, arcs1, comp_arcs1, &new_arcs1))
     return false;
   
@@ -528,17 +602,19 @@ inline bool dag_unify_arcs(dag_node *dag1, dag_node *dag2)
 
 dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 {
-  int s1, s2, new_type;
+  type_t s1, s2, new_type;
 
   new_type = glb((s1 = dag_get_new_type(dag1)), (s2 = dag_get_new_type(dag2)));
 
-  if(new_type == -1)
+  if(new_type == T_BOTTOM)
     {
 #ifdef QC_PATH_COMP
       if(unify_record_failure)
         { 
 	  save_or_clear_failure();
-	  failure = new unification_failure(unification_failure::CLASH, unify_path_rev, unification_cost, s1, s2);
+	  failure = new unification_failure(unification_failure::CLASH
+                                            , unify_path_rev, unification_cost
+                                            , s1, s2);
 
 	  if(!unify_all_failures)
 	    return FAIL;
@@ -562,9 +638,9 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
                 fprintf(ferr, "glb: one compatible set\n");
               else
                 fprintf(ferr, "glb: %s%s(%d) & %s%s(%d) -> %s(%d)\n",
-                        typenames[s1], dag_has_arcs(dag1) ? "[]" : "", featset[s1],
-                        typenames[s2], dag_has_arcs(dag2) ? "[]" : "", featset[s2],
-                        typenames[new_type], featset[new_type]);
+                        type_name(s1), dag_has_arcs(dag1) ? "[]" : "", featset[s1],
+                        type_name(s2), dag_has_arcs(dag2) ? "[]" : "", featset[s2],
+                        type_name(new_type), featset[new_type]);
             }
           else
             fprintf(ferr, "glb: compatible feature sets\n");
@@ -589,7 +665,9 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 	  if(unify_record_failure)
             { 
 	      save_or_clear_failure();
-	      failure = new unification_failure(unification_failure::CONSTRAINT, unify_path_rev, unification_cost, s1, s2);
+	      failure = new unification_failure(unification_failure::CONSTRAINT
+                                                , unify_path_rev
+                                                , unification_cost, s1, s2);
 
 	      if(!unify_all_failures)
 		return FAIL;
@@ -654,46 +732,32 @@ dag_node *dag_full_copy(dag_node *dag)
   return copy;
 }
 
-struct dag_node *
-dag_partial_copy1(dag_node *dag, int attr, list_int *del)
+
+/** Return a new node with no arcs and type \a new_type as copy of \a dag.
+ * This function is called when the restrictor cuts at node \a dag. 
+ */
+struct dag_node *dag_partial_copy1(dag_node *dag, type_t new_type)
 {
-    dag_node *copy;
+  dag_node *copy;
     
-    copy = dag_get_copy(dag);
+  copy = dag_get_copy(dag);
     
-    if(copy == 0)
+  if(copy == 0)
     {
-        dag_arc *arc;
+      copy = new_dag(new_type);
         
-        copy = new_dag(dag->type);
-        
-        dag_set_copy(dag, copy);
-        
-        if(!contains(del, attr))
-        {
-            arc = dag->arcs;
-            while(arc != 0)
-	    {
-                dag_add_arc(copy,
-                            new_arc(arc->attr,dag_partial_copy1(arc->val,
-                                                                arc->attr,
-                                                                del)));
-                arc = arc->next;
-	    }
-	}
-        else if(attr != -1)
-        {
-            copy->type = maxapp[attr];
-        }
+      dag_set_copy(dag, copy);
+    }
+  else
+    {
+      copy->arcs = NULL;
+      
+      copy->type = new_type;
     }
     
-    return copy;
+  return copy;
 }
 
-struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
-{
-  return dag_partial_copy1(dag, -1, del);
-}
 
 void
 dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
@@ -808,10 +872,10 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
         // has been unfilled so that we find all coreferences.
         dag_node *tmpdag1 = dag1, *tmpdag2 = dag2;
         
-        if(!dag1->arcs && typedag[dag1->type]->arcs)
+        if(!dag1->arcs && type_dag(dag1->type)->arcs)
             tmpdag1 = cached_constraint_of(dag1->type);
 
-        if(!dag2->arcs && typedag[dag2->type]->arcs)
+        if(!dag2->arcs && type_dag(dag2->type)->arcs)
             tmpdag2 = cached_constraint_of(dag2->type);
 
         dag_arc *arc1 = tmpdag1->arcs;
@@ -1086,7 +1150,10 @@ dag_node *dag_copy(dag_node *src, list_int *del)
 
 #endif
 
-inline bool arcs_contain(dag_arc *arc, int attr)
+/** Return \c true if the arc list starting at \a arc contains an arc with
+ *  feature \a attr.
+ */
+inline bool arcs_contain(dag_arc *arc, attr_t attr)
 {
   while(arc)
     {
@@ -1096,6 +1163,11 @@ inline bool arcs_contain(dag_arc *arc, int attr)
   return false;
 }
 
+/** Clone the list of arcs in \a src by prepending all cloned arcs to the arcs
+ *  list in \a dst except for arcs that have a feature that occurs also in \a
+ *  del (as feature of an arc)
+ *  \return The new arcs list (that contains at least \a dst)
+ */
 inline dag_arc *clone_arcs_del(dag_arc *src, dag_arc *dst, dag_arc *del)
 {
   while(src)
@@ -1108,7 +1180,14 @@ inline dag_arc *clone_arcs_del(dag_arc *src, dag_arc *dst, dag_arc *del)
   return dst;
 }
 
-inline dag_arc *clone_arcs_del_del(dag_arc *src, dag_arc *dst, dag_arc *del_arcs, list_int *del_attrs)
+/** Clone the list of arcs in \a src by prepending all cloned arcs to the arcs
+ *  list in \a dst except for arcs that have a feature that occurs also in \a
+ *  del_arcs (as feature of an arc) or in \a del_attrs features)
+ *  \return The new arcs list (that contains at least \a dst)
+ */
+inline dag_arc *
+clone_arcs_del_del(dag_arc *src, dag_arc *dst,
+                   dag_arc *del_arcs, list_int *del_attrs)
 {
   while(src)
     {
@@ -1123,7 +1202,7 @@ inline dag_arc *clone_arcs_del_del(dag_arc *src, dag_arc *dst, dag_arc *del_arcs
 dag_node *dag_copy(dag_node *src, list_int *del)
 {
   dag_node *copy;
-  int type;
+  type_t type;
 
   unification_cost++;
 
@@ -1222,6 +1301,8 @@ dag_node *dag_copy(dag_node *src, list_int *del)
   if(copy_p)
     {
       copy = new_dag(type);
+      // clone all original arcs which are not yet in new_arcs (and not in the
+      // deleted features list, if this list is not empty)
       if(del)
 	copy->arcs = clone_arcs_del_del(src->arcs, new_arcs, new_arcs, del);
       else
@@ -1302,10 +1383,10 @@ dag_node *dag_copy(dag_node *src, list_int *del)
 #endif
 
 //
-// non-permanent dags
+// temporary dags
 //
 
-dag_node *dag_get_attr_value_np(dag_node *dag, int attr)
+dag_node *dag_get_attr_value_temp(dag_node *dag, attr_t attr)
 {
   dag_arc *arc;
 
@@ -1318,26 +1399,30 @@ dag_node *dag_get_attr_value_np(dag_node *dag, int attr)
   return FAIL;
 }
 
-struct dag_node *dag_nth_arg_np(struct dag_node *dag, int n)
+struct dag_node *dag_nth_arg_temp(struct dag_node *dag, int n)
 {
   int i;
   struct dag_node *arg;
 
-  if((arg = dag_get_attr_value_np(dag_deref1(dag), BIA_ARGS)) == FAIL)
+  if((arg = dag_get_attr_value_temp(dag_deref1(dag), BIA_ARGS)) == FAIL)
     return FAIL;
 
-  for(i = 1; i < n && arg && arg != FAIL && !subtype(dag_get_new_type(arg), BI_NIL); i++)
-    arg = dag_get_attr_value_np(dag_deref1(arg), BIA_REST);
+  for(i = 1; (i < n
+              && arg != NULL
+              && arg != FAIL
+              && !subtype(dag_get_new_type(arg), BI_NIL))
+        ; i++)
+    arg = dag_get_attr_value_temp(dag_deref1(arg), BIA_REST);
 
   if(i != n)
     return FAIL;
 
-  arg = dag_get_attr_value_np(dag_deref1(arg), BIA_FIRST);
+  arg = dag_get_attr_value_temp(dag_deref1(arg), BIA_FIRST);
 
   return arg;
 }
 
-void dag_get_qc_vector_np(qc_node *path, struct dag_node *dag, type_t *qc_vector)
+void dag_get_qc_vector_temp(qc_node *path, dag_node *dag, type_t *qc_vector)
 {
   if(dag == FAIL) return;
 
@@ -1351,8 +1436,8 @@ void dag_get_qc_vector_np(qc_node *path, struct dag_node *dag, type_t *qc_vector
   //    return;
 
   for(qc_arc *arc = path->arcs; arc != 0; arc = arc->next)
-    dag_get_qc_vector_np(arc->val,
-			 dag_get_attr_value_np(dag, arc->attr),
+    dag_get_qc_vector_temp(arc->val,
+			 dag_get_attr_value_temp(dag, arc->attr),
 			 qc_vector);
 }
 
@@ -1374,36 +1459,36 @@ int dag_set_visit_safe(struct dag_node *dag, int visit)
 
 static int coref_nr = 0;
 
-void dag_mark_coreferences_safe(struct dag_node *dag, bool np)
+void dag_mark_coreferences_safe(struct dag_node *dag, bool temporary)
 // recursively set `visit' field of dag nodes to number of occurences
 // in this dag - any nodes with more than one occurence are `coreferenced'
 {
-  if(np) dag = dag_deref1(dag);
+  if(temporary) dag = dag_deref1(dag);
 
   if(dag_set_visit_safe(dag, dag_get_visit_safe(dag) + 1) == 1)
     { // not yet visited
       dag_arc *arc = dag->arcs;
       while(arc != 0)
 	{
-	  dag_mark_coreferences_safe(arc->val, np);
+	  dag_mark_coreferences_safe(arc->val, temporary);
 	  arc = arc->next;
 	}
       
-      if(np)
+      if(temporary)
 	{
 	  arc = dag_get_comp_arcs(dag);
 	  while(arc != 0)
 	    {
-	      dag_mark_coreferences_safe(arc->val, np);
+	      dag_mark_coreferences_safe(arc->val, temporary);
 	      arc = arc->next;
 	    }
 	}
     }
 }
 
-void dag_print_rec_safe(FILE *f, struct dag_node *dag, int indent, bool np);
+void dag_print_rec_safe(FILE *f, dag_node *dag, int indent, bool temporary);
 
-void dag_print_arcs_safe(FILE *f, dag_arc *arc, int indent, bool np)
+void dag_print_arcs_safe(FILE *f, dag_arc *arc, int indent, bool temporary)
 {
   if(arc == 0) return;
 
@@ -1436,14 +1521,14 @@ void dag_print_arcs_safe(FILE *f, dag_arc *arc, int indent, bool np)
 	first = false;
       
       fprintf(f, "%s%*s", attrname[j], maxlen-i+1, "");
-      dag_print_rec_safe(f, print_attrs[j], indent + 2 + maxlen + 1, np);
+      dag_print_rec_safe(f, print_attrs[j], indent + 2 + maxlen + 1,temporary);
     }
   
   fprintf(f, " ]");
   free(print_attrs);
 }
 
-void dag_print_rec_safe(FILE *f, struct dag_node *dag, int indent, bool np)
+void dag_print_rec_safe(FILE *f, dag_node *dag, int indent, bool temporary)
 // recursively print dag. requires `visit' field to be set up by
 // mark_coreferences. negative value in `visit' field means that node
 // is coreferenced, and already printed
@@ -1451,7 +1536,7 @@ void dag_print_rec_safe(FILE *f, struct dag_node *dag, int indent, bool np)
   int coref;
 
   dag_node *orig = dag;
-  if(np)
+  if(temporary)
     {
       dag = dag_deref1(dag);
       if(dag != orig) fprintf(f, "~");
@@ -1469,20 +1554,21 @@ void dag_print_rec_safe(FILE *f, struct dag_node *dag, int indent, bool np)
       indent += fprintf(f, "#%d:", coref);
     }
 
-  fprintf(f, "%s(", typenames[dag->type]);
+  fprintf(f, "%s(", type_name(dag->type));
   if(dag != orig)
     fprintf(f, "%x->", (int) orig);
   fprintf(f, "%x)", (int) dag);
 
-  dag_print_arcs_safe(f, dag->arcs, indent, np);
-  if(np) dag_print_arcs_safe(f, dag_get_comp_arcs(dag), indent, np);
+  dag_print_arcs_safe(f, dag->arcs, indent, temporary);
+  if(temporary)
+    dag_print_arcs_safe(f, dag_get_comp_arcs(dag), indent, temporary);
 }
 
-void dag_print_safe(FILE *f, struct dag_node *dag, bool np)
+void dag_print_safe(FILE *f, struct dag_node *dag, bool temporary)
 {
   if(dag == 0)
     {
-      fprintf(f, "%s", typenames[0]);
+      fprintf(f, "%s", type_name(0));
       return;
     }
   if(dag == FAIL)
@@ -1491,10 +1577,10 @@ void dag_print_safe(FILE *f, struct dag_node *dag, bool np)
       return;
     }
 
-  dag_mark_coreferences_safe(dag, np);
+  dag_mark_coreferences_safe(dag, temporary);
   
   coref_nr = 1;
-  dag_print_rec_safe(f, dag, 0, np);
+  dag_print_rec_safe(f, dag, 0, temporary);
   dags_visited.clear();
 }
 
@@ -1546,14 +1632,14 @@ dag_node *dag_cyclic_rec(dag_node *dag)
       return dag;
     }
 
-  return 0;
+  return NULL;
 }
 
 bool dag_cyclic(dag_node *dag)
 {
   bool res;
 
-  res = dag_cyclic_rec(dag);
+  res = (dag_cyclic_rec(dag) != NULL);
   dag_invalidate_changes();
   return res;
 }
@@ -1588,16 +1674,24 @@ dag_node *dag_expand_rec(dag_node *dag)
 
   node_expanded[(int) dag] = true;
 
-  int new_type = dag_get_new_type(dag);
+  type_t new_type = dag_get_new_type(dag);
 
-  if(typedag[new_type]->arcs && typedag[new_type]->type == new_type)
-    if(dag_unify1(dag, cached_constraint_of(new_type)) == FAIL)
-      {
-	fprintf(ferr, "expansion failed @ 0x%x for `%s'\n",
-		(int) dag, typenames[new_type]);
-	return FAIL;
-      }
-
+  // some kind of delta expansion is necessary here, since the typedags have
+  // been unfilled, which can result in missing features.
+  const list< type_t > &supers = all_supertypes(new_type);
+  for (list< type_t >::const_iterator it = supers.begin()
+         ; it != supers.end(); it++) {
+    type_t super = *it ;
+    // No need to check for dynamic types since their typedags have no arcs
+    if(type_dag(super)->arcs && type_dag(super)->type == super) {
+      if(dag_unify1(dag, cached_constraint_of(super)) == FAIL)
+        {
+          fprintf(ferr, "expansion failed @ 0x%x for `%s'\n",
+                  (int) dag, type_name(new_type));
+          return FAIL;
+        }
+    }
+  }
   dag = dag_deref1(dag);
   
   if(!dag_expand_arcs(dag->arcs))
@@ -1649,7 +1743,7 @@ bool dag_valid_rec(dag_node *dag)
       
       while(arc)
 	{
-	  if(arc->attr > nattrs)
+	  if(! dag_arc_valid(arc->attr))
 	    {
 	      fprintf(ferr, "(3) invalid attr: %d, val: 0x%x\n",
 		      arc->attr, (int) arc->val);
@@ -1706,7 +1800,7 @@ void dag_print_rec_fed_safe(FILE *f, struct dag_node *dag) {
     fprintf(f, " #%d=", coref );
   }
 
-  fprintf(f, " [ (%%TYPE %s #T )", typenames[dag->type]);
+  fprintf(f, " [ (%%TYPE %s #T )", type_name(dag->type));
 
   while(arc) {
     fprintf(f, " (%s", attrname[arc->attr]) ;
@@ -1732,3 +1826,46 @@ void dag_print_fed_safe(FILE *f, struct dag_node *dag) {
   dag_print_rec_fed_safe(f, dag);
   dags_visited.clear();
 }
+
+#if 0
+struct dag_node *
+dag_partial_copy1(dag_node *dag, attr_t attr, const restrictor &del)
+{
+    dag_node *copy;
+    
+    copy = dag_get_copy(dag);
+    
+    if(copy == 0)
+    {
+        dag_arc *arc;
+        
+        copy = new_dag(dag->type);
+        
+        dag_set_copy(dag, copy);
+        
+        if(!contains(del, attr))
+        {
+            arc = dag->arcs;
+            while(arc != 0)
+	    {
+                dag_add_arc(copy,
+                            new_arc(arc->attr,dag_partial_copy1(arc->val,
+                                                                arc->attr,
+                                                                del)));
+                arc = arc->next;
+	    }
+	}
+        else if(attr != -1)
+        {
+            copy->type = maxapp[attr];
+        }
+    }
+    
+    return copy;
+}
+
+struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
+{
+  return dag_partial_copy1(dag, -1, del);
+}
+#endif

@@ -1,41 +1,52 @@
+- build process: auto(config|make)
+
+- cheap dynamic library / API
+
+- flop returns zero even in the presence of errors like non-unique feature
+  introduction
+- Better error handling in flop for use with external applications
+- emacs compatible error messages for flop ?
+
+- Documentation
+  - flop & cheap user doc
+  - missing header file documentation (oe, please help here, if possible)
+    itsdb.h, extdict.h, psqllex.h, tsdb++.h
+
+- unreleased memory? (see valgrind-errors-15-apr-04)
+
+- more flexible way to do selection of generic entries, e.g., based only on a 
+  (highly scored) subset of POS, or combined clues from morphology
+
+- more flexible heuristics / better selection of partial results
+
+- separate switches for unification and subsumption quickcheck computation
+
 - cleaning up:
   - option handling
-  - YY references; split yy.cpp module into seperate modules
-  - runtime selection of online-morphology vs full-forms
+  - YY references; split yy.cpp module into separate modules
+    + yy_tokenizer removed from yy.cpp
+    - server mode still unused, yy.cpp/h should become socket.cpp/h
+  + runtime selection of online-morphology vs full-forms
   - logging / debugging info: get rid of global verbosity,
-    implement some central logging facility
-
-- build process
-  - autoconfig
-  - version.h mechanism
+    implement some central logging facility (take log4cxx)
 
 - complete lexical database (postgres) integration
+
 - integrate silo
 
-- integrate ecls LISP
-- implement mrs/rmrs code - processor interface
-
-- leda -> boost migration
-
-- lsl completion - minimal
-
-- integrate bernd's (whiteboard) version
+- lsl completion - minimal ?? What does that mean ?
 
 - scoring:
   - offline scoring
-  - simplified model for compatibility 
+  - simplified model for compatibility ??  What does that mean ?
 
 - packing:
   - fix & integrate subsumption quickcheck
     currently, it gives incorrect results for non-existing paths
-  - generalise restrictor
+  +- generalise restrictor: new restrictor interface implemented
   - simplify/optimise subsume
   - subtype caching
   - re-enable unfilling as far as possible 
-
-- documentation
-
-- japanese multiword bug (requires input chart redesign)
 
 - defaults
 
@@ -44,7 +55,32 @@
 - whenever dag_get_path_value is called, structure should be filled, at least
   under that path.
 
-- apply chart dependencies after lexical processing
++ apply chart dependencies after lexical processing
+  - chart dependencies after lex lookup (1) AND lex processing (2)
+  -+ still to be tested, Berthold will try it
 
 - extend chart dependencies to allow a dependency to be conditioned on
-  a specified path-value pair.  
+  a specified path-value pair. chart dependencies could take a variety of
+  forms: (OP could be unifies, subsumes, is_subsumed_by, equals)
+  - val(path1) OP val(path2)
+  - val(path1) OP const1 && val(path2) OP const2
+  - val(path1) OP const1 && val(path1) OP val(path2)
+  - val(path1) OP val(path2) && val(path2) OP const2  (??)
+
+- restrictors that are paths instead of features
+
+refactoring:
+- make tAgenda a template
+- make the unification engine(s) more modular
+- better decoupling of the dag allocation mechanism
+- replace item print routines by item printers where possible
+
+- diagnostic messages for errors in the MRS construction
+- performance loss compared zu ~kiefer/duo/public/pet-730.tgz is 30% --
+  because of the data structures in the chart that are necessary for packing,
+  like _Cp_span? this has to be checked.
+
+- performance loss flop Leda vs. flop boost: seems to stem from a huge amount 
+  of minor page faults. How can the code be found that is responsible for this
+  behaviour ?
+

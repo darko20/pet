@@ -39,8 +39,15 @@
 #include "hierarchy.h"
 #include "types.h"
 #include "options.h"
+#include "version.h"
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
 
 /*** global variables ***/
+
+char * version_string = VERSION ;
+char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 symtab<struct type *> types;
 symtab<int> statustable;

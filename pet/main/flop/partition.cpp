@@ -3,7 +3,9 @@
  * (C) 2002 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
-/* Class to maintain disjoint-set data structure (partition of integers). */
+/* \file partition.cpp
+ * Class to maintain disjoint-set data structure (partition of integers).
+ */
 
 #include "partition.h"
 #include <assert.h>

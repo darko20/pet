@@ -77,7 +77,7 @@ pet_type_to_code(cl_object type_name)
 cl_object
 pet_code_to_type(int code)
 {
-    if(code < 0 || code >= pet_cpp_ntypes())
+    if(! pet_cpp_type_valid_p(code))
         return Cnil;
 
     return make_string_copy(pet_cpp_lookup_type_name(code));
@@ -183,7 +183,7 @@ pet_type_valid_p(int t)
 }
 
 char *
-ecl_extract_mrs(int fs, char *mode)
+ecl_extract_mrs(int fs, char *mode, int cfrom, int cto)
 {
     cl_object result;
     result = funcall(3,

@@ -17,7 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* FILE lile interface to strings in memory */
+/** \file mfile.h 
+ * \c FILE like interface to strings in memory, similar to C++ ostringstreams
+ */
 
 #ifndef _MFILE_H_
 #define _MFILE_H_
@@ -31,6 +33,7 @@
 extern "C" {
 #endif                                                                        
 
+/** file like structure in memory, similar to ostringstreams in C++ */
 struct MFILE
 {
   int size;

@@ -43,17 +43,22 @@
 #include <qtextstream.h>
 #include <qtooltip.h>
 #include <qwidget.h>
+#include <qlistbox.h>
+#include <qpainter.h>
+#include <qstyle.h>
+#include <qcursor.h>
 
 #include "cheap.h"
 #include "goofy.h"
 #include "grammar.h"
-#include "sorts.h"
+#include "types.h"
 #include "tsdb++.h"
+#include "errors.h"
 
-#define _POSIX_OPEN_MAX 10
+// #define _POSIX_OPEN_MAX 10
 
-int BI_TOP, BI_ATOM, BI_NIL, BIA_FIRST, BIA_REST;
-int BIA_ARGS;
+extern int BI_TOP, BI_ATOM, BI_NIL, BIA_FIRST, BIA_REST;
+extern int BIA_ARGS;
 
 int slave() { return 0; }
 int capi_register(int (*)(char *, int, char *, int, char *),
@@ -63,9 +68,6 @@ int capi_register(int (*)(char *, int, char *, int, char *),
                          int (*)(int, char *)) { return 0 ;}
 
 FILE *ferr, *fstatus;
-
-grammar *Grammar = 0;
-settings *cheap_settings = 0;
 
 int main(int argc, char *argv[])
 {
@@ -87,10 +89,9 @@ int main(int argc, char *argv[])
     Goofy.exec();
   }
 
-  catch(error &e)
+  catch(tError &e)
     {
-      e.print(stderr);
-      fprintf(stderr, "\n");
+      fprintf(stderr, "%s\n", e.getMessage().c_str());
       exit(1);
     }
 
@@ -188,11 +189,17 @@ void GoofyWindow::viewType()
           int sort = lookup_type(dialog->selected());
           if(sort != -1)
             {
-              DagView *dagview = new DagView(sortdag[sort], QString(sortname[sort]));
+              DagView *dagview = new DagView(type_dag(sort)
+                                             , QString(type_name(sort)));
               dagview->show();
             }
 	}
     }
+}
+
+type_t lookup_instance(string name) {
+  if (name[0] != '$') { name = "$" + name; }
+  return lookup_type(name.c_str());
 }
 
 void GoofyWindow::viewInstance()
@@ -203,10 +210,13 @@ void GoofyWindow::viewInstance()
     {
       if(!dialog->selected().isEmpty())
 	{
-          int sort = lookup_instance(dialog->selected());
+          // _fix_me_ we maybe have to massage the string dialog->selected()
+          // to start with a '$' sign ??
+          int sort = lookup_instance(dialog->selected().latin1());
           if(sort != -1)
             {
-              DagView *dagview = new DagView(sortdag[sort], QString(sortname[sort]));
+              DagView *dagview = new DagView(type_dag(sort)
+                                             , QString(type_name(sort)));
               dagview->show();
             }
 	}
@@ -221,6 +231,7 @@ void GoofyWindow::viewLexentry()
     {
       if(!dialog->selected().isEmpty())
 	{
+          /* _fix_me_ This is a bit more tricky now, i'll postpone this
 	  tokenlist L(dialog->selected());
 
 	  for(le_iter l(Grammar, 0, L); l.valid(); l++)
@@ -236,6 +247,7 @@ void GoofyWindow::viewLexentry()
 		  dagview->show();
 		}
 	    }
+          */
 	}
     }
 }
@@ -248,10 +260,10 @@ void GoofyWindow::viewRule()
     {
       if(!dialog->selected().isEmpty())
 	{
-          int sort = lookup_instance(dialog->selected());
+          int sort = lookup_instance(dialog->selected().latin1());
           if(sort != -1)
             {
-              DagView *dagview = new DagView(sortdag[sort], dialog->selected());
+              DagView *dagview = new DagView(type_dag(sort), dialog->selected());
               dagview->show();
             }
 	}
@@ -353,14 +365,14 @@ void GoofyWindow::preprocess_grammar(const char *fn)
     delete flop_stat_sn;
 
   if(::pipe(pipe_stat) < 0)
-    throw error("cannot pipe()");
+    throw tError("cannot pipe()");
 
   if(::pipe(pipe_err) < 0)
-    throw error("cannot pipe()");
+    throw tError("cannot pipe()");
 
   if((pid = ::fork()) < 0)
     {
-      throw error("cannot fork()");
+      throw tError("cannot fork()");
     }
   else if(pid == 0) // child
     {
@@ -412,13 +424,15 @@ void GoofyWindow::load_grammar(const char *fn)
 
   try {
     cheap_settings = new settings("cheap", fn);
-    G = new grammar( fn );
+    G = new tGrammar( fn );
   }
 
-  catch(error &e)
+  catch(tError &e)
     {
       QMessageBox::warning(this, "Goofy",
-			   QString("error loading `") + QString(fn) + QString("':\n") + e.msg() + "\n\n", "Ok");
+			   QString("error loading `") + QString(fn) 
+                           + QString("':\n") + QString(e.getMessage().c_str()) 
+                           + "\n\n", "Ok");
 
       return;
     }
@@ -428,21 +442,21 @@ void GoofyWindow::load_grammar(const char *fn)
   setCaption( fn );
   set_menu_state(true);
 
-  for(int i = 0; i < first_symbol; i++)
+  for(int i = 0; i < ntypes; i++)
     {
-      _sort_names.append(QString(sortname[i]));
+      _sort_names.append(QString(type_name(i)));
     }
   _sort_names.sort();
-
+  /*
   for(int i = first_instance; i < nsorts; i++)
     {
-      _inst_names.append(QString(sortname[i]));
+      _inst_names.append(QString(type_name[i]));
     }
   _sort_names.sort();
-
+  */
   for(rule_iter rules(Grammar); rules.valid(); rules++)
     {
-      _rule_names.append(QString(rules.current()->name()));
+      _rule_names.append(QString(rules.current()->printname()));
     }
   _rule_names.sort();
 
@@ -523,7 +537,7 @@ void TFSTip::maybeTip(const QPoint &p)
 
 // TFSDrag
 
-TFSDrag::TFSDrag(dag_node *dag, QWidget *parent, const char *name = 0)
+TFSDrag::TFSDrag(dag_node *dag, QWidget *parent, const char *name)
   : QStoredDrag("dag/cheap", parent, name )
 {
   QByteArray data;
@@ -577,8 +591,9 @@ QString path_string(list_int *p)
 
 int TFSViewItem::_next_id = 0;
 
-TFSViewItem::TFSViewItem(QListView *parent, TFSViewItem *after, dag_node *dag, dag_node *root, 
-			 int tag = -1, int sort = -1)
+TFSViewItem::TFSViewItem(QListView *parent, TFSViewItem *after
+                         , dag_node *dag, dag_node *root
+			 , int tag, int sort)
   : QListViewItem(parent, after), _s_attr(), _s_tag(), _s_sort()
 {
   _id = _next_id++;
@@ -606,7 +621,7 @@ TFSViewItem::TFSViewItem(QListView *parent, TFSViewItem *after, dag_node *dag, d
 }
 
 TFSViewItem::TFSViewItem(TFSViewItem *parent, TFSViewItem *after, dag_node *dag, dag_node *root,
-			 int attr, int tag = -1, int sort = -1)
+			 int attr, int tag, int sort)
   : QListViewItem(parent, after), _s_attr(), _s_tag(), _s_sort()
 {
   _id = _next_id++;
@@ -687,7 +702,7 @@ void TFSViewItem::setup_text()
 	    _s_sort = QString("(failed)");
 	}
       else
-	_s_sort = QString(sortname[_sort]);
+	_s_sort = QString(type_name(_sort));
 
       _w_sort = fm.boundingRect(0, 0, 10000, fm.height(), AlignVCenter, _s_sort).width();
       _w_total += _w_sort;
@@ -784,22 +799,22 @@ QString TFSViewItem::tip()
 	{
 	case unification_failure::CLASH:
 	  s.append("clash ");
-	  s.append(sortname[_failure->s1()]);
+	  s.append(type_name(_failure->s1()));
 	  s.append(" & ");
-	  s.append(sortname[_failure->s2()]);
+	  s.append(type_name(_failure->s2()));
 	  break;
 	case unification_failure::CYCLE:
 	  {
 	    s.append("cycle");
 
 	    list<list_int *> paths = _failure->cyclic_paths();
-	    list_int *path;
 
 	    fprintf(stderr, "cyclic paths:\n");
-	    forall(path, paths)
+	    for(list<list_int *>::iterator pit = paths.begin()
+                  ; pit != paths.end(); pit++)
 	      {
 		fprintf(stderr, "  ");
-		print_path(stderr, path);
+		print_path(stderr, *pit);
 		fprintf(stderr, "\n");
 	      }
 	    
@@ -809,7 +824,7 @@ QString TFSViewItem::tip()
 	  {
 	    s.append("constraint clash (");
 	    int meet = glb(_failure->s1(), _failure->s2());
-	    s.append(meet == -1 ? "bottom" : sortname[meet]);
+	    s.append(meet == -1 ? "bottom" : type_name(meet));
 	    s.append(")");
 	    break;
 	  }
@@ -894,13 +909,14 @@ void TFSViewItem::paintCell(QPainter *p, const QColorGroup &cg, int column, int 
     }
 }
 
+/*
 void TFSViewItem::paintFocus(QPainter *p, const QColorGroup &cg, const QRect &r)
 {
   QRect r1(r);
   r1.setWidth(_w_total);
   listView()->style().drawFocusRect( p, r1, cg, isSelected()? & cg.highlight() : & cg.base(), isSelected() );
 }
-
+*/
 
 int TFSViewItem::width(const QFontMetrics &fm, const QListView *lv, int c) const
 {
@@ -909,7 +925,7 @@ int TFSViewItem::width(const QFontMetrics &fm, const QListView *lv, int c) const
 
 // TFSView
 
-TFSView::TFSView(QWidget * parent, bool failure, const char * name = 0 )
+TFSView::TFSView(QWidget * parent, bool failure, const char * name)
   : QListView(parent, name), oldCurrent(0), dropItem(0), autoopen_timer(this), autoscroll_timer(this)
 {
   _failure = failure;
@@ -1270,9 +1286,9 @@ TFSViewItem *dag_make_listview(TFSView *tfs, TFSViewItem *parent, TFSViewItem *a
     coref = -1;
 
   if(attr >= 0)
-    item = new TFSViewItem(parent, after, dag, root, attr, coref, dag->sort);
+    item = new TFSViewItem(parent, after, dag, root, attr, coref, dag->type);
   else
-    item = new TFSViewItem(tfs, after, dag, root, coref, dag->sort);
+    item = new TFSViewItem(tfs, after, dag, root, coref, dag->type);
 
   if(coref >= 0)
     tfs->new_coref(coref, item);
@@ -1380,9 +1396,9 @@ DagView::DagView(dag_node *dag, list<unification_failure *> fails)
   
   dag_invalidate_changes();
 
-  unification_failure *failure;
-  forall(failure, fails)
-    dag_mark_failure(_tfs, failure);
+  for(list<unification_failure *>::iterator failure = fails.begin()
+        ; failure != fails.end(); failure++)
+    dag_mark_failure(_tfs, *failure);
 
   QVBoxLayout *vbox1 = new QVBoxLayout(this, 5, 5);
   vbox1->addWidget(_tfs);

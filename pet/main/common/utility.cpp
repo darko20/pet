@@ -23,6 +23,9 @@
 #include "utility.h"
 #include "errors.h"
 
+/** "Safe" \c malloc: call \c malloc and throw an error if
+ *   it returns \c NULL.
+ */
 void *salloc(size_t size)
 {
   void *p = malloc(size);
@@ -33,7 +36,7 @@ void *salloc(size_t size)
   return p;
 }
 
-#ifdef STRDUP
+#ifndef HAVE_STRDUP
 char *strdup(const char *s)
 {
   char *s1;
@@ -44,6 +47,7 @@ char *strdup(const char *s)
 }
 #endif
 
+/** Convert all characters in \a s to lower case */
 void strtolower(char *s)
 {
   if(s == NULL) return;
@@ -54,6 +58,7 @@ void strtolower(char *s)
   }
 }
 
+/** Convert all characters in \a s to upper case */
 void strtoupper(char *s)
 {
   if(s == NULL) return;
@@ -64,6 +69,13 @@ void strtoupper(char *s)
   }
 }
 
+/** Convert a (possibly) quoted integer string \a s into an integer and issue
+ *  an error if this does not succeed.
+ *  \param s The input string
+ *  \param errloc A description of the calling environment
+ *  \param quotedp If \c true, the integer has to be enclosed in double quotes.
+ *  \return the converted integer
+ */
 int strtoint(const char *s, const char *errloc, bool quotedp)
 {
   char *endptr = 0;
@@ -83,8 +95,8 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   return val;
 }
 
+/** Convert standard C string mnemonic escape sequences */
 string convert_escapes(const string &s)
-// convert standard C string mnemonic escape sequences
 {
   string res = "";
   for(string::size_type i = 0; i < s.length(); i++)
@@ -140,6 +152,10 @@ string convert_escapes(const string &s)
   return res;
 }
 
+
+/** Escape all double quote and backslash characters in \a s with a preceding
+ *  backslash.
+ */
 string escape_string(const string &s)
 {
   string res;
@@ -156,6 +172,9 @@ string escape_string(const string &s)
   return res;
 }
 
+/** Replace all german Umlaut and sz characters in \a s by their isomorphix
+ *  counterparts.
+ */
 void translate_iso_chars(string &s)
 {
   for(string::size_type i = 0; i < s.length(); i++)
@@ -163,16 +182,22 @@ void translate_iso_chars(string &s)
       switch(s[i])
 	{
 	case 'ä':
-	case 'Ä':
 	  s.replace(i,1,"ae");
 	  break;
+	case 'Ä':
+	  s.replace(i,1,"Ae");
+	  break;
 	case 'ö':
-	case 'Ö':
 	  s.replace(i,1,"oe");
 	  break;
+	case 'Ö':
+	  s.replace(i,1,"Oe");
+	  break;
 	case 'ü':
-	case 'Ü':
 	  s.replace(i,1,"ue");
+	  break;
+	case 'Ü':
+	  s.replace(i,1,"Ue");
 	  break;
 	case 'ß':
 	  s.replace(i,1,"ss");
@@ -181,6 +206,7 @@ void translate_iso_chars(string &s)
     }
 }
 
+/** Return the current date and time in a static char array */
 char *current_time(void)
 {
   time_t foo = time(0);
@@ -198,6 +224,14 @@ char *current_time(void)
   return(result);
 }
 
+/** Check if \a orig , possibly concatenated with \a ext, is the name of a
+ *  readable file and return a newly allocated char string with the filename.
+ * \param orig    The basename of the file, possibly already with extension
+ * \param ext     The extension of the file
+ * \param ext_req If \c true, only the concatenated name \a orig + \a ext is
+ *                checked, otherwise, \a orig is checked alone first and 
+ *                used as name if a file was found.
+ */
 char *find_file(char *orig, char *ext, bool ext_req)
 {
   char *newn;

@@ -27,7 +27,9 @@
 #include "unicode.h"
 
 EncodingConverter *Conv = 0;
+// \todo obsolete, except for yy
 EncodingConverter *ConvUTF8 = 0;
+
 
 EncodingConverter::EncodingConverter(string encodingname) :
   _status(U_ZERO_ERROR), _conv(0),
@@ -82,6 +84,7 @@ void initialize_encoding_converter(string encoding)
 {
   if(Conv) delete Conv;
   Conv = new EncodingConverter(encoding);
+  // obsolete, except for yy
   if(ConvUTF8 == 0)
     ConvUTF8 = new EncodingConverter("utf8");
 }

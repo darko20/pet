@@ -20,16 +20,6 @@
 /* `unify' coreferences in conjunctions
    (eg. [ #1 & #2 ] is converted to [ #1_2 ]) */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-
 #include "flop.h"
 
 int add_coref(struct coref_table *co, char *name)

@@ -17,9 +17,10 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* cache for type operations:
+/** \file typecache.h
+ * Cache for type operations:
  * a hashtable implementation optimized for this purpose, especially glb
- * computation
+ * computation.
  */
 
 #ifndef _TYPECACHE_H_
@@ -30,24 +31,39 @@
 
 #include "chunk-alloc.h"
 
+/** The key type for the type cache */
 typedef long long typecachekey_t;
 
-// note that the initial cache has to fit in one chunk, thus
-// GLB_CACHE_SIZE*sizeof(typecachebucket) must be <= GLB_CHUNK_SIZE
+/** @name Compile Time Parameters
+ * Note that the initial cache has to fit in one chunk, thus
+ * GLB_CACHE_SIZE*sizeof(typecachebucket) must be <= GLB_CHUNK_SIZE
+ */
+/*@{*/
 #define GLB_CACHE_SIZE (12289 /* 49157 */)
 #define GLB_CHUNK_SIZE ((int(GLB_CACHE_SIZE*sizeof(typecachebucket)/4096)+1)*4096)
+/*@}*/
 
+/** A single linked list of buckets */
 struct typecachebucket
 {
-  typecachekey_t key; int value;
+  /** The key of this bucket */
+  typecachekey_t key;
+  /** The value of this bucket */
+  int value;
 
 #ifdef CACHESTATS
+  /** how often was this bucket referenced */
   unsigned short refs;
 #endif
 
+  /** list successor (or NULL) */
   struct typecachebucket *next;
 };
 
+/** cache for type operations:
+ * a hashtable implementation optimized for this purpose, especially glb
+ * computation
+ */
 class typecache
 {
  private:
@@ -79,6 +95,10 @@ class typecache
   
  public:
   
+  /** Create a type cache.
+   * \param no_value Return this value if the type is not in the cache
+   * \param nbuckets The initial number of buckets
+   */
   inline typecache(int no_value = 0, int nbuckets = GLB_CACHE_SIZE ) :
     _cache_alloc(GLB_CHUNK_SIZE, true),
     _no_value(no_value), _nbuckets(nbuckets), _buckets(0), _size(0),
@@ -101,11 +121,17 @@ class typecache
       _cache_alloc.reset();
     }
 
+  /** Hash function for the cache. We assume the types are distributed
+   *  uniformly.
+   */
   inline int hash(typecachekey_t key)
     {
       return key % _nbuckets;
     }
 
+  /** Get the type corresponding to \a key, or the preset \c no_value of the
+   *  cache, if not in the cache.
+   */
   inline int& operator[](const typecachekey_t key)
     {
       typecachebucket *b = _buckets + hash(key);
@@ -167,8 +193,10 @@ class typecache
       return b->value;
     }
 
+  /** Return the allocator of this cache */
   inline chunk_allocator& alloc() { return _cache_alloc; }
 
+  /** Clear all internal data structures */
   inline void clear()
     {
       _cache_alloc.release(_initial_alloc);
@@ -180,6 +208,7 @@ class typecache
       _size = 0;
     }
 
+  /** Try to make the cache smaller by removing infrequently used items */
   inline void prune()
     {
 #ifdef CACHESTATS

@@ -17,7 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* Class to maintain sets of permissible paths in word hypothesis graphs. */
+/** \file paths.h
+ * Class to maintain sets of permissible paths in word hypothesis graphs.
+ */
 
 #ifndef _PATHS_H_
 #define _PATHS_H_
@@ -43,8 +45,11 @@ class tPaths
      *  (0 is allowed). */
     tPaths(const list<int> &);
 
-    /** Compute paths common to that. */
+    /** Compute new paths common to \a that. */
     tPaths common(const tPaths &that) const;
+
+    /** Restrict this paths to those also in \a that paths. */
+    void intersect(const tPaths &that);
 
     /** Determine if paths are compatible, i.e. if common(that) will
      *  be non empty, but usually in a more efficient way.

@@ -25,6 +25,7 @@
 #include "fs.h"
 #include "types.h"
 #include "tsdb++.h"
+#include "restrictor.h"
 
 // global variables for quick check
 
@@ -33,23 +34,22 @@ qc_node *qc_paths_unif;
 int qc_len_subs;
 qc_node *qc_paths_subs;
 
-fs::fs(int type)
+/** The type that indicates pruning in a dag restrictor */
+type_t dag_restrictor::dag_rest_state::DEL_TYPE;
+
+fs::fs(type_t type)
 {
-    if(type < 0 || type >= last_dynamic)
+    if(! is_type(type))
         throw tError("construction of non-existent dag requested");
 
-    if (type >= ntypes) {
-        // dynamic symbol, get dag from separate table
-        _dag = dyntypedag[type - ntypes] ;
-    }
-    else _dag = typedag[type];
+    _dag = type_dag(type);
     
     _temp = 0;
 }
 
-fs::fs(char *path, int type)
+fs::fs(char *path, type_t type)
 {
-    if(type < 0 || type >= last_dynamic)
+    if(! is_type(type))
         throw tError("construction of non-existent dag requested");
     
     _dag = 0; // dag_create_path_value(path, type);
@@ -83,13 +83,13 @@ fs::get_path_value(const char *path)
 const char *
 fs::name()
 {
-    return typenames[dag_type(_dag)];
+    return type_name(dag_type(_dag));
 }
 
 const char *
 fs::printname()
 {
-  return printnames[dag_type(_dag)];
+  return print_name(dag_type(_dag));
 }
 
 void
@@ -119,6 +119,62 @@ fs::modify(modlist &mods)
         if(_dag == FAIL)
             return false;
     }
+    return true;
+}
+
+/** \brief Try to apply the modifications in \a mods to this fs. If this
+ *  succeeds, modify the fs destructively, otherwise, leave it as it was.
+ *
+ * \return \c true if the modifications succeed, \c false otherwise.
+ */
+bool
+fs::modify_eagerly(const modlist &mods)
+{
+    dag_node *curr = _dag;
+    dag_node *newdag;
+    for(modlist::const_iterator mod = mods.begin(); mod != mods.end(); ++mod)
+    {
+        dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
+        if (p != FAIL) {
+          newdag = dag_unify(curr, p, curr, 0);
+          if(newdag != FAIL)
+            curr = newdag;
+        }
+    }
+    _dag = curr;
+    return true;
+}
+
+/** \brief Try to apply the modifications in \a mods to this fs. If this
+ *  succeeds, modify the fs destructively, otherwise, leave it as it was.
+ *
+ * \return \c true if the modifications succeed, \c false otherwise.
+ */
+bool
+fs::modify_eagerly_searching(modlist &mods)
+{
+    dag_node *curr = _dag;
+    dag_node *newdag;
+    for(modlist::iterator mod = mods.begin(); mod != mods.end(); ++mod)
+    {
+        dag_node *p
+          = dag_create_path_value_search(curr, (mod->first).c_str()
+                                         , BI_TOP, mod->second);
+        if (p != FAIL) {
+          //dag_print_safe(ferr, p, false);
+          newdag = dag_unify(curr, p, curr, 0);
+          if(newdag != FAIL) {
+            curr = newdag;
+            //dag_print_safe(ferr, curr, false);
+          } else {
+            //fprintf(ferr, "Unification fails\n"); fflush(ferr);
+          }
+        } else {
+          //fprintf(ferr, "Path creation fails\n"); fflush(ferr);
+          //dag_print_safe(ferr, curr, false);
+        }
+    }
+    _dag = curr;
     return true;
 }
 
@@ -363,7 +419,7 @@ unify_np(fs &root, const fs &a, fs &b)
 {
     struct dag_node *res;
     
-    res = dag_unify_np(root._dag, a._dag, b._dag);
+    res = dag_unify_temp(root._dag, a._dag, b._dag);
     
     if(res == FAIL)
     {
@@ -440,9 +496,9 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 }
 
 fs
-packing_partial_copy(const fs &a, list_int *del, bool perm)
+packing_partial_copy(const fs &a, const restrictor &del, bool perm)
 {
-    struct dag_node *res = dag_partial_copy(a._dag, del);
+    struct dag_node *res = del.dag_partial_copy(a._dag);
     dag_invalidate_changes();
     if(perm)
     {
@@ -498,7 +554,7 @@ get_qc_vector(qc_node *qc_paths, int qc_len, const fs &f)
     
     if(opt_hyper && f.temp())
     { 
-        dag_get_qc_vector_np(qc_paths, f._dag, vector);
+        dag_get_qc_vector_temp(qc_paths, f._dag, vector);
     }
     else
         dag_get_qc_vector(qc_paths, f._dag, vector);
@@ -515,7 +571,7 @@ qc_compatible_unif(int qc_len, type_t *a, type_t *b)
         {
 #ifdef DEBUG
             fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
-                    i, printnames[a[i]], printnames[b[i]]);
+                    i, print_name(a[i]), print_name(b[i]));
 #endif
             return false;
         }

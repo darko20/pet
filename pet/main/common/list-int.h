@@ -17,19 +17,26 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* minimum overhead lists of integers - to avoid overhead of list<int> */
-/* everything here is inlined */
+/** \file list-int.h
+ * Minimum overhead lists of integers - to avoid overhead of list<int>.
+ * Everything here is inlined.
+ */
 
 #ifndef _LIST_INT_H_
 #define _LIST_INT_H_
 
 #include <list>
+#include <functional>
 
+/** Minimum overhead single linked lists of integers */
 typedef struct list_int {
+  /** The first of this cons */
   int val;
+  /** The rest of this cons */
   list_int *next;
 } list_int;
 
+/** create a new cons cell with value = \a v and successor \a n */
 inline list_int *cons(int v, list_int *n)
 {
   list_int *c;
@@ -41,16 +48,21 @@ inline list_int *cons(int v, list_int *n)
   return c;
 }
   
+/** Return the content of the cons cell \a *l */
 inline int first(const list_int *l)
 {
   return l->val;
 }
 
+/** Return the successor of the cons cell \a *l */
 inline list_int *rest(const list_int *l)
 {
   return l->next;
 }
 
+/** \brief Return the successor of the cons cell \a *l and delete the cell
+ *  itself. If the list is empty, NULL is returned.
+ */
 inline list_int *pop_rest(list_int *l)
 {
   list_int *res;
@@ -62,12 +74,16 @@ inline list_int *pop_rest(list_int *l)
   return res;
 }
 
+/** Free all cons cells of \a l */
 inline void free_list(list_int *l)
 {
   while(l)
     l = pop_rest(l);
 }
 
+/** Search \a l for a cons cell whose content is \a e.
+ * \return \c true if the list contains \a e, \c false otherwise.
+ */
 inline bool contains(const list_int *l, int e)
 {
   while(l)
@@ -80,6 +96,7 @@ inline bool contains(const list_int *l, int e)
   return false;
 }
 
+/** Return the last cons cell of the list beginning at \a l */
 inline list_int *last(list_int *l)
 {
   if(!l) return 0;
@@ -88,6 +105,9 @@ inline list_int *last(list_int *l)
   return l;
 }
 
+/** This is rather nconc than append: add a new list element containing \a e to
+ *  \a l and return \a l.
+ */
 inline list_int *append(list_int *l, int e)
 {
   if(l == 0)
@@ -97,6 +117,7 @@ inline list_int *append(list_int *l, int e)
   return l;
 }
 
+/** Return length of \a l. Complexity is \f$ {\cal O}(n) \f$ */
 inline int length(const list_int *l)
 {
   int n = 0;
@@ -104,6 +125,7 @@ inline int length(const list_int *l)
   return n;
 }
 
+/** Return newly allocated reverse copy of \a l */
 inline list_int *reverse(list_int *l)
 {
   list_int *rev = 0;
@@ -117,6 +139,27 @@ inline list_int *reverse(list_int *l)
   return rev;
 }
 
+/** Reverse the list \a l without using new cons cells (destructive) */
+inline list_int *nreverse(list_int *l)
+{
+  list_int *curr, *rev = l;
+  if (rev) {
+    l = rest(l);
+    rev->next = 0;
+  }
+
+  while(l)
+    { 
+      curr = l;
+      l = rest(l);
+      curr->next = rev;
+      rev = curr;
+    }
+
+  return rev;
+}
+
+/** Return newly allocated copy of \a l */
 inline list_int *copy_list(const list_int *l)
 {
   list_int *head = 0, **tail = &head;
@@ -131,6 +174,7 @@ inline list_int *copy_list(const list_int *l)
   return head;
 }
 
+/** Return newly allocated copy of \a li */
 inline list_int *copy_list(const std::list<int> &li)
 {
   list_int *res = 0;
@@ -144,9 +188,27 @@ inline list_int *copy_list(const std::list<int> &li)
   return res;
 }
 
+/** Merge two sorted lists \a a and \a b and return the new (sorted) list
+ *  consisting of the cons cells of the arguments (destructive).
+ */
+inline list_int *merge(list_int *a, list_int *b) {
+  list_int head;
+  list_int *curr = &head;
+  while (a && b) {
+    if (a->val <= b->val) {
+      curr->next = a; a = a->next;
+    } else {
+      curr->next = b; b = b->next;
+    }
+    curr = curr->next;
+  }
+  curr->next = a ? a : b;
+  return head.next;
+}
+
+/** Is \a a a prefix of \a b? */
 inline bool
 prefix(const list_int *a, const list_int *b)
-// Is a a prefix of b?
 {
     if(a == 0)
         return true;
@@ -160,6 +222,10 @@ prefix(const list_int *a, const list_int *b)
     return false;
 }
 
+/** Lexicographic compare of \a a and \a b.
+ *  \return \c 0, if \a a and \a b are equal, \c -1, if \a a < \a b,
+ *          \c 1 if \a a > \a b.
+ */
 inline int compare(const list_int *a, const list_int *b)
 {
   while(a && b)
@@ -180,9 +246,12 @@ inline int compare(const list_int *a, const list_int *b)
   return 0;
 }
 
+/** Binary predicate to perform lexicographic ordering of list_int* objects. */
 class list_int_compare 
+: public std::binary_function<list_int *, list_int *, bool>
 {
  public:
+  /** Comparison operator. */
   inline bool operator() (const list_int* x, const list_int* y) const
     {
       return compare(x, y) == -1;

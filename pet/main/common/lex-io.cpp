@@ -74,7 +74,7 @@ void push_file(const char *fname, char *info)
 
   f.len = statbuf.st_size;
 
-#ifdef USEMMAP
+#ifdef HAVE_MMAP
   f.buff = (char *) mmap(0, f.len, PROT_READ, MAP_SHARED, f.fd, 0);
 
   if(f.buff == (caddr_t) -1)
@@ -118,7 +118,7 @@ int pop_file()
   else
     CURR = NULL;
 
-#ifdef USEMMAP
+#ifdef HAVE_MMAP
   if(munmap(f.buff, f.len) != 0)
     throw tError("couldn't munmap `" + string(f.fname) + "': " + string(strerror(errno)));
 #else

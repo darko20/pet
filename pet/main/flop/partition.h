@@ -3,19 +3,22 @@
  * (C) 2002 Ulrich Callmeier uc@coli.uni-sb.de
  */
 
-/* Class to maintain disjoint-set data structure (partition of integers) */
+/** \file partition.h
+ * Class to maintain disjoint-set data structure (partition of integers).
+ */
 
 #ifndef _PARTITION_H_
 #define _PARTITION_H_
 
 #include <map>
 
-/** Disjoint-set data structure (Cormen, Leiserson, Rivest, Stein, Chapter 21). 
- *  Additionally allows chosing the representative of each set. */
+/** Disjoint-set data structure (Cormen, Leiserson, Rivest, Stein, Chapter 21).
+ *  Additionally allows chosing the representative of each set.
+ */
 class tPartition
 {
  public:
-    /** Construct and initialize to disjoint sets [0 .. n[.
+    /** \brief Construct and initialize to disjoint sets [0 .. n[.
      *  n must be >= 0. */
     tPartition(int n);
 

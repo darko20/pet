@@ -17,98 +17,139 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* types and attributes */
+/** \file types.h
+ * Types and attributes.
+ */
 
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-using namespace std;
-
-#include "bitcode.h"
 #include "builtins.h"
+#include <cassert>
 #include <vector>
+#include <string> 
+
+using namespace std;
 
 // types, attributes, and status are represented by (small) integers
 
-//
-// status
-//
-
-// A status value is stored for each type. predefined status values are
-// `NO_STATUS' and `ATOM_STATUS'.
+/** @name Status
+ * A status value is stored for each type. predefined status values
+ * are `NO_STATUS' and `ATOM_STATUS'.  
+ */
+/*@{*/
 
 #define NO_STATUS 0
 #define ATOM_STATUS 1
 
-// number of status values
+/// number of status values
 extern int nstatus;
 
-// names of status values, [0 .. nstatus[
+/// names of status values, [0 .. nstatus[
 extern char **statusnames;
+/*@}*/
 
-//
-// types
-//
-
-// the universe of types [0 .. ntypes[ is split into two consecutive,
-// disjunct ranges:
-//  1) proper types  [ 0 .. first_leaftype [ 
-//  2) leaf types    [ first_leaftype .. ntypes [
-// proper types have a full bitcode representation, for leaf types only the
-// parent type is stored. a status value is stored for each type.
+/** @name Types
+ * 
+ *  the universe of types \f$ [0 \ldots ntypes[ \f$ is split into two
+ *  consecutive, disjunct ranges:
+ *   -# proper types  \f$ [ 0 \ldots first_leaftype [ \f$
+ *   -# leaf types    \f$ [ first_leaftype \ldots ntypes [ \f$
+ *  proper types have a full bitcode representation, for leaf types only the
+ *  parent type is stored. a status value is stored for each type.
+ */
+/*@{*/
 
 typedef int type_t;
 typedef int attr_t;
 
-#define T_BOTTOM -1       // failure of type unification
+#define T_BOTTOM -1       /// failure of type unification
 
-extern int nleaftypes, ntypes;
+/** The number of leaf types */
+extern int nleaftypes;
+/** The number of all static types (defined in the grammar) */
+extern int ntypes;
+/** The id of the first leaf type */
 extern type_t first_leaftype;
 
+/** A vector of status values (for each type) */
 extern int *typestatus;
 
+/** An internal name, differing from the name given in the grammar e.g. for
+ *  instances, which are preprended with a '$' character.
+ */
 extern char **typenames;
-extern char **printnames; // preferred way to print a type name
+/** preferred way to print a type name */
+extern char **printnames;
 
+/** All types id's have to be smaller that last_dynamic.
+ *  If dynamic types are not used, this variables value is equal to ntypes
+ */
+extern type_t last_dynamic;
 #ifdef DYNAMIC_SYMBOLS
+/** An extensible vector of dynamic type names */
 extern vector<string> dyntypename;
 #endif
-//
-// attributes
-//
+/*@}*/
 
+/** @name Attributes */
+/*@{*/
+/** The number of attributes (fixed by the grammar) */
 extern int nattrs;
+/** The vector of attribute names */
 extern char **attrname;
-extern int *attrnamelen; // for faster printing
+/** The lenghts of the attribute names for faster printing */
+extern int *attrnamelen;
 
-extern type_t *apptype; // appropriate type for feature
-extern type_t *maxapp; // maximal appropriate type under feature
+/// appropriate type for feature, i.e., the topmost type that introduces a
+/// feature
+extern type_t *apptype;
+/// maximal appropriate type under feature, i.e., the most general type that a
+/// node under this feature may bear.
+extern type_t *maxapp;
+/*@}*/
 
-// name of dynamic sort
-extern vector<const char *> dynsortname;
-extern type_t last_dynamic;
-
-// 
-// codes: these are used to represent subtype relationships
-// for proper types
-
+/** @name Codes
+ * these are used to represent subtype relationships for proper types.
+ */
+/*@{*/
+/** Allocate space for \a n codes and initialize global data structures */
 void initialize_codes(int n);
+/** Increase the size of all codes to \a n bits */
 void resize_codes(int n);
-void register_codetype(const bitcode &b, type_t i);
-void register_typecode(type_t i, bitcode *b);
-type_t lookup_code(const bitcode &b);
+/** Tie a code to its type id */
+void register_codetype(const class bitcode &b, type_t i);
+/** Tie the type id to the bitcode */
+void register_typecode(type_t i, class bitcode *b);
+/** Return the type id of code \a b */
+type_t lookup_code(const class bitcode &b);
+/*@}*/
 
 #ifndef FLOP
-// Immediate supertypes for each non-leaftype.
-extern vector<list<int> > immediateSupertype;
+#include <list>
+
+/** Immediate supertypes for each non-leaftype. */
+extern vector< list<int> > immediateSupertype;
 #endif
 
-void dump_hierarchy(dumper *f);
+/** Dump the hierarchy to \a f in binary format (bitcodes and leaftypeparents).
+ */
+void dump_hierarchy(class dumper *f);
 
-void undump_hierarchy(dumper *f);
-void undump_tables(dumper *f);
+/** Load the hierarchy from \a f in binary format (bitcodes and
+ *  leaftypeparents).
+ */
+void undump_hierarchy(class dumper *f);
+/** Load the type-to-featureset mappings and the feature sets for fixed arity
+ *  encoding, as well as the table of appropriate types for all attributes.
+ */
+void undump_tables(class dumper *f);
+/** Initialize the table for the maximal appropriate type under a feature by
+ *  consulting the type dag of the appropriate type.
+ */
 void initialize_maxapp();
 
+/** Free tables for names, status, codes etc. of types and attributes. */
 void free_type_tables();
 
 /** Check the validity of type code \a a. */
@@ -135,52 +176,109 @@ inline bool is_dynamic_type(type_t a)
 }
 #endif
 
+/** check the validity of the attribute \a attr */
 inline bool dag_arc_valid(attr_t attr)
 { 
+  assert(attr >= 0);  // save one test in production code
   return (attr <= nattrs);
 }
 
+/** \brief Check, if the given status name \a s is mentioned in the grammar. If
+ *  so, return its code.
+ */
 int lookup_status(const char *s);
+/** Get the attribute id for attribute name \a s, or -1, if it does not
+    exist */
 attr_t lookup_attr(const char *s);
+/** Get the type id for type name \a s, or -1, if it does not exist */
 type_t lookup_type(const char *s);
 
-// code for use with dynamic types
 #ifdef DYNAMIC_SYMBOLS
+/** @name Dynamic Types Code */
+/*@{*/
+/** Get the type id for type name \a s, and register it as new dynamic type, if
+ *  it does not exist.
+ */
 type_t lookup_symbol(const char *s);
+/** Get the type id for the string representation of \a i, and register it as
+ *  new dynamic type, if it does not exist.
+ */
 type_t lookup_unsigned_symbol(unsigned int i);
+/** Clear all dynamic symbols (might be called for each new parse) */
 void clear_dynamic_symbols () ;
 
+/** Get the type name of a type (static or dynamic) */
 inline const char *type_name(type_t type) {
   return is_resident_type(type) 
     ? typenames[type] : dyntypename[type - ntypes].c_str();
 }
+/** Get the print name of a type (static or dynamic) */
 inline const char *print_name(type_t type) {
   return is_resident_type(type) 
     ? printnames[type] : dyntypename[type - ntypes].c_str();
 }
 #else
+/** Get the type name of a type (static or dynamic) */
 inline const char *type_name(type_t type) { return typenames[type]; }
+/** Get the print name of a type (static or dynamic) */
 inline const char *print_name(type_t type) { return printnames[type]; }
 #endif
 
-void dump_symbol_tables(dumper *f);
-void undump_symbol_tables(dumper *f);
-void undump_printnames(dumper *f);
+/** Dump information about the number of status values, leaftypes, types, and
+ *  attributes as well as the tables of status value names, type names and
+ *  their status, and attribute names.
+ */
+void dump_symbol_tables(class dumper *f);
+/** Load information about the number of status values, leaftypes, types, and
+ *  attributes as well as the tables of status value names, type names and
+ *  their status, and attribute names.
+ */
+void undump_symbol_tables(class dumper *f);
+/** Load the print names of types (not all differ from the internal names). */
+void undump_printnames(class dumper *f);
 
+#ifndef FLOP
+/** Load a graph-based representation of the immediate supertypes from \a f */
 void
-undumpSupertypes(dumper *f);
+undumpSupertypes(class dumper *f);
 
+/** Return the list of immediate supertypes of \a type.
+ * \pre \a type must be a proper type.
+ */
+const list<type_t> &immedate_supertypes(type_t type);
+
+/** Return the list of all supertypes of \a type including the type itself but
+ * excluding \c *top*.
+ */
+const list<type_t> &all_supertypes(type_t type);
+#endif
+
+/** Return \c true if \a a is a subtype of \a b, computed using the
+ *  bitcodes, which works only for proper types, not leaf types.
+ */
 bool core_subtype(type_t a, type_t b);
+/** Return \c true if \a a is a subtype of \a b, for any two types \a a and \a
+ *  b, no matter if static, dynamic, leaf or whatsoever.
+ */
 bool subtype(type_t a, type_t b);
 #ifndef FLOP
+/** Compute the subtype relations for  \a A and \a B in parallel.
+ *  \a a is set to \c true if \a A is subtype of \a B, \a b analogously.
+ */
 void
 subtype_bidir(type_t A, type_t B, bool &a, bool &b);
 #endif
+
+/** \brief Compute the greatest lower bound in the type hierarchy of \a a and 
+ *  \a b. Return -1 if the types are incompatible.
+ */
 type_t glb(type_t a, type_t b);
 
+/** Return the parent of \a t, if it is a leaf type, \a t itself otherwise */
 type_t leaftype_parent(type_t t);
 
 #ifndef FLOP
+/** Empty the glb/subtype cache to save space. */
 void prune_glbcache();
 #endif
 

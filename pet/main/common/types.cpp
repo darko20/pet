@@ -19,9 +19,9 @@
 
 /* operations on types  */
 
-#include "pet-system.h"
 #include "types.h"
 #include "bitcode.h"
+#include "pet-system.h"
 #include "dag.h"
 #include "dumper.h"
 
@@ -75,6 +75,20 @@ int nattrs;
 int *attrnamelen = 0;
 int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 
+inline bool
+is_leaftype(type_t s)
+{
+  assert(is_type(s));
+  return s >= first_leaftype;
+}
+
+inline bool
+is_proper_type(type_t s)
+{
+  assert(is_type(s));
+  return s < first_leaftype;
+}
+
 void initialize_codes(int n)
 {
   codesize = n;
@@ -98,7 +112,7 @@ void register_typecode(int i, bitcode *b)
   typecode[i] = b;
 }
 
-#ifdef HASH_MAP_AVAIL
+#ifdef HAVE_HASH_MAP
 namespace HASH_SPACE {
 template<> struct hash<string>
 {
@@ -494,6 +508,7 @@ void undump_tables(dumper *f)
 }
 
 #ifndef FLOP
+/** Load the list of immediate supertypes from the grammar file */
 void
 undumpSupertypes(dumper *f)
 {
@@ -509,6 +524,49 @@ undumpSupertypes(dumper *f)
         immediateSupertype.push_back(l);
     }
 }
+
+const list< type_t > &immediate_supertypes(type_t type) {
+  assert(is_proper_type(type)) ;
+  return immediateSupertype[type];
+}
+
+/** Add all supertypes of \a type to \a result, excluding \c *top* but
+ *  including \a type itself.
+ *  This is an internal helper function for all_supertypes.
+ */
+void get_all_supertypes(type_t type, hash_set< type_t > &result) {
+  // top is a supertype of every type, so we do not add this redundant
+  // information 
+  if((type == BI_TOP) || (result.find(type) != result.end())) return;
+  result.insert(type);
+#ifdef DYNAMIC_SYMBOLS
+  if (is_dynamic_type(type)) return;
+#endif
+  if (is_leaftype(type)) {
+    get_all_supertypes(leaftype_parent(type), result);
+  } else {
+    for(list< type_t >::const_iterator it = immediate_supertypes(type).begin();
+        it != immediate_supertypes(type).end(); it++) {
+      get_all_supertypes(*it, result);
+    }
+  }
+}
+
+typedef hash_map< type_t, list< type_t > > super_map;
+
+super_map all_supertypes_cache;
+
+/** Return the list of all supertypes of \a type */
+const list< type_t > &all_supertypes(type_t type) {
+  if(all_supertypes_cache.find(type) == all_supertypes_cache.end()) {
+    hash_set< type_t > supertypes;
+    get_all_supertypes(type, supertypes);
+    list<type_t> supers(supertypes.begin(), supertypes.end());
+    all_supertypes_cache[type] = supers;
+  }
+  return all_supertypes_cache[type];
+}
+
 #endif
 
 int core_glb(int a, int b)
@@ -524,13 +582,6 @@ core_subtype(type_t a, type_t b)
 {
     if(a == b) return true;
     return typecode[a]->subset(*typecode[b]);
-}
-
-inline bool
-is_leaftype(type_t s)
-{
-  assert(is_type(s));
-  return s >= first_leaftype;
 }
 
 #ifndef FLOP

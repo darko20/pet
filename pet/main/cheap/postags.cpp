@@ -23,11 +23,12 @@
 #include "cheap.h"
 #include "item.h"
 #include "grammar.h"
-#include "../common/utility.h"
+#include "utility.h"
 #include "postags.h"
 
 postags::postags(const vector<string> &tags, const vector<double> &probs)
 {
+    assert(tags.size() == probs.size());
     for(vector<string>::const_iterator it = tags.begin(); it != tags.end();
         ++it)
     {
@@ -48,6 +49,7 @@ postags::postags(const class lex_stem * ls)
   }
 }
 
+#if 0
 postags::postags(const class full_form ff)
 {
     if(!ff.valid())
@@ -60,8 +62,9 @@ postags::postags(const class full_form ff)
         add(*it);
     }
 }
+#endif
 
-postags::postags(const list<tItem *> &les)
+postags::postags(const list< class tItem *> &les)
 {
     for(list<tItem *>::const_iterator it = les.begin(); it != les.end();
         ++it)
@@ -102,16 +105,23 @@ postags::operator==(const postags &b) const
     return _tags == b._tags;
 }
 
+
+/** \todo Test the new implementation of this method for case insensitive
+ *  search.
+ */
 bool
-postags::contains(string s) const
+postags::contains(const string &s) const
 {
-    for(set<string>::const_iterator iter = _tags.begin();
+  /*
+   for(set<string>::const_iterator iter = _tags.begin();
         iter != _tags.end(); ++iter)
     {
         if(strcasecmp(iter->c_str(), s.c_str()) == 0)
             return true;
     }
     return false;
+  */
+  return (_tags.find(s) != _tags.end());
 }
 
 void
@@ -143,83 +153,49 @@ postags::print(FILE *f) const
     }
 }
 
-bool
-postags::contains(type_t t) const
-{
-    if(_tags.empty())
-        return false;
-    
-    bool contained = false;
-    
-    setting *set = cheap_settings->lookup("posmapping");
-    if(set)
-    {
-        for(int i = 0; i < set->n; i+=2)
-        {
-            if(i+2 > set->n)
-            {
-                fprintf(ferr, "warning: incomplete last entry "
-                        "in POS mapping - ignored\n");
-                break;
-            }
-            
-            char *lhs = set->values[i], *rhs = set->values[i+1];
-            
-            int type = lookup_type(rhs);
-            if(type == -1)
-            {
-                fprintf(ferr, "warning: unknown type `%s' "
-                        "in POS mapping\n", rhs);
-            }
-            else
-            {
-                if(subtype(t, type))
-                {
-                    if(contains(lhs))
-                    {
-                        contained = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    return contained;
-}
-
 // Determine if given type is licensed under posmapping
 // Find first matching tuple in mapping.
 bool
-postags::license(const char *settingname, type_t t) const
+postags::contains(type_t t, const class setting *set) const
 {
-    setting *set = cheap_settings->lookup(settingname);
-    if(set == 0)
-        return true;
-    
-    for(int i = 0; i < set->n; i+=2)
+  if(_tags.empty())
+    return false;
+  
+  for(int i = 0; i < set->n; i+=2)
     {
-        if(i+2 > set->n)
+      if(i+2 > set->n)
         {
-            fprintf(ferr, "warning: incomplete last entry "
-                    "in POS mapping `%s' - ignored\n", settingname);
-            break;
+          fprintf(ferr, "warning: incomplete last entry "
+                  "in POS mapping - ignored\n");
+          break;
         }
-        
-        char *lhs = set->values[i],
-             *rhs = set->values[i+1];
-        
-        int type = lookup_type(rhs);
-        
-        if(type == -1)
+            
+      char *lhs = set->values[i], *rhs = set->values[i+1];
+            
+      int type = lookup_type(rhs);
+      if(type == -1)
         {
-            fprintf(ferr, "warning: unknown type `%s' in POS mapping\n",
-                    rhs);
+          fprintf(ferr, "warning: unknown type `%s' in POS mapping\n", rhs);
         }
-        else
+      else
         {
-            if(subtype(t, type) && contains(lhs))
-                return true;
+          if(subtype(t, type) && contains(lhs))
+              return true;
         }
     }
-    return false;
+  return false;
+}
+
+bool
+postags::contains(type_t t) const
+{
+  setting *set = cheap_settings->lookup("posmapping");
+  return ((set != NULL) && contains(t, set));
+}  
+  
+bool
+postags::license(type_t t) const
+{
+  setting *set = cheap_settings->lookup("posmapping");
+  return ((set == 0) || contains(t, set));
 }

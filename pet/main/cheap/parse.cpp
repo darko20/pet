@@ -25,12 +25,11 @@
 #include "parse.h"
 #include "fs.h"
 #include "item.h"
+#include "item-printer.h"
 #include "grammar.h"
 #include "chart.h"
-//#include "inputchart.h"
 #include "lexparser.h"
-#include "tokenizer.h"
-#include "agenda.h"
+#include "task.h"
 #include "tsdb++.h"
 
 #ifdef YY
@@ -193,7 +192,8 @@ packed_edge(tItem *newitem)
         bool forward, backward;
         tItem *olditem = iter.current();
 
-	if(olditem->trait() == INFL_TRAIT)
+	if((olditem->trait() == INFL_TRAIT) 
+           || (olditem->trait() == INPUT_TRAIT))
           continue;
 
         forward = backward = true;
@@ -221,7 +221,7 @@ packed_edge(tItem *newitem)
             else
                 subsumes(olditem->get_fs(), newitem->get_fs(),
                          forward, backward);
-            
+#if 0    
             if(f1 == false && forward || b1==false && backward)
             {
                 fprintf(stderr, "S | > %c vs %c | < %c vs %c\n",
@@ -230,6 +230,7 @@ packed_edge(tItem *newitem)
                         b1 ? 't' : 'f', 
                         backward ? 't' : 'f');
             }
+#endif
         }
 
         if(forward && !olditem->blocked())
@@ -284,10 +285,11 @@ packed_edge(tItem *newitem)
     return false;
 }
 
+/** deals with result item
+ * \return true -> stop parsing; false -> continue parsing
+ */
 bool
 add_root(tItem *it)
-    // deals with result item
-    // return value: true -> stop parsing; false -> continue parsing
 {
     Chart->trees().push_back(it);
     // Count all trees for now, some of these may still be blocked in
@@ -393,9 +395,6 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
         prune_glbcache();
     }
 
-    tChartPrinter chp("/tmp/chdisplay");
-    Chart->print(&chp);
-
     if(verbosity > 8)
         Chart->print(fstatus);
   
@@ -448,7 +447,8 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
                     if(verbosity > 2)
                     {
                         fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
-                                UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.);
+                                UnpackTime->convert2ms(UnpackTime->elapsed())
+                                / 1000.);
                         (*res)->print_derivation(stderr, false);
                         fprintf(stderr, "\n");
                     }

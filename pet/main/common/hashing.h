@@ -1,9 +1,12 @@
 /* -*- Mode: C++ -*- */
-
+/* \file hashing.h
+ * Check if hash maps are available, set \c HASH_SPACE to the namespace
+ * containing hash maps, or provide a them using maps.
+ */
 #ifndef _HASHING_H
 #define _HASHING_H
 
-#ifdef HASH_MAP_AVAIL
+#ifdef HAVE_HASH_MAP
 #if __GNUC__ > 2
 #if __GNUC_MINOR__ > 1
 #define HASH_SPACE __gnu_cxx

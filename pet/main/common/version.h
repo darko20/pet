@@ -1,4 +1,5 @@
-/* PET
+/* -*- Mode: C++ -*- 
+ * PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
  *
@@ -17,42 +18,25 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* tokenized input */
+/** \file version.h
+ * PET version information for use in flop and cheap
+ */
 
-#ifndef _TOKENIZER_H_
-#define _TOKENIZER_H_
+#ifndef _VERSION_H
+#define _VERSION_H
 
-#include "cheap.h"
+#define VERSION "0.99.0"
 
-// tokenizer is an abstract base class
+#define VERSION_DATETIME "$LastChangedDate$"
+#define VERSION_CHANGE "$Change: 850 $"
 
-class tokenizer
-{
- protected:
-  string _input;
+/** The version string for the current PET version. */
+extern char *version_string;
 
- public:
-  tokenizer(string s) :
-    _input(s) {} ;
-  virtual ~tokenizer() {};
-
-  virtual void add_tokens(class input_chart *i_chart) = 0;
-  virtual void print(FILE *f);
-
-  virtual string description() = 0;
-};
-
-class lingo_tokenizer : public tokenizer
-{
- public:
-  lingo_tokenizer(string s) :
-    tokenizer(s) {};
-  
-  virtual void add_tokens(class input_chart *i_chart);
-
-  virtual string description() { return "LinGO tokenization"; }
- private:
-  list<string> tokenize();
-};
+/** The perforce change string for the current PET version.
+ * This should correlate with the version string. It is mainly there to check
+ * that the version number reflects the state of the package.
+ */
+extern char *version_change_string;
 
 #endif

@@ -17,7 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* wrapper for the various dag implementations */
+/** \file dag.h
+ * Wrapper for the various dag implementations.
+ */
 
 #include "dag-common.h"
 

@@ -22,16 +22,17 @@
 #include "pet-system.h"
 #include "cheap.h"
 #include "parse.h"
-#include "agenda.h"
 #include "chart.h"
 #include "fs.h"
 #include "tsdb++.h"
-#include "mfile.h"
 #include "grammar-dump.h"
 #include "lexparser.h"
-#include "fullform-morph.h"
+#include "morph.h"
 #include "yy-tokenizer.h"
 #include "lingo-tokenizer.h"
+#include "xml-tokenizer.h"
+#include "item-printer.h"
+#include "version.h"
 
 #ifdef QC_PATH_COMP
 #include "qc.h"
@@ -46,64 +47,41 @@
 #include "cppbridge.h"
 #endif
 
+char * version_string = VERSION ;
+char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
+
 FILE *ferr, *fstatus, *flog;
 
 // global variables for parsing
 
 tGrammar *Grammar = 0;
 settings *cheap_settings = 0;
-
-#if 0
-#include "morph.h"
-
-void interactive_morph()
-{
-  tMorphAnalyzer *m = Grammar->morph();
-
-  string input;
-  while(!(input = read_line(stdin)).empty())
-    {
-#if 1
-      list<tMorphAnalysis> res = m->analyze(input);
-      for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
-	{
-	  fprintf(stdout, "%s\t", it->base().c_str());
-	  it->print_lkb(stdout);
-	  fprintf(stdout, "\n");
-	}
-#elif 0
-      list<tMorphAnalysis> res = m->analyze(input);
-      for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
-	{
-	  fprintf(stdout, "%s: ", input.c_str());
-	  it->print_lkb(stdout);
-	  fprintf(stdout, "\n");
-	}
-#else
-      list<full_form> res = Grammar->lookup_form(input);
-      for(list<full_form>::iterator it = res.begin(); it != res.end(); ++it)
-	{
-	  if(length(it->affixes()) <= 1)
-	  fprintf(stdout, "  {\"%s\", \"%s\", NULL, %s%s%s, %d, %d},\n",
-		  it->stem()->printname(), it->key().c_str(),
-		  it->affixes() ? "\"" : "",
-		  it->affixes() ? printnames[first(it->affixes())] : "NULL",
-		  it->affixes() ? "\"" : "",
-		  it->offset() > 0 ? it->offset() + 1 : it->offset(), it->length()); 
-	}
-#endif
-    }
-}
-#endif
+bool XMLServices = false;
 
 void interactive()
 {
     string input;
     int id = 1;
 
+    //tFegramedPrinter chp("/tmp/fed-", true);
+    //chp.print(type_dag(lookup_type("quant-rel")));
+    //exit(1);
+
+    tTsdbDump tsdb_dump(opt_tsdb_file);
+    if (tsdb_dump.active()) {
+      opt_tsdb = 1;
+    } else {
+      if (! opt_tsdb_file.empty())
+        fprintf(ferr, "Could not open TSDB dump files in directory %s\n"
+                , opt_tsdb_file.c_str());
+    }
+
     while(!(input = read_line(stdin)).empty())
     {
         chart *Chart = 0;
+
+        tsdb_dump.start(input);
+
         try {
             fs_alloc_state FSAS;
 
@@ -127,14 +105,27 @@ void interactive()
 
             if(verbosity > 0) stats.print(fstatus);
 
-            if(verbosity > 1 || opt_mrs)
+            tsdb_dump.finish(Chart);
 
+            //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
+            //tFegramedPrinter chp("/tmp/fed-", true);
+            //Chart->print(&chp);
+            
+            if(verbosity > 1 || opt_mrs)
             {
                 int nres = 0;
                 
-                for(vector<tItem *>::iterator iter = Chart->readings().begin();
-                    iter != Chart->readings().end(); ++iter)
+                list< tItem * > results(Chart->readings().begin()
+                                        , Chart->readings().end());
+                results.sort(item_better_than());
+                for(list<tItem *>::iterator iter = results.begin()
+                      ; (iter != results.end())
+                         && ((opt_nresults == 0) || (opt_nresults > nres))
+                      ; ++iter)
                 {
+                  //tFegramedPrinter fedprint("/tmp/fed-", true);
+                  //tDelegateDerivationPrinter deriv(fstatus, fedprint);
+                    tCompactDerivationPrinter deriv(fstatus);
                     tItem *it = *iter;
                     
                     nres++;
@@ -145,7 +136,7 @@ void interactive()
                     fprintf(fstatus, "\n");
                     if(verbosity > 2)
                     {
-                        it->print_derivation(fstatus, false);
+                        deriv.print(it);
                         fprintf(fstatus, "\n");
                     }
 #ifdef ECL
@@ -153,10 +144,43 @@ void interactive()
                     {
                         string mrs;
                         mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
-                        fprintf(fstatus, "%s\n", mrs.c_str());
+                        if (mrs.empty()) {
+                          if (strcmp(opt_mrs, "xml") == 0)
+                            fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
+                                    "</rmrs>\n");
+                          else
+                            fprintf(fstatus, "\nNo MRS\n");
+                        } else {
+                          fprintf(fstatus, "%s\n", mrs.c_str());
+                        }
                     }
 #endif
                 }
+
+#ifdef ECL
+                if(opt_partial && (Chart->readings().empty())) {
+                  list< tItem * > partials;
+                  Chart->shortest_path(partials);
+                  bool rmrs_xml = (strcmp(opt_mrs, "xml") == 0);
+                  if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
+                  for(list<tItem *>::iterator it = partials.begin()
+                        ; it != partials.end(); ++it) {
+                    if(opt_mrs)
+                      {
+                        tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
+                        if (item != NULL) {
+                          string mrs;
+                          mrs = ecl_cpp_extract_mrs(item->get_fs().dag()
+                                                    , opt_mrs);
+                          if (! mrs.empty()) {
+                            fprintf(fstatus, "%s\n", mrs.c_str());
+                          }
+                        }
+                      }
+                  }
+                  if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
+                }
+#endif           
             }
             fflush(fstatus);
         } /* try */
@@ -166,6 +190,9 @@ void interactive()
             fprintf(ferr, "%s\n", e.getMessage().c_str());
             if(verbosity > 0) stats.print(fstatus);
             stats.readings = -1;
+
+            tsdb_dump.error(Chart, e);
+
         }
 
         if(Chart != 0) delete Chart;
@@ -259,7 +286,7 @@ void print_symbol_tables(FILE *f)
   fprintf(f, "type names (print names)\n");
   for(int i = 0; i < ntypes; i++)
     {
-      fprintf(f, "%d\t%s (%s)\n", i, typenames[i], printnames[i]);
+      fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
     }
 
   fprintf(f, "attribute names\n");
@@ -282,17 +309,29 @@ void process(char *s)
 {
     timer t_start;
   
-
     try {
       cheap_settings = new settings(settings::basename(s), s, "reading");
       fprintf(fstatus, "\n");
       fprintf(fstatus, "loading `%s' ", s);
       Grammar = new tGrammar(s); 
+    }
+    catch(tError &e)
+    {
+      fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
+      delete cheap_settings;
+      return;
+    }
+    
+    try {
+      init_characterization();
+      Lexparser.init();
 
       dumper dmp(s);
       tFullformMorphology *ff = tFullformMorphology::create(dmp);
-      if (ff != NULL) 
+      if (ff != NULL) {
         Lexparser.register_morphology(ff);
+        // ff->print(fstatus);
+      }
       if(opt_online_morph) {
         tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
         if (lkbm != NULL)
@@ -301,22 +340,42 @@ void process(char *s)
           opt_online_morph = false;
       }
       Lexparser.register_lexicon(new tInternalLexicon());
-      if (opt_yy) {
-        Lexparser.register_tokenizer(new tYYTokenizer());
-      } else {
-        Lexparser.register_tokenizer(new tLingoTokenizer());
-      }
 
+      tTokenizer *tok;
+      switch (opt_tok) {
+      case TOKENIZER_YY: 
+      case TOKENIZER_YY_COUNTS: 
+        {
+          char *classchar = cheap_settings->value("class-name-char");
+          if (classchar != NULL)
+            tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS, classchar[0]);
+          else
+            tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS);
+        }
+        break;
+      case TOKENIZER_STRING: 
+      case TOKENIZER_INVALID: 
+        tok = new tLingoTokenizer(); break;
+      case TOKENIZER_XML:
+      case TOKENIZER_XML_COUNTS: 
+        xml_initialize();
+        XMLServices = true;
+        tok = new tXMLTokenizer(opt_tok == TOKENIZER_XML_COUNTS); break;
+      default:
+        tok = new tLingoTokenizer(); break;
+      }
+      Lexparser.register_tokenizer(tok);
+      
     }
     
     catch(tError &e)
     {
-        fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
-        delete Grammar;
-        delete cheap_settings;
-        return;
-    }
-    
+      fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
+      delete Grammar;
+      delete cheap_settings;
+      return;
+   }
+
     fprintf(fstatus, "\n%d types in %0.2g s\n",
             ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
     
@@ -358,6 +417,7 @@ void process(char *s)
             }
     }
     
+    if (XMLServices) xml_finalize();
     delete Grammar;
     delete cheap_settings;
 }

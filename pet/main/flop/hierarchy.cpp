@@ -22,18 +22,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-#include <assert.h>
-
-#include <string>
-#include <vector>
 
 #include <boost/lambda/lambda.hpp>
 
-#include "hashing.h"
+#include "bitcode.h"
 #include "flop.h"
 #include "hierarchy.h"
 #include "reduction.h"
 #include "types.h"
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
 
 //
 // the main entry point to this module is process_hierarchy
@@ -60,17 +59,17 @@ void register_type(int s)
 
 // Enter the subtype relationship (t1 is an immediate subtype of t2) into
 // the hierarchy.
-void subtype_constraint(int t1, int t2)
+void subtype_constraint(int sub, int super)
 {
-    if(t1 == t2)
+    if(sub == super)
     {
         fprintf(ferr, "warning: `%s' is declared subtype of itself.\n",
-                types.name(t1).c_str());
+                types.name(sub).c_str());
     }
     else
     {
-        assert(t1 >= 0 && t2 >= 0); 
-        boost::add_edge(t2, t1, hierarchy);
+        assert(sub >= 0 && super >= 0); 
+        boost::add_edge(super, sub, hierarchy);
     }
 }
 
@@ -82,13 +81,13 @@ void undo_subtype_constraints(int t)
     boost::clear_in_edges(t, hierarchy);
 }
 
-//
-// functions to find parents and children of a given type
-//
-
-// helper function object to return target of edge; it seems it's not possible
-// to use ptr_fun(boost::target)
-
+/**
+ * functions to find parents and children of a given type
+ */
+/*@{*/
+/** helper function object to return target of edge; it seems it's not possible
+ * to use ptr_fun(boost::target)
+ */
 struct EdgeTargetExtractor : std::unary_function<tHierarchyEdge, tHierarchyVertex>
 {
     tHierarchyVertex operator()(const tHierarchyEdge& e) const
@@ -97,9 +96,9 @@ struct EdgeTargetExtractor : std::unary_function<tHierarchyEdge, tHierarchyVerte
     }
 };
 
-// helper function object to return source of edge; it seems it's not possible
-// to use ptr_fun(boost::source)
-
+/** helper function object to return source of edge; it seems it's not possible
+ * to use ptr_fun(boost::source)
+ */
 struct EdgeSourceExtractor : std::unary_function<tHierarchyEdge, tHierarchyVertex>
 {
     tHierarchyVertex operator()(const tHierarchyEdge& e) const
@@ -107,8 +106,9 @@ struct EdgeSourceExtractor : std::unary_function<tHierarchyEdge, tHierarchyVerte
         return boost::source(e, hierarchy);
     }
 };
+/*@}*/
 
-// return the list of all immediate subtypes of t
+/** return the list of all immediate subtypes of \a t */
 list<int> immediate_subtypes(int t)
 {
     std::pair<boost::graph_traits<tHierarchy>::out_edge_iterator,
@@ -121,7 +121,7 @@ list<int> immediate_subtypes(int t)
     return l;
 }
 
-// return the list of all immediate supertypes of t
+/** return the list of all immediate supertypes of \a t */
 list<int> immediate_supertypes(int t)
 {
     std::pair<boost::graph_traits<tHierarchy>::in_edge_iterator,
@@ -134,14 +134,12 @@ list<int> immediate_supertypes(int t)
     return l;
 }
 
-//
-// computation of the bitcodes
-//
-
-// maps from bit position in the bitcode to corresponding type
+/** @name Bitcode Computation */
+/*@{*/
+/** maps from bit position in the bitcode to corresponding type */
 map<int,int> idbit_type;
 
-// compute the transitive closure encoding
+/** compute the transitive closure encoding */
 void compute_code_topo() 
 {
     // the code to be assigned next
@@ -186,12 +184,13 @@ void compute_code_topo()
                             types.name(c).c_str());
                 
                 // combine with subtypes bitcode using binary or
-                types[current_type]->bcode->join(*types[c]->bcode);
+                *types[current_type]->bcode |= *types[c]->bcode;
             }
         }
     }
 }
 
+/** Print all subtypes of bitcode \a b for debugging */
 void debug_print_subtypes(bitcode *b)
 {
   list_int *l = b->get_elements();
@@ -206,13 +205,20 @@ void debug_print_subtypes(bitcode *b)
   free_list(l);
 }
 
+/*@}*/
+
+/** Detect cyclic arcs using dfs: The existence of a back edge indicates a
+ *  cycle.
+ */
 class cycleDetector : public boost::dfs_visitor<>
 {
 public:
+    /** Create DFS visitor with reference to the return value \a has_cycle */
     cycleDetector(bool& has_cycle)
         : _has_cycle(has_cycle)
     { }
-    
+
+    /** If a back edge exists, this graph has a cycle. */
     template <class Edge, class Graph>
     void back_edge(Edge, Graph&)
     {
@@ -233,7 +239,7 @@ isAcyclic(Graph &G)
     return !hasCycle;
 }
 
-// helper predicate: return fixed false/true
+/** helper predicate: return fixed false/true */
 template<typename T, bool V> struct fixedPred : std::unary_function<T, bool>
 {
     bool operator()(const T& t) const
@@ -241,6 +247,7 @@ template<typename T, bool V> struct fixedPred : std::unary_function<T, bool>
         return V;
     }
 };
+
 
 // recompute hierarchy so it's a semilattice
 // theoretical background: (Ait-Kaci et al., 1989)
@@ -403,14 +410,8 @@ void make_semilattice()
     fprintf(fstatus, " (%ld)", clock());
 
 #if 0
-  //missing sanity checks
+  //missing sanity checks: simple hierarchy is guaranteed by boost graph type
   // do a few sanity checks:
-
-  if(!Is_Simple(hierarchy))
-    {
-      fprintf(ferr, "conception error - making hierarchy simple\n");
-      Make_Simple(hierarchy);
-    }
 
   if(!Is_Loopfree(hierarchy))
     {
@@ -420,7 +421,6 @@ void make_semilattice()
 
   if(verbosity > 4)
     fprintf(fstatus, " (%ld)", clock());
-
 #endif
 }
 
@@ -538,6 +538,8 @@ bool process_hierarchy()
 
 #if 0
   // sanity check: is the hierarchy simple (contains no parallel edges)
+  // This is guaranteed by the graph type used for the hierarchy by the
+  // boost library
   if(!Is_Simple(hierarchy))
     {
       fprintf(ferr, "type hierarchy is not simple (should not happen)\n");

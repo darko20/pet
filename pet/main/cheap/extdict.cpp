@@ -290,7 +290,7 @@ int extDictionary::equiv_rank(type_t t)
 
 void extDictMapEntry::print(FILE *f) const
 {
-  fprintf(f, " %s [", typenames[_type]);
+  fprintf(f, " %s [", type_name(_type));
   for(list<pair<string, string> >::const_iterator it = _paths.begin();
       it != _paths.end(); ++it)
   {

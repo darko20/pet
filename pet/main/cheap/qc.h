@@ -17,16 +17,14 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* quick check paths computation */
+/** \file qc.h
+ * quick check paths computation
+ */
 
 #ifndef _QC_H_
 #define _QC_H_
 
-#include "settings.h"
-#include "options.h"
-#include "errors.h"
-#include "failure.h"
-
+/** Compute the best quick check paths using the corpus in \a f */
 void
 compute_qc_paths(FILE *f);
 

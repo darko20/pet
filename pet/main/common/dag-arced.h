@@ -17,12 +17,18 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* common operations and data structures for arced dags */
+/** \file dag-arced.h
+ * Common operations and data structures for arced dags.
+ */
 
 #ifndef _DAG_ARCED_H_
 #define _DAG_ARCED_H_
 
-inline struct dag_arc *new_arc(int attr, dag_node *val)
+#include "dag-alloc.h"
+
+/** Allocate and initialize a new arc with attribute \a attr and value \a val 
+ */
+inline struct dag_arc *new_arc(attr_t attr, dag_node *val)
 {
   dag_arc *newarc = dag_alloc_arc();
   newarc->attr = attr;
@@ -31,23 +37,33 @@ inline struct dag_arc *new_arc(int attr, dag_node *val)
   return newarc;
 }
 
+/** Add \a newarc to the arc list of \a dag */
 inline void dag_add_arc(dag_node *dag, dag_arc *newarc)
 {
   newarc->next = dag->arcs;
   dag->arcs = newarc;
 }
 
+/** Return the arc that has attribute \a attr, or \c NULL, if there is none */
+inline dag_arc *dag_find_attr(dag_arc *arc, attr_t attr)
+{
+  while(arc && arc->attr != attr) arc = arc->next;
+  return arc;
+}
+
+/** Small node structure to represent the quick check paths */
 struct qc_node
 {
-  int type;
+  type_t type;
   int qc_pos;
 
   struct qc_arc *arcs;
 };
 
+/** Small arc structure to represent the quick check paths */
 struct qc_arc
 {
-  int attr;
+  attr_t attr;
   struct qc_node *val;
 
   struct qc_arc *next;

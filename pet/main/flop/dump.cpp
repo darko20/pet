@@ -28,6 +28,9 @@
 #include "options.h"
 #include "dag.h"
 
+/** dump a bunch of string pairs that describe various properties of the
+ *  grammar.
+ */
 void
 dump_properties(dumper *f)
 {
@@ -42,6 +45,10 @@ dump_properties(dumper *f)
     }
 }
 
+/** Dump information about the number of status values, leaftypes, types, and
+ *  attributes as well as the tables of status value names, type names and
+ *  their status, and attribute names.
+ */
 void
 dump_symbol_tables(dumper *f)
 {
@@ -73,6 +80,9 @@ dump_symbol_tables(dumper *f)
     f->dump_string(attrname[i]);
 }
 
+/** Dump the type-to-featureset mappings and the feature sets for fixed arity
+ *  encoding, as well as the table of appropriate types for all attributes.
+ */
 void
 dump_tables(dumper *f)
 {
@@ -83,6 +93,7 @@ dump_tables(dumper *f)
     f->dump_int(1);
 
   // write set for each type
+  // _fix_doc_ Why only for non-leaftypes ??
   for(int i = 0; i < first_leaftype; i++)
     {
       f->dump_int(featset[rleaftype_order[i]]);
@@ -102,10 +113,11 @@ dump_tables(dumper *f)
     f->dump_int(rleaftype_order[apptype[i]]);
 }
 
+
+/** write (immediate) supertypes for each type */
 void
 dump_supertypes(dumper *f)
 {
-  // write (immediate) supertypes for each type
   for(int i = 0; i < first_leaftype; i++)
   {
       list<int> supertypes = immediate_supertypes(rleaftype_order[i]);
@@ -116,6 +128,10 @@ dump_supertypes(dumper *f)
   }
 }
 
+/** \brief Dump print name for every type. The print name is only dumped if it
+ *  differs from the type name, which is primarily true for instances, where a
+ *  '$' character is prepended to the typename.
+ */
 void
 dump_print_names(dumper *f)
 {
@@ -130,6 +146,9 @@ dump_print_names(dumper *f)
     }
 }
 
+/** Dump the full form table. Here, dumping is delegated to the full form
+ *   objects.
+ */
 void
 dump_fullforms(dumper *f)
 {
@@ -140,6 +159,9 @@ dump_fullforms(dumper *f)
     currentff->dump(f);
 }
 
+/** Dump a single inflection rule, first the type of the feature structure rule
+ *  and then the string representation of the transformation rule.
+ */
 void
 dump_inflr(dumper *f, int t, char *r)
 {
@@ -147,6 +169,7 @@ dump_inflr(dumper *f, int t, char *r)
   f->dump_string(r);
 }
 
+/** Dump all inflection rules. */
 void
 dump_inflrs(dumper *f)
 {
@@ -171,6 +194,9 @@ dump_inflrs(dumper *f)
   f->set_int_variable(ninflr_var, ninflr);
 }
 
+/** Dump the irregular forms table. Here, dumping is delegated to the irregular
+ *  form objects.
+ */
 void
 dump_irregs(dumper *f)
 {
@@ -180,6 +206,9 @@ dump_irregs(dumper *f)
     it->dump(f);
 }
 
+/** Return the number of kilobytes written since the last call of this
+ *  function.
+ */
 int
 kbwritten(dumper *f)
 {
@@ -191,6 +220,10 @@ kbwritten(dumper *f)
   return diff / 1024;
 }
 
+/** Dump the whole grammar to a binary data file.
+ * \param f low-level dumper class
+ * \param desc readable description of the current grammar
+ */
 void
 dump_grammar(dumper *f, char *desc)
 {
@@ -223,13 +256,17 @@ dump_grammar(dumper *f, char *desc)
   toc.start_section(SEC_HIERARCHY);
   dump_hierarchy(f);
 
+  fprintf(fstatus, ", hierarchy %dk", kbwritten(f));
+
   toc.start_section(SEC_FEATTABS);
   dump_tables(f);
+
+  fprintf(fstatus, ", feature tables %dk", kbwritten(f));
 
   toc.start_section(SEC_SUPERTYPES);
   dump_supertypes(f);
 
-  fprintf(fstatus, ", hierarchy %dk", kbwritten(f));
+  fprintf(fstatus, ", supertypes %dk", kbwritten(f));
 
   toc.start_section(SEC_FULLFORMS);
   dump_fullforms(f);

@@ -21,19 +21,40 @@
 
 #include "pet-system.h"
 #include "cheap.h"
-#include "../common/utility.h"
+#include "utility.h"
 #include "types.h"
 #include "item.h"
+#include "item-printer.h"
 #include "parse.h"
 #include "tsdb++.h"
 #include "sm.h"
 
-#ifdef YY
-#include "mrs.h"
-#endif
-
 //#define DEBUG
 //#define DEBUGPOS
+
+// this is a hoax to get the cfrom and cto values into the mrs
+#ifdef DYNAMIC_SYMBOLS
+modlist characterize_modlist;
+
+/** Set characterization paths and modlist. */
+void init_characterization() {
+  characterize_modlist.clear();
+  char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
+  char *cto_path = cheap_settings->value("mrs-cto-path");
+  if ((cfrom_path != NULL) && (cto_path != NULL)) {
+    characterize_modlist.push_front(pair<string, int>(cfrom_path, 0));
+    characterize_modlist.push_back(pair<string, int>(cto_path, 0));
+  }
+}
+
+inline bool characterize_mods() { return ! characterize_modlist.empty(); }
+
+modlist &characterize_mods(unsigned int from, unsigned int to) {
+  characterize_modlist.front().second = lookup_unsigned_symbol(from);
+  characterize_modlist.back().second = lookup_unsigned_symbol(to);
+  return characterize_modlist;
+}
+#endif
 
 item_owner *tItem::_default_owner = 0;
 int tItem::_next_id = 1;
@@ -41,7 +62,8 @@ int tItem::_next_id = 1;
 tItem::tItem(int start, int end, const tPaths &paths,
              const fs &f, const char *printname)
     : _id(_next_id++),
-      _start(start), _end(end), _spanningonly(false), _paths(paths),
+      _start(start), _end(end), _startposition(-1), _endposition(-1),
+      _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
@@ -76,24 +98,46 @@ tItem::~tItem()
  INPUT ITEM
  *****************************************************************************/
 
-tInputItem::tInputItem(int id, int start, int end, string surface, string stem
-                       , const tPaths &paths, tok_class token_class)
+tInputItem::tInputItem(string id, int start, int end, string surface
+                       , string stem, const tPaths &paths, int token_class
+                       , modlist fsmods)
   : tItem(-1, -1, paths, surface.c_str())
-    , _input_id(id), _startposition(start), _endposition(end)
-    , _class(token_class), _surface(surface), _stem(stem)
+    , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
+    , _fsmods(fsmods)
 {
+  _startposition = start;
+  _endposition = end;
+  _trait = INPUT_TRAIT;
+}
+
+
+tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
+                       , string stem, int token_class, modlist fsmods)
+  : tItem(-1, -1, tPaths(), "")
+    , _input_id(id), _class(token_class), _stem(stem)
+    , _fsmods(fsmods)
+{
+  _daughters.insert(_daughters.begin(), dtrs.begin(), dtrs.end());
+  _startposition = dtrs.front()->startposition();
+  _endposition = dtrs.back()->endposition();
+  // _printname = "" ;
+  // _surface = "" ;
+  for(list< tInputItem * >::const_iterator it = dtrs.begin()
+        ; it != dtrs.end(); it++){
+    _paths.intersect((*it)->_paths);
+  }
   _trait = INPUT_TRAIT;
 }
   
 void tInputItem::print(FILE *f, bool compact)
 {
-  fprintf(f, "[%d - %d] (%d) \"%s\" \"%s\" "
-          , _startposition, _endposition, _input_id
+  fprintf(f, "[%d - %d] (%s) \"%s\" \"%s\" "
+          , _startposition, _endposition, _input_id.c_str()
           , _stem.c_str(), _surface.c_str());
 
   list_int *li = _inflrs_todo;
   while(li != NULL) {
-    fprintf(f, "+%s", typenames[first(li)]);
+    fprintf(f, "+%s", type_name(first(li)));
     li = rest(li);
   }
 
@@ -105,7 +149,7 @@ void tInputItem::print(FILE *f, bool compact)
 }
 
 void
-tInputItem::print_gen(class tItemPrinter *ip)
+tInputItem::print_gen(class tItemPrinter *ip) const
 {
   ip->real_print(this);
 }
@@ -163,9 +207,12 @@ tInputItem::rule()
 void
 tInputItem::recreate_fs()
 {
-    throw tError("cannot rebuild lexical item's feature structure");
+    throw tError("cannot rebuild input item's feature structure");
 }
 
+/** \brief Since tInputItems do not have a feature structure, they need not be
+ *  unpacked. Unpacking does not proceed past tLexItem 
+ */
 list<tItem *>
 tInputItem::unpack1(int limit)
 {
@@ -174,12 +221,12 @@ tInputItem::unpack1(int limit)
     return res;
 }
 
-string tInputItem::orth() {
+string tInputItem::orth() const {
   if (_daughters.empty()) {
     return _surface;
   } else {
     string result = dynamic_cast<tInputItem *>(_daughters.front())->orth();
-    for(list<tItem *>::iterator it=(++_daughters.begin())
+    for(list<tItem *>::const_iterator it=(++_daughters.begin())
           ; it != _daughters.end(); it++){
       result += " " + dynamic_cast<tInputItem *>(*it)->orth();
     }
@@ -211,7 +258,7 @@ tInputItem::generics(postags onlyfor)
         int gen = first(gens);
 
         char *suffix = cheap_settings->assoc("generic-le-suffixes",
-                                             typenames[gen]);
+                                             type_name(gen));
         if(suffix)
           if(_surface.length() <= strlen(suffix) ||
              strcasecmp(suffix,
@@ -219,11 +266,10 @@ tInputItem::generics(postags onlyfor)
              != 0)
             continue;
 
-        if(_postags.license("posmapping", gen)
-           && (onlyfor.empty() || onlyfor.contains(gen)))
+        if(_postags.license(gen) && (onlyfor.empty() || onlyfor.contains(gen)))
         {
           if(verbosity > 4)
-              fprintf(ferr, "  ==> %s [%s]\n", printnames[gen],
+              fprintf(ferr, "  ==> %s [%s]\n", print_name(gen),
                       suffix == 0 ? "*" : suffix);
 	  
           result.push_back(Grammar->find_stem(gen));
@@ -233,7 +279,7 @@ tInputItem::generics(postags onlyfor)
     return result;
 }
 
-void tLexItem::init(const fs &f) {
+void tLexItem::init(fs &f) {
   if (passive()) {
     _supplied_pos = postags(_stem);
 
@@ -261,6 +307,15 @@ void tLexItem::init(const fs &f) {
     if(Grammar->sm())
       score(Grammar->sm()->scoreLeaf(this));
 
+#ifdef DYNAMIC_SYMBOLS
+    if((opt_mrs != 0) && (characterize_mods())) {
+      assert(_startposition >= 0 && _endposition >= 0);
+      _fs.modify_eagerly_searching(characterize_mods(_startposition
+                                                   , _endposition));
+    }
+#endif
+
+#if 0
 #ifdef YY
     if(opt_k2y)
       {
@@ -279,6 +334,7 @@ void tLexItem::init(const fs &f) {
           mrs_map_sense(_id, *it);
       }
 #endif
+#endif
 
 #ifdef DEBUG
     fprintf(ferr, "new lexical item (`%s[%s]'):", 
@@ -294,8 +350,10 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
   : tItem(i_item->start(), i_item->end(), i_item->_paths
           , f, stem->printname())
   , _ldot(stem->inflpos()), _rdot(stem->inflpos() + 1)
-  , _stem(stem)
+  , _stem(stem), _fs_full(f)
 {
+  _startposition = i_item->startposition();
+  _endposition = i_item->endposition();
   _inflrs_todo = copy_list(inflrs_todo);
   _daughters.push_back(i_item);
   _keydaughter = i_item;
@@ -307,25 +365,29 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
           , from->get_fs(), from->printname())
     , _ldot(from->_ldot), _rdot(from->_rdot)
     , _keydaughter(from->_keydaughter)
-    , _stem(from->_stem)
+    , _stem(from->_stem), _fs_full(from->get_fs())
 {
   _daughters = from->_daughters;
   _inflrs_todo = copy_list(from->_inflrs_todo);
   if(from->left_extending()) {
     _start = newdtr->start();
+    _startposition = newdtr->startposition();
     _end = from->end();
+    _endposition = from->endposition();
     _daughters.push_front(newdtr);
     _ldot--;
     // register this expansion to avoid duplicates
     from->_expanded.push_back(_start);
   } else {
     _start = from->start();
+    _startposition = from->startposition();
     _end = newdtr->end();
+    _endposition = newdtr->endposition();
     _daughters.push_back(newdtr);
     _rdot++;
     from->_expanded.push_back(_end);
   }
-  init(from->get_fs());
+  init(_fs);
 }
 
 #if 0
@@ -344,6 +406,8 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
            f, R->printname()),
       _adaughter(0), _rule(R)
 {
+    _startposition = pasv->startposition();
+    _endposition = pasv->endposition();
     _tofill = R->restargs();
     _nfilled = 1;
     _daughters.push_back(pasv);
@@ -376,6 +440,15 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
         if(passive())
             _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
+#ifdef DYNAMIC_SYMBOLS
+    if((opt_mrs != 0) && (characterize_mods()))
+      if(passive()) {
+        assert(_startposition >= 0 && _endposition >= 0);
+        _fs.modify_eagerly_searching(characterize_mods(_startposition
+                                                       , _endposition));
+      }
+#endif
+
     // rule stuff
     if(passive())
         R->passives++;
@@ -399,13 +472,17 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     if(active->left_extending())
     {
         _start = pasv->_start;
+        _startposition = pasv->startposition();
         _end = active->_end;
+        _endposition = active->endposition();
         _daughters.push_front(pasv);
     }
     else
     {
         _start = active->_start;
+        _startposition = active->startposition();
         _end = pasv->_end;
+        _endposition = pasv->endposition();
         _daughters.push_back(pasv);
     }
   
@@ -432,6 +509,15 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     if(opt_nqc_subs != 0)
         if(passive())
             _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+
+#ifdef DYNAMIC_SYMBOLS
+    if((opt_mrs != 0) && (characterize_mods()))
+      if(passive()) {
+        assert(_startposition >= 0 && _endposition >= 0);
+        _fs.modify_eagerly_searching(characterize_mods(_startposition
+                                                       , _endposition));
+      }
+#endif
 
     // rule stuff
     if(passive())
@@ -508,7 +594,7 @@ tItem::print(FILE *f, bool compact)
     l = _inflrs_todo;
     while(l)
     {
-        fprintf(f, "%s ", printnames[first(l)]);
+        fprintf(f, "%s ", print_name(first(l)));
         l = rest(l);
     }
 
@@ -544,7 +630,7 @@ tLexItem::print(FILE *f, bool compact)
 }
 
 void
-tLexItem::print_gen(class tItemPrinter *ip)
+tLexItem::print_gen(class tItemPrinter *ip) const
 {
   ip->real_print(this);
 }
@@ -581,7 +667,7 @@ tPhrasalItem::print(FILE *f, bool compact)
 }
 
 void
-tPhrasalItem::print_gen(class tItemPrinter *ip)
+tPhrasalItem::print_gen(class tItemPrinter *ip) const
 {
   ip->real_print(this);
 }
@@ -600,7 +686,7 @@ tItem::print_packed(FILE *f)
 }
 
 void
-tPhrasalItem::print_family(FILE *f)
+tItem::print_family(FILE *f)
 {
     fprintf(f, " < dtrs: ");
     for(list<tItem *>::iterator pos = _daughters.begin();
@@ -627,11 +713,11 @@ tLexItem::print_derivation(FILE *f, bool quoted)
     //                                 _inflrs_todo, orth());
 
     fprintf (f, "(%d %s/%s %.2f %d %d ", _id, _stem->printname(),
-             printnames[type()], score(), _start, _end);
+             print_name(type()), score(), _start, _end);
 
     fprintf(f, "[");
     for(list_int *l = _inflrs_todo; l != 0; l = rest(l))
-        fprintf(f, "%s%s", printnames[first(l)], rest(l) == 0 ? "" : " ");
+        fprintf(f, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
     fprintf(f, "] ");
 
     _keydaughter->print_derivation(f, quoted);
@@ -695,7 +781,7 @@ tPhrasalItem::print_derivation(FILE *f, bool quoted)
 
     if(_result_root != -1)
     {
-        fprintf(f, " [%s]", printnames[_result_root]);
+        fprintf(f, " [%s]", print_name(_result_root));
     }
   
     if(_inflrs_todo)
@@ -703,7 +789,7 @@ tPhrasalItem::print_derivation(FILE *f, bool quoted)
         fprintf(f, " [");
         for(list_int *l = _inflrs_todo; l != 0; l = rest(l))
         {
-            fprintf(f, "%s%s", printnames[first(l)], rest(l) == 0 ? "" : " ");
+            fprintf(f, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
         }
         fprintf(f, "]");
     }
@@ -878,6 +964,7 @@ tItem::unpack(int upedgelimit)
 
     if(_unpack_cache)
     {
+        // This item has already been unpacked
         unpacking_level--;
         return *_unpack_cache;
     }
@@ -1038,6 +1125,15 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
         FSAS.release();
         return 0;
     }
+
+#ifdef DYNAMIC_SYMBOLS
+    if((opt_mrs != 0) && (characterize_mods()))
+      if(passive()) {
+        assert(_startposition >= 0 && _endposition >= 0);
+        res.modify_eagerly_searching(characterize_mods(_startposition
+                                                       , _endposition));
+      }
+#endif
 
     stats.p_upedges++;
     return new tPhrasalItem(this, daughters, res);

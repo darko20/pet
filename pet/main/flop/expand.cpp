@@ -34,19 +34,38 @@
 
 #include <set>
 
-bool pseudo_type(int i)
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
+
+/** Is type \a i a pseudo type?
+ * Pseudo types are used to define feature structures that do not belong to
+ * the type hierarchy, like quick check structures or restrictors. They are not
+ * checked for appropriateness and the like and are not expanded or unfilled.
+ * These types have to be specified in the \c flop.set file by means of the \c
+ * pseudo-types setting.
+ */
+bool pseudo_type(type_t i)
 {
   return flop_settings->member("pseudo-types", types.name(i).c_str());
 }
 
-bool dont_expand(int i)
+/** Should expansion of the type dag of type \a i be avoided ?
+ * \return \c true if \i is an instance with a status that is mentioned in the
+ * 'dont-expand' setting in 'flop.set'
+ */
+bool dont_expand(type_t i)
 {
   return types[i]->tdl_instance &&
     flop_settings->statusmember("dont-expand", types[i]->status);
 }
 
-// find maximal types that introduce features
-
+/** For every feature, compute the maximal type that introduces it.
+ *
+ * \return \c false if a feature gets introduced at two incompatible types,
+ * which is an error, \c true if all appropriate types could be computed. The
+ * array \c apptype is filled with the maximally appropriate types, i.e., \c
+ * apptype[j] is the first subtype of \c *top* that introduces feature \c j.
+ */
 bool compute_appropriateness()
 {
   int i, attr;
@@ -79,7 +98,8 @@ bool compute_appropriateness()
 		  if(!subtype(i, apptype[attr]))
 		    {
 		      fprintf(ferr, "error: feature `%s' introduced at"
-			      " `%s' and `%s'.\n", attrname[attr], typenames[i],
+			      " `%s' and `%s'.\n", attrname[attr],
+                              typenames[i],
 			      typenames[apptype[attr]]);
 		      fail = true;
 		    }
@@ -97,9 +117,17 @@ bool compute_appropriateness()
     {
       if(apptype[i] == BI_TOP)
 	{
-	  if(opt_no_sem && i == attributes.id(flop_settings->req_value("sem-attr")))
+          // With the option 'no-semantics', all structures under a feature
+          // which is specified as 'sem-attr' in the 'flop.set' are
+          // removed from the hierarchy definitions and the feature itself is
+          // ignored in all computation concering features, such as appropriate
+          // type computation.
+	  if(opt_no_sem 
+             && i == attributes.id(flop_settings->req_value("sem-attr")))
 	    apptype[i] = types.id(flop_settings->req_value("grammar-info"));
 	  else
+            // This attribute did not appear on the top level of a type
+            // definition, so maybe it was not introduced correctly
 	    fprintf(ferr, "warning: attribute `%s' introduced on top (?)\n",
 		    attributes.name(i).c_str());
 	}
@@ -108,6 +136,13 @@ bool compute_appropriateness()
   return !fail;
 }
 
+/** Apply the appropriateness conditions recursively on \a dag.
+ * In every subdag of \a dag, unify the type of the subdag with all appropriate
+ * types induced by the features of that subdag. If this unification fails, the
+ * type definition is inconsistent.
+ * \return \c true if the dag is consistent with the appropriateness
+ * conditions required by the features, \c false otherwise
+ */
 bool apply_appropriateness_rec(struct dag_node *dag)
 {
   dag = dag_deref(dag);
@@ -146,6 +181,9 @@ bool apply_appropriateness_rec(struct dag_node *dag)
   return true;
 }
 
+/** Apply the appropriateness conditions on each dag in the hierarchy.
+ * \see apply_appropriateness_rec
+ */
 bool apply_appropriateness()
 {
   int i;
@@ -169,6 +207,15 @@ bool apply_appropriateness()
   return !fail;
 }
 
+/** Do delta expansion: unify all supertype constraints into a type skeleton.
+ *
+ * Excluded from this step are all pseudo types (\see pseudo_type). Instances
+ * are only expanded if either the option 'expand-all-instances' is active or
+ * the instance does not have a status that is mentioned in the 'dont-expand'
+ * setting in 'flop.set'.
+ * \return \c true, if there were no inconsistent type definitions found, 
+ *         \c false otherwise. 
+ */
 bool delta_expand_types()
 {
   int i, e;
@@ -200,6 +247,13 @@ bool delta_expand_types()
   return true;
 }
 
+/**
+ * Recursively collect the types found in a feature structure into a set
+ * \param dag A pointer to the feature structure where the used types are
+ *        collected 
+ * \param cs Reference to a set that will contain the result
+ * \return A set of all types occuring in #dag collected in #cs
+ */
 void critical_types(struct dag_node *dag, set<int> &cs)
 {
   dag = dag_deref(dag);
@@ -220,9 +274,21 @@ void critical_types(struct dag_node *dag, set<int> &cs)
     }
 }
 
+/** Limit the depth of full expansion to MAX_EXP_DEPTH.
+ * There might be cases where we have infinite expansion that we could not
+ * detect before. Therefore we use this maximum expansion depth.
+ */
 #define MAX_EXP_DEPTH 1000
 
-bool fully_expand(struct dag_node *dag, bool full)
+/**
+ * Recursively unify the feature constraints of the type of each dag node into
+ * the node
+ *
+ * \param dag Pointer to the current dag
+ * \param full If \c true, expand subdags without arcs too
+ * \result A path to the failure point, if one occured, NULL otherwise
+ */
+list_int *fully_expand(struct dag_node *dag, bool full)
 {
   static int depth = 0;
 
@@ -238,7 +304,7 @@ bool fully_expand(struct dag_node *dag, bool full)
 	  fprintf(ferr, "expansion [cycle with `%s'] for",
 		  typenames[dag->type]);
 	  depth--;
-	  return false;
+	  return cons(T_BOTTOM, NULL);
 	}
 
       if(dag->type < types.number() && (full || dag->arcs))
@@ -248,26 +314,38 @@ bool fully_expand(struct dag_node *dag, bool full)
 	      fprintf(ferr, "full expansion with `%s' for",
 		      typenames[dag->type]);
 	      depth--;
-	      return false;
+	      return cons(T_BOTTOM, NULL);
 	    }
 	}
 
+      list_int *res;
       arc = dag->arcs;
       while(arc)
-	{
-	  if(!fully_expand(arc->val, full))
+	{ 
+	  if((res = fully_expand(arc->val, full)) != NULL)
 	    {
 	      depth--;
-	      return false;
+	      return cons(arc->attr, res);
 	    }
 	  arc = arc->next;
 	}
 
       depth --;
     }
-  return true;
+  return NULL;
 }
 
+/**
+ * Expand the feature structure constraints of each type after delta expansion.
+ * 
+ * The algorithm is as follows: Build a graph of types such that a link
+ * from type t to type s exists if the feature structure skeleton of type 
+ * s uses type t in some substructure. If this graph is acyclic, expand the
+ * feature structure constraints fully in topological order over this graph.
+ * Otherwise, there are illegal cyclic type dependencies in the definitions 
+ *
+ * \return true if the definitions are all OK, false otherwise
+ */
 bool fully_expand_types()
 {
   int i;
@@ -312,10 +390,20 @@ bool fully_expand_types()
         
       if(!pseudo_type(i))
 	{
-	  if(!fully_expand(types[i]->thedag, opt_full_expansion))
+          list_int *path = fully_expand(types[i]->thedag, opt_full_expansion);
+
+	  if(path != NULL)
 	    {
-	      fprintf(ferr, " `%s' failed\n", typenames[i]);
+	      fprintf(ferr, " `%s' failed under path (", typenames[i]);
+              list_int *start = path;
+              while (rest(start) != NULL) { // last element is invalid
+                fprintf(ferr, "%s", attrname[first(start)]);
+                start = rest(start);
+                if (rest(start) != NULL) fprintf(ferr, "|");
+              }
+              fprintf(ferr, ")\n");
 	      fail = true;
+              free_list(path);
 	    }
 	  
 	  dag_invalidate_visited();
@@ -342,6 +430,13 @@ bool fully_expand_types()
 extern int *maxapp;
 map<int, int> nintro; // no of introduced features 
 
+/** Compute the number of features introduced by each type and the maximal
+ * appropriate type per feature.
+ *
+ * The maximal appropriate type \c t for feature \c f is the type that is
+ * supertype of every dag \c f points to. It is defined by the type of the
+ * subdag \c f points to where \c f is introduced.
+ */
 void compute_maxapp()
 {
   int i;
@@ -372,12 +467,27 @@ void compute_maxapp()
     }
 }
 
-//
-// unfilling
-//
+/** @name Unfilling */
+/*@{*/ 
 
 static int total_nodes = 0;
 
+/** Recursively unfill \a dag, which is a subdag of the typedag of \a root
+ * \return the number of deleted dag nodes
+ *
+ * Remove all features that are not introduced by \a root and where the subdag
+ * they point to 
+ * - has no arcs (which may be due to recursive unfilling)
+ * - is not coreferenced
+ * - its type is the maximally appropriate type for the feature
+ *
+ * The unfilling algorithm deletes all edges that point to nodes with maximally
+ * underspecified information, i.e. whose type is the maximally appropriate
+ * type under the attribute and whose substructures are also maximally
+ * underspecified. This results in nodes that contain some, but not all of the
+ * edges that are appropriate for the node's type. There are in fact partially
+ * unfilled fs nodes.
+ */
 int unfill_dag_rec(struct dag_node *dag, int root)
 {
   int nunfilled = 0;
@@ -410,7 +520,7 @@ int unfill_dag_rec(struct dag_node *dag, int root)
       coref = dag_get_visit(dst) - 1;
 
       if(dst->arcs == 0 && coref == 0 && dst->type == maxapp[arc->attr]
-         && apptype[arc->attr] != root && root != -1)
+         && apptype[arc->attr] != root) // && root != -1 <-- Always true
 	{
 	  nunfilled++;
 	  arc = arc->next;
@@ -430,6 +540,9 @@ int unfill_dag_rec(struct dag_node *dag, int root)
   return nunfilled;
 }
 
+/** Unfill ALL type dags in the hierarchy.
+ * For which arcs and nodes in the dags are removed, \see unfill_dag_rec.
+ */
 void unfill_types()
 {
   int i, n = 0;
@@ -449,6 +562,7 @@ void unfill_types()
   fprintf(fstatus, "(%d total nodes, %d removed)\n",
 	  total_nodes, n);
 }
+/*@}*/
 
 //
 // compute featconfs and featsets for fixed arity encoding
@@ -458,8 +572,10 @@ void unfill_types()
 // partitioning of hierarchy, for non-minimal encoding
 //
 
-map<int, int> nfeat; // total no of  features 
-map<int, int> prefixl; // prefix ok if in map and >= 0, gives length of prefix
+/** Total no of features for a certain type */
+map<int, int> nfeat;
+/** prefix ok if in map and >= 0, gives length of prefix */
+map<int, int> prefixl;
 
 void prefix_down(int t, int l)
 {

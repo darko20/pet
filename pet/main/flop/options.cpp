@@ -25,6 +25,7 @@
 #include "getopt.h"
 #include "utility.h"
 #include "options.h"
+#include "version.h"
 
 bool opt_pre, opt_expand_all_instances,
   opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
@@ -38,6 +39,7 @@ char *grammar_file_name;
 
 void usage(FILE *f)
 {
+  fprintf(f, "flop version %s\n", version_string);
   fprintf(f, "usage: `flop [options] tdl-file'; valid options are:\n");
   fprintf(f, "  `-pre' --- do only syntactic preprocessing\n");
   fprintf(f, "  `-expand-all-instances' --- expand all (even lexicon) instances\n");

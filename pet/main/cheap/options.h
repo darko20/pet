@@ -17,7 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* command line options */
+/** \file options.h
+ * Command line options for cheap
+ */
 
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
@@ -30,13 +32,14 @@ extern bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_nbest;
+  opt_nbest, opt_partial;
 #ifdef YY
 extern bool opt_yy, opt_k2y_segregation;
 extern int opt_k2y, opt_nth_meaning;
 #endif
-extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server;
+extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults;
 extern int opt_tsdb;
+
 extern long int memlimit;
 extern bool opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_online_morph, opt_fullform_morph;
 extern char *grammar_file_name;
@@ -44,6 +47,16 @@ extern char *grammar_file_name;
 extern char *opt_compute_qc;
 
 extern char *opt_mrs;
+
+enum tokenizer_id { 
+  TOKENIZER_INVALID, TOKENIZER_STRING
+  , TOKENIZER_YY, TOKENIZER_YY_COUNTS
+  , TOKENIZER_XML, TOKENIZER_XML_COUNTS
+} ;
+
+extern tokenizer_id opt_tok;
+
+extern string opt_tsdb_file;
 
 #define PACKING_EQUI  (1 << 0)
 #define PACKING_PRO   (1 << 1)

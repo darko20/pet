@@ -17,7 +17,9 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* a settings file */
+/** \file settings.h
+ * Information contained in a settings file.
+ */
 
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
@@ -26,11 +28,14 @@ using namespace std;
 
 #include "lex-tdl.h"
 #include "types.h"
+#include <set>
+#include <map>
 
 #define SET_SUBDIRECTORY "pet"
 #define SET_EXT ".set"
 #define SET_TABLE_SIZE 100
 
+/** A setting from the settings file (in TDL format) */
 struct setting
 {
   char *name;
@@ -40,6 +45,7 @@ struct setting
   struct lex_location* loc;
 };
 
+/** a set of settings with access functions */
 class settings
 {
  public:
@@ -75,8 +81,9 @@ class settings
   char *_fname, *_prefix;
   struct lex_location *_lloc;
 
-  map<string,list_int *> _li_cache; // cache for settings converted to lists
-                                    // of integers (e.g. status values)
+  /** cache for settings converted to lists of integers (e.g. status values) */
+  map<string, struct list_int *> _li_cache;
+
   void parse();
   void parse_one();
 };

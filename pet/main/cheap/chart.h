@@ -17,51 +17,72 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* class `chart' */
+/** \file chart.h 
+ * Chart data structure for parsing in dynamic programming style.
+ */
 
 #ifndef _CHART_H_
 #define _CHART_H_
 
 #include "item.h"
 
+/** Chart data structure for parsing, aka dynamic programming */
 class chart
 {
  public:
-  chart(int, auto_ptr<item_owner>);
+  /** Create a chart for \a len words, and item_owner \a owner to handle the
+   *  proper destruction of items on chart destruction.
+   *  \attention The function length() will return \a len + 1.
+   */
+  chart(int len, auto_ptr<item_owner> owner);
   ~chart();
 
+  /** Add item to the appropriate internal data structures, depending on its
+   *  activity.
+   */
   void add(tItem *);
 
   /** Remove the item in the set from the chart */
   void remove(hash_set<tItem *> &to_delete);
 
+  /** Print all chart items */
   void print(FILE *f);
 
-  void print(tItemPrinter *f);
+  /** Print chart items using \a f, select active and passive items with \a
+   *  passives and \a actives.
+   */
+  void print(tItemPrinter *f, bool passives = true, bool actives = false);
 
+  /** Get statistics from the chart, like nr. of active/passive edges, average
+   *  feature structure size, items contributing to a reading etc.
+   */
   void get_statistics();
 
+  /** Return the number of passive edges */
   inline int& pedges() { return _pedges; }
 
+  /** Return the length of the chart */
   unsigned int length() { return (unsigned int) _Cp_start.size() ; }
+  /** The number of the rightmost chart node */
   unsigned int rightmost() { return length() - 1; }
 
+  /** Return the trees stored in the chart after unpacking */
   vector<tItem *> &trees() { return _trees; }
+  /** Return the readings found during parsing */
   vector<tItem *> &readings() { return _readings; }
 
-  void shortest_path(list <tItem *> &);
-
-  list<tItem *>
-  find_uncovered(unary_function<bool, tItem *> &valid,
-                 unary_function<bool, tItem *> &result);
-
+  /** If the parse was not successful, this function computes a shortest path
+   *  through the chart based on some heuristic built into the tItem score()
+   *  function to get the best partial results.
+   */
+  void shortest_path(list <tItem *> &items, bool all = false);
+  
+  /** Return \c true if the chart is connected using only edges considered \a
+   *  valid, i.e., there is a path from the first to the last node.
+   */
+  bool connected(item_predicate &valid);
 
  private:
-  void check_uncovered(list<tItem *> &olist
-                       , unary_function<bool, tItem *> &valid
-                       , unary_function<bool, tItem *> &result
-                       , list<tItem *> &uncovered);
-
   static int _next_stamp;
 
   vector<tItem *> _Chart;
@@ -83,32 +104,39 @@ class chart
   friend class chart_iter_adj_passive;
 };
 
-// iterators must return items in order of `stamp', so the `excursion' works
-
+/** Return all items from the chart.
+ * \attention iterators must return items in order of `stamp', so the
+ * `excursion' works.
+ */
 class chart_iter
 {
   public:
+    /** Create a new iterator for \a C */
     inline chart_iter(chart *C) : _LI(C->_Chart)
     {
         _curr = _LI.begin();
     }
 
+    /** Create a new iterator for \a C */
     inline chart_iter(chart &C) : _LI(C._Chart)
     {
         _curr = _LI.begin();
     }
 
+    /** Increase iterator */
     inline chart_iter &operator++(int)
     {
         ++_curr;
         return *this;
     }
 
+    /** Is the iterator still valid? */
     inline bool valid()
     {
         return _curr != _LI.end();
     }
 
+    /** If valid(), return the current item, \c NULL otherwise. */
     inline tItem *current()
     {
         if(valid())
@@ -124,32 +152,45 @@ class chart_iter
     vector<class tItem *>::iterator _curr;
 };
 
+/** Return all passive items having a specified span.
+ * \attention iterators must return items in order of `stamp', so the
+ * `excursion' works.
+ */
 class chart_iter_span_passive
 {
   public:
+    /** Create an iterator for all passive items in \a C starting at \a i1 and
+     *  ending at \a i2.
+     */
     inline chart_iter_span_passive(chart *C, int i1, int i2) :
         _LI(C->_Cp_span[i1][i2-i1])
     {
         _curr = _LI.begin();
     }
 
+    /** Create an iterator for all passive items in \a C starting at \a i1 and
+     *  ending at \a i2.
+     */
     inline chart_iter_span_passive(chart &C, int i1, int i2) :
         _LI(C._Cp_span[i1][i2-i1])
     {
         _curr = _LI.begin();
     }
 
+    /** Increase iterator */
     inline chart_iter_span_passive &operator++(int)
     {
         ++_curr;
         return *this;
     }
 
+    /** Is the iterator still valid? */
     inline bool valid()
     {
         return _curr != _LI.end();
     }
 
+    /** If valid(), return the current item, \c NULL otherwise. */
     inline tItem *current()
     {
         if(valid())
@@ -163,6 +204,10 @@ class chart_iter_span_passive
     list<tItem *>::iterator _curr;
 };
 
+
+/** Return all passive in topological order, i.e., those with smaller start
+ * position first.
+ */
 class chart_iter_topo
 {
   private:
@@ -175,6 +220,7 @@ class chart_iter_topo
     }
 
   public:
+    /** Create a new iterator for \a C */
     inline chart_iter_topo(chart *C) : _max(C->rightmost()), _LI(C->_Cp_start)
     {
         _currindex = 0;
@@ -182,6 +228,7 @@ class chart_iter_topo
         next();
     }
 
+    /** Create a new iterator for \a C */
     inline chart_iter_topo(chart &C) : _max(C.rightmost()), _LI(C._Cp_start)
     {
         _currindex = 0;
@@ -189,6 +236,7 @@ class chart_iter_topo
         next();
     }
 
+    /** Increase iterator */
     inline chart_iter_topo &operator++(int)
     {
         _curr++;
@@ -196,11 +244,13 @@ class chart_iter_topo
         return *this;
     }
 
+    /** Is the iterator still valid? */
     inline bool valid()
     {
         return (_currindex <= _max);
     }
 
+    /** If valid(), return the current item, \c NULL otherwise. */
     inline tItem *current()
     {
         if(valid())
@@ -217,9 +267,16 @@ class chart_iter_topo
     list<class tItem *>::iterator _curr;
 };
 
+/** Return all passive items adjacent to a given active item
+ * \attention iterators must return items in order of `stamp', so the
+ * `excursion' works.
+ */
 class chart_iter_adj_passive
 {
  public:
+    /** Create new iterator for chart \a C that returns the passive items
+     *  adjacent to \a active.
+     */
     inline
     chart_iter_adj_passive(chart *C, tItem *active)
         : _LI(active->left_extending() ?
@@ -228,17 +285,20 @@ class chart_iter_adj_passive
         _curr = _LI.begin();
     }
 
+    /** Increase iterator */
     inline chart_iter_adj_passive &operator++(int)
     {
         ++_curr;
         return *this;
     }
 
+    /** Is the iterator still valid? */
     inline bool valid()
     {  
         return _curr != _LI.end();
     }
 
+    /** If valid(), return the current item, \c NULL otherwise. */
     inline tItem *current()
     {
         if(valid())
@@ -252,15 +312,22 @@ class chart_iter_adj_passive
   list<tItem *>::iterator _curr;
 };
 
+/** Return all active items adjacent to a given passive item
+ * \attention iterators must return items in order of `stamp', so the
+ * `excursion' works.
+ */
 class chart_iter_adj_active
 {
-  public:
     inline void overflow()
     {
         _at_start = false;
         _curr = _LI_end.begin();
     }
 
+  public:
+    /** Create new iterator for chart \a C that returns the active items
+     *  adjacent to \a passive.
+     */
     inline chart_iter_adj_active(chart *C, tItem *passive)
         : _LI_start(C->_Ca_start[passive->end()]),
           _LI_end(C->_Ca_end[passive->start()]),
@@ -270,6 +337,7 @@ class chart_iter_adj_active
         if(_curr == _LI_start.end()) overflow();
     }
 
+    /** Increase iterator */
     inline chart_iter_adj_active &operator++(int)
     {
         if(_at_start)
@@ -284,11 +352,13 @@ class chart_iter_adj_active
         return *this;
     }
 
+    /** Is the iterator still valid? */
     inline bool valid()
     {   
         return _curr != _LI_end.end();
     }
 
+    /** If valid(), return the current item, \c NULL otherwise. */
     inline tItem *current()
     {
         if(valid()) return *_curr; else return 0;
