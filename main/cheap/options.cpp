@@ -44,6 +44,8 @@ char *grammar_file_name = 0;
 char *opt_supertag_file = 0;
 int opt_supertag_norm;
 
+int opt_packing = 0;
+
 void usage(FILE *f)
 {
   fprintf(f, "usage: `cheap [options] grammar-file'; valid options are:\n");
@@ -85,6 +87,7 @@ void usage(FILE *f)
   fprintf(f, "  `-supertag=file' --- write supertagged data into file\n");
   fprintf(f, "  `-supertagnorm=n' --- set normalization value to n "
               "(default: 10)\n");
+  fprintf(f, "  `-packing=n' --- set packing to n (bit coded)");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
 }
@@ -115,6 +118,7 @@ void usage(FILE *f)
 #define OPTION_NBEST 23
 #define OPTION_NO_ONLINE_MORPH 24
 #define OPTION_NO_FULLFORM_MORPH 25
+#define OPTION_PACKING 26
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -151,6 +155,7 @@ void init_options()
   opt_nbest = false;
   opt_online_morph = true;
   opt_fullform_morph = true;
+  opt_packing = 0;
 #ifdef YY
   opt_yy = false;
   opt_k2y = 0;
@@ -199,6 +204,7 @@ bool parse_options(int argc, char* argv[])
     {"nbest", no_argument, 0, OPTION_NBEST},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
+    {"packing", optional_argument, 0, OPTION_PACKING},
 
     {0, 0, 0, 0}
   }; /* struct option */
@@ -307,6 +313,12 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NO_FULLFORM_MORPH:
           opt_fullform_morph = false;
+          break;
+      case OPTION_PACKING:
+          if(optarg != NULL)
+              opt_packing = strtoint(optarg, "as argument to `-packing'");
+          else
+              opt_packing = 0xff;
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:

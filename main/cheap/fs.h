@@ -103,9 +103,7 @@ class fs
   friend fs unify_np(fs &root, const fs &, fs &);
   friend void subsumes(const fs &a, const fs &b, bool &forward, bool &backward);
 
-#ifdef PACKING
-  friend fs packing_partial_copy(const fs &a);
-#endif
+  friend fs packing_partial_copy(const fs &a, list_int *del, bool perm);
 
   friend int compare(const fs &, const fs &);
   friend bool operator<(const fs &, const fs &);
@@ -125,9 +123,7 @@ extern fs unify_np(fs &root, const fs &, fs &);
 
 extern void subsumes(const fs &a, const fs &b, bool &forward, bool &backward);
 
-#ifdef PACKING
-fs packing_partial_copy(const fs &a);
-#endif
+fs packing_partial_copy(const fs &a, list_int *del, bool perm);
 
 extern fs copy(const fs &);
 extern bool compatible(const fs &, const fs &);

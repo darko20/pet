@@ -44,7 +44,7 @@ class lex_stem
 
   lex_stem & operator=(const lex_stem &le);
 
-  fs instantiate();
+  fs instantiate(bool full = false);
 
   inline char *name() const { return typenames[_type]; }
   inline char *printname() const { return printnames[_type]; }
@@ -130,7 +130,7 @@ class full_form
       // it's ok to compare pointers here, as stems are not copied
   }
 
-  fs instantiate();
+  fs instantiate(bool full = false);
 
   inline const lex_stem *stem() const { return _stem; }
 
@@ -204,7 +204,7 @@ class grammar_rule
 
   void print(FILE *f);
 
-  fs instantiate();
+  fs instantiate(bool full = false);
 
   inline fs nextarg(fs &f) { return f.nth_arg(first(_tofill)); }
   inline list_int *restargs() { return rest(_tofill); }
@@ -225,7 +225,10 @@ class grammar_rule
   rule_trait _trait;
   int _arity;
   list_int *_tofill;
-
+  
+  fs _f_restriced;  // The feature structure corresponding to this rule
+                    // with the packing restrictor applied.
+  
   type_t **_qc_vector;
   void init_qc_vector();
 
@@ -253,6 +256,7 @@ class grammar
   bool root(fs &, type_t &rule, int &maxp);
 
   list_int *deleted_daughters() { return _deleted_daughters; }
+  list_int *packing_restrictor() { return _packing_restrictor; }
 
   inline bool filter_compatible(grammar_rule *mother, int arg,
                                 grammar_rule *daughter)
@@ -335,6 +339,7 @@ class grammar
   int _qc_inst;
 
   list_int *_deleted_daughters;
+  list_int *_packing_restrictor;
 
   struct grammar_info _info;
   void init_grammar_info();

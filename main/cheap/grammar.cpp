@@ -24,6 +24,7 @@
 #include "grammar.h"
 #include "cheap.h"
 #include "fs.h"
+#include "parse.h"
 #include "../common/utility.h"
 #include "dumper.h"
 #include "grammar-dump.h"
@@ -203,7 +204,7 @@ lex_stem::print(FILE *f) const
 }
 
 fs
-lex_stem::instantiate()
+lex_stem::instantiate(bool full)
 {
     fs e(leaftype_parent(_type));
 
@@ -226,12 +227,15 @@ lex_stem::instantiate()
                         + "' (cannot apply mods " + m + ")");
         }
     }
-    
-#ifdef PACKING
-    return packing_partial_copy(expanded);
-#else
-    return expanded;
-#endif
+
+    // _fix_me_
+    // save the full structure here for later perusal
+
+    if(opt_packing && !full)
+      return packing_partial_copy(expanded,
+                                  Grammar->packing_restrictor(), false);
+    else
+      return expanded;
 }
 
 full_form::full_form(dumper *f, grammar *G)
@@ -272,13 +276,13 @@ full_form::full_form(lex_stem *st, morph_analysis a)
 #endif
 
 fs
-full_form::instantiate()
+full_form::instantiate(bool full)
 {
     if(!valid())
         throw error("trying to instantiate invalid full form");
 
     // get the base
-    fs res = _stem->instantiate();
+    fs res = _stem->instantiate(full);
     
     if(!res.valid()) 
         throw error("cannot instantiate base of full form");
@@ -368,9 +372,18 @@ grammar_rule::grammar_rule(type_t t)
     else
         _trait = SYNTAX_TRAIT;
     
+    if(opt_packing)
+        _f_restriced = packing_partial_copy(fs(_type),
+                                            Grammar->packing_restrictor(),
+                                            true);
+
+    //
+    // Determine arity, determine head and key daughters.
+    // 
+    
     struct dag_node *dag, *head_dtr;
     list <struct dag_node *> argslist;
-      
+
     dag = dag_get_path_value(typedag[t],
                              cheap_settings->req_value("rule-args-path"));
     
@@ -419,7 +432,11 @@ grammar_rule::grammar_rule(type_t t)
     
     _qc_vector = New type_t *[_arity];
     
+    //
+    // Build the _tofill list which determines the order in which arguments
+    // are filled. The opt_key option determines the strategy:
     // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
+    //
     
     if(opt_key == 0)
     {
@@ -448,7 +465,10 @@ grammar_rule::grammar_rule(type_t t)
     for(int i = 0; i < _arity; i++)
         _qc_vector[i] = 0;
     
-    // determine priority
+    //
+    // Determine our priority.
+    //
+
     _p = 0;
     
     char *v;
@@ -461,20 +481,22 @@ grammar_rule::grammar_rule(type_t t)
     {
         _p = strtoint(v, "in value of rule-priorities");
     }
-    
-    // hyper activity disabled for this rule?
-    if(cheap_settings->member("depressive-rules", typenames[_type]))
+
+    //
+    // Disable hyper activity if this is a more than binary-branching
+    // rule or if it's explicitely disabled by a setting.
+    //
+
+    if(_arity > 2
+       || cheap_settings->member("depressive-rules", typenames[_type]))
     {
         _hyper = false;
     }
-    
+
     if(cheap_settings->member("spanning-only-rules", typenames[_type]))
     {
         _spanningonly = true;
     }
-    
-    if(_arity > 2)
-        _hyper = false;
     
     if(verbosity > 14)
     {
@@ -499,13 +521,12 @@ grammar_rule::print(FILE *f)
 }
 
 fs
-grammar_rule::instantiate()
+grammar_rule::instantiate(bool full)
 {
-#ifdef PACKING
-    return packing_partial_copy(fs(_type));
-#else
-    return fs(_type); 
-#endif
+  if(opt_packing && !full)
+    return _f_restriced;
+  else
+    return fs(_type);
 }
 
 void
@@ -609,12 +630,19 @@ free_constraint_cache()
 }
 #endif
 
-// construct grammar object from binary representation in a file
+// Construct a grammar object from binary representation in a file
 grammar::grammar(const char * filename)
     : _nrules(0), _weighted_roots(false), _root_insts(0), _generics(0),
-      _filter(0), _qc_inst(0), _deleted_daughters(0) 
+      _filter(0), _qc_inst(0), _deleted_daughters(0), _packing_restrictor(0) 
 {
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
+
+    // _fix_me_
+    // This is ugly. All grammar objects (rules, stems etc) should have a 
+    // pointer back to the grammar. Until we have that, we use a global 
+    // variable, which we have to initialize here so that it's already
+    // set when stems and rules are constructed.
+    Grammar = this;
 
     dumper dmp(filename);
     
@@ -645,8 +673,14 @@ grammar::grammar(const char * filename)
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
     undump_dags(&dmp, _qc_inst);
+
+    // Tell unifier that all dags created from now an are not considered to
+    // be part of the grammar. This is needed for the smart copying algorithm.
+    // _fix_me_
+    // This only works when MARK_PERMANENT is defined. Otherwise, the decision
+    // is hard-coded by using t_alloc or p_alloc. Ugly? Yes.
     stop_creating_permanent_dags();
-    
+
     if(opt_nqc && _qc_inst == 0)
     {
         fprintf(fstatus, "[ disabling quickcheck ] ");
@@ -894,6 +928,9 @@ grammar::init_parameters()
     else
         _qc_inst = 0;
 
+    // _fix_me_
+    // the following two sections should be unified
+
     _deleted_daughters = 0;
     set = cheap_settings->lookup("deleted-daughters");
     if(set)
@@ -907,6 +944,23 @@ grammar::init_parameters()
             {
                 fprintf(ferr, "ignoring unknown attribute `%s' in deleted_daughters.\n",
                         set->values[i]);
+            }
+        }
+    }
+
+    _packing_restrictor = 0;
+    set = cheap_settings->lookup("packing-restrictor");
+    if(set)
+    {
+        for(int i = 0; i < set->n; i++)
+        {
+            int a;
+            if((a = lookup_attr(set->values[i])) != -1)
+              _packing_restrictor = cons(a, _packing_restrictor);
+            else
+            {
+              fprintf(ferr, "ignoring unknown attribute `%s' in packing_restrictor.\n",
+                      set->values[i]);
             }
         }
     }
@@ -1004,6 +1058,7 @@ grammar::~grammar()
 #endif
 
     free_list(_deleted_daughters);
+    free_list(_packing_restrictor);
     free_type_tables();
 
 #ifdef IQT
