@@ -309,7 +309,7 @@ void interactive()
 #ifdef QC_PATH_COMP
     if(opt_compute_qc)
     {
-        FILE *qc = fopen("/tmp/qc.tdl", "w");
+        FILE *qc = fopen(opt_compute_qc, "w");
         compute_qc_paths(qc, 10000);
         fclose(qc);
     }

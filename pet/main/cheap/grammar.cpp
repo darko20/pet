@@ -826,8 +826,8 @@ grammar::grammar(const char * filename)
 
     if(opt_filter)
     {
-        bool save = opt_compute_qc;
-        opt_compute_qc = false;
+        char *save = opt_compute_qc;
+        opt_compute_qc = 0;
         initialize_filter();
         opt_compute_qc = save;
     }
