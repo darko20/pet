@@ -706,37 +706,28 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
         return false;
     }
     
-#if 0
-    // _fix_me_
-    // these two calls could be merged into a specialised one improving
-    // efficiency
-    
-    if(!subtype(dag2->type, dag1->type))
-        forward = false;
-    
-    if(!subtype(dag1->type, dag2->type))
-        backward = false;
-#else
-    bool st_12, st_21;
-    subtype_bidir(dag1->type, dag2->type, st_12, st_21);
-    if(!st_12)
-        backward = false;
-    if(!st_21)
-        forward = false;
-#endif    
+    if(dag1->type != dag2->type)
+    { 
+        bool st_12, st_21;
+        subtype_bidir(dag1->type, dag2->type, st_12, st_21);
+        if(!st_12)
+            backward = false;
+        if(!st_21)
+            forward = false;
 
-    if(forward == false && backward == false)
-    {
-#ifdef DEBUG_SUBSUME
-        if(verbosity > 14)
+        if(forward == false && backward == false)
         {
-            fprintf(stderr, "%*s", subsumption_level*2, "");
-            fprintf(stderr,
-                    "< (f f) (types)\n");
-        }
-        subsumption_level--;
+#ifdef DEBUG_SUBSUME
+            if(verbosity > 14)
+            {
+                fprintf(stderr, "%*s", subsumption_level*2, "");
+                fprintf(stderr,
+                        "< (f f) (types)\n");
+            }
+            subsumption_level--;
 #endif
-        return false;
+            return false;
+        }
     }
     
     if(dag1->arcs || dag2->arcs)
