@@ -115,7 +115,7 @@ acceptable.  Do NOT use for cryptographic purposes.
 --------------------------------------------------------------------
 */
 
-ub4 hash(register ub1 *k, register ub4 length, register ub4 initval)
+ub4 hash(const ub1 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 
@@ -169,7 +169,7 @@ ub4 hash(register ub1 *k, register ub4 length, register ub4 initval)
  -- that the length be the number of ub4's in the key
 --------------------------------------------------------------------
 */
-ub4 hash2(register ub4 *k, register ub4 length, register ub4 initval)
+ub4 hash2(const ub4 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 
@@ -212,7 +212,7 @@ ub4 hash2(register ub4 *k, register ub4 length, register ub4 initval)
 --------------------------------------------------------------------
 */
 
-ub4 hash3(register ub1 *k, register ub4 length, register ub4 initval)
+ub4 hash3(const ub1 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 

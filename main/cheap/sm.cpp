@@ -20,6 +20,7 @@
 /* Stochastic modelling */
 
 #include "sm.h"
+#include "hash.h"
 #include "pet-system.h"
 #include "lex-tdl.h"
 #include "utility.h"
@@ -29,14 +30,7 @@
 int
 tSMFeature::hash() const
 {
-    int k = 0;
-    for(vector<int>::const_iterator it = _v.begin();
-        it != _v.end(); ++it)
-    {
-        k += *it;
-    }
-
-    return k;
+    return hash2(_v, 0);
 }
 
 void
@@ -85,42 +79,66 @@ namespace HASH_SPACE {
             return key.hash();
         }
     };
+
+    template<> struct hash<string>
+    {
+        inline size_t operator()(const string &key) const
+        {
+            return ::hash((const ub1 *) key.data(), key.size(), 0);
+        }
+    };
 }
 
-/** Maintains a mapping between symbols (features) and codes.
- *  
+/** Maintains a mapping between features (instances of tSMFeature) and codes.
+ *  Also maintains map from types, integers and strings to integers.
  */
 class tSMMap
 {
  public:
     tSMMap()
-        : _n(0)
+        : _n(0), _next_subfeature(INT_MIN)
     {};
 
     int
-    symbolToCode(const tSMFeature &symbol);
+    featureToCode(const tSMFeature &feature);
 
     tSMFeature
-    codeToSymbol(int code) const;
+    codeToFeature(int code) const;
+
+    inline int
+    typeToSubfeature(type_t t)
+    { return t; }
+
+    inline int
+    intToSubfeature(int i)
+    { return i; }
+
+    int
+    stringToSubfeature(const string &);
 
  private:
+    /* Mapping between codes and features */
     int _n;
-    vector<tSMFeature> _codeToSymbol;
-    hash_map<tSMFeature, int> _symbolToCode;
+    vector<tSMFeature> _codeToFeature;
+    hash_map<tSMFeature, int> _featureToCode;
+
+    /* Subfeature mapping */
+    int _next_subfeature;
+    hash_map<string, int> _stringToSubfeature;
 };
 
 int
-tSMMap::symbolToCode(const tSMFeature &symbol)
+tSMMap::featureToCode(const tSMFeature &feature)
 {
     if(verbosity > 9)
     {
-        fprintf(fstatus, "symbolToCode(");
-        symbol.print(fstatus);
+        fprintf(fstatus, "featureToCode(");
+        feature.print(fstatus);
         fprintf(fstatus, ") -> ");
     }
 
-    hash_map<tSMFeature, int>::iterator itMatch = _symbolToCode.find(symbol);
-    if(itMatch != _symbolToCode.end())
+    hash_map<tSMFeature, int>::iterator itMatch = _featureToCode.find(feature);
+    if(itMatch != _featureToCode.end())
     {
         if(verbosity > 9)
             fprintf(fstatus, "%d\n", itMatch->second);
@@ -130,18 +148,32 @@ tSMMap::symbolToCode(const tSMFeature &symbol)
     {
         if(verbosity > 9)
             fprintf(fstatus, "added %d", _n);
-        _codeToSymbol.push_back(symbol);
-        return _symbolToCode[symbol] = _n++;
+        _codeToFeature.push_back(feature);
+        return _featureToCode[feature] = _n++;
     }
 }
 
 tSMFeature
-tSMMap::codeToSymbol(int code) const
+tSMMap::codeToFeature(int code) const
 {
     if(code >= 0 && code < _n)
-        return _codeToSymbol[code];
+        return _codeToFeature[code];
     else
         return vector<int>();
+}
+
+int
+tSMMap::stringToSubfeature(const string &s)
+{
+    hash_map<string, int>::iterator itMatch = _stringToSubfeature.find(s);
+    if(itMatch != _stringToSubfeature.end())
+    {
+        return itMatch->second;
+    }
+    else
+    {
+        return _stringToSubfeature[s] = _next_subfeature++;
+    }
 }
 
 tSM::tSM(grammar *G, const char *fileName, const char *basePath)
@@ -330,41 +362,64 @@ tMEM::parseFeatures(int nFeatures)
 void
 tMEM::parseFeature(int n)
 {
+    char *tmp;
     if(verbosity > 4)
         fprintf(fstatus, "\n[%d]", n);
 
     match(T_LBRACKET, "begin of feature vector", true);
 
+    // Vector of subfeatures.
     vector<int> v;
-    char *tmp;
+
     bool good = true;
     while(LA(0)->tag != T_RBRACKET && LA(0)->tag != T_EOF)
     {
-        tmp = match(T_ID, "feature vector", false);
-        if(verbosity > 4)
-            fprintf(fstatus, " %s", tmp);
-        
-        char *endptr;
-        int t = strtol(tmp, &endptr, 10);
-        if(endptr == 0 || *endptr != 0)
+        if(LA(0)->tag == T_ID)
         {
-            char *inst = (char *) malloc(strlen(tmp)+2);
-            strcpy(inst, "$");
-            strcat(inst, tmp);
-            t = lookup_type(inst);
-            if(t == -1)
-                t = lookup_type(inst+1);
-            free(inst);
-            
-            if(t == -1)
-            {                fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
-                        tmp, n);
-                good = false;
-            }
-        }
-        v.push_back(t);
+            // This can be an integer or an identifier.
+            tmp = match(T_ID, "subfeature in feature vector", false);
+            if(verbosity > 4)
+                fprintf(fstatus, " %s", tmp);
 
-        free(tmp);
+            char *endptr;
+            int t = strtol(tmp, &endptr, 10);
+            if(endptr == 0 || *endptr != 0)
+            {
+                // This is not an integer, so it must be a type/instance.
+                char *inst = (char *) malloc(strlen(tmp)+2);
+                strcpy(inst, "$");
+                strcat(inst, tmp);
+                t = lookup_type(inst);
+                if(t == -1)
+                    t = lookup_type(inst+1);
+                free(inst);
+                
+                if(t == -1)
+                {
+                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
+                            tmp, n);
+                    good = false;
+                }
+                else
+                {
+                    v.push_back(_map->typeToSubfeature(t));
+                }
+            }
+            else
+            {
+                // This is an integer.
+                v.push_back(_map->intToSubfeature(t));
+            }
+            free(tmp);
+        }
+        else if(LA(0)->tag == T_STRING)
+        {
+            tmp = match(T_STRING, "subfeature in feature vector", false);
+            if(verbosity > 4)
+                fprintf(fstatus, " \"%s\"", tmp);
+            v.push_back(_map->stringToSubfeature(string(tmp)));
+            free(tmp);
+        }
     }
 
     match(T_RBRACKET, "end of feature vector", true);
@@ -373,25 +428,24 @@ tMEM::parseFeature(int n)
     // _fix_me_
     // check syntax of number
     double w = strtod(tmp, NULL);
+    free(tmp);
     if(verbosity > 4)
         fprintf(fstatus, ": %g", w);
 
     if(good)
     {
-        int code = _map->symbolToCode(v);
+        int code = _map->featureToCode(v);
         if(verbosity > 4)
             fprintf(fstatus, " (code %d)\n", code);
         if(code >= (int) _weights.size()) _weights.resize(code);
         _weights[code] = w;
     }
-
-    free(tmp);
 }
 
 double
 tMEM::score(const tSMFeature &f)
 {
-    int code = _map->symbolToCode(f);
+    int code = _map->featureToCode(f);
     if(code < (int) _weights.size())
         return _weights[code];
     else
