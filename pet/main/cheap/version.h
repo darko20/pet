@@ -22,7 +22,7 @@
 #ifndef _VERSION_H_
 #define _VERSION_H_
 
-#define VERSION_DATETIME "$DateTime"
-#define VERSION_CHANGE "$Change"
+#define VERSION_DATETIME "$LastChangedDate$"
+#define VERSION_CHANGE "$Change: 588 $"
 
 #endif
