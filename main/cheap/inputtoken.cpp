@@ -26,7 +26,7 @@
 #include "dag-common.h"
 
 input_token::input_token(int id, int s, int e, class full_form ff, string o,
-                         int p, const postags &pos, const tPaths &paths,
+                         double p, const postags &pos, const tPaths &paths,
                          input_chart *cont, bool synthesized) :
     _synthesized(synthesized), _id(id), _start(-1), _end(-1),
     _startposition(s), _endposition(e),
@@ -46,7 +46,7 @@ input_token::print(ostream &f)
 void
 input_token::print(FILE *f)
 {
-    fprintf(f, "{[%d %d](%d %d) %d <%d> `%s' ",
+    fprintf(f, "{[%d %d](%d %d) %d <%.2f> `%s' ",
             _start, _end, _startposition, _endposition, _id,
             _p, _orth.c_str());
 
@@ -67,13 +67,13 @@ input_token::description()
 
 void
 input_token::print_derivation(FILE *f, bool quoted,
-                              int id, int p,
+                              int id, double p,
                               list_int *inflrs_todo, string orth)
 {
     int start = _start; 
     int end = _end;
 
-    fprintf (f, "(%d %s %d %d %d ", id, _form.stemprintname(),
+    fprintf (f, "(%d %s %.2f %d %d ", id, _form.stemprintname(),
              p, start, end);
 
     fprintf(f, "[");
@@ -81,7 +81,7 @@ input_token::print_derivation(FILE *f, bool quoted,
         fprintf(f, "%s%s", printnames[first(l)], rest(l) == 0 ? "" : " ");
     fprintf(f, "] ");
 
-    fprintf (f, "(%s\"%s%s\" %d %d %d)",
+    fprintf (f, "(%s\"%s%s\" %.2f %d %d)",
              quoted ? "\\" : "", orth.c_str(), quoted ? "\\" : "", _p,
              start, end);
 
@@ -211,26 +211,10 @@ input_token::generics(int discount, postags onlyfor)
             fprintf(ferr, "  ==> %s [%s]\n", printnames[gen],
                     suffix == 0 ? "*" : suffix);
 	  
-        int p = 0; 
-
-        char *v;
-        if((v = cheap_settings->value("default-gen-le-priority")) != 0)
-            p = strtoint(v, "as value of default-gen-le-priority");
-      
-        if((v = cheap_settings->sassoc("likely-le-types", gen)) != 0)
-            p = strtoint(v, "in value of likely-le-types");
-
-        if((v = cheap_settings->sassoc("unlikely-le-types", gen)) != 0)
-            p = strtoint(v, "in value of unlikely-le-types");
-
-        p = _in_pos.priority("posmapping", gen, p); 
-
-        p -= discount; if(p < 0) p = 0;
-
         input_token *dtrs[1];
         dtrs[0] = _container->add_token(_id, _startposition, _endposition,
                                         full_form(Grammar->lookup_stem(gen)),
-                                        _orth, p, _in_pos, list<int>(), 
+                                        _orth, 0.0, _in_pos, list<int>(), 
                                         true);
 
         _container->assign_position(dtrs[0]);
@@ -238,7 +222,7 @@ input_token::generics(int discount, postags onlyfor)
         fs f = fs(gen); 
 
         lex_item *lex =
-            New lex_item(_start, _end, _paths, 1, 0, dtrs, p, f,
+            New lex_item(_start, _end, _paths, 1, 0, dtrs, f,
                          _orth.c_str());
 
         result.push_back(lex);
@@ -271,12 +255,12 @@ input_token::add_result(int start, int end, int ndtrs, int keydtr,
     // if fs is valid, create a new lex item and task
     if(f.valid())
     {
-        int p = dtrs[keydtr]->priority();
-    
         lex_item *it = New lex_item(start, end, _paths, 
-                                    ndtrs, keydtr, dtrs, p, f,
+                                    ndtrs, keydtr, dtrs, f,
                                     _form.description().c_str());
-    
+
+        it->priority(dtrs[keydtr]->priority());
+
         if(contains(result, it))
         {
             if(verbosity > 4)

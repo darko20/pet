@@ -133,7 +133,7 @@ public:
   
   input_token *add_token(const string &tokenstring);
   input_token *add_token(int id, int start, int end, class full_form ff,
-                         string orth, int p, const postags &pos,
+                         string orth, double p, const postags &pos,
                          const tPaths &paths,
                          bool synthesized = false)
   {
