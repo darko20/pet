@@ -180,6 +180,8 @@ tSM::tSM(grammar *G, const char *fileName, const char *basePath)
     : _G(G), _fileName(0)
 {
     _fileName = findFile(fileName, basePath);
+    throw error(string("Could not open SM file \"") 
+                + fileName + string("\""));
 }
 
 tSM::~tSM()
