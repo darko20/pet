@@ -98,7 +98,8 @@ lex_item::lex_item(int start, int end, const tPaths &paths,
         _qc_vector = get_qc_vector(f);
 
     // compute _score score for lexical items
-    score(Grammar->sm()->scoreLeaf(this));
+    if(Grammar->sm())
+        score(Grammar->sm()->scoreLeaf(this));
 
 #ifdef YY
     if(opt_k2y)
