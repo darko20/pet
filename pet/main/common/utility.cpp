@@ -19,7 +19,7 @@
 
 /* general helper functions and classes */
 
-#include "config.h"
+#include "pet-config.h"
 #include "pet-system.h"
 #include "utility.h"
 #include "errors.h"

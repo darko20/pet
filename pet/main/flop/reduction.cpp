@@ -24,6 +24,7 @@
 #include <vector>
 #include <boost/graph/topological_sort.hpp>
 
+using namespace std;
 
 /** Compare two integer indices using a vector of "positions".
  *  Given two integer indices, return \c true if the position of the first is

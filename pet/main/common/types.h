@@ -24,7 +24,7 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-#include "config.h"
+#include "pet-config.h"
 #include "builtins.h"
 #include <cassert>
 #include <vector>

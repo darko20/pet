@@ -25,7 +25,7 @@
 #ifndef _VERSION_H
 #define _VERSION_H
 
-#include "config.h"
+#include "pet-config.h"
 
 #define VERSION_DATETIME "$LastChangedDate$"
 #define VERSION_CHANGE "$Change: 850 $"

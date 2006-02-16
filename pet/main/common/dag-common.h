@@ -24,7 +24,7 @@
 #ifndef _DAG_COMMON_H_
 #define _DAG_COMMON_H_
 
-#include "config.h"
+#include "pet-config.h"
 #include "list-int.h"
 #include "dumper.h"
 #include "types.h"

@@ -11,7 +11,7 @@
 #ifndef _INPUT_MODULES_H
 #define _INPUT_MODULES_H
 
-#include "config.h"
+#include "pet-config.h"
 
 #include <list>
 #include <string>

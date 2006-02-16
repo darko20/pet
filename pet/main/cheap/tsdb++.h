@@ -24,7 +24,7 @@
 #ifndef _ITSDB_H_
 #define _ITSDB_H_
 
-#include "config.h"
+#include "pet-config.h"
 #include "errors.h"
 #include <list>
 

@@ -2,8 +2,8 @@
 AC_PREREQ(2.59)
 AC_INIT([PET], [0.99.9], [kiefer@dfki.de])
 AC_REVISION($LastChangedRevision$)
-AC_CONFIG_SRCDIR([config.h.in])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([pet-config.h.in])
+AC_CONFIG_HEADERS([pet-config.h])
 
 AM_INIT_AUTOMAKE([foreign])
 dnl dejagnu dist-bzip2 no-dependencies
@@ -19,6 +19,7 @@ dnl dejagnu dist-bzip2 no-dependencies
 # Let's try putting stuff in delphin/
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
 contrib_prefix="/usr/local/delphin"
+#contrib_prefix="$HOME"
 
 ITSDBDIR="$contrib_prefix/lkb"
 MRSDIR="$ITSDBDIR"
@@ -101,6 +102,8 @@ AC_CHECK_LIB([stdc++], [main])
 export LDFLAGS
 export CPPFLAGS
 
+saveCPPFLAGS="$CPPFLAGS"
+saveLDFLAGS="$LDFLAGS"
 
 # Features/packages header files and libraries need to be done with
 # dependencies: only check if asked, and if not found switch off all
@@ -108,18 +111,14 @@ export CPPFLAGS
 # IF requested AND libraries and headers OK; THEN add to configuration
 # For libraries: it should be possible to choose for static ones
 
-
 check_tsdb() {
-if test -d $ITSDBDIR/include ; then
-    (
+if test -d ${ITSDBDIR}/include ; then
     CPPFLAGS="$CPPFLAGS -I${ITSDBDIR}/include"
-    export CPPFLAGS
     AC_CHECK_HEADERS([itsdb.h], [],
         [
         AC_MSG_WARN([itsdb header not found for --with-tsdb; DISABLED])
         return 1
         ], [])
-    )
 else 
     AC_MSG_WARN([directory ${ITSDBDIR}/include for --with-tsdb not found; DISABLED])
     return 1
@@ -129,7 +128,6 @@ fi
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
 #if test -d ${ITSDBDIR}/lib/linux ; then
 if test -d ${ITSDBDIR}/lib/${OS} ; then
-    (
     # Use OS variable to point to correct linux library ...
     # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
     #LDFLAGS="$LDFLAGS -L${ITSDBDIR}/lib/linux"
@@ -140,12 +138,12 @@ if test -d ${ITSDBDIR}/lib/${OS} ; then
         AC_MSG_WARN([itsdb library not found for --with-tsdb; DISABLED])
         return 1
         ])
-    )
 else 
     AC_MSG_WARN([directory ${ITSDBDIR}/lib/linux for --with-tsdb not found; DISABLED])
     return 1
 fi
 }
+
 
 AC_ARG_WITH(tsdb,
 [AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default=yes)])],
@@ -157,18 +155,19 @@ case "${withval}" in
          ITSDBDIR=${withval};;
 esac
 ], [tsdb=true])
-if test x$tsdb = xtrue && check_tsdb ; then
-    AC_DEFINE(TSDBAPI, [1], [incr[tsdb()] libraries available, supply API])
-    CHEAPLIBS="-litsdb $CHEAPLIBS"
-    CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ITSDBDIR}/include"
-    # Use OS variable to point to correct linux library ...
-    # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-    CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ITSDBDIR}/lib/${OS} -Wl,-rpath,${ITSDBDIR}/lib/${OS}"
+if test x$tsdb = xtrue && check_tsdb ; then 
+      AC_DEFINE(TSDBAPI, [1], ["incr[tsdb()] libraries available, supply API"])
+      CHEAPLIBS="-litsdb $CHEAPLIBS"
+      CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ITSDBDIR}/include"
+      # Use OS variable to point to correct linux library ...
+      # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+      CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ITSDBDIR}/lib/${OS} -Wl,-rpath,${ITSDBDIR}/lib/${OS}"
 else
     tsdb=false
 fi
 AM_CONDITIONAL(TSDB, [test x$tsdb = xtrue])
-
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
 
 
 AC_ARG_WITH(mrsdir,
@@ -186,8 +185,8 @@ else
 fi
 ], [MRSDIR=${ITSDBDIR}])
 
-eclincldir=""
 check_ecl() {
+eclincldir=""
 AC_PATH_PROG(ECL, ecl, no, [$PATH:${ECLDIR}/bin])
 if test $ECL = no ; then 
     AC_MSG_WARN([no ecl binary found for --with-eclmrs; DISABLED])
@@ -202,7 +201,6 @@ if test -f ${MRSDIR}/src/general/loadup.lisp ; then
       fi
     fi
     if test x$eclincldir != x ; then
-        (
         CPPFLAGS="$CPPFLAGS -I${eclincldir} -I${MRSDIR}/include"
         export CPPFLAGS
 	# rmrs.h is no longer being distributed, so we don't need to check for
@@ -219,7 +217,6 @@ if test -f ${MRSDIR}/src/general/loadup.lisp ; then
             AC_MSG_WARN([libecl.so not found for --with-eclmrs; DISABLED])
             return 1
             ])
-        )
     else
         AC_MSG_WARN([directory neither ${ECLDIR}/h nor ${ECLDIR}/lib/h found for --with-eclmrs; DISABLED])
         return 1
@@ -251,10 +248,11 @@ fi
 AM_CONDITIONAL(ECLMRS, [test x$eclmrs = xtrue])
 dnl Substitute this to compile libmrs.a
 AC_SUBST(MRSDIR)
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
 
 
 check_icu() {
-(
 if test x$ICUDIR != x ; then
     if test -d ${ICUDIR} && test -d $ICUDIR/include && test -d $ICUDIR/lib ; then 
         LDFLAGS="$LDFLAGS -L${ICUDIR}/lib"
@@ -278,7 +276,6 @@ dnl AC_CHECK_LIB([icui18n], [main], [ icu=true ],
 dnl     [ AC_MSG_WARN([icui18n library not found for --with-icu; DISABLED])
 dnl           return 1 ])
 return 0
-)
 }
 
 AC_ARG_WITH(icu,
@@ -302,6 +299,8 @@ else
     icu=false
 fi
 AM_CONDITIONAL(ICU, [test X$icu = Xtrue])
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
 
 
 
@@ -320,20 +319,19 @@ fi
 
 if test x$boost = xtrue ; then
     AC_LANG_PUSH(C++)
-    save_CPP="$CPPFLAGS"
-    if test -n "${BOOSTDIR}" ; then
+    if test x${BOOSTDIR} != x ; then
        CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
-       AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-       dnl Necessary only for test binary boost:
-       dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
     fi
-    CPPFLAGS="$save_CPP"
-    AC_LANG_POP(C++)
+    AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
+    dnl Necessary only for test binary boost:
+    dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
 fi
 AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
 if test x$boost = xtrue -a -n "${BOOSTDIR}" ; then
     FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
 fi
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
 
 
 
@@ -390,11 +388,12 @@ if test x$xml = xtrue ; then
     AC_DEFINE(HAVE_XML, [1], [Enable XML input mode, using XERCES C++ library])
 fi
 AM_CONDITIONAL(XML, [test x$xml = xtrue])
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
 
 
 
 check_psql() {
-(
 if test x$PSQLDIR != x ; then
     if test -d ${PSQLDIR} && test -d $PSQLDIR/include && test -d $PSQLDIR/lib ; then 
         LDFLAGS="$LDFLAGS -L${PSQLDIR}/lib"
@@ -416,7 +415,6 @@ AC_CHECK_LIB([pq], [main], [],
       return 1
     ])
 return 0
-)
 }
 
 AC_ARG_WITH(lexdb,
@@ -430,7 +428,6 @@ case "${withval}" in
 esac
 ], [ lexdb=true ])
 if test x$lexdb = xtrue && check_psql ; then
-   AC_MSG_WARN([PQ Lib active])
    if test x$PSQLDIR != x ; then
       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
       CHEAPLDFLAGS="$CHEAPLDFLAGS -L${PSQLDIR}/lib -Wl,-rpath,${PSQLDIR}/lib"
@@ -441,6 +438,8 @@ else
    lexdb=false
 fi
 AM_CONDITIONAL(LEXDB, [test x$lexdb = xtrue])
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
 
 dnl What the *&^@~! is that?
 
@@ -499,7 +498,6 @@ fi
 
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADERS([hash_map ext/hash_map],,,)
-AC_LANG_PUSH(C++)
 
 
 AC_SUBST(CHEAPLIBS)
