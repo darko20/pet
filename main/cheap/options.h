@@ -24,7 +24,7 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-#include "config.h"
+#include "pet-config.h"
 #include "settings.h"
 
 #define CHEAP_SERVER_PORT 4711

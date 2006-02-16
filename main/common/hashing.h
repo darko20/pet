@@ -8,7 +8,7 @@
 #ifndef _HASHING_H
 #define _HASHING_H
 
-#include "config.h"
+#include "pet-config.h"
 
 #ifdef HAVE_HASH_MAP
 #define HASH_SPACE std

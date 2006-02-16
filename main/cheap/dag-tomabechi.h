@@ -27,7 +27,7 @@
 /** Enable cache for typedags that are used during unification */
 #define CONSTRAINT_CACHE
 
-#include "config.h"
+#include "pet-config.h"
 
 #include <list>
 #include "types.h"

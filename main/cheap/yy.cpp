@@ -19,7 +19,7 @@
 
 // YY input format and server mode (oe, uc)
 
-#include "config.h"
+#include "pet-config.h"
 
 #ifdef SOCKET_INTERFACE
 #include <unistd.h>

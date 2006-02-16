@@ -22,7 +22,7 @@
 // the mapping to the grammar lexicon.
 //
 
-#include "config.h"
+#include "pet-config.h"
 
 #ifdef HAVE_EXTDICT
 

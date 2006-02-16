@@ -24,7 +24,7 @@
 #ifndef _GRAMMAR_H_
 #define _GRAMMAR_H_
 
-#include "config.h"
+#include "pet-config.h"
 
 #include "list-int.h"
 #include "utility.h"

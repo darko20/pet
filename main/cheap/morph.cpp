@@ -19,7 +19,7 @@
 
 /* implementation of LKB style morphological analysis and generation */
 
-#include "config.h"
+#include "pet-config.h"
 #include "pet-system.h"
 #include "morph.h"
 #ifdef HAVE_ICU

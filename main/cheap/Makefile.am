@@ -57,9 +57,9 @@ cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
 	lexicon.cpp lexicon.h lexparser.cpp lexparser.h 		\
 	lingo-tokenizer.cpp lingo-tokenizer.h				\
 	morph.cpp morph.h options.cpp options.h parse.cpp parse.h 	\
-	paths.cpp paths.h postags.cpp postags.h restrictor.h 		\
-	sm.cpp sm.h task.cpp task.h itsdb.h tsdb++.h tsdb++.cpp		\
-	yy-tokenizer.cpp yy-tokenizer.h
+	paths.cpp paths.h position_mapper.h postags.cpp postags.h       \
+        restrictor.h sm.cpp sm.h task.cpp task.h itsdb.h tsdb++.h       \
+        tsdb++.cpp yy-tokenizer.cpp yy-tokenizer.h
 
 TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h	\
 	failure.cpp qc.h qc.cpp

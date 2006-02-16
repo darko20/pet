@@ -20,7 +20,7 @@
 
 /* tokenizer base class and simple lingo tokenizer */
 
-#include "config.h"
+#include "pet-config.h"
 #include "pet-system.h"
 #include "settings.h"
 #include "lingo-tokenizer.h"
