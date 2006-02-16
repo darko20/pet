@@ -127,7 +127,7 @@ void interactive()
     string input;
     int id = 1;
 
-    //tFegramedPrinter chp("/tmp/fed-", true);
+    //tFegramedPrinter chp("/tmp/fed-");
     //chp.print(type_dag(lookup_type("quant-rel")));
     //exit(1);
 
@@ -172,10 +172,10 @@ void interactive()
             tsdb_dump.finish(Chart, surface);
 
             //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
-            //tFegramedPrinter chp("/tmp/fed-", true);
+            //tFegramedPrinter chp("/tmp/fed-");
             //Chart->print(&chp);
 
-            dump_jxchg(surface, Chart);
+            //dump_jxchg(surface, Chart);
 
             if(verbosity > 1 || opt_mrs)
             {
@@ -190,7 +190,7 @@ void interactive()
                          && ((opt_nresults == 0) || (opt_nresults > nres))
                       ; ++iter)
                 {
-                  //tFegramedPrinter fedprint("/tmp/fed-", true);
+                  //tFegramedPrinter fedprint("/tmp/fed-");
                   //tDelegateDerivationPrinter deriv(fstatus, fedprint);
                     tCompactDerivationPrinter deriv(fstatus);
                     tItem *it = *iter;
@@ -253,7 +253,7 @@ void interactive()
             fflush(fstatus);
         } /* try */
         
-        catch(tError &e)
+        catch(tError e)
         {
             fprintf(ferr, "%s\n", e.getMessage().c_str());
             if(verbosity > 0) stats.print(fstatus);
@@ -314,7 +314,7 @@ void nbest()
                 fflush(fstatus);
             } /* try */
             
-            catch(tError &e)
+            catch(tError e)
             {
                 fprintf(ferr, "%s\n", e.getMessage().c_str());
                 stats.print(fstatus);

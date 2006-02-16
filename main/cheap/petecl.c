@@ -24,7 +24,10 @@
 
 // Include the individual packages
 
-#include "rmrs.h"
+// Replace nonexistent "rmrs.h" with "mrs.h" ... 
+// Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
+//#include "rmrs.h"
+#include "mrs.h"
 
 //
 // ECL initialization function. Boots the ECL engine,

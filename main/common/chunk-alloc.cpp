@@ -27,7 +27,6 @@
    relies on standard C++ memory management only */
 
 #include "config.h"
-
 #ifdef HAVE_MMAP
 #include <unistd.h>
 #endif
@@ -40,13 +39,6 @@ chunk_allocator p_alloc(CHUNK_SIZE, true);
 
 chunk_allocator::chunk_allocator(int chunk_size, bool down)
 {
-#ifdef HAVE_MMAP
-  int pagesize = sysconf(_SC_PAGESIZE);
-  _chunk_size = (((chunk_size-1)/pagesize)+1)*pagesize;
-#else
-  _chunk_size = chunk_size;
-#endif
-
   _curr_chunk = 0;
   _chunk_pos = 0;
   _nchunks = 0;
@@ -55,7 +47,7 @@ chunk_allocator::chunk_allocator(int chunk_size, bool down)
   if(_chunk == 0)
     throw tError("alloc: out of memory"); 
 
-  _init_core(down);
+  _init_core(down, chunk_size);
 
   _chunk[_nchunks++] = (char *) _core_alloc(_chunk_size);
   if(_chunk[_curr_chunk] == 0)
@@ -141,6 +133,18 @@ void chunk_allocator::reset()
   may_shrink();
 }
 
+void chunk_allocator::print_check() {
+  for (int i=0; i < _nchunks; i++) {
+    printf("alloc'ed: [%x %x]\n", (size_t) _chunk[i]
+           , (size_t) _chunk[i] + _chunk_size);
+  }
+  for (int i=0; i < _nchunks; i++) {
+    for(char *p = _chunk[i]; p < _chunk[i] + _chunk_size; p++) {
+      char val = *p ; *p = val;
+    }
+  }
+}
+
 #ifdef HAVE_MMAP
 
 //
@@ -163,11 +167,39 @@ void chunk_allocator::reset()
 // (linux):   use mmap(0) for low to high, mmap(addr) for high to low
 // (solaris): use mmap(addr) for low to high, mmap(0) for high to low
 
-#if defined(linux)
+/*#if defined(linux)
 #define _MMAP_ANONYMOUS
 #define _CORE_LOW  0x50000000
 #define _CORE_HIGH 0xbff00000
 #else
+#define _CORE_LOW  0x30000000
+#define _CORE_HIGH 0xd0000000
+#define _MMAP_DOWN
+#endif*/
+
+// 2.6 series linux kernels have problems with mmap. Values proposed by Stephan
+// Oepen in the developer's mailing list post at
+// http://lists.delph-in.net/archive/developers/2005/000062.html seem to solve
+// the problems of cheap and flop crashing with alloc errors and flop not being
+// able to compile grammars under kernel 2.6. There is probably a better
+// solution, but for now let's check the kernel version in configure.ac and set
+// the mmap values appropriately ... Eric Nichols <eric-n@is.naist.jp> --
+// Jun. 19, 2005
+
+#ifdef KERNEL_2_6
+#define _MMAP_ANONYMOUS
+#define _CORE_LOW  0x50000000
+#define _CORE_HIGH 0xbf429fff
+#define _MMAP_DOWN
+#endif
+
+#ifdef KERNEL_2_4
+#define _MMAP_ANONYMOUS
+#define _CORE_LOW  0x50000000
+#define _CORE_HIGH 0xbff00000
+#endif
+
+#if ! defined(KERNEL_2_6) && ! defined(KERNEL_2_4)
 #define _CORE_LOW  0x30000000
 #define _CORE_HIGH 0xd0000000
 #define _MMAP_DOWN
@@ -177,18 +209,9 @@ void chunk_allocator::reset()
 static int dev_zero_fd = -1;
 #endif
 
-char *_mmap_up_mark = (char *) _CORE_LOW,
-     *_mmap_down_mark = (char *) _CORE_HIGH;
-
-void chunk_allocator::_init_core(bool down)
-{
-#ifndef _MMAP_ANONYMOUS
-  if(dev_zero_fd == -1)
-    dev_zero_fd = open("/dev/zero", O_RDWR);
-#endif
-
-  _core_down = down;
-}
+char *chunk_allocator::_mmap_up_mark = (char *) _CORE_LOW;
+char *chunk_allocator::_mmap_down_mark = (char *) _CORE_HIGH;
+size_t chunk_allocator::_pagesize = 0;
 
 inline void *mmap_mmap(void *addr, int size)
 {
@@ -202,6 +225,38 @@ inline void *mmap_mmap(void *addr, int size)
               , -1, 0);
 #endif
 }
+
+void chunk_allocator::_init_core(bool down, int chunk_size)
+{
+
+  _core_down = down;
+  
+  if (_pagesize == 0) { 
+#ifndef _MMAP_ANONYMOUS
+    if(dev_zero_fd == -1) { dev_zero_fd = open("/dev/zero", O_RDWR); }
+#endif
+
+#ifdef _SC_PAGESIZE
+    _pagesize = sysconf(_SC_PAGESIZE);     /* SVR4 */
+#else
+# ifdef _SC_PAGE_SIZE
+    _pagesize = sysconf(_SC_PAGE_SIZE);    /* HPUX */
+# else
+    _pagesize = getpagesize();
+# endif
+#endif
+
+  }
+  
+  _chunk_size = (((chunk_size-1)/_pagesize)+1)*_pagesize;
+  /*
+  printf("Up: %x   Down: %x   Chunks: %x[%x]  %s\n"
+           , _mmap_up_mark, _mmap_down_mark, _chunk_size, chunk_size
+           , (_core_down ? "Down" : "Up")
+           );
+  */
+}
+
 
 void *chunk_allocator::_core_alloc(int size)
 {
@@ -230,7 +285,7 @@ void *chunk_allocator::_core_alloc(int size)
 	      "couldn't mmap %d bytes %s (up = %xd, down = %xd)\n",
 	      size,
 	      _core_down ? "down" : "up",
-	      (int) _mmap_up_mark, (int) _mmap_down_mark);
+	      (size_t) _mmap_up_mark, (size_t) _mmap_down_mark);
       throw tError("alloc: mmap problem");
     }
 
@@ -239,10 +294,22 @@ void *chunk_allocator::_core_alloc(int size)
   else
     _mmap_up_mark = (char *) p + size;
 
+  /*
+  char *s = (char *)p;
+  if(_core_down) {
+    printf("New Block Down:   %x-%x\n", s, s+size-1);
+  }
+  else {
+    printf("New Block Up:     %x-%x\n", s, s+size-1);
+  }
+  for(int i=0; i < size; i++) { *s = 0xFF; s++; }
+  for(int i=0; i < size; i++) { s-- ; *s = 0x00; }
+  */
+
   if(_mmap_up_mark >= _mmap_down_mark)
     {
       fprintf(stderr, "alloc: no space (up = %xd, down = %xd)\n",
-	      (int) _mmap_up_mark, (int) _mmap_down_mark);
+	      (size_t) _mmap_up_mark, (size_t) _mmap_down_mark);
       throw tError("alloc: out of mmap space");
     }
 
@@ -271,8 +338,9 @@ int chunk_allocator::_core_free(void *p, int size)
 #include "winbase.h"
 
 #pragma argsused
-void chunk_allocator::_init_core(bool down)
+int chunk_allocator::_init_core(bool down, int chunksize)
 {
+  _chunk_size = chunksize;
 }
 
 void *chunk_allocator::_core_alloc(int size)
@@ -296,8 +364,9 @@ int chunk_allocator::_core_free(void *p, int size)
 //
 
 #pragma argsused
-void chunk_allocator::_init_core(bool down)
+void chunk_allocator::_init_core(bool down, int chunksize)
 {
+  _chunk_size = chunksize;
 }
 
 void *chunk_allocator::_core_alloc(int size)

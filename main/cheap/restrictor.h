@@ -14,6 +14,8 @@
 /** Pure virtual restrictor superclass */
 class restrictor {
 public:
+  virtual ~restrictor() {}
+
   /** Clone \a dag using this restrictor 
    *
    * A restrictor is like a functor mapping feature structures to other by

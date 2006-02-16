@@ -180,7 +180,7 @@ inline bool is_dynamic_type(type_t a)
 #endif
 
 /** check the validity of the attribute \a attr */
-inline bool dag_arc_valid(attr_t attr)
+inline bool is_attr(attr_t attr)
 { 
   assert(attr >= 0);  // save one test in production code
   return (attr <= nattrs);

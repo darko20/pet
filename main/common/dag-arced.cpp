@@ -116,10 +116,13 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
 	{
 	  undump_arc(f, &dump_a);
 	  
-	  dag_qc_undumped_nodes[i].type = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
+	  dag_qc_undumped_nodes[i].type
+            = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
 
 	  dag_qc_undumped_arcs[current_arc].attr = dump_a.attr;
-	  dag_qc_undumped_arcs[current_arc].val = dag_qc_undumped_nodes + dump_a.val;
+	  dag_qc_undumped_arcs[current_arc].val 
+            = dag_qc_undumped_nodes + dump_a.val;
+
 	  dag_qc_undumped_arcs[current_arc].next =
 	    (j == dump_n.nattrs - 1) ? 0 : dag_qc_undumped_arcs+current_arc+1;
 	  current_arc++;

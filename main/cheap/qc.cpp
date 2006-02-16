@@ -19,6 +19,7 @@
 
 /* computing quick check paths */
 
+#include "config.h"
 #ifdef QC_PATH_COMP
 
 #include "pet-system.h"

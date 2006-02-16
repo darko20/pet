@@ -1,3 +1,28 @@
+- finish lexdb
+- Memory leak seems to be not ignoreable
+- finish modlist class or make it obsolete
+
+- mmap problems seem to come up again and again!
+  Idea: Make sure that permanent dags avoid using one of the slots that are 
+        used for unification and mark it with a special value. May not be 
+        feasible 
+
+- remove all uses of negative values as `marker'-values, especially where casts
+  from integers to pointers and back are involved. 
+
+- multiple irregs files as in LKB (gimmick)
+
+- divergence in the case of chart dependencies:
+  this problem stems from the fact that in PET chart dependencies are applied
+  either after or before lexical AND inflectional rules have been tried on
+  the input items. It is wrong to do only inflectional rules and then lexical
+  rules because lexical rules could be interleaved with inflectional rules.
+  The only other meaningful solution to that would be to postpone applying
+  lexical rules to items with zero length infl rules as long as possible.
+  The first applicance of the filter would then be after all items with
+  non-empty infl rules list had been expanded to the point where all possible 
+  infl rules had been applied, but not the remaining lexical rules.
+
 - flop returns zero even in the presence of errors like non-unique feature
   introduction
 
@@ -59,10 +84,6 @@
 - whenever dag_get_path_value is called, structure should be filled, at least
   under that path.
 
-+ apply chart dependencies after lexical processing
-  - chart dependencies after lex lookup (1) AND lex processing (2)
-  -+ still to be tested, Berthold will try it
-
 - extend chart dependencies to allow a dependency to be conditioned on
   a specified path-value pair. chart dependencies could take a variety of
   forms: (OP could be unifies, subsumes, is_subsumed_by, equals)
@@ -82,7 +103,17 @@ refactoring:
   because of the data structures in the chart that are necessary for packing,
   like _Cp_span? this has to be checked.
 
-- performance loss flop Leda vs. flop boost: seems to stem from a huge amount 
-  of minor page faults. How can the code be found that is responsible for this
-  behaviour ?
 
++ apply chart dependencies after lexical processing
+  + chart dependencies after lex lookup (1) AND lex processing (2)
+  + still to be tested, Berthold will try it: Seems to work
++ flop performance improvement
+  performance loss flop Leda vs. flop boost: stems from a huge amount 
+  of minor page faults and cache faults. The huge edge list produced lots of
+  non-local accesses, which was fixed by looping over the vertices in the right
+  order and thereby localizing the access to the out-edges of each vertex
++ irregs as last rule in the affixation analysis: solved in the last oe patches
++ bei characterization immer reinknallen, egal ob das Feature da ist oder 
+  nicht: d.h. man geht den Pfad runter bis auf das letzte Element und
+  unifiziert so lange first.lastfeat|type, rest.first.lastfeat|type,
+  bis das klappt

@@ -20,11 +20,8 @@
 /* tomabechi quasi destructive graph unification  */
 /* inspired by the LKB implementation */
 
-#include "dag-tomabechi.h"
-#include "list-int.h"
 #include "pet-system.h"
 #include "dag.h"
-#include "types.h"
 #include "tsdb++.h"
 #include "options.h"
 
@@ -103,8 +100,8 @@ dag_node *dag_copy(dag_node *src, list_int *del);
 bool
 dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
 
-dag_node *dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del)
-{
+dag_node *
+dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del) {
   dag_node *res;
 
   unification_cost = 0;
@@ -482,26 +479,28 @@ struct dag_node *cached_constraint_of(type_t s)
 
 inline bool
 dag_make_wellformed(type_t new_type, dag_node *dag1, type_t s1, dag_node *dag2,
-                    type_t s2)
-{
-    if((s1 == new_type && s2 == new_type) ||
-       (!dag_has_arcs(dag1) && !dag_has_arcs(dag2)) ||
-       (s1 == new_type && dag_has_arcs(dag1)) ||
-       (s2 == new_type && dag_has_arcs(dag2)))
-        return true;
+                    type_t s2) {
+  if((s1 == new_type && s2 == new_type) ||
+     (!dag_has_arcs(dag1) && !dag_has_arcs(dag2)) ||
+     (s1 == new_type && dag_has_arcs(dag1)) ||
+     (s2 == new_type && dag_has_arcs(dag2)))
+    return true;
 
-    bool res = true;
-    // dynamic types have no arcs, so the next test is always true for dynamic
-    // types, which is why we don't need cached constraints for them
-    if(type_dag(new_type)->arcs)
-    {
-        bool sv = unify_record_failure;
-        unify_record_failure = false;
-        res = dag_unify1(dag1, cached_constraint_of(new_type)) != FAIL;
-        unify_record_failure = sv;
-    }
+  bool res = true;
+  // dynamic types have no arcs, so the next test is always false for dynamic
+  // types, which is why we don't need cached constraints for them
+  if(type_dag(new_type)->arcs) {
+#ifdef QC_PATH_COMP
+    bool sv = unify_record_failure;
+    unify_record_failure = false;
+#endif
+    res = dag_unify1(dag1, cached_constraint_of(new_type)) != FAIL;
+#ifdef QC_PATH_COMP
+    unify_record_failure = sv;
+#endif
+  }
 
-    return res;
+  return res;
 }
 
 inline dag_arc *dag_cons_arc(attr_t attr, dag_node *val, dag_arc *next)
@@ -600,109 +599,92 @@ inline bool dag_unify_arcs(dag_node *dag1, dag_node *dag2)
   return true;
 }
 
-dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
-{
+dag_node *dag_unify2(dag_node *dag1, dag_node *dag2) {
   type_t s1, s2, new_type;
 
   new_type = glb((s1 = dag_get_new_type(dag1)), (s2 = dag_get_new_type(dag2)));
 
-  if(new_type == T_BOTTOM)
-    {
+  if(new_type == T_BOTTOM) {
 #ifdef QC_PATH_COMP
-      if(unify_record_failure)
-        { 
-	  save_or_clear_failure();
-	  failure = new unification_failure(unification_failure::CLASH
-                                            , unify_path_rev, unification_cost
-                                            , s1, s2);
-
-	  if(!unify_all_failures)
-	    return FAIL;
-	  else
-	    new_type = s1;
-	}
+    if(unify_record_failure) { 
+      save_or_clear_failure();
+      failure = new unification_failure(unification_failure::CLASH
+                                        , unify_path_rev, unification_cost
+                                        , s1, s2);
+      
+      if(!unify_all_failures)
+        return FAIL;
       else
-#endif
-	return FAIL;
+        new_type = s1;
     }
+    else
+#endif
+      return FAIL;
+  }
 
 #if 0
-
-  if(verbosity > 4)
-    {
-      if(new_type != s1 || new_type != s2)
-        {
-          if((dag_has_arcs(dag1) && featset[s1] != featset[new_type]) || (dag_has_arcs(dag2) && featset[s2] != featset[new_type]))
-            {
-              if((dag_has_arcs(dag1) && featset[s1] == featset[new_type]) || (dag_has_arcs(dag2) && featset[s2] == featset[new_type]))
-                fprintf(ferr, "glb: one compatible set\n");
-              else
-                fprintf(ferr, "glb: %s%s(%d) & %s%s(%d) -> %s(%d)\n",
-                        type_name(s1), dag_has_arcs(dag1) ? "[]" : "", featset[s1],
-                        type_name(s2), dag_has_arcs(dag2) ? "[]" : "", featset[s2],
-                        type_name(new_type), featset[new_type]);
-            }
-          else
-            fprintf(ferr, "glb: compatible feature sets\n");
-        }
-      else
-        {
-          fprintf(ferr, "glb: type unchanged\n");
-        }
+  if(verbosity > 4) {
+    if(new_type != s1 || new_type != s2) {
+      if((dag_has_arcs(dag1) && featset[s1] != featset[new_type])
+         || (dag_has_arcs(dag2) && featset[s2] != featset[new_type])) {
+        if((dag_has_arcs(dag1) && featset[s1] == featset[new_type])
+           || (dag_has_arcs(dag2) && featset[s2] == featset[new_type]))
+          fprintf(ferr, "glb: one compatible set\n");
+        else
+          fprintf(ferr, "glb: %s%s(%d) & %s%s(%d) -> %s(%d)\n",
+                  type_name(s1), dag_has_arcs(dag1) ? "[]" : "", featset[s1],
+                  type_name(s2), dag_has_arcs(dag2) ? "[]" : "", featset[s2],
+                  type_name(new_type), featset[new_type]);
+      } else
+        fprintf(ferr, "glb: compatible feature sets\n");
+    } else {
+      fprintf(ferr, "glb: type unchanged\n");
     }
-
+  }
 #endif
 
   // _fix_me_ maybe check if actually changed 
   dag_set_new_type(dag1, new_type);
 
-  if(unify_wellformed)
-    {
-      if(!dag_make_wellformed(new_type, dag1, s1, dag2, s2))
-	{
+  if(unify_wellformed) {
+    if(!dag_make_wellformed(new_type, dag1, s1, dag2, s2)) {
 #ifdef QC_PATH_COMP
 #ifdef COMPLETE_FAILURE_REPORTING
-	  if(unify_record_failure)
-            { 
-	      save_or_clear_failure();
-	      failure = new unification_failure(unification_failure::CONSTRAINT
-                                                , unify_path_rev
-                                                , unification_cost, s1, s2);
-
-	      if(!unify_all_failures)
-		return FAIL;
-            }
-	  else
+      if(unify_record_failure) { 
+        save_or_clear_failure();
+        failure = new unification_failure(unification_failure::CONSTRAINT
+                                          , unify_path_rev
+                                          , unification_cost, s1, s2);
+        
+        if(!unify_all_failures)
+          return FAIL;
+      } else
 #endif
 #endif
-	    return FAIL;
-	}
-
-      dag1 = dag_deref1(dag1);
+        return FAIL;
     }
+    
+    dag1 = dag_deref1(dag1);
+  }
 
-  if(!dag_has_arcs(dag2)) // try the cheapest (?) solution first
-    {
-      dag_set_forward(dag2, dag1);
-    }
-  else if(!dag_has_arcs(dag1))
-    {
+  if(!dag_has_arcs(dag2)) { // try the cheapest (?) solution first
+    dag_set_forward(dag2, dag1);
+  } else
+    if(!dag_has_arcs(dag1)) {
       dag_set_new_type(dag2, new_type);
       dag_set_forward(dag1, dag2);
     }
-  else
-    {
-      dag_set_copy(dag1, INSIDE);
-      dag_set_forward(dag2, dag1);
-
-      if(!dag_unify_arcs(dag1, dag2))
-	{
-	  dag_set_copy(dag1, 0);
-	  return FAIL;
-	}
-
+  else {
+    dag_set_copy(dag1, INSIDE);
+    dag_set_forward(dag2, dag1);
+    
+    if(!dag_unify_arcs(dag1, dag2)) {
       dag_set_copy(dag1, 0);
+      return FAIL;
     }
+    
+    dag_set_copy(dag1, 0);
+  }
 
   return dag1;
 }
@@ -821,7 +803,11 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
         }
     }
     
-    if(forward == false && backward == false && !unify_all_failures)
+    if(forward == false && backward == false
+#ifdef QC_PATH_COMP
+       && !unify_all_failures
+#endif
+       )
     {
         return false;
     }
@@ -859,7 +845,11 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward)
 #endif
         }
 
-        if(forward == false && backward == false && !unify_all_failures)
+        if(forward == false && backward == false
+#ifdef QC_PATH_COMP
+           && !unify_all_failures
+#endif
+           )
         {
             return false;
         }
@@ -1773,7 +1763,7 @@ bool dag_valid_rec(dag_node *dag)
       
       while(arc)
 	{
-	  if(! dag_arc_valid(arc->attr))
+	  if(! is_attr(arc->attr))
 	    {
 	      fprintf(ferr, "(3) invalid attr: %d, val: 0x%x\n",
 		      arc->attr, (int) arc->val);
@@ -1884,6 +1874,49 @@ void dag_print_jxchg(ostream &f, struct dag_node *dag) {
  
   dag_print_rec_jxchg_safe(f, dag, 1);
   dags_visited.clear();
+}
+
+
+
+int dag_collect_symbols_rec_safe(struct dag_node *dag, int coref_nr
+                                 , list<pair<const char *, type_t> > &res){
+  dag_arc *arc = dag->arcs ;
+  int coref = dag_get_visit_safe(dag);
+  
+  if (coref < 0) return coref_nr;
+
+  if(coref > 0) // dag is not visited yet
+    {
+      coref = -dag_set_visit_safe(dag, -(coref_nr++));
+    }
+ 
+  if (is_dynamic_type(dag->type))
+    res.push_front(pair<const char *, type_t>(type_name(dag->type)
+                                              , dag->type));
+ 
+  while(arc) {
+    coref_nr = dag_collect_symbols_rec_safe(arc->val, coref_nr, res) ;
+    arc=arc->next;
+  }
+ 
+  return coref_nr;
+}
+
+void
+dag_collect_symbols(struct dag_node *dag
+                    , list<pair<const char *, type_t> > &res) {
+  if(dag == 0)
+    {
+      return;
+    }
+  if(dag == FAIL)
+    {
+      return;
+    }
+ 
+  dag_mark_coreferences_safe(dag, 0);
+  res.clear();
+   dag_collect_symbols_rec_safe(dag, 1, res);
 }
 
 

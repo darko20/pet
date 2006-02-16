@@ -17,7 +17,7 @@
 #include <boost/graph/graphviz.hpp>
 
 #include "hierarchy.h"
-#include "reduction.h"
+void acyclicTransitiveReduction(tHierarchy &G);
 
 int main()
 {

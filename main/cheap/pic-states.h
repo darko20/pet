@@ -40,6 +40,8 @@ class pic_base_state {
 public:
   pic_base_state(PICHandler *handler) : _reader(handler) {}
 
+  virtual ~pic_base_state() {}
+
   /** @name Double Dispatch Functions
    * The next two functions have to be implemented in every subclass in the
    * same way. They only exist to implement the double dispatch. Use the macro
@@ -268,7 +270,7 @@ public:
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
       if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
-        throw(Error((string) "unknown type in w tag '" + stem + "'"));
+        throw Error((string) "unknown type in w tag '" + stem + "'");
     }
     tInputItem *new_item 
       = new tInputItem(id, _cstart, _cend, _surface, stem
@@ -319,7 +321,7 @@ public:
   /** pet_input_start state <-- ne state. */
   virtual void
   leaveState(pet_input_chart* previous) {
-    if (_items == 0) throw(Error("No valid typeinfo in ne tag"));
+    if (_items == 0) throw Error("No valid typeinfo in ne tag");
     // Add the new items to the enclosing state
     // previous->splice(_items);
   }
@@ -333,7 +335,7 @@ public:
   void append_dtr(const string &id) { 
     //tInputItem *item = _pic_state->get_item(id);
     tInputItem *item = _reader->get_item(id);
-    if (item == NULL) throw( Error((string) "unknown item '" + id + "'") );
+    if (item == NULL) throw Error((string) "unknown item '" + id + "'");
     _dtrs.push_back(item);
   }
 
@@ -349,7 +351,7 @@ public:
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
       if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
-        throw(Error((string) "unknown type in ne tag '" + stem + "'"));
+        throw Error((string) "unknown type in ne tag '" + stem + "'");
     }
 
     tInputItem *new_item = new tInputItem(id, _dtrs, stem, tokenclass, mods);
@@ -436,7 +438,7 @@ public:
   void append_infl(string name){
     type_t infl_rule_type = lookup_type(name.c_str());
     if(infl_rule_type == T_BOTTOM)
-      throw(Error((string) "unknown infl type '" + name + "'"));
+      throw Error((string) "unknown infl type '" + name + "'");
     _infls.push_back(infl_rule_type);
   }
 

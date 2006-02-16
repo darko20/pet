@@ -124,6 +124,8 @@ class tItem
           if((_trait != INFL_TRAIT) || (first(_inflrs_todo) != R->type()))
               return false;
       }
+      // _fix_me_ This may change if lexical rules may be interspersed with
+      // inflection rules
       else if(R->trait() == LEX_TRAIT)
       {
           if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
@@ -408,6 +410,8 @@ class tItem
 
   int _nfilled;
 
+  tLexItem *_key_item;
+
   list_int *_inflrs_todo;
 
   type_t _result_root;
@@ -498,7 +502,9 @@ public:
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
   
-  ~tInputItem() {}
+  ~tInputItem() {
+    free_list(_inflrs_todo); 
+  }
 
   /** Inhibited assignment operator (always throws an error) */
   virtual tInputItem &operator=(const tItem &li)
@@ -685,7 +691,9 @@ class tLexItem : public tItem
    */
   tLexItem(tLexItem *from, tInputItem *new_dtr);
 
-  ~tLexItem() { }
+  ~tLexItem() {
+    free_list(_inflrs_todo); 
+  }
 
   /** Inhibited assignment operator (always throws an error) */
   virtual tLexItem &operator=(const tItem &li)
@@ -814,7 +822,10 @@ class tLexItem : public tItem
 
   int _ldot, _rdot;
   tInputItem *_keydaughter;
+
   lex_stem * _stem;
+
+  fs _mod_form_fs, _mod_stem_fs;
 
   /** This list registers all immediate expansions of this items to avoid
    *  duplicate multi word entries.
@@ -828,6 +839,7 @@ class tLexItem : public tItem
 
   fs _fs_full; // unrestricted (packing) structure
 
+  friend class tPhrasalItem; // to get access to the _mod...fs
   friend class tItemPrinter;
 };
 
@@ -1017,6 +1029,7 @@ typedef list< tInputItem * >::iterator inp_iterator;
 
 /** A virtual base class for predicates on items */
 struct item_predicate : public unary_function<bool, tItem *> {
+  virtual ~item_predicate() {}
   virtual bool operator()(tItem *item) = 0;
 };
 

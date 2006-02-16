@@ -36,7 +36,6 @@
 #include <sstream>
 
 #include "flop.h"
-#include "hierarchy.h"
 #include "types.h"
 #include "options.h"
 #include "version.h"
@@ -64,14 +63,15 @@ static char *grammar_version;
 void
 mem_checkpoint(char *where)
 {
-    static int last = 0;
+    static size_t last = 0;
     
     if(verbosity > 1)
     {
-        fprintf(stderr, "Memory delta %dk (total %dk) [%s]\n",
-                ((int) sbrk(0) - last) / 1024, ((int) sbrk(0)) / 1024, where);
+        fprintf(stderr, "Memory delta %dk (total %dk) [%s]\n"
+                , ((size_t) sbrk(0) - last) / 1024
+                , ((size_t) sbrk(0)) / 1024, where);
     }
-    last = (int) sbrk(0);
+    last = (size_t) sbrk(0);
 }
 
 void
@@ -163,49 +163,6 @@ void process_multi_instances()
       }
 }
 
-void propagate_status()
-{
-    struct type *t, *chld;
-    
-    fprintf(fstatus, "- status values\n");
-    
-    vector<int> topo;
-    boost::topological_sort(hierarchy, std::back_inserter(topo));
-    
-    for(vector<int>::iterator it = topo.begin(); it != topo.end(); ++it)
-    {
-      t = types[*it];
-        
-        if(t->status != NO_STATUS)
-        {
-            boost::graph_traits<tHierarchy>::out_edge_iterator ei, ei_end;
-            for(tie(ei, ei_end) = boost::out_edges(*it, hierarchy); ei != ei_end; ++ei)
-            {
-                chld = types[boost::target(*ei, hierarchy)];
-                
-                if(chld->defines_status == 0)
-                    if(chld->status == NO_STATUS || !flop_settings->member("weak-status-values", statustable.name(t->status).c_str()))
-                    {
-                        if(chld->status != NO_STATUS &&
-                           chld->status != t->status &&
-                           !flop_settings->member("weak-status-values", statustable.name(chld->status).c_str()))
-                        {
-                            fprintf(ferr, "`%s': status `%s' from `%s' overwrites old status `%s' from `%s'...\n",
-                                    types.name(chld->id).c_str(),
-                                    statustable.name(t->status).c_str(),
-                                    types.name(t->id).c_str(),
-                                    statustable.name(chld->status).c_str(),
-                                    types.name(chld->status_giver).c_str());
-                        }
-                        
-                        chld->status_giver = t->id;
-                        chld->status = t->status;
-                    }
-            }
-        }
-    }
-}
-
 int *leaftype_order = 0;
 int *rleaftype_order = 0;
 
@@ -265,10 +222,7 @@ void preprocess_types()
   process_conjunctive_subtype_constraints();
   process_multi_instances();
 
-  process_hierarchy();
-
-  if(opt_propagate_status)
-    propagate_status();
+  process_hierarchy(opt_propagate_status);
 
   assign_printnames();
 }
@@ -362,6 +316,22 @@ fill_grammar_properties()
     grammar_properties["full-expansion"] =
         opt_full_expansion ? "true" : "false";
 }
+
+/*
+void print_infls() {
+  FILE *f = stdout;
+  fprintf(f, ";; Morphological information\n");
+  // find all infl rules 
+  for(int i = 0; i < ntypes; i++) {
+    if(types[i]->inflr != NULL) {
+      //if(flop_settings->statusmember("infl-rule-status-values",
+      //                                typestatus[i])) {
+      fprintf(f, "%s:%d\n", typenames[rleaftype_order[i]]
+              , typestatus[rleaftype_order[i]]);
+    }
+  }
+}
+*/
 
 void
 print_morph_info(FILE *f)
@@ -556,7 +526,7 @@ int process(char *ofname)
       
       preprocess_types();
       mem_checkpoint("after preprocessing types");
-      
+
       if(!opt_pre)
 	process_types();
 

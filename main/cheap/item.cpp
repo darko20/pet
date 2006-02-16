@@ -32,31 +32,59 @@
 #include "tsdb++.h"
 #include "sm.h"
 
+#include <sstream>
 //#define DEBUG
 //#define DEBUGPOS
 
 // this is a hoax to get the cfrom and cto values into the mrs
 #ifdef DYNAMIC_SYMBOLS
-modlist characterize_modlist;
+struct charz_t {
+  list_int *path;
+  attr_t attribute;
+
+  charz_t() { 
+    path = NULL;
+    attribute = 0;
+  }
+
+  void set(const char *string_path) {
+    free_list(path);
+    list_int *lpath = path_to_lpath(string_path);
+    list_int *last = lpath;
+    while(last->next->next != NULL) last = last->next;
+    this->path = lpath;
+    this->attribute = last->next->val;
+    free_list(last->next);
+    last->next = NULL;
+  }
+};
+
+static charz_t cfrom, cto;
+static bool charz_init = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
-  characterize_modlist.clear();
   char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
   char *cto_path = cheap_settings->value("mrs-cto-path");
   if ((cfrom_path != NULL) && (cto_path != NULL)) {
-    characterize_modlist.push_front(pair<string, int>(cfrom_path, 0));
-    characterize_modlist.push_back(pair<string, int>(cto_path, 0));
+    cfrom.set(cfrom_path);
+    cto.set(cto_path);
+    charz_init = true;
   }
 }
 
-inline bool characterize_mods() { return ! characterize_modlist.empty(); }
-
-modlist &characterize_mods(unsigned int from, unsigned int to) {
-  characterize_modlist.front().second = lookup_unsigned_symbol(from);
-  characterize_modlist.back().second = lookup_unsigned_symbol(to);
-  return characterize_modlist;
+inline bool characterize(fs &thefs, int from, int to) {
+  if((opt_mrs != 0) && charz_init) {
+    assert(from >= 0 && to >= 0);
+    return thefs.characterize(cfrom.path, cfrom.attribute
+                               , lookup_unsigned_symbol(from))
+           && thefs.characterize(cto.path, cto.attribute
+                                 ,lookup_unsigned_symbol(to));
+  } 
+  return true;
 }
+#else
+#define characterize(fs, start, end)
 #endif
 
 item_owner *tItem::_default_owner = 0;
@@ -93,7 +121,7 @@ tItem::~tItem()
 {
     delete[] _qc_vector_unif;
     delete[] _qc_vector_subs;
-    free_list(_inflrs_todo);
+    // free_list(_inflrs_todo); // This is now only done in tLexItem
     delete _unpack_cache;
 }
 
@@ -314,6 +342,26 @@ void tLexItem::init(fs &f) {
       (*it)->parents.push_back(this);
     }
 
+    string orth_path = cheap_settings->req_value("orth-path");
+    for (int i = 0 ; i < _stem->inflpos(); i++) orth_path += ".REST";
+    orth_path += ".FIRST";
+
+    // Create a feature structure to put the surface form (if there is one)
+    // into the right position of the orth list
+    if (_keydaughter->form().size() > 0) {
+      _mod_form_fs
+        = fs(dag_create_path_value(orth_path.c_str()
+                              , lookup_symbol(_keydaughter->form().c_str())));
+    } else {
+      _mod_form_fs = fs(FAIL);
+    }
+
+    // Create two feature structures to put the base resp. the surface form
+    // (if there is one) into the right position of the orth list
+    _mod_stem_fs 
+      = fs(dag_create_path_value(orth_path.c_str()
+                              , lookup_symbol(_stem->orth(_stem->inflpos()))));
+
     // _fix_me_
     // Not nice to overwrite the _fs field.
     if(opt_packing)
@@ -321,9 +369,12 @@ void tLexItem::init(fs &f) {
 
     if(_inflrs_todo)
       _trait = INFL_TRAIT;
-    else
+    else {
       _trait = LEX_TRAIT;
-    
+      // _fix_me_ Berthold says, this is the right number
+      // stats.words++;
+    }
+
     if(opt_nqc_unif != 0)
       _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
 
@@ -334,13 +385,7 @@ void tLexItem::init(fs &f) {
     if(Grammar->sm())
       score(Grammar->sm()->scoreLeaf(this));
 
-#ifdef DYNAMIC_SYMBOLS
-    if((opt_mrs != 0) && (characterize_mods())) {
-      assert(_startposition >= 0 && _endposition >= 0);
-      _fs.modify_eagerly_searching(characterize_mods(_startposition
-                                                     , _endposition));
-    }
-#endif
+    characterize(_fs, _startposition, _endposition);
 
 #if 0
 #ifdef YY
@@ -381,6 +426,7 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
   _startposition = i_item->startposition();
   _endposition = i_item->endposition();
   _inflrs_todo = copy_list(inflrs_todo);
+  _key_item = this;
   _daughters.push_back(i_item);
   _keydaughter = i_item;
   init(f);
@@ -395,6 +441,7 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
 {
   _daughters = from->_daughters;
   _inflrs_todo = copy_list(from->_inflrs_todo);
+  _key_item = this;
   if(from->left_extending()) {
     _start = newdtr->start();
     _startposition = newdtr->startposition();
@@ -426,13 +473,25 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     _tofill = R->restargs();
     _nfilled = 1;
     _daughters.push_back(pasv);
+    _key_item = pasv->_key_item;
 
     _trait = R->trait();
-    if(_trait == INFL_TRAIT)
-    {
-        _inflrs_todo = copy_list(rest(pasv->_inflrs_todo));
-        if(_inflrs_todo == 0)
-            _trait = LEX_TRAIT;
+    if(_trait == INFL_TRAIT) {
+      // We don't copy here, so only the tLexItem is responsible for deleting
+      // the list
+      _inflrs_todo = rest(pasv->_inflrs_todo);
+      if(_inflrs_todo == 0) {
+        // Modify the feature structure to contain the surface form in the
+        // right place
+        _fs.modify_eagerly(_key_item->_mod_form_fs);
+        _trait = LEX_TRAIT;
+        // _fix_me_ Berthold says, this is the right number
+        // stats.words++;
+      } else {
+        // Modify the feature structure to contain the stem form in the right
+        // place 
+        _fs.modify_eagerly(_key_item->_mod_stem_fs);
+      }
     }
   
     _spanningonly = R->spanningonly();
@@ -455,20 +514,13 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
         if(passive())
             _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
-#ifdef DYNAMIC_SYMBOLS
-    if((opt_mrs != 0) && (characterize_mods()))
-      if(passive()) {
-        assert(_startposition >= 0 && _endposition >= 0);
-        _fs.modify_eagerly_searching(characterize_mods(_startposition
-                                                       , _endposition));
-      }
-#endif
-
-    // rule stuff
-    if(passive())
-        R->passives++;
-    else
-        R->actives++;
+    // rule stuff + characterization
+    if(passive()) {
+      R->passives++;
+      characterize(_fs, _startposition, _endposition);
+    } else {
+      R->actives++;
+    }
 
 #ifdef DEBUG
     fprintf(ferr, "new rule tItem (`%s' + %d@%d):", 
@@ -521,24 +573,16 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
                                             nextarg(f));
     }
     
-    if(opt_nqc_subs != 0)
-        if(passive())
-            _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
-
-#ifdef DYNAMIC_SYMBOLS
-    if((opt_mrs != 0) && (characterize_mods()))
-      if(passive()) {
-        assert(_startposition >= 0 && _endposition >= 0);
-        _fs.modify_eagerly_searching(characterize_mods(_startposition
-                                                       , _endposition));
-      }
-#endif
+    if((opt_nqc_subs != 0) && passive())
+      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
 
     // rule stuff
-    if(passive())
-        active->rule()->passives++;
-    else
-        active->rule()->actives++;
+    if(passive()) {
+      characterize(_fs, _startposition, _endposition);
+      active->rule()->passives++;
+    } else {
+      active->rule()->actives++;
+    }
 
 #ifdef DEBUG
     fprintf(ferr, "new combined item (%d + %d@%d):", 
@@ -754,8 +798,9 @@ tLexItem::tsdb_derivation(int protocolversion)
   
     res << "(" << _id << " " << _stem->printname()
         << " " << score() << " " << _start <<  " " << _end
-        << " " << _keydaughter->tsdb_derivation(protocolversion);
-
+        << " " << "(\"" << orth() << "\" "
+        << _start << " " << _end << "))";
+ 
     return res.str();
 }
 
@@ -1144,14 +1189,9 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
         return 0;
     }
 
-#ifdef DYNAMIC_SYMBOLS
-    if((opt_mrs != 0) && (characterize_mods()))
-      if(passive()) {
-        assert(_startposition >= 0 && _endposition >= 0);
-        res.modify_eagerly_searching(characterize_mods(_startposition
-                                                       , _endposition));
-      }
-#endif
+    if(passive()) {
+      characterize(res, _startposition, _endposition);
+    }
 
     stats.p_upedges++;
     tPhrasalItem *result = new tPhrasalItem(this, daughters, res);

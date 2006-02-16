@@ -541,8 +541,11 @@ void tdl_start(int toplevel);
 
 /** @name hierarchy.cc */
 /*@{*/
-/** Check and complete the hierarchy to get a BCPO */
-bool process_hierarchy();
+/** Check and complete the hierarchy to get a BCPO
+ *  \param propagate_status if \c true, propagate the status values through the
+ *            hierarchy as the last step
+ */
+bool process_hierarchy(bool propagate_status);
 
 /** Add type with id \a s to the hierarchy */
 void register_type(int s);

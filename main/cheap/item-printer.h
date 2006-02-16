@@ -26,6 +26,8 @@
  */
 class tItemPrinter {
 public:
+  virtual ~tItemPrinter() {}
+
   /** The top level function called by the user */
   virtual void print(const tItem *arg) = 0;
 
@@ -207,19 +209,14 @@ private:
  */
 class tFegramedPrinter : public tItemPrinter {
 public:
-  tFegramedPrinter(FILE *f): _out(f) {}
+  tFegramedPrinter(): _out(NULL), _filename_prefix(NULL) {}
 
-  tFegramedPrinter(const char *filename, bool make_unique = false) {
-    if (! make_unique) {
-      // This printer is set up to print exactly one feature structure
-      if ((_out = fopen(filename, "w")) == NULL) {
-        throw(tError((string) "could not open file" + filename));
-      }
-      _filename_prefix = NULL;
-    } else {
-      _out = NULL;
-      _filename_prefix = strdup(filename);
-    }
+  /** Specify a \a prefix that is prepended to all filenames, e.g., a directory
+   *  prefix.
+   */
+  tFegramedPrinter(const char *prefix) {
+    _out = NULL;
+    _filename_prefix = strdup(prefix);
   }
   
   virtual ~tFegramedPrinter() {
@@ -235,12 +232,17 @@ public:
   /** We don't need the second dispatch here because everything is available
    * using functions of the superclass and we don't need to differentiate.
    */
-  virtual void print(const tItem *arg);
+  virtual void print(const tItem *arg) { print(arg, NULL); }
+
+  /** We don't need the second dispatch here because everything is available
+   * using functions of the superclass and we don't need to differentiate.
+   */
+  void print(const tItem *arg, const char *name);
 
   /** This is for convenience, this printer does not do anything beyond
    *  printing the dag, so we can safely use it for dags alone.
    */
-  void print(const dag_node *dag);
+  void print(const dag_node *dag, const char *name = "fstruc");
 
 private:
   /** This function is only useful when more than one item shall be printed

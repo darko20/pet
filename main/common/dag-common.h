@@ -154,6 +154,7 @@ dag_node *dag_undump(dumper *f);
  *  was found, the value of that arc, \c FAIL otherwise. 
  */
 dag_node *dag_get_attr_value(dag_node *dag, const char *attr);
+
 /** Add a new arc with attribute \a attr to the dag \a val.
  *  \return The dag node the new arc points to, if \a attr is a known
  *          attribute, and has a valid appropriate type. The value of the new
@@ -162,43 +163,34 @@ dag_node *dag_get_attr_value(dag_node *dag, const char *attr);
  */
 dag_node *dag_create_attr_value(const char *attr, dag_node *val);
 
+/** Add a new arc with attribute \a attr to the dag \a val.
+ *  \return The dag node the new arc points to, if \a attr is a known
+ *          attribute, and has a valid appropriate type. The value of the new
+ *          arc will be a copy of the typedag of the attribute's appropriate
+ *          type.
+ */
+dag_node *dag_create_attr_value(attr_t attr, dag_node *val);
+
 /** Try to follow the list of arcs specified in \a path, starting at \a dag
  *  \a path must to be a list of (known) attribute names, separated by dots.
  *  \return the dag node at the end of the path, if it exists, \c FAIL
  *          otherwise.
  */
 dag_node *dag_get_path_value(dag_node *dag, const char *path);
+
 /** Create a minimal feature structure that contains the arc path
  *  \a path and where the node at the bottom has type \a type.
  *  \a path must to be a list of (known) attribute names, separated by dots.
  *  \return The root node of the new dag on success, \c FAIL otherwise
  */
 dag_node *dag_create_path_value(const char *path, type_t type);
+
 /** Create a minimal feature structure that contains the arc path \a path and
  * where the node at the bottom has type \a type. 
  * \a path must be a list of valid attribute IDs
  *  \return The root node of the new dag on success, \c FAIL otherwise
  */
 dag_node *dag_create_path_value(list_int *path, type_t type);
-/** Create a minimal feature structure that contains the arc path \a path and
- * where the node at the bottom has type \a type.
- *
- * This function behaves rather different from dag_create_path_value. In
- * addition to dag creation, the path is followed using the parameter \a dag as
- * root. If the path does not exist in this feature structure, the function
- * returns \c FAIL. Additionally, the last attribute in the path is treated
- * differently: The substructure that is reached when following the path prefix
- * is searched for a configuration where an arc with the last attribute points
- * to a dag with type \c intype. If this is found, the path in the substructure
- * is appended to the path constructed by the path prefix.
- *
- * This function is rather strange. It has been added to support the so-called
- * "characterization" of MRS structures, which is a nasty kludge.
- */
-dag_node *dag_create_path_value_search(dag_node *dag
-                                              , const char *path
-                                              , type_t intype
-                                              , type_t type);
 
 /** Convert a dot-separated list of attributes into a list of attributes ids
  *  \return the pointer to the list if all attributes are known, \c NULL

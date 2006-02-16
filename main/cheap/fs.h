@@ -27,8 +27,12 @@
 #include "types.h"
 #include "dag.h"
 
-/** Features structure modification list: a list of pairs (path, type) */
-typedef list<pair<string, type_t> > modlist;
+/** Features structure modification list: a list of pairs (path, type).
+ * In these modlists, the path is represented by a string where the feature
+ * names are separated by dots ('.')
+ */
+typedef list< pair<string, type_t> > modlist;
+
 
 /** Adapter for different dag implementations */
 class fs
@@ -123,23 +127,29 @@ class fs
    */
   bool modify(modlist &mods);
   
-  /** \brief Try to apply the modifications in \a mods to this fs. If this
-   *  succeeds, modify the fs destructively, otherwise, leave it as it was.
+  /** \brief Try to apply as many modifications in \a mods as possible to this
+   *  fs. If this succeeds, the fs is destructively modified,
    *
-   * \return \c true if the modifications succeed, \c false otherwise.
+   * \return \c true if all modifications succeed, \c false otherwise.
    */
   bool modify_eagerly(const modlist &mods);
 
-  /** \brief Try to apply the modifications in \a mods to this fs. If this
+  /** \brief Try to apply the modifications in \a mod to this fs. If this
    *  succeeds, modify the fs destructively, otherwise, leave it as it was.
-   *  This modification function uses all but the last element of each path
-   *  in the way the other modify functions do, but the last attribute is
-   *  treated differently: the combination attr/type is looked up in the
-   *  fs that is reached by the beginning of the path and the feature structure
-   *  is modified in the first matching place.
-   * \return \c true if the modifications succeed, \c false otherwise.
+   *
+   * \return \c true if the modification succeed, \c false otherwise.
    */
-  bool modify_eagerly_searching(modlist &mods);
+  bool modify_eagerly(fs &mod);
+
+  /** Special modification function used in `characterization', which stamps
+   *  the input positions of relations into the feature structures.
+   *  Make sure that \a path exists (if possible), go to the end of that path,
+   *  which must contain a f.s. list and try to find the element of the list
+   *  where \a attr is not already filled and \a attr : \a value can be unified
+   *  into. 
+   *  \return \c true if the operation succeeded, \c false otherwise
+   */
+  bool characterize(list_int *path, attr_t attr, type_t value);  
 
   /** Print readably for debugging purposes */
   void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL);

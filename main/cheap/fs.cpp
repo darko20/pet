@@ -118,60 +118,90 @@ fs::modify(modlist &mods)
     return true;
 }
 
-/** \brief Try to apply the modifications in \a mods to this fs. If this
- *  succeeds, modify the fs destructively, otherwise, leave it as it was.
+/** \brief Try to apply as many modifications in \a mods as possible to this
+ *  fs. If some of them succeed, the fs is destructively modified,
  *
- * \return \c true if the modifications succeed, \c false otherwise.
+ * \return \c true if all modifications succeed, \c false otherwise.
  */
 bool
-fs::modify_eagerly(const modlist &mods)
-{
-    dag_node *curr = _dag;
-    dag_node *newdag;
-    for(modlist::const_iterator mod = mods.begin(); mod != mods.end(); ++mod)
-    {
-        dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
-        if (p != FAIL) {
-          newdag = dag_unify(curr, p, curr, 0);
-          if(newdag != FAIL)
-            curr = newdag;
-        }
+fs::modify_eagerly(const modlist &mods) {
+  bool full_success = true;
+  dag_node *curr = _dag;
+  dag_node *newdag;
+  for(modlist::const_iterator mod = mods.begin(); mod != mods.end(); ++mod) {
+    dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
+    if (p != FAIL) {
+      newdag = dag_unify(curr, p, curr, 0);
+      if(newdag != FAIL) {
+        curr = newdag;
+      } else {
+        // Apply all applicable
+        full_success = false;
+      }
     }
-    _dag = curr;
-    return true;
+  }
+  _dag = curr;
+  return full_success;
 }
 
-/** \brief Try to apply the modifications in \a mods to this fs. If this
+/** \brief Try to apply the modifications in \a mod to this fs. If this
  *  succeeds, modify the fs destructively, otherwise, leave it as it was.
  *
- * \return \c true if the modifications succeed, \c false otherwise.
+ * \return \c true if the modification succeed, \c false otherwise.
  */
 bool
-fs::modify_eagerly_searching(modlist &mods)
-{
-    dag_node *curr = _dag;
-    dag_node *newdag;
-    for(modlist::iterator mod = mods.begin(); mod != mods.end(); ++mod)
-    {
-        dag_node *p
-          = dag_create_path_value_search(curr, (mod->first).c_str()
-                                         , BI_TOP, mod->second);
-        if (p != FAIL) {
-          //dag_print_safe(ferr, p, false);
-          newdag = dag_unify(curr, p, curr, 0);
-          if(newdag != FAIL) {
-            curr = newdag;
-            //dag_print_safe(ferr, curr, false);
-          } else {
-            //fprintf(ferr, "Unification fails\n"); fflush(ferr);
-          }
-        } else {
-          //fprintf(ferr, "Path creation fails\n"); fflush(ferr);
-          //dag_print_safe(ferr, curr, false);
-        }
-    }
-    _dag = curr;
+fs::modify_eagerly(fs &mod) {
+  if (mod._dag == FAIL) return true ; // nothing to apply
+  dag_node *newdag = dag_unify(_dag, mod._dag, _dag, 0);
+  if(newdag != FAIL) {
+    _dag = newdag;
     return true;
+  } else {
+    return false;
+  }
+}
+
+/** Special modification function used in `characterization', which stamps
+ *  the input positions of relations into the feature structures.
+ *  Make sure that \a path exists (if possible), go to the end of that path,
+ *  which must contain a f.s. list and try to find the element of the list
+ *  where \a attr : \a value can be unified into.
+ *  \return \c true if the operation succeeded, \c false otherwise
+ */
+bool
+fs::characterize(list_int *path, attr_t feature, type_t value) {
+  dag_node *curr = _dag;
+  // try to retrieve the characterization path
+  dag_node *p = dag_get_path_value_l(curr, path);
+  if( p == FAIL ) {
+    // if it does not exist, maybe due to unfilling, try to put it into the
+    // current feature structure using unification
+    p = dag_create_path_value(path, BI_TOP);
+    if (p == FAIL) return false;
+    dag_node *newdag = dag_unify(curr, p, curr, 0);
+    if (newdag == FAIL) return false;
+    curr = newdag;
+    p = dag_get_path_value_l(curr, path);
+  }
+  // Now p points to the subdag where the list search should begin
+
+  dag_node *charz_dag 
+    = dag_create_attr_value(feature, dag_full_copy(type_dag(value)));
+  do {
+    dag_node *first = dag_get_attr_value(p, BIA_FIRST);
+    if (first != FAIL) {
+      dag_node *charz = dag_get_attr_value(first, feature);
+      if (charz == FAIL || dag_type(charz) == BI_TOP) {
+        dag_node *newdag = dag_unify(curr, charz_dag, first, 0);
+        if (newdag != FAIL) {
+          this->_dag = newdag;
+          return true;
+        }
+      }
+    }
+    p = dag_get_attr_value(p, BIA_REST);
+  } while (p != FAIL) ;
+  return false;
 }
 
 // statistics
