@@ -379,7 +379,7 @@ dag_node * dag_unify3_rec(dag_node *dag1, dag_node *dag2, int generation)
       if(dag_current(dag1))
 	return dag_unify1_rec(dag1, dag2);
 
-      if((new_type = glb(dag1->type, dag2->type)) == -1)
+      if((new_type = glb(dag1->type, dag2->type)) == T_BOTTOM)
 	return FAIL;
       
       dag_set_copy(dag1, dag2, generation);

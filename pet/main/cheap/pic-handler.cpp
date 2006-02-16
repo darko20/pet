@@ -20,7 +20,7 @@ const XMLCh yes_str[] = { chLatin_y,  chLatin_e,  chLatin_s, chNull };
 bool pic_base_state::req_bool_attr(AttributeList& attr, char *aname) {
   const XMLCh *str;
   if ((str = attr.getValue(aname)) == NULL)
-    throw(Error((string) "required attribute '" + aname + "' missing"));
+    throw Error((string) "required attribute '" + aname + "' missing");
   return (XMLString::compareIString(str, yes_str) == 0);
 }
 
@@ -33,13 +33,13 @@ bool pic_base_state::opt_bool_attr(AttributeList& attr, char *aname, bool def){
 int pic_base_state::req_int_attr(AttributeList& attr, char *aname) {
   const XMLCh *val;
   if ((val = attr.getValue(aname)) == NULL)
-    throw(Error((string) "required attribute '" + aname + "' missing"));
+    throw Error((string) "required attribute '" + aname + "' missing");
   const char *str = XMLCh2UTF8(val);
   char *end;
   int res = strtol(str, &end, 10);
   if ((*end != '\0') || (str == end))
-    throw(Error((string) "wrong int value '" + str + "' for attribute '"
-                + aname + "'"));
+    throw Error((string) "wrong int value '" + str + "' for attribute '"
+                + aname + "'");
   return res;
 }
 
@@ -50,21 +50,21 @@ int pic_base_state::opt_int_attr(AttributeList& attr, char *aname, int def) {
   char *end;
   int res = strtol(str, &end, 10);
   if ((*end != '\0') || (str == end))
-    throw(Error((string) "wrong int value '" + str + "' for attribute '"
-                + aname + "'"));
+    throw Error((string) "wrong int value '" + str + "' for attribute '"
+                + aname + "'");
   return res;
 }
 
 double pic_base_state::req_double_attr(AttributeList& attr, char *aname) {
   const XMLCh *val;
   if ((val = attr.getValue(aname)) == NULL) 
-    throw(Error((string) "required attribute '" + aname + "' missing"));
+    throw Error((string) "required attribute '" + aname + "' missing");
   const char *str = XMLCh2UTF8(val);
   char *end;
   double res = strtod(str, &end);
   if ((*end != '\0') || (str == end))
-    throw(Error((string) "wrong double value '" + str + "' for attribute '"
-                + aname + "'"));
+    throw Error((string) "wrong double value '" + str + "' for attribute '"
+                + aname + "'");
   return res;
 }
 
@@ -76,8 +76,8 @@ pic_base_state::opt_double_attr(AttributeList& attr, char *aname, double def) {
   char *end;
   double res = strtod(str, &end);
   if ((*end != '\0') || (str == end))
-    throw(Error((string) "wrong double value '" + str + "' for attribute '"
-                + aname + "'"));
+    throw Error((string) "wrong double value '" + str + "' for attribute '"
+                + aname + "'");
   return res;
 }
 
@@ -85,7 +85,7 @@ string pic_base_state::
 req_string_attr(AttributeList &attr, char *aname) {
   const XMLCh *val = attr.getValue(aname);
   if (val == NULL)
-    throw(Error((string) "required attribute '" + aname + "' missing"));
+    throw Error((string) "required attribute '" + aname + "' missing");
 #ifdef HAVE_ICU
   return Conv->convert((UChar *)val, XMLString::stringLen(val));
 #else
@@ -100,7 +100,7 @@ opt_string_attr(AttributeList &attr, char *aname) {
 #ifdef HAVE_ICU
   return Conv->convert((UChar *)val, XMLString::stringLen(val));
 #else
-  return XMLChLatin(val);
+  return XMLCh2Latin(val);
 #endif
 }
 
@@ -117,7 +117,7 @@ std::ostream &operator <<(std::ostream &out, const pic::pic_base_state &s) {
 void reject(pic_base_state *to, pic_base_state *from) {
   ostringstream ostr;
   ostr << "Can not change from " << from << " into " << to << endl;
-  throw(Error(ostr.str()));
+  throw Error(ostr.str());
 }
 
 void pic_base_state::enterState(pic_base_state* s, AttributeList& attr)
@@ -257,14 +257,14 @@ PICHandler::startElement(const XMLCh* const name, AttributeList& attribs)
         _error_occurred = true;
         _err++;
         // rethrow to get file location properly
-        throw(SAXParseException(e.getMessage(), *_loc));
+        throw SAXParseException(e.getMessage(), *_loc);
       }
     } else {
       // unknown tag error: This is a fatal XML error because all tags in the
       // DTD should be covered
       _error_occurred = true;
-      throw(SAXParseException(errmsg((string) "unknown tag '"
-                                     + XMLCh2Latin(name) + "'"), *_loc));
+      throw SAXParseException(errmsg((string) "unknown tag '"
+                                     + XMLCh2Latin(name) + "'"), *_loc);
     }
   }
 }
@@ -287,7 +287,7 @@ PICHandler::endElement(const XMLCh* const name)
     }
     catch (const Error &e) {
       // rethrow to get error location
-      throw(SAXParseException(e.getMessage(), *_loc));
+      throw SAXParseException(e.getMessage(), *_loc);
     }
     delete oldState;
   } else {
@@ -351,8 +351,8 @@ PICHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
 void PICHandler::add_item(tInputItem *new_item) {
   const char *ext_id = new_item->external_id().c_str();
   if (_item_table.find(ext_id) != _item_table.end())
-    throw(SAXParseException(errmsg((string) "ID '" + ext_id + "' used twice")
-                            , *_loc));
+    throw SAXParseException(errmsg((string) "ID '" + ext_id + "' used twice")
+                            , *_loc);
   
   _item_table[ext_id] = new_item;
   _items.push_back(new_item);

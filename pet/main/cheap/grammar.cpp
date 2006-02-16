@@ -473,6 +473,16 @@ tGrammar::tGrammar(const char * filename)
             _lexicon[i] = new lex_stem(i);
         }
     }
+
+    /*
+    // print the rule dictionary
+    for (map<type_t, grammar_rule*>::iterator it = _rule_dict.begin();
+         it != _rule_dict.end(); it++) {
+      printf("%d %s %s\n", (*it).first, print_name((*it).first)
+             , type_name((*it).first));
+    }
+    */
+
     // Activate all rules for initialization etc.
     activate_all_rules();
     // The number of all rules for the unification and subsumption rule

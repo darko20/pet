@@ -434,6 +434,9 @@ dag_partial_copy_stateless(dag_node *dag, const STATELESS_RESTRICTOR &del)
     return copy;
 }
 
+
+
+
 /** Clone \a dag using the restrictor \a rst.
  *
  * If the restrictor tells to remove a node, the node will be replaced by an

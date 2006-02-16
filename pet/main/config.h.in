@@ -65,6 +65,9 @@
 /* Define to 1 if you have the <itsdb.h> header file. */
 #undef HAVE_ITSDB_H
 
+/* Define to 1 if you have the `pq' library (-lpq). */
+#undef HAVE_LIBPQ
+
 /* Define to 1 if you have the <libpq-fe.h> header file. */
 #undef HAVE_LIBPQ_FE_H
 
@@ -90,21 +93,18 @@
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP
 
-/* Define to 1 if you have the `munmap' function. */
-#undef HAVE_MUNMAP
-
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
 
+/* use external postgres lexical database */
+#undef HAVE_PSQL_LEXDB
+
 /* Define to 1 if your system has a GNU libc compatible `realloc' function,
    and to 0 otherwise. */
 #undef HAVE_REALLOC
-
-/* Define to 1 if you have the <rmrs.h> header file. */
-#undef HAVE_RMRS_H
 
 /* Define to 1 if you have the `setlocale' function. */
 #undef HAVE_SETLOCALE
@@ -207,6 +207,12 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
+/* Current Linux kernel is 2.4.x */
+#undef KERNEL_2_4
+
+/* Current Linux kernel is 2.6.x */
+#undef KERNEL_2_6
+
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
 #undef LSTAT_FOLLOWS_SLASHED_SYMLINK
@@ -234,6 +240,9 @@
 
 /* Define to 1 if the C compiler supports function prototypes. */
 #undef PROTOTYPES
+
+/* Enable code for QuickCheck computation */
+#undef QC_PATH_COMP
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE

@@ -118,6 +118,8 @@ class chunk_allocator
   inline void reset_max_usage()
     { _max = 0; }
 
+  void print_check() ;
+
  private:
   int _chunk_pos;  /** number of bytes allocated in current chunk */
   int _chunk_size; /** size of each chunk */
@@ -142,13 +144,24 @@ class chunk_allocator
 
   /** @name Core Memory Allocation */
   /*@{*/
-  void _init_core(bool down);
+  void _init_core(bool down, int chunksize);
   void *_core_alloc(int size);
   int _core_free(void *p, int size);
   /*@}*/
 
   /** Does the chunks in this allocator grow up or down ? */
   bool _core_down;
+
+#ifdef HAVE_MMAP
+  /** Pointers to the upper and lower allocation boundary of mmap(2) based core
+   *  allocator.
+   */
+  static char *_mmap_up_mark, *_mmap_down_mark;
+  /** Size of a memory page allocated by mmap(2) */
+  static size_t _pagesize;
+
+  friend bool is_p_addr(void *p);
+#endif
 };
 
 #define t_alloc _t_alloc
@@ -156,10 +169,9 @@ class chunk_allocator
 extern chunk_allocator t_alloc, p_alloc;
 
 #if defined(HAVE_MMAP)
-extern char *_mmap_down_mark;
 inline bool is_p_addr(void *p)
 {
-  return p >= _mmap_down_mark; 
+  return p >= chunk_allocator::_mmap_down_mark; 
 }
 #endif
 

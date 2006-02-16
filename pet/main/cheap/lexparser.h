@@ -128,7 +128,8 @@ private:
    * have properties fulfilling these requirements.
    * \param deps depending on the parameter \c unidirectional, these are 
    */
-  void dependency_filter(struct setting *deps, bool unidirectional);
+  void dependency_filter(struct setting *deps, bool unidirectional
+                         , bool lex_exhaustive);
 
   /** Add generic entries for uncovered input items.
    * This is only applied if the option \c opt_default_les is \c true.
@@ -226,6 +227,8 @@ private:
 /** Virtual base class for tasks in the lexicon parser */
 class lex_task {
 public:
+  virtual ~lex_task() {}
+  
   /** Execute this task */
   virtual void execute(class lex_parser &parser) = 0;
 protected:
@@ -241,6 +244,8 @@ protected:
 /** A task combining a tInputItem and a tLexItem */
 class lex_and_inp_task : public lex_task {
 public:
+  virtual ~lex_and_inp_task() {}
+
   /** Constructor */
   lex_and_inp_task(tLexItem *lex, tInputItem *inp)
     : _lex_item(lex), _inp_item(inp) {};

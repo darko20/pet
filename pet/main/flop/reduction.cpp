@@ -19,188 +19,91 @@
 
 /* Compute transitive reduction of an acyclic graph. */
 
+#include "bitcode.h"
 #include "hierarchy.h"
 #include <vector>
+#include <boost/graph/topological_sort.hpp>
 
-#include <iostream>
-#include <fstream>
-#if 1
-#include "flop.h"
-#endif
 
-/** Binary predicate defining a strict weak topological ordering on edges.
- *  Two edges x and y are equivalent if both f(x, y) and f(y, x) are false.
- *  Invariants:
- *  - Irreflexivity: f(x, x) must be false.
- *  - Antisymmetry: f(x, y) implies !f(y, x)
- *  - Transitivity: f(x, y) and f(y, z) imply f(x, z).
- *  - Transitivity of equivalence: Equivalence (as defined above) is
- *    transitive: if x is equivalent to y and y is equivalent to z,
- *    then x is equivalent to z.
+/** Compare two integer indices using a vector of "positions".
+ *  Given two integer indices, return \c true if the position of the first is
+ *  greater than the position of the second
  */
-class topologicalCompare
-{
-  /** The %container has to be a random access container to use this
-      output_iterator, and it has to have the right size, which is not
-      nice at all.
-  */
-  template<typename _Container>
-  class index_insert_iterator 
-    : public std::iterator<std::output_iterator_tag, void, void, void, void>
-    {
-    protected:
-      _Container* container;
-      int pos;
-
-    public:
-      /// A nested typedef for the type of whatever container you used.
-      typedef _Container          container_type;
-      
-      /// The only way to create this %iterator is with a container.
-      explicit 
-      index_insert_iterator(_Container& __x) : container(&__x), pos(0) { }
-
-      /**
-       *  @param  value  An instance of whatever type container_type::size_type
-       *                 is, because it has to be an index into the container
-       *  @return  This %iterator, for chained operations.
-       *
-       *  This iterator is a bit strange in that it does not store the value
-       *  into the container at its position, but rather uses value as an index
-       *  into the container and stores the current position there.
-       */
-      index_insert_iterator&
-      operator=(typename _Container::const_reference __value) 
-      { 
-        (*container)[(int) __value] = pos;
-        return *this;
-      }
-
-      /// Simply returns *this.
-      index_insert_iterator& 
-      operator*() { return *this; }
-
-      /// Increment position and returns *this.
-      index_insert_iterator& 
-      operator++() { pos++ ; return *this; }
-
-      /// return a copy of the current state after incrementing pos.
-      index_insert_iterator
-      operator++(int) { 
-        index_insert_iterator __tmp = *this; 
-        pos++;
-        return *__tmp; 
-      }
-    };
-
+class inv_position_compare {
+  const vector<int> &_position;
 
 public:
-  /** Build a data structure to compare the vertices of \a G according to their
-   *  topological order.
-   */
-  topologicalCompare(tHierarchy &G)
-    : _G(G), _topos(boost::num_vertices(G), 0)
-  {
-    // This was a fatal error! We do not need the edges in topological order,
-    // but the position in the order for every node
-    // boost::topological_sort(_G, std::back_inserter(_ord));
+  inv_position_compare(const vector<int> &pos) : _position(pos) {}
 
-    // _topos[type1] > _topos[type2] means type1 is potentially closer to
-    // *top* than type1
-    boost::topological_sort(_G, index_insert_iterator< vector<int> >(_topos));
-  }
-
-  /** 
-      Compares two edges according to a topological order of the underlying
-      graph. Returns true if the first edge precedes the second edge in the
-      order. Edges are first sorted with source closer to the leaves, then 
-      with target being closer to *top*.
-  */
-  bool
-  operator()(const tHierarchyEdge &e1, const tHierarchyEdge &e2)
-  {
-    int s = _topos[boost::source(e2, _G)] - _topos[boost::source(e1, _G)];
-    if (s != 0)
-      {
-        // edges have different source, put in decreasing order,
-        // i.e. leaves come first: pos(source(e1)) < pos(source(e2))
-        return s > 0;
-      }
-    else
-      {
-        // edges have identical source, put in increasing order, i.e.
-        // targets up in the hierarchy (near to *top*) come first:
-        // pos(target(e1)) > pos(target(e2))
-        return _topos[boost::target(e1, _G)] > _topos[boost::target(e2, _G)];
-      }
-  }
-
-private:
-  tHierarchy &_G;
-  std::vector<int> _topos;
+  bool operator()(int i, int j) { return _position[i] > _position[j] ; }
 };
+
 
 /** Compute transitive reduction of an acyclic graph. This implements the
     algorithm from Mehlhorn: Data Structures and Algorithms, Vol II,
     pages 7 -- 9.
  */
 void
-acyclicTransitiveReduction(tHierarchy &G)
-{
+acyclicTransitiveReduction(tHierarchy &G) {
+
+  typedef boost::graph_traits<tHierarchy>::vertices_size_type v_size_type;
+  v_size_type num_vertices = boost::num_vertices(G);
+
+  std::vector<std::list<tHierarchyVertex> > closure(num_vertices);
+  bitcode reached(num_vertices);
+
+  for(tHierarchyVertex v = 0; v < num_vertices; ++v) {
+    closure[v].push_back(v);
+  }
+
+  // iterate over the nodes in the hierarchy in topological order. Because of
+  // the back_inserter, *top* is the last vertex in the vector
+  vector<tHierarchyVertex> topo;
+  boost::topological_sort(hierarchy, std::back_inserter(topo));
+
+  // store the topo number of each vertex in this array: we need this to
+  // compare the edges. vertices closer to *top* get bigger numbers
+  vector<int> vertex_topo_position(num_vertices);
+  int i = 0;
+  for(vector<tHierarchyVertex>::iterator it = topo.begin()
+        ; it != topo.end(); ++it) {
+    vertex_topo_position[*it] = i++;
+  }
+
+  // Now walk through all the edges such that edges with source vertices closer
+  // to the leaves come first; if source vertex is equal, those with target
+  // closer to *top* come first, i.e., those who skip a smaller distance!
+  for(vector<tHierarchyVertex>::iterator it = topo.begin()
+        ; it != topo.end(); ++it) {
+    tHierarchyVertex v = *it;
+
+    reached.clear();
+    reached.insert(v);   // for security's sake in case of loops
     
-    // Obtain a list of the edges in G in topological order
-    std::vector<tHierarchyEdge> allEdges;
-    copy(boost::edges(G).first, boost::edges(G).second
-         , std::back_inserter(allEdges));
-    sort(allEdges.begin(), allEdges.end(), topologicalCompare(G));
-
-    boost::graph_traits<tHierarchy>::vertices_size_type num_vertices
-      = boost::num_vertices(G);
-
-    std::vector<std::list<tHierarchyVertex> > closure(num_vertices);
-    bool *reached = new bool[num_vertices];
+    std::vector<int> target(out_degree(v, G));
+    boost::graph_traits<tHierarchy>::out_edge_iterator edge_it, edge_it_end;
+    for (boost::tie(edge_it, edge_it_end) = out_edges(v, G), i = 0
+           ; edge_it != edge_it_end ; edge_it++, i++) {
+      target[i] = boost::target(*edge_it, G);
+    }
+    sort(target.begin(), target.end()
+         , inv_position_compare(vertex_topo_position));
     
-    for(tHierarchyVertex v = 0; v < num_vertices; ++v)
-    {
-        closure[v].push_back(v);
+    for(vector<int>::iterator it = target.begin(); it != target.end(); it++) {
+      tHierarchyVertex w = *it;
+      if(! reached.member(w)) {  // e is in the transitive reduction
+        std::list<tHierarchyVertex> &Rw = closure[w];
+        for(std::list<tHierarchyVertex>::iterator itZ = Rw.begin()
+              ; itZ != Rw.end(); ++itZ) {
+          if(! reached.member(*itZ)) {
+            reached.insert(*itZ);
+            closure[v].push_back(*itZ);
+          }            
+        }
+      } else {
+        // This could be a potential bottleneck
+        boost::remove_edge(v,w,G);
+      }
     }
-
-    tHierarchyVertex previous_v = num_vertices;
-    for(std::vector<tHierarchyEdge>::iterator it = allEdges.begin()
-          ; it != allEdges.end(); ++it)
-    {
-
-        tHierarchyVertex v = boost::source(*it, G);
-        
-        if(v != previous_v)
-        {
-            for(tHierarchyVertex z = 0; z < num_vertices; ++z)
-                reached[z] = false;
-            
-            previous_v = v;
-            reached[v] = true;   // for security's sake in case of loops
-        }
-        
-        tHierarchyVertex w = boost::target(*it, G);
-        if(!reached[w])
-        {  // e is in the transitive reduction
- 
-            std::list<tHierarchyVertex> &Rw = closure[w];
-            for(std::list<tHierarchyVertex>::iterator itZ = Rw.begin()
-                  ; itZ != Rw.end(); ++itZ)
-            {
-                if(!reached[*itZ])
-                {
-                    reached[*itZ] = true;
-                    closure[v].push_back(*itZ);
-                }
-            }
-        }
-        else 
-        {
-            G.remove_edge(*it);
-        }
-    }
-    delete[] reached;
+  }
 }
-

@@ -164,9 +164,7 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
 struct dag_node *dag_create_attr_value(attr_t attr, dag_node *val)
 {
   dag_node *res;
-  if(attr < 0 || attr >= nattrs 
-     || apptype[attr] < 0 || apptype[attr] >= ntypes)
-    return FAIL;
+  assert(is_attr(attr) && is_type(apptype[attr]));
 
   res = dag_full_copy(type_dag(apptype[attr]));
   dag_invalidate_changes();
@@ -259,39 +257,6 @@ dag_find_all_attr_value(dag_node *dag, attr_t attr, type_t in, type_t type) {
   return res;
 }
 
-struct dag_node *
-dag_c_p_v_s_rec(struct dag_node *dag, char *path, type_t intype, type_t type) {
-  dag_node *res = NULL;
-
-  char *dot = strchr(path, '.');
-  if(dot != 0)
-    {
-      *dot = '\0';
-      dag_node *subdag = dag_get_attr_value(dag, path);
-      if(subdag == FAIL) return FAIL;
-
-      res = dag_create_attr_value(path, dag_c_p_v_s_rec(subdag, dot + 1
-                                                        , intype, type));
-    }
-  else {
-    res = dag_find_all_attr_value(dag, lookup_attr(path), intype, type);
-    if (res == NULL) res = FAIL;
-  }
-  return res;
-}
-
-struct dag_node *
-dag_create_path_value_search(struct dag_node *dag, const char *path
-                             , type_t intype, type_t type)
-{
-  if(! is_type(type) || type_dag(type) == 0
-     || path == 0 || strlen(path) == 0) return FAIL;
-  char *newstr = new char[strlen(path) + 1];
-  strcpy(newstr,path);
-  dag_node *res = dag_c_p_v_s_rec(dag, newstr, intype, type);
-  delete[] newstr;
-  return res;
-}
 
 struct dag_node *dag_create_path_value(list_int *path, type_t type)
 {
@@ -305,6 +270,7 @@ struct dag_node *dag_create_path_value(list_int *path, type_t type)
                                  , dag_create_path_value(rest(path), type));
   }
 }
+
 
 struct list_int *path_to_lpath(const char *path)
 {

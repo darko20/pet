@@ -54,10 +54,19 @@ class tMorphAnalysis
   list<type_t> &rules() { return _rules; }
 
   /** Print readably for debugging purposes */
-  void print(FILE *f);
+  void print(FILE *f) const;
   /** Print in LKB format */
   void print_lkb(FILE *f);
 
+  /** Two analyses are equal if the base form and the inflection derivation are
+   *  equal
+   */
+  friend bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b);
+
+  /** Destructively erase duplicate entries from a list of tMorphAnalyses */
+  friend void erase_duplicates(list<tMorphAnalysis> &li) ;
+
+ private:
   /** Two analyses are equal if the base form and the inflection derivation are
    *  equal
    */
@@ -67,16 +76,45 @@ class tMorphAnalysis
     }
   };
 
-  /** Two analyses are equal if the base form and the inflection derivation are
-   *  equal
-   */
-  friend bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b);
- private:
   list<string> _forms;
   list<type_t> _rules;
+
+  struct less_than 
+    : public binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
+    bool operator()(tMorphAnalysis &a, tMorphAnalysis &b) {
+      if (a.base() < b.base()) return true;
+      if (a.base() == b.base()) {
+        // "lexicographic" ordering on infl-rules
+        list<type_t>::const_iterator ar, ae, br, be;
+        ar = a._rules.begin();
+        ae = a._rules.end();
+        br = b._rules.begin();
+        be = b._rules.end();
+        while ((ar != ae) && (br != be) && (*ar == *br)) {
+          ar++; 
+          br++;
+        }
+        if (ar == ae)
+          // shorter list (alist prefix blist) is smaller
+          return !(br == be) ;
+        else
+          if (br == be)
+            // longer list (blist prefix alist) is greater
+            return false;
+          else
+            // elements are not equal, smaller element loses
+            return (*ar < *br);
+      }
+      else 
+        // (a.base() > b.base())
+        return false;
+    }
+  };
 };
 
 bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b);
+
+void erase_duplicates(list<tMorphAnalysis> &li) ;
 
 /** Morphological analyzer LKB style. Implements transformation rules similar
  *  to regular expressions.

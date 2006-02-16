@@ -26,10 +26,11 @@
 #include "bitcode.h"
 #include "flop.h"
 #include "hierarchy.h"
-#include "reduction.h"
 #include "types.h"
 
-#include <boost/lambda/lambda.hpp>
+#include <boost/graph/topological_sort.hpp>
+
+void acyclicTransitiveReduction(tHierarchy &G);
 
 //
 // the main entry point to this module is process_hierarchy
@@ -76,6 +77,18 @@ void undo_subtype_constraints(int t)
 {
     boost::clear_out_edges(t, hierarchy);
     boost::clear_in_edges(t, hierarchy);
+}
+
+bool is_simple(tHierarchy g) {
+  tHierarchy::vertex_iterator i, iend;
+  tHierarchy::adjacency_iterator a, aend;
+  tHierarchy::out_edge_iterator e, eend;
+  for(boost::tie(i, iend) = boost::vertices(g); i != iend; ++i) {
+    boost::tie(a, aend) = boost::adjacent_vertices(*i, g);
+    boost::tie(e, eend) = boost::out_edges(*i, g);
+    if ((aend - a) != (eend - e)) return false;
+  }
+  return true;
 }
 
 /**
@@ -406,10 +419,15 @@ void make_semilattice()
   if(verbosity > 4)
     fprintf(fstatus, " (%ld)", clock());
 
-#if 0
-  //missing sanity checks: simple hierarchy is guaranteed by boost graph type
   // do a few sanity checks:
+  
+  if(!is_simple(hierarchy)) {
+    fprintf(ferr, "conception error - making hierarchy simple\n");
+    assert(false);
+    // Make_Simple(hierarchy);
+  }
 
+#if 0
   if(!Is_Loopfree(hierarchy))
     {
       fprintf(ferr, "conception error - making hierarchy loopfree\n");
@@ -433,8 +451,8 @@ inline void mark_leaftype(int i)
 {
   leaftypeparent[i] = immediate_supertypes(i).front();
 
-  if(verbosity > 4)
-    fprintf(stderr, "LT: %d [%d]\n", i, leaftypeparent[i]);
+  //if(verbosity > 4)
+  //  fprintf(stderr, "LT: %d [%d]\n", i, leaftypeparent[i]);
 
   nleaftypes++;
 }
@@ -496,6 +514,7 @@ void find_leaftypes()
 #endif
 }
 
+
 /** Recursively print all subtypes of a given type t */
 void
 print_subtypes(FILE *f, int t, HASH_SPACE::hash_set<int> &visited)
@@ -514,6 +533,7 @@ print_subtypes(FILE *f, int t, HASH_SPACE::hash_set<int> &visited)
     }
 }
 
+
 void
 print_hierarchy(FILE *f)
 {
@@ -527,22 +547,64 @@ print_hierarchy(FILE *f)
     }
 }
 
-bool process_hierarchy()
+
+void propagate_status()
+{
+    struct type *t, *chld;
+    
+    fprintf(fstatus, "- status values\n");
+    
+    vector<int> topo;
+    boost::topological_sort(hierarchy, std::back_inserter(topo));
+    
+    for(vector<int>::iterator it = topo.begin(); it != topo.end(); ++it)
+    {
+      t = types[*it];
+        
+        if(t->status != NO_STATUS)
+        {
+            boost::graph_traits<tHierarchy>::out_edge_iterator ei, ei_end;
+            for(tie(ei, ei_end) = boost::out_edges(*it, hierarchy); ei != ei_end; ++ei)
+            {
+                chld = types[boost::target(*ei, hierarchy)];
+                
+                if(chld->defines_status == 0)
+                    if(chld->status == NO_STATUS || !flop_settings->member("weak-status-values", statustable.name(t->status).c_str()))
+                    {
+                        if(chld->status != NO_STATUS &&
+                           chld->status != t->status &&
+                           !flop_settings->member("weak-status-values", statustable.name(chld->status).c_str()))
+                        {
+                            fprintf(ferr, "`%s': status `%s' from `%s' overwrites old status `%s' from `%s'...\n",
+                                    types.name(chld->id).c_str(),
+                                    statustable.name(t->status).c_str(),
+                                    types.name(t->id).c_str(),
+                                    statustable.name(chld->status).c_str(),
+                                    types.name(chld->status_giver).c_str());
+                        }
+                        
+                        chld->status_giver = t->id;
+                        chld->status = t->status;
+                    }
+            }
+        }
+    }
+}
+
+
+bool process_hierarchy(bool propagate_status_p)
 {
   int i;
 
   fprintf(fstatus, "- type hierarchy (");
 
-#if 0
   // sanity check: is the hierarchy simple (contains no parallel edges)
-  // This is guaranteed by the graph type used for the hierarchy by the
-  // boost library
-  if(!Is_Simple(hierarchy))
+  if(!is_simple(hierarchy))
     {
       fprintf(ferr, "type hierarchy is not simple (should not happen)\n");
-      Make_Simple(hierarchy);
+      assert(false);
+      //Make_Simple(hierarchy);
     }
-#endif
 
   // check for cyclicity:
   if(!isAcyclic(hierarchy))
@@ -583,6 +645,8 @@ bool process_hierarchy()
   make_semilattice();
 
   fprintf(fstatus, ")\n");
+
+  if(propagate_status_p) propagate_status();
 
   return true;
 }

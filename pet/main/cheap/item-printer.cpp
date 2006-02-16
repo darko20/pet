@@ -167,17 +167,20 @@ void tFSPrinter::print(const tItem *arg) {
   const_cast<tItem *>(arg)->get_fs().print(_out);
 }
 
-void tFegramedPrinter::print(const dag_node *dag) { 
-  open_stream("fstruc");
+void tFegramedPrinter::print(const dag_node *dag, const char *name) { 
+  open_stream(name);
   dag_print_fed_safe(_out, const_cast<dag_node *>(dag));
   close_stream();
 }
 
-void tFegramedPrinter::print(const tItem *arg) { 
-  ostringstream out;
-  out << arg->printname() 
-      << "-" << arg->start() << "-" << arg->end() << "-";
-  open_stream(out.str().c_str());
+void tFegramedPrinter::print(const tItem *arg, const char *name) { 
+  if (name == NULL) {
+    ostringstream out;
+    out << arg->printname() 
+        << "-" << arg->start() << "-" << arg->end() << "-";
+    name = out.str().c_str();
+  }
+  open_stream(name);
   dag_print_fed_safe(_out, const_cast<tItem *>(arg)->get_fs().dag());
   close_stream();
 }

@@ -27,123 +27,149 @@
 
 int lex_stem::next_id = 0;
 
+fs
+lex_stem::instantiate()
+{
+    fs e(_lexical_type);
+
+    fs expanded = unify(e, (fs(_instance_type)), e);
+
+    if(!expanded.valid())
+    {
+	string msg = string("invalid lex_stem `") + printname()
+		     + "' (cannot expand)";
+
+        if(!cheap_settings->lookup("lex-entries-can-fail"))
+            throw tError(msg);
+	else if(verbosity > 4)
+	    fprintf(stderr, "%s\n", msg.c_str());
+        return expanded;
+    }
+
+    /*
+    if(!_mods.empty())
+    {
+        if(!expanded.modify(_mods))
+        {
+            string m;
+            for(modlist::iterator mod = _mods.begin(); mod != _mods.end();
+                ++mod)
+                m += string("[") + mod->first + string(" : ")
+                    + type_name(mod->second) + string("]");
+            throw tError(string("invalid lex_stem `") + printname()
+                        + "' (cannot apply mods " + m + ")");
+        }
+    }
+*/
+    return expanded;
+}
+
+
 vector<string>
-lex_stem::get_stems()
-{
-    fs_alloc_state FSAS;
-    vector <string> orth;
-    struct dag_node *dag = FAIL;
-    fs e = instantiate();
+lex_stem::get_stems() {
+  fs_alloc_state FSAS;
+  vector <string> orth;
+  struct dag_node *dag = FAIL;
+  fs e = instantiate();
    
-    if(e.valid()) 
-      dag = dag_get_path_value(e.dag(),
-                               cheap_settings->req_value("orth-path"));
-    if(dag == FAIL)
-    {
-        fprintf(ferr, "no orth-path in `%s'\n", type_name(_type));
-        if(verbosity > 9)
-        {
-            dag_print(stderr, e.dag());
-            fprintf(ferr, "\n");
-        }
-        
-        orth.push_back("");
-        return orth;
+  if(e.valid()) 
+    dag = dag_get_path_value(e.dag(),
+                             cheap_settings->req_value("orth-path"));
+  if(dag == FAIL) {
+    fprintf(ferr, "no orth-path in `%s'\n", type_name(_instance_type));
+    if(verbosity > 9) {
+      dag_print(stderr, e.dag());
+      fprintf(ferr, "\n");
     }
-
-    list <struct dag_node *> stemlist = dag_get_list(dag);
-
-    if(stemlist.size() == 0)
-    {
-        // might be a singleton
-        if(is_type(dag_type(dag)))
-        {
-            string s(type_name(dag_type(dag)));
-            switch(s[0]) {
-            case '"':
-              orth.push_back(s.substr(1, s.length()-2));
-              break;
-            case '\'':
-              orth.push_back(s.substr(1, s.length()-1));
-              break;
-            default:
-              orth.push_back(s);
-              break;
-            }
-        }
-        else
-        {
-            fprintf(ferr, "no valid stem in `%s'\n", type_name(_type));
-        }
         
-        return orth;
-    }
-    
-    int n = 0;
-
-    for(list<dag_node *>::iterator iter = stemlist.begin();
-        iter != stemlist.end(); ++iter)
-    {
-        dag = *iter;
-        if(dag == FAIL)
-        {
-            fprintf(ferr, "no stem %d in `%s'\n", n, type_name(_type));
-            return vector<string>();
-        }
-        
-        if(is_type(dag_type(dag)))
-        {
-            string s(type_name(dag_type(dag)));
-            orth.push_back(s.substr(1,s.length()-2));
-        }
-        else
-        {
-            fprintf(ferr, "no valid stem %d in `%s'\n", n, type_name(_type));
-            return vector<string>();
-        }
-        n++;
-    }
-    
+    orth.push_back("");
     return orth;
+  }
+
+  list <struct dag_node *> stemlist = dag_get_list(dag);
+
+  if(stemlist.size() == 0) {
+    // might be a singleton
+    if(is_type(dag_type(dag))) {
+      string s(type_name(dag_type(dag)));
+      switch(s[0]) {
+      case '"':
+        orth.push_back(s.substr(1, s.length()-2));
+        break;
+      case '\'':
+        orth.push_back(s.substr(1, s.length()-1));
+        break;
+      default:
+        orth.push_back(s);
+        break;
+      }
+    }
+    else {
+      fprintf(ferr, "no valid stem in `%s'\n", type_name(_instance_type));
+    }
+        
+    return orth;
+  }
+    
+  int n = 0;
+
+  for(list<dag_node *>::iterator iter = stemlist.begin();
+      iter != stemlist.end(); ++iter) {
+    dag = *iter;
+    if(dag == FAIL) {
+      fprintf(ferr, "no stem %d in `%s'\n", n, type_name(_instance_type));
+      return vector<string>();
+    }
+        
+    if(is_type(dag_type(dag))) {
+      string s(type_name(dag_type(dag)));
+      orth.push_back(s.substr(1,s.length()-2));
+    } else {
+      fprintf(ferr, "no valid stem %d in `%s'\n",n,type_name(_instance_type));
+      return vector<string>();
+    }
+    n++;
+  }
+    
+  return orth;
 }
 
-lex_stem::lex_stem(type_t t, const modlist &mods, const list<string> &orths) :
-    _id(next_id++), _type(t), _mods(mods), _orth(0)
-{
-    if(orths.size() == 0)
-    {
-        vector<string> orth = get_stems();
-        _nwords = orth.size();
+lex_stem::lex_stem(type_t instance_type //, const modlist &mods
+                   , type_t lex_type
+                   , const list<string> &orths)
+  : _id(next_id++), _instance_type(instance_type)
+  , _lexical_type(lex_type == -1 ? leaftype_parent(instance_type) : lex_type)
+                  // , _mods(mods)
+  , _orth(0) {
+  
+  if(orths.size() == 0) {
+    vector<string> orth = get_stems();
+    _nwords = orth.size();
+      
+    if(_nwords == 0) return; // invalid entry
+      
+    _orth = new char*[_nwords];
         
-        if(_nwords == 0) // invalid entry
-            return;
-        
-        _orth = new char*[_nwords];
-        
-        for(int j = 0; j < _nwords; j++)
-        {
-            _orth[j] = strdup(orth[j].c_str());
-            strtolower(_orth[j]);
-        }
+    for(int j = 0; j < _nwords; j++) {
+      _orth[j] = strdup(orth[j].c_str());
+      strtolower(_orth[j]);
     }
-    else
-    {
-        _nwords = orths.size();
-        _orth = new char *[_nwords];
-        int j = 0;
-        for(list<string>::const_iterator it = orths.begin(); it != orths.end();
-            ++it, ++j)
-        {
-            _orth[j] = strdup(it->c_str());
-            strtolower(_orth[j]);
-        }
+  } else {
+    _nwords = orths.size();
+    _orth = new char *[_nwords];
+    int j = 0;
+    for(list<string>::const_iterator it = orths.begin(); it != orths.end();
+        ++it, ++j) {
+      _orth[j] = strdup(it->c_str());
+      strtolower(_orth[j]);
     }
+  }
 
-    if(verbosity > 14)
-    {
-        print(fstatus); fprintf(fstatus, "\n");
-    }
+  if(verbosity > 14) {
+    print(fstatus); fprintf(fstatus, "\n");
+  }
 }
+
 
 lex_stem::~lex_stem()
 {
@@ -161,43 +187,8 @@ lex_stem::print(FILE *f) const
     fprintf(f, " \"%s\"", _orth[i]);
 }
 
-fs
-lex_stem::instantiate()
-{
-    fs e(leaftype_parent(_type));
 
-    fs expanded = unify(e, (fs(_type)), e);
-
-    if(!expanded.valid())
-    {
-	string msg = string("invalid lex_stem `") + printname()
-		     + "' (cannot expand)";
-
-        if(!cheap_settings->lookup("lex-entries-can-fail"))
-            throw tError(msg);
-	else if(verbosity > 4)
-	    fprintf(stderr, "%s\n", msg.c_str());
-        return expanded;
-    }
-
-    if(!_mods.empty())
-    {
-        if(!expanded.modify(_mods))
-        {
-            string m;
-            for(modlist::iterator mod = _mods.begin(); mod != _mods.end();
-                ++mod)
-                m += string("[") + mod->first + string(" : ")
-                    + type_name(mod->second) + string("]");
-            throw tError(string("invalid lex_stem `") + printname()
-                        + "' (cannot apply mods " + m + ")");
-        }
-    }
-
-    return expanded;
-}
-
-#if 0
+#ifdef USE_DEPRECATED_CODE
 
 full_form::full_form(dumper *f, tGrammar *G)
 {

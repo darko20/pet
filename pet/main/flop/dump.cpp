@@ -187,7 +187,7 @@ dump_inflrs(dumper *f)
       if(types[i]->inflr != 0)
 	{
 	  ninflr++;
-	  dump_inflr(f, i, types[i]->inflr);
+	  dump_inflr(f, leaftype_order[i], types[i]->inflr);
 	}
     }
   

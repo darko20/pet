@@ -282,10 +282,15 @@ class tGrammar
     _rules.clear();
   }
   
-  /** activate all (and only) lexical and inflection rules */
-  void activate_lex_rules() {
+  /** activate all (and only) inflection rules */
+  void activate_infl_rules() {
     deactivate_all_rules();
     _rules = _infl_rules; 
+  }
+
+  /** activate all (and only) lexical and inflection rules */
+  void activate_lex_rules() {
+    activate_infl_rules();
     _rules.insert(_rules.end(), _lex_rules.begin(), _lex_rules.end());
   }
 

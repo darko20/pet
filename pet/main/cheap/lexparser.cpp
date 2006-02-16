@@ -19,6 +19,7 @@
 
 #include "config.h"
 #include "lexparser.h"
+#include "position-mapper.h" 
 #include "chart.h"
 #include "task.h"
 #include "tsdb++.h"
@@ -121,6 +122,7 @@ lex_parser::add(tLexItem *lex) {
     add_item(lex);  // from parse.cpp
     stats.words++;  // we count these for compatibility, not the ones after
                     // lexical processing
+    // _fix_me_ Berthold says, this is not the right number
   } else {
     // put the lex item onto the lex_parser's private "chart" of active entries
     // in principle, the chart is not necessary because all input items are on
@@ -156,6 +158,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   fs newfs = stem->instantiate();
   // Add modifications coming from the input
   newfs.modify_eagerly(mods);
+
   if (newfs.valid()) {
     add(new tLexItem(stem, i_item, newfs, infl_rules));
   }
@@ -226,13 +229,6 @@ lex_parser::add(tInputItem *inp) {
   } // end if is_word_token
 }
 
-/** A predicate that returns true if an input item is a token that should not
- *  be considered in subsequent processing.
- */
-struct isSkipToken : public unary_function<tInputItem *, bool> {
-  bool operator()(const tInputItem *it) { return it->is_skip_token(); }
-};
-
 /** A binary Predicate that is used to sort a list of input items such that the
  * list is a topological order of the underlying item graph.
  */
@@ -245,6 +241,7 @@ struct tInputItem_position_less
   }
 };
 
+
 /** Remove unrecognized tokens and close gaps that result from this deletion or
  *  gaps in the input positions.
  *  \param counts if \c true, the positions of the input tokens are counts
@@ -252,76 +249,23 @@ struct tInputItem_position_less
  *                positions (j, j) rather than (j, j+1)
  */
 int lex_parser::map_positions(inp_list &tokens, bool counts) {
-  int maxpos = 0;
-  int count_to_pos = (counts ? 1 : 0) ;
+  position_mapper posmapper(counts);
 
   // first delete all skip tokens
-  tokens.remove_if(isSkipToken());
+  tokens.remove_if(mem_fun(&tInputItem::is_skip_token));
 
-  if(tokens.empty()) return maxpos;
-
-  // sort the tokens list such that the items are in topological order, i.e.,
-  // when i process an item with start position i, all items with start
-  // position (i-1) have been processed
-  tokens.sort(tInputItem_position_less());
-
-  int maxend = 0;
-  for(inp_iterator it = tokens.begin(); it != tokens.end(); it++)
-    if ((*it)->endposition() > maxend) 
-      maxend = (*it)->endposition();
-  maxend += count_to_pos;
-  // int offset = tokens.front()->startposition();
-
-  // At the end of this function, this is the rightmost position in the chart
-
-  vector<int> skipholes(maxend + 1, -1);
-  skipholes[0] = 0;
-  int startpos, endpos;
-  for (inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
-    tInputItem *curr = *it;
-    startpos = curr->startposition();
-    if (skipholes[startpos] < 0) {
-      // find the nearest endpos left from startpos
-      int currpos = startpos;
-      do { currpos--; } while (skipholes[currpos] < 0);
-      skipholes[startpos] = currpos;
-    }
-    //curr->set_start(skipholes[startpos]) ;
-    endpos = curr->endposition() + count_to_pos ;
-    skipholes[endpos] = endpos;
-    //curr->set_end(endpos);
-    maxpos = (endpos > maxpos) ? endpos : maxpos;
+  for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
+    posmapper.add(*it);
   }
-  // compact the skipholes (fill positions with indeg == outdeg == 0)
-  vector<int> compact(maxend + 1, -1);
-  
-  int free = 0;  // free is the next vacant position in the resulting chart
-  for(int orig = 0; orig <= maxend; orig++) {
-    if (skipholes[orig] >= 0 && compact[skipholes[orig]] < 0) {
-      compact[orig] = free++;
-    }
-  }
-  /*
-  for(int i = 0; i <= maxend ; i++) { fprintf(fstatus, "%d ", skipholes[i]); }
-  fprintf(fstatus, "\n");
-  for(int i = 0; i <= maxend ; i++) { fprintf(fstatus, "%d ", compact[i]); }
-  fprintf(fstatus, "\n");
-  */
-  maxpos = free - 1;
-  // set the chart positions of the tokens according to the two mappings
-  for (inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
-    tInputItem *curr = *it;
-    startpos = curr->startposition() ;
-    curr->set_start(compact[skipholes[startpos]]) ;
-    endpos = curr->endposition() + count_to_pos ;
-    curr->set_end(compact[skipholes[endpos]]);
-  }
-  return maxpos;
+  int maxend = posmapper.map_to_chart_positions();
+  return maxend;
 }
 
 
+
 void
-lex_parser::dependency_filter(struct setting *deps, bool unidirectional)
+lex_parser::dependency_filter(struct setting *deps, bool unidirectional
+                              , bool lex_exhaustive)
 {
     if(deps == 0 || opt_chart_man == false)
         return;
@@ -335,9 +279,12 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional)
     for(chart_iter iter(Chart); iter.valid(); iter++)
     {
       lex = iter.current();
-      // XXX _fix_me_ the next condition might depend on whether we did
-      // exhaustive lexical processing or not
-      if (lex->passive() && (lex->trait() != INPUT_TRAIT)){
+      // the next condition depends on whether we did exhaustive lexical 
+      // processing or not
+      if (lex->passive() && 
+          ((!lex_exhaustive && (lex->trait() != INPUT_TRAIT))
+           || (lex_exhaustive && (lex->trait() == LEX_TRAIT))))
+      {
         f = lex->get_fs();
     
         if(verbosity > 4)
@@ -443,6 +390,8 @@ namespace HASH_SPACE {
  *  processing is not exhaustive. All non-input items are valid.
  */
 struct valid_non_input : public item_predicate {
+  virtual ~valid_non_input() {}
+
   virtual bool operator()(tItem *item) {
     return item->trait() != INPUT_TRAIT;
   }
@@ -453,6 +402,8 @@ struct valid_non_input : public item_predicate {
  *  satisified all inflection rules are valid.
  */
 struct valid_lex_complete : public item_predicate {
+  virtual ~valid_lex_complete() {}
+
   virtual bool operator()(tItem *item) {
     return (item->trait() != INPUT_TRAIT) && (item->trait() != INFL_TRAIT);
   }
@@ -647,8 +598,9 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   // exhaustively apply lexical and inflection rules
   // dependency filtering is done on the chart itself
   dependency_filter(cheap_settings->lookup("chart-dependencies"),
-                    cheap_settings->lookup(
-                            "unidirectional-chart-dependencies") != 0);
+                    (cheap_settings->lookup(
+                            "unidirectional-chart-dependencies") != 0),
+                    lex_exhaustive);
 
   // Should gap computation precede adding generics, and generics being only
   // applied where gaps are found? It is easy to find examples where adding

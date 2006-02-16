@@ -94,7 +94,7 @@ void initialize_codes(int n)
 {
   codesize = n;
   temp_bitcode = new bitcode(codesize);
-  codetable[bitcode(codesize)] = -1;
+  codetable[bitcode(codesize)] = T_BOTTOM;
   typecode.resize(n);
 }
 
@@ -157,7 +157,7 @@ int lookup_type(const char *s)
     {
       return (*pos).second;
     }
-  return -1;
+  return T_BOTTOM;
 }
 
 #ifdef DYNAMIC_SYMBOLS
@@ -165,7 +165,7 @@ int lookup_symbol(const char *s)
 {
   int type = lookup_type(s);
 
-  if (type == -1) {
+  if (type == T_BOTTOM) {
     // is it registered as dynamic type?
     string str = s;
     map<string, int>::iterator pos = dyntypememo.find(str);
@@ -185,9 +185,9 @@ int lookup_symbol(const char *s)
 int lookup_unsigned_symbol(unsigned int i)
 {
   if(integer_type_map.size() <= i) {
-    integer_type_map.resize(i + 1, -1);
+    integer_type_map.resize(i + 1, T_BOTTOM);
   }
-  if(integer_type_map[i] == -1) {
+  if(integer_type_map[i] == T_BOTTOM) {
     char intstring[40];
     sprintf(intstring, "\"%d\"", i);
     integer_type_map[i] = lookup_symbol(intstring);
@@ -199,7 +199,7 @@ void clear_dynamic_symbols() {
   last_dynamic = ntypes ;
   for(unsigned int i = 0; i < integer_type_map.size(); i++) {
     if(integer_type_map[i] >= last_dynamic) {
-      integer_type_map[i] = -1;
+      integer_type_map[i] = T_BOTTOM;
     }
   }
   dyntypename.erase(dyntypename.begin(), dyntypename.end()) ;
@@ -586,7 +586,7 @@ const list< type_t > &all_supertypes(type_t type) {
 int core_glb(int a, int b)
 {
   if(intersect_empty(*typecode[a], *typecode[b], temp_bitcode))
-    return -1;
+    return T_BOTTOM;
   else
     return lookup_code(*temp_bitcode);
 }
@@ -808,7 +808,7 @@ int glb(int s1, int s2)
   // now we know that s1 < s2
 
   if(s1 == BI_TOP) return s2;
-  if(s1 < 0) return -1;
+  if(s1 < 0) return T_BOTTOM;
 
 #ifndef FLOP
   // result is a _reference_ to the cache entry -> automatic writeback

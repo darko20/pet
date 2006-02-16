@@ -59,7 +59,10 @@ settings::settings(const char *name, const char *base, char *message)
 
   if(base)
     {
+      // determine the full pathname for the settings file from the directory
+      // in "base" and the basename in "name"
       char *slash = strrchr((char *) base, PATH_SEP[0]);
+      // _prefix gets the dirname of the path encoded in base
       _prefix = (char *) malloc(strlen(base) + 1 + strlen(SET_SUBDIRECTORY) + 1);
       if(slash)
 	{
@@ -71,6 +74,8 @@ settings::settings(const char *name, const char *base, char *message)
 	  strcpy(_prefix, "");
 	}
 
+      // fname contains the full pathname to the settings file, except for the
+      // extension, first in the directory the base path points to  
       char *fname = (char *) malloc(strlen(_prefix) + 1 + strlen(name) + 1);
       strcpy(fname, _prefix);
       strcat(fname, name);
@@ -78,6 +83,8 @@ settings::settings(const char *name, const char *base, char *message)
       _fname = find_file(fname, SET_EXT, true);
       if(!_fname)
 	{
+          // We could not find the settings file there, so try it in the
+          // subdirectory predefined for settings
 	  strcat(_prefix, SET_SUBDIRECTORY);
 	  strcat(_prefix, PATH_SEP);
           fname = (char *) realloc(fname, strlen(_prefix) + 1 + strlen(name) + 1);
@@ -89,6 +96,7 @@ settings::settings(const char *name, const char *base, char *message)
     }
   else
     {
+      // The full pathname is in "name"
       _fname = (char *) malloc(strlen(name) + 1);
       strcpy(_fname, name);
     }

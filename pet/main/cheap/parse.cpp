@@ -377,6 +377,80 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
     }
 }
 
+
+
+vector<tItem*>
+collect_readings(fs_alloc_state &FSAS, list<tError> &errors
+                 , vector<tItem*> &trees) {
+  vector<tItem *> readings;
+
+  if(opt_packing && !(opt_packing & PACKING_NOUNPACK)) {
+    if (pedgelimit == 0 || Chart->pedges() < pedgelimit) {
+      timer *UnpackTime = new timer();
+      int nres = 0;
+      stats.trees = 0; // We want to recount the trees in case some
+                       // are blocked or don't unpack.
+      int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+
+      for(vector<tItem *>::iterator tree = trees.begin();
+          (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
+            && tree != trees.end(); ++tree) {
+        if(! (*tree)->blocked()) {
+            
+          stats.trees++;
+
+          list<tItem *> results;
+
+          results = (*tree)->unpack(upedgelimit);
+            
+          for(list<tItem *>::iterator res = results.begin();
+              res != results.end(); ++res)
+            {
+              type_t rule;
+              if((*res)->root(Grammar, Chart->rightmost(), rule))
+                {
+                  readings.push_back(*res);
+                  if(verbosity > 2)
+                    {
+                      fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
+                              UnpackTime->convert2ms(UnpackTime->elapsed())
+                              / 1000.);
+                      (*res)->print_derivation(stderr, false);
+                      fprintf(stderr, "\n");
+                    }
+                }
+            }
+        }
+      }
+        
+      if(upedgelimit > 0 && stats.p_upedges > upedgelimit)
+        {
+          ostringstream s;
+            
+          s << "unpack edge limit exhausted (" << upedgelimit 
+            << " pedges)";
+            
+          errors.push_back(s.str());
+        }
+
+      stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
+      stats.p_dyn_bytes = FSAS.dynamic_usage();
+      stats.p_stat_bytes = FSAS.static_usage();
+      FSAS.clear_stats();
+      delete UnpackTime;
+    }
+  } else {
+    readings = trees;
+  }
+  
+  // This is not the ideal solution if parsing could be restarted
+  if(Grammar->sm())
+    sort(readings.begin(), readings.end(), item_greater_than_score());
+
+  return readings;
+}
+
+
 void
 parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
     stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
@@ -411,80 +485,13 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
         errors.push_back(s.str());
     }
 
-    if(opt_packing && !(opt_packing & PACKING_NOUNPACK))
-    {
-        timer *UnpackTime = new timer();
-	int nres = 0;
-        stats.trees = 0; // We want to recount the trees in case some
-                         // are blocked or don't unpack.
-        int upedgelimit = 0;
-
-        for(vector<tItem *>::iterator tree = Chart->trees().begin();
-            tree != Chart->trees().end(); ++tree)
-        {
-            if((*tree)->blocked())
-                continue;
-
-            stats.trees++;
-
-            list<tItem *> results;
-
-            if(pedgelimit && Chart->pedges() >= pedgelimit)
-                break;
-            upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
-
-            results = (*tree)->unpack(upedgelimit);
-            
-            for(list<tItem *>::iterator res = results.begin();
-                res != results.end(); ++res)
-            {
-                type_t rule;
-                if((*res)->root(Grammar, Chart->rightmost(), rule))
-                {
-                    Chart->readings().push_back(*res);
-		    stats.readings++;
-                    if(verbosity > 2)
-                    {
-                        fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
-                                UnpackTime->convert2ms(UnpackTime->elapsed())
-                                / 1000.);
-                        (*res)->print_derivation(stderr, false);
-                        fprintf(stderr, "\n");
-                    }
-                }
-            }
-            if(upedgelimit > 0 && stats.p_upedges > upedgelimit)
-                break;
-        }
-        
-        if(upedgelimit > 0 && stats.p_upedges > upedgelimit)
-        {
-            ostringstream s;
-            
-            s << "unpack edge limit exhausted (" << upedgelimit 
-              << " pedges)";
-            
-            errors.push_back(s.str());
-        }
-
-        stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
-        stats.p_dyn_bytes = FSAS.dynamic_usage();
-        stats.p_stat_bytes = FSAS.static_usage();
-        FSAS.clear_stats();
-        delete UnpackTime;
-    }
-    else
-    {
-        stats.readings = stats.trees;
-        Chart->readings() = Chart->trees();
-    }
-
-    // This is not the ideal solution if parsing could be restarted
-    if(Grammar->sm())
-      sort(Chart->readings().begin(), Chart->readings().end(),
-           item_greater_than_score());
+    Chart->readings() = collect_readings(FSAS, errors, Chart->trees());
+    stats.readings = Chart->readings().size();
 
 }
+
+
+
 
 void
 analyze(string input, chart *&C, fs_alloc_state &FSAS

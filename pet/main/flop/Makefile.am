@@ -48,17 +48,9 @@ flop_SOURCES = builtins.cpp	\
 	print-chic.cpp		\
 	print-tdl.cpp		\
 	reduction.cpp		\
-	reduction.h		\
 	symtab.h		\
 	template.cpp		\
 	terms.cpp		\
 	util.cpp
-
-
-# boost libraries: -lm -lstdc++
-
-# nodist_boost_SOURCES = 
-
-# boost_SOURCES = hierarchy.h reduction.h boost.cpp reduction.cpp
 
 EXTRA_DIST = Jamfile

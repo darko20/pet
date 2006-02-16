@@ -1,3 +1,42 @@
+v0.99.9
+  - work on lexical psql database continued (unfinished)
+  - changed characterization to make it work with unfilling
+  - fixed performance problem in boost version of flop
+  - moved propagate_status from flop.cpp to hierarchy.cpp where it logically 
+    belongs 
+  - fixed wrong dumping of inflection rules in some situations with many
+    leaf types
+  - added morph.cpp patches provided by oe (oe@csli.stanford.edu) for escaping
+    certain characters in morph rules and applying irregular entries on every
+    level of analysis
+  - added some more comments
+  - added some virtural destructors gcc4.0 complains about
+  - added fs modifications for stem and form for Berthold
+  - fixed wrong chart position mapping. Now put into its own class and file 
+    position_mapper.h again
+  - corrected behaviour of dependency filter in case lex_exhaustive is used
+  - added printing of feature structures for fegramed
+
+v0.99.8
+  - patches provided by Eric Nichols <eric-n@is.naist.jp> (thanks a lot)
+    , fixing the following problems:
+    * flop bug on 2.6 kernels due to mmap problem
+    * correct creation of mrs.h file in the autoconf/make scripts (no longer
+      distributed by LKB)
+    * fix problems with kernel/architecture specific subdirectories in LKB
+  - patch provided by Francis Bond (thanks) concerning tsdb MWE's output 
+    included
+  - in all chart items that replay infl rules, it is attempted to unify either
+    the base or the surface form into "orth-path"."path-to-inflpos". The base
+    form is taken for all but the last of these, the surface form for the one
+    that satisfies the last infl rule
+  - added function dag_collect_symbols to dag_tomabechi.cpp to collect a type
+    symbol table for a given dag
+  - only tLexItems copy the _inflrs_todo list (saves a bit space)
+  - fixed filtering of duplicate morphology analyses
+  - moved code to collect readings from the chart into its own function
+  - cleaned up handling of global variables in chunk allocator
+
 v0.99.7
   - merge in oe branch: pass_through_comments, LUI dumping, orthographemic-...
   - minor code cleanup

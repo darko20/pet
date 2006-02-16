@@ -7,10 +7,12 @@ CHEAPLDFLAGS = @CHEAPLDFLAGS@
 CHEAPLIBS = @CHEAPLIBS@
 
 # Development switches
-# PROFILE = -pg
-# COVERAGE = -fprofile-arcs -ftest-coverage
 OPTIM=-O2
 #-O0 
+# profiling with gprof
+# OPTIM += -pg
+# coverage testing with gprof
+# OPTIM += -fprofile-arcs -ftest-coverage
 # not in our gcc yet -fno-eliminate-unused-debug-types
 #DEFS += -UNDEBUG -D_GLIBCXX_DEBUG
 
@@ -62,7 +64,7 @@ cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
 TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h	\
 	failure.cpp qc.h qc.cpp
 if TOMABECHI_UNIFIER
-DEFS += -DDAG_TOMABECHI -DQC_PATH_COMP
+DEFS += -DDAG_TOMABECHI
 cheap_SOURCES += $(TOMABECHI_UNIF_FILES)
 else
 if SIMPLE_UNIFIER
@@ -70,6 +72,12 @@ DEFS += -DDAG_SIMPLE -DWROBLEWSKI2
 nodist_cheap_SOURCES += dag-simple.cpp dag-simple.h
 endif
 endif
+
+# Instead of linking to the no longer distributed "rmrs.h" header, we need to
+# build "mrs.h" on our own.  
+# Let's add "mrs.h" to ECL_MRS_FILES and BUILT_SOURCES so it always gets built
+# ... Eric Nichols <eric-n@is.naist.jp>,
+# Jun. 18, 2005
 
 #There is currently no other way to do MRS than via ECL
 # Is -Dlinux -fPIC -fstrict-aliasing needed as compiler options?
@@ -79,7 +87,9 @@ endif
 #cheap_SOURCES += $(MRS_FILES)
 #endif
 
+# Add "mrs.h" to MRS source files ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 # Is -Dlinux -fstrict-aliasing needed as compiler options?
+#ECL_MRS_FILES = cppbridge.cpp cppbridge.h petecl.c petecl.h petmrs.h petmrs.c
 ECL_MRS_FILES = cppbridge.cpp cppbridge.h petecl.c petecl.h petmrs.h petmrs.c
 if ECLMRS
 # ? Dynamically linked or statically?
@@ -87,6 +97,8 @@ if ECLMRS
 # cheap_LDADD += $(ECLDIR)/libecl.a
 cheap_SOURCES += $(ECL_MRS_FILES)
 cheap_LDADD = libmrs.a
+nodist_cheap_SOURCES += mrs.h
+BUILT_SOURCES = mrs.h
 endif
 
 XML_FILES = pic-handler.cpp pic-handler.h pic-states.h xmlparser.cpp xmlparser.h xml-tokenizer.h
@@ -117,8 +129,7 @@ endif
 #endif
 
 PSQL_FILES = psqllex.h psqllex.cpp
-if PSQLLEX
-#DEFS += +DPSQLLEX
+if LEXDB
 cheap_SOURCES += $(PSQL_FILES)
 endif
 
@@ -148,10 +159,10 @@ endif
 # endif
 
 # This is always used! <-> documentation
-AM_CXXFLAGS = -g $(PROFILE) $(OPTIM) $(COVERAGE) -Wall
-AM_CFLAGS = -g $(PROFILE) $(OPTIM) $(COVERAGE) -Wall
+AM_CXXFLAGS = -g -Wall $(OPTIM) $(DEFS)
+AM_CFLAGS = -g -Wall $(OPTIM) $(DEFS)
 
-# I don't want optimisation to be switched on
+# clear defaults, e.g., if i don't want optimisation to be switched on
 CXXFLAGS =
 CFLAGS =
 
@@ -163,16 +174,22 @@ EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp			\
 
 EXTRA_DIST = Jamfile
 
-MOSTLYCLEANFILES = libmrs.a
+# Add "mrs.h" to files to be deleted on "make clean" ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
+#MOSTLYCLEANFILES = libmrs.a
+MOSTLYCLEANFILES = libmrs.a $(MRSDIR)/include/mrs.h
 
 # ADDED :I686 TO *FEATURES*
 # Executed unconditionally!  Dependencies should be done by ECL
+
+# Add build definition for "mrs.h" ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
+mrs.h: libmrs.a
+
 libmrs.a:
 	( \
 	  echo "(pushnew :i686 *features*)"; \
 	  echo ";;(pushnew :debug *features*)"; \
 	  echo "(load \"$(MRSDIR)/src/general/loadup\")"; \
-	  echo "(si::system (format nil \"cd ~a; find -type f -exec rm {} \;\" (get-binaries-dir \"mrs\")))"; \
+	  echo ";;MUCH TOO DANGEROUS!!!  (si::system (format nil \"cd ~a; find -type f -exec rm {} \;\" (get-binaries-dir \"mrs\")))"; \
 	  echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
 	  echo "(compile-system \"mrs\" :force t)"; \
 	) | $(ECL)

@@ -108,6 +108,7 @@ class typecache
 	_cache_alloc.allocate(sizeof(typecachebucket) * _nbuckets);
 
       _cache_alloc.mark(_initial_alloc);
+      // _cache_alloc.print_check();
 
       for(int i = 0; i < _nbuckets; i++)
 	init_bucket(_buckets + i);
@@ -187,6 +188,7 @@ class typecache
       b -> next = (typecachebucket *) _cache_alloc.allocate(sizeof(typecachebucket));
       b = b->next;
       init_bucket(b);
+      //_cache_alloc.print_check();
 
       b -> key = key;
       b -> value = _no_value;

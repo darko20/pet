@@ -25,6 +25,8 @@ typedef string myString;
 /** The pure virtual base class for preprocessing modules */
 class tInputModule {
 public:
+  virtual ~tInputModule() {}
+
   /** Reset internal state after processing one sentence */
   virtual void clear() {};
 
@@ -111,6 +113,8 @@ protected:
  */
 class tNE_recognizer : public tInputModule {
 public:
+  virtual ~tNE_recognizer() {}
+
   /** Add Named Entities to the list of tokens. */
   virtual void compute_ne(myString s, inp_list &tokens_result) = 0;
 };
@@ -119,6 +123,8 @@ public:
  */
 class tPOSTagger : public tInputModule {
 public:
+  virtual ~tPOSTagger() {}
+
   /** Add POS tags to the tokens in tokens_result */
   virtual void compute_tags(myString s, inp_list &tokens_result) = 0;
 };
@@ -128,6 +134,8 @@ public:
  */
 class tMorphology : public tInputModule {
 public:
+  virtual ~tMorphology() {}
+  
   /** Compute morphological results for \a form. */
   virtual list<class tMorphAnalysis> operator()(const myString &form) = 0;
 };
@@ -138,6 +146,8 @@ public:
  */
 class tLexicon : public tInputModule {
 public:
+  virtual ~tLexicon() {}
+
   /** Get lexicon entries for \a stem  */
   virtual list<lex_stem *> operator()(const myString &stem) = 0;
 };
@@ -148,9 +158,11 @@ extern tGrammar *Grammar;
 /** Lexicon stored internally in the grammar. */
 class tInternalLexicon : public tLexicon {
 public:
+  virtual ~tInternalLexicon() {}
+
   /** Get lexicon entries for \c stem in \c result */
   virtual list<lex_stem *> operator()(const myString &stem) {
-    return Grammar->lookup_stem(stem.c_str());
+    return Grammar->lookup_stem(stem);
   };
 
   /** A string to describe the module */

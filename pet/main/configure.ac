@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.7], [pet@coli.uni-saarland.de])
+AC_INIT([PET], [0.99.9], [kiefer@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
@@ -15,14 +15,76 @@ dnl dejagnu dist-bzip2 no-dependencies
 # or alternatively
 # $ ./configure --with-boost=/path/to/boost ...
 # (which is not quite the same)
-contrib_prefix="/project/cl/deepthought"
 
-BOOSTDIR="$contrib_prefix/local/"
-ICUDIR=/usr/local
+# Let's try putting stuff in delphin/
+# ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+contrib_prefix="/usr/local/delphin"
+
 ITSDBDIR="$contrib_prefix/lkb"
 MRSDIR="$ITSDBDIR"
-ECLDIR="$contrib_prefix/local"
-XERCESCDIR="$contrib_prefix/lib/xerces-c"
+
+# Assume that PET_DEPENDENCIES are all in "/usr/local"
+# ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+ICUDIR=/usr/local
+ECLDIR=/usr/local
+XERCESCDIR=/usr/local
+# default install location for postgresql and boost is /usr/lib & /usr/include
+PSQLDIR=
+BOOSTDIR=
+
+# Check whether linux is 32 or 64 bit and create variable "OS" to point to
+# correct library location.
+# Code liberally borrowed from LKB install script ...
+# Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+
+
+# next, determine the current operating system, one of `linux' (x86), `solaris'
+# (sparc), or `windows' (x86); anything else will require manual installation.
+#
+#if [ "$OSTYPE" = "linux" -o "$OSTYPE" = "linux-gnu" ]; then
+# apparently, (some) Debian installations come with an older uname(1), where
+# `-i' is not available :-{.                                 (11-mar-05; oe)
+#
+if uname -i > /dev/null 2>&1; then
+  CPU=$(uname -i)
+  if test "${cpu}" = "unknown" ; then cpu=$(uname -m); fi
+else
+  CPU=$(uname -m)
+fi
+case "${CPU}" in
+  i?86)
+    OS="linux.x86.32"
+     ;;
+  x86_64)
+    OS="linux.x86.64"
+    ;;
+  *)
+    echo "lkb: unknown Linux architecture (check \`uname -m'); exit."
+    exit 1;
+esac
+#elif [ "$OSTYPE" = "solaris" -o "${OSTYPE%%?.?}" = "solaris" ]; then
+#  os="solaris";
+#elif [ "$OSTYPE" = "cygwin" ]; then
+#  os="windows";
+#fi
+
+# let's use the method given in LKB's install script to get the kernel version
+# too ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 19, 2005
+KERNEL=$(uname -r)
+case "${KERNEL}" in
+  2.4*)
+    kernel_2_4=true
+    AC_DEFINE([KERNEL_2_4],[1],[Current Linux kernel is 2.4.x])
+     ;;
+  2.6*)
+    kernel_2_6=true
+    AC_DEFINE([KERNEL_2_6],[1],[Current Linux kernel is 2.6.x])
+    ;;
+  *)
+    echo "lkb: unknown Linux kernel version (check \`uname -r'); exit."
+    exit 1;
+esac
+
 
 # We need to do this here to get a properly working configure with dependency 
 # tracking 
@@ -38,6 +100,7 @@ AC_CHECK_LIB([stdc++], [main])
 
 export LDFLAGS
 export CPPFLAGS
+
 
 # Features/packages header files and libraries need to be done with
 # dependencies: only check if asked, and if not found switch off all
@@ -62,9 +125,15 @@ else
     return 1
 fi 
 
-if test -d ${ITSDBDIR}/lib/linux ; then
+# Use OS variable to point to correct linux library
+# ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+#if test -d ${ITSDBDIR}/lib/linux ; then
+if test -d ${ITSDBDIR}/lib/${OS} ; then
     (
-    LDFLAGS="$LDFLAGS -L${ITSDBDIR}/lib/linux"
+    # Use OS variable to point to correct linux library ...
+    # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+    #LDFLAGS="$LDFLAGS -L${ITSDBDIR}/lib/linux"
+    LDFLAGS="$LDFLAGS -L${ITSDBDIR}/lib/${OS}"
     export LDFLAGS
     AC_CHECK_LIB([itsdb], [capi_register], [ return 0 ], 
         [
@@ -89,10 +158,12 @@ case "${withval}" in
 esac
 ], [tsdb=true])
 if test x$tsdb = xtrue && check_tsdb ; then
-    AC_DEFINE(TSDBAPI, [], [incr[tsdb()] libraries available, supply API])
+    AC_DEFINE(TSDBAPI, [1], [incr[tsdb()] libraries available, supply API])
     CHEAPLIBS="-litsdb $CHEAPLIBS"
     CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ITSDBDIR}/include"
-    CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ITSDBDIR}/lib/linux -Wl,-rpath,${ITSDBDIR}/lib/linux"
+    # Use OS variable to point to correct linux library ...
+    # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+    CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ITSDBDIR}/lib/${OS} -Wl,-rpath,${ITSDBDIR}/lib/${OS}"
 else
     tsdb=false
 fi
@@ -134,25 +205,20 @@ if test -f ${MRSDIR}/src/general/loadup.lisp ; then
         (
         CPPFLAGS="$CPPFLAGS -I${eclincldir} -I${MRSDIR}/include"
         export CPPFLAGS
-        AC_CHECK_HEADERS([ecl.h rmrs.h], [], 
+	# rmrs.h is no longer being distributed, so we don't need to check for
+        # it any more ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18, 2005
+	AC_CHECK_HEADERS([ecl.h], [],
             [ AC_MSG_WARN([header files not found for --with-eclmrs; DISABLED])
-              return 1 ],[
-              #if HAVE_ECL_H
-              # include "ecl.h"
-              #endif
-              ])
+              return 1 ],[])
         LDFLAGS="$LDFLAGS -L${ECLDIR}/lib/ecl"
         export LDFLAGS
         # ECL Libraries
-        AC_CHECK_LIB([ecl], [cl_boot], 
+        AC_CHECK_LIB([ecl], [cl_map], 
             [ return 0 ], 
-            [
+            [ 
             AC_MSG_WARN([libecl.so not found for --with-eclmrs; DISABLED])
             return 1
             ])
-        # Not used: -lclos -llsp (?)
-        # FIXME: Replace `main' with a function in `-lgc':
-        # AC_CHECK_LIB([gc], [main])
         )
     else
         AC_MSG_WARN([directory neither ${ECLDIR}/h nor ${ECLDIR}/lib/h found for --with-eclmrs; DISABLED])
@@ -178,7 +244,7 @@ if test x$eclmrs = xtrue && check_ecl ; then
     CHEAPLIBS="-lecl $CHEAPLIBS"
     CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ECLDIR}/lib/ecl -Wl,-rpath,${ECLDIR}/lib/ecl"
     CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${eclincldir} -I${MRSDIR}/include"
-    AC_DEFINE(HAVE_ECL, [], [Use ECL made MRS library])
+    AC_DEFINE(HAVE_ECL, [1], [Use ECL made MRS library])
 else 
     eclmrs=false
 fi
@@ -202,15 +268,15 @@ fi
 AC_CHECK_LIB([pthread], [pthread_exit], [ icu=true ],
     [ AC_MSG_WARN([pthread library not found for --with-icu; DISABLED])
         return 1 ])
-AC_CHECK_LIB([icuuc], [main], [ icu=true ], 
-    [ AC_MSG_WARN([icuuc library not found for --with-icu; DISABLED])
-        return 1 ])
-AC_CHECK_LIB([icui18n], [main], [ icu=true ], 
-    [ AC_MSG_WARN([icui18n library not found for --with-icu; DISABLED])
-          return 1 ])
 AC_CHECK_LIB([icudata], [main], [ icu=true ], 
     [ AC_MSG_WARN([icudata library not found for --with-icu; DISABLED])
         return 1 ])
+dnl AC_CHECK_LIB([icuuc], [main], [ icu=true ], 
+dnl     [ AC_MSG_WARN([icuuc library not found for --with-icu; DISABLED])
+dnl         return 1 ])
+dnl AC_CHECK_LIB([icui18n], [main], [ icu=true ], 
+dnl     [ AC_MSG_WARN([icui18n library not found for --with-icu; DISABLED])
+dnl           return 1 ])
 return 0
 )
 }
@@ -231,7 +297,7 @@ if test x$icu = xtrue && check_icu ; then
         CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ICUDIR}/lib -Wl,-rpath,${ICUDIR}/lib"
     fi
     CHEAPLIBS="-lpthread -licuuc -licui18n -licudata $CHEAPLIBS"
-    AC_DEFINE(HAVE_ICU, [], [use international character library from IBM]) 
+    AC_DEFINE(HAVE_ICU, [1], [use international character library from IBM]) 
 else
     icu=false
 fi
@@ -255,15 +321,17 @@ fi
 if test x$boost = xtrue ; then
     AC_LANG_PUSH(C++)
     save_CPP="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
-    AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-    dnl Necessary only for test binary boost:
-    dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
+    if test -n "${BOOSTDIR}" ; then
+       CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
+       AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
+       dnl Necessary only for test binary boost:
+       dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
+    fi
     CPPFLAGS="$save_CPP"
     AC_LANG_POP(C++)
 fi
 AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
-if test x$boost = xtrue ; then
+if test x$boost = xtrue -a -n "${BOOSTDIR}" ; then
     FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
 fi
 
@@ -289,7 +357,7 @@ AM_CONDITIONAL(SIMPLE_UNIFIER, [test x$unifier = xsimple])
 #AC_HELP_STRING([--enable-dynamic-symbols], [enable or disable dynamic symbols (default=enabled)]),
 #[dynsymbols=${enableval}], [dynsymbols=yes])
 #if test x$dynsymbols=xyes ; then
-#   AC_DEFINE([DYNAMIC_SYMBOLS],[],[Enable the use of dynamic symbols/atoms])
+#   AC_DEFINE([DYNAMIC_SYMBOLS],[1],[Enable the use of dynamic symbols/atoms])
 #fi
 
 AC_ARG_WITH(xml,
@@ -319,10 +387,62 @@ if test x$xml = xtrue ; then
     CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${XERCESCDIR}/include"
     CHEAPLDFLAGS="$CHEAPLDFLAGS -L${XERCESCDIR}/lib -Wl,-rpath,${XERCESCDIR}/lib"
     CHEAPLIBS="-lxerces-c $CHEAPLIBS"
-    AC_DEFINE(HAVE_XML, [], [Enable XML input mode, using XERCES C++ library])
+    AC_DEFINE(HAVE_XML, [1], [Enable XML input mode, using XERCES C++ library])
 fi
 AM_CONDITIONAL(XML, [test x$xml = xtrue])
 
+
+
+check_psql() {
+(
+if test x$PSQLDIR != x ; then
+    if test -d ${PSQLDIR} && test -d $PSQLDIR/include && test -d $PSQLDIR/lib ; then 
+        LDFLAGS="$LDFLAGS -L${PSQLDIR}/lib"
+        export LDFLAGS
+        CPPFLAGS="$CPPFLAGS -I${PSQLDIR}/include"
+    else 
+        AC_MSG_WARN([directory ${PSQLDIR}, ${PSQLDIR}/lib or ${PSQLDIR}/include not found for --with-lexdb; DISABLED])
+        return 1
+    fi
+fi
+CPPFLAGS="$CPPFLAGS -I."
+export CPPFLAGS
+AC_CHECK_HEADERS([libpq-fe.h], [],
+    [ AC_MSG_WARN([pq header file not found for psql lex DB; DISABLED])
+      return 1
+    ])
+AC_CHECK_LIB([pq], [main], [],
+    [ AC_MSG_WARN([pq library file not found for psql lex DB; DISABLED])
+      return 1
+    ])
+return 0
+)
+}
+
+AC_ARG_WITH(lexdb,
+[AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
+[
+case "${withval}" in
+    yes) lexdb=true ;;
+    no)  lexdb=false ;;
+    *)   lexdb=true
+         PSQLDIR=${withval} ;;
+esac
+], [ lexdb=true ])
+if test x$lexdb = xtrue && check_psql ; then
+   AC_MSG_WARN([PQ Lib active])
+   if test x$PSQLDIR != x ; then
+      CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
+      CHEAPLDFLAGS="$CHEAPLDFLAGS -L${PSQLDIR}/lib -Wl,-rpath,${PSQLDIR}/lib"
+   fi
+   CHEAPLIBS="-lpq $CHEAPLIBS"
+   AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database]) 
+else
+   lexdb=false
+fi
+AM_CONDITIONAL(LEXDB, [test x$lexdb = xtrue])
+
+dnl What the *&^@~! is that?
 
 AC_ARG_ENABLE(external-dictionary,
 [AC_HELP_STRING([--enable-external-dictionary@<:@=DIR@:>@], [use an external dictionary (default=no)])],
@@ -332,55 +452,10 @@ AC_ARG_ENABLE(external-dictionary,
    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-external-dictionary])
  esac
  if test x$extdict = xtrue ; then
-    AC_DEFINE(HAVE_EXTDICT, [], [enable external dictionary])
+    AC_DEFINE(HAVE_EXTDICT, [1], [enable external dictionary])
  fi
 ], [extdict=false])
 AM_CONDITIONAL(EXTDICT, [test x$extdict = xtrue])
-
-dnl Completely depends on ECL now
-dnl Should also test for ECL!
-dnl Depends on ECL
-dnl AC_ARG_ENABLE(mrs,
-dnl AC_HELP_STRING([--enable-mrs@<:@=ARG@:>@], [use the MRS facilities, needs ECL! (default=yes)]),
-dnl [case "${enableval}" in
-dnl     yes) mrs=true 
-dnl          MRSDIR=$ITSDBDIR ;;
-dnl     no)  mrs=false ;;
-dnl     *)   if test x"${enableval}" != x ; then
-dnl            MRSDIR=${enableval}
-dnl          fi
-dnl  esac
-dnl  if test x$mrs = xtrue && test x$ecl = xfalse ; then
-dnl     AC_MSG_ERROR(MRS can only be enabled together with ECL!)
-dnl     mrs=false
-dnl  fi
-dnl  if \! test -d $MRSDIR ; then
-dnl     AC_MSG_ERROR(directory $(MRSDIR) not found for --enable-mrs!)
-dnl  fi
-dnl  if test x$mrs = xtrue; then
-dnl     AC_SUBST(MRSDIR)
-dnl     AC_SUBST(MRS, "true")
-dnl  fi
-dnl ], [mrs=true])
-
-if test x$lexdb = xtrue; then
-    AC_CHECK_LIB([pq], [main], [ CHEAPLIBS="-lpq $CHEAPLIBS" ],
-        [
-        AC_MSG_WARN([pq library file not found for lexdb; DISABLED])
-        lexdb=false
-        ])
-fi
-AM_CONDITIONAL(LEXDB, [test x$lexdb = xtrue])
-
-if test x$psql = xtrue; then
-    dnl Only for PGSQL DB
-    AC_CHECK_HEADERS([libpq-fe.h],[],
-        [
-        AC_MSG_WARN([pq header file not found for psql DB; DISABLED])
-        psql=false
-        ])
-fi
-AM_CONDITIONAL(PSQLLEX, [test x$psql = xtrue])
 
 
 AC_ARG_ENABLE(rcu,
@@ -403,7 +478,7 @@ AC_HELP_STRING([--enable-yy@<:@=ARG@:>@], [use the YY extensions (default=yes)])
  esac
 ], [yy=true])
 if test x$yy = xtrue; then 
-    AC_DEFINE(YY, [], [Include some YY specific code])
+    AC_DEFINE(YY, [1], [Include some YY specific code])
 fi
 AM_CONDITIONAL(YY, [test x$yy = xtrue])
 
@@ -417,7 +492,7 @@ AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
  esac
 ], [lui=false])
 if test x$lui = xtrue; then 
-    AC_DEFINE(LUI, [], [Enable grammar dumping in LUI format])
+    AC_DEFINE(LUI, [1], [Enable grammar dumping in LUI format])
 fi
 # no extra files, don't need Makefile conditional
 # AM_CONDITIONAL(LUI, [test x$lui = xtrue])
@@ -490,7 +565,30 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MALLOC
+
+AC_ARG_ENABLE(mmapalloc,
+[AC_HELP_STRING([--enable-mmap], [enable/disable use of mmap allocator (default=check for mmap)])],
+[case "${enableval}" in
+   no)   mmapalloc=no;;
+   *)    mmapalloc=yes;;
+ esac
+], [mmapalloc=yes])
+if test "$mmapalloc" = "yes" ; then
 AC_FUNC_MMAP
+fi
+
+AC_ARG_ENABLE(qccomp,
+[AC_HELP_STRING([--enable-qccomp], [enable/disable recording of failures for quick check computation])],
+[case "${enableval}" in
+   no)   qccomp=no;;
+   *)    qccomp=yes;;
+ esac
+], [qccomp=no])
+if test x$qccomp = xyes ; then
+   AC_DEFINE(QC_PATH_COMP, [1], [Enable code for QuickCheck computation])
+fi
+
+
 AC_FUNC_REALLOC
 AC_FUNC_SETPGRP
 AC_FUNC_SETVBUF_REVERSED
@@ -501,7 +599,7 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 # Is becoming obsolete
 AC_FUNC_WAIT3
-AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gettimeofday inet_ntoa munmap setlocale socket strcasecmp strchr strdup strerror strpbrk strrchr strtol])
+AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gettimeofday inet_ntoa setlocale socket strcasecmp strchr strdup strerror strpbrk strrchr strtol])
 
 # Excluded doc and goofy
 AC_CONFIG_FILES([Makefile
@@ -511,38 +609,23 @@ AC_CONFIG_FILES([Makefile
                  common/Makefile
                  flop/Makefile
 		 flop/Jamfile])
+
+feature_avail() {
+(
+  if test x$1 != x$2 ; then foo="NOT " ; fi
+  echo "$3 is ${foo}available"
+)
+}
 echo ; echo "============================================================="
-if test x$boost = xtrue ; then
-   echo "Boost is available"
-else
-   echo "Boost is not available: flop can not be compiled"
-fi   
-if test x$tsdb = xtrue ; then
-   echo "tsdb is available"
-else
-   echo "tsdb is NOT available"
-fi   
-if test x$eclmrs = xtrue ; then
-   echo "MRS code with ecl is available"
-else
-   echo "MRS code with ecl is NOT available"
-fi   
-if test x$icu = xtrue ; then
-   echo "ICU is available"
-else
-   echo "ICU is NOT available"
-fi   
-if test x$xml = xtrue ; then
-   echo "XML input mode is available"
-else
-   echo "XML input mode is NOT available"
-fi   
-if test x$extdict = xtrue -a x$lexdb = xtrue -a x$psql = xtrue ; then
-   echo "External SQL dictionary is available"
-else
-   echo "External SQL dictionary is NOT available"
-fi   
-echo ; echo "============================================================="
+feature_avail x$boost xtrue "Boost (required for flop)"
+feature_avail x$tsdb xtrue "tsdb"
+feature_avail x$eclmrs xtrue "MRS code with ecl"
+feature_avail x$icu xtrue "ICU"
+feature_avail x$xml xtrue "XML input mode"
+feature_avail x$lexdb xtrue "External SQL dictionary"
+feature_avail x$mmapalloc xyes "Memory allocation with mmap"
+feature_avail x$qccomp xyes "Code for quick-check computation"
+echo "=============================================================" ; echo
 
 
 AC_OUTPUT

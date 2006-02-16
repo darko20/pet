@@ -23,6 +23,10 @@
 
 #include "dag-common.h"
 
+#define DAG_FORMAT_TRADITIONAL 0
+#define DAG_FORMAT_FED 1
+#define DAG_FORMAT_LUI 2
+
 #if defined(DAG_SIMPLE)
 #if defined(WROBLEWSKI3)
 #define DESTRUCTIVE_UNIFIER
@@ -34,7 +38,3 @@
 # define QDESTRUCTIVE_UNIFIER
 # include "dag-tomabechi.h"
 #endif
-
-#define DAG_FORMAT_TRADITIONAL 0
-#define DAG_FORMAT_FED 1
-#define DAG_FORMAT_LUI 2

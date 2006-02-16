@@ -21,7 +21,7 @@
 #include <ext/hash_set>
 
 // hopefully a gnu compiler with
-#if (__GNUC__ > 2) && ( __GNUC_MINOR__ > 1)
+#if ((__GNUC__ == 3) && ( __GNUC_MINOR__ > 1)) || (__GNUC__ > 3)
 //g++ version 3.2.x or later
 #define HASH_SPACE __gnu_cxx
 using namespace HASH_SPACE;
