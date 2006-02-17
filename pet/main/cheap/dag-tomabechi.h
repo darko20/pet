@@ -100,6 +100,14 @@ struct dag_arc
   struct dag_arc *next;
 };
 
+#if SIZEOF_INT_P == 4
+typedef int32_t visit_int_t;
+#else
+#if SIZEOF_INT_P == 8
+typedef int64_t visit_int_t;
+#endif
+#endif
+
 #include "dag-arced.h"
 
 /** @name Generation Counters
@@ -354,18 +362,18 @@ inline void dag_invalidate_changes()
 /** Has this node been visited?
  * we just `overload' the copy slot to make life for the printing stuff easier.
  */
-inline int dag_get_visit(dag_node *dag)
+inline visit_int_t dag_get_visit(dag_node *dag)
 {
-  return (int) dag_get_copy(dag);
+  return (visit_int_t) dag_get_copy(dag);
 }
 
 /** Mark this node as visited.
  * we just `overload' the copy slot to make life for the printing stuff easier.
  */
-inline int dag_set_visit(dag_node *dag, int visit)
+inline visit_int_t dag_set_visit(dag_node *dag, visit_int_t visit)
 {
   dag->generation = unify_generation;
-  return (int) (dag->copy = (dag_node *) visit);
+  return (visit_int_t) (dag->copy = (dag_node *) visit);
 }
 
 /** Invalidate all `visited' marks */

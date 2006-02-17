@@ -170,6 +170,7 @@ fs::modify_eagerly(fs &mod) {
  */
 bool
 fs::characterize(list_int *path, attr_t feature, type_t value) {
+  bool succeeded = false;
   dag_node *curr = _dag;
   // try to retrieve the characterization path
   dag_node *p = dag_get_path_value_l(curr, path);
@@ -194,14 +195,15 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
       if (charz == FAIL || dag_type(charz) == BI_TOP) {
         dag_node *newdag = dag_unify(curr, charz_dag, first, 0);
         if (newdag != FAIL) {
-          this->_dag = newdag;
-          return true;
+          curr = newdag;
+          succeeded = true;
         }
       }
     }
     p = dag_get_attr_value(p, BIA_REST);
   } while (p != FAIL) ;
-  return false;
+  _dag = curr;
+  return succeeded;
 }
 
 // statistics

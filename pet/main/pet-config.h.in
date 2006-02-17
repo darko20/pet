@@ -1,4 +1,4 @@
-/* config.h.in.  Generated from configure.ac by autoheader.  */
+/* pet-config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
@@ -255,6 +255,9 @@
    release 3. */
 #undef SETVBUF_REVERSED
 
+/* The size of a `int *', as computed by sizeof. */
+#undef SIZEOF_INT_P
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
@@ -264,7 +267,7 @@
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 #undef TM_IN_SYS_TIME
 
-/* incr[tsdb()] libraries available, supply API */
+/* "incr[tsdb()] libraries available, supply API" */
 #undef TSDBAPI
 
 /* Version number of package */

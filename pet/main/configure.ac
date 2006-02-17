@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.10], [kiefer@dfki.de])
+AC_INIT([PET], [0.99.11], [kiefer@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])
@@ -554,6 +554,7 @@ AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_HEADER_TIME
 AC_STRUCT_TM
+AC_CHECK_SIZEOF(int *)
 
 # Checks for library functions.
 AC_SEARCH_LIBS([getopt_long_only], [iberty], [],

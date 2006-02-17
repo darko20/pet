@@ -154,7 +154,7 @@ void dag_mark_dump_nodes(struct dag_node *dag)
   if(dag_get_visit(dag) == 0)
     {
       struct dag_arc *arc;
-      dag_set_visit(dag, -1);
+      dag_set_visit(dag, 1); // value doesn't matter, but not zero
 
       if(!dag->arcs)
         dag_dump_grand_total_atomic++;

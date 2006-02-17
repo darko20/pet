@@ -64,7 +64,7 @@ extern char **statusnames;
 typedef int type_t;
 typedef int attr_t;
 
-#define T_BOTTOM -1       /// failure of type unification
+#define T_BOTTOM ((type_t) -1)       /// failure of type unification
 
 /** The number of leaf types */
 extern int nleaftypes;

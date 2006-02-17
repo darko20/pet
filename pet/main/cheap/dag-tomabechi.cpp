@@ -1570,8 +1570,8 @@ void dag_print_rec_safe(FILE *f, dag_node *dag, int indent
   switch(format) {
     case DAG_FORMAT_TRADITIONAL:
       fprintf(f, "%s(", type_name(dag->type));
-      if(dag != orig) fprintf(f, "%x->", (int) orig);
-      fprintf(f, "%x)", (int) dag);
+      if(dag != orig) fprintf(f, "%x->", (size_t) orig);
+      fprintf(f, "%x)", (size_t) dag);
       break;
     case DAG_FORMAT_LUI:
       if(arcsp) fprintf(f, "#D[%s", type_name(dag->type));
@@ -1689,10 +1689,10 @@ dag_node *dag_expand_rec(dag_node *dag)
 {
   dag = dag_deref1(dag);
 
-  if(node_expanded[(int) dag])
+  if(node_expanded[(size_t) dag])
     return dag;
 
-  node_expanded[(int) dag] = true;
+  node_expanded[(size_t) dag] = true;
 
   type_t new_type = dag_get_new_type(dag);
 
@@ -1707,7 +1707,7 @@ dag_node *dag_expand_rec(dag_node *dag)
       if(dag_unify1(dag, cached_constraint_of(super)) == FAIL)
         {
           fprintf(ferr, "expansion failed @ 0x%x for `%s'\n",
-                  (int) dag, type_name(new_type));
+                  (size_t) dag, type_name(new_type));
           return FAIL;
         }
     }
@@ -1741,7 +1741,7 @@ bool dag_valid_rec(dag_node *dag)
 {
   if(dag == 0 || dag == INSIDE || dag == FAIL)
     {
-      fprintf(ferr, "(1) dag is 0x%x\n", (int) dag);
+      fprintf(ferr, "(1) dag is 0x%x\n", (size_t) dag);
       return false;
     }
 
@@ -1749,7 +1749,7 @@ bool dag_valid_rec(dag_node *dag)
 
   if(dag == 0 || dag == INSIDE || dag == FAIL)
     {
-      fprintf(ferr, "(2) dag is 0x%x\n", (int) dag);
+      fprintf(ferr, "(2) dag is 0x%x\n", (size_t) dag);
       return false;
     }
 
@@ -1766,7 +1766,7 @@ bool dag_valid_rec(dag_node *dag)
 	  if(! is_attr(arc->attr))
 	    {
 	      fprintf(ferr, "(3) invalid attr: %d, val: 0x%x\n",
-		      arc->attr, (int) arc->val);
+		      arc->attr, (size_t) arc->val);
 	      return false;
 	    }
 
