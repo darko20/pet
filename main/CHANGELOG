@@ -1,3 +1,7 @@
+v0.99.11
+  - fixed error with incomplete characterization (hopefully)
+  - removed warnings on 64 bit machines in dag-tomabechi.h
+
 v0.99.10
   - renamed config.h(.in) to pet-config.h(.in) (avoid ecl like problems)
   - removed problematic sub-shell executions of AC_CHECK_HEADERS

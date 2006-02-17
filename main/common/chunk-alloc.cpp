@@ -136,7 +136,7 @@ void chunk_allocator::reset()
 void chunk_allocator::print_check() {
   for (int i=0; i < _nchunks; i++) {
     printf("alloc'ed: [%x %x]\n", (size_t) _chunk[i]
-           , (size_t) _chunk[i] + _chunk_size);
+           , (size_t) (_chunk[i] + _chunk_size));
   }
   for (int i=0; i < _nchunks; i++) {
     for(char *p = _chunk[i]; p < _chunk[i] + _chunk_size; p++) {
