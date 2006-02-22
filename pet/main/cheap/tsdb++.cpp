@@ -635,11 +635,8 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.words = stats.words;
     T.mtcpu = stats.mtcpu;
     T.first = stats.first;
-    // _fix_me_
-    // I think i changed that because Berthold complained that his total times
-    // were not comparable anymore (bk, 15-feb-2005), but what is correct?
-    T.total = stats.tcpu;
-    T.tcpu = stats.tcpu + stats.p_utcpu;
+    T.tcpu = stats.tcpu;
+    T.total = stats.tcpu + stats.p_utcpu;
     T.tgc = 0;
     T.treal = treal;
     

@@ -1,5 +1,5 @@
 SUBDIRS      = flop cheap
-DIST_SUBDIRS = $(SUBDIRS) common borland
+DIST_SUBDIRS = $(SUBDIRS) common
 EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
 	       doxyconfig.cheap doxyconfig.flop
 

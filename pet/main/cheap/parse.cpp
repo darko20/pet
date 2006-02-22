@@ -183,8 +183,7 @@ fundamental_for_active(tPhrasalItem *active)
 bool
 packed_edge(tItem *newitem)
 {
-    if(newitem->trait() == INFL_TRAIT)
-      return false;
+    if(!newitem->completep()) return false;
 
     for(chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
         iter.valid(); iter++)
@@ -192,8 +191,7 @@ packed_edge(tItem *newitem)
         bool forward, backward;
         tItem *olditem = iter.current();
 
-	if((olditem->trait() == INFL_TRAIT) 
-           || (olditem->trait() == INPUT_TRAIT))
+	if(!olditem->completep() || (olditem->trait() == INPUT_TRAIT))
           continue;
 
         forward = backward = true;

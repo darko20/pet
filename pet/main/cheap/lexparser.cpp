@@ -281,9 +281,9 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
       lex = iter.current();
       // the next condition depends on whether we did exhaustive lexical 
       // processing or not
-      if (lex->passive() && 
-          ((!lex_exhaustive && (lex->trait() != INPUT_TRAIT))
-           || (lex_exhaustive && (lex->trait() == LEX_TRAIT))))
+      if (lex->passive()
+          && lex->trait() != INPUT_TRAIT
+          && (!lex_exhaustive || lex->completep()))
       {
         f = lex->get_fs();
     
