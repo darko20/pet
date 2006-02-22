@@ -94,6 +94,8 @@ class tItem
   */
   inline rule_trait trait() { return _trait; }
 
+  inline bool completep() { return _inflrs_todo == 0; }
+
   /** Return \c true if this item has all of its arguments filled. */
   inline bool passive() const { return _tofill == 0; }
   /** Start position in the chart */
@@ -121,20 +123,17 @@ class tItem
   {
       if(R->trait() == INFL_TRAIT)
       {
-          if((_trait != INFL_TRAIT) || (first(_inflrs_todo) != R->type()))
-              return false;
+        if(_inflrs_todo == 0 || first(_inflrs_todo) != R->type())
+          return false;
       }
-      // _fix_me_ This may change if lexical rules may be interspersed with
-      // inflection rules
       else if(R->trait() == LEX_TRAIT)
       {
-          if(_trait == INFL_TRAIT && first(_inflrs_todo) != R->type())
-              return false;
+        if(_trait == SYNTAX_TRAIT) 
+          return false;
       }
       else if(R->trait() == SYNTAX_TRAIT)
       {
-          if(_trait == INFL_TRAIT)
-              return false;
+        if(_inflrs_todo != 0) return false;
       }
       
       if(R->spanningonly())
@@ -174,7 +173,7 @@ class tItem
    */
   inline bool compatible(tItem *active, int length)
   {
-    if((_trait == INFL_TRAIT) || (_trait == INPUT_TRAIT))
+    if((_trait == INPUT_TRAIT) || !completep())
           return false;
       
       if(active->spanningonly())

@@ -367,13 +367,9 @@ void tLexItem::init(fs &f) {
     if(opt_packing)
       _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
 
-    if(_inflrs_todo)
-      _trait = INFL_TRAIT;
-    else {
-      _trait = LEX_TRAIT;
-      // _fix_me_ Berthold says, this is the right number
-      // stats.words++;
-    }
+    _trait = LEX_TRAIT;
+    // _fix_me_ Berthold says, this is the right number
+    // stats.words++;
 
     if(opt_nqc_unif != 0)
       _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
@@ -387,26 +383,6 @@ void tLexItem::init(fs &f) {
 
     characterize(_fs, _startposition, _endposition);
 
-#if 0
-#ifdef YY
-    if(opt_k2y)
-      {
-        // _fix_me_ this should be done in some other place, maybe added to the
-        // mods in tokenization?
-        mrs_stamp_fs(_fs, _id);
-
-        for(list<tItem *>::iterator it=_daughters.begin()
-              ; it != _daughters.end(); it++)
-          mrs_map_id(_id, (*it)->id());
-
-        // _fix_me_ could somebody please write a comment for this
-        set<string> senses = cheap_settings->smap("type-to-sense", _fs.type());
-        for(set<string>::iterator it = senses.begin(); it != senses.end();
-            ++it)
-          mrs_map_sense(_id, *it);
-      }
-#endif
-#endif
   }
 
 #ifdef DEBUG
@@ -475,11 +451,12 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     _daughters.push_back(pasv);
     _key_item = pasv->_key_item;
 
-    _trait = R->trait();
-    if(_trait == INFL_TRAIT) {
+    if(R->trait() == INFL_TRAIT)
+    {
       // We don't copy here, so only the tLexItem is responsible for deleting
       // the list
       _inflrs_todo = rest(pasv->_inflrs_todo);
+      _trait = LEX_TRAIT;
       if(_inflrs_todo == 0) {
         // Modify the feature structure to contain the surface form in the
         // right place
@@ -493,7 +470,12 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
         _fs.modify_eagerly(_key_item->_mod_stem_fs);
       }
     }
-  
+    else 
+    {
+      _inflrs_todo = pasv->_inflrs_todo;
+      _trait = R->trait();
+    }
+
     _spanningonly = R->spanningonly();
 
 #ifdef DEBUG
