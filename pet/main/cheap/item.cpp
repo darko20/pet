@@ -229,7 +229,8 @@ tInputItem::tsdb_derivation(int protocolversion)
 {
     ostringstream res;
   
-    res << "(\"" << orth() << "\" " << _start << " " << _end << "))";
+    res << "(\"" << escape_string(orth()) 
+        << "\" " << _start << " " << _end << "))";
 
     return res.str();
 }
