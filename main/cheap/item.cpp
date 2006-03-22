@@ -60,10 +60,15 @@ struct charz_t {
 };
 
 static charz_t cfrom, cto;
+static list_int *carg_path = NULL;
 static bool charz_init = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
+  if(NULL != carg_path) {
+    free_list(carg_path);
+    carg_path = NULL;
+  }
   char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
   char *cto_path = cheap_settings->value("mrs-cto-path");
   if ((cfrom_path != NULL) && (cto_path != NULL)) {
@@ -71,6 +76,9 @@ void init_characterization() {
     cto.set(cto_path);
     charz_init = true;
   }
+  char *carg_path_string = cheap_settings->value("mrs-carg-path");
+  if (NULL != carg_path_string)
+    carg_path = path_to_lpath(carg_path_string);
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
@@ -90,6 +98,7 @@ inline bool characterize(fs &thefs, int from, int to) {
 item_owner *tItem::_default_owner = 0;
 int tItem::_next_id = 1;
 
+
 tItem::tItem(int start, int end, const tPaths &paths,
              const fs &f, const char *printname)
     : _id(_next_id++),
@@ -103,6 +112,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
 {
     if(_default_owner) _default_owner->add(this);
 }
+
 
 tItem::tItem(int start, int end, const tPaths &paths,
              const char *printname)
@@ -387,9 +397,9 @@ void tLexItem::init(fs &f) {
   }
 
 #ifdef DEBUG
-    fprintf(ferr, "new lexical item (`%s'):", printname());
-    print(ferr);
-    fprintf(ferr, "\n");
+  fprintf(ferr, "new lexical item (`%s'):", printname());
+  print(ferr);
+  fprintf(ferr, "\n");
 #endif
 }
 
@@ -441,75 +451,70 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
 }
 
 tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
-    : tItem(pasv->_start, pasv->_end, pasv->_paths,
-           f, R->printname()),
-      _adaughter(0), _rule(R)
-{
-    _startposition = pasv->startposition();
-    _endposition = pasv->endposition();
-    _tofill = R->restargs();
-    _nfilled = 1;
-    _daughters.push_back(pasv);
-    _key_item = pasv->_key_item;
-
-    if(R->trait() == INFL_TRAIT)
-    {
-      // We don't copy here, so only the tLexItem is responsible for deleting
-      // the list
-      _inflrs_todo = rest(pasv->_inflrs_todo);
+  : tItem(pasv->_start, pasv->_end, pasv->_paths, f, R->printname()),
+    _adaughter(0), _rule(R) {
+  _startposition = pasv->startposition();
+  _endposition = pasv->endposition();
+  _tofill = R->restargs();
+  _nfilled = 1;
+  _daughters.push_back(pasv);
+  _key_item = pasv->_key_item;
+  
+  if(R->trait() == INFL_TRAIT) {
+    // We don't copy here, so only the tLexItem is responsible for deleting
+    // the list
+    _inflrs_todo = rest(pasv->_inflrs_todo);
+    _trait = LEX_TRAIT;
+    if(inflrs_complete_p()) {
+      // Modify the feature structure to contain the surface form in the
+      // right place
+      _fs.modify_eagerly(_key_item->_mod_form_fs);
       _trait = LEX_TRAIT;
-      if(_inflrs_todo == 0) {
-        // Modify the feature structure to contain the surface form in the
-        // right place
-        _fs.modify_eagerly(_key_item->_mod_form_fs);
-        _trait = LEX_TRAIT;
-        // _fix_me_ Berthold says, this is the right number
-        // stats.words++;
-      } else {
-        // Modify the feature structure to contain the stem form in the right
-        // place 
-        _fs.modify_eagerly(_key_item->_mod_stem_fs);
-      }
-    }
-    else 
-    {
-      _inflrs_todo = pasv->_inflrs_todo;
-      _trait = R->trait();
-    }
-
-    _spanningonly = R->spanningonly();
-
-#ifdef DEBUG
-    fprintf(stderr, "A %d < %d\n", pasv->id(), id());
-#endif
-    pasv->parents.push_back(this);
-
-    if(opt_nqc_unif != 0)
-    {
-        if(passive())
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
-        else
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                            nextarg(f));
-    }
-
-    if(opt_nqc_subs != 0)
-        if(passive())
-            _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
-
-    // rule stuff + characterization
-    if(passive()) {
-      R->passives++;
-      characterize(_fs, _startposition, _endposition);
+      // _fix_me_ Berthold says, this is the right number
+      // stats.words++;
     } else {
-      R->actives++;
+      // Modify the feature structure to contain the stem form in the right
+      // place 
+      _fs.modify_eagerly(_key_item->_mod_stem_fs);
     }
+  }
+  else {
+    _inflrs_todo = pasv->_inflrs_todo;
+    _trait = R->trait();
+  }
+
+  _spanningonly = R->spanningonly();
+    
+#ifdef DEBUG
+  fprintf(stderr, "A %d < %d\n", pasv->id(), id());
+#endif
+  pasv->parents.push_back(this);
+  
+  if(opt_nqc_unif != 0) {
+    if(passive())
+      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+    else
+      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
+                                      nextarg(f));
+  }
+  
+  if(opt_nqc_subs != 0)
+    if(passive())
+      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+  
+  // rule stuff + characterization
+  if(passive()) {
+    R->passives++;
+    characterize(_fs, _startposition, _endposition);
+  } else {
+    R->actives++;
+  }
 
 #ifdef DEBUG
-    fprintf(ferr, "new rule tItem (`%s' + %d@%d):", 
-            R->printname(), pasv->id(), R->nextarg());
-    print(ferr);
-    fprintf(ferr, "\n");
+  fprintf(ferr, "new rule tItem (`%s' + %d@%d):", 
+          R->printname(), pasv->id(), R->nextarg());
+  print(ferr);
+  fprintf(ferr, "\n");
 #endif
 }
 
@@ -753,9 +758,6 @@ tLexItem::print_derivation(FILE *f, bool quoted)
         fprintf(f, "\n");
     else
         fprintf(f, "%*s", derivation_indentation, "");
-
-    //_dtrs[_keydtr]->print_derivation(f, quoted, _id, type(), score(),
-    //                                 _inflrs_todo, orth());
 
     fprintf (f, "(%d %s/%s %.2f %d %d ", _id, _stem->printname(),
              print_name(type()), score(), _start, _end);
@@ -1136,51 +1138,44 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
 // This is quite similar to functionality in task.cpp - common functionality
 // should be factored out.
 tItem *
-tPhrasalItem::unpack_combine(vector<tItem *> &daughters)
-{
-    fs_alloc_state FSAS(false);
+tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
+  fs_alloc_state FSAS(false);
 
-    fs res = rule()->instantiate(true);
+  fs res = rule()->instantiate(true);
 
-    list_int *tofill = rule()->allargs();
+  list_int *tofill = rule()->allargs();
     
-    while(res.valid() && tofill)
-    {
-        fs arg = res.nth_arg(first(tofill));
-        if(rest(tofill))
-        {
-            if(res.temp())
-                unify_generation = res.temp();
-            res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
-        }
-        else
-        {
-            // _fix_me_ 
-            // the whole _np architecture is rather messy
-            if(res.temp())
-                unify_generation = res.temp();
-            res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
-                                 arg,
-                                 Grammar->deleted_daughters());
-        }
-        tofill = rest(tofill);
+  while(res.valid() && tofill) {
+    fs arg = res.nth_arg(first(tofill));
+    if(res.temp())
+      unify_generation = res.temp();
+    if(rest(tofill)) {
+      res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
     }
+    else {
+      // _fix_me_ 
+      // the whole _np architecture is rather messy
+      res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
+                           arg,
+                           Grammar->deleted_daughters());
+    }
+    tofill = rest(tofill);
+  }
     
-    if(!res.valid())
-    {
-        FSAS.release();
-        return 0;
-    }
+  if(!res.valid()) {
+    FSAS.release();
+    return 0;
+  }
 
-    if(passive()) {
-      characterize(res, _startposition, _endposition);
-    }
+  if(passive()) {
+    characterize(res, _startposition, _endposition);
+  }
 
-    stats.p_upedges++;
-    tPhrasalItem *result = new tPhrasalItem(this, daughters, res);
-    if(result && Grammar->sm()) {
-      result->score(Grammar->sm()->scoreLocalTree(result->rule(), daughters));
-    } // if
+  stats.p_upedges++;
+  tPhrasalItem *result = new tPhrasalItem(this, daughters, res);
+  if(result && Grammar->sm()) {
+    result->score(Grammar->sm()->scoreLocalTree(result->rule(), daughters));
+  } // if
 
-    return result;
+  return result;
 }
