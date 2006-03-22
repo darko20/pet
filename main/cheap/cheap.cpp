@@ -47,7 +47,13 @@
 
 #ifdef HAVE_ECL
 #include "petecl.h"
+#endif
+#ifdef HAVE_MRS
+#include "petmrs.h"
 #include "cppbridge.h"
+#endif
+#ifdef HAVE_PREPROC
+#include "eclpreprocessor.h"
 #endif
 
 char * version_string = VERSION ;
@@ -122,249 +128,228 @@ void dump_jxchg(string surface, chart *current) {
 }
 
 
-void interactive()
-{
-    string input;
-    int id = 1;
+void interactive() {
+  string input;
+  int id = 1;
 
-    //tFegramedPrinter chp("/tmp/fed-");
-    //chp.print(type_dag(lookup_type("quant-rel")));
-    //exit(1);
+  //tFegramedPrinter chp("/tmp/fed-");
+  //chp.print(type_dag(lookup_type("quant-rel")));
+  //exit(1);
 
-    tTsdbDump tsdb_dump(opt_tsdb_dir);
-    if (tsdb_dump.active()) {
-      opt_tsdb = 1;
-    } else {
-      if (! opt_tsdb_dir.empty())
-        fprintf(ferr, "Could not open TSDB dump files in directory %s\n"
-                , opt_tsdb_dir.c_str());
-    }
+  tTsdbDump tsdb_dump(opt_tsdb_dir);
+  if (tsdb_dump.active()) {
+    opt_tsdb = 1;
+  } else {
+    if (! opt_tsdb_dir.empty())
+      fprintf(ferr, "Could not open TSDB dump files in directory %s\n"
+              , opt_tsdb_dir.c_str());
+  }
 
-    while(!(input = read_line(stdin, opt_comment_passthrough)).empty())
-    {
-        chart *Chart = 0;
+  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+    chart *Chart = 0;
 
-        tsdb_dump.start();
+    tsdb_dump.start();
 
-        try {
-            fs_alloc_state FSAS;
+    try {
+      fs_alloc_state FSAS;
 
-            list<tError> errors;
-            analyze(input, Chart, FSAS, errors, id);
-            if(!errors.empty())
-                throw errors.front();
+      list<tError> errors;
+      analyze(input, Chart, FSAS, errors, id);
+      if(!errors.empty())
+        throw errors.front();
                 
-            if(verbosity == -1)
-                fprintf(stdout, "%d\t%d\t%d\n",
-                        stats.id, stats.readings, stats.pedges);
+      if(verbosity == -1)
+        fprintf(stdout, "%d\t%d\t%d\n",
+                stats.id, stats.readings, stats.pedges);
 
-            string surface = get_surface_string(Chart);
+      string surface = get_surface_string(Chart);
 
-            fprintf(fstatus, 
-                    "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-                    stats.id, surface.c_str(), pedgelimit, stats.readings, 
-                    stats.first/1000., stats.tcpu / 1000.,
-                    stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-                    TotalParseTime.elapsed_ts() / 10.);
+      fprintf(fstatus, 
+              "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
+              stats.id, surface.c_str(), pedgelimit, stats.readings, 
+              stats.first/1000., stats.tcpu / 1000.,
+              stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+              TotalParseTime.elapsed_ts() / 10.);
 
-            if(verbosity > 0) stats.print(fstatus);
+      if(verbosity > 0) stats.print(fstatus);
 
-            tsdb_dump.finish(Chart, surface);
+      tsdb_dump.finish(Chart, surface);
 
-            //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
-            //tFegramedPrinter chp("/tmp/fed-");
-            //Chart->print(&chp);
+      //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
+      //tFegramedPrinter chp("/tmp/fed-");
+      //Chart->print(&chp);
 
-            //dump_jxchg(surface, Chart);
+      //dump_jxchg(surface, Chart);
 
-            if(verbosity > 1 || opt_mrs)
-            {
-                int nres = 0;
+      if(verbosity > 1 || opt_mrs) {
+        int nres = 0;
                 
-                list< tItem * > results(Chart->readings().begin()
-                                        , Chart->readings().end());
-                // sorting was done already in parse_finish
-                // results.sort(item_greater_than_score());
-                for(list<tItem *>::iterator iter = results.begin()
-                      ; (iter != results.end())
-                         && ((opt_nresults == 0) || (opt_nresults > nres))
-                      ; ++iter)
-                {
-                  //tFegramedPrinter fedprint("/tmp/fed-");
-                  //tDelegateDerivationPrinter deriv(fstatus, fedprint);
-                    tCompactDerivationPrinter deriv(fstatus);
-                    tItem *it = *iter;
+        list< tItem * > results(Chart->readings().begin()
+                                , Chart->readings().end());
+        // sorting was done already in parse_finish
+        // results.sort(item_greater_than_score());
+        for(list<tItem *>::iterator iter = results.begin()
+              ; (iter != results.end())
+              && ((opt_nresults == 0) || (opt_nresults > nres))
+              ; ++iter) {
+          //tFegramedPrinter fedprint("/tmp/fed-");
+          //tDelegateDerivationPrinter deriv(fstatus, fedprint);
+          tCompactDerivationPrinter deriv(fstatus);
+          tItem *it = *iter;
                     
-                    nres++;
-                    fprintf(fstatus, "derivation[%d]", nres);
-                    fprintf(fstatus, " (%.4g)", it->score());
-                    fprintf(fstatus, ":");
-                    it->print_yield(fstatus);
-                    fprintf(fstatus, "\n");
-                    if(verbosity > 2)
-                    {
-                        deriv.print(it);
-                        fprintf(fstatus, "\n");
-                    }
-#ifdef HAVE_ECL
-                    if(opt_mrs)
-                    {
-                        string mrs;
-                        mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
-                        if (mrs.empty()) {
-                          if (strcmp(opt_mrs, "xml") == 0)
-                            fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
-                                    "</rmrs>\n");
-                          else
-                            fprintf(fstatus, "\nNo MRS\n");
-                        } else {
-                          fprintf(fstatus, "%s\n", mrs.c_str());
-                        }
-                    }
-#endif
-                }
-
-#ifdef HAVE_ECL
-                if(opt_partial && (Chart->readings().empty())) {
-                  list< tItem * > partials;
-                  passive_weights pass;
-                  Chart->shortest_path<unsigned int>(partials, pass, true);
-                  bool rmrs_xml = (strcmp(opt_mrs, "xml") == 0);
-                  if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
-                  for(list<tItem *>::iterator it = partials.begin()
-                        ; it != partials.end(); ++it) {
-                    if(opt_mrs)
-                      {
-                        tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
-                        if (item != NULL) {
-                          string mrs;
-                          mrs = ecl_cpp_extract_mrs(item->get_fs().dag()
-                                                    , opt_mrs);
-                          if (! mrs.empty()) {
-                            fprintf(fstatus, "%s\n", mrs.c_str());
-                          }
-                        }
-                      }
-                  }
-                  if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
-                }
-#endif           
+          nres++;
+          fprintf(fstatus, "derivation[%d]", nres);
+          fprintf(fstatus, " (%.4g)", it->score());
+          fprintf(fstatus, ":");
+          it->print_yield(fstatus);
+          fprintf(fstatus, "\n");
+          if(verbosity > 2) {
+            deriv.print(it);
+            fprintf(fstatus, "\n");
+          }
+#ifdef HAVE_MRS
+          if(opt_mrs) {
+            string mrs;
+            mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
+            if (mrs.empty()) {
+              if (strcmp(opt_mrs, "xml") == 0)
+                fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
+                        "</rmrs>\n");
+              else
+                fprintf(fstatus, "\nNo MRS\n");
+            } else {
+              fprintf(fstatus, "%s\n", mrs.c_str());
             }
-            fflush(fstatus);
-        } /* try */
-        
-        catch(tError e)
-        {
-            fprintf(ferr, "%s\n", e.getMessage().c_str());
-            if(verbosity > 0) stats.print(fstatus);
-            stats.readings = -1;
-
-            dump_jxchg(get_surface_string(Chart), Chart);
-            tsdb_dump.error(Chart, e);
-
+          }
+#endif
         }
 
-        if(Chart != 0) delete Chart;
+#ifdef HAVE_MRS
+        if(opt_partial && (Chart->readings().empty())) {
+          list< tItem * > partials;
+          passive_weights pass;
+          Chart->shortest_path<unsigned int>(partials, pass, true);
+          bool rmrs_xml = (strcmp(opt_mrs, "xml") == 0);
+          if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
+          for(list<tItem *>::iterator it = partials.begin()
+                ; it != partials.end(); ++it) {
+            if(opt_mrs) {
+              tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
+              if (item != NULL) {
+                string mrs;
+                mrs = ecl_cpp_extract_mrs(item->get_fs().dag()
+                                          , opt_mrs);
+                if (! mrs.empty()) {
+                  fprintf(fstatus, "%s\n", mrs.c_str());
+                }
+              }
+            }
+          }
+          if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
+        }
+#endif           
+      }
+      fflush(fstatus);
+    } /* try */
+        
+    catch(tError e) {
+      fprintf(ferr, "%s\n", e.getMessage().c_str());
+      if(verbosity > 0) stats.print(fstatus);
+      stats.readings = -1;
 
-        id++;
-    } /* while */
+      dump_jxchg(get_surface_string(Chart), Chart);
+      tsdb_dump.error(Chart, e);
+
+    }
+
+    if(Chart != 0) delete Chart;
+
+    id++;
+  } /* while */
 
 #ifdef QC_PATH_COMP
-    if(opt_compute_qc)
-    {
-        FILE *qc = fopen(opt_compute_qc, "w");
-        compute_qc_paths(qc);
-        fclose(qc);
-    }
+  if(opt_compute_qc) {
+    FILE *qc = fopen(opt_compute_qc, "w");
+    compute_qc_paths(qc);
+    fclose(qc);
+  }
 #endif
 }
 
-void nbest()
-{
-    string input;
+void nbest() {
+  string input;
 
-    while(!feof(stdin))
-    {
-        int id = 0;
-        int selected = -1;
-        int time = 0;
+  while(!feof(stdin)) {
+    int id = 0;
+    int selected = -1;
+    int time = 0;
         
-        while(!(input = read_line(stdin, opt_comment_passthrough)).empty())
-        {
-            if(selected != -1)
-                continue;
+    while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+      if(selected != -1)
+        continue;
 
-            chart *Chart = 0;
-            try
-            {
-                fs_alloc_state FSAS;
+      chart *Chart = 0;
+      try {
+        fs_alloc_state FSAS;
                 
-                list<tError> errors;
-                analyze(input, Chart, FSAS, errors, id);
-                if(!errors.empty())
-                    throw errors.front();
+        list<tError> errors;
+        analyze(input, Chart, FSAS, errors, id);
+        if(!errors.empty())
+          throw errors.front();
                 
-                if(stats.readings > 0)
-                {
-                    selected = id;
-                    fprintf(stdout, "[%d] %s\n", selected, input.c_str());
-                }
-                
-                stats.print(fstatus);
-                fflush(fstatus);
-            } /* try */
-            
-            catch(tError e)
-            {
-                fprintf(ferr, "%s\n", e.getMessage().c_str());
-                stats.print(fstatus);
-                fflush(fstatus);
-                stats.readings = -1;
-            }
-            
-            if(Chart != 0) delete Chart;
-            
-            time += stats.tcpu;
-            
-            id++;
+        if(stats.readings > 0) {
+          selected = id;
+          fprintf(stdout, "[%d] %s\n", selected, input.c_str());
         }
-        if(selected == -1)
-            fprintf(stdout, "[]\n");
-
-        fflush(stdout);
-
-        fprintf(fstatus, "ttcpu: %d\n", time);
+                
+        stats.print(fstatus);
+        fflush(fstatus);
+      } /* try */
+            
+      catch(tError e) {
+        fprintf(ferr, "%s\n", e.getMessage().c_str());
+        stats.print(fstatus);
+        fflush(fstatus);
+        stats.readings = -1;
+      }
+            
+      if(Chart != 0) delete Chart;
+            
+      time += stats.tcpu;
+            
+      id++;
     }
+    if(selected == -1)
+      fprintf(stdout, "[]\n");
+
+    fflush(stdout);
+
+    fprintf(fstatus, "ttcpu: %d\n", time);
+  }
 }
 
-void dump_glbs(FILE *f)
-{
+void dump_glbs(FILE *f) {
   int i, j;
-  for(i = 0; i < ntypes; i++)
-    {
-      prune_glbcache();
-      for(j = 0; j < i; j++)
-	if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
-    }
+  for(i = 0; i < ntypes; i++) {
+    prune_glbcache();
+    for(j = 0; j < i; j++)
+      if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
+  }
 }
 
-void print_symbol_tables(FILE *f)
-{
+void print_symbol_tables(FILE *f) {
   fprintf(f, "type names (print names)\n");
-  for(int i = 0; i < ntypes; i++)
-    {
-      fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
-    }
+  for(int i = 0; i < ntypes; i++) {
+    fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
+  }
 
   fprintf(f, "attribute names\n");
-  for(int i = 0; i < nattrs; i++)
-    {
-      fprintf(f, "%d\t%s\n", i, attrname[i]);
-    }
+  for(int i = 0; i < nattrs; i++) {
+    fprintf(f, "%d\t%s\n", i, attrname[i]);
+  }
 }
 
-void print_grammar(FILE *f)
-{
+void print_grammar(FILE *f) {
   if(verbosity > 10)
     dump_glbs(f);
 
@@ -372,126 +357,144 @@ void print_grammar(FILE *f)
 }
 
 
-void process(char *s)
-{
-    timer t_start;
+void process(const char *s) {
+  timer t_start;
   
-    try {
-      cheap_settings = new settings(settings::basename(s), s, "reading");
-      fprintf(fstatus, "\n");
-      fprintf(fstatus, "loading `%s' ", s);
-      Grammar = new tGrammar(s); 
-    }
-    catch(tError &e)
-    {
-      fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
-      delete cheap_settings;
-      return;
-    }
-    
-    try {
-#ifdef DYNAMIC_SYMBOLS
-      init_characterization();
-#endif
-      Lexparser.init();
+  try {
+    string base = raw_name(s);
+    cheap_settings = new settings(base.c_str(), s, "reading");
+    fprintf(fstatus, "\n");
+    fprintf(fstatus, "loading `%s' ", s);
+    Grammar = new tGrammar(s); 
+  }
+  catch(tError &e) {
+    fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
+    delete cheap_settings;
+    return;
+  }
 
-      dumper dmp(s);
-      tFullformMorphology *ff = tFullformMorphology::create(dmp);
-      if (ff != NULL) {
-        Lexparser.register_morphology(ff);
-        // ff->print(fstatus);
-      }
-      if(opt_online_morph) {
-        tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
-        if (lkbm != NULL)
-          Lexparser.register_morphology(lkbm);
-        else
-          opt_online_morph = false;
-      }
-      Lexparser.register_lexicon(new tInternalLexicon());
-
-      tTokenizer *tok;
-      switch (opt_tok) {
-      case TOKENIZER_YY: 
-      case TOKENIZER_YY_COUNTS: 
-        {
-          char *classchar = cheap_settings->value("class-name-char");
-          if (classchar != NULL)
-            tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS, classchar[0]);
-          else
-            tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS);
-        }
-        break;
-      case TOKENIZER_STRING: 
-      case TOKENIZER_INVALID: 
-        tok = new tLingoTokenizer(); break;
-
-      case TOKENIZER_XML:
-      case TOKENIZER_XML_COUNTS: 
-#ifdef HAVE_XML
-        xml_initialize();
-        XMLServices = true;
-        tok = new tXMLTokenizer(opt_tok == TOKENIZER_XML_COUNTS); break;
-#else
-        fprintf(ferr, "No XML input mode compiled into this cheap\n");
-        exit(1);
-#endif
-      default:
-        tok = new tLingoTokenizer(); break;
-      }
-      Lexparser.register_tokenizer(tok);
-      
-    }
-    
-    catch(tError &e)
-    {
-      fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
-      delete Grammar;
-      delete cheap_settings;
-      return;
-   }
-
-    fprintf(fstatus, "\n%d types in %0.2g s\n",
-            ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
-    
 #ifdef HAVE_ECL
-    char *cl_argv[] = {"cheap", 0};
-    ecl_initialize(1, cl_argv, s);
-#endif
+  char *cl_argv[] = {"cheap", 0};
+  ecl_initialize(1, cl_argv);
+  // make the redefinition warnings go away
+  cl_object obj
+    = funcall(2, c_string_to_object("read-from-string") ,
+              make_simple_string("(setq cl-user::erroutsave cl-user::*error-output* cl-user::*error-output* nil)"));
+  cl_safe_eval(obj, Cnil, NULL);
+#endif  // HAVE_ECL
 
-    if(opt_pg)
-    {
-        print_grammar(stdout);
-    }
-    else
-    {
-        initialize_version();
-        
-#if defined(YY) && defined(SOCKET_INTERFACE)
-        if(opt_server)
-            cheap_server(opt_server);
-        else 
+  try {
+#ifdef DYNAMIC_SYMBOLS
+    init_characterization();
 #endif
-#ifdef TSDBAPI
-            if(opt_tsdb)
-                tsdb_mode();
-            else
-#endif
-            {
-                {
-                    if(opt_nbest)
-                        nbest();
-                    else
-                        interactive();
-                }
-            }
-    }
+    Lexparser.init();
 
+    dumper dmp(s);
+    tFullformMorphology *ff = tFullformMorphology::create(dmp);
+    if (ff != NULL) {
+      Lexparser.register_morphology(ff);
+      // ff->print(fstatus);
+    }
+    if(opt_online_morph) {
+      tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
+      if (lkbm != NULL)
+        Lexparser.register_morphology(lkbm);
+      else
+        opt_online_morph = false;
+    }
+    Lexparser.register_lexicon(new tInternalLexicon());
+
+    tTokenizer *tok;
+    switch (opt_tok) {
+    case TOKENIZER_YY: 
+    case TOKENIZER_YY_COUNTS: 
+      {
+        char *classchar = cheap_settings->value("class-name-char");
+        if (classchar != NULL)
+          tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS, classchar[0]);
+        else
+          tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS);
+      }
+      break;
+    case TOKENIZER_STRING: 
+    case TOKENIZER_INVALID: 
+      tok = new tLingoTokenizer(); break;
+
+    case TOKENIZER_XML:
+    case TOKENIZER_XML_COUNTS: 
 #ifdef HAVE_XML
-    if (XMLServices) xml_finalize();
+      xml_initialize();
+      XMLServices = true;
+      tok = new tXMLTokenizer(opt_tok == TOKENIZER_XML_COUNTS); break;
+#else
+      fprintf(ferr, "No XML input mode compiled into this cheap\n");
+      exit(1);
 #endif
+
+    case TOKENIZER_FSR:
+#ifdef HAVE_PREPROC
+      tok = new tFSRTokenizer(s); break;
+#else
+      fprintf(ferr, "No ecl/Lisp based FSR preprocessor "
+              "compiled into this cheap\n");
+      exit(1);
+#endif
+
+    default:
+      tok = new tLingoTokenizer(); break;
+    }
+    Lexparser.register_tokenizer(tok);
+  }
+    
+  catch(tError &e) {
+    fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
     delete Grammar;
     delete cheap_settings;
+    return;
+  }
+
+#ifdef HAVE_MRS
+  mrs_initialize(s);
+#endif
+#ifdef HAVE_ECL
+  // reset the error stream so warnings show up again
+  obj = funcall(2, c_string_to_object("read-from-string") ,
+                make_simple_string("(setq cl-user::*error-output* cl-user::erroutsave)"));
+  cl_safe_eval(obj, Cnil, NULL);
+#endif // HAVE_ECL
+
+  fprintf(fstatus, "\n%d types in %0.2g s\n",
+          ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+
+  if(opt_pg) {
+    print_grammar(stdout);
+  }
+  else {
+    initialize_version();
+        
+#if defined(YY) && defined(SOCKET_INTERFACE)
+    if(opt_server)
+      cheap_server(opt_server);
+    else 
+#endif
+#ifdef TSDBAPI
+      if(opt_tsdb)
+        tsdb_mode();
+      else
+#endif
+        {
+          if(opt_nbest)
+            nbest();
+          else
+            interactive();
+        }
+  }
+
+#ifdef HAVE_XML
+  if (XMLServices) xml_finalize();
+#endif
+  delete Grammar;
+  delete cheap_settings;
 }
 
 #ifdef __BORLANDC__
@@ -507,11 +510,10 @@ int main(int argc, char* argv[])
   setlocale(LC_ALL, "C" );
 
 #ifndef __BORLANDC__
-  if(!parse_options(argc, argv))
-    {
-      usage(ferr);
-      exit(1);
-    }
+  if(!parse_options(argc, argv)) {
+    usage(ferr);
+    exit(1);
+  }
 #else
   if(argc > 1)
     grammar_file_name = argv[1];
@@ -520,33 +522,29 @@ int main(int argc, char* argv[])
 #endif
 
 #if defined(YY) && defined(SOCKET_INTERFACE)
-  if(opt_server)
-    {
-      if(cheap_server_initialize(opt_server))
-	exit(1);
-    }
+  if(opt_server) {
+    if(cheap_server_initialize(opt_server))
+      exit(1);
+  }
 #endif
 
-  grammar_file_name = find_file(grammar_file_name, GRAMMAR_EXT);
-  if(grammar_file_name == 0)
-    {
-      fprintf(ferr, "Grammar not found\n");
-      exit(1);
-    }
+  string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
+  if(grammar_name.empty()) {
+    fprintf(ferr, "Grammar not found\n");
+    exit(1);
+  }
 
-  try { process(grammar_file_name); }
+  try { process(grammar_name.c_str()); }
 
-  catch(tError &e)
-    {
-      fprintf(ferr, "%s\n", e.getMessage().c_str());
-      exit(1);
-    }
+  catch(tError &e) {
+    fprintf(ferr, "%s\n", e.getMessage().c_str());
+    exit(1);
+  }
 
-  catch(bad_alloc)
-    {
-      fprintf(ferr, "out of memory\n");
-      exit(1);
-    }
+  catch(bad_alloc) {
+    fprintf(ferr, "out of memory\n");
+    exit(1);
+  }
 
   if(flog != NULL) fclose(flog);
   return 0;

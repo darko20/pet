@@ -34,6 +34,14 @@ AM_CPPFLAGS = -I$(top_srcdir)/common $(CHEAPCPPFLAGS)
 AM_LDFLAGS = $(CHEAPLDFLAGS)
 LIBS += $(CHEAPLIBS)
 
+# This is always used! <-> documentation
+AM_CXXFLAGS = -g -Wall $(OPTIM) $(DEFS)
+AM_CFLAGS = -g -Wall $(OPTIM) $(DEFS)
+
+# clear defaults, e.g., if i don't want optimisation to be switched on
+CXXFLAGS =
+CFLAGS =
+
 # In $(top_srcdir)/common
 nodist_cheap_SOURCES = bitcode.cpp 	\
 	chunk-alloc.cpp			\
@@ -50,6 +58,11 @@ nodist_cheap_SOURCES = bitcode.cpp 	\
 	settings.cpp 			\
 	types.cpp			\
 	utility.cpp
+
+# The dependencies are computed by the compiler.  It may be the best
+# idea to switch tracking only on for maintainer-mode.
+# The headers do not need to be listed for compilation, but they need
+# to be found for making a distribution.
 
 cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
 	fs.cpp fs.h grammar.cpp grammar.h		 		\
@@ -73,49 +86,87 @@ nodist_cheap_SOURCES += dag-simple.cpp dag-simple.h
 endif
 endif
 
-# Instead of linking to the no longer distributed "rmrs.h" header, we need to
-# build "mrs.h" on our own.  
-# Let's add "mrs.h" to ECL_MRS_FILES and BUILT_SOURCES so it always gets built
-# ... Eric Nichols <eric-n@is.naist.jp>,
-# Jun. 18, 2005
-
-#There is currently no other way to do MRS than via ECL
-# Is -Dlinux -fPIC -fstrict-aliasing needed as compiler options?
-#MRS_FILES = petmrs.h petmrs.c
-#if ECL
-#cheap_LDADD += $(ITSDBDIR)/lib/linux/libmrs.a
-#cheap_SOURCES += $(MRS_FILES)
-#endif
-
 # Add "mrs.h" to MRS source files ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 # Is -Dlinux -fstrict-aliasing needed as compiler options?
-#ECL_MRS_FILES = cppbridge.cpp cppbridge.h petecl.c petecl.h petmrs.h petmrs.c
-ECL_MRS_FILES = cppbridge.cpp cppbridge.h petecl.c petecl.h petmrs.h petmrs.c
-if ECLMRS
-# ? Dynamically linked or statically?
-# LDFLAGS +=  -Wl,--export-dynamic?
-# cheap_LDADD += $(ECLDIR)/libecl.a
-cheap_SOURCES += $(ECL_MRS_FILES)
-cheap_LDADD = libmrs.a
-nodist_cheap_SOURCES += mrs.h
-BUILT_SOURCES = mrs.h
+ECL_FILES = petecl.c petecl.h
+ECL_MRS_FILES = cppbridge.cpp cppbridge.h petmrs.h petmrs.c
+ECL_PREPROCESSOR_FILES = eclpreprocessor.h eclpreprocessor.cpp
+
+cheap_LDADD =
+if ECL
+cheap_SOURCES += $(ECL_FILES) 
+if ECLPREPROC
+cheap_SOURCES += $(ECL_PREPROCESSOR_FILES)
+cheap_LDADD += libpreprocessor.a
 endif
+if ECLMRS
+cheap_SOURCES += $(ECL_MRS_FILES)
+cheap_LDADD += libmrs.a
+endif
+endif
+
+# Add ecl libraries to be deleted on "make clean" ... 
+# Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
+MOSTLYCLEANFILES = libmrs.a libpreprocessor.a
+
+libmrs.a:
+	( \
+	echo ";;(pushnew :debug *features*)"; \
+	echo "(load \"$(MRSDIR)/src/general/loadup\")"; \
+	echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
+	echo "(mk::ecl-initialize-libbuild :module \"mrs\")"; \
+	echo "(compile-system \"mrs\" :force t)"; \
+	echo "(mk::ecl-finalize-libbuild :module \"mrs\")"; \
+	) | $(ECL)
+
+libpreprocessor.a:
+	( \
+	echo "(load \"$(PREPROCDIR)/src/general/loadup\")"; \
+	echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
+	echo "(mk::ecl-initialize-libbuild :module \"preprocessor\")"; \
+	echo "(compile-system \"preprocessor\" :force t)"; \
+	echo "(mk::ecl-finalize-libbuild :module \"preprocessor\")"; \
+	) | $(ECL)
+
 
 XML_FILES = pic-handler.cpp pic-handler.h pic-states.h xmlparser.cpp xmlparser.h xml-tokenizer.h
 if XML
 cheap_SOURCES += $(XML_FILES)
 endif
 
-
-EXTDICT_FILES = extdict.cpp extdict.h
-if EXTDICT
-cheap_SOURCES += $(EXTDICT_FILES)
-endif
-
 ICU_FILES = unicode.h unicode.cpp
 if ICU
 cheap_SOURCES += $(ICU_FILES)
 endif
+
+PSQL_FILES = psqllex.h psqllex.cpp
+if LEXDB
+cheap_SOURCES += $(PSQL_FILES)
+endif
+
+YY_FILES = yy.h yy.cpp
+if YY
+# Should force appropriate recompilation
+#DEFS += -DYY
+cheap_SOURCES += $(YY_FILES)
+endif
+
+# source files that should be distributed in any case, even if not used.
+EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp			\
+	$(ECL_MRS_FILES) $(EXTDICT_FILES) $(ICU_FILES)			\
+	$(RCU_FILES) $(TOMABECHI_UNIF_FILES) $(YY_FILES) $(XML_FILES)	\
+	$(PSQL_FILES) psqltest.c
+
+EXTRA_DIST = Jamfile
+
+
+profclean:
+	rm -f *.gcov gmon.out *.bb *.bbg *.da
+
+#EXTDICT_FILES = extdict.cpp extdict.h
+#if EXTDICT
+#cheap_SOURCES += $(EXTDICT_FILES)
+#endif
 
 #RCU_FILES = rcu-types.h rcu-types.cpp rcu-dag-node.h
 #if RCU
@@ -128,10 +179,10 @@ endif
 # 	                type-alloc.h type-alloc.cpp
 #endif
 
-PSQL_FILES = psqllex.h psqllex.cpp
-if LEXDB
-cheap_SOURCES += $(PSQL_FILES)
-endif
+# Not done for fair comparison
+# if RCU
+# DEFS += -UQC_PATH_COMP
+# endif
 
 # tsdb sources are always needed for cheap. Does somebody really need dumpgram?
 # Confusion with LKB itsdb.h possible?  Not really: it should be the same file, but local one is always taken first
@@ -146,64 +197,9 @@ endif
 # dumpgram_SOURCES = dumpgram.cpp
 #endif
 
-YY_FILES = yy.h yy.cpp
-if YY
-# Should force appropriate recompilation
-#DEFS += -DYY
-cheap_SOURCES += $(YY_FILES)
-endif
-
-# Not done for fair comparison
-# if RCU
-# DEFS += -UQC_PATH_COMP
-# endif
-
-# This is always used! <-> documentation
-AM_CXXFLAGS = -g -Wall $(OPTIM) $(DEFS)
-AM_CFLAGS = -g -Wall $(OPTIM) $(DEFS)
-
-# clear defaults, e.g., if i don't want optimisation to be switched on
-CXXFLAGS =
-CFLAGS =
-
-# ?
-EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp			\
-	$(ECL_MRS_FILES) $(EXTDICT_FILES) $(ICU_FILES)			\
-	$(RCU_FILES) $(TOMABECHI_UNIF_FILES) $(YY_FILES) $(XML_FILES)	\
-	$(PSQL_FILES) psqltest.c
-
-EXTRA_DIST = Jamfile
-
-# Add "mrs.h" to files to be deleted on "make clean" ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
-#MOSTLYCLEANFILES = libmrs.a
-MOSTLYCLEANFILES = libmrs.a $(MRSDIR)/include/mrs.h
-
-# ADDED :I686 TO *FEATURES*
-# Executed unconditionally!  Dependencies should be done by ECL
-
-# Add build definition for "mrs.h" ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
-mrs.h: libmrs.a
-
-libmrs.a:
-	( \
-	  echo "(pushnew :i686 *features*)"; \
-	  echo ";;(pushnew :debug *features*)"; \
-	  echo "(load \"$(MRSDIR)/src/general/loadup\")"; \
-	  echo ";;MUCH TOO DANGEROUS!!!  (si::system (format nil \"cd ~a; find -type f -exec rm {} \;\" (get-binaries-dir \"mrs\")))"; \
-	  echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
-	  echo "(compile-system \"mrs\" :force t)"; \
-	) | $(ECL)
-
-profclean:
-	rm -f *.gcov gmon.out *.bb *.bbg *.da
-
 # To make ECL:
 # ./configure ...
 # cd build
 # make
 # make install
 
-# The dependencies are computed by the compiler.  It may be the best
-# idea to switch tracking only on for maintainer-mode.
-# The headers do not need to be listed for compilation, but they need
-# to be found for making a distribution.

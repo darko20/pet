@@ -1,6 +1,23 @@
+v0.99.12
+  - remove borland directory from configure/make process
+  - updated TODO list according to Jeres meeting
+  - integration of x-preprocessor code: code split for ecl/mrs/preprocessor
+    and change of library build, command line option -tok=fsr now activates
+    preprocessor code (if compiled in)
+  - changed mrs.system such that it puts the libmrs.a and mrs.h into the 
+    cheap subdirectory
+  - make item trait filtering work correctly (with oe in Jerez), which means
+    that main is now doing as well as the oe branch
+  - some code reformatting and code doc adaptation
+  - chart item copy and assignment constructor inhibition went into a macro
+  - fixed ecl_decode_string, which in some conditions returned improperly
+    terminated C strings
+  - generalized the find_file ugliness in cppbridge.cpp, sm.cpp and 
+    settings.cpp and added some nice pathname functionality in utility.cpp
+
 v0.99.11
   - fixed error with incomplete characterization (hopefully)
-  - removed warnings on 64 bit machines in dag-tomabechi.h
+  - removed warnings on 64 bit machines in dag-tomabechi.h (only for gcc 3.4.4)
 
 v0.99.10
   - renamed config.h(.in) to pet-config.h(.in) (avoid ecl like problems)

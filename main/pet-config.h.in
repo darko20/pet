@@ -23,7 +23,7 @@
 /* Define to 1 if you have the `dup2' function. */
 #undef HAVE_DUP2
 
-/* Use ECL made MRS library */
+/* Use ECL for MRS or preprocessing library */
 #undef HAVE_ECL
 
 /* Define to 1 if you have the <ecl.h> header file. */
@@ -93,11 +93,17 @@
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP
 
+/* use ECL MRS library */
+#undef HAVE_MRS
+
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
+
+/* use ECL x-preprocessing library */
+#undef HAVE_PREPROC
 
 /* use external postgres lexical database */
 #undef HAVE_PSQL_LEXDB

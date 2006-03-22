@@ -1,4 +1,5 @@
-/* PET
+/* -*- Mode: C++ -*-
+ * PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
  *
@@ -35,12 +36,18 @@
 /** this is a hoax to get the cfrom and cto values into the mrs */
 void init_characterization();
 
+/** Inhibit assignment operator and copy constructor(always throws an error) */
+#define INHIBIT_COPY_ASSIGN(___Type) \
+  virtual ___Type &operator=(const ___Type &i) { \
+    throw tError("unexpected call to copy constructor of ___Type"); } \
+  ___Type() { throw tError("unexpected call to copy constructor of ___Type"); }
+
+
 /** Represent an item in a chart. Conceptually there are input items,
  *  morphological items, lexical items and phrasal items. 
  */
-class tItem
-{
- public:
+class tItem {
+public:
   /** Base constructor with feature structure
    * \param start start position in the chart
    * \param end start position in the chart
@@ -49,7 +56,7 @@ class tItem
    * \param printname a readable representation of this item
    */
   tItem(int start, int end, const tPaths &paths, const fs &f,
-       const char *printname);
+        const char *printname);
   /** Base constructor
    * \param start start position in the chart
    * \param end start position in the chart
@@ -57,21 +64,11 @@ class tItem
    * \param printname a readable representation of this item
    */
   tItem(int start, int end, const tPaths &paths, 
-       const char *printname);
+        const char *printname);
 
   virtual ~tItem();
 
-  /** Inhibited assignment operator (always throws an error) */
-  virtual tItem &operator=(const tItem &li)
-  {
-    throw tError("unexpected call to copy constructor of tItem");
-  }
-
-  /** Inhibited copy constructor (always throws an error) */
-  tItem()
-  {
-    throw tError("unexpected call to constructor of tItem");
-  }
+  INHIBIT_COPY_ASSIGN(tItem);
 
   /** Set the owner of all created items to be able to handle destruction
    *  properly.
@@ -94,7 +91,7 @@ class tItem
   */
   inline rule_trait trait() { return _trait; }
 
-  inline bool completep() { return _inflrs_todo == 0; }
+  inline bool inflrs_complete_p() { return _inflrs_todo == 0; }
 
   /** Return \c true if this item has all of its arguments filled. */
   inline bool passive() const { return _tofill == 0; }
@@ -119,49 +116,41 @@ class tItem
    * -- passive items at the borders of the chart do not combine with rules
    *    that would try to extend them past the border
    */
-  inline bool compatible(class grammar_rule *R, int length)
-  {
-      if(R->trait() == INFL_TRAIT)
-      {
-        if(_inflrs_todo == 0 || first(_inflrs_todo) != R->type())
+  inline bool compatible(class grammar_rule *R, int length) {
+    if(R->trait() == INFL_TRAIT) {
+      if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
+        return false;
+    }
+    else if(R->trait() == LEX_TRAIT) {
+      if(_trait == SYNTAX_TRAIT) 
+        return false;
+    }
+    else if(R->trait() == SYNTAX_TRAIT) {
+      if(! inflrs_complete_p()) return false;
+    }
+      
+    if(R->spanningonly()) {
+      if(R->arity() == 1) {
+        if(span() != length)
           return false;
       }
-      else if(R->trait() == LEX_TRAIT)
-      {
-        if(_trait == SYNTAX_TRAIT) 
+      else if(R->nextarg() == 1) {
+        if(_start != 0)
           return false;
       }
-      else if(R->trait() == SYNTAX_TRAIT)
-      {
-        if(_inflrs_todo != 0) return false;
+      else if(R->nextarg() == R->arity()) {
+        if(_end != length)
+          return false;
       }
+    }
       
-      if(R->spanningonly())
-      {
-          if(R->arity() == 1)
-          {
-              if(span() != length)
-                  return false;
-          }
-          else if(R->nextarg() == 1)
-          {
-              if(_start != 0)
-                  return false;
-          }
-          else if(R->nextarg() == R->arity())
-          {
-              if(_end != length)
-                  return false;
-          }
-      }
+    if(opt_shaping == false)
+      return true;
       
-      if(opt_shaping == false)
-          return true;
-      
-      if(R->left_extending())
-          return _end + R->arity() - 1 <= length;
-      else
-          return _start - (R->arity() - 1) >= 0;
+    if(R->left_extending())
+      return _end + R->arity() - 1 <= length;
+    else
+      return _start - (R->arity() - 1) >= 0;
   }
   
   /** Cheap compatibility tests of a passive and an active item.
@@ -173,27 +162,27 @@ class tItem
    */
   inline bool compatible(tItem *active, int length)
   {
-    if((_trait == INPUT_TRAIT) || !completep())
-          return false;
+    if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
+      return false;
       
-      if(active->spanningonly())
+    if(active->spanningonly())
       {
-          if(active->nextarg() == 1)
+        if(active->nextarg() == 1)
           {
-              if(_start != 0)
-                  return false;
+            if(_start != 0)
+              return false;
           }
-          else if(active->nextarg() == active->arity() + active->nfilled())
+        else if(active->nextarg() == active->arity() + active->nfilled())
           {
-              if(_end != length)
-                  return false;
+            if(_end != length)
+              return false;
           }
       }
   
-      if(!opt_lattice && !_paths.compatible(active->_paths))
-          return false;
+    if(!opt_lattice && !_paths.compatible(active->_paths))
+      return false;
     
-      return true;
+    return true;
   }
   
   /** Does this active item extend to the left or right?
@@ -202,7 +191,7 @@ class tItem
    */
   inline bool left_extending() const
   {
-      return _tofill == 0 || first(_tofill) == 1;
+    return _tofill == 0 || first(_tofill) == 1;
   }
 
   /** Return \c true if the passive item is at the `open' end of this active
@@ -211,8 +200,8 @@ class tItem
    */
   inline bool adjacent(class tItem *passive)
   {
-      return (left_extending() ? (_start == passive->_end)
-              : (_end == passive->_start));
+    return (left_extending() ? (_start == passive->_end)
+            : (_end == passive->_start));
   }
 
   /** Check if this item is a parse result.
@@ -221,15 +210,14 @@ class tItem
    * compatible with one of the root FS nodes. Furthermore, the root node is
    * returned in \a rule.
    */
-  inline bool root(class tGrammar *G, int length, type_t &rule)
-  {
-      if(_trait == INFL_TRAIT)
-          return false;
-      
-      if(_start == 0 && _end == length)
-          return G->root(_fs, rule);
-      else
-          return false;
+  inline bool root(class tGrammar *G, int length, type_t &rule) {
+    if(_trait == INFL_TRAIT)
+      return false;
+    
+    if(_start == 0 && _end == length)
+      return G->root(_fs, rule);
+    else
+      return false;
   }
   
   /** Return the feature structure of this item.
@@ -237,17 +225,15 @@ class tItem
    * dags, which have not been copied after unification. This functionality is
    * rather messy and should be cleaned up.
    */
-  virtual fs get_fs(bool full = false)
-  {
-      if(_fs.temp() && _fs.temp() != unify_generation)
-          recreate_fs();
-      return _fs;
+  virtual fs get_fs(bool full = false) {
+    if(_fs.temp() && _fs.temp() != unify_generation)
+      recreate_fs();
+    return _fs;
   }
 
   /** Return the root type of this item's feature structure */
-  type_t type()
-  {
-      return get_fs().type();
+  type_t type() {
+    return get_fs().type();
   }
   
   /** Return the number of next argument to fill, ranging from zero to
@@ -374,7 +360,7 @@ class tItem
   /** Return the list of daughters. */
   inline const list<tItem *> &daughters() const { return _daughters; }
 
- protected:
+protected:
   /** \brief Base unpacking function called by unpack for each item. Stops
    *  unpacking when \a limit edges have been unpacked.
    *
@@ -382,7 +368,7 @@ class tItem
    */
   virtual list<tItem *> unpack1(int limit) = 0;
 
- private:
+private:
   // Internal function for packing/frosting
   void block(int mark);
 
@@ -428,7 +414,7 @@ class tItem
   int _blocked;
   list<tItem *> *_unpack_cache;
 
- public:
+public:
   /** The parents of this node */
   list<tItem *> parents;
 
@@ -454,6 +440,13 @@ class tItem
 enum tok_class { SKIP_TOKEN_CLASS = -3, WORD_TOKEN_CLASS, STEM_TOKEN_CLASS };
 
 /**
+ * tInputItems represent items from the tokenization/input format reading
+ * process.
+ * 
+ * tInputItems can only have daughters that are tInputItems. That could
+ * represent a named entity consisting of several other input tokens.
+ * A tInputItem may never be a daughter of a tPhrasalItem, but only of a
+ * tLexItem.
  * tItem must be the superclass to be able to add these items to the chart.
  * These items are the results of tokenization and NE recognition, possibly
  * with different slots filled
@@ -505,17 +498,7 @@ public:
     free_list(_inflrs_todo); 
   }
 
-  /** Inhibited assignment operator (always throws an error) */
-  virtual tInputItem &operator=(const tItem &li)
-  {
-    throw tError("unexpected call to assignment operator of tLexItem");
-  }
- 
-  /** Inhibited copy constructor (always throws an error) */
-  tInputItem(const tInputItem &li)
-  {
-    throw tError("unexpected call to copy constructor of tLexItem");
-  }
+  INHIBIT_COPY_ASSIGN(tInputItem);
 
   /** \brief Print item readably to \a f. \a compact is ignored here */
   virtual void print(FILE *f, bool compact=true);
@@ -673,8 +656,13 @@ private:
 };
 
 /** An item created from an input item with a corresponding lexicon
- *  entry.
- *  Contains also morphological and part of speech information
+ *  entry or a lexical or morphological rule
+ *  This contains also morphological and part of speech information. The
+ *  \c tLexItems with only tInputItems as daughters are there to lexical 
+ *  entries, maybe for multi word expressions. Otherwise, \c tLexItems are the
+ *  results of applications of morphological or lexical rules and have
+ *  \c tLexItems as daughters. A \c tLexItem can also be a daughter of a
+ *  \c tPhrasalItem.
  */
 class tLexItem : public tItem
 {
@@ -694,17 +682,7 @@ class tLexItem : public tItem
     free_list(_inflrs_todo); 
   }
 
-  /** Inhibited assignment operator (always throws an error) */
-  virtual tLexItem &operator=(const tItem &li)
-  {
-    throw tError("unexpected call to assignment operator of tLexItem");
-  }
-
-  /** Inhibited copy constructor (always throws an error) */
-  tLexItem(const tLexItem &li)
-  {
-    throw tError("unexpected call to copy constructor of tLexItem");
-  }
+  INHIBIT_COPY_ASSIGN(tLexItem);
 
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
@@ -744,9 +722,8 @@ class tLexItem : public tItem
   virtual grammar_rule *rule();
 
   /** Return either the \a full or the restricted feature structure */
-  virtual fs get_fs(bool full = false)
-  {
-      return full ? _fs_full : _fs;
+  virtual fs get_fs(bool full = false) {
+    return full ? _fs_full : _fs;
   }
 
   /** Always throws an error */
@@ -779,19 +756,16 @@ class tLexItem : public tItem
   }
 
   /** Returns the POS tags coming from the input */
-  inline const postags &get_in_postags()
-  { 
+  inline const postags &get_in_postags() {
     return _keydaughter->get_in_postags();
   }
   /** Returns the POS tags given by the lexical stem of this item */
-  inline const postags &get_supplied_postags()
-  { 
+  inline const postags &get_supplied_postags() {
     return _supplied_pos;
   }
 
   /** Return the HPSG type this item stems from */
-  virtual int identity() const
-  {
+  virtual int identity() const {
     return _stem->type(); // _dtrs[_keydtr]->identity();
   }
 
@@ -845,8 +819,7 @@ class tLexItem : public tItem
 /** An item build from a grammar rule and arguments (tPhrasalItem or tLexItem).
  *  May be active or passive.
  */
-class tPhrasalItem : public tItem
-{
+class tPhrasalItem : public tItem {
  public:
   /** Build a new phrasal item from the (successful) combination of \a rule and
    *  \a passive, which already produced \a newfs
@@ -861,6 +834,10 @@ class tPhrasalItem : public tItem
    *  structure \a newfs.
    */
   tPhrasalItem(tPhrasalItem *representative, vector<tItem *> &dtrs, fs &newfs);
+
+  virtual ~tPhrasalItem() {}
+
+  INHIBIT_COPY_ASSIGN(tPhrasalItem);
 
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
@@ -908,12 +885,11 @@ class tPhrasalItem : public tItem
   virtual void recreate_fs();
 
   /** Return the HPSG type this item stems from */
-  virtual int identity() const
-  {
-      if(_rule)
-          return _rule->type();
-      else
-          return 0;
+  virtual int identity() const {
+    if(_rule)
+      return _rule->type();
+    else
+      return 0;
   }
 
  protected:

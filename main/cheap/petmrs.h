@@ -27,7 +27,9 @@
 #ifndef _PETMRS_H_
 #define _PETMRS_H_
 
-#include "ecl.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** Get the type code for \a type_name */
 extern int
@@ -85,4 +87,13 @@ pet_glb(int type1, int type2);
 extern int
 pet_type_valid_p(int type);
 
+/** Loads user-specified (interpreted) lisp files, and initializes the compiled
+ * MRS package.
+ */
+extern int
+mrs_initialize(const char *grammar_file_name);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

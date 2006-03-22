@@ -432,6 +432,8 @@ bool parse_options(int argc, char* argv[])
             if (strcasecmp(optarg, "xml") == 0) opt_tok = TOKENIZER_XML;
             if (strcasecmp(optarg, "xml_counts") == 0)
               opt_tok = TOKENIZER_XML_COUNTS;
+            if (strcasecmp(optarg, "fsr") == 0)
+              opt_tok = TOKENIZER_FSR;
             if (opt_tok == TOKENIZER_INVALID) {
               fprintf(ferr, "Unknown input method %s, setting it to 'string'\n"
                       , optarg);

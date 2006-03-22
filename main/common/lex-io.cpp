@@ -53,25 +53,25 @@ struct lex_location *new_location(char *fname, int linenr, int colnr)
   return loc;
 }
 
-void push_file(const char *fname, char *info)
-{
+void push_file(const string &fname, char *info) {
   lex_file f;
   struct stat statbuf;
 
   if(file_nest >= MAX_LEX_NEST)
-    throw tError(string("too many nested includes (in ") + string(fname) + string(") - giving up"));
+    throw tError(string("too many nested includes (in ") 
+                 + fname + ") - giving up");
 
 #ifndef WINDOWS
-  f.fd = open(fname, O_RDONLY);
+  f.fd = open(fname.c_str(), O_RDONLY);
 #else
-  f.fd = open(fname, O_RDONLY | O_BINARY);
+  f.fd = open(fname.c_str(), O_RDONLY | O_BINARY);
 #endif
 
   if(f.fd < 0)
-    throw tError("error opening `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("error opening `" + fname + "': " + string(strerror(errno)));
 
   if(fstat(f.fd, &statbuf) < 0)
-    throw tError("couldn't fstat `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't fstat `" + fname + "': " + string(strerror(errno)));
 
   f.len = statbuf.st_size;
 
@@ -79,21 +79,22 @@ void push_file(const char *fname, char *info)
   f.buff = (char *) mmap(0, f.len, PROT_READ, MAP_SHARED, f.fd, 0);
 
   if(f.buff == (caddr_t) -1)
-    throw tError("couldn't mmap `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't mmap `" + fname + "': " + string(strerror(errno)));
 
 #else
   f.buff = (char *) malloc(f.len + 1);
   if(f.buff == 0)
-    throw tError("couldn't malloc for `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't malloc for `" + fname + "': " 
+                 + string(strerror(errno)));
   
   if((size_t) read(f.fd,f.buff,f.len) != f.len)
-    throw tError("couldn't read from `" + string(fname) + "': " + string(strerror(errno)));
+    throw tError("couldn't read from `" + fname + "': "
+                 + string(strerror(errno)));
 
   f.buff[f.len] = '\0';
 #endif
 
-  f.fname = (char *) malloc(strlen(fname) + 1);
-  strcpy(f.fname, fname);
+  f.fname = strdup(fname.c_str());
   
   f.pos = 0;
   f.linenr = 1; f.colnr = 1;
@@ -104,14 +105,10 @@ void push_file(const char *fname, char *info)
   CURR = &(file_stack[file_nest-1]);
 }
 
-int pop_file()
-{
+int pop_file() {
   lex_file f;
 
-  if(file_nest <= 0)
-    {
-      return 0;
-    }
+  if(file_nest <= 0) return 0;
 
   f = file_stack[--file_nest];
   if(file_nest > 0)

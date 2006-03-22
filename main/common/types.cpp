@@ -145,19 +145,14 @@ int lookup_type(const char *s)
 {
   static bool initialized_cache = false;
 
-  if(!initialized_cache)
-    {
-      for(int i = 0; i < ntypes; i++)
-	_typename_memo[typenames[i]] = i;
-      initialized_cache = true;
-    }
+  if(!initialized_cache) {
+    for(int i = 0; i < ntypes; i++)
+      _typename_memo[typenames[i]] = i;
+    initialized_cache = true;
+  }
   
   string_map::iterator pos = _typename_memo.find(s);
-  if(pos != _typename_memo.end())
-    {
-      return (*pos).second;
-    }
-  return T_BOTTOM;
+  return (pos != _typename_memo.end()) ? (*pos).second : T_BOTTOM;
 }
 
 #ifdef DYNAMIC_SYMBOLS

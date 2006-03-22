@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.11], [kiefer@dfki.de])
+AC_INIT([PET], [0.99.12], [kiefer@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])
@@ -18,11 +18,9 @@ dnl dejagnu dist-bzip2 no-dependencies
 
 # Let's try putting stuff in delphin/
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-contrib_prefix="/usr/local/delphin"
-#contrib_prefix="$HOME"
+delphin_prefix="/usr/local/delphin"
 
-ITSDBDIR="$contrib_prefix/lkb"
-MRSDIR="$ITSDBDIR"
+ITSDBDIR="$delphin_prefix/lkb"
 
 # Assume that PET_DEPENDENCIES are all in "/usr/local"
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
@@ -111,6 +109,18 @@ saveLDFLAGS="$LDFLAGS"
 # IF requested AND libraries and headers OK; THEN add to configuration
 # For libraries: it should be possible to choose for static ones
 
+
+AC_ARG_WITH(tsdb,
+[AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default=yes)])],
+[
+case "${withval}" in
+    yes) tsdb=true ;;
+    no)  tsdb=false ;;
+    *)   tsdb=true
+         ITSDBDIR=${withval};;
+esac
+], [tsdb=true])
+
 check_tsdb() {
 if test -d ${ITSDBDIR}/include ; then
     CPPFLAGS="$CPPFLAGS -I${ITSDBDIR}/include"
@@ -144,17 +154,6 @@ else
 fi
 }
 
-
-AC_ARG_WITH(tsdb,
-[AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default=yes)])],
-[
-case "${withval}" in
-    yes) tsdb=true ;;
-    no)  tsdb=false ;;
-    *)   tsdb=true
-         ITSDBDIR=${withval};;
-esac
-], [tsdb=true])
 if test x$tsdb = xtrue && check_tsdb ; then 
       AC_DEFINE(TSDBAPI, [1], ["incr[tsdb()] libraries available, supply API"])
       CHEAPLIBS="-litsdb $CHEAPLIBS"
@@ -170,87 +169,159 @@ CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
 
-AC_ARG_WITH(mrsdir,
-[AC_HELP_STRING([--with-mrsdir@<:@=DIR@:>@], [specify the path to the MRS Lisp sources (LKB top level directory) (default=${ITSDBDIR})])],
-[
-if test -f "${withval}/src/general/loadup.lisp" ; then
-    MRSDIR=${withval}
-else
+MRSDIR="$ITSDBDIR"
+dnl check for the Lisp code directory for MRS
+AC_ARG_WITH(mrs,
+[AC_HELP_STRING([--with-mrs@<:@=DIR@:>@], 
+                [specify the path to the MRS Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})])],
+[ dnl the command line switch was given, eventually check provided MRSDIR
+case "${withval}" in
+    yes) mrs=true ;;
+    no)  mrs=false ;;
+    *)   mrs=true
+         MRSDIR=${withval};;
+esac
+], [mrs=true])
+if test "x$mrs" = xtrue ; then
+  if test \! -f "${MRSDIR}/src/general/loadup.lisp" ; then
     if test -f "${withval}/general/loadup.lisp" ; then
-        MRSDIR=${withval%%/}
-        MRSDIR=${MRSDIR%%/src}
-    else
-        AC_MSG_WARN([no MRS code found in ${withval} for --with-mrsdir])
+       MRSDIR=${withval%%/}
+       MRSDIR=${MRSDIR%%/src}
     fi
-fi
-], [MRSDIR=${ITSDBDIR}])
-
-check_ecl() {
-eclincldir=""
-AC_PATH_PROG(ECL, ecl, no, [$PATH:${ECLDIR}/bin])
-if test $ECL = no ; then 
-    AC_MSG_WARN([no ecl binary found for --with-eclmrs; DISABLED])
-    return 1
-fi
-if test -f ${MRSDIR}/src/general/loadup.lisp ; then
-    if test -d ${ECLDIR}/h; then
-        eclincldir=${ECLDIR}/h
-    else
-      if test -d ${ECLDIR}/lib/ecl/h ; then
-          eclincldir=${ECLDIR}/lib/ecl/h
-      fi
-    fi
-    if test x$eclincldir != x ; then
-        CPPFLAGS="$CPPFLAGS -I${eclincldir} -I${MRSDIR}/include"
-        export CPPFLAGS
-	# rmrs.h is no longer being distributed, so we don't need to check for
-        # it any more ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18, 2005
-	AC_CHECK_HEADERS([ecl.h], [],
-            [ AC_MSG_WARN([header files not found for --with-eclmrs; DISABLED])
-              return 1 ],[])
-        LDFLAGS="$LDFLAGS -L${ECLDIR}/lib/ecl"
-        export LDFLAGS
-        # ECL Libraries
-        AC_CHECK_LIB([ecl], [cl_map], 
-            [ return 0 ], 
-            [ 
-            AC_MSG_WARN([libecl.so not found for --with-eclmrs; DISABLED])
-            return 1
-            ])
-    else
-        AC_MSG_WARN([directory neither ${ECLDIR}/h nor ${ECLDIR}/lib/h found for --with-eclmrs; DISABLED])
-        return 1
-    fi
+  fi
+  if test \! -f "${MRSDIR}/src/general/loadup.lisp" ; then
+     AC_MSG_WARN([no MRS code found in ${MRSDIR}; DISABLED])
+     MRSDIR=""
+     mrs=false
+  else
+     mrs=true
+  fi
 else
-    AC_MSG_WARN([no MRS code found in ${MRSDIR} for --with-eclmrs; DISABLED])
-    return 1
+  MRSDIR=""
 fi
-}
 
-AC_ARG_WITH(eclmrs,
-[AC_HELP_STRING([--with-eclmrs@<:@=DIR@:>@], [build MRS library with ECL (default=yes)])],
+PREPROCDIR="${ITSDBDIR}"
+dnl check the Lisp code directory for the preprocessor
+AC_ARG_WITH(preproc,
+[AC_HELP_STRING([--with-preproc@<:@=DIR@:>@], [specify the path to the x-preprocessor Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})\])],
+dnl (default=no)
 [
 case "${withval}" in
-    yes) eclmrs=true ;;
-    no)  eclmrs=false ;;
-    *)   eclmrs=true
+    yes) preproc=true ;;
+    no)  preproc=false ;;
+    *)   preproc=true
+         PREPROCDIR=${withval};;
+esac
+], [ preproc=true ])
+if test x$preproc = xtrue ; then
+  if test \! -f "${PREPROCDIR}/src/general/loadup.lisp" ; then
+     if test -f "${PREPROCDIR}/general/loadup.lisp" ; then
+        PREPROCDIR=${PREPROCDIR%%/}
+        PREPROCDIR=${PREPROCDIR%%/src}
+     else
+        AC_MSG_WARN([no PREPROC code found in ${PREPROCDIR} for --with-preprocdir])
+        PREPROCDIR=""
+        preproc=false
+     fi
+  fi
+else
+  PREPROCDIR=""
+fi
+
+
+AC_ARG_WITH(ecl,
+[AC_HELP_STRING([--with-ecl@<:@=DIR@:>@], 
+                [use ECL for mrs or preprocessing or both (default=yes)])],
+[
+case "${withval}" in
+    yes) ecl=true ;;
+    no)  ecl=false ;;
+    *)   ecl=true
          ECLDIR=${withval} ;;
 esac
-], [ eclmrs=true ])
-if test x$eclmrs = xtrue && check_ecl ; then
-    CHEAPLIBS="-lecl $CHEAPLIBS"
-    CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ECLDIR}/lib/ecl -Wl,-rpath,${ECLDIR}/lib/ecl"
-    CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${eclincldir} -I${MRSDIR}/include"
-    AC_DEFINE(HAVE_ECL, [1], [Use ECL made MRS library])
-else 
-    eclmrs=false
+], [ ecl=true ])
+
+eclincldir=""
+if test x$ecl = xtrue; then
+  dnl check ECL: binary, include dir, libs
+  AC_PATH_PROG(ECL, ecl, no, [$PATH:${ECLDIR}/bin])
+  if test $ECL = no ; then 
+    AC_MSG_WARN([no ecl binary found in ${ECLDIR}/bin; ECL DISABLED])
+    ecl=false
+  else
+    if test -d ${ECLDIR}/h ; then
+      eclincldir=${ECLDIR}/h
+    else
+      if test -d ${ECLDIR}/lib/ecl/h ; then
+        eclincldir=${ECLDIR}/lib/ecl/h
+      else
+        AC_MSG_WARN([neither ${ECLDIR}/h nor ${ECLDIR}/lib/ecl/h found; ECL DISABLED])
+        ecl=false
+      fi
+    fi
+    if test "x${eclincldir}" != x ; then
+      CPPFLAGS="$CPPFLAGS -I${eclincldir}"
+      export CPPFLAGS
+      AC_CHECK_HEADERS([ecl.h], [],
+         [ AC_MSG_WARN([header files not found in ${eclincldir}; ECL DISABLED])
+           ecl=false 
+         ],[])
+    fi
+  fi
 fi
-AM_CONDITIONAL(ECLMRS, [test x$eclmrs = xtrue])
+if test "x$ecl" == xtrue ; then
+   LDFLAGS="$LDFLAGS -L${ECLDIR}/lib/ecl"
+   export LDFLAGS
+   # check ECL Libraries
+   AC_CHECK_LIB([ecl], [cl_map], [ ecl=true ], 
+        [ AC_MSG_WARN([libecl.so not found in ${ECLDIR}/lib/ecl; ECL DISABLED])
+          ecl=false
+        ])
+fi
+
+dnl all tests for ECL components have been executed, draw conclusions
+if test x$ecl = xtrue ; then
+  CHEAPLIBS="-lecl $CHEAPLIBS"
+  CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ECLDIR}/lib/ecl -Wl,-rpath,${ECLDIR}/lib/ecl"
+  CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${eclincldir}"
+  if test x$mrs == xtrue ; then
+     AC_DEFINE(HAVE_MRS, [1], [use ECL MRS library])
+     ECLUSER="_mrs"
+  fi
+  if test x$preproc == xtrue; then
+     AC_DEFINE(HAVE_PREPROC, [1], [use ECL x-preprocessing library])
+     ECLUSER=${ECLUSER}"_preproc"
+  fi
+  if test x$ECLUSER != x ; then
+     AC_DEFINE(HAVE_ECL, [1], [Use ECL for MRS or preprocessing library])
+  else
+     ecl=false
+  fi
+else
+  preproc=false
+  mrs=false    
+fi
+AM_CONDITIONAL(ECL, [test x$ECLUSER != x])
 dnl Substitute this to compile libmrs.a
+AM_CONDITIONAL(ECLMRS, [test x$mrs = xtrue])
+AM_CONDITIONAL(ECLPREPROC, [test x$preproc = xtrue])
+
 AC_SUBST(MRSDIR)
+AC_SUBST(PREPROCDIR)
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
+
+AC_ARG_WITH(icu,
+[AC_HELP_STRING([--with-icu@<:@=DIR@:>@], [use the ICU library (default=yes)])],
+[
+case "${withval}" in
+    yes) icu=true ;;
+    no)  icu=false ;;
+    *)   icu=true
+         ICUDIR=${withval} ;;
+esac
+], [ icu=true ])
 
 check_icu() {
 if test x$ICUDIR != x ; then
@@ -278,16 +349,6 @@ dnl           return 1 ])
 return 0
 }
 
-AC_ARG_WITH(icu,
-[AC_HELP_STRING([--with-icu@<:@=DIR@:>@], [use the ICU library (default=yes)])],
-[
-case "${withval}" in
-    yes) icu=true ;;
-    no)  icu=false ;;
-    *)   icu=true
-         ICUDIR=${withval} ;;
-esac
-], [ icu=true ])
 if test x$icu = xtrue && check_icu ; then
     if test x$ICUDIR != x ; then
         CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ICUDIR}/include"
@@ -393,6 +454,17 @@ LDFLAGS="$saveLDFLAGS"
 
 
 
+AC_ARG_WITH(lexdb,
+[AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
+[
+case "${withval}" in
+    yes) lexdb=true ;;
+    no)  lexdb=false ;;
+    *)   lexdb=true
+         PSQLDIR=${withval} ;;
+esac
+], [ lexdb=true ])
+
 check_psql() {
 if test x$PSQLDIR != x ; then
     if test -d ${PSQLDIR} && test -d $PSQLDIR/include && test -d $PSQLDIR/lib ; then 
@@ -417,16 +489,6 @@ AC_CHECK_LIB([pq], [main], [],
 return 0
 }
 
-AC_ARG_WITH(lexdb,
-[AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
-[
-case "${withval}" in
-    yes) lexdb=true ;;
-    no)  lexdb=false ;;
-    *)   lexdb=true
-         PSQLDIR=${withval} ;;
-esac
-], [ lexdb=true ])
 if test x$lexdb = xtrue && check_psql ; then
    if test x$PSQLDIR != x ; then
       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
@@ -566,7 +628,7 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MALLOC
 
 AC_ARG_ENABLE(mmapalloc,
-[AC_HELP_STRING([--enable-mmap], [enable/disable use of mmap allocator (default=check for mmap)])],
+[AC_HELP_STRING([--enable-mmapalloc], [enable/disable use of mmap allocator (default=check for mmap)])],
 [case "${enableval}" in
    no)   mmapalloc=no;;
    *)    mmapalloc=yes;;
@@ -617,7 +679,9 @@ feature_avail() {
 echo ; echo "============================================================="
 feature_avail x$boost xtrue "Boost (required for flop)"
 feature_avail x$tsdb xtrue "tsdb"
-feature_avail x$eclmrs xtrue "MRS code with ecl"
+feature_avail x$ecl xtrue "ecl lisp processor"
+feature_avail x$mrs xtrue "MRS code with ecl"
+dnl feature_avail x$preproc xtrue "preprocessor code with ecl"
 feature_avail x$icu xtrue "ICU"
 feature_avail x$xml xtrue "XML input mode"
 feature_avail x$lexdb xtrue "External SQL dictionary"

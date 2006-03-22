@@ -19,51 +19,62 @@
 
 /* ECL integration */
 
-#include <ecl.h>
-#include "cppbridge.h"
-
-// Include the individual packages
-
-// Replace nonexistent "rmrs.h" with "mrs.h" ... 
-// Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
-//#include "rmrs.h"
-#include "mrs.h"
+#include "petecl.h"
+#include "stdlib.h"
 
 //
-// ECL initialization function. Boots the ECL engine,
-// loads user-specified (interpreted) lisp files, and
-// initializes the compiled packages (currently only MRS).
+// Helper functions.
 //
-int
-ecl_initialize(int argc, char **argv, char *grammar_file_name)
-{
-    cl_boot(argc, argv);
 
-    // Load lisp initialization files as specified in settings.
+char *
+ecl_decode_string(cl_object x) {
+  if (type_of(x) != t_string) return NULL;
+  // make sure the string is correctly terminated
+  char *result = (char *) x->string.self;
+  result[x->string.fillp] = '\0';
+  return result;
+}
 
-    ecl_cpp_load_files("preload-lisp-files", grammar_file_name);
+int *
+ecl_decode_vector_int(cl_object x) {
+  int i;
+  int *v = 0;
+  cl_object y;
+
+  if(type_of(x) != t_vector)
+    return v;
     
-    // Initialize the individual packages
+  v = malloc(sizeof(int) * (x->vector.fillp + 1));
+  v[x->vector.fillp] = -1; // end marker
 
-    initialize_mrs();
+  for(i = 0; i < x->vector.fillp; i++) {
+    y = aref1(x, i);
+    if(type_of(y) != t_fixnum)
+      v[i] = -1;
+    else
+      v[i] = fix(y);
+  }
 
-    // Load lisp initialization files as specified in settings.
+  return v; // caller has to free v
+}
 
-    ecl_cpp_load_files("postload-lisp-files", grammar_file_name);
 
-    return 0;
+// ECL initialization function. Boots the ECL engine
+int
+ecl_initialize(int argc, char **argv) {
+  cl_boot(argc, argv);
+  return 0;
 }
 
 //
 // Load a lisp file with the given name using the ECL interpreter.
 //
 void
-ecl_load_lispfile(char *fname)
-{
-    funcall(4,
-            c_string_to_object("load"),
-            make_string_copy(fname),
-            c_string_to_object(":verbose"),
-            Cnil);
+ecl_load_lispfile(const char *fname) {
+  funcall(4,
+          c_string_to_object("load"),
+          make_string_copy(fname),
+          c_string_to_object(":verbose"),
+          Cnil);
 }
 

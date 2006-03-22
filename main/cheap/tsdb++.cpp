@@ -581,7 +581,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_parse_collect_edges(T, *iter);
                 }
                 
-#ifdef HAVE_ECL
+#ifdef HAVE_MRS
                 if(opt_mrs)
                 {
                     R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag()
@@ -635,6 +635,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.words = stats.words;
     T.mtcpu = stats.mtcpu;
     T.first = stats.first;
+    // This is the right way to do it, even if berthold complains.
     T.tcpu = stats.tcpu;
     T.total = stats.tcpu + stats.p_utcpu;
     T.tgc = 0;

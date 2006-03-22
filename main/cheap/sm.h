@@ -97,16 +97,13 @@ class tSM
     description() = 0;
 
  protected:
-    const char *
-    fileName()
+    const string &
+    fileName() const 
     { return _fileName; }    
 
  private:
-    char *
-    findFile(const char *fileName, const char *basePath);
-
     class tGrammar *_G;
-    char *_fileName;
+    string _fileName;
 
     class tSMMap *_map;
 };
@@ -149,7 +146,7 @@ class tMEM : public tSM
     string _ctxts;
 
     void
-    readModel(const char *fileName);
+    readModel(const string &fileName);
 
     void
     parseModel();

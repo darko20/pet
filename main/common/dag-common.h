@@ -192,6 +192,13 @@ dag_node *dag_create_path_value(const char *path, type_t type);
  */
 dag_node *dag_create_path_value(list_int *path, type_t type);
 
+/** Create a minimal feature structure that contains the arc path \a path and
+ * where the node at the bottom has type \a type. 
+ * \a path must be a list of valid attribute IDs
+ *  \return The root node of the new dag on success, \c FAIL otherwise
+ */
+dag_node *dag_create_path_value(list_int *path, struct dag_node *dag);
+
 /** Convert a dot-separated list of attributes into a list of attributes ids
  *  \return the pointer to the list if all attributes are known, \c NULL
  *          otherwise 
@@ -275,7 +282,7 @@ dag_node *dag_full_copy(dag_node *dag);
 
 /** Unify \a dag2 into \a root at subdag \a dag1.  
  *
- * If the unification succeeds, return a (possibly partial, i.e., * structure
+ * If the unification succeeds, return a (possibly partial, i.e., structure
  * sharing) copy of the result, omitting all arcs at the root node that bear
  * attributes contained in \a del.
  *
@@ -289,6 +296,17 @@ dag_node *dag_full_copy(dag_node *dag);
  */
 dag_node *
 dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del);
+
+
+/** Unify \a arg into \a root at subdag under path \a path.  
+ *
+ * If the path is not (fully) present in the feature structure \a root, try to
+ * add it. If the unification succeeds, return a (possibly partial, i.e.,
+ * structure sharing) copy of the result.
+ */
+struct dag_node *
+dag_unify(dag_node *root, dag_node *arg, list_int *path);
+
 
 /** Return \c true if \a dag1 and \a dag2 are unifiable, \c false otherwise.
  *  \a dag1 and \a dag2 are not modified.

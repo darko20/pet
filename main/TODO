@@ -1,16 +1,52 @@
-- finish lexdb
-- Memory leak seems to be not ignoreable
-- finish modlist class or make it obsolete
+- set up and migrate to svn as soon as a reasonable version has stabilized.
+  Ask Malte Kiesel (Dengel Workgroup at KL), who administrates the OpenDFKI
+  for svn with https in trec system
+
+- "automatic" tests (preferably with tsdb) for unfilling/packing modes
+  - freeze an english and german grammar version for performance comparisons
+  - main type/unification/parsing engine
+  - check characterization and carg too
+  - input processing
+  - automated tests for single modules ??
+
+- finish lexdb: lexical database (postgres) integration
+
+- unreleased memory? (see valgrind-errors-15-apr-04)
+  Memory leak seems to be not ignoreable (berthold et al. Jan 2006)
+
+- finish modlist class, rather, make it obsolete by moving to modification fs
+  and moving the relevant code "into" the creation of tLexItem, but there is 
+  the problem of <failing constructor>.
+
+- mmap disabling makes segfaults (Francis tries to pin this down)
+- 64bit version does not work properly
+- selective unpacking (Eric Nichols announced to do this)
+
+- reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
+
+- extension of TDL syntax to type extension and comments (check mail/wiki)
 
 - mmap problems seem to come up again and again!
   Idea: Make sure that permanent dags avoid using one of the slots that are 
-        used for unification and mark it with a special value. May not be 
-        feasible 
+        used for unification and mark it with a special value. After some 
+        thinking, i would say that this might not be feasible.
 
 - remove all uses of negative values as `marker'-values, especially where casts
   from integers to pointers and back are involved. 
 
 - multiple irregs files as in LKB (gimmick)
+
+- Preprocessor input format (SMAF) 
+   Lattice structure with FS, RMRS, META
+   pointers back to the original input in (maybe more than one) format to 
+        retrieve the original text for standoff annotations
+   An option to include the original string (e.g. in the case that the
+        processor does not work on documents)
+   ID references from annotations to the tokens
+   There has to be a (at least) name mapping table/specification
+   Multiple tokens have to transform into multiple other tokens
+        one does not want to have to specify exactly how many tokens to match
+        see example.
 
 - divergence in the case of chart dependencies:
   this problem stems from the fact that in PET chart dependencies are applied
@@ -25,32 +61,33 @@
 
 - flop returns zero even in the presence of errors like non-unique feature
   introduction
+- flop: Better error handling for use with external applications
+- flop: emacs compatible error messages ?
+- flop does not dump (multiply) cyclic structures
+  - test dag restrictor once this is fixed
 
 - API!!! and maybe cheap dynamic library
   - restarting a parse stopped because the first result arrived
   - determining the subset of results to retrieve
   - determine the desired output format(s) (multiple formats may be desired, 
     without reparse!)
+  - which kind of output should be produced, and on which demand
+  - CFG/labeled phrase structure tree as output 
   - set/change options/settings through API (a part of "clean up:options")
+  - XML-RPC layer
 
 - scoring:
-  - offline scoring
+  - offline scoring ???
   - simplified model for compatibility ??  What does that mean ?
+  - flexible layer for feature extraction (20-24Feb2006)
 
 - What does "duplicate failure path" mean? How is it that it occurs with the 
   new restrictors under unification
 
-- Better error handling in flop for use with external applications
-- emacs compatible error messages for flop ?
-- flop does not dump (multiply) cyclic structures
-  - test dag restrictor once this is fixed
-
 - Documentation
   - flop & cheap user doc
   - missing header file documentation (oe, please help here, if possible)
-    itsdb.h, extdict.h, psqllex.h, tsdb++.h
-
-- unreleased memory? (see valgrind-errors-15-apr-04)
+    itsdb.h, tsdb++.h
 
 - more flexible way to do selection of generic entries, e.g., based only on a 
   (highly scored) subset of POS, or combined clues from morphology
@@ -58,15 +95,15 @@
 - more flexible heuristics / better selection of partial results
 
 - cleaning up:
-  - option handling
+  - option handling, ESSENTIAL FOR API IMPLEMENTATION!
   - logging / debugging info: get rid of global verbosity,
     implement some central logging facility (take Apache log4cxx)
   - YY references; split yy.cpp module into separate modules
     - server mode still unused, yy.cpp/h should become socket.cpp/h
+    - should go away with native mrs support (already gone) after migration to
+      subversion
 
-- complete lexical database (postgres) integration
-
-- integrate silo
+- integrate silo ??
 
 - lsl completion - minimal ?? What does that mean ?
 
@@ -93,17 +130,20 @@
   - val(path1) OP val(path2) && val(path2) OP const2  (??)
 
 refactoring:
-- make tAgenda a template
-- make the unification engine(s) more modular
+- make the unification/type engine(s) more modular
 - better decoupling of the dag allocation mechanism
-- replace item print routines by item printers where possible
+- replace item print routines by item printers where possible:
+  - check that the existing printers can be safely replaced!!!
 
 - diagnostic messages for errors in the MRS construction
-- performance loss compared zu ~kiefer/duo/public/pet-730.tgz is 30% --
+- performance loss compared zu ~kiefer/duo/public/pet-730.tgz is 30% ? --
   because of the data structures in the chart that are necessary for packing,
   like _Cp_span? this has to be checked.
 
+- recode preprocessor in C/C++
+- implement LUI bridge with threads
 
++ make tAgenda a template
 + apply chart dependencies after lexical processing
   + chart dependencies after lex lookup (1) AND lex processing (2)
   + still to be tested, Berthold will try it: Seems to work
@@ -117,3 +157,12 @@ refactoring:
   nicht: d.h. man geht den Pfad runter bis auf das letzte Element und
   unifiziert so lange first.lastfeat|type, rest.first.lastfeat|type,
   bis das klappt
++ resolve problematic pointer <-> int conversions with typedef
++ restructure petecl.c cppbridge.cpp etc. for integration of preprocessor
++ 5% performance loss from oe branch to current main branch. Check that!
+  performance loss is between 2,5 and 4 per cent
++ check that all relevant files appear in the perforce directory
+  dag-print-fed , TODO, doxyconfig.(flop|cheap)
+  borland/Makefile.am
+  remove items.txt, chartpositions.h
+

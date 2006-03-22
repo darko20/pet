@@ -1,4 +1,5 @@
-/* PET
+/* -*- Mode: C++ -*-
+ * Pet
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
  *
@@ -23,29 +24,28 @@
 #define _AGENDA_H_
 
 /** agenda: a priority queue adapter */
-template <typename T, typename LESS_THAN > class agenda
-{
- public:
+template <typename T, typename LESS_THAN > class agenda {
+public:
 
-    agenda() : _A() {}
+  agenda() : _A() {}
 
-    ~agenda() { while(!this->empty()) delete this->pop(); }
+  ~agenda() { while(!this->empty()) delete this->pop(); }
   
-    /** Push \a t onto agenda */
-    void push(T *t) { _A.push(t); }
+  /** Push \a t onto agenda */
+  void push(T *t) { _A.push(t); }
     
-    /** Return the topmost (best) element from the agenda */
-    T * top() { return _A.top(); }
+  /** Return the topmost (best) element from the agenda */
+  T * top() { return _A.top(); }
 
-    /** Remove the topmost element from the agenda and return it */
-    T * pop() { T *t = top(); _A.pop(); return t; }
+  /** Remove the topmost element from the agenda and return it */
+  T * pop() { T *t = top(); _A.pop(); return t; }
 
-    /** Test if agenda is empty */
-    bool empty() { return _A.empty(); }
+  /** Test if agenda is empty */
+  bool empty() { return _A.empty(); }
 
- private:
+private:
 
-    std::priority_queue<T *, vector<T *>, LESS_THAN> _A;
+  std::priority_queue<T *, vector<T *>, LESS_THAN> _A;
 };
 
 #endif

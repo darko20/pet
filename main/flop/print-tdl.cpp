@@ -256,8 +256,8 @@ void tdl_print_constraint(FILE *f, struct type *t, const char *name)
   fprintf(f, ".\n");
 }
 
-void write_pre_header(FILE *outf, char *outfname, char *fname, char *grammar_version)
-{
+void write_pre_header(FILE *outf, const char *outfname, const char *fname
+                      , const char *grammar_version) {
   time_t t = time(NULL);
   
   fprintf(outf, ";;; `%s' -- generated from `%s' (%s) on %s\n",

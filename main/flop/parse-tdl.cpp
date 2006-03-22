@@ -33,7 +33,6 @@
 #include <sys/time.h>
 
 #include "flop.h"
-#include "utility.h"
 #include "options.h"
 #include "lex-tdl.h"
 
@@ -1235,96 +1234,79 @@ void tdl_defdomain_option()
     }
 }
 
-void tdl_statement()
-{
-  if(is_keyword(LA(0), "defdomain"))
-    {
-      consume(1);
-      tdl_domainname();
+void tdl_statement() {
+  if(is_keyword(LA(0), "defdomain")) {
+    consume(1);
+    tdl_domainname();
 
-      while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
-	{
-	  tdl_defdomain_option();
-	}
-
-      match(T_DOT, "`.'", true);
-
+    while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF) {
+      tdl_defdomain_option();
     }
-  else if(is_keyword(LA(0), "deldomain"))
-    {
-      consume(1);
-      tdl_domainname();
 
-      while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
-	{
-	  tdl_defdomain_option();
-	}
+    match(T_DOT, "`.'", true);
+  }
+  else if(is_keyword(LA(0), "deldomain")) {
+    consume(1);
+    tdl_domainname();
 
-      match(T_DOT, "`.'", true);
+    while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF) {
+      tdl_defdomain_option();
     }
-  else if(is_keyword(LA(0), "expand-all-instances"))
-    {
-      consume(1);
 
-      match(T_DOT, "`.'", true);
-    }
-  else if(is_keyword(LA(0), "include"))
-    {
-      consume(1);
+    match(T_DOT, "`.'", true);
+  }
+  else if(is_keyword(LA(0), "expand-all-instances")) {
+    consume(1);
 
-      if(LA(0)->tag != T_STRING)
-	{
-	  syntax_error("expecting name of file to include", LA(0));
-	  recover(T_DOT);
-	}
-      else
-	{
-	  char *ofname, *fname;
+    match(T_DOT, "`.'", true);
+  }
+  else if(is_keyword(LA(0), "include")) {
+    consume(1);
 
-	  ofname = LA(0)->text; LA(0)->text = NULL;
-	  consume(1);
-
-	  match(T_DOT, "`.'", true);
-
-	  fname = find_file(ofname, TDL_EXT);
-	  
-	  if(!fname)
-	    {
-	      fprintf(ferr, "file `%s' not found. skipping...\n", ofname);
-	    }
-	  else
-	    {
-	      push_file(fname, "including");
-	    }
-	}
-    }
-  else if(is_keyword(LA(0), "leval"))
-    {
-      consume(1);
-
-      lisp_mode = 1;
-
-      if(LA(0)->tag != T_LISP)
-	{
-	  syntax_error("expecting LISP expression", LA(0));
-	  recover(T_DOT);
-	}
-      else
-	consume(1);
-
-      lisp_mode = 0;
-      match(T_DOT, "`.'", true);
-    }
-  else if(is_keyword(LA(0), "end!"))
-    {
-      consume(1);
-      match(T_DOT, "`.'", true);
-    }
-  else
-    {
-      syntax_error("unknown type of statement", LA(0));
+    if(LA(0)->tag != T_STRING) {
+      syntax_error("expecting name of file to include", LA(0));
       recover(T_DOT);
     }
+    else {
+      char *ofname;
+
+      ofname = LA(0)->text; LA(0)->text = NULL;
+      consume(1);
+
+      match(T_DOT, "`.'", true);
+
+      string fname = find_file(ofname, TDL_EXT);
+	  
+      if(fname.empty()) {
+        fprintf(ferr, "file `%s' not found. skipping...\n", ofname);
+      } else {
+        push_file(fname, "including");
+      }
+    }
+  }
+  else if(is_keyword(LA(0), "leval")) {
+    consume(1);
+
+    lisp_mode = 1;
+
+    if(LA(0)->tag != T_LISP) {
+      syntax_error("expecting LISP expression", LA(0));
+      recover(T_DOT);
+    }
+    else
+      consume(1);
+
+    lisp_mode = 0;
+    match(T_DOT, "`.'", true);
+  }
+  else if(is_keyword(LA(0), "end!")) {
+    consume(1);
+    match(T_DOT, "`.'", true);
+  }
+  else {
+    syntax_error("unknown type of statement", LA(0));
+    recover(T_DOT);
+  }
 }
 
 void tdl_start(int toplevel)

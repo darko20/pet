@@ -32,7 +32,6 @@
 #include <fstream>
 
 #include "flop.h"
-#include "utility.h"
 
 list<ff_entry> fullforms;
 list<irreg_entry> irregforms;

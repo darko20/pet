@@ -39,6 +39,7 @@ extern void postulate(tItem *passive);
 /** Perform lexparser initializations.
  *  - Set carg modification (surface string) path
  */
+// _fix_me_
 void lex_parser::init() {
   _carg_path = cheap_settings->value("mrs-carg-path");
 }
@@ -102,9 +103,11 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
  *  only done for generic entries and input items whose HPSG class is
  *  pre-determined (which are presumably externally computed named entities).
  */
+// _fix_me_
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
   if (_carg_path != NULL) {
+    // _fix_me_ are these double quotes necessary?
     string s = '"' + carg + '"';
     mods.push_back(pair<string, int>(_carg_path, lookup_symbol(s.c_str())));
   }
@@ -155,6 +158,7 @@ lex_parser::add(tLexItem *lex) {
 void 
 lex_parser::combine(lex_stem *stem, tInputItem *i_item
                     , const list_int *infl_rules, const modlist &mods) {
+  // _fix_me_
   fs newfs = stem->instantiate();
   // Add modifications coming from the input
   newfs.modify_eagerly(mods);
@@ -199,7 +203,8 @@ lex_parser::add(tInputItem *inp) {
     }
     // If there is no morph analysis with null inflection, do additional lookup
     // based on the input form, e.g., for multi word entries without inflected
-    // position XXX _fix_me_ is this okay?
+    // position.
+    // _fix_me_ is this okay?
     if (! nullmorpheme) {
       list<lex_stem *> stems = get_lex_entries(inp->form());
       for(list<lex_stem *>::iterator it = stems.begin()
@@ -220,6 +225,7 @@ lex_parser::add(tInputItem *inp) {
       // mapping: create a new tLexItem directly from the input item
       lex_stem *stem = Grammar->find_stem(inp->tclass());
       // in this case, add a CARG modification to the input item
+      // _fix_me_
       add_surface_mod(inp->orth(), inp->mods());
       // Check if there is an appropriate lexicon entry
       if (stem != NULL) {
@@ -283,7 +289,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
       // processing or not
       if (lex->passive()
           && lex->trait() != INPUT_TRAIT
-          && (!lex_exhaustive || lex->completep()))
+          && (!lex_exhaustive || lex->inflrs_complete_p()))
       {
         f = lex->get_fs();
     
@@ -468,61 +474,55 @@ find_unexpanded(chart *ch, item_predicate &valid_item) {
 }
 
 void
-lex_parser::add_generics(list<tInputItem *> &unexpanded)
-{
-    list< lex_stem * > gens;
+lex_parser::add_generics(list<tInputItem *> &unexpanded) {
+  list< lex_stem * > gens;
 
-    if(verbosity > 4)
-        fprintf(ferr, "adding generic les\n");
+  if(verbosity > 4)
+    fprintf(ferr, "adding generic les\n");
 
-    for(list<tInputItem *>::iterator it = unexpanded.begin()
-          ; it != unexpanded.end(); it++)
-    {
-        if(verbosity > 4)
-        {
-            fprintf(ferr, "  token ");
-            (*it)->print(ferr);
-            fprintf(ferr, "\n");
-        }
-
-        if ((! (*it)->parents.empty()) 
-            && cheap_settings->lookup("pos-completion"))
-        {
-            postags missing((*it)->get_in_postags());
-
-            if(verbosity > 4)
-            {
-                fprintf(ferr, "    token provides tags:");
-                missing.print(ferr);
-                fprintf(ferr, "\n    already supplied:");
-                postags((*it)->parents).print(ferr);
-                fprintf(ferr, "\n");
-            }
-
-            missing.remove(postags((*it)->parents));
-
-            if(verbosity > 4)
-            {
-                fprintf(ferr, "    -> missing tags:");
-                missing.print(ferr);
-                fprintf(ferr, "\n");
-            }
-            
-            if(!missing.empty())
-                gens = (*it)->generics(missing);
-        }
-        else 
-        {
-            gens = (*it)->generics();
-        }
-
-        for(list<lex_stem *>::iterator ls = gens.begin()
-              ; ls != gens.end(); ls++) {
-          modlist in_mods = (*it)->mods();
-          add_surface_mod((*it)->orth(), in_mods);
-          combine(*ls, *it, (*it)->inflrs(), in_mods);
-        }
+  for(list<tInputItem *>::iterator it = unexpanded.begin()
+        ; it != unexpanded.end(); it++) {
+    if(verbosity > 4) {
+      fprintf(ferr, "  token ");
+      (*it)->print(ferr);
+      fprintf(ferr, "\n");
     }
+
+    if ((! (*it)->parents.empty())
+        && cheap_settings->lookup("pos-completion")) {
+      postags missing((*it)->get_in_postags());
+
+      if(verbosity > 4) {
+        fprintf(ferr, "    token provides tags:");
+        missing.print(ferr);
+        fprintf(ferr, "\n    already supplied:");
+        postags((*it)->parents).print(ferr);
+        fprintf(ferr, "\n");
+      }
+
+      missing.remove(postags((*it)->parents));
+
+      if(verbosity > 4) {
+        fprintf(ferr, "    -> missing tags:");
+        missing.print(ferr);
+        fprintf(ferr, "\n");
+      }
+            
+      if(!missing.empty())
+        gens = (*it)->generics(missing);
+    }
+    else {
+      gens = (*it)->generics();
+    }
+
+    for(list<lex_stem *>::iterator ls = gens.begin()
+          ; ls != gens.end(); ls++) {
+      modlist in_mods = (*it)->mods();
+      // _fix_me_
+      add_surface_mod((*it)->orth(), in_mods);
+      combine(*ls, *it, (*it)->inflrs(), in_mods);
+    }
+  }
 }
 
 void 
@@ -530,17 +530,7 @@ lex_parser::reset() {
   // The items were created with an active default_owner and because of this
   // are correctly destroyed together with the global chart.
   for(int i = 0; i <= _maxpos; i++) {
-    /*
-    for(list<tLexItem *>::iterator it=_active_left[i].begin();
-        it != _active_left[i].end(); it++)
-      delete *it;
-    */
     _active_left[i].clear();
-    /*
-    for(list<tLexItem *>::iterator it=_active_right[i].begin();
-        it != _active_right[i].end(); it++)
-      delete *it;
-    */
     _active_right[i].clear();
   }
   _maxpos = -1;
