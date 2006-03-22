@@ -192,66 +192,78 @@ char *current_time(void)
   return(result);
 }
 
-/** Check if \a orig , possibly concatenated with \a ext, is the name of a
- *  readable file and return a newly allocated char string with the filename.
- * \param orig    The basename of the file, possibly already with extension
- * \param ext     The extension of the file
- * \param ext_req If \c true, only the concatenated name \a orig + \a ext is
- *                checked, otherwise, \a orig is checked alone first and 
- *                used as name if a file was found.
- */
-char *find_file(char *orig, char *ext, bool ext_req)
-{
-  char *newn;
+
+/** Return \c true if \a filename exists and is not a directory */
+bool file_exists_p(const char *filename) {
   struct stat sb;
-
-  if(orig == 0)
-    return 0;
-
-  newn = (char *) malloc(strlen(orig) + strlen(ext) + 1);
-  
-  strcpy(newn, orig);
-
-  if(ext_req == false && access(newn, R_OK) == 0)
-    {
-      stat(newn, &sb);
-      if((sb.st_mode & S_IFDIR) == 0)
-        return newn;
-    }
-
-  strcat(newn, ext);
-      
-  if(access(newn, R_OK) == 0)
-    {
-      stat(newn, &sb);
-      if((sb.st_mode & S_IFDIR) == 0)
-        return newn;
-    }
-
-  return NULL;
+  return ((access(filename, R_OK) == 0) && (stat(filename, &sb) != -1)
+          && ((sb.st_mode & S_IFDIR) == 0));
 }
 
-char *output_name(char *in, char *oldext, const char *newext)
-{
-  char *out, *ext;
+/** \brief Check if \a name , with or without extension \a ext, is the name of
+ *  a readable file. If \base is given in addition, take the directory part of
+ *  \a base as the directory component of the pathname
+ *
+ * \param name  the basename of the file, possibly already with extension
+ * \param ext   the extension of the file
+ * \param base  if given, the directory component of the pathname.
+ *
+ * \returns the full pathname of the file, if it exists with or without
+ *          extension, an empty string otherwise.
+ */
+string find_file(const char *name, const char *ext, const char *base) {
+  if (name == NULL) return string();
 
-  out = (char *) malloc(strlen(in) + strlen(newext) + 1);
+  string newname = (base != NULL) ? (dir_name(base) + name) : string(name);
 
-  strcpy(out, in);
+  if (file_exists_p(newname.c_str())) return newname;
 
-  ext = strrchr(out, '.');
+  newname += ext;
+  return file_exists_p(newname.c_str()) ? newname : string();
+}
 
-  if(ext && strcasecmp(ext, oldext) == 0)
-    {
-      strcpy(ext, newext);
-    }
-  else
-    {
-      strcat(out, newext);
-    }
 
+/** Extract the directory component of a pathname and return it.
+ *  \returns an empty string, if \a pathname did not contain a path separator
+ *           character, the appropriate substring otherwise
+ *           (with the path separator at the end)
+ */
+string dir_name(const char *pathname) {
+  char *slash = strrchr(pathname, PATH_SEP[0]);
+  // _prefix gets the dirname of the path encoded in base
+  return slash == NULL ? string() : string(pathname, slash - pathname + 1);
+}
+
+
+/** Extract only the filename part from a pathname, i.e., without directory and
+ *  extension components.
+ */
+string raw_name(const char *pathname) {
+  // return part between last slash and first dot after that
+  const char *slash = strrchr((char *) pathname, PATH_SEP[0]);
+  if(slash == 0) slash = (char *) pathname; else slash++;
+  const char *dot = strchr(slash, '.');
+  if(dot == 0) dot = slash + strlen(slash);;
+  
+  return string(slash, dot - slash);
+}
+
+
+string output_name(const string &in, char *oldext, const char *newext) {
+  string out = in;
+
+  string::size_type ext = out.rfind('.');
+
+  if(ext && strcasecmp(out.c_str() + ext, oldext) == 0)
+    // erase the old extension
+    out.erase(ext);
+
+  // add the new extension
+  out += newext;
+  
   return out;
 }
+
 
 string read_line(FILE *f, int commentp)
 {

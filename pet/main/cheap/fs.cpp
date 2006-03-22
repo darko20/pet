@@ -206,6 +206,16 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
   return succeeded;
 }
 
+#if 0
+// _fix_me_ 
+// code for treating CARG differently
+bool fs::modify_foo(list_int *path, fs &arg) {
+  dag_node *newdag = dag_unify(this->_dag, arg._dag, path);
+  if (newdag == FAIL) return false;
+  _dag = newdag;
+  return true;
+}
+#endif
 // statistics
 
 static long int total_cost_fail = 0;
@@ -391,47 +401,39 @@ record_failures(list<unification_failure *> fails, bool unification,
 #endif
 
 fs
-unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat)
-{
-    struct dag_node *res;
-    struct dag_alloc_state s;
+unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
+  struct dag_alloc_state s;
     
-    dag_alloc_mark(s);
+  dag_alloc_mark(s);
     
-    res = dag_unify(root._dag, a._dag, b._dag, del);
+  struct dag_node *res = dag_unify(root._dag, a._dag, b._dag, del);
     
-    
-    if(res == FAIL)
-    {
-        if(stat)
-	{
-            total_cost_fail += unification_cost;
-            stats.unifications_fail++;
-	}
+  if(res == FAIL) {
+    if(stat) {
+      total_cost_fail += unification_cost;
+      stats.unifications_fail++;
+    }
         
 #ifdef QC_PATH_COMP
-        if(opt_compute_qc_unif || opt_print_failure)
-        {
-            list<unification_failure *> fails =
-                dag_unify_get_failures(a._dag, b._dag, true);
+    if(opt_compute_qc_unif || opt_print_failure) {
+      list<unification_failure *> fails =
+        dag_unify_get_failures(a._dag, b._dag, true);
             
-            if (opt_compute_qc_unif) 
-              record_failures(fails, true, a._dag, b._dag);
-        }
+      if (opt_compute_qc_unif) 
+        record_failures(fails, true, a._dag, b._dag);
+    }
 #endif
         
-        dag_alloc_release(s);
+    dag_alloc_release(s);
+  }
+  else {
+    if(stat) {
+      total_cost_succ += unification_cost;
+      stats.unifications_succ++;
     }
-    else
-    {
-        if(stat)
-	{
-            total_cost_succ += unification_cost;
-            stats.unifications_succ++;
-	}
-    }
+  }
     
-    return fs(res);
+  return fs(res);
 }
 
 fs

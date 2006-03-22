@@ -22,7 +22,6 @@
 #include <vector>
 #include <map>
 #include "flop.h"
-#include "utility.h"
 #include "types.h"
 #include "dumper.h"
 #include "options.h"

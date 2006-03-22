@@ -37,16 +37,28 @@
 #ifndef _PETECL_H_
 #define _PETECL_H_
 
+#include <ecl.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 /**
- * \brief ECL initialization function. Boots the ECL engine, loads
- * user-specified (interpreted) lisp files, and initializes the compiled
- * packages (currently only MRS).
+ * \brief ECL initialization function. Boots the ECL engine.
  */
-extern "C" int
-ecl_initialize(int argc, char **argv, char *grammar_file_name);
+int ecl_initialize(int argc, char **argv);
 
 /** Load a lisp file with the given name using the ECL interpreter. */
-extern "C" void
-ecl_load_lispfile(char *s);
+void ecl_load_lispfile(const char *s);
 
+/** Create a C string from a Lisp string */
+char * ecl_decode_string(cl_object x);
+
+/** Turn a Lisp array of int into a vector of int values, terminated with -1
+ * \attn the caller is responsible for freeing the result of this function
+ */
+int * ecl_decode_vector_int(cl_object x);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -167,8 +167,7 @@ fundamental_for_passive(tItem *passive)
 }
 
 void
-fundamental_for_active(tPhrasalItem *active)
-{
+fundamental_for_active(tPhrasalItem *active) {
   // iterate over all passive items adjacent to active and try combination
 
   for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
@@ -181,111 +180,101 @@ fundamental_for_active(tPhrasalItem *active)
 }
 
 bool
-packed_edge(tItem *newitem)
-{
-    if(!newitem->completep()) return false;
+packed_edge(tItem *newitem) {
+  if(! newitem->inflrs_complete_p()) return false;
 
-    for(chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
-        iter.valid(); iter++)
-    {
-        bool forward, backward;
-        tItem *olditem = iter.current();
+  for(chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
+      iter.valid(); iter++) {
+    bool forward, backward;
+    tItem *olditem = iter.current();
 
-	if(!olditem->completep() || (olditem->trait() == INPUT_TRAIT))
-          continue;
+    if(!olditem->inflrs_complete_p() || (olditem->trait() == INPUT_TRAIT))
+      continue;
 
-        forward = backward = true;
+    forward = backward = true;
      
-        if(opt_filter)
-            Grammar->subsumption_filter_compatible(olditem->rule(),
-                                                   newitem->rule(),
-                                                   forward, backward);
+    if(opt_filter)
+      Grammar->subsumption_filter_compatible(olditem->rule(),
+                                             newitem->rule(),
+                                             forward, backward);
 
-        if(forward ==false && backward == false)
-        {
-            stats.fsubs_fi++;
-        }
-        else
-        {
-            bool f1 = true, b1 = true;
-            if(opt_nqc_subs != 0)
-                qc_compatible_subs(qc_len_subs,
-                                   olditem->qc_vector_subs(),
-                                   newitem->qc_vector_subs(),
-                                   f1, b1);
-            
-            if(forward ==false && backward == false)
-                stats.fsubs_qc++;
-            else
-                subsumes(olditem->get_fs(), newitem->get_fs(),
-                         forward, backward);
-#if 0
-            //
-            // according to ulrich (sometime mid-2004), we sometimes hit this
-            // condition (for the ERG), hence subsumption quick check remains
-            // off for the time being.                         (11-jan-05; oe)
-            //
-            if(f1 == false && forward || b1==false && backward)
-            {
-                fprintf(stderr, "S | > %c vs %c | < %c vs %c\n",
-                        f1 ? 't' : 'f', 
-                        forward ? 't' : 'f', 
-                        b1 ? 't' : 'f', 
-                        backward ? 't' : 'f');
-            }
-#endif
-        }
-
-        if(forward && !olditem->blocked())
-        {
-            if((!backward && (opt_packing & PACKING_PRO))
-               || (backward && (opt_packing & PACKING_EQUI)))
-            {
-                if(verbosity > 4)
-                {
-                    fprintf(ferr, "proactive (%s) packing:\n", backward
-                            ? "equi" : "subs");
-                    newitem->print(ferr);
-                    fprintf(ferr, "\n --> \n");
-                    olditem->print(ferr);
-                    fprintf(ferr, "\n");
-                }
-                
-                if(backward)
-                    stats.p_equivalent++;
-                else
-                    stats.p_proactive++;
-                
-                olditem->packed.push_back(newitem);
-                return true;
-            }
-        }
-      
-        if(backward && (opt_packing & PACKING_RETRO) && !olditem->frosted())
-        {
-            if(verbosity > 4)
-            {
-                fprintf(ferr, "retroactive packing:\n");
-                newitem->print(ferr);
-                fprintf(ferr, " <- ");
-                olditem->print(ferr);
-                fprintf(ferr, "\n");
-            }
-
-	    newitem->packed.splice(newitem->packed.begin(), olditem->packed);
-
-            if(!olditem->blocked())
-            {
-                stats.p_retroactive++;
-                newitem->packed.push_back(olditem);
-            }
-
-            olditem->frost();
-
-            // delete (old, chart)
-        }
+    if(forward ==false && backward == false) {
+      stats.fsubs_fi++;
     }
-    return false;
+    else {
+      bool f1 = true, b1 = true;
+      if(opt_nqc_subs != 0)
+        qc_compatible_subs(qc_len_subs,
+                           olditem->qc_vector_subs(),
+                           newitem->qc_vector_subs(),
+                           f1, b1);
+            
+      if(forward ==false && backward == false)
+        stats.fsubs_qc++;
+      else
+        subsumes(olditem->get_fs(), newitem->get_fs(),
+                 forward, backward);
+#if 0
+      //
+      // according to ulrich (sometime mid-2004), we sometimes hit this
+      // condition (for the ERG), hence subsumption quick check remains
+      // off for the time being.                         (11-jan-05; oe)
+      //
+      if(f1 == false && forward || b1==false && backward)
+        {
+          fprintf(stderr, "S | > %c vs %c | < %c vs %c\n",
+                  f1 ? 't' : 'f', 
+                  forward ? 't' : 'f', 
+                  b1 ? 't' : 'f', 
+                  backward ? 't' : 'f');
+        }
+#endif
+    }
+
+    if(forward && !olditem->blocked()) {
+      if((!backward && (opt_packing & PACKING_PRO))
+         || (backward && (opt_packing & PACKING_EQUI))) {
+        if(verbosity > 4) {
+          fprintf(ferr, "proactive (%s) packing:\n", backward
+                  ? "equi" : "subs");
+          newitem->print(ferr);
+          fprintf(ferr, "\n --> \n");
+          olditem->print(ferr);
+          fprintf(ferr, "\n");
+        }
+                
+        if(backward)
+          stats.p_equivalent++;
+        else
+          stats.p_proactive++;
+                
+        olditem->packed.push_back(newitem);
+        return true;
+      }
+    }
+      
+    if(backward && (opt_packing & PACKING_RETRO) && !olditem->frosted()) {
+      if(verbosity > 4) {
+        fprintf(ferr, "retroactive packing:\n");
+        newitem->print(ferr);
+        fprintf(ferr, " <- ");
+        olditem->print(ferr);
+        fprintf(ferr, "\n");
+      }
+
+      newitem->packed.splice(newitem->packed.begin(), olditem->packed);
+
+      if(!olditem->blocked()) {
+        stats.p_retroactive++;
+        newitem->packed.push_back(olditem);
+      }
+
+      olditem->frost();
+
+      // delete (old, chart)
+    }
+  }
+  return false;
 }
 
 /** deals with result item

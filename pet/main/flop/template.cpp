@@ -31,6 +31,7 @@
 
 #include "options.h"
 #include "flop.h"
+#include "utility.h"
 
 struct coref_table *crefs; /// topmost cref table
 char *context_descr = 0; /// context for warning/error messages

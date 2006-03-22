@@ -36,7 +36,7 @@ extern "C" {
  *  \a basename.
  */
 void
-ecl_cpp_load_files(char *setting, char *basename);
+ecl_cpp_load_files(const char *setting, const char *basename);
 
 /** Return the number of types in the grammar */
 int

@@ -23,7 +23,6 @@
 
 #include "flop.h"
 #include "getopt.h"
-#include "utility.h"
 #include "options.h"
 #include "version.h"
 

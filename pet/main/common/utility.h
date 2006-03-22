@@ -1,4 +1,5 @@
-/* PET
+/* Mode: -*- C++ -*-
+ * PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
  *
@@ -28,6 +29,19 @@
 #include <string>
 
 using namespace std;
+
+#ifdef WINDOWS
+#define strcasecmp stricmp
+#define PATH_SEP "\\"
+#endif
+
+#ifdef linux
+#define PATH_SEP "/"
+#endif
+
+#ifdef macos
+#define PATH_SEP ":"
+#endif
 
 /** allocates \a size bytes of memory - throw error when out of memory */
 void *salloc(size_t size);
@@ -63,21 +77,42 @@ string escape_string(const string &s);
 /** return current date and time in static string; client must not free() */
 char *current_time(void);
 
-/** Check if \a orig , possibly concatenated with \a ext, is the name of a
- *  readable file and return a newly allocated char string with the filename.
- * \param orig    The basename of the file, possibly already with extension
- * \param ext     The extension of the file
- * \param ext_req If \c true, only the concatenated name \a orig + \ext is
- *                checked, otherwise, \a orig is checked alone first and 
- *                used as name if a file was found.
+/** Return \c true if \a filename exists and is not a directory */
+bool file_exists_p(const char *filename);
+
+/** Extract the directory component of a pathname and return it.
+ *  \returns an empty string, if \a pathname did not contain a path separator
+ *           character, the appropriate substring otherwise
+ *           (with the path separator at the end)
  */
-char *find_file(char *orig, char *extension, bool ext_req = false);
+string dir_name(const char *pathname);
+
+/** Extract only the filename part from a pathname, i.e., without directory and
+ *  extension components.
+ */
+string raw_name(const char *pathname);
+
+/** \brief Check if \a name , with or without extension \a ext, is the name of
+ *  a readable file. If \base is given in addition, take the directory part of
+ *  \a base as the directory component of the pathname.
+ *
+ * \param name  the basename of the file, possibly already with extension
+ * \param ext   the extension of the file
+ * \param base  if given, the directory component of the pathname.
+ *
+ * \returns the full pathname of the file, if it exists with or without
+ *          extension, an empty string otherwise.
+ */
+string 
+find_file(const char *name, const char *extension, const char *base = NULL);
+
 /** Produce an output file name from an input file name \a in by replacing the 
  *  \a oldextension (if existent) by \a newextension or appending the 
  *  \a newextension otherwise.
- *  The string returned is allocated with \c malloc.
+ *  \returns the new string
  */
-char *output_name(char *in, char *oldextension, const char *newextension);
+string
+output_name(const string &name, char *oldextension, const char *newextension);
 
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.
@@ -93,37 +128,29 @@ void
 splitStrings(list<string> &strs);
 
 /** Predicate comparing two plain C strings for equality */
-struct cstr_eq
-{
-  bool operator()(const char* s, const char* t) const
-  {
+struct cstr_eq {
+  bool operator()(const char* s, const char* t) const {
     return strcmp(s, t) == 0;
   }
 };
 
 /** Less than predicate for two plain C strings */
-struct cstr_lt
-{
-  bool operator()(const char *s, const char *t) const
-  {
+struct cstr_lt {
+  bool operator()(const char *s, const char *t) const {
     return strcmp(s, t) < 0;
   }
 };
 
 /** Case insensitive less than predicate for plain C strings */
-struct cstr_lt_case
-{
-  bool operator()(const char *s, const char *t) const
-  {
+struct cstr_lt_case {
+  bool operator()(const char *s, const char *t) const {
     return strcasecmp(s, t) < 0;
   }
 };
 
 /** A function object comparing two strings lexicographically */
-struct string_lt
-{
-  bool operator()(const string &s, const string &t) const
-  {
+struct string_lt {
+  bool operator()(const string &s, const string &t) const {
     return strcmp(s.c_str(), t.c_str()) < 0;
   }
 };
@@ -131,10 +158,8 @@ struct string_lt
 /** A function object comparing two strings lexicographically disregarding
  * case.
  */
-struct string_lt_case
-{
-  bool operator()(const string &s, const string &t) const
-  {
+struct string_lt_case {
+  bool operator()(const string &s, const string &t) const {
     return strcasecmp(s.c_str(), t.c_str()) < 0;
   }
 };

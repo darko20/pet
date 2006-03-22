@@ -365,41 +365,34 @@ print_morph_info(FILE *f)
     //    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
 }
 
-char *parse_version()
-{
-  char *fname;
+char *parse_version() {
   char *version = 0;
 
-  fname = flop_settings->value("version-file");
-  if(fname)
-    {
-      fname = find_file(fname, SET_EXT);
-      if(!fname) return 0;
+  char *fname_set = flop_settings->value("version-file");
+  if(fname_set) {
+    string fname = find_file(fname_set, SET_EXT);
+    if(fname.empty()) return 0;
 
-      push_file(fname, "reading");
-      while(LA(0)->tag != T_EOF)
-        {
-          if(LA(0)->tag == T_ID && flop_settings->member("version-string", LA(0)->text))
-            {
-              consume(1);
-              if(LA(0)->tag != T_STRING)
-                {
-                  fprintf(ferr, "string expected for version at %s:%d\n",
-                          LA(0)->loc->fname, LA(0)->loc->linenr);
-                }
-              else
-                {
-                  version = LA(0)->text; LA(0)->text = 0;
-                }
-            } 
-          consume(1);
+    push_file(fname, "reading");
+    while(LA(0)->tag != T_EOF) {
+      if(LA(0)->tag == T_ID 
+         && flop_settings->member("version-string", LA(0)->text)) {
+        consume(1);
+        if(LA(0)->tag != T_STRING) {
+          fprintf(ferr, "string expected for version at %s:%d\n",
+                  LA(0)->loc->fname, LA(0)->loc->linenr);
         }
+        else {
+          version = LA(0)->text; LA(0)->text = 0;
+        }
+      } 
       consume(1);
     }
-  else
-    {
-      return 0;
-    }
+    consume(1);
+  }
+  else {
+    return 0;
+  }
 
   return version;
 }
@@ -419,170 +412,155 @@ extern int dag_dump_grand_total_nodes, dag_dump_grand_total_atomic,
 #define FILE_NOT_FOUND 3
 
 
-int process(char *ofname)
-{
-  char *fname, *outfname;
-  FILE *outf;
+int process(char *ofname) {
   int res = 0;
 
   clock_t t_start = clock();
 
   mem_checkpoint("start");
 
-  fname = find_file(ofname, TDL_EXT);
+  string fname = find_file(ofname, TDL_EXT);
   
-  if(!fname)
-    {
-      fprintf(ferr, "file `%s' not found - skipping...\n", ofname);
-      return FILE_NOT_FOUND ;
-    }
+  if(fname.empty()) {
+    fprintf(ferr, "file `%s' not found - skipping...\n", ofname);
+    return FILE_NOT_FOUND ;
+  }
 
   initialize_builtins();
 
-  flop_settings = new settings("flop", fname);
+  flop_settings = new settings("flop", fname.c_str());
 
-  if(flop_settings->member("output-style", "stefan"))
-    {
-      opt_linebreaks = true;
-    }
+  if(flop_settings->member("output-style", "stefan")) {
+    opt_linebreaks = true;
+  }
 
   grammar_version = parse_version();
   if(grammar_version == 0) grammar_version = "unknown";
 
-  outfname = output_name(fname, TDL_EXT, opt_pre ? PRE_EXT : GRAMMAR_EXT);
-  outf = fopen(outfname, "wb");
+  string outfname = output_name(fname, TDL_EXT
+                               , opt_pre ? PRE_EXT : GRAMMAR_EXT);
+  FILE *outf = fopen(outfname.c_str(), "wb");
   
-  if(outf)
-    {
-      struct setting *set;
-      int i;
+  if(outf) {
+    struct setting *set;
+    int i;
 
-      initialize_specials(flop_settings);
-      initialize_status();
+    initialize_specials(flop_settings);
+    initialize_status();
 
-      fprintf(fstatus, "\nconverting `%s' (%s) into `%s' ...\n"
-              , fname, grammar_version, outfname);
+    fprintf(fstatus, "\nconverting `%s' (%s) into `%s' ...\n"
+            , fname.c_str(), grammar_version, outfname.c_str());
       
-      if((set = flop_settings->lookup("postload-files")) != 0)
-	for(i = set->n - 1; i >= 0; i--)
-	  {
-	    char *fname;
-	    fname = find_file(set->values[i], TDL_EXT);
-	    if(fname) push_file(fname, "postloading");
-	  }
+    if((set = flop_settings->lookup("postload-files")) != 0)
+      for(i = set->n - 1; i >= 0; i--) {
+        string fname = find_file(set->values[i], TDL_EXT);
+        if(! fname.empty()) push_file(fname, "postloading");
+      }
       
-      push_file(fname, "loading");
+    push_file(fname, "loading");
       
-      if((set = flop_settings->lookup("preload-files")) != 0)
-	for(i = set->n - 1; i >= 0; i--)
-	  {
-	    char *fname;
-	    fname = find_file(set->values[i], TDL_EXT);
-	    if(fname) push_file(fname, "preloading");
-	  }
+    if((set = flop_settings->lookup("preload-files")) != 0)
+      for(i = set->n - 1; i >= 0; i--) {
+        string fname = find_file(set->values[i], TDL_EXT);
+        if(! fname.empty()) push_file(fname, "preloading");
+      }
       
-      mem_checkpoint("before parsing TDL files");
+    mem_checkpoint("before parsing TDL files");
 
-      tdl_start(1);
+    tdl_start(1);
+    fprintf(fstatus, "\n");
+
+    mem_checkpoint("after parsing TDL files");
+        
+    char *fffname;
+    if((fffname = flop_settings->value("fullform-file")) != 0) {
+      string fffnamestr = find_file(fffname, VOC_EXT);
+      if(! fffnamestr.empty())
+        read_morph(fffnamestr.c_str());
+    }
+
+    mem_checkpoint("after reading full form file");
+        
+    char *irregfname;
+    if((irregfname = flop_settings->value("irregs-file")) != 0) {
+      string irregfnamestr = find_file(irregfname, IRR_EXT);
+      if(! irregfnamestr.empty())
+        read_irregs(irregfnamestr.c_str());
+    }
+
+    if(!opt_pre)
+      check_undefined_types();
+
+    fprintf(fstatus, "\nfinished parsing - %d syntax errors, %d lines "
+            "in %0.3g s\n",
+            syntax_errors, total_lexed_lines,
+            (clock() - t_start) / (float) CLOCKS_PER_SEC);
+    if (syntax_errors > 0) res = SYNTAX_ERRORS;
+
+    mem_checkpoint("before preprocessing types");
+
+    fprintf(fstatus, "processing type constraints (%d types):\n",
+            types.number());
+      
+    t_start = clock();
+
+    //if(flop_settings->value("grammar-info") != 0)
+    // create_grammar_info(flop_settings->value("grammar-info"),
+    // grammar_version);
+      
+    preprocess_types();
+    mem_checkpoint("after preprocessing types");
+
+    if(!opt_pre)
+      process_types();
+
+    mem_checkpoint("after processing types");
+
+    fill_grammar_properties();        
+
+    if(opt_pre) {
+      write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version);
+      write_pre(outf);
+    } else {
+      dumper dmp(outf, true);
+      fprintf(fstatus, "dumping grammar (");
+      dump_grammar(&dmp, grammar_version);
+      fprintf(fstatus, ")\n");
+      if(verbosity > 10)
+        fprintf(fstatus,
+                "%d[%d]/%d (%0.2g) total grammar nodes"
+                "[atoms]/arcs (ratio) dumped\n",
+                dag_dump_grand_total_nodes, 
+                dag_dump_grand_total_atomic,
+                dag_dump_grand_total_arcs,
+                double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
+    }
+      
+    fclose(outf);
+      
+    fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
+            (clock() - t_start) / (float) CLOCKS_PER_SEC);
+
+    if(opt_cmi > 0) {
+      string moifile = output_name(fname, TDL_EXT, ".moi");
+      FILE *moif = fopen(moifile.c_str(), "wb");
+      fprintf(fstatus, "Extracting morphological information "
+              "into `%s'...", moifile.c_str());
+      print_morph_info(moif);
+      if(opt_cmi > 1) {
+        fprintf(fstatus, " type hierarchy...");
+        fprintf(moif, "\n");
+        print_hierarchy(moif);
+      }
+      fclose(moif);
       fprintf(fstatus, "\n");
-
-      mem_checkpoint("after parsing TDL files");
-        
-      char *fffname;
-      if((fffname = flop_settings->value("fullform-file")) != 0)
-	{
-	  if((fffname = find_file(fffname, VOC_EXT)))
-	    read_morph(fffname);
-	}
-
-      mem_checkpoint("after reading full form file");
-        
-      char *irregfname;
-      if((irregfname = flop_settings->value("irregs-file")) != 0)
-	{
-	  if((irregfname = find_file(irregfname, IRR_EXT)))
-	    read_irregs(irregfname);
-	}
-
-      if(!opt_pre)
-	check_undefined_types();
-
-      fprintf(fstatus, "\nfinished parsing - %d syntax errors, %d lines "
-              "in %0.3g s\n",
-	      syntax_errors, total_lexed_lines,
-              (clock() - t_start) / (float) CLOCKS_PER_SEC);
-      if (syntax_errors > 0) res = SYNTAX_ERRORS;
-
-      mem_checkpoint("before preprocessing types");
-
-      fprintf(fstatus, "processing type constraints (%d types):\n",
-	      types.number());
-      
-      t_start = clock();
-
-      //if(flop_settings->value("grammar-info") != 0)
-      // create_grammar_info(flop_settings->value("grammar-info"),
-      // grammar_version);
-      
-      preprocess_types();
-      mem_checkpoint("after preprocessing types");
-
-      if(!opt_pre)
-	process_types();
-
-      mem_checkpoint("after processing types");
-
-      fill_grammar_properties();        
-
-      if(opt_pre)
-	{
-	  write_pre_header(outf, outfname, fname, grammar_version);
-	  write_pre(outf);
-	}
-      else
-	{
-	  dumper dmp(outf, true);
-	  fprintf(fstatus, "dumping grammar (");
-	  dump_grammar(&dmp, grammar_version);
-	  fprintf(fstatus, ")\n");
-	  if(verbosity > 10)
-	    fprintf(fstatus,
-		    "%d[%d]/%d (%0.2g) total grammar nodes"
-                    "[atoms]/arcs (ratio) dumped\n",
-		    dag_dump_grand_total_nodes, 
-		    dag_dump_grand_total_atomic,
-		    dag_dump_grand_total_arcs,
-		    double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
-	}
-      
-      fclose(outf);
-      
-      fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
-	      (clock() - t_start) / (float) CLOCKS_PER_SEC);
-
-      if(opt_cmi > 0)
-        {
-            char *moifile = output_name(fname, TDL_EXT, ".moi");
-            FILE *moif = fopen(moifile, "wb");
-            fprintf(fstatus, "Extracting morphological information "
-                    "into `%s'...", moifile);
-            print_morph_info(moif);
-            if(opt_cmi > 1)
-            {
-                fprintf(fstatus, " type hierarchy...");
-                fprintf(moif, "\n");
-                print_hierarchy(moif);
-            }
-            fclose(moif);
-            fprintf(fstatus, "\n");
-        }
     }
-  else
-    {
-      fprintf(ferr, "couldn't open output file `%s' for `%s' - "
-              "skipping...\n", outfname, fname);
-      res = FILE_NOT_FOUND;
-    }
+  }
+  else {
+    fprintf(ferr, "couldn't open output file `%s' for `%s' - "
+            "skipping...\n", outfname.c_str(), fname.c_str());
+    res = FILE_NOT_FOUND;
+  }
   return res;
 }
 

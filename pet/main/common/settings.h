@@ -73,12 +73,10 @@ class settings
 
   struct lex_location *lloc() { return _lloc; }
 
-  static char *basename(const char *name);
-  
  private:
   int _n;
   setting **_set;
-  char *_fname, *_prefix;
+  string _fname, _prefix;
   struct lex_location *_lloc;
 
   /** cache for settings converted to lists of integers (e.g. status values) */

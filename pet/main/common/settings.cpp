@@ -27,97 +27,46 @@
 #include "errors.h"
 #include "list-int.h"
 
-#ifdef WINDOWS
-#define strcasecmp stricmp
-#define PATH_SEP "\\"
-#else
-#define PATH_SEP "/"
-#endif
-
-char *settings::basename(const char *base)
-{
-  // return part between last slash and first dot after that
-  char *slash = strrchr((char *) base, PATH_SEP[0]);
-  if(slash == 0) slash = (char *) base; else slash++;
-  char *dot = strchr(slash, '.');
-  if(dot == 0) dot = slash + strlen(slash);;
-  
-  char *res = (char *) malloc(dot - slash + 1);
-  strncpy(res, slash, dot - slash);
-  res[dot-slash] = '\0';
-  return res;
-}
-
 settings::settings(const char *name, const char *base, char *message)
-  : _li_cache()
-{
+  : _li_cache() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
-  _prefix = 0;
-  _fname = 0;
+  if(base) {
+    // determine the full pathname for the settings file from the directory
+    // in "base" and the basename in "name"
+    _prefix = dir_name(base);
 
-  if(base)
-    {
-      // determine the full pathname for the settings file from the directory
-      // in "base" and the basename in "name"
-      char *slash = strrchr((char *) base, PATH_SEP[0]);
-      // _prefix gets the dirname of the path encoded in base
-      _prefix = (char *) malloc(strlen(base) + 1 + strlen(SET_SUBDIRECTORY) + 1);
-      if(slash)
-	{
-	  strncpy(_prefix, base, slash - base + 1);
-	  _prefix[slash - base + 1] = '\0';
-	}
-      else
-	{
-	  strcpy(_prefix, "");
-	}
-
-      // fname contains the full pathname to the settings file, except for the
-      // extension, first in the directory the base path points to  
-      char *fname = (char *) malloc(strlen(_prefix) + 1 + strlen(name) + 1);
-      strcpy(fname, _prefix);
-      strcat(fname, name);
+    // fname contains the full pathname to the settings file, except for the
+    // extension, first in the directory the base path points to  
+    _fname = _prefix + name + SET_EXT;
       
-      _fname = find_file(fname, SET_EXT, true);
-      if(!_fname)
-	{
-          // We could not find the settings file there, so try it in the
-          // subdirectory predefined for settings
-	  strcat(_prefix, SET_SUBDIRECTORY);
-	  strcat(_prefix, PATH_SEP);
-          fname = (char *) realloc(fname, strlen(_prefix) + 1 + strlen(name) + 1);
-	  strcpy(fname, _prefix);
-	  strcat(fname, name);
-	  _fname = find_file(fname, SET_EXT, true);
-          free(fname);
-	}
+    if(! file_exists_p(_fname.c_str())) {
+      // We could not find the settings file there, so try it in the
+      // subdirectory predefined for settings
+      _prefix = _prefix + SET_SUBDIRECTORY + PATH_SEP;
+      _fname = _prefix + name + SET_EXT;
     }
-  else
-    {
-      // The full pathname is in "name"
-      _fname = (char *) malloc(strlen(name) + 1);
-      strcpy(_fname, name);
-    }
+  }
+  else {
+    // The full pathname is in "name"
+    _fname = name;
+  }
   
-  if(_fname)
-    {
-      push_file(_fname, message);
-      char *sv = lexer_idchars;
-      lexer_idchars = "_+-*?$";
-      parse();
-      lexer_idchars = sv;
-
-    }
+  if(file_exists_p(_fname.c_str())) {
+    push_file(_fname, message);
+    char *sv = lexer_idchars;
+    lexer_idchars = "_+-*?$";
+    parse();
+    lexer_idchars = sv;
+    
+  }
   _lloc = 0;
 }
 
 
-settings::~settings()
-{
-  for(int i = 0; i < _n; i++)
-  {
+settings::~settings() {
+  for(int i = 0; i < _n; i++) {
     for(int j = 0; j < _set[i]->n; j++)
       free(_set[i]->values[j]);
     free(_set[i]->values);
@@ -125,28 +74,23 @@ settings::~settings()
   }
 
   delete[] _set;
-
-  free(_prefix);
-  free(_fname);
 }
 
 /** Do a linear search for \a name in the settings and return the first 
  * matching setting.
  */
-setting *settings::lookup(const char *name)
-{
+setting *settings::lookup(const char *name) {
   for(int i = 0; i < _n; i++)
-    if(strcmp(_set[i]->name, name) == 0)
-      {
-	if(i != 0)
-	  { // put to front, so further lookup is faster
-	    setting *tmp;
-	    tmp = _set[i]; _set[i] = _set[0]; _set[0] = tmp;
-	  }
-
-	_lloc = _set[0]->loc;
-	return _set[0];
+    if(strcmp(_set[i]->name, name) == 0) {
+      if(i != 0) {
+        // put to front, so further lookup is faster
+        setting *tmp;
+        tmp = _set[i]; _set[i] = _set[0]; _set[0] = tmp;
       }
+
+      _lloc = _set[0]->loc;
+      return _set[0];
+    }
 
   _lloc = 0;
   return 0;
@@ -155,8 +99,7 @@ setting *settings::lookup(const char *name)
 /** Return the value of the first setting matching \a name or NULL if there is
  * no such setting.
  */
-char *settings::value(const char *name)
-{
+char *settings::value(const char *name) {
   setting *s;
 
   s = lookup(name);
@@ -340,56 +283,39 @@ void settings::parse_one()
   match(T_DOT, "end of option setting", true);
 }
 
-void settings::parse()
-{
-  do
-    {
-      if(LA(0)->tag == T_ID)
-        {
-          parse_one();
+void settings::parse() {
+  do {
+    if(LA(0)->tag == T_ID) {
+      parse_one();
+    }
+    else if(LA(0)->tag == T_COLON) {
+      consume(1);
+    }
+    else if(LA(0)->tag == T_KEYWORD && strcmp(LA(0)->text, "include") == 0) {
+      consume(1);
+      
+      if(LA(0)->tag != T_STRING) {
+        fprintf(ferr, "expecting include file name at %s:%d...\n",
+                LA(0)->loc->fname, LA(0)->loc->linenr);
+      }
+      else {
+        string ofname = _prefix + LA(0)->text + SET_EXT;
+        consume(1);
+        
+        match(T_DOT, "`.'", true);
+        
+        if(file_exists_p(ofname.c_str())) {
+          push_file(ofname, "including");
+        } else {
+          fprintf(ferr, "file `%s' not found. skipping...\n", ofname.c_str());
         }
-      else if(LA(0)->tag == T_COLON)
-	{
-	  consume(1);
-	}
-      else if(LA(0)->tag == T_KEYWORD && strcmp(LA(0)->text, "include") == 0)
-	{
-	  consume(1);
-
-	  if(LA(0)->tag != T_STRING)
-	    {
-	      fprintf(ferr, "expecting include file name at %s:%d...\n",
-		      LA(0)->loc->fname, LA(0)->loc->linenr);
-	    }
-	  else
-	    {
-	      char *ofname, *fname;
-
-	      ofname = (char *) malloc(strlen(_prefix) + strlen(LA(0)->text) + 1);
-              strcpy(ofname, _prefix);
-	      strcat(ofname, LA(0)->text);
-	      consume(1);
-
-	      match(T_DOT, "`.'", true);
-
-	      fname = find_file(ofname, SET_EXT, true);
-	  
-	      if(!fname)
-		{
-		  fprintf(ferr, "file `%s' not found. skipping...\n", ofname);
-		}
-	      else
-		{
-		  push_file(fname, "including");
-		}
-	    }
-	}
-      else
-        {
-          syntax_error("expecting identifier", LA(0));
-	  consume(1);
-        }
-    } while(LA(0)->tag != T_EOF);
+      }
+    }
+    else {
+      syntax_error("expecting identifier", LA(0));
+      consume(1);
+    }
+  } while(LA(0)->tag != T_EOF);
 
   consume(1);
 }

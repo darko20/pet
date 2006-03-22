@@ -31,13 +31,13 @@ using namespace std;
 
 #include <vector>
 
-#include "utility.h"
 #include "list-int.h"
 #include "symtab.h"
 #include "dag.h"
 #include "options.h"
 #include "settings.h"
 #include "grammar-dump.h"
+#include "utility.h"
 
 /***************************/
 /* compile time parameters */
@@ -502,7 +502,8 @@ void print_constraint(FILE *f, struct type *t, const string &name);
  * \param gram_version The version string of the grammar
  */
 void 
-write_pre_header(FILE *outf, char *outfname, char *fname, char *gram_version);
+write_pre_header(FILE *outf, const char *outfname, const char *fname
+                 , const char *gram_version);
 /** Write preprocessed source to file \a f */
 void write_pre(FILE *f);
 /*@}*/

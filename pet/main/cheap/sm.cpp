@@ -179,22 +179,18 @@ tSMMap::stringToSubfeature(const string &s)
 }
 
 tSM::tSM(tGrammar *G, const char *fileName, const char *basePath)
-    : _G(G), _fileName(0), _map(0)
-{
-    _fileName = findFile(fileName, basePath);
-    if(!_fileName)
-      throw tError(string("Could not open SM file \"") 
-                   + fileName + string("\""));
-    _map = new tSMMap();
+    : _G(G), _map(0) {
+  _fileName = find_file(fileName, SM_EXT, basePath);
+  if(_fileName.empty())
+    throw tError(string("Could not open SM file \"") + fileName + "\"");
+  _map = new tSMMap();
 }
 
-tSM::~tSM()
-{
-    if(_fileName)
-        free(_fileName);
-    delete _map;
+tSM::~tSM() {
+  delete _map;
 }
 
+/*
 char *
 tSM::findFile(const char *fileName, const char *basePath)
 {
@@ -224,7 +220,7 @@ tSM::findFile(const char *fileName, const char *basePath)
         strcpy(fname, prefix);
         strcat(fname, fileName);
       
-        res = find_file(fname, SM_EXT, false);
+        res = find_file(fname, SM_EXT);
 
         free(prefix);
     }
@@ -236,6 +232,7 @@ tSM::findFile(const char *fileName, const char *basePath)
   
     return res;
 }
+*/
 
 double
 tSM::scoreLocalTree(grammar_rule *R, vector<tItem *> dtrs)
@@ -320,7 +317,7 @@ tMEM::description()
 }
 
 void
-tMEM::readModel(const char *fileName)
+tMEM::readModel(const string &fileName)
 {
     push_file(fileName, "reading ME model");
     char *sv = lexer_idchars;

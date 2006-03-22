@@ -127,15 +127,12 @@ struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
   return arg;
 }
 
-struct dag_node *dag_get_path_value_l(struct dag_node *dag, list_int *path)
-{
-  while(path)
-    {
-      if(dag == FAIL) return FAIL;
-      dag = dag_get_attr_value(dag, first(path));
-      path = rest(path);
-    }
-
+struct dag_node *dag_get_path_value_l(struct dag_node *dag, list_int *path) {
+  while(path) {
+    if(dag == FAIL) return FAIL;
+    dag = dag_get_attr_value(dag, first(path));
+    path = rest(path);
+  }
   return dag;
 }
 
@@ -144,18 +141,40 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
   if(path == 0 || strlen(path) == 0) return dag;
 
   const char *dot = strchr(path, '.');
-  if(dot != 0)
-    {
-      char *attr = new char[strlen(path)+1];
-      strncpy(attr, path, dot - path);
-      attr[dot - path] = '\0';
-      dag_node *f = dag_get_attr_value(dag, attr);
-      delete[] attr;
-      if(f == FAIL) return FAIL;
-      return dag_get_path_value(f, dot + 1);
-    }
-  else
+  if(dot != 0) {
+    char *attr = new char[strlen(path)+1];
+    strncpy(attr, path, dot - path);
+    attr[dot - path] = '\0';
+    dag_node *f = dag_get_attr_value(dag, attr);
+    delete[] attr;
+    if(f == FAIL) return FAIL;
+    return dag_get_path_value(f, dot + 1);
+  } else
     return dag_get_attr_value(dag, path);
+}
+
+/** \brief Return the deepest embedded subdag that could be reached starting at
+ *  \a dag and following \a *path. The rest of the path that could not be
+ *  traversed is stored in \a *path at return.
+ *
+ *  \param dag the feature structure from where to descend
+ *  \param path a pointer to the variable holding the path to descend from
+ *              \a dag
+ *  \return the subdag at the end of the longest subpath that could be found,
+ *          starting at \a dag, and the subpath that could not be found in 
+ *          path.
+ */
+struct dag_node *
+dag_get_path_avail(struct dag_node *dag, list_int **path) {
+  while(NULL != *path) {
+    dag_node *next_dag = dag_get_attr_value(dag, first(*path));
+    // if this is how far we get, *path has the correct value
+    if (next_dag == FAIL) return dag;
+    // else descend
+    dag = next_dag;
+    *path = rest(*path);
+  }
+  return dag;
 }
 
 #ifndef FLOP
@@ -182,36 +201,49 @@ struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
   return dag_create_attr_value(a, val);
 }
 
-struct dag_node *dag_create_path_value(const char *path, type_t type)
-{
+struct dag_node *dag_create_path_value(const char *path, type_t type) {
   if(! is_type(type) || type_dag(type) == 0) return FAIL;
   dag_node *res = 0;
 
   // base case
-  if(path == 0 || strlen(path) == 0)
-    {
-      res = dag_full_copy(type_dag(type));
-      dag_invalidate_changes();
-      return res;
-    }
+  if(path == 0 || strlen(path) == 0) {
+    res = dag_full_copy(type_dag(type));
+    dag_invalidate_changes();
+    return res;
+  }
 
   const char *dot = strchr(path, '.');
-  if(dot != 0)
-    {
-      char *firstpart = new char[strlen(path)+1];
-      strncpy(firstpart, path, dot - path);
-      firstpart[dot - path] = '\0';
+  if(dot != 0) {
+    char *firstpart = new char[strlen(path)+1];
+    strncpy(firstpart, path, dot - path);
+    firstpart[dot - path] = '\0';
 
-      res = dag_create_attr_value(firstpart
-                                  , dag_create_path_value(dot + 1, type));
-      delete[] firstpart;
-      return res;
-    }
-  else
+    res = dag_create_attr_value(firstpart
+                                , dag_create_path_value(dot + 1, type));
+    delete[] firstpart;
+    return res;
+  } else
     return dag_create_attr_value(path, 
-                                 dag_create_path_value((const char *)NULL, type));
+                                 dag_create_path_value((const char *)NULL
+                                                       , type));
 }
 
+
+struct dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
+  dag_node *subdag = dag_get_path_avail(root, &path);
+  if (path != NULL) {
+    // We did not manage to get to the end: create a new dag for the rest of
+    // the path and the dag of arg at its end
+    arg = dag_create_path_value(path, arg);
+    if (arg == FAIL) return FAIL;
+  } 
+  dag_node *newdag = dag_unify(root, arg, subdag, 0);
+  if (newdag == FAIL) return FAIL;
+  return newdag;
+}
+
+
+#if 0
 struct dag_node *
 dag_find_attr_value(dag_node *dag, attr_t attr, type_t intype, type_t type) {
   if (dag == NULL) return FAIL;
@@ -256,7 +288,7 @@ dag_find_all_attr_value(dag_node *dag, attr_t attr, type_t in, type_t type) {
   }
   return res;
 }
-
+#endif
 
 struct dag_node *dag_create_path_value(list_int *path, type_t type)
 {
@@ -271,8 +303,53 @@ struct dag_node *dag_create_path_value(list_int *path, type_t type)
   }
 }
 
+//_fix_me_ the dag should be unified at the end
+struct dag_node *dag_create_path_value(list_int *path, dag_node *dag)
+{
+  if(path == 0) {
+      return dag;
+  } else {
+    return dag_create_attr_value(first(path)
+                                 , dag_create_path_value(rest(path), dag));
+  }
+}
 
-struct list_int *path_to_lpath(const char *path)
+struct list_int *path_to_lpath(const char *thepath) {
+  if(thepath == 0 || strlen(thepath) == 0) return NULL;
+  char *path, *pathroot; // we need pathroot to be able to free the memory
+  path = pathroot = strdup(thepath);
+  char *pathend = path + strlen(path); // points to the \0 char
+
+  list_int *head, *tail;
+  head = tail = cons((attr_t) 0, NULL);
+
+  attr_t feat;
+  do {
+    char *dot = strchr(path, '.');
+    if (dot == NULL)
+      dot = pathend;
+    else 
+      *dot = '\0';
+    feat = lookup_attr(path);
+    if (feat == -1) {
+      free(pathroot);
+      free_list(head);
+      return NULL;
+    }
+    tail->next = cons(feat, NULL);
+    tail = tail->next;
+    path = dot + 1;
+  } while (path < pathend);
+  tail = head->next;
+  head->next = NULL;
+
+  free(pathroot);
+  free_list(head);
+  return tail;
+}
+
+
+struct list_int *path_to_lpath0(const char *path)
 {
   if(path == 0 || strlen(path) == 0) return NULL;
 

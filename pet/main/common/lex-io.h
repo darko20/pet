@@ -26,6 +26,7 @@
 #define _LEX_IO_H_
 
 #include <cstdio>
+#include <string>
 
 using namespace std;
 
@@ -69,7 +70,7 @@ extern FILE *ferr, *fstatus;
 /** Push file \a fname onto include stack, where \a info provides a hint in
  *  which context the function is used.
  */
-void push_file(const char *fname, char *info);
+void push_file(const string &fname, char *info);
 /** Pop file from include stack
  *  \return nonzero if there are still open files, zero otherwise.
  */
