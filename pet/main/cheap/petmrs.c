@@ -26,7 +26,6 @@
 #include "mfile.h"
 #include "cppbridge.h"
 
-//#include "mrs.h"
 extern void initialize_eclmrs(cl_object cl_block);
 
 //
@@ -156,7 +155,6 @@ mrs_initialize(const char *grammar_file_name) {
     
   // Initialize the individual packages
 
-  //initialize_mrs();
   read_VV(OBJNULL, initialize_eclmrs);
 
   // Load lisp initialization files as specified in settings.

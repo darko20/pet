@@ -206,9 +206,10 @@ AC_ARG_WITH(preproc,
 [AC_HELP_STRING([--with-preproc@<:@=DIR@:>@], [specify the path to the x-preprocessor Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})\])],
 dnl (default=no)
 [
+dnl AC_MSG_WARN([PREPROC WITHVAL = ${withval}])
 case "${withval}" in
     yes) preproc=true ;;
-    no)  preproc=false ;;
+    no)  preproc=false ; echo "Disabling preprocessor code" ;;
     *)   preproc=true
          PREPROCDIR=${withval};;
 esac
@@ -681,7 +682,7 @@ feature_avail x$boost xtrue "Boost (required for flop)"
 feature_avail x$tsdb xtrue "tsdb"
 feature_avail x$ecl xtrue "ecl lisp processor"
 feature_avail x$mrs xtrue "MRS code with ecl"
-dnl feature_avail x$preproc xtrue "preprocessor code with ecl"
+feature_avail x$preproc xtrue "preprocessor code with ecl"
 feature_avail x$icu xtrue "ICU"
 feature_avail x$xml xtrue "XML input mode"
 feature_avail x$lexdb xtrue "External SQL dictionary"
