@@ -783,7 +783,7 @@ tLexItem::tsdb_derivation(int protocolversion)
   
     res << "(" << _id << " " << _stem->printname()
         << " " << score() << " " << _start <<  " " << _end
-        << " " << "(\"" << orth() << "\" "
+        << " " << "(\"" << escape_string(orth()) << "\" "
         << _start << " " << _end << "))";
  
     return res.str();
