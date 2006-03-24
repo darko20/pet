@@ -377,10 +377,8 @@ void process(const char *s) {
   char *cl_argv[] = {"cheap", 0};
   ecl_initialize(1, cl_argv);
   // make the redefinition warnings go away
-  cl_object obj
-    = funcall(2, c_string_to_object("read-from-string") ,
-              make_simple_string("(setq cl-user::erroutsave cl-user::*error-output* cl-user::*error-output* nil)"));
-  cl_safe_eval(obj, Cnil, NULL);
+  ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
+                       "cl-user::*error-output* nil)");
 #endif  // HAVE_ECL
 
   try {
@@ -458,9 +456,7 @@ void process(const char *s) {
 #endif
 #ifdef HAVE_ECL
   // reset the error stream so warnings show up again
-  obj = funcall(2, c_string_to_object("read-from-string") ,
-                make_simple_string("(setq cl-user::*error-output* cl-user::erroutsave)"));
-  cl_safe_eval(obj, Cnil, NULL);
+  ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
 #endif // HAVE_ECL
 
   fprintf(fstatus, "\n%d types in %0.2g s\n",

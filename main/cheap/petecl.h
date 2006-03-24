@@ -58,6 +58,12 @@ char * ecl_decode_string(cl_object x);
  */
 int * ecl_decode_vector_int(cl_object x);
 
+/** Evaluate the given string \a form in the lisp listener
+ * \pre \a form must be a valid s-expression
+ * \returns the object returned by the evaluation
+ */
+cl_object ecl_eval_sexpr(char *form);
+
 #ifdef __cplusplus
 }
 #endif

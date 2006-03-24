@@ -59,6 +59,20 @@ ecl_decode_vector_int(cl_object x) {
 }
 
 
+/** Evaluate the given string \a form in the lisp listener
+ * \pre \a form must be a valid s-expression
+ * \returns the object returned by the evaluation
+ */
+cl_object
+ecl_eval_sexpr(char *form) {
+  cl_object obj
+    = funcall(2
+              , c_string_to_object("read-from-string")
+              , make_simple_string(form));
+  return cl_safe_eval(obj, Cnil, NULL);
+}
+
+
 // ECL initialization function. Boots the ECL engine
 int
 ecl_initialize(int argc, char **argv) {
