@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.12], [kiefer@dfki.de])
+AC_INIT([PET], [0.99.13], [kiefer@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])

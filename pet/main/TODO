@@ -2,11 +2,14 @@
   Ask Malte Kiesel (Dengel Workgroup at KL), who administrates the OpenDFKI
   for svn with https in trec system
 
+- "unpack edge limit exhausted" error: wrong result number to tsdb
+
 - "automatic" tests (preferably with tsdb) for unfilling/packing modes
   - freeze an english and german grammar version for performance comparisons
   - main type/unification/parsing engine
   - check characterization and carg too
   - input processing
+  - foreign character encoding input and output
   - automated tests for single modules ??
 
 - finish lexdb: lexical database (postgres) integration

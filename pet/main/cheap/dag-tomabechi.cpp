@@ -1738,10 +1738,9 @@ int dag_collect_symbols_rec_safe(struct dag_node *dag, int coref_nr
   
   if (coref < 0) return coref_nr;
 
-  if(coref > 0) // dag is not visited yet
-    {
-      coref = -dag_set_visit_safe(dag, -(coref_nr++));
-    }
+  if(coref > 0) { // dag is not visited yet
+    coref = -dag_set_visit_safe(dag, -(coref_nr++));
+  }
  
   if (is_dynamic_type(dag->type))
     res.push_front(pair<const char *, type_t>(type_name(dag->type)
@@ -1758,18 +1757,13 @@ int dag_collect_symbols_rec_safe(struct dag_node *dag, int coref_nr
 void
 dag_collect_symbols(struct dag_node *dag
                     , list<pair<const char *, type_t> > &res) {
-  if(dag == 0)
-    {
-      return;
-    }
-  if(dag == FAIL)
-    {
-      return;
-    }
+  if((dag == 0) || (dag == FAIL)) {
+    return;
+  }
  
   dag_mark_coreferences_safe(dag, 0);
   res.clear();
-   dag_collect_symbols_rec_safe(dag, 1, res);
+  dag_collect_symbols_rec_safe(dag, 1, res);
 }
 
 

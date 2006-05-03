@@ -156,32 +156,26 @@ void initialize_maxapp();
 void free_type_tables();
 
 /** Check the validity of type code \a a. */
-inline bool is_type(type_t a)
-{ 
-  return a >= 0 && a < last_dynamic;
-}
+inline bool is_type(type_t a) { return a >= 0 && a < last_dynamic; }
 
 /** Return \c true if type code \a a is a type from the hierarchy and not a
  *  dynamic type.
  */
-inline bool is_resident_type(type_t a)
-{
+inline bool is_resident_type(type_t a) {
   assert(a >= 0);  // save one test in production code
   return a < ntypes;
 }
 
 #ifdef DYNAMIC_SYMBOLS
 /** Return \c true if type code \a a is a dynamic type. */
-inline bool is_dynamic_type(type_t a)
-{
-  assert((a >= 0) && (a < last_dynamic));  // save two tests in production code
+inline bool is_dynamic_type(type_t a) {
+  assert(is_type(a));  // save two tests in production code
   return a >= ntypes;
 }
 #endif
 
 /** check the validity of the attribute \a attr */
-inline bool is_attr(attr_t attr)
-{ 
+inline bool is_attr(attr_t attr) {
   assert(attr >= 0);  // save one test in production code
   return (attr <= nattrs);
 }

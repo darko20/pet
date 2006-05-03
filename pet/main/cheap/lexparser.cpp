@@ -271,109 +271,98 @@ int lex_parser::map_positions(inp_list &tokens, bool counts) {
 
 void
 lex_parser::dependency_filter(struct setting *deps, bool unidirectional
-                              , bool lex_exhaustive)
-{
-    if(deps == 0 || opt_chart_man == false)
-        return;
+                              , bool lex_exhaustive) {
+  if(deps == 0 || opt_chart_man == false)
+    return;
 
-    vector<set <int> > satisfied(deps->n);
-    multimap<tItem *, pair <int, int> > requires;
+  vector<set <int> > satisfied(deps->n);
+  multimap<tItem *, pair <int, int> > requires;
 
-    tItem *lex;
-    fs f;
+  tItem *lex;
+  fs f;
 
-    for(chart_iter iter(Chart); iter.valid(); iter++)
-    {
-      lex = iter.current();
-      // the next condition depends on whether we did exhaustive lexical 
-      // processing or not
-      if (lex->passive()
-          && lex->trait() != INPUT_TRAIT
-          && (!lex_exhaustive || lex->inflrs_complete_p()))
-      {
-        f = lex->get_fs();
+  for(chart_iter iter(Chart); iter.valid(); iter++) {
+    lex = iter.current();
+    // the next condition depends on whether we did exhaustive lexical 
+    // processing or not
+    if (lex->passive()
+        && lex->trait() != INPUT_TRAIT
+        && (!lex_exhaustive || lex->inflrs_complete_p())) {
+      f = lex->get_fs();
     
-        if(verbosity > 4)
-            fprintf(fstatus, "dependency information for %s:\n",
-                    lex->printname());
+      if(verbosity > 4)
+        fprintf(fstatus, "dependency information for %s:\n",
+                lex->printname());
     
-        for(int j = 0; j < deps->n; j++)
-        {
-            fs v = f.get_path_value(deps->values[j]);
-            if(v.valid())
-            {
-                if(verbosity > 4)
-                    fprintf(fstatus, "  %s : %s\n", deps->values[j], v.name());
+      for(int j = 0; j < deps->n; j++) {
+        fs v = f.get_path_value(deps->values[j]);
+        if(v.valid()) {
+          if(verbosity > 4)
+            fprintf(fstatus, "  %s : %s\n", deps->values[j], v.name());
 
-                if(!unidirectional || j % 2 != 0)
-                {
-                    satisfied[j].insert(v.type());
-                }
+          if(!unidirectional || j % 2 != 0) {
+            satisfied[j].insert(v.type());
+          }
         
-                if(!unidirectional || j % 2 == 0)
-                {
-                    requires.insert(make_pair(lex,
-                                              make_pair((j % 2 == 0)
-                                                        ? j + 1 : j - 1,
-                                                        v.type())));
-                }
-            }
+          if(!unidirectional || j % 2 == 0) {
+            requires.insert(make_pair(lex,
+                                      make_pair((j % 2 == 0)
+                                                ? j + 1 : j - 1,
+                                                v.type())));
+          }
         }
       }
     }
+  }
   
-    hash_set<tItem *> to_delete;
-    for(chart_iter iter2(Chart); iter2.valid(); iter2++)
-    {
-      lex = iter2.current();
-      // XXX _fix_me_ the next condition might depend on whether we did
-      // exhaustive lexical processing or not
-      if (lex->passive() && (lex->trait() != INPUT_TRAIT)){
+  hash_set<tItem *> to_delete;
+  for(chart_iter iter2(Chart); iter2.valid(); iter2++) {
+    lex = iter2.current();
+    // XXX _fix_me_ the next condition might depend on whether we did
+    // exhaustive lexical processing or not
+    if (lex->passive() && (lex->trait() != INPUT_TRAIT)) {
 
-        pair<multimap<tItem *, pair<int, int> >::iterator,
-            multimap<tItem *, pair<int, int> >::iterator> eq =
-            requires.equal_range(lex);
+      pair<multimap<tItem *, pair<int, int> >::iterator,
+        multimap<tItem *, pair<int, int> >::iterator> eq =
+        requires.equal_range(lex);
 
-        bool ok = true;
-        for(multimap<tItem *, pair<int, int> >::iterator dep = eq.first;
-            ok && dep != eq.second; ++dep)
-        {
-            // we have to resolve a required dependency
-            pair<int, int> req = dep->second;
-            if(verbosity > 4)
-                fprintf(fstatus, "`%s' requires %s at %d -> ",
-                        lex->printname(),
-                        type_name(req.second), req.first);
+      bool ok = true;
+      for(multimap<tItem *, pair<int, int> >::iterator dep = eq.first;
+          ok && dep != eq.second; ++dep) {
+        // we have to resolve a required dependency
+        pair<int, int> req = dep->second;
+        if(verbosity > 4)
+          fprintf(fstatus, "`%s' requires %s at %d -> ",
+                  lex->printname(),
+                  type_name(req.second), req.first);
        
-            bool found = false;
-            for(set<int>::iterator it2 = satisfied[req.first].begin();
-                it2 != satisfied[req.first].end(); ++it2)
+        bool found = false;
+        for(set<int>::iterator it2 = satisfied[req.first].begin();
+            it2 != satisfied[req.first].end(); ++it2) {
+          if(glb(*it2, req.second) != -1)
             {
-                if(glb(*it2, req.second) != -1)
-                {
-                    if(verbosity > 4)
-                        fprintf(fstatus, "[%s]", type_name(*it2));
-                    found = true;
-                    break;
-                }
+              if(verbosity > 4)
+                fprintf(fstatus, "[%s]", type_name(*it2));
+              found = true;
+              break;
             }
-       
-            if(!found)
-            {
-                ok = false;
-                stats.words_pruned++;
-            }
-
-            if(verbosity > 4)
-                fprintf(fstatus, "%s satisfied\n", ok ? "" : "not");
         }
-    
-        if(!ok)
-            to_delete.insert(iter2.current());
-      }
-    }
+       
+        if(!found) {
+          ok = false;
+          stats.words_pruned++;
+        }
 
-    Chart->remove(to_delete);
+        if(verbosity > 4)
+          fprintf(fstatus, "%s satisfied\n", ok ? "" : "not");
+      }
+    
+      if(!ok)
+        to_delete.insert(iter2.current());
+    }
+  }
+
+  Chart->remove(to_delete);
 }
 
 typedef list< pair<int, int> > gaplist;
@@ -382,11 +371,9 @@ typedef list< pair<int, int> > gaplist;
 
 namespace HASH_SPACE {
   /** hash function for pointer that just looks at the pointer content */
-  template<> struct hash< tInputItem * >
-  {
+  template<> struct hash< tInputItem * > {
     /** \return A hash code for a pointer */
-    inline size_t operator()(tInputItem *key) const
-    {
+    inline size_t operator()(tInputItem *key) const {
       return (size_t) key;
     }
   };
