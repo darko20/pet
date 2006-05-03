@@ -297,39 +297,35 @@ add_root(tItem *it)
 }
 
 void
-add_item(tItem *it)
-{
-    assert(!(opt_packing && it->blocked()));
+add_item(tItem *it) {
+  assert(!(opt_packing && it->blocked()));
 
 #ifdef DEBUG
-    fprintf(ferr, "add_item ");
-    it->print(ferr);
-    fprintf(ferr, "\n");
+  fprintf(ferr, "add_item ");
+  it->print(ferr);
+  fprintf(ferr, "\n");
 #endif
 
-    if(it->passive())
-    {
-        if(opt_packing && packed_edge(it))
-            return;
+  if(it->passive()) {
+    if(opt_packing && packed_edge(it))
+      return;
 
-        Chart->add(it);
+    Chart->add(it);
 
-        type_t rule;
-        if(it->root(Grammar, Chart->rightmost(), rule))
-        {
-            it->set_result_root(rule);
-            if(add_root(it))
-                return;
-        }
-
-        postulate(it);
-        fundamental_for_passive(it);
+    type_t rule;
+    if(it->root(Grammar, Chart->rightmost(), rule)) {
+      it->set_result_root(rule);
+      if(add_root(it))
+        return;
     }
-    else
-    {
-        Chart->add(it);
-        fundamental_for_active(dynamic_cast<tPhrasalItem *> (it));
-    }
+
+    postulate(it);
+    fundamental_for_passive(it);
+  }
+  else {
+    Chart->add(it);
+    fundamental_for_active(dynamic_cast<tPhrasalItem *> (it));
+  }
 }
 
 inline bool

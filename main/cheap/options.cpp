@@ -117,7 +117,7 @@ void usage(FILE *f)
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");  
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
-  fprintf(f, "  `-tok=(string|yy|yy_counts|xml|xml_counts)' --- "
+  fprintf(f, "  `-tok=(string|fsr|yy|yy_counts|xml|xml_counts)' --- "
              "select input method (default `string')\n");  
 
   fprintf(f, "  `-comment-passthrough[=1]' --- "

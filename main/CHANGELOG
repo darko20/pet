@@ -1,3 +1,12 @@
+v0.99.13
+  - oe integrated a change for the tsdb to escape the yield strings correctly
+  - fixed bug 'assertion: is_type() failed' which occured with packing and
+    dynamic symbols
+  - updated option description to contain the -tok=fsr option
+  - some reformatting
+  - added "EOM" so that Uli can properly handle MRS and partial output in HoG
+  - fixed syntax error in lingo-tokenizer.h which was detected by gcc 4.1.0
+
 v0.99.12
   - remove borland directory from configure/make process
   - updated TODO list according to Jeres meeting

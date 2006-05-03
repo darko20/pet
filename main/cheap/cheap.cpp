@@ -246,6 +246,7 @@ void interactive() {
             }
           }
           if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
+          else fprintf(fstatus, "EOM\n");
         }
 #endif           
       }

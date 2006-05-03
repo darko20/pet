@@ -76,56 +76,46 @@ int nattrs;
 int *attrnamelen = 0;
 int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 
-inline bool
-is_leaftype(type_t s)
-{
+inline bool is_leaftype(type_t s) {
   assert(is_type(s));
   return s >= first_leaftype;
 }
 
-inline bool
-is_proper_type(type_t s)
-{
+inline bool is_proper_type(type_t s) {
   assert(is_type(s));
   return s < first_leaftype;
 }
 
-void initialize_codes(int n)
-{
+void initialize_codes(int n) {
   codesize = n;
   temp_bitcode = new bitcode(codesize);
   codetable[bitcode(codesize)] = T_BOTTOM;
   typecode.resize(n);
 }
 
-void resize_codes(int n)
-{
+void resize_codes(int n) {
   typecode.resize(n);
 }
 
-void register_codetype(const bitcode &b, int i)
-{
+void register_codetype(const bitcode &b, int i) {
   codetable[b] = i;
 }
 
-void register_typecode(int i, bitcode *b)
-{
+void register_typecode(int i, bitcode *b) {
   typecode[i] = b;
 }
 
 #ifdef HASH_SPACE
 namespace HASH_SPACE {
-template<> struct hash<string>
-{
-  inline size_t operator()(const string &key) const
-  {
-    int v = 0;
-    for(unsigned int i = 0; i < key.length(); i++)
-      v += key[i];
+  template<> struct hash<string> {
+    inline size_t operator()(const string &key) const {
+      int v = 0;
+      for(unsigned int i = 0; i < key.length(); i++)
+        v += key[i];
 
-    return v;
-  }
-};
+      return v;
+    }
+  };
 }
 
 struct string_equal : public binary_function<string, string, bool> {
@@ -141,8 +131,7 @@ typedef map<string, int> string_map;
 
 string_map _typename_memo;
 
-int lookup_type(const char *s)
-{
+int lookup_type(const char *s) {
   static bool initialized_cache = false;
 
   if(!initialized_cache) {
@@ -156,8 +145,7 @@ int lookup_type(const char *s)
 }
 
 #ifdef DYNAMIC_SYMBOLS
-int lookup_symbol(const char *s)
-{
+int lookup_symbol(const char *s) {
   int type = lookup_type(s);
 
   if (type == T_BOTTOM) {
@@ -177,8 +165,7 @@ int lookup_symbol(const char *s)
   else return type;
 }
 
-int lookup_unsigned_symbol(unsigned int i)
-{
+int lookup_unsigned_symbol(unsigned int i) {
   if(integer_type_map.size() <= i) {
     integer_type_map.resize(i + 1, T_BOTTOM);
   }
@@ -204,20 +191,17 @@ void clear_dynamic_symbols() {
 
 map<string, attr_t> _attrname_memo; 
 
-attr_t lookup_attr(const char *s)
-{
+attr_t lookup_attr(const char *s) {
   map<string, int>::iterator pos = _attrname_memo.find(s);
   if(pos != _attrname_memo.end())
     return (*pos).second;
 
-  for(int i = 0; i < nattrs; i++)
-    {
-      if(strcmp(attrname[i], s) == 0)
-	{
-	  _attrname_memo[s] = i;
-	  return i;
-	}
+  for(int i = 0; i < nattrs; i++) {
+    if(strcmp(attrname[i], s) == 0) {
+      _attrname_memo[s] = i;
+      return i;
     }
+  }
 
   _attrname_memo[s] = -1;
   return -1;
@@ -226,20 +210,16 @@ attr_t lookup_attr(const char *s)
 /** \brief Check, if the given status name \a s is mentioned in the grammar. If
  *  so, return its code.
  */
-int lookup_status(const char *s)
-{
-  for(int i = 0; i < nstatus; i++)
-    {
-      if(strcmp(statusnames[i], s) == 0)
-	{
-	  return i;
-	}
+int lookup_status(const char *s) {
+  for(int i = 0; i < nstatus; i++) {
+    if(strcmp(statusnames[i], s) == 0) {
+      return i;
     }
+  }
   return -1;
 }
 
-type_t lookup_code(const bitcode &b)
-{
+type_t lookup_code(const bitcode &b) {
   hash_map<bitcode, int>::const_iterator pos = codetable.find(b);
 
   if(pos == codetable.end())
@@ -248,38 +228,33 @@ type_t lookup_code(const bitcode &b)
     return (*pos).second;
 }
 
-int get_special_name(settings *sett, char *suff, bool attr = false)
-{
+int get_special_name(settings *sett, char *suff, bool attr = false) {
   char *buff = new char[strlen(suff) + 25];
   sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
   char *v = sett->req_value(buff);
   int id;
 #ifdef FLOP
-  if(attr)
-    {
-      id = attributes.id(v);
-      if(id == -1)
-	id = attributes.add(v);
-    }
-  else
-    {
+  if(attr) {
+    id = attributes.id(v);
+    if(id == -1)
+      id = attributes.add(v);
+  }
+  else {
+    id = types.id(v);
+    if(id == -1) {
+      struct type *t = new_type(v, false);
+      t->def = sett->lloc();
+      t->implicit = true;
       id = types.id(v);
-      if(id == -1)
-	{
-	  struct type *t = new_type(v, false);
-	  t->def = sett->lloc();
-	  t->implicit = true;
-	  id = types.id(v);
-	}
-      
     }
+  }
 #else 
- id = attr ? lookup_attr(v) : lookup_type(v);
- if(id == -1) {
-   string s(buff);
-   delete[] buff;
-   throw tError(s + ":=" + v + " not defined (but referenced in settings file)");
- }
+  id = attr ? lookup_attr(v) : lookup_type(v);
+  if(id == -1) {
+    string s(buff);
+    delete[] buff;
+    throw tError(s + ":=" + v + " not defined (but referenced in settings file)");
+  }
 #endif
   delete[] buff;
   return id;
@@ -680,6 +655,18 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         backward = false;
         return;
     }
+#ifdef DYNAMIC_SYMBOLS
+  if(is_dynamic_type(a)) {
+    forward = backward = false;
+    return; // dyntypes are only subtypes of BI_TOP
+  }
+  // return subtype(b, BI_STRING); // dyntypes are direct subtypes of STRING
+  if(is_dynamic_type(b)) {
+    forward = backward = false; // and always leaf types
+    return;
+  }
+#endif
+
 #define SUBTYPE_OPT    
 #ifdef SUBTYPE_OPT
     // Handle the slightly complicated case of leaftypes. In PET,

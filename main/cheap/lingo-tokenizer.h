@@ -26,7 +26,7 @@ public:
   virtual bool positions_are_counts() { return false; }
 
 private:
-  list<string> tLingoTokenizer::do_it(string s);
+  list<string> do_it(string s);
 };
 
 #endif
