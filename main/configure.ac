@@ -46,7 +46,7 @@ BOOSTDIR=
 #
 if uname -i > /dev/null 2>&1; then
   CPU=$(uname -i)
-  if test "${cpu}" = "unknown" ; then cpu=$(uname -m); fi
+  if test "${CPU}" = "unknown" ; then CPU=$(uname -m); fi
 else
   CPU=$(uname -m)
 fi
