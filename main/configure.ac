@@ -665,6 +665,8 @@ AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gettimeofday inet_ntoa setlocale socket
 
 # Excluded doc and goofy
 AC_CONFIG_FILES([Makefile
+		 fspp/Makefile
+		 fspp/Jamfile
                  cheap/Makefile
 		 cheap/Jamfile
                  common/Makefile
