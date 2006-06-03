@@ -2,9 +2,9 @@
 
 MRSDIR = @MRSDIR@
 
-CHEAPCPPFLAGS = @CHEAPCPPFLAGS@
-CHEAPLDFLAGS = @CHEAPLDFLAGS@
-CHEAPLIBS = @CHEAPLIBS@
+CHEAPCPPFLAGS = @CHEAPCPPFLAGS@ -I../fspp
+CHEAPLDFLAGS = @CHEAPLDFLAGS@ -L../fspp
+CHEAPLIBS = @CHEAPLIBS@ -lfspp -lpreprocessor -lfspp #fix_me
 
 # Development switches
 OPTIM=-O2
@@ -27,7 +27,7 @@ bin_PROGRAMS = cheap #mtest
 
 DEFS += -DDYNAMIC_SYMBOLS
 
-# These should be tested appropriately and appear in config.h
+# These should be tested appropriately and appear in config.h 
 AM_CPPFLAGS = -I$(top_srcdir)/common $(CHEAPCPPFLAGS)
 # Is needed in some cases (required by libpvm3.a)
 # AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
@@ -90,14 +90,14 @@ endif
 # Is -Dlinux -fstrict-aliasing needed as compiler options?
 ECL_FILES = petecl.c petecl.h
 ECL_MRS_FILES = cppbridge.cpp cppbridge.h petmrs.h petmrs.c
-ECL_PREPROCESSOR_FILES = eclpreprocessor.h eclpreprocessor.cpp
+ECL_PREPROCESSOR_FILES = eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
 
 cheap_LDADD =
 if ECL
 cheap_SOURCES += $(ECL_FILES) 
 if ECLPREPROC
 cheap_SOURCES += $(ECL_PREPROCESSOR_FILES)
-cheap_LDADD += libpreprocessor.a
+cheap_LDADD +=  
 endif
 if ECLMRS
 cheap_SOURCES += $(ECL_MRS_FILES)
@@ -107,7 +107,7 @@ endif
 
 # Add ecl libraries to be deleted on "make clean" ... 
 # Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
-MOSTLYCLEANFILES = libmrs.a libpreprocessor.a
+MOSTLYCLEANFILES = libmrs.a
 
 libmrs.a:
 	( \
@@ -118,16 +118,6 @@ libmrs.a:
 	echo "(compile-system \"mrs\" :force t)"; \
 	echo "(mk::ecl-finalize-libbuild :module \"mrs\")"; \
 	) | $(ECL)
-
-libpreprocessor.a:
-	( \
-	echo "(load \"$(PREPROCDIR)/src/general/loadup\")"; \
-	echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
-	echo "(mk::ecl-initialize-libbuild :module \"preprocessor\")"; \
-	echo "(compile-system \"preprocessor\" :force t)"; \
-	echo "(mk::ecl-finalize-libbuild :module \"preprocessor\")"; \
-	) | $(ECL)
-
 
 XML_FILES = pic-handler.cpp pic-handler.h pic-states.h xmlparser.cpp xmlparser.h xml-tokenizer.h
 if XML

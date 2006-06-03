@@ -1,4 +1,8 @@
-all: flop cheap doc
+all: flop cheap doc libfspp.a
+
+libfspp.a:
+	cd fspp
+	make libfspp.a
 
 flop:
 	cd flop
