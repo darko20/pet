@@ -21,45 +21,45 @@
    code integration */
 
 #include <stdlib.h>
+#include <iostream>
+#include <iomanip>   // format manipulation
 #include <string>
-#include <ecl.h>  
+//#include <ecl.h>   
+
+#include "unicode.h"
+#include "petecl.h"
+
+using namespace std;
 
 extern "C" void initialize_eclpreprocessor(cl_object cblock);
 
-char *
-ecl_decode_string(cl_object x) {
-  if (type_of(x) != t_string) return NULL;
-  // make sure the string is correctly terminated
-  char *result = (char *) x->string.self;
-  result[x->string.fillp] = '\0';
-  return result;
-}
+class EncodingConverter *Conv2;
 
 // Initialization
 
-/** Initialize the ecl based Lisp preprocessor engine. 
- * To get the preprocessor specifications file, look into the directory that is
- * specified by \a grammar_pathname for a file whose name is specified 
- * by the global \c "preprocessor" setting.
- * The \a format argument specifies the output format that is returned by the
- * function preprocess. At the moment, it can be either ":yy" or ":smaf"
- */
 int
 preprocessor_initialize(const char *preproc_pathname) {
   read_VV(OBJNULL,initialize_eclpreprocessor);
-
-  cl_object result =
-    funcall(2
-            , c_string_to_object("preprocessor::x-read-preprocessor")
-            , make_string_copy(preproc_pathname));
-  return 0;
+  // fix_me: get rid of (ECL) WARNING messages
+  funcall(2
+	  , c_string_to_object("preprocessor::x-read-preprocessor")
+	  , make_string_copy(preproc_pathname));
+  Conv2 = new EncodingConverter("utf-8");
+  return 0; 
 }
 
-/** Preprocess one string with the preprocessor.  The output format was fixed
- * when the preprocessor engine was initialized.
+/** Preprocess one string with the preprocessor.
+ * Args:
+ *  - inputstring
+ *  - format: one of :smaf :saf :yy
  */
-std::string
-preprocess(const char *inputstring, const char *format) {
+UnicodeString
+preprocess(UnicodeString u_inputstring, const char *format) {
+  const string inputstring2=Conv2->convert(u_inputstring);
+  const char* inputstring=inputstring2.c_str();
+
+  // cout << "INPUT: " << inputstring << endl;
+
   cl_object resobj
     = funcall(4
               , c_string_to_object("preprocessor:preprocess")
@@ -68,12 +68,14 @@ preprocess(const char *inputstring, const char *format) {
               , c_string_to_object(format)
               );
   char *result = ecl_decode_string(resobj);
-  /*
+  
+#ifdef DEBUG
   if (result) {
-    fprintf(ferr, "FSR result: <%s>%d", result, resobj->string.fillp );
+    cout << "FSR result: <" << result << ">" << resobj->string.fillp << endl;
   } else {
-    fprintf(ferr, "FSR result: NULL");
+    cout << "FSR result: NULL" << endl;
   }
-  */
-  return (result != NULL) ? std::string(result) : std::string();
+#endif
+
+  return (result != NULL) ? Conv2->convert(std::string(result)) : Conv2->convert(std::string());
 }

@@ -2,9 +2,9 @@
 
 MRSDIR = @MRSDIR@
 
-CHEAPCPPFLAGS = @CHEAPCPPFLAGS@ -I../fspp
-CHEAPLDFLAGS = @CHEAPLDFLAGS@ -L../fspp
-CHEAPLIBS = @CHEAPLIBS@ -lfspp -lpreprocessor -lfspp #fix_me
+CHEAPCPPFLAGS = @CHEAPCPPFLAGS@
+CHEAPLDFLAGS = @CHEAPLDFLAGS@
+CHEAPLIBS = @CHEAPLIBS@
 
 # Development switches
 OPTIM=-O2
@@ -96,8 +96,12 @@ cheap_LDADD =
 if ECL
 cheap_SOURCES += $(ECL_FILES) 
 if ECLPREPROC
+if ICU
 cheap_SOURCES += $(ECL_PREPROCESSOR_FILES)
-cheap_LDADD +=  
+cheap_LDADD +=  -lfspp -lpreprocessor -lfspp #fix_me
+AM_LDFLAGS += -L../fspp
+AM_CPPFLAGS +=  -I../fspp
+endif
 endif
 if ECLMRS
 cheap_SOURCES += $(ECL_MRS_FILES)

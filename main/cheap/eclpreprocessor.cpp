@@ -25,7 +25,10 @@
 
 #include "eclpreprocessor.h"
 #include "cheap.h"
-   
+
+#include "unicode.h"
+extern class EncodingConverter *Conv; // (bmw) why does this seem necessary?
+
 #define PRE_EXT ".fsr"
 
 tFSRTokenizer::tFSRTokenizer(const char *grammar_path) {
@@ -45,7 +48,12 @@ tFSRTokenizer::tFSRTokenizer(const char *grammar_path) {
 }
 
 void tFSRTokenizer::tokenize(myString s, inp_list &result) {
-  string yyresult = preprocess(s.c_str(), _format);
+#ifdef HAVE_ICU
+  UnicodeString u_yyresult = preprocess(s.c_str(), _format);
+  string yyresult = Conv->convert(u_yyresult);
   
   _stage_two.tokenize(yyresult, result);
+#else
+  throw tError("FSPP tokenizer not available (please compile cheap with Unicode support)");
+#endif
 }
