@@ -432,7 +432,9 @@ void process(const char *s) {
 
     case TOKENIZER_FSR:
 #ifdef HAVE_PREPROC
+#ifdef HAVE_ICU
       tok = new tFSRTokenizer(s); break;
+#endif
 #else
       fprintf(ferr, "No ecl/Lisp based FSR preprocessor "
               "compiled into this cheap\n");

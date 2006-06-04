@@ -1,7 +1,9 @@
 SUBDIRS      = flop
 if ECL
 if ECLPREPROC
+if ICU
 SUBDIRS      += fspp
+endif
 endif
 endif
 SUBDIRS      += cheap

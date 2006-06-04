@@ -8,6 +8,15 @@ OPTIM=-O2
 
 include $(top_srcdir)/common/Makefile.common
 
+######
+
+bin_PROGRAMS = fspp
+
+fspp_SOURCES = main.cpp petecl.c petecl.h unicode.cpp unicode.h errors.h
+fspp_LDADD =  libfspp.a libpreprocessor.a libfspp.a # fix_me
+fspp_LDFLAGS =  -L.
+######
+
 noinst_LIBRARIES = libfspp.a
 
 DEFS += -DDYNAMIC_SYMBOLS
