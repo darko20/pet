@@ -98,7 +98,7 @@ cheap_SOURCES += $(ECL_FILES)
 if ECLPREPROC
 if ICU
 cheap_SOURCES += $(ECL_PREPROCESSOR_FILES)
-cheap_LDADD +=  -lfspp -lpreprocessor -lfspp #fix_me
+cheap_LDADD +=  ../fspp/libfspp.a -lpreprocessor ../fspp/libfspp.a #fix_me
 AM_LDFLAGS += -L../fspp
 AM_CPPFLAGS +=  -I../fspp
 endif
@@ -112,6 +112,9 @@ endif
 # Add ecl libraries to be deleted on "make clean" ... 
 # Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 MOSTLYCLEANFILES = libmrs.a
+
+../fspp/libfspp.a:
+	make -C ../fspp libfspp.a
 
 libmrs.a:
 	( \
