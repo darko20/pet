@@ -80,7 +80,7 @@ void usage(FILE *f)
              "                           default /tmp/qc.tdl)\n");
   fprintf(f, "  `-compute-qc-subs[=file]' --- compute quickcheck paths only for subsumption (output to file,\n"
              "                           default /tmp/qc.tdl)\n");
-  fprintf(f, "  `-mrs[=mode]' --- compute MRS semantics (in specified mode)\n");
+  fprintf(f, "  `-mrs[=mrs|rmrs|xml]' --- compute MRS semantics\n");
   fprintf(f, "  `-key=n' --- select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)\n");
   fprintf(f, "  `-no-hyper' --- disable hyper-active parsing\n");
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
@@ -117,7 +117,7 @@ void usage(FILE *f)
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");  
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
-  fprintf(f, "  `-tok=(string|fsr|yy|yy_counts|xml|xml_counts)' --- "
+  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|xml|xml_counts' --- "
              "select input method (default `string')\n");  
 
   fprintf(f, "  `-comment-passthrough[=1]' --- "
@@ -258,7 +258,7 @@ bool parse_options(int argc, char* argv[])
     {"tsdbdump", required_argument, 0, OPTION_TSDB_DUMP},
     {"partial", no_argument, 0, OPTION_PARTIAL},
     {"results", required_argument, 0, OPTION_NRESULTS},
-    {"tok", required_argument, 0, OPTION_TOK},
+    {"tok", optional_argument, 0, OPTION_TOK},
     {"compute-qc-unif", optional_argument, 0, OPTION_COMPUTE_QC_UNIF},
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
@@ -423,24 +423,20 @@ bool parse_options(int argc, char* argv[])
               opt_nresults = strtoint(optarg, "as argument to -results");
           break;
       case OPTION_TOK:
-          if(optarg != NULL) {
-            opt_tok = TOKENIZER_INVALID;
-            if (strcasecmp(optarg, "string") == 0) opt_tok = TOKENIZER_STRING;
-            if (strcasecmp(optarg, "yy") == 0) opt_tok = TOKENIZER_YY;
-            if (strcasecmp(optarg, "yy_counts") == 0)
-              opt_tok = TOKENIZER_YY_COUNTS;
-            if (strcasecmp(optarg, "xml") == 0) opt_tok = TOKENIZER_XML;
-            if (strcasecmp(optarg, "xml_counts") == 0)
-              opt_tok = TOKENIZER_XML_COUNTS;
-            if (strcasecmp(optarg, "fsr") == 0)
-              opt_tok = TOKENIZER_FSR;
-            if (opt_tok == TOKENIZER_INVALID) {
-              fprintf(ferr, "Unknown input method %s, setting it to 'string'\n"
-                      , optarg);
-              opt_tok = TOKENIZER_STRING;
-            }
-          }
-          break;
+	opt_tok = TOKENIZER_STRING; //todo: make FSR the default
+	if (optarg != NULL) {
+	  if (strcasecmp(optarg, "string") == 0) opt_tok = TOKENIZER_STRING;
+	  else if (strcasecmp(optarg, "yy") == 0) opt_tok = TOKENIZER_YY;
+	  else if (strcasecmp(optarg, "yy_counts") == 0) opt_tok = TOKENIZER_YY_COUNTS;
+	  else if (strcasecmp(optarg, "xml") == 0) opt_tok = TOKENIZER_XML; //obsolete
+	  else if (strcasecmp(optarg, "xml_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS; //obsolete
+	  else if (strcasecmp(optarg, "pic") == 0) opt_tok = TOKENIZER_XML;
+	  else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS;
+	  else if (strcasecmp(optarg, "fsr") == 0)
+	    opt_tok = TOKENIZER_FSR;
+	  else fprintf(ferr, "WARNING: unknown tokenizer mode \"%s\": using 'tok=string'\n", optarg);
+	}
+	break;
       case OPTION_JXCHG_DUMP:
           opt_jxchg_dir = optarg;
           if (*(opt_jxchg_dir.end()--) != '/') 

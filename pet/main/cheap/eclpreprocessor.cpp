@@ -49,9 +49,11 @@ tFSRTokenizer::tFSRTokenizer(const char *grammar_path) {
 
 void tFSRTokenizer::tokenize(myString s, inp_list &result) {
 #ifdef HAVE_ICU
+  // send input to FSPP
   UnicodeString u_yyresult = preprocess(s.c_str(), _format);
   string yyresult = Conv->convert(u_yyresult);
   
+  // convert (YY tokens) output from FSPP into internal tokens
   _stage_two.tokenize(yyresult, result);
 #else
   throw tError("FSPP tokenizer not available (please compile cheap with Unicode support)");

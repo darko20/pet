@@ -44,6 +44,36 @@ void lex_parser::init() {
   _carg_path = cheap_settings->value("mrs-carg-path");
 }
 
+string get_xml_input(string input)
+{
+  string buffer = input;
+  const int bufsize = 2048;
+  char *inbuf = new char[bufsize];
+  inbuf[bufsize - 1] = '\0';
+  int onelinecount;
+  bool partialread;
+  
+  do {
+    onelinecount = 0;
+    // Now read one line, maybe in several pieces if it is longer than the
+    // buffer
+    do {
+      partialread = false;
+      cin.getline(inbuf, bufsize - 1, '\n');
+      onelinecount += cin.gcount() - 1;
+      buffer += inbuf ;
+      if (cin.fail()) {
+	cin.clear(cin.rdstate() & ~ios::failbit);
+	partialread = true;
+	  } else {
+	    buffer += '\n';
+	  }
+    } while (partialread);  // line too long, only read partially?
+    // exit if we read an empty line or we got an end_of_file
+      } while ((onelinecount > 0) && cin) ;
+  return buffer;
+}
+
 /** Use the registered tokenizer(s) to tokenize the input string and put the
  *  result into \a tokens.
  *
@@ -54,7 +84,29 @@ void lex_parser::init() {
 void lex_parser::tokenize(string input, inp_list &tokens) {
   if (_tokenizers.empty())
     throw tError("No tokenizer registered");
+
+  // if input mode is XML, consume all the XML input
+  if (_tokenizers.front()->description() == "XML input chart reader")
+    input=get_xml_input(input);
+
+  // trace output
+  if(verbosity > 4)
+    {
+      cerr << "tokenizer = " << _tokenizers.front()->description() << endl;
+	cerr << "tokenizer input:" << endl << input << endl << endl;
+    }
+
   _tokenizers.front()->tokenize(input, tokens);
+  
+  // trace output
+  if(verbosity > 4)
+    {
+    cerr << "tokenizer output:" << endl ;
+      for(inp_list::iterator r = tokens.begin();
+  	  r != tokens.end(); ++r)
+  	  (*r)->print(ferr);      
+    }
+ 
 }
 
 /** Call the registered taggers which add their results to the individual
