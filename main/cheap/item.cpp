@@ -163,6 +163,8 @@ void tItem::lui_dump(const char *path) {
  INPUT ITEM
  *****************************************************************************/
 
+// to_do: generalise to tSmafItem ???
+
 tInputItem::tInputItem(string id, int start, int end, string surface
                        , string stem, const tPaths &paths, int token_class
                        , modlist fsmods)
@@ -211,6 +213,7 @@ void tInputItem::print(FILE *f, bool compact)
   fprintf(ferr, " {");
   _postags.print(ferr);
   fprintf(ferr, " }");
+  fprintf(ferr, "\n");
 }
 
 void

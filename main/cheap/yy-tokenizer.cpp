@@ -18,6 +18,15 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/*
+
+YY input format: (id, start, end, path, "stem" "surface", inflpos, inflrs, postags?)*
+
+inflrs: - "null" = do internal morph analysis
+        - stems and inflrules
+
+*/
+
 #include "yy-tokenizer.h"
 #include "cheap.h"
 
@@ -56,6 +65,7 @@ bool tYYTokenizer::adv(int n)
   return true;
 }
 
+// read whitespace
 bool tYYTokenizer::read_ws()
 {
   if(eos())
@@ -325,24 +335,21 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
 {
   _yyinput = s;
   _yypos = 0;
-
+  
   if(verbosity > 4)
-    fprintf(ferr, "yy_tokenizer:");
-
+    {
+      cerr << "received YY tokens:" << endl << s << endl << endl;
+      fprintf(ferr, "[processing yy_tokenizer input]\n");
+    };
+  
   tInputItem *tok = 0;
-
+  
   read_ws();
-    
+  
   while(! eos()) {
-
+    
     if ((tok = read_token()) != NULL) {
       result.push_back(tok);
     }
-      
-    if(verbosity > 4)
-      tok->print(ferr);
   }
-
-  if(verbosity > 4)
-    fprintf(ferr, "\n");
 }

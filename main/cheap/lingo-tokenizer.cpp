@@ -129,23 +129,21 @@ void
 tLingoTokenizer::tokenize(string s, inp_list &result) {
   list<string> tokens = do_it(s);
   if(verbosity > 4)
-    fprintf(ferr, "lingo_tokenizer:");
+    fprintf(ferr, "[sending input through lingo_tokenizer]\n");
 
   char idstrbuf[6];
   int i = 0, id = 0;
+  tInputItem *tok = 0;
+
   for(list<string>::iterator pos = tokens.begin();
       pos != tokens.end(); ++pos)
     {
-      if(verbosity > 7)
-        fprintf(ferr, " [%d] <%s>", i, pos->c_str());
-      
       sprintf(idstrbuf, "%d", id++);
-      result.push_back(new tInputItem(idstrbuf, i, i+1, *pos, "", tPaths()));
+      tok=new tInputItem(idstrbuf, i, i+1, *pos, "", tPaths());
+      
+      result.push_back(tok);
       i++;
     }
-  
-  if(verbosity > 4)
-    fprintf(ferr, "\n");
   
 }
 
