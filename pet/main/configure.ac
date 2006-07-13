@@ -58,7 +58,7 @@ case "${CPU}" in
     OS="linux.x86.64"
     ;;
   *)
-    echo "lkb: unknown Linux architecture (check \`uname -m'); exit."
+    echo "lkb: unknown Linux architecture $CPU (check \`uname -m'); exit."
     exit 1;
 esac
 #elif [ "$OSTYPE" = "solaris" -o "${OSTYPE%%?.?}" = "solaris" ]; then
