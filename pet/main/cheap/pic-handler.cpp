@@ -68,6 +68,12 @@ double pic_base_state::req_double_attr(AttributeList& attr, char *aname) {
   return res;
 }
 
+  // [bmw] FIXME! Under certain conditions, the call to the following function
+  // results in a SIGFPE exception. Why???
+  // conditions = when compiled with ECL, only on some machines...
+  //Program received signal SIGFPE, Arithmetic exception.
+  //0x08099fac in pic::pic_base_state::opt_double_attr (this=0x9444f80, attr=@0xbf8f6a0c, aname=0x815a751 "prio", def=0) at pic-handler.cpp:72
+  //(gdb) 
 double
 pic_base_state::opt_double_attr(AttributeList& attr, char *aname, double def) {
   const XMLCh *val;
