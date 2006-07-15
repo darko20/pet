@@ -23,7 +23,7 @@ public:
 
   virtual string description() { return "LinGO tokenization"; }
 
-  virtual bool positions_are_counts() { return false; }
+  virtual position_map position_mapping() { return STANDOFF_POINTS; }
 
 private:
   list<string> do_it(string s);

@@ -163,8 +163,21 @@ void tItem::lui_dump(const char *path) {
  INPUT ITEM
  *****************************************************************************/
 
-// to_do: generalise to tSmafItem ???
+// constructor with start/end NODES specified
+tInputItem::tInputItem(string id, int startnode, int endnode, int start, int end, string surface
+                       , string stem, const tPaths &paths, int token_class
+                       , modlist fsmods)
+  : tItem(startnode, endnode, paths, surface.c_str())
+    , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
+    , _fsmods(fsmods)
+{
+  _startposition = start;
+  _endposition = end;
+  _trait = INPUT_TRAIT;
+}
 
+
+// constructor without start/end NODES specified
 tInputItem::tInputItem(string id, int start, int end, string surface
                        , string stem, const tPaths &paths, int token_class
                        , modlist fsmods)

@@ -12,12 +12,12 @@
 class tYYTokenizer : public tTokenizer {
 public:
   /** Create a new yy mode input reader.
-   * \param positions_are_counts if \c true, an item starting, e.g., at
+   * \param position_mapping if \c STANDOFF_COUNTS, an item starting, e.g., at
    *        position zero and ending at position one has length two, not one.
    * \param classchar if a stem begins with this character, it is interpreted
    *        as type name rather than as base form.
    */
-  tYYTokenizer(bool positions_are_counts = false, char classchar = '$');
+  tYYTokenizer(position_map position_mapping = STANDOFF_POINTS, char classchar = '$');
 
   /** Produce a set of tokens from the given string. */
   virtual void tokenize(myString s, inp_list &result);
@@ -28,7 +28,7 @@ public:
   /** Return \c true if the position in the returned tokens are counts instead
    *  of positions.
    */
-  virtual bool positions_are_counts() { return _positions_are_counts ; }
+  virtual position_map position_mapping() { return _position_mapping ; }
 
 private:
   /** Is the tokenizer at the end of the file? */
@@ -63,7 +63,7 @@ private:
   /** Get the next token */
   class tInputItem *read_token();
 
-  bool _positions_are_counts;
+  position_map _position_mapping;
   string _yyinput;
   string::size_type _yypos;
   char _class_name_char;

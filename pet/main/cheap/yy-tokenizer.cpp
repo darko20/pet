@@ -30,9 +30,9 @@ inflrs: - "null" = do internal morph analysis
 #include "yy-tokenizer.h"
 #include "cheap.h"
 
-tYYTokenizer::tYYTokenizer(bool positions_are_counts, char classchar)
+tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
   : tTokenizer()
-    , _positions_are_counts(positions_are_counts)
+    , _position_mapping(position_mapping)
     , _class_name_char(classchar) { }
 
 bool tYYTokenizer::eos()

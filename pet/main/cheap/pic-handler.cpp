@@ -93,7 +93,7 @@ req_string_attr(AttributeList &attr, char *aname) {
   if (val == NULL)
     throw Error((string) "required attribute '" + aname + "' missing");
 #ifdef HAVE_ICU
-  return Conv->convert((UChar *)val, XMLString::stringLen(val));
+  return Conv->convert((UChar *)val, XMLString::stringLen(val)); // [bmw] is it not necessary to explicitly XMLString::release the XMLCh* val ???
 #else
   return XMLCh2Latin(val);
 #endif

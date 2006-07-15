@@ -18,22 +18,16 @@
 class tXMLTokenizer : public tTokenizer {
 public:
   /** Create a new XML input reader.
-   *  \param positions_are_counts if \c true, an item starting, e.g., at
+   *  \param position_map if \c STANDOFF_COUNTS, an item starting, e.g., at
    *  position zero and ending at position one has length two, not one.
    */
-  tXMLTokenizer(bool positions_are_counts = false)
-    : tTokenizer(), _positions_are_counts(positions_are_counts) { }
+  tXMLTokenizer(position_map position_mapping = STANDOFF_POINTS)
+    : tTokenizer(), _position_mapping(position_mapping) { }
   
   virtual ~tXMLTokenizer() {}
 
   /** Produce a set of tokens from the given XML input. */
-  virtual void tokenize(string input, inp_list &result) {
-    if (input.compare(0, 2, "<?") == 0)
-      tokenize_from_stream(input, result);
-    else
-      tokenize_from_file(input, result);
-  }
-
+  virtual void tokenize(string input, inp_list &result);
   
   /** A string to describe the module */
   virtual string description() { return "XML input chart reader"; }
@@ -41,41 +35,18 @@ public:
   /** Return \c true if the position in the returned tokens are counts instead
    *  of positions.
    */
-  virtual bool positions_are_counts() { return _positions_are_counts ; }
+  virtual position_map position_mapping() { return _position_mapping ; }
+  void set_position_mapping(position_map position_mapping) { 
+    _position_mapping = position_mapping ; }
 
 private:
-  /** Produce a set of tokens from the given XML input on stdin. */
-  void tokenize_from_stream(string input, inp_list &result) {
-    string buffer = input;
-    if(verbosity > 4)
-      {
-	//cerr << "received from :pic preprocessor:" << endl << buffer << endl << endl;
-	fprintf(ferr, "[processing PIC XML input]\n");
-      };
-    
-    PICHandler picreader(true, _translate_iso_chars);
-    MemBufInputSource xmlinput((const XMLByte *) buffer.c_str()
-                               , buffer.length(), "STDIN");
-    if (parse_file(xmlinput, &picreader)
-        && (! picreader.error())) {
-      result.splice(result.begin(), picreader.items());
-    }
-  }
+  /** Produce a set of tInputItem tokens from the given XML input on stdin. */
+  void tokenize_from_stream(string input, inp_list &result);
 
   /** Produce a set of tokens from the given XML file. */
-  void tokenize_from_file(string filename, inp_list &result) {
-    PICHandler picreader(true, _translate_iso_chars);
-    XMLCh * XMLFilename = XMLString::transcode(filename.c_str());
-    LocalFileInputSource inputfile(XMLFilename);
-    if (parse_file(inputfile, &picreader)
-        && (! picreader.error())) {
-      result.splice(result.begin(), picreader.items());
-    }
-    XMLString::release(&XMLFilename);
-  }
+  void tokenize_from_file(string filename, inp_list &result);
 
-
-  bool _positions_are_counts;
+  position_map _position_mapping;
 };
 
 #endif

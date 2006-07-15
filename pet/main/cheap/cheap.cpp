@@ -33,6 +33,7 @@
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
 #include "xml-tokenizer.h"
+#include "smaf-tokenizer.h"
 #endif
 #include "item-printer.h"
 #include "version.h"
@@ -410,9 +411,9 @@ void process(const char *s) {
       {
         char *classchar = cheap_settings->value("class-name-char");
         if (classchar != NULL)
-          tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS, classchar[0]);
+          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
         else
-          tok = new tYYTokenizer(opt_tok == TOKENIZER_YY_COUNTS);
+          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
     case TOKENIZER_STRING: 
@@ -424,7 +425,7 @@ void process(const char *s) {
 #ifdef HAVE_XML
       xml_initialize();
       XMLServices = true;
-      tok = new tXMLTokenizer(opt_tok == TOKENIZER_XML_COUNTS); break;
+      tok = new tXMLTokenizer((opt_tok == TOKENIZER_XML_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
 #else
       fprintf(ferr, "No XML input mode compiled into this cheap\n");
       exit(1);
@@ -440,6 +441,11 @@ void process(const char *s) {
               "compiled into this cheap\n");
       exit(1);
 #endif
+
+    case TOKENIZER_SMAF:
+      xml_initialize();
+      XMLServices = true;
+      tok = new tSMAFTokenizer(); break;
 
     default:
       tok = new tLingoTokenizer(); break;

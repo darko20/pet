@@ -470,6 +470,14 @@ public:
    * by calling morphological analysis, if it is a HPSG type, the lexicon entry
    * in accessed directly using this type.
    */
+
+  // constructor with start/end NODES specified
+  tInputItem(string id, int startnode, int endnode, int start, int end, string surface, string stem
+             , const tPaths &paths = tPaths()
+             , int token_class = WORD_TOKEN_CLASS
+             , modlist fsmods = modlist());
+
+  // constructor without start/end NODES specified  
   tInputItem(string id, int start, int end, string surface, string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
