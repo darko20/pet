@@ -432,6 +432,7 @@ bool parse_options(int argc, char* argv[])
 	  else if (strcasecmp(optarg, "xml_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS; //obsolete
 	  else if (strcasecmp(optarg, "pic") == 0) opt_tok = TOKENIZER_XML;
 	  else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS;
+	  else if (strcasecmp(optarg, "smaf") == 0) opt_tok = TOKENIZER_SMAF;
 	  else if (strcasecmp(optarg, "fsr") == 0)
 	    opt_tok = TOKENIZER_FSR;
 	  else fprintf(ferr, "WARNING: unknown tokenizer mode \"%s\": using 'tok=string'\n", optarg);

@@ -26,8 +26,8 @@ public:
 
   virtual void tokenize(myString s, inp_list &result);
 
-  virtual bool positions_are_counts(){
-    return false; // or true?
+  virtual position_map position_mapping(){
+    return NO_POSITION_MAP;
   }
 
   virtual string description() {

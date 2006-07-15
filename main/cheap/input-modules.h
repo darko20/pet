@@ -66,6 +66,9 @@ struct less_than_module
  * Other way round: Since morphology possibly makes several items out of one
  * item, processing of skip items should precede morphology.
  */
+
+enum position_map { NO_POSITION_MAP = 0, STANDOFF_POINTS, STANDOFF_COUNTS};
+
 class tTokenizer : public tInputModule {
 public:
   virtual ~tTokenizer() { }
@@ -73,10 +76,10 @@ public:
   /** Produce a set of tokens from the given string. */
   virtual void tokenize(myString s, inp_list &result) = 0;
 
-  /** Return \c true if the position in the returned tokens are counts instead
-   *  of positions.
+  /** Return \c STANDOFF_COUNTS if the position in the returned tokens are counts
+   *  , \c STANDOFF_POINTS if they are points
    */
-  virtual bool positions_are_counts() = 0;
+  virtual position_map position_mapping() = 0;
 
 protected:
   tTokenizer();

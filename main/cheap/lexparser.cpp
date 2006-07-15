@@ -306,8 +306,20 @@ struct tInputItem_position_less
  *                rather than positions, i.e., a word with length one has
  *                positions (j, j) rather than (j, j+1)
  */
-int lex_parser::map_positions(inp_list &tokens, bool counts) {
-  position_mapper posmapper(counts);
+int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
+  int maxend = 0;
+  if (position_mapping==NO_POSITION_MAP)
+    // FIXME: this is a placeholder prior to integration of
+    //        - SMAF node id to chart node mapping
+    //        - SMAF init/final nodes
+    { 
+      for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
+	maxend=max(maxend,(*it)->end());
+      }
+      return maxend;
+    }
+
+  position_mapper posmapper((position_mapping == STANDOFF_COUNTS ? true : false));
 
   // first delete all skip tokens
   tokens.remove_if(mem_fun(&tInputItem::is_skip_token));
@@ -315,7 +327,7 @@ int lex_parser::map_positions(inp_list &tokens, bool counts) {
   for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
     posmapper.add(*it);
   }
-  int maxend = posmapper.map_to_chart_positions();
+  maxend = posmapper.map_to_chart_positions();
   return maxend;
 }
 
@@ -587,8 +599,8 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
   ne_recognition(input, inp_tokens);
 
   // map the input positions into chart positions
-  _maxpos = map_positions(inp_tokens
-                          , _tokenizers.front()->positions_are_counts());
+  position_map position_mapping = _tokenizers.front()->position_mapping();
+  _maxpos = map_positions(inp_tokens, position_mapping);
 
   return _maxpos;
 }

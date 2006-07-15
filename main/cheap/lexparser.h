@@ -120,7 +120,7 @@ private:
    *  deletion.
    * \ret the end position of the rightmost item.
    */
-  int map_positions(inp_list &tokens, bool positions_are_counts);
+  int map_positions(inp_list &tokens, position_map position_mapping);
 
   /** Check the chart dependencies.
    * Chart dependencies extract properties (types) from feature structures of
