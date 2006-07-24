@@ -443,9 +443,19 @@ void process(const char *s) {
 #endif
 
     case TOKENIZER_SMAF:
+#ifdef HAVE_XML
+#ifdef HAVE_ICU
       xml_initialize();
       XMLServices = true;
       tok = new tSMAFTokenizer(); break;
+#else
+      fprintf(ferr, "\nERROR: No ICU (Unicode) support compiled into this cheap.\n");
+      exit(1);
+#endif
+#else
+      fprintf(ferr, "\nERROR: No XML support compiled into this cheap.\n");
+      exit(1);
+#endif
 
     default:
       tok = new tLingoTokenizer(); break;
