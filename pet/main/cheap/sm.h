@@ -89,6 +89,9 @@ class tSM
     virtual double
     scoreLeaf(class tLexItem *);
 
+    /** Return the score for the hypothesis */
+    virtual double score_hypothesis(struct tHypothesis* hypo);
+
     class tSMMap *map()
     { return _map; }
 

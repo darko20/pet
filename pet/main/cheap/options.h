@@ -64,6 +64,7 @@ extern string opt_tsdb_dir, opt_jxchg_dir;
 #define PACKING_EQUI  (1 << 0)
 #define PACKING_PRO   (1 << 1)
 #define PACKING_RETRO (1 << 2)
+#define PACKING_SELUNPACK (1 << 3)
 #define PACKING_NOUNPACK (1 << 7)
 extern int opt_packing;
 
