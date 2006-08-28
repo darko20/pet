@@ -43,6 +43,54 @@ void init_characterization();
   ___Type() { throw tError("unexpected call to copy constructor of ___Type"); }
 
 
+/** Represent a possible (not necessarily valid) decomposition of an
+    item. */
+struct tDecomposition
+{
+public:
+  list<vector<int> > indices;
+  list<tItem*> rhs;
+  tDecomposition(list<tItem*> rhs) 
+  {
+    this->rhs = rhs; 
+  }
+  tDecomposition(tItem* dtr)
+  {
+    this->rhs.push_back(dtr);
+  }
+};
+
+/** Represent a hypothesis with which the item is constructed. */
+struct tHypothesis 
+{
+public:
+  double score;
+  tItem* edge; 
+  tDecomposition* decomposition;
+  list<tHypothesis*> hypo_dtrs;
+  vector<int> indices;
+  tHypothesis(tItem* e, tDecomposition* decomp, list<tHypothesis*> dtrs, vector<int> ind) 
+  {
+    edge = e;
+    decomposition = decomp;
+    indices = ind;
+    hypo_dtrs = dtrs;
+  }
+  tHypothesis(tItem* e)
+  {
+    edge = e;
+    decomposition = NULL;
+  }
+  /** constructor for non-conventional top level usage only*/
+  tHypothesis(tItem* e, tHypothesis *hdtr, int idx)
+  {
+    edge = e;
+    hypo_dtrs.push_back(hdtr);
+    indices.push_back(idx);
+  }
+};
+
+
 /** Represent an item in a chart. Conceptually there are input items,
  *  morphological items, lexical items and phrasal items. 
  */
@@ -354,6 +402,23 @@ public:
   list<tItem *> unpack(int limit);
   /*@}*/
 
+  /** \brief Base selective unpacking function that unpacks \a n best
+   *  readings of the item (including the readings for items packed
+   *  into this item). Stops unpacking when \a upedgelimit edges have
+   *  been unpacked.
+   *
+   *  \return the list of items represented by this item
+   */
+  virtual list<tItem *> selectively_unpack(int n, int upedgelimit) = 0;
+
+  /** \brief Selective unpacking function that unpacks \a n best
+   *   readings from the list of \a root items. Stop unpacking when \a
+   *   upedgelimit edges have been unpacked.
+   *
+   *  \return the list of items represented by the list of \a roots
+   */
+   static list<tItem *> selectively_unpack(list<tItem*> roots, int n, int upedgelimit);
+
   /** Return a meaningful external name. */
   inline const char *printname() const { return _printname.c_str(); }
 
@@ -367,6 +432,22 @@ protected:
    * \return the list of items represented by this item
    */
   virtual list<tItem *> unpack1(int limit) = 0;
+
+  /** \brief Base function called by selectively_unpack to generate
+   *   the \a i th best hypothesys
+   *
+   *  \return the \a i th best hypothesis of the item
+   */
+  virtual tHypothesis * hypothesize_edge(unsigned int i) = 0;
+
+  /** \brief Base function that instantiate the hypothesis (and
+   *   recursively instantiate its sub-hypotheses) until \a upedgelimit
+   *   edges have been exhausted.
+   *
+   *  \return the instantiated item from the hypothesis
+   */
+  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit) = 0;
+
 
 private:
   // Internal function for packing/frosting
@@ -637,6 +718,12 @@ public:
    */
   virtual list<tItem *> unpack1(int limit);
 
+  /** \brief tInputItem will not have items packed into them. They
+      need not be unpacked. */
+  virtual tHypothesis * hypothesize_edge(unsigned int i);
+  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit);
+  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+
   /** Return the external id associated with this item */
   const string &external_id() { return _input_id; }
   
@@ -688,6 +775,8 @@ class tLexItem : public tItem
 
   ~tLexItem() {
     free_list(_inflrs_todo); 
+    if (_hypo)
+      delete _hypo;
   }
 
   INHIBIT_COPY_ASSIGN(tLexItem);
@@ -798,6 +887,13 @@ class tLexItem : public tItem
    */
   virtual list<tItem *> unpack1(int limit);
 
+  /** \brief Return the \a i th best hypothesis. For tLexItem, there
+   *   is always only one hypothesis.
+   */
+  virtual tHypothesis * hypothesize_edge(unsigned int i);
+  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit);
+  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+
  private:
   void init(fs &fs);
 
@@ -819,6 +915,9 @@ class tLexItem : public tItem
   postags _supplied_pos;
 
   fs _fs_full; // unrestricted (packing) structure
+
+  /** Cache for the only possible hypothesis */
+  tHypothesis * _hypo;
 
   friend class tPhrasalItem; // to get access to the _mod...fs
   friend class tItemPrinter;
@@ -843,7 +942,16 @@ class tPhrasalItem : public tItem {
    */
   tPhrasalItem(tPhrasalItem *representative, vector<tItem *> &dtrs, fs &newfs);
 
-  virtual ~tPhrasalItem() {}
+  virtual ~tPhrasalItem() {
+    // clear the hypotheses cache 
+    for (vector<tHypothesis*>::iterator h = hypotheses.begin();
+	 h != hypotheses.end(); h ++)
+      delete *h;
+    // clear the decomposition cache
+    for (list<tDecomposition*>::iterator d = decompositions.begin();
+	 d != decompositions.end(); d ++)
+      delete *d;
+  }
 
   INHIBIT_COPY_ASSIGN(tPhrasalItem);
 
@@ -932,14 +1040,55 @@ class tPhrasalItem : public tItem {
   tItem *unpack_combine(vector<tItem *> &config);
   /*@}*/
 
+  /** \brief Selectively unpack the n-best results of this item.
+   *
+   * \return The list of unpacked results (up to \a n items)
+   */
+  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+
+  /** Get the \i th best hypothesis of the item. */
+  virtual tHypothesis * hypothesize_edge(unsigned int i);
+
+  /** Instantiatve the hypothesis */
+  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit);
+
+  /** Decompose edge and return the number of decompositions 
+   * All the decompositions are recorded in this->decompositions . 
+   */
+  virtual int decompose_edge();
+
+  /** Generate a new hypothesis and add it onto the local agenda. */
+  virtual void new_hypothesis(tDecomposition* decomposition, list<tHypothesis*> dtrs, vector<int> indices);
+
+
  private:
   /** The active item that created this item */
   tItem * _adaughter;
   grammar_rule *_rule;
 
+  /** A vector of hypotheses*/
+  vector<tHypothesis*> hypotheses;
+
+  /** Hypothesis agenda*/
+  list<tHypothesis*> hypo_agenda;
+
+  /** A list of decompositions */
+  list<tDecomposition*> decompositions;
+
+  friend class active_and_passive_task;
+  friend class tItemPrinter;
+
+
   friend class active_and_passive_task;
   friend class tItemPrinter;
 };
+
+
+/** Advance the indices vector.
+ * e.g. <0 2 1> -> {<1 2 1> <0 3 1> <0 2 2>}
+ */
+list<vector<int> > advance_indices(vector<int> indices);
+
 
 // _fix_me_
 #if 0

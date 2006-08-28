@@ -374,23 +374,49 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
       stats.trees = 0; // We want to recount the trees in case some
                        // are blocked or don't unpack.
       int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+      
+      if ((opt_packing & PACKING_SELUNPACK) && opt_nsolutions > 0) { // selectively unpacking
+	list<tItem*> uroots;
+	for (vector<tItem*>::iterator tree = trees.begin();
+	     (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
+	       && tree != trees.end(); ++tree) {
+	  if (! (*tree)->blocked()) {
+	    stats.trees ++;
+	    uroots.push_back(*tree);
+	  }
+	}
+	list<tItem*> results = tItem::selectively_unpack(uroots, opt_nsolutions, upedgelimit);
+	for (list<tItem*>::iterator res = results.begin();
+	     res != results.end(); res++) {
+	  type_t rule;
+	  if((*res)->root(Grammar, Chart->rightmost(), rule)) {
+	    readings.push_back(*res);
+	    if(verbosity > 2) {
+	      fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
+		      UnpackTime->convert2ms(UnpackTime->elapsed())
+		      / 1000.);
+	      (*res)->print_derivation(stderr, false);
+	      fprintf(stderr, "\n");
+	    }
+	  } 
+	}
+      } else { // unpack exhaustively
+	for(vector<tItem *>::iterator tree = trees.begin();
+	    (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
+	      && tree != trees.end(); ++tree) {
+	  if(! (*tree)->blocked()) {
 
-      for(vector<tItem *>::iterator tree = trees.begin();
-          (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
-            && tree != trees.end(); ++tree) {
-        if(! (*tree)->blocked()) {
-            
-          stats.trees++;
-
-          list<tItem *> results;
-
-          results = (*tree)->unpack(upedgelimit);
-            
-          for(list<tItem *>::iterator res = results.begin();
-              res != results.end(); ++res)
-            {
-              type_t rule;
-              if((*res)->root(Grammar, Chart->rightmost(), rule))
+	    stats.trees++;
+	    
+	    list<tItem *> results;
+	    
+	    results = (*tree)->unpack(upedgelimit);
+	    
+	    for(list<tItem *>::iterator res = results.begin();
+		res != results.end(); ++res)
+	      {
+		type_t rule;
+		if((*res)->root(Grammar, Chart->rightmost(), rule))
                 {
                   readings.push_back(*res);
                   if(verbosity > 2)
@@ -402,20 +428,25 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
                       fprintf(stderr, "\n");
                     }
                 }
-            }
-        }
+	      }
+	  }
+	}
+	
+	// This is not the ideal solution if parsing could be restarted
+	if(Grammar->sm())
+	  sort(readings.begin(), readings.end(), item_greater_than_score());
       }
-        
+      
       if(upedgelimit > 0 && stats.p_upedges > upedgelimit)
-        {
-          ostringstream s;
-            
-          s << "unpack edge limit exhausted (" << upedgelimit 
-            << " pedges)";
-            
-          errors.push_back(s.str());
-        }
-
+	{
+	  ostringstream s;
+	  
+	  s << "unpack edge limit exhausted (" << upedgelimit 
+	    << " pedges)";
+	  
+	  errors.push_back(s.str());
+	}
+      
       stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
       stats.p_dyn_bytes = FSAS.dynamic_usage();
       stats.p_stat_bytes = FSAS.static_usage();
@@ -424,12 +455,11 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
     }
   } else {
     readings = trees;
+    // This is not the ideal solution if parsing could be restarted
+    if(Grammar->sm())
+      sort(readings.begin(), readings.end(), item_greater_than_score());
   }
   
-  // This is not the ideal solution if parsing could be restarted
-  if(Grammar->sm())
-    sort(readings.begin(), readings.end(), item_greater_than_score());
-
   return readings;
 }
 

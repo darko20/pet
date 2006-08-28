@@ -296,6 +296,33 @@ tSM::scoreLeaf(tLexItem *it)
     return score(tSMFeature(v));
 }
 
+double
+tSM::score_hypothesis(tHypothesis* hypo)
+{
+  vector<int> v;
+  if (hypo->edge->rule() == NULL) { // tLexItem
+    tLexItem *lex = (tLexItem*)hypo->edge;
+    v.push_back(map()->intToSubfeature(1));
+    v.push_back(map()->typeToSubfeature(lex->type()));
+    v.push_back(map()->stringToSubfeature(lex->orth()));
+    hypo->score = score(tSMFeature(v));
+  } else { // tPhrasalItem
+    tPhrasalItem *phrase = (tPhrasalItem*)hypo->edge;
+    v.push_back(map()->intToSubfeature((unsigned) phrase->rule()->arity() == hypo->hypo_dtrs.size() ?
+				       1 : 2));
+    v.push_back(map()->typeToSubfeature(phrase->rule()->type()));
+    double total = neutralScore();
+    for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
+	 hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr++) {
+      v.push_back((*hypo_dtr)->edge->identity());
+      total = combineScores(total, (*hypo_dtr)->score);
+    }
+    tSMFeature f(v);
+    hypo->score = combineScores(total, score(tSMFeature(v)));
+  }
+  return hypo->score;
+}
+
 tMEM::tMEM(tGrammar *G, const char *fileNameIn, const char *basePath)
     : tSM(G, fileNameIn, basePath)
 {
