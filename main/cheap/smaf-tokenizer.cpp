@@ -24,7 +24,6 @@
 #include <iostream>
 
 #include <xercesc/dom/DOM.hpp> 
-// FIXME: global Grammar (defined in cheap.cpp) conflicts with contents of DOM.hpp
 #include <xercesc/parsers/XercesDOMParser.hpp>
 #include <xercesc/util/XMLString.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
@@ -32,13 +31,42 @@
 
 XERCES_CPP_NAMESPACE_USE
 
+// NOTE: these are not private member functions because
+//       (FIXME) global Grammar (defined in cheap.cpp) conflicts 
+//       with contents of DOM.hpp
+void downcase(string &s);
+DOMDocument* xml2dom (string input);
+int serializeDOM(DOMNode* node);
+string getAttribute_string(DOMElement* element, char* name);
+int getAttribute_int(DOMElement* element, char* name);
+string getTextContent_string(DOMElement* element);
+tInputItem* getInputItemFromEdge(DOMElement* element);
+
+void downcase(string &s) {
+  int i;
+
+  for (i=0; i!=s.length(); i++)
+    {
+       if ((unsigned char)s[i] < 127)
+	{
+	  s[i]=tolower(s[i]);
+	}
+    }
+
+  return;
+}
+
 DOMDocument* xml2dom (string input) {
-  //  cout << "INPUT START" << endl;
-  //  cout << input;
-  //  cout << "INPUT END" << endl;
-  string buffer = input;
-  MemBufInputSource xmlinput((const XMLByte *) buffer.c_str()
-			     , buffer.length(), "STDIN");
+  InputSource *xmlinput;
+
+  // take input from STDIN, or from file (when we see '@' on STDIN)
+  if (input.compare(0, 1, "@") == 0)
+    {  
+      XMLCh * XMLFilename = XMLString::transcode((input.substr(1,100)).c_str());
+      xmlinput = new LocalFileInputSource(XMLFilename);
+    }
+  else
+    xmlinput = new MemBufInputSource((const XMLByte *) input.c_str(), input.length(), "STDIN");
   
   try {
     XMLPlatformUtils::Initialize();
@@ -59,18 +87,25 @@ DOMDocument* xml2dom (string input) {
   parser->setErrorHandler(errHandler);
 
   try {
-    parser->parse(xmlinput);
+    parser->parse(*xmlinput);
   }
   catch (const XMLException& toCatch) {
     char* message = XMLString::transcode(toCatch.getMessage());
-    cout << "Exception message is: \n"
+    cout << "[XMLException] Exception message is: \n"
 	 << message << "\n";
     XMLString::release(&message);
     return NULL;
   }
   catch (const DOMException& toCatch) {
     char* message = XMLString::transcode(toCatch.msg);
-    cout << "Exception message is: \n"
+    cout << "[DOMException] Exception message is: \n"
+	 << message << "\n";
+    XMLString::release(&message);
+    return NULL;
+  }
+  catch (const SAXParseException& toCatch) {
+    char* message = XMLString::transcode(toCatch.getMessage());
+    cout << "[SAXParseException] Exception message is: \n"
 	 << message << "\n";
     XMLString::release(&message);
     return NULL;
@@ -79,16 +114,16 @@ DOMDocument* xml2dom (string input) {
     cout << "Unexpected Exception \n" ;
     return NULL;
   }
-  
-  // what about XMLPlatformUtils::terminate() ???
 
   DOMDocument* doc = parser->adoptDocument();
 
   delete parser;
   delete errHandler;
+
+  XMLPlatformUtils::Terminate();
+
   return doc;
 }
-
 
 int serializeDOM(DOMNode* node) {
   
@@ -148,12 +183,16 @@ string getAttribute_string(DOMElement* element, char* name){
  
 int getAttribute_int(DOMElement* element, char* name){
   const XMLCh *xval =  element->getAttribute(XMLString::transcode(name));
+  if (xval==NULL) return -1;
 
   const char *str = XMLCh2UTF8(xval);
   char *end;
   int res = strtol(str, &end, 10);
   if ((*end != '\0') || (str == end))
-    throw Error((string) "expected integer value for attribute '" + name + "' in ");
+    {
+      // cout <<  "expected integer value for attribute '" << name << "', got '" << str << "' ";
+    res = -1;
+    }
   return res;
 }
 
@@ -163,6 +202,7 @@ string getTextContent_string(DOMElement* element){
   return val;
 }
 
+/*
 tInputItem* getInputItemFromW(DOMElement* element){
     //serializeDOM(wNode);
     
@@ -172,6 +212,7 @@ tInputItem* getInputItemFromW(DOMElement* element){
     int source = start;
     int target = end;
     string surface = getTextContent_string(element);
+    downcase(surface);
 
     ::modlist mods;
 
@@ -179,18 +220,14 @@ tInputItem* getInputItemFromW(DOMElement* element){
 				      , tPaths()
 				      , WORD_TOKEN_CLASS, mods);
     
-    //    cout << id << endl;
-    //    cout << start << endl;
-    //    cout << end << endl;
-    //    cout << surface << endl;
-    //item->print2();
     return item;
 }
+*/
 
 //FIXME:
 // - SMAF soure/target should be general text
-// - seg faults on <olac:olac> ?namespaces?
-// - seg faults on DOCTYPE declaration
+// - smaf.dtd
+// - <olac:olac>
 
 tInputItem* getInputItemFromEdge(DOMElement* element){  
   string id = getAttribute_string(element,"id");
@@ -199,7 +236,11 @@ tInputItem* getInputItemFromEdge(DOMElement* element){
   int source = getAttribute_int(element,"source");
   int target = getAttribute_int(element,"target");
   string surface = getTextContent_string(element);
+  if (surface.length()==0) 
+    surface = getAttribute_string(element,"value");
   
+  downcase(surface);
+
   ::modlist mods;
   
   tInputItem* item = new tInputItem(id, source, target, start, end, surface, ""
@@ -208,29 +249,23 @@ tInputItem* getInputItemFromEdge(DOMElement* element){
   return item;
 }
 
-
-
-/** Produce a set of tokens from the given XML input. */
 void tSMAFTokenizer::tokenize(string input, inp_list &result) {
-
   DOMDocument* dom = xml2dom(input);
-  //serializeDOM(dom);
-
-  // get all <w> elements
-  //XMLCh* xstr = XMLString::transcode("w");
-  // get all <edge> elements
-  XMLCh* xstr = XMLString::transcode("edge");
-  DOMNodeList* welts = dom->getElementsByTagName(xstr);
-  XMLString::release(&xstr);
-  const XMLSize_t nodeCount = welts->getLength() ;
-  // map each into a tInputItem
-  for( XMLSize_t ix = 0 ; ix < nodeCount ; ++ix ){
-    DOMNode* wNode = welts->item( ix ) ;
-    //serializeDOM(wNode);
-    DOMElement* element = dynamic_cast< xercesc::DOMElement* >( wNode );
-    //tInputItem* item = getInputItemFromW(element);
-    tInputItem* item = getInputItemFromEdge(element);
-    result.push_back(item);    
-  }
+  if (dom!=NULL)
+    {
+      // get all <edge> elements
+      XMLCh* xstr = XMLString::transcode("edge");
+      DOMNodeList* welts = dom->getElementsByTagName(xstr);
+      XMLString::release(&xstr);
+      const XMLSize_t nodeCount = welts->getLength() ;
+      // map each into a tInputItem
+      for( XMLSize_t ix = 0 ; ix < nodeCount ; ++ix ){
+	DOMNode* wNode = welts->item( ix ) ;
+	//serializeDOM(wNode);
+	DOMElement* element = dynamic_cast< xercesc::DOMElement* >( wNode );
+	tInputItem* item = getInputItemFromEdge(element);
+	result.push_back(item);    
+      }}
   return;
 }
+
