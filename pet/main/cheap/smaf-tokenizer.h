@@ -1,6 +1,6 @@
 /* -*- Mode: C++ -*- */
-/** \file xml-tokenizer.h
- * XML input mode reader for PET, similar to the YY mode tokenizer.
+/** \file smaf-tokenizer.h
+ * SMAF XML input mode reader
  */
 
 #ifndef _SMAF_TOKENIZER_H
@@ -30,7 +30,7 @@ public:
   virtual void tokenize(string input, inp_list &result);
   
   /** A string to describe the module */
-  virtual string description() { return "XML input chart reader"; }
+  virtual string description() { return "SMAF XML input reader"; }
 
   /** Return \c true if the position in the returned tokens are counts instead
    *  of positions.
@@ -41,6 +41,7 @@ public:
 
 private:
   position_map _position_mapping;
+
 };
 
 #endif
