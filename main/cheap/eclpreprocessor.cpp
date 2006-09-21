@@ -44,6 +44,7 @@ tFSRTokenizer::tFSRTokenizer(const char *grammar_path) {
 
   preprocessor_initialize(preproc_pathname.c_str());
 
+  _position_mapping = NO_POSITION_MAP;
   _format = ":yy";
 }
 
@@ -55,6 +56,8 @@ void tFSRTokenizer::tokenize(myString s, inp_list &result) {
   
   // convert (YY tokens) output from FSPP into internal tokens
   _stage_two.tokenize(yyresult, result);
+  _position_mapping = _stage_two.position_mapping(); 
+  // (!) output uses position_map mode of the (YY) tokenizer used
 #else
   throw tError("FSPP tokenizer not available (please compile cheap with Unicode support)");
 #endif
