@@ -27,7 +27,7 @@ public:
   virtual void tokenize(myString s, inp_list &result);
 
   virtual position_map position_mapping(){
-    return NO_POSITION_MAP;
+    return _position_mapping;
   }
 
   virtual string description() {
@@ -35,6 +35,7 @@ public:
   }
 private:
   tYYTokenizer _stage_two;
+  position_map _position_mapping;
 
   char *_format;
   
