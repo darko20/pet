@@ -85,6 +85,7 @@ public:
   tHypothesis(tItem* e, tHypothesis *hdtr, int idx)
   {
     edge = e;
+    score = hdtr->score;
     hypo_dtrs.push_back(hdtr);
     indices.push_back(idx);
   }
@@ -1089,6 +1090,10 @@ class tPhrasalItem : public tItem {
  */
 list<vector<int> > advance_indices(vector<int> indices);
 
+/** Insert hypothesis into agenda. Agenda is sorted descendingly
+ *
+ */
+void hagenda_insert(list<tHypothesis*> &agenda, tHypothesis* hypo);
 
 // _fix_me_
 #if 0

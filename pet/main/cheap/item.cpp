@@ -1253,8 +1253,10 @@ tPhrasalItem::hypothesize_edge(unsigned int i)
       int seen = 0;
       for (list<vector<int> >::const_iterator decomp_indices = hypo->decomposition->indices.begin();
 	   decomp_indices != hypo->decomposition->indices.end(); decomp_indices ++)
-	if (indices == decomp_indices)
+	if (*indices == *decomp_indices) {
 	  seen = 1;
+	  break;
+	}
       if (seen == 1) 
 	continue;
 
@@ -1285,26 +1287,30 @@ tPhrasalItem::decompose_edge()
   if (_daughters.size() == 0) {
     return 0;
   }
+  vector<vector<tItem*> > dtr_items;
+  int i = 0;
   for (list<tItem*>::const_iterator it = _daughters.begin();
-       it != _daughters.end(); it ++) {
-    dnum *= ((*it)->packed.size() + 1);
+       it != _daughters.end(); it ++, i ++) {
+    dtr_items.resize(i+1);
+    dtr_items[i].push_back(*it);
+    for (list<tItem*>::const_iterator pi = (*it)->packed.begin();
+	 pi != (*it)->packed.end(); pi ++) {
+      if (!(*pi)->frozen()) {
+	dtr_items[i].push_back(*pi);
+      }
+    }
+    dnum *= dtr_items[i].size();
   }
   
   for (int i = 0; i < dnum; i ++) {
     list<tItem*> rhs;
     int j = i;
+    int k = 0;
     for (list<tItem*>::const_iterator it = _daughters.begin();
-	 it != _daughters.end(); it ++) {
-      int psize = (*it)->packed.size() + 1;
+	 it != _daughters.end(); it ++, k ++) {
+      int psize = dtr_items[k].size();
       int mod = j % psize;
-      if (mod == 0)
-	rhs.push_back(*it);
-      else {
-	list<tItem*>::const_iterator it2 = (*it)->packed.begin();
-	while (--mod > 0)
-	  it2 ++;
-	rhs.push_back(*it2);
-      }
+      rhs.push_back(dtr_items[k][mod]);
       j /= psize;
     }
     decompositions.push_back(new tDecomposition(rhs));
@@ -1320,17 +1326,7 @@ tPhrasalItem::new_hypothesis(tDecomposition* decomposition,
   tHypothesis *hypo = new tHypothesis(this, decomposition, dtrs, indices);
   Grammar->sm()->score_hypothesis(hypo);
   decomposition->indices.push_back(indices);
-  if (!hypo_agenda.empty()) {
-    for (list<tHypothesis*>::iterator it = hypo_agenda.begin();
-	 it != hypo_agenda.end(); it++) {
-      if (hypo->score > (*it)->score) {
-	hypo_agenda.insert(it, hypo);
-	return;
-      }
-    }
-  }
-  hypo_agenda.push_back(hypo);
-  return;
+  hagenda_insert(hypo_agenda, hypo);
 }
 
 list<tItem *>
@@ -1357,32 +1353,26 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
     return results;
 
   list<tHypothesis*> ragenda;
-  tHypothesis* aitem
-;
+  tHypothesis* aitem;
+  
   tHypothesis* hypo = this->hypothesize_edge(0);
   if (hypo) {
-    Grammar->sm()->score_hypothesis(hypo);
+    //Grammar->sm()->score_hypothesis(hypo);
     aitem = new tHypothesis(this, hypo, 0);
-    ragenda.push_back(aitem);
+    hagenda_insert(ragenda, aitem);
   }
   for (list<tItem*>::iterator edge = packed.begin();
        edge != packed.end(); edge++) {
+    // ignore frozen edges
+    if ((*edge)->frozen()) 
+      continue;
+
     hypo = (*edge)->hypothesize_edge(0);
     if (!hypo)
       continue;
-    Grammar->sm()->score_hypothesis(hypo);
+    //Grammar->sm()->score_hypothesis(hypo);
     aitem = new tHypothesis(*edge, hypo, 0);
-    int flag = 0;
-    for (list<tHypothesis*>::iterator it = ragenda.begin();
-	 it != ragenda.end(); it++) {
-      if (hypo->score > (*it)->hypo_dtrs.front()->score) {
-	ragenda.insert(it, aitem);
-	flag = 1;
-	break;
-      }
-    }
-    if (!flag)    
-      ragenda.push_back(aitem);
+    hagenda_insert(ragenda, aitem);
   }
 
   while (!ragenda.empty() && n > 0) {
@@ -1399,19 +1389,9 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
     }
     hypo = aitem->edge->hypothesize_edge(aitem->indices[0]+1);
     if (hypo) {
-      Grammar->sm()->score_hypothesis(hypo);
+      //Grammar->sm()->score_hypothesis(hypo);
       tHypothesis* naitem = new tHypothesis(aitem->edge, hypo, aitem->indices[0]+1);
-      int flag = 0;
-      for (list<tHypothesis*>::iterator it = ragenda.begin();
-	   it != ragenda.end(); it++) {
-	if (hypo->score > (*it)->hypo_dtrs.front()->score) {
-	  ragenda.insert(it, naitem);
-	  flag = 1;
-	  break;
-	}
-      }
-      if (!flag)    
-	ragenda.push_back(naitem);      
+      hagenda_insert(ragenda, naitem);
     }
     delete aitem;
   }
@@ -1441,28 +1421,22 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int upedgelimit)
     hypo = (*it)->hypothesize_edge(0); 
 
     if (hypo) {
-      Grammar->sm()->score_hypothesis(hypo);
+      // Grammar->sm()->score_hypothesis(hypo);
       aitem = new tHypothesis(root, hypo, 0);
-      ragenda.push_back(aitem);
+      hagenda_insert(ragenda, aitem);
     }
     for (list<tItem*>::iterator edge = root->packed.begin();
 	 edge != root->packed.end(); edge++) {
+      // ignore frozen edges
+      if ((*edge)->frozen())
+	continue;
       hypo = (*edge)->hypothesize_edge(0);
       if (!hypo)
 	continue;
-      Grammar->sm()->score_hypothesis(hypo);
+      //Grammar->sm()->score_hypothesis(hypo);
       aitem = new tHypothesis(*edge, hypo, 0);
+      hagenda_insert(ragenda, aitem);
       int flag = 0;
-      for (list<tHypothesis*>::iterator it = ragenda.begin();
-	   it != ragenda.end(); it++) {
-	if (hypo->score > (*it)->hypo_dtrs.front()->score) {
-	  ragenda.insert(it, aitem);
-	  flag = 1;
-	  break;
-	}
-      }
-      if (!flag)    
-	ragenda.push_back(aitem);
     }
   }
 
@@ -1480,19 +1454,9 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int upedgelimit)
     }
     hypo = aitem->edge->hypothesize_edge(aitem->indices[0]+1);
     if (hypo) {
-      Grammar->sm()->score_hypothesis(hypo);
+      //Grammar->sm()->score_hypothesis(hypo);
       tHypothesis* naitem = new tHypothesis(aitem->edge, hypo, aitem->indices[0]+1);
-      int flag = 0;
-      for (list<tHypothesis*>::iterator it = ragenda.begin();
-	   it != ragenda.end(); it++) {
-	if (hypo->score > (*it)->hypo_dtrs.front()->score) {
-	  ragenda.insert(it, naitem);
-	  flag = 1;
-	  break;
-	}
-      }
-      if (!flag)    
-	ragenda.push_back(naitem);      
+      hagenda_insert(ragenda, naitem);
     }
     delete aitem;
   }
@@ -1577,3 +1541,22 @@ list<vector<int> > advance_indices(vector<int> indices) {
   }
   return results;
 }
+
+void hagenda_insert(list<tHypothesis*> &agenda, tHypothesis* hypo) {
+  if (agenda.empty()) {
+    agenda.push_back(hypo);
+    return;
+  }
+  int flag = 0;
+  for (list<tHypothesis*>::iterator it = agenda.begin();
+       it != agenda.end(); it ++) {
+    if (hypo->score > (*it)->score) {
+      agenda.insert(it, hypo);
+      flag = 1;
+      break;
+    }
+  }
+  if (!flag)
+    agenda.push_back(hypo);
+}
+
