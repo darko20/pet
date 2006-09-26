@@ -66,12 +66,14 @@ struct tHypothesis
 public:
   double score;
   tItem* edge; 
+  tItem* inst_edge;
   tDecomposition* decomposition;
   list<tHypothesis*> hypo_dtrs;
   vector<int> indices;
   tHypothesis(tItem* e, tDecomposition* decomp, list<tHypothesis*> dtrs, vector<int> ind) 
   {
     edge = e;
+    inst_edge = NULL;
     decomposition = decomp;
     indices = ind;
     hypo_dtrs = dtrs;
@@ -79,12 +81,14 @@ public:
   tHypothesis(tItem* e)
   {
     edge = e;
+    inst_edge = NULL;
     decomposition = NULL;
   }
   /** constructor for non-conventional top level usage only*/
   tHypothesis(tItem* e, tHypothesis *hdtr, int idx)
   {
     edge = e;
+    inst_edge = NULL;
     score = hdtr->score;
     hypo_dtrs.push_back(hdtr);
     indices.push_back(idx);
