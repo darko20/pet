@@ -1490,6 +1490,10 @@ tPhrasalItem::instantiate_hypothesis(tHypothesis * hypo, int upedgelimit)
   if(upedgelimit > 0 && stats.p_upedges >= upedgelimit)
     return this;
 
+  // If the hypothesis has been instantiated before, don't do it again
+  if (hypo->inst_edge != NULL)
+    return hypo->inst_edge;
+
   vector<tItem*> daughters;
 
   // Instantiate all the sub hypotheses. 
@@ -1529,6 +1533,7 @@ tPhrasalItem::instantiate_hypothesis(tHypothesis * hypo, int upedgelimit)
   stats.p_upedges++;
   tPhrasalItem *result = new tPhrasalItem(this, daughters, res);
   result->score(hypo->score);
+  hypo->inst_edge = result;
   return result;
 }
 
