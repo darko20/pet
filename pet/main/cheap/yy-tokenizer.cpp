@@ -203,9 +203,16 @@ bool tYYTokenizer::read_pos(string &tag, double &prob)
     return false;
 }
 
+int max(int a, int b)
+{
+  int max = a>b?a:b ;
+  return max;
+}
+
+
 tInputItem *
 tYYTokenizer::read_token()
-{
+{  
   int id, start, end, path, inflpos;
   // we usually supply the inflection information, only perform lexicon lookup
   int token_class = STEM_TOKEN_CLASS;
@@ -265,6 +272,17 @@ tYYTokenizer::read_token()
     // translate iso-8859-1 german umlaut and sz
     translate_iso(surface);
   }
+
+  // add surface form of ersatzes to fsmod, if necessary
+  string ersatz_suffix("ersatz"); 
+  modlist fsmods = modlist() ;
+  char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
+
+  if ((ersatz_carg_path != NULL) and (stem.substr(max(0,stem.length()-ersatz_suffix.length())) == ersatz_suffix))
+    {    
+      string val = '"' + surface + '"'; // ensure val will become a string (surely there is a better way to do this???)
+      fsmods.push_back(pair<string, type_t>(ersatz_carg_path, lookup_symbol(val.c_str())));
+    }
 
   if(!read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected , after stem)");
@@ -326,7 +344,8 @@ tYYTokenizer::read_token()
   // Set the inflection rules and POS tags of the new item
   res->set_inflrs(infl_rules) ;
   res->set_in_postags(poss) ;
-
+  res->set_mods(fsmods);
+      
   return res;
 }
 
@@ -353,3 +372,4 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
     }
   }
 }
+
