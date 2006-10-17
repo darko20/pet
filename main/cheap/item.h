@@ -64,10 +64,11 @@ public:
 struct tHypothesis 
 {
 public:
-  double score;
-  tItem* edge; 
+  map<list<tItem*>,double> scores;
+  tItem* edge;
   tItem* inst_edge;
   tDecomposition* decomposition;
+  //  list<tHypothesis*> hypo_parents;
   list<tHypothesis*> hypo_dtrs;
   vector<int> indices;
   tHypothesis(tItem* e, tDecomposition* decomp, list<tHypothesis*> dtrs, vector<int> ind) 
@@ -89,7 +90,7 @@ public:
   {
     edge = e;
     inst_edge = NULL;
-    score = hdtr->score;
+    scores = hdtr->scores;
     hypo_dtrs.push_back(hdtr);
     indices.push_back(idx);
   }
@@ -414,7 +415,7 @@ public:
    *
    *  \return the list of items represented by this item
    */
-  virtual list<tItem *> selectively_unpack(int n, int upedgelimit) = 0;
+  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit) = 0;
 
   /** \brief Selective unpacking function that unpacks \a n best
    *   readings from the list of \a root items. Stop unpacking when \a
@@ -439,11 +440,11 @@ protected:
   virtual list<tItem *> unpack1(int limit) = 0;
 
   /** \brief Base function called by selectively_unpack to generate
-   *   the \a i th best hypothesys
+   *   the \a i th best hypothesys with specific head \a path .
    *
    *  \return the \a i th best hypothesis of the item
    */
-  virtual tHypothesis * hypothesize_edge(unsigned int i) = 0;
+  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i) = 0;
 
   /** \brief Base function that instantiate the hypothesis (and
    *   recursively instantiate its sub-hypotheses) until \a upedgelimit
@@ -451,7 +452,7 @@ protected:
    *
    *  \return the instantiated item from the hypothesis
    */
-  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit) = 0;
+  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit) = 0;
 
 
 private:
@@ -725,9 +726,9 @@ public:
 
   /** \brief tInputItem will not have items packed into them. They
       need not be unpacked. */
-  virtual tHypothesis * hypothesize_edge(unsigned int i);
-  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit);
-  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i);
+  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
 
   /** Return the external id associated with this item */
   const string &external_id() { return _input_id; }
@@ -780,7 +781,8 @@ class tLexItem : public tItem
 
   ~tLexItem() {
     free_list(_inflrs_todo); 
-    if (_hypo)
+
+    if (_hypo != NULL)
       delete _hypo;
   }
 
@@ -866,8 +868,13 @@ class tLexItem : public tItem
     return _supplied_pos;
   }
 
-  /** Return the HPSG type this item stems from */
+  /** Return the type of this item */
   virtual int identity() const {
+    return _fs.type();
+  }
+  
+  /** Return the HPSG type this item stems from */
+  virtual int identity2() const {
     return _stem->type(); // _dtrs[_keydtr]->identity();
   }
 
@@ -893,11 +900,11 @@ class tLexItem : public tItem
   virtual list<tItem *> unpack1(int limit);
 
   /** \brief Return the \a i th best hypothesis. For tLexItem, there
-   *   is always only one hypothesis.
+   *   is always only one hypothesis, for a given \a path . 
    */
-  virtual tHypothesis * hypothesize_edge(unsigned int i);
-  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit);
-  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i);
+  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
 
  private:
   void init(fs &fs);
@@ -921,8 +928,8 @@ class tLexItem : public tItem
 
   fs _fs_full; // unrestricted (packing) structure
 
-  /** Cache for the only possible hypothesis */
-  tHypothesis * _hypo;
+  /** Cache for the hypothesis */
+  tHypothesis* _hypo;
 
   friend class tPhrasalItem; // to get access to the _mod...fs
   friend class tItemPrinter;
@@ -949,9 +956,10 @@ class tPhrasalItem : public tItem {
 
   virtual ~tPhrasalItem() {
     // clear the hypotheses cache 
-    for (vector<tHypothesis*>::iterator h = hypotheses.begin();
-	 h != hypotheses.end(); h ++)
+    for (vector<tHypothesis*>::iterator h = _hypotheses.begin();
+	 h != _hypotheses.end(); h ++)
       delete *h;
+
     // clear the decomposition cache
     for (list<tDecomposition*>::iterator d = decompositions.begin();
 	 d != decompositions.end(); d ++)
@@ -1049,20 +1057,20 @@ class tPhrasalItem : public tItem {
    *
    * \return The list of unpacked results (up to \a n items)
    */
-  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
 
-  /** Get the \i th best hypothesis of the item. */
-  virtual tHypothesis * hypothesize_edge(unsigned int i);
+  /** Get the \i th best hypothesis of the item with \a path to root. */
+  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i);
 
   /** Instantiatve the hypothesis */
-  virtual tItem * instantiate_hypothesis(tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit);
 
   /** Decompose edge and return the number of decompositions 
    * All the decompositions are recorded in this->decompositions . 
    */
   virtual int decompose_edge();
 
-  /** Generate a new hypothesis and add it onto the local agenda. */
+  /** Generate a new hypothesis and add it onto the local agendas. */
   virtual void new_hypothesis(tDecomposition* decomposition, list<tHypothesis*> dtrs, vector<int> indices);
 
 
@@ -1072,17 +1080,15 @@ class tPhrasalItem : public tItem {
   grammar_rule *_rule;
 
   /** A vector of hypotheses*/
-  vector<tHypothesis*> hypotheses;
-
+  vector<tHypothesis*> _hypotheses;
+  /** a map from path to corresponding cached hypotheses */
+  map<list<tItem*>,vector<tHypothesis*> > _hypotheses_path;
+  
   /** Hypothesis agenda*/
-  list<tHypothesis*> hypo_agenda;
+  map<list<tItem*>,list<tHypothesis*> > _hypo_agendas;
 
   /** A list of decompositions */
   list<tDecomposition*> decompositions;
-
-  friend class active_and_passive_task;
-  friend class tItemPrinter;
-
 
   friend class active_and_passive_task;
   friend class tItemPrinter;
@@ -1097,7 +1103,7 @@ list<vector<int> > advance_indices(vector<int> indices);
 /** Insert hypothesis into agenda. Agenda is sorted descendingly
  *
  */
-void hagenda_insert(list<tHypothesis*> &agenda, tHypothesis* hypo);
+void hagenda_insert(list<tHypothesis*> &agenda, tHypothesis* hypo, list<tItem*> path);
 
 // _fix_me_
 #if 0
