@@ -336,6 +336,9 @@ struct lex_token *get_next_token()
 	case '@':
 	  tag = T_AT;
 	  break;
+	case '^':
+	  tag = T_CAP;
+	  break;
 	case '$':
 	  tag = T_DOLLAR;
 	  break;
@@ -350,6 +353,12 @@ struct lex_token *get_next_token()
 	  break;
 	case ']':
 	  tag = T_RBRACKET;
+	  break;
+	case '{':
+	  tag = T_LBRACE;
+	  break;
+	case '}':
+	  tag = T_RBRACE;
 	  break;
 	case '<':
 	  tag = T_LANGLE;

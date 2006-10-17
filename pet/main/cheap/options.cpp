@@ -52,6 +52,9 @@ char *opt_mrs = 0;
 // 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
 int opt_comment_passthrough = 0;
 
+// 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting level in MEM-based parse selection
+int opt_gplevel = 0;
+
 tokenizer_id opt_tok = TOKENIZER_STRING;
 
 string opt_tsdb_dir, opt_jxchg_dir;

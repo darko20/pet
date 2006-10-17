@@ -33,9 +33,9 @@ extern char *keywords[N_KEYWORDS];
 
 /** Enumeration for the different token types */
 enum TOKEN_TAG {T_NONE, T_EOF, T_WS, T_COMM, T_STRING, T_ID, T_DOT, T_COMMA, T_COLON,
-		 T_EQUALS, T_HASH, T_QUOTE, T_AMPERSAND, T_AT, T_DOLLAR, T_LPAREN,
-		 T_RPAREN, T_LBRACKET, T_RBRACKET, T_LANGLE, T_RANGLE, T_LDIFF, T_RDIFF,
-		 T_ARROW, T_ISA, T_ISEQ, T_LISP, T_KEYWORD, T_INFLR, T_ERROR };
+		T_EQUALS, T_HASH, T_QUOTE, T_AMPERSAND, T_AT, T_CAP, T_DOLLAR, T_LPAREN,
+		T_RPAREN, T_LBRACKET, T_RBRACKET, T_LBRACE, T_RBRACE, T_LANGLE, T_RANGLE, 
+		T_LDIFF, T_RDIFF, T_ARROW, T_ISA, T_ISEQ, T_LISP, T_KEYWORD, T_INFLR, T_ERROR };
 
 /** lexical token object, containing surface string, type and location. */
 struct lex_token

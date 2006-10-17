@@ -90,8 +90,8 @@ class tSM
     scoreLeaf(class tLexItem *);
 
     /** Return the score for the hypothesis */
-    virtual double score_hypothesis(struct tHypothesis* hypo);
-
+    virtual double score_hypothesis(struct tHypothesis* hypo, list<tItem*> path);
+    
     class tSMMap *map()
     { return _map; }
 
@@ -139,6 +139,7 @@ class tMEM : public tSM
     /** Return a description string suitable for printing.*/
     virtual string
     description();
+    
 
  private:
     
@@ -147,6 +148,11 @@ class tMEM : public tSM
     /** Number of contexts this model was trained on. For reporting
         purposes only. */
     string _ctxts;
+
+    /** Format version of the model:
+	0: old format 
+	1: new format (as of sep-06). */
+    int _format;
 
     void
     readModel(const string &fileName);
@@ -162,6 +168,9 @@ class tMEM : public tSM
 
     void
     parseFeature(int);
+
+    /** Handler of new format for feature representation. */ 
+    void parseFeature2(int); 
 };
 
 #endif

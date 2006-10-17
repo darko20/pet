@@ -237,51 +237,58 @@ tSM::findFile(const char *fileName, const char *basePath)
 double
 tSM::scoreLocalTree(grammar_rule *R, vector<tItem *> dtrs)
 {
-    vector<int> v;
-    v.push_back(map()->intToSubfeature((unsigned) R->arity() == dtrs.size() ?
-                                       1 : 2));
-    v.push_back(map()->typeToSubfeature(R->type()));
+  vector<int> v1, v2;
+  v1.push_back(map()->intToSubfeature(1));
+  v2.push_back(map()->intToSubfeature(2));
+  v1.push_back(map()->intToSubfeature(0));
+  v2.push_back(map()->intToSubfeature(0));
+  v1.push_back(map()->typeToSubfeature(R->type()));
+  v2.push_back(map()->typeToSubfeature(R->type()));
+  double total = neutralScore();
 
-    double total = neutralScore();
-
-    for(vector<tItem *>::iterator dtr = dtrs.begin();
-        dtr != dtrs.end(); ++dtr)
+  for(vector<tItem *>::iterator dtr = dtrs.begin();
+      dtr != dtrs.end(); ++dtr)
     {
-        v.push_back((*dtr)->identity());
-        total = combineScores(total, (*dtr)->score());
+      v1.push_back((*dtr)->identity());
+      total = combineScores(total, (*dtr)->score());
     }
 
-    tSMFeature f(v);
+  v2.push_back(dtrs[R->nextarg()-1]->identity());
+  total = combineScores(total, score(tSMFeature(v1)));
 
-    //    f.print(stderr);
-    // fprintf(ferr, " -> %.2f\n", score(f));
+  if (R->arity() > 1) 
+    total = combineScores(total, score(tSMFeature(v2)));
 
-    return combineScores(total, score(f));
+  return total;
 }
 
 double
 tSM::scoreLocalTree(grammar_rule *R, list<tItem *> dtrs)
 {
-    vector<int> v;
-    v.push_back(map()->intToSubfeature((unsigned) R->arity() == dtrs.size() ?
-                                       1 : 2));
-    v.push_back(map()->typeToSubfeature(R->type()));
-
-    double total = neutralScore();
-
-    for(list<tItem *>::iterator dtr = dtrs.begin();
-        dtr != dtrs.end(); ++dtr)
+  vector<int> v1, v2;
+  v1.push_back(map()->intToSubfeature(1));
+  v2.push_back(map()->intToSubfeature(2));
+  v1.push_back(map()->intToSubfeature(0));
+  v2.push_back(map()->intToSubfeature(0));
+  v1.push_back(map()->typeToSubfeature(R->type()));
+  v2.push_back(map()->typeToSubfeature(R->type()));
+  double total = neutralScore();
+  int i = 1;
+  for(list<tItem *>::iterator dtr = dtrs.begin();
+      dtr != dtrs.end(); ++dtr, i++)
     {
-        v.push_back((*dtr)->identity());
-        total = combineScores(total, (*dtr)->score());
+      v1.push_back((*dtr)->identity());
+      total = combineScores(total, (*dtr)->score());
+      if (i == R->nextarg())
+	v2.push_back((*dtr)->identity());
     }
 
-    tSMFeature f(v);
+  total = combineScores(total, score(tSMFeature(v1)));
 
-    //    f.print(stderr);
-    // fprintf(ferr, " -> %.2f\n", score(f));
+  if (R->arity() > 1) 
+    total = combineScores(total, score(tSMFeature(v2)));
 
-    return combineScores(total, score(f));
+  return total;
 }
 
 
@@ -290,41 +297,86 @@ tSM::scoreLeaf(tLexItem *it)
 {
     vector<int> v;
     v.push_back(map()->intToSubfeature(1));
-    v.push_back(map()->typeToSubfeature(it->type()));
+    v.push_back(map()->intToSubfeature(0));
+    v.push_back(map()->typeToSubfeature(it->identity()));
     v.push_back(map()->stringToSubfeature(it->orth()));
 
     return score(tSMFeature(v));
 }
 
 double
-tSM::score_hypothesis(tHypothesis* hypo)
+tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
 {
-  vector<int> v;
-  if (hypo->edge->rule() == NULL) { // tLexItem
-    tLexItem *lex = (tLexItem*)hypo->edge;
-    v.push_back(map()->intToSubfeature(1));
-    v.push_back(map()->typeToSubfeature(lex->type()));
-    v.push_back(map()->stringToSubfeature(lex->orth()));
-    hypo->score = score(tSMFeature(v));
-  } else { // tPhrasalItem
-    tPhrasalItem *phrase = (tPhrasalItem*)hypo->edge;
-    v.push_back(map()->intToSubfeature((unsigned) phrase->rule()->arity() == hypo->hypo_dtrs.size() ?
-				       1 : 2));
-    v.push_back(map()->typeToSubfeature(phrase->rule()->type()));
-    double total = neutralScore();
-    for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
-	 hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr++) {
-      v.push_back((*hypo_dtr)->edge->identity());
-      total = combineScores(total, (*hypo_dtr)->score);
+  vector<int> v1, v2;
+  double total = neutralScore();
+  
+  // collect grand-parenting features
+  for (int i = opt_gplevel; i >= 0; i -- ) {
+    // each level of grand-parenting
+    if (path.size() < i) // not enough ancestors, skip the level
+      continue; 
+    v1.clear();
+    v2.clear();
+
+    v1.push_back(map()->intToSubfeature(1));
+    v2.push_back(map()->intToSubfeature(2));
+
+    v1.push_back(map()->intToSubfeature(i));
+    v2.push_back(map()->intToSubfeature(i));
+    // push down appropriate number of ancestors
+    int j = path.size();
+    for (list<tItem*>::iterator gp = path.begin();
+	 gp != path.end(); gp ++, j --)
+      if (j <= i) {
+	if (*gp == NULL) {
+	  v1.push_back(INT_MAX);
+	  v2.push_back(INT_MAX);
+	}
+	else {
+	  v1.push_back((*gp)->identity());
+	  v2.push_back((*gp)->identity());
+	}
+      }
+    
+    if (hypo->edge->rule() == NULL) { // tLexItem
+      // push down the lexical type and orth
+      tLexItem *lex = (tLexItem*)hypo->edge;
+      v1.push_back(map()->typeToSubfeature(lex->identity()));
+      v1.push_back(map()->stringToSubfeature(lex->orth()));
+    } else { // tPhrasalItem
+      tPhrasalItem *phrase = (tPhrasalItem*)hypo->edge;
+      v1.push_back(map()->typeToSubfeature(phrase->identity()));
+      v2.push_back(map()->typeToSubfeature(phrase->identity()));
+      int key = phrase->rule()->nextarg();
+      list<tItem*> newpath = path;
+      newpath.push_back(hypo->edge);
+      if (newpath.size() > opt_gplevel)
+	newpath.pop_front();
+      for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
+	   hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr++) {
+	v1.push_back((*hypo_dtr)->edge->identity());
+	if (i == 0) { // combine the scores of daughters only once
+	  (*hypo_dtr)->scores.size(); //debug
+	  if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end()) 
+	    score_hypothesis(*hypo_dtr, newpath);
+	  total = combineScores(total, (*hypo_dtr)->scores[newpath]);
+	}
+	if (--key == 0) 
+	  v2.push_back((*hypo_dtr)->edge->identity());
+
+      }
+      if (phrase->rule()->arity() > 1) {
+	total = combineScores(total, score(tSMFeature(v2)));
+      }
     }
-    tSMFeature f(v);
-    hypo->score = combineScores(total, score(tSMFeature(v)));
+    total = combineScores(total, score(tSMFeature(v1)));
   }
-  return hypo->score;
+  hypo->scores[path] = total;
+  return hypo->scores[path];
 }
 
 tMEM::tMEM(tGrammar *G, const char *fileNameIn, const char *basePath)
-    : tSM(G, fileNameIn, basePath)
+  : tSM(G, fileNameIn, basePath), _format(0)
 {
     readModel(fileName());
 }
@@ -375,11 +427,14 @@ tMEM::parseModel()
     match(T_COLON, "`:' before keyword", true);
     match_keyword("begin");
     match(T_COLON, "`:' before keyword", true);
-    tmp = match(T_ID, "mem", false);
-    if(strcmp(tmp, "mem") != 0)
-    {
-        syntax_error("expecting `mem' section", LA(0));
-    }
+    tmp = match(T_ID, "mem|model", false);
+    if(strcmp(tmp, "mem") == 0) 
+      _format = 0;
+    else if (strcmp(tmp, "model") == 0)
+      _format = 1;
+    else 
+        syntax_error("expecting `mem|model' section", LA(0));
+
     free(tmp);
     tmp = match(T_ID, "number of contexts", false);
     _ctxts = string(tmp);
@@ -418,10 +473,10 @@ tMEM::parseModel()
     match(T_COLON, "`:' before keyword", true);
     match_keyword("end");
     match(T_COLON, "`:' before keyword", true);
-    tmp = match(T_ID, "mem", false);
-    if(strcmp(tmp, "mem") != 0)
+    tmp = match(T_ID, "mem|model", false);
+    if(strcmp(tmp, "mem") != 0 && strcmp(tmp, "model") != 0)
     {
-        syntax_error("expecting end of `mem' section", LA(0));
+        syntax_error("expecting end of `mem|model' section", LA(0));
     }
     free(tmp);
     match(T_DOT, "`.' after section end", true);
@@ -434,14 +489,28 @@ tMEM::parseOptions()
     // actually parse this
 
     // for now we just skip until we get a `:' `begin'
-
-    while(LA(0)->tag != T_EOF)
-    {
-        if(LA(0)->tag == T_COLON &&
-           is_keyword(LA(1), "begin"))
-            break;
-        consume(1);
-    }
+  char * pname;
+  char * pvalue;
+  while(LA(0)->tag != T_EOF) {
+    if(LA(0)->tag == T_COLON &&
+       is_keyword(LA(1), "begin"))
+      break;
+    if (LA(0)->tag == T_ID) {
+      pname = match(T_ID, "parameter name", false);
+      match(T_ISEQ, "iseq after parameter name", true);
+      if (LA(0)->tag == T_COLON)
+	consume(1);
+      pvalue = match(T_ID, "parameter value", false);
+      match(T_DOT, "dot after parameter value", true);
+      if (strcmp(pname, "*maxent-grandparenting*") == 0) {
+	opt_gplevel = atoi(pvalue);
+      }
+      free(pname);
+      free(pvalue);
+    }	 
+    else 
+      consume(1);
+  }
 }
 
 void
@@ -458,7 +527,14 @@ tMEM::parseFeatures(int nFeatures)
            is_keyword(LA(1), "end"))
             break;
 
-        parseFeature(n++);
+	switch (_format) {
+	case 0:  // old format
+	  parseFeature(n++);
+	  break;
+	case 1:  // new format (as of sep-2006)
+	  parseFeature2(n++);
+	  break;
+	}
     }
 }
 
@@ -466,9 +542,109 @@ void
 tMEM::parseFeature(int n)
 {
     char *tmp;
+
     if(verbosity > 9)
         fprintf(fstatus, "\n[%d]", n);
 
+    match(T_LBRACKET, "begin of feature vector", true);
+
+    // Vector of subfeatures.
+    vector<int> v;
+
+    bool good = true;
+    while(LA(0)->tag != T_RBRACKET && LA(0)->tag != T_EOF)
+    {
+        if(LA(0)->tag == T_ID)
+        {
+            // This can be an integer or an identifier.
+            tmp = match(T_ID, "subfeature in feature vector", false);
+            if(verbosity > 9)
+                fprintf(fstatus, " %s", tmp);
+
+            char *endptr;
+            int t = strtol(tmp, &endptr, 10);
+            if(endptr == 0 || *endptr != 0)
+            {
+                // This is not an integer, so it must be a type/instance.
+                char *inst = (char *) malloc(strlen(tmp)+2);
+                strcpy(inst, "$");
+                strcat(inst, tmp);
+                t = lookup_type(inst);
+                if(t == -1)
+                    t = lookup_type(inst+1);
+                free(inst);
+                
+                if(t == -1)
+                {
+                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
+                            tmp, n);
+                    good = false;
+                }
+                else
+                {
+                    v.push_back(map()->typeToSubfeature(t));
+                }
+            }
+            else
+            {
+                // This is an integer.
+                v.push_back(map()->intToSubfeature(t));
+		// Set the level of grand-parenting to 0 to be compatible with 
+		// the new format
+		v.push_back(map()->intToSubfeature(0));
+            }
+            free(tmp);
+        }
+        else if(LA(0)->tag == T_STRING)
+        {
+            tmp = match(T_STRING, "subfeature in feature vector", false);
+            if(verbosity > 9)
+                fprintf(fstatus, " \"%s\"", tmp);
+            v.push_back(map()->stringToSubfeature(string(tmp)));
+            free(tmp);
+        }
+	else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
+	  consume(1);
+	}
+        else
+        {
+            syntax_error("expecting subfeature", LA(0));
+            consume(1);
+        }
+    }
+
+    match(T_RBRACKET, "end of feature vector", true);
+    
+    tmp = match(T_ID, "feature weight", false);
+    // _fix_me_
+    // check syntax of number
+    double w = strtod(tmp, NULL);
+    free(tmp);
+    if(verbosity > 9)
+        fprintf(fstatus, ": %g", w);
+
+    if(good)
+    {
+        int code = map()->featureToCode(v);
+        if(verbosity > 9)
+            fprintf(fstatus, " (code %d)\n", code);
+        assert(code >= 0);
+        if(code >= (int) _weights.size()) _weights.resize(code + 1);
+        _weights[code] = w;
+    }
+}
+
+
+void
+tMEM::parseFeature2(int n)
+{
+    char *tmp;
+    if(verbosity > 9)
+        fprintf(fstatus, "\n[%d]", n);
+
+    match(T_LPAREN, "begin of feature", true);
+    match(T_ID, "feature index", true);
+    match(T_RPAREN, "after feature index", true);
     match(T_LBRACKET, "begin of feature vector", true);
 
     // Vector of subfeatures.
@@ -523,6 +699,18 @@ tMEM::parseFeature(int n)
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
+	else if (LA(0)->tag == T_CAP) {
+	  // This is a special 
+	  consume(1);
+	  v.push_back(INT_MAX);
+	}
+	else if (LA(0)->tag == T_DOLLAR) {
+	  consume(1);
+	  v.push_back(INT_MAX);
+	}
+	else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
+	  consume(1);
+	}
         else
         {
             syntax_error("expecting subfeature", LA(0));
@@ -549,6 +737,10 @@ tMEM::parseFeature(int n)
         if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;
     }
+
+    //skip the rest part of the feature
+    while (LA(0)->tag != T_LPAREN && LA(0)->tag != T_COLON &&  LA(0)->tag != T_EOF)
+      consume(1);
 }
 
 double
