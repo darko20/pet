@@ -1264,7 +1264,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     }
   }
 
-  if (!_hypo_agendas[path].empty()) {
+  while (!_hypo_agendas[path].empty() && i >= _hypotheses_path[path].size()) {
     hypo = _hypo_agendas[path].front();
     _hypo_agendas[path].pop_front();
     list<vector<int> > indices_adv = advance_indices(hypo->indices);
@@ -1282,10 +1282,10 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
 	continue;
 
       list<tHypothesis*> dtrs;
-      int i = 0;
+      int idx = 0;
       for (list<tItem*>::iterator edge = hypo->decomposition->rhs.begin();
-	   edge != hypo->decomposition->rhs.end(); edge ++, i ++) {
-	tHypothesis* dtr = (*edge)->hypothesize_edge(newpath, (*indices)[i]);
+	   edge != hypo->decomposition->rhs.end(); edge ++, idx ++) {
+	tHypothesis* dtr = (*edge)->hypothesize_edge(newpath, (*indices)[idx]);
 	if (!dtr) {
 	  dtrs.clear();
 	  break;
@@ -1299,7 +1299,11 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     //_DEBUG _hypotheses_path.size();
     _hypotheses_path[path].push_back(hypo);
   }
-  return hypo;
+  if (i < _hypotheses_path[path].size()) 
+    return _hypotheses_path[path][i];
+  else
+    return NULL;
+  //  return hypo;
 }
 
 int 
