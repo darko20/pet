@@ -419,11 +419,12 @@ public:
 
   /** \brief Selective unpacking function that unpacks \a n best
    *   readings from the list of \a root items. Stop unpacking when \a
-   *   upedgelimit edges have been unpacked.
+   *   upedgelimit edges have been unpacked. It also checks if the
+   *   item's \a end to see if it is qualified to be a root.
    *
    *  \return the list of items represented by the list of \a roots
    */
-   static list<tItem *> selectively_unpack(list<tItem*> roots, int n, int upedgelimit);
+  static list<tItem *> selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit);
 
   /** Return a meaningful external name. */
   inline const char *printname() const { return _printname.c_str(); }

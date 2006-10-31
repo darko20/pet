@@ -385,20 +385,20 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
 	    uroots.push_back(*tree);
 	  }
 	}
-	list<tItem*> results = tItem::selectively_unpack(uroots, opt_nsolutions, upedgelimit);
+	list<tItem*> results = tItem::selectively_unpack(uroots, opt_nsolutions, Chart->rightmost(), upedgelimit);
 	for (list<tItem*>::iterator res = results.begin();
 	     res != results.end(); res++) {
 	  type_t rule;
-	  if((*res)->root(Grammar, Chart->rightmost(), rule)) {
-	    readings.push_back(*res);
-	    if(verbosity > 2) {
-	      fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
-		      UnpackTime->convert2ms(UnpackTime->elapsed())
-		      / 1000.);
-	      (*res)->print_derivation(stderr, false);
-	      fprintf(stderr, "\n");
-	    }
-	  } 
+	  //if((*res)->root(Grammar, Chart->rightmost(), rule)) { // the checking is moved into selectively_unpack()
+	  readings.push_back(*res);
+	  if(verbosity > 2) {
+	    fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
+		    UnpackTime->convert2ms(UnpackTime->elapsed())
+		    / 1000.);
+	    (*res)->print_derivation(stderr, false);
+	    fprintf(stderr, "\n");
+	  }
+	  //} 
 	}
       } else { // unpack exhaustively
 	for(vector<tItem *>::iterator tree = trees.begin();

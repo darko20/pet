@@ -1437,7 +1437,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 */
 
 list<tItem *> 
-tItem::selectively_unpack(list<tItem*> roots, int n, int upedgelimit) 
+tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit) 
 {
   list<tItem *> results;
   if (n <= 0)
@@ -1478,13 +1478,17 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int upedgelimit)
     aitem = ragenda.front();
     ragenda.pop_front();
     tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit);
-    if (upedgelimit > 0 && stats.p_upedges > upedgelimit)
+    if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
       return results;
-    if (result) {
+    }
+    type_t rule;
+    if (result && result->root(Grammar, end, rule)) {
       results.push_back(result);
       n --;
-      if (n == 0)
+      if (n == 0) {
+	delete aitem;
 	break;
+      }
     }
     hypo = aitem->edge->hypothesize_edge(path, aitem->indices[0]+1);
     if (hypo) {
