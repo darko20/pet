@@ -148,7 +148,7 @@ ecl_extract_mrs(int fs, char *mode, int cfrom, int cto) {
 // initializes the compiled packages (currently only MRS).
 //
 int
-mrs_initialize(const char *grammar_file_name) {
+mrs_initialize(const char *grammar_file_name, const char *vpm) {
   // Load lisp initialization files as specified in settings.
 
   ecl_cpp_load_files("preload-lisp-files", grammar_file_name);
@@ -160,6 +160,12 @@ mrs_initialize(const char *grammar_file_name) {
   // Load lisp initialization files as specified in settings.
 
   ecl_cpp_load_files("postload-lisp-files", grammar_file_name);
+
+  if(vpm && *vpm )
+    funcall(3,
+            c_string_to_object("mt:read-vpm"),
+            make_string_copy(vpm),
+            c_string_to_object(":semi"));
 
   return 0;
 }

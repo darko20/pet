@@ -473,6 +473,7 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_YY:
           opt_yy = true;
+          opt_tok = TOKENIZER_YY;
           break;
 #endif
         }

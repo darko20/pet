@@ -91,7 +91,7 @@ pet_type_valid_p(int type);
  * MRS package.
  */
 extern int
-mrs_initialize(const char *grammar_file_name);
+mrs_initialize(const char *grammar_file_name, const char *vpm);
 
 #ifdef __cplusplus
 }

@@ -253,7 +253,7 @@ tYYTokenizer::read_token()
 
     token_class = SKIP_TOKEN_CLASS;
   } else {
-    if (stem[0] == _class_name_char) {
+    if (stem[0] == _class_name_char && stem.length() > 1) {
       // The stem is already a grammar type name
       token_class = lookup_type(stem.c_str());
       if (token_class == -1) {
