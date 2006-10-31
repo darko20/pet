@@ -237,7 +237,7 @@ tInputItem::print_gen(class tItemPrinter *ip) const
 
 void
 tInputItem::print_derivation(FILE *f, bool quoted) {
-    fprintf (f, "(%s\"%s%s\" %.2f %d %d)",
+    fprintf (f, "(%s\"%s%s\" %.4g %d %d)",
              quoted ? "\\" : "", orth().c_str(), quoted ? "\\" : "", score(),
              _start, _end);
 
@@ -775,7 +775,7 @@ tLexItem::print_derivation(FILE *f, bool quoted)
     else
         fprintf(f, "%*s", derivation_indentation, "");
 
-    fprintf (f, "(%d %s/%s %.2f %d %d ", _id, _stem->printname(),
+    fprintf (f, "(%d %s/%s %.4g %d %d ", _id, _stem->printname(),
              print_name(type()), score(), _start, _end);
 
     fprintf(f, "[");
@@ -829,7 +829,7 @@ tPhrasalItem::print_derivation(FILE *f, bool quoted)
         fprintf(f, "%*s", derivation_indentation, "");
 
     fprintf(f, 
-            "(%d %s %.4f %d %d", 
+            "(%d %s %.4g %d %d", 
             _id, printname(), _score, _start, _end);
 
     if(packed.size())

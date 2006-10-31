@@ -471,7 +471,16 @@ void process(const char *s) {
   }
 
 #ifdef HAVE_MRS
-  mrs_initialize(s);
+  //
+  // when requested, initialize the MRS variable property mapping from a file
+  // specified in the grammar configuration.                   (24-aug-06; oe)
+  //
+  char *name = cheap_settings->value("vpm");
+  if(name) {
+    string file = find_file(name, ".vpm", s);
+    mrs_initialize(s, file.c_str());
+  } else mrs_initialize(s, NULL);
+
 #endif
 #ifdef HAVE_ECL
   // reset the error stream so warnings show up again

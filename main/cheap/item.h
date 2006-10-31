@@ -871,7 +871,7 @@ class tLexItem : public tItem
 
   /** Return the type of this item */
   virtual int identity() const {
-    return _fs.type();
+    return _fs.type(); // _stem->type(); // _dtrs[_keydtr]->identity();
   }
   
   /** Return the HPSG type this item stems from */

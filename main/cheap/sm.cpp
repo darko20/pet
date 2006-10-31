@@ -502,7 +502,8 @@ tMEM::parseOptions()
 	consume(1);
       pvalue = match(T_ID, "parameter value", false);
       match(T_DOT, "dot after parameter value", true);
-      if (strcmp(pname, "*maxent-grandparenting*") == 0) {
+      if (!strcmp(pname, "*feature-grandparenting*")
+          || !strcmp(pname, "*maxent-grandparenting*")) {
 	opt_gplevel = atoi(pvalue);
       }
       free(pname);

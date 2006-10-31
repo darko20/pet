@@ -73,14 +73,14 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
 
 void
 tCompactDerivationPrinter::real_print(const tInputItem *item) {
-  fprintf (_out, "(%s\"%s%s\" %.2f %d %d)"
+  fprintf (_out, "(%s\"%s%s\" %.4g %d %d)"
            , _quoted ? "\\" : "", item->orth().c_str(), _quoted ? "\\" : ""
            , item->score(), item->start(), item->end());
 }
 
 void 
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
-  fprintf(_out, "(%d %s/%s %.2f %d %d "
+  fprintf(_out, "(%d %s/%s %.4g %d %d "
            , item->id(), stem(item)->printname()
            , print_name(const_cast<tLexItem *>(item)->type()), item->score()
            , item->start(), item->end());
@@ -99,7 +99,7 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 
 void 
 tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
-  fprintf(_out, "(%d %s %.2f %d %d"
+  fprintf(_out, "(%d %s %.4g %d %d"
           , item->id(), item->printname(), item->score()
           , item->start(), item->end());
   
