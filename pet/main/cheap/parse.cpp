@@ -390,7 +390,7 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
 	list<tItem*> results = tItem::selectively_unpack(uroots, opt_nsolutions, Chart->rightmost(), upedgelimit);
 	for (list<tItem*>::iterator res = results.begin();
 	     res != results.end(); res++) {
-	  type_t rule;
+	  //type_t rule;
 	  //if((*res)->root(Grammar, Chart->rightmost(), rule)) { // the checking is moved into selectively_unpack()
 	  readings.push_back(*res);
 	  if(verbosity > 2) {
