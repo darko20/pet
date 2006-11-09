@@ -1,3 +1,19 @@
+v0.99.?? (a couple of minor changes by oe)
+  - allow selective unpacking by default if `-packing' option is used;
+  - ignore nsolutions limit in forest construction phase when packing is on;
+    the rationale here is that (a) forest construction is cheap and (b) we need
+    to have the full forest available for selective unpacking to compute the
+    correct sequence of n-best results;
+  - fix bug in YY tokenizer: sort tokens by start position (possibly this could
+    be considered a bug in the lexparser neighborhood, actually: it generally
+    seems okay with tokens coming in out-of-order, but for multi-word lexical
+    entries, lexical lookup goes wrong);
+  - make SM reader robust on all current *feature- parameter values;
+  - ditch legacy tLexItem::identity2() method and use id() instead;
+  - update options `help' summary to reflect latest developments;
+  - eliminate compiler warning (on signed vs. unsigned integer comparison)
+
+
 v0.99.13
   - added implementation of selective unpacking 
   - oe integrated a change for the tsdb to escape the yield strings correctly
