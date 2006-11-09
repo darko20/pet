@@ -53,7 +53,7 @@ char *opt_mrs = 0;
 int opt_comment_passthrough = 0;
 
 // 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting level in MEM-based parse selection
-int opt_gplevel = 0;
+unsigned int opt_gplevel = 0;
 
 tokenizer_id opt_tok = TOKENIZER_STRING;
 
@@ -83,7 +83,7 @@ void usage(FILE *f)
              "                           default /tmp/qc.tdl)\n");
   fprintf(f, "  `-compute-qc-subs[=file]' --- compute quickcheck paths only for subsumption (output to file,\n"
              "                           default /tmp/qc.tdl)\n");
-  fprintf(f, "  `-mrs[=mrs|rmrs|xml]' --- compute MRS semantics\n");
+  fprintf(f, "  `-mrs[=mrs|mrx|rmrs|rmrx]' --- compute MRS semantics\n");
   fprintf(f, "  `-key=n' --- select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)\n");
   fprintf(f, "  `-no-hyper' --- disable hyper-active parsing\n");
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
@@ -114,7 +114,7 @@ void usage(FILE *f)
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
   fprintf(f, "  `-tsdbdump directory' --- "
-             "write incr[tsdb] item, result and parse files to `directory'\n");
+             "write [incr tsdb()] item, result and parse files to `directory'\n");
   fprintf(f, "  `-jxchgdump directory' --- "
              "write jxchg/approximation chart files to `directory'\n");
   fprintf(f, "  `-partial' --- "
@@ -407,7 +407,8 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
               opt_packing = strtoint(optarg, "as argument to `-packing'");
           else
-              opt_packing = PACKING_EQUI | PACKING_PRO | PACKING_RETRO;
+              opt_packing
+                = PACKING_EQUI|PACKING_PRO|PACKING_RETRO|PACKING_SELUNPACK;
           break;
       case OPTION_MRS:
           if(optarg != NULL)

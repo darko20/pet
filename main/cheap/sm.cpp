@@ -311,7 +311,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
   double total = neutralScore();
   
   // collect grand-parenting features
-  for (int i = opt_gplevel; i >= 0; i -- ) {
+  for (unsigned int i = opt_gplevel; i >= 0; i -- ) {
     // each level of grand-parenting
     if (path.size() < i) // not enough ancestors, skip the level
       continue; 
@@ -324,7 +324,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
     v1.push_back(map()->intToSubfeature(i));
     v2.push_back(map()->intToSubfeature(i));
     // push down appropriate number of ancestors
-    int j = path.size();
+    unsigned int j = path.size();
     for (list<tItem*>::iterator gp = path.begin();
 	 gp != path.end(); gp ++, j --)
       if (j <= i) {
@@ -497,17 +497,18 @@ tMEM::parseOptions()
       break;
     if (LA(0)->tag == T_ID) {
       pname = match(T_ID, "parameter name", false);
-      match(T_ISEQ, "iseq after parameter name", true);
-      if (LA(0)->tag == T_COLON)
-	consume(1);
-      pvalue = match(T_ID, "parameter value", false);
-      match(T_DOT, "dot after parameter value", true);
-      if (!strcmp(pname, "*feature-grandparenting*")
-          || !strcmp(pname, "*maxent-grandparenting*")) {
+      if(!strcmp(pname, "*feature-grandparenting*")) {
+        match(T_ISEQ, "iseq after parameter name", true);
+        if (LA(0)->tag == T_COLON) consume(1);
+        pvalue = match(T_ID, "parameter value", false);
+        match(T_DOT, "dot after parameter value", true);
 	opt_gplevel = atoi(pvalue);
+        free(pvalue);
+      }
+      else {
+        while(LA(0)->tag != T_DOT) consume(1);
       }
       free(pname);
-      free(pvalue);
     }	 
     else 
       consume(1);
