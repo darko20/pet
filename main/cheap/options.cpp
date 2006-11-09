@@ -110,7 +110,7 @@ void usage(FILE *f)
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
   fprintf(f, "  `-nbest' --- n-best parsing mode\n");
   fprintf(f, "  `-packing[=n]' --- "
-          "set packing to n (bit coded; default: 7)\n");
+          "set packing to n (bit coded; default: 15)\n");
   fprintf(f, "  `-log=[+]file' --- "
              "log server mode activity to `file' (`+' appends)\n");
   fprintf(f, "  `-tsdbdump directory' --- "
