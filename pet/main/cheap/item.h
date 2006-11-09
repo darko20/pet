@@ -384,7 +384,7 @@ public:
    */
   virtual void recreate_fs() = 0;
 
-  /** Return the HPSG type this item stems from */
+  /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const = 0;
 
   /** Return the score for this item */
@@ -431,6 +431,14 @@ public:
 
   /** Return the list of daughters. */
   inline const list<tItem *> &daughters() const { return _daughters; }
+
+  /** compare two items for linear precendece; used to sort YY tokens */
+  struct precedes 
+    : public binary_function<bool, tItem *, tItem *> {
+    bool operator() (tItem *foo, tItem *bar) const {
+      return foo->startposition() < bar->startposition();
+    }
+  };
 
 protected:
   /** \brief Base unpacking function called by unpack for each item. Stops
@@ -716,7 +724,7 @@ public:
   void set_end(int pos) { _end = pos ; }
   /*@}*/
 
-  /** Return the HPSG type this item stems from */
+  /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const { return _class; }
 
   /** \brief Since a tInputItem do not have a feature structure, and can thus
@@ -869,16 +877,9 @@ class tLexItem : public tItem
     return _supplied_pos;
   }
 
-  /** Return the type of this item */
-  virtual int identity() const {
-    return _fs.type(); // _stem->type(); // _dtrs[_keydtr]->identity();
-  }
+  /** Return node identity for this item, suitable for MEM features */
+  virtual int identity() const { return _fs.type(); }
   
-  /** Return the HPSG type this item stems from */
-  virtual int identity2() const {
-    return _stem->type(); // _dtrs[_keydtr]->identity();
-  }
-
   /** Cheap compatibility tests of an active tLexItem and a tInputItem.
    *  -- The input items surface string must match the string of the next
    *     argument.
@@ -1014,7 +1015,7 @@ class tPhrasalItem : public tItem {
    */
   virtual void recreate_fs();
 
-  /** Return the HPSG type this item stems from */
+  /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const {
     if(_rule)
       return _rule->type();

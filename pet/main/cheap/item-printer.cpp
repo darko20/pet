@@ -210,10 +210,7 @@ void tJxchgPrinter::real_print(const tInputItem *item) { }
 void 
 tJxchgPrinter::real_print(const tLexItem *item) {
   _out << item->id() << " " << item->start() << " " << item->end() << " "
-    //YZ 2006-10-16: tLexItem::identity() has been changed. for compatibility,
-    // we change the following: 
-    //       << print_name(item->identity()) << "["; 
-       << print_name(item->identity2()) << "[";
+       << print_name(item->id()) << "[";
   for(const list_int *l = inflrs_todo(item); l != 0; l = rest(l)) {
     _out << print_name(first(l));
     if (rest(l) != 0) _out << " ";

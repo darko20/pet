@@ -370,6 +370,7 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
     if ((tok = read_token()) != NULL) {
       result.push_back(tok);
     }
+    result.sort(tItem::precedes());
   }
 }
 

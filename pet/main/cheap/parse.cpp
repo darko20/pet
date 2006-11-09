@@ -290,8 +290,9 @@ add_root(tItem *it)
     if(stats.first == -1)
     {
         stats.first = ParseTime.convert2ms(ParseTime.elapsed());
-        if(opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
-            return true;
+        if(!opt_packing
+           && opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
+          return true;
     }
     return false;
 }
@@ -340,7 +341,8 @@ void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
 {
     while(!Agenda->empty() &&
-          (opt_nsolutions == 0 || stats.trees < opt_nsolutions) &&
+          (opt_packing || opt_nsolutions == 0
+           || stats.trees < opt_nsolutions) &&
 #ifdef YY
           (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning) &&
 #endif
