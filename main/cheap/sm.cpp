@@ -311,7 +311,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
   double total = neutralScore();
   
   // collect grand-parenting features
-  for (unsigned int i = opt_gplevel; i >= 0; i -- ) {
+  for (unsigned int i = opt_gplevel; i > 0; i -- ) {
     // each level of grand-parenting
     if (path.size() < i) // not enough ancestors, skip the level
       continue; 
@@ -507,6 +507,7 @@ tMEM::parseOptions()
       }
       else {
         while(LA(0)->tag != T_DOT) consume(1);
+        consume(1);
       }
       free(pname);
     }	 
