@@ -44,8 +44,7 @@ void lex_parser::init() {
   _carg_path = cheap_settings->value("mrs-carg-path");
 }
 
-string get_xml_input(string input)
-{
+string get_xml_input(string input) {
   string buffer = input;
   const int bufsize = 2048;
   char *inbuf = new char[bufsize];
@@ -63,14 +62,14 @@ string get_xml_input(string input)
       onelinecount += cin.gcount() - 1;
       buffer += inbuf ;
       if (cin.fail()) {
-	cin.clear(cin.rdstate() & ~ios::failbit);
-	partialread = true;
-	  } else {
-	    buffer += '\n';
-	  }
+        cin.clear(cin.rdstate() & ~ios::failbit);
+        partialread = true;
+      } else {
+        buffer += '\n';
+      }
     } while (partialread);  // line too long, only read partially?
     // exit if we read an empty line or we got an end_of_file
-      } while ((onelinecount > 0) && cin) ;
+  } while ((onelinecount > 0) && cin) ;
   return buffer;
 }
 
@@ -308,16 +307,15 @@ struct tInputItem_position_less
  */
 int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
   int maxend = 0;
-  if (position_mapping==NO_POSITION_MAP)
+  if (position_mapping==NO_POSITION_MAP) {
     // FIXME: this is a placeholder prior to integration of
     //        - SMAF node id to chart node mapping
     //        - SMAF init/final nodes
-    { 
-      for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
-	maxend=max(maxend,(*it)->end());
-      }
-      return maxend;
+    for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
+      maxend=max(maxend,(*it)->end());
     }
+    return maxend;
+  }
 
   position_mapper posmapper((position_mapping == STANDOFF_COUNTS ? true : false));
 

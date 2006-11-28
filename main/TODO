@@ -1,8 +1,13 @@
-- set up and migrate to svn as soon as a reasonable version has stabilized.
-  Ask Malte Kiesel (Dengel Workgroup at KL), who administrates the OpenDFKI
-  for svn with https in trec system
+- unpacking of edges does not terminate in some cases with unary rules
+  fix: separate the local unary edges and do a fix point computation. This must
+  terminate for correct grammars
 
 - "unpack edge limit exhausted" error: wrong result number to tsdb
+
+- uppercase umlauts are now converted correctly to lowercase in 
+  lingo-tokenizer, but not in yy-tokenizer. This should be done in a common way
+  and an option should be introduced that controls if conversion to lower case
+  is done at all.
 
 - "automatic" tests (preferably with tsdb) for unfilling/packing modes
   - freeze an english and german grammar version for performance comparisons
@@ -23,11 +28,11 @@
 
 - mmap disabling makes segfaults (Francis tries to pin this down)
 - 64bit version does not work properly
-- selective unpacking (Eric Nichols announced to do this)
 
 - reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 
-- extension of TDL syntax to type extension and comments (check mail/wiki)
+- extension of TDL syntax to type extension and comments
+  (check mail/wiki/tickets)
 
 - mmap problems seem to come up again and again!
   Idea: Make sure that permanent dags avoid using one of the slots that are 
@@ -168,4 +173,7 @@ refactoring:
   dag-print-fed , TODO, doxyconfig.(flop|cheap)
   borland/Makefile.am
   remove items.txt, chartpositions.h
-
++ set up and migrate to svn as soon as a reasonable version has stabilized.
+  Ask Malte Kiesel (Dengel Workgroup at KL), who administrates the OpenDFKI
+  for svn with https in trec system
++ selective unpacking (by Yi)

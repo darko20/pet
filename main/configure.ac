@@ -58,8 +58,9 @@ case "${CPU}" in
     OS="linux.x86.64"
     ;;
   *)
-    echo "lkb: unknown Linux architecture $CPU (check \`uname -m'); exit."
-    exit 1;
+    echo "unknown Linux architecture $CPU (check \`uname -m');"
+    OS="UNKNOWN"
+    ;;
 esac
 #elif [ "$OSTYPE" = "solaris" -o "${OSTYPE%%?.?}" = "solaris" ]; then
 #  os="solaris";
@@ -80,8 +81,9 @@ case "${KERNEL}" in
     AC_DEFINE([KERNEL_2_6],[1],[Current Linux kernel is 2.6.x])
     ;;
   *)
-    echo "lkb: unknown Linux kernel version (check \`uname -r'); exit."
-    exit 1;
+    echo "unknown Linux kernel version (check \`uname -r');"
+    kernel_2_6=true
+    ;;
 esac
 
 
@@ -251,20 +253,22 @@ if test x$ecl = xtrue; then
     ecl=false
   else
     if test -d ${ECLDIR}/h ; then
-      eclincldir=${ECLDIR}/h
-    else
-      if test -d ${ECLDIR}/lib/ecl/h ; then
-        eclincldir=${ECLDIR}/lib/ecl/h
-      else
-        AC_MSG_WARN([neither ${ECLDIR}/h nor ${ECLDIR}/lib/ecl/h found; ECL DISABLED])
-        ecl=false
-      fi
+      eclincl="-I${ECLDIR}/h"
     fi
-    if test "x${eclincldir}" != x ; then
-      CPPFLAGS="$CPPFLAGS -I${eclincldir}"
+    if test -z "$eclincl" -a -d ${ECLDIR}/lib/ecl/h ; then
+      eclincl="-I${ECLDIR}/lib/ecl/h"
+    fi
+    if test -z "$eclincl" -a -d ${ECLDIR}/lib/ecl/ecl ; then
+      eclincl="-I${ECLDIR}/lib/ecl -I${ECLDIR}/lib/ecl/ecl"
+    fi
+    if test -z "$eclincl" ; then
+      AC_MSG_WARN([in ${ECLDIR}/lib, neither ./h nor ./ecl/h nor ./ecl/ecl found; ECL DISABLED])
+      ecl=false
+    else
+      CPPFLAGS="$CPPFLAGS ${eclincl}"
       export CPPFLAGS
       AC_CHECK_HEADERS([ecl.h], [],
-         [ AC_MSG_WARN([header files not found in ${eclincldir}; ECL DISABLED])
+         [ AC_MSG_WARN([header files not found: ${eclincl}; ECL DISABLED])
            ecl=false 
          ],[])
     fi
@@ -284,7 +288,7 @@ dnl all tests for ECL components have been executed, draw conclusions
 if test x$ecl = xtrue ; then
   CHEAPLIBS="-lecl $CHEAPLIBS"
   CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ECLDIR}/lib/ecl -Wl,-rpath,${ECLDIR}/lib/ecl"
-  CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${eclincldir}"
+  CHEAPCPPFLAGS="$CHEAPCPPFLAGS ${eclincl}"
   if test x$mrs == xtrue ; then
      AC_DEFINE(HAVE_MRS, [1], [use ECL MRS library])
      ECLUSER="_mrs"

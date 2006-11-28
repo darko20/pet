@@ -212,7 +212,7 @@ int max(int a, int b)
 
 tInputItem *
 tYYTokenizer::read_token()
-{  
+{
   int id, start, end, path, inflpos;
   // we usually supply the inflection information, only perform lexicon lookup
   int token_class = STEM_TOKEN_CLASS;
@@ -354,7 +354,7 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
 {
   _yyinput = s;
   _yypos = 0;
-  
+
   if(verbosity > 4)
     {
       cerr << "received YY tokens:" << endl << s << endl << endl;
@@ -362,11 +362,8 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
     };
   
   tInputItem *tok = 0;
-  
   read_ws();
-  
   while(! eos()) {
-    
     if ((tok = read_token()) != NULL) {
       result.push_back(tok);
     }

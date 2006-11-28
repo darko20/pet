@@ -130,23 +130,21 @@ fs::modify_eagerly(const modlist &mods) {
   dag_node *newdag;
   for(modlist::const_iterator mod = mods.begin(); mod != mods.end(); ++mod) {
     dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
-    if (p == FAIL)
-      {
-	cerr << "; WARNING: failed to create dag for new path-value (" << (mod->first).c_str() << " = " << print_name(mod->second) << ")" << endl;
+    if (p == FAIL) {
+      cerr << "; WARNING: failed to create dag for new path-value (" 
+           << (mod->first).c_str() << " = " << print_name(mod->second) << ")" 
+           << endl;
+    } else {
+      newdag = dag_unify(curr, p, curr, 0);
+      if(newdag != FAIL) {
+        curr = newdag;
+      } else {
+        cout << "; WARNING: failed to unify new path-value (" 
+             << (mod->first).c_str() << " = " << print_name(mod->second) 
+             << ") into fs (type: " << printname() << ")" << endl;
+        full_success = false;
       }
-    else
-      {
-	newdag = dag_unify(curr, p, curr, 0);
-	if(newdag != FAIL) 
-	  {
-	    curr = newdag;
-	  } 
-	else 
-	  {
-	    cout << "; WARNING: failed to unify new path-value (" << (mod->first).c_str() << " = " << print_name(mod->second) << ") into fs (type: " << printname() << ")" << endl;
-	    full_success = false;
-	  }
-      }
+    }
   }
   _dag = curr;
   return full_success;

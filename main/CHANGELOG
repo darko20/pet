@@ -1,4 +1,13 @@
-v0.99.?? (a couple of minor changes by oe)
+v0.99.??
+  (small fix etc. bk)
+  - take identity2-id change back and replace it with a more direct access (for
+    compatibility)
+  - use ICU lowercase handling in lingo-tokenizer
+  - extract exhaustive/selective unpacking functions from collect_readings for
+    better readability.
+  - adapt configure.ac for (non-working) ecl 0.9i header file locations. Still
+    have to use 0.9h because of segfaults in 0.9i with fedora 5
+  (a couple of minor changes by oe)
   - allow selective unpacking by default if `-packing' option is used;
   - ignore nsolutions limit in forest construction phase when packing is on;
     the rationale here is that (a) forest construction is cheap and (b) we need
@@ -13,9 +22,7 @@ v0.99.?? (a couple of minor changes by oe)
   - update options `help' summary to reflect latest developments;
   - eliminate compiler warning (on signed vs. unsigned integer comparison)
 
-
 v0.99.13
-  - added implementation of selective unpacking 
   - oe integrated a change for the tsdb to escape the yield strings correctly
   - fixed bug 'assertion: is_type() failed' which occured with packing and
     dynamic symbols

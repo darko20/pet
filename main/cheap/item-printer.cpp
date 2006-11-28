@@ -210,7 +210,8 @@ void tJxchgPrinter::real_print(const tInputItem *item) { }
 void 
 tJxchgPrinter::real_print(const tLexItem *item) {
   _out << item->id() << " " << item->start() << " " << item->end() << " "
-       << print_name(item->id()) << "[";
+    // print the HPSG type this item stems from
+       << print_name(item->stem()->type()) << "[";
   for(const list_int *l = inflrs_todo(item); l != 0; l = rest(l)) {
     _out << print_name(first(l));
     if (rest(l) != 0) _out << " ";
@@ -228,6 +229,7 @@ tJxchgPrinter::real_print(const tLexItem *item) {
 void 
 tJxchgPrinter::real_print(const tPhrasalItem *item) {
   _out << item->id() << " " << item->start() << " " << item->end() << " "
+    // print the rule type, if any
        << print_name(item->identity()) 
        << " (";
   for(item_citer it = item->daughters().begin(); it != item->daughters().end()
