@@ -326,16 +326,16 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
     // push down appropriate number of ancestors
     unsigned int j = path.size();
     for (list<tItem*>::iterator gp = path.begin();
-	 gp != path.end(); gp ++, j --)
+         gp != path.end(); gp ++, j --)
       if (j <= i) {
-	if (*gp == NULL) {
-	  v1.push_back(INT_MAX);
-	  v2.push_back(INT_MAX);
-	}
-	else {
-	  v1.push_back((*gp)->identity());
-	  v2.push_back((*gp)->identity());
-	}
+        if (*gp == NULL) {
+          v1.push_back(INT_MAX);
+          v2.push_back(INT_MAX);
+        }
+        else {
+          v1.push_back((*gp)->identity());
+          v2.push_back((*gp)->identity());
+        }
       }
     
     if (hypo->edge->rule() == NULL) { // tLexItem
@@ -351,22 +351,22 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
       list<tItem*> newpath = path;
       newpath.push_back(hypo->edge);
       if (newpath.size() > opt_gplevel)
-	newpath.pop_front();
+        newpath.pop_front();
       for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
-	   hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr++) {
-	v1.push_back((*hypo_dtr)->edge->identity());
-	if (i == 0) { // combine the scores of daughters only once
-	  (*hypo_dtr)->scores.size(); //debug
-	  if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end()) 
-	    score_hypothesis(*hypo_dtr, newpath);
-	  total = combineScores(total, (*hypo_dtr)->scores[newpath]);
-	}
-	if (--key == 0) 
-	  v2.push_back((*hypo_dtr)->edge->identity());
+           hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr++) {
+        v1.push_back((*hypo_dtr)->edge->identity());
+        if (i == 0) { // combine the scores of daughters only once
+          (*hypo_dtr)->scores.size(); //debug
+          if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end()) 
+            score_hypothesis(*hypo_dtr, newpath);
+          total = combineScores(total, (*hypo_dtr)->scores[newpath]);
+        }
+        if (--key == 0) 
+          v2.push_back((*hypo_dtr)->edge->identity());
 
       }
       if (phrase->rule()->arity() > 1) {
-	total = combineScores(total, score(tSMFeature(v2)));
+        total = combineScores(total, score(tSMFeature(v2)));
       }
     }
     total = combineScores(total, score(tSMFeature(v1)));

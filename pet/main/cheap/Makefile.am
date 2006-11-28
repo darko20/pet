@@ -27,7 +27,7 @@ bin_PROGRAMS = cheap #mtest
 
 DEFS += -DDYNAMIC_SYMBOLS
 
-# These should be tested appropriately and appear in config.h 
+# These should be tested appropriately and appear in config.h
 AM_CPPFLAGS = -I$(top_srcdir)/common $(CHEAPCPPFLAGS)
 # Is needed in some cases (required by libpvm3.a)
 # AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0

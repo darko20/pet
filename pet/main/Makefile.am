@@ -1,12 +1,7 @@
-SUBDIRS      = flop
+SUBDIRS      = flop cheap
 if ECL
-if ECLPREPROC
-if ICU
-SUBDIRS      += fspp
+SUBDIRS += fspp
 endif
-endif
-endif
-SUBDIRS      += cheap
 DIST_SUBDIRS = $(SUBDIRS) common
 EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
 	       doxyconfig.cheap doxyconfig.flop

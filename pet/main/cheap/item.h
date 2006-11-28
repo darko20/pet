@@ -868,6 +868,11 @@ class tLexItem : public tItem
     return _stem->orth(pos);
   }
 
+  /** The lexical stem */
+  const lex_stem *stem() const {
+    return _stem;
+  }
+
   /** Returns the POS tags coming from the input */
   inline const postags &get_in_postags() {
     return _keydaughter->get_in_postags();
@@ -959,12 +964,12 @@ class tPhrasalItem : public tItem {
   virtual ~tPhrasalItem() {
     // clear the hypotheses cache 
     for (vector<tHypothesis*>::iterator h = _hypotheses.begin();
-	 h != _hypotheses.end(); h ++)
+         h != _hypotheses.end(); h ++)
       delete *h;
 
     // clear the decomposition cache
     for (list<tDecomposition*>::iterator d = decompositions.begin();
-	 d != decompositions.end(); d ++)
+         d != decompositions.end(); d ++)
       delete *d;
   }
 

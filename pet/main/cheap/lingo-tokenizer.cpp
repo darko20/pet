@@ -150,33 +150,36 @@ tLingoTokenizer::tokenize(string s, inp_list &result) {
 list<string>
 tLingoTokenizer::do_it(string s) {
 
-  // downcase string
-  if(true || !cheap_settings->lookup("trivial-tokenizer"))
-    for(string::size_type i = 0; i < s.length(); i++)
-      s[i] = tolower(s[i]);
-  
   // translate iso-8859-1 german umlaut and sz
   translate_iso(s);
 
   // replace all punctuation characters by blanks
 #ifndef HAVE_ICU
-  for(string::size_type i = 0; i < s.length(); i++)
+  for(string::size_type i = 0; i < s.length(); i++) {
     if(punctuation_char(s[i], _punctuation_characters))
       s[i] = ' ';
+    else 
+      //TODO: provide a flag that makes it possible to use the upcase chars
+      if (true) 
+        s[i] = tolower(s[i]);
+  }
 #else
   UnicodeString U = Conv->convert(s);
   StringCharacterIterator it(U);
   UnicodeString Res;
 
   UChar32 c;
-  while(it.hasNext())
-    {
-      c = it.next32PostInc();
-      if(punctuation_char(c, _punctuation_characters))
-	Res.append(UChar32(' '));
-      else
-	Res.append(c);
-    }
+  while(it.hasNext()) {
+    c = it.next32PostInc();
+    if(punctuation_char(c, _punctuation_characters))
+      Res.append(UChar32(' '));
+    else
+      Res.append(c);
+  }
+  
+  //TODO: provide a flag that makes it possible to use the upcase chars
+  if(true)
+    Res.toLower();
 
   s = Conv->convert(Res);
 #endif  
@@ -198,7 +201,7 @@ tLingoTokenizer::do_it(string s) {
       if(end < s.length()) end--;
       
       if(end < s.length() && start <= end)
-	words.push_back(s.substr(start, end - start + 1));
+        words.push_back(s.substr(start, end - start + 1));
       
       start = end + 1;
     }
