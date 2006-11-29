@@ -1,4 +1,10 @@
 v0.99.??
+  (two changes by oe)
+  - repair damage to feature extraction in tSM::score_hypothesis() that i had
+    introduced when trying to suppress signed vs. unsigned comparison compiler
+    warnings;
+  - pass .readings. vector into unpacking routines by reference, so that the
+    accumulation of results actually becomes visible to the caller.
   (small fix etc. bk)
   - take identity2-id change back and replace it with a more direct access (for
     compatibility)
