@@ -363,7 +363,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
 }
 
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit
-                       ,timer *UnpackTime , vector<tItem *> readings) {
+                       ,timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
   // selectively unpacking
   list<tItem*> uroots;
@@ -397,7 +397,7 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
 }
 
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
-                        , timer *UnpackTime, vector<tItem *> readings) {
+                        , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
   for(vector<tItem *>::iterator tree = trees.begin();
       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
