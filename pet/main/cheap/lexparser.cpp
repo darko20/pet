@@ -308,9 +308,6 @@ struct tInputItem_position_less
 int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
   int maxend = 0;
   if (position_mapping==NO_POSITION_MAP) {
-    // FIXME: this is a placeholder prior to integration of
-    //        - SMAF node id to chart node mapping
-    //        - SMAF init/final nodes
     for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
       maxend=max(maxend,(*it)->end());
     }

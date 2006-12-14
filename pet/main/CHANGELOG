@@ -36,6 +36,7 @@ v0.99.13
   - some reformatting
   - added "EOM" so that Uli can properly handle MRS and partial output in HoG
   - fixed syntax error in lingo-tokenizer.h which was detected by gcc 4.1.0
+  - SMAF XML input (incomplete)
 
 v0.99.12
   - remove borland directory from configure/make process

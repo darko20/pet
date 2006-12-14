@@ -1,3 +1,8 @@
+#
+# NOTE: make will not pick up changed to Lisp modules unless
+#       'make clean' is first called
+#
+
 
 CHEAPCPPFLAGS = @CHEAPCPPFLAGS@ 
 CHEAPLDFLAGS = @CHEAPLDFLAGS@
@@ -33,6 +38,9 @@ CFLAGS =
 libfspp_a_SOURCES = fspp.h fspp.cpp petecl.c petecl.h
 
 libfspp_a_LIBADD = libfspp.a libpreprocessor.a libfspp.a
+
+# Add ecl libraries to be deleted on "make clean" ... 
+MOSTLYCLEANFILES = libfspp.a libpreprocessor.a
 
 libpreprocessor.a:
 	( \
