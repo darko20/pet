@@ -37,10 +37,10 @@ XERCES_CPP_NAMESPACE_USE
 void downcase(string &s);
 DOMDocument* xml2dom (string input);
 int serializeDOM(DOMNode* node);
-string getAttribute_string(DOMElement* element, char* name);
-int getAttribute_int(DOMElement* element, char* name);
+string getAttribute_string(DOMElement* element, string name);
+int getAttribute_int(DOMElement* element, string name);
 string getTextContent_string(DOMElement* element);
-tInputItem* getInputItemFromEdge(DOMElement* element);
+tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok);
 
 void downcase(string &s) {
   int i;
@@ -56,18 +56,25 @@ void downcase(string &s) {
   return;
 }
 
+// map a string to a DOM:
+//
+// case (i): string is @PATHNAME
+// case (ii): string is XML
+//
 DOMDocument* xml2dom (string input) {
   InputSource *xmlinput;
 
-  // take input from STDIN, or from file (when we see '@' on STDIN)
   if (input.compare(0, 1, "@") == 0)
+  // case (i)
     {  
       XMLCh * XMLFilename = XMLString::transcode((input.substr(1,100)).c_str());
       xmlinput = new LocalFileInputSource(XMLFilename);
     }
   else
+    // case (ii)
     xmlinput = new MemBufInputSource((const XMLByte *) input.c_str(), input.length(), "STDIN");
   
+  // initialise XML machinery
   try {
     XMLPlatformUtils::Initialize();
   }
@@ -79,6 +86,7 @@ DOMDocument* xml2dom (string input) {
     return NULL;
   }
   
+  // get a parser
   XercesDOMParser* parser = new XercesDOMParser();
   parser->setValidationScheme(XercesDOMParser::Val_Always);    // optional.
   parser->setDoNamespaces(true);    // optional
@@ -86,6 +94,7 @@ DOMDocument* xml2dom (string input) {
   ErrorHandler* errHandler = (ErrorHandler*) new HandlerBase();
   parser->setErrorHandler(errHandler);
 
+  // parse the XML
   try {
     parser->parse(*xmlinput);
   }
@@ -115,6 +124,7 @@ DOMDocument* xml2dom (string input) {
     return NULL;
   }
 
+  // adopt document so it won't vanish
   DOMDocument* doc = parser->adoptDocument();
 
   delete parser;
@@ -122,12 +132,12 @@ DOMDocument* xml2dom (string input) {
 
   XMLPlatformUtils::Terminate();
 
+  // return the DOM doc
   return doc;
 }
 
+// this is a debugging aid
 int serializeDOM(DOMNode* node) {
-  
-  cout << "SERIALIZE START" << endl;
   
   XMLCh tempStr[100];
   XMLString::transcode("LS", tempStr, 99);
@@ -171,18 +181,22 @@ int serializeDOM(DOMNode* node) {
   
   theSerializer->release();
   delete myFormTarget;
-  cout << "SERIALIZE END" << endl;
+  cout << endl;
   return 0;
 }
 
-string getAttribute_string(DOMElement* element, char* name){
-  const XMLCh *xval =  element->getAttribute(XMLString::transcode(name));
+// return value of attribute 'name', or ""
+string getAttribute_string(DOMElement* element, string name){
+  const XMLCh *xval =  element->getAttribute(XMLString::transcode(name.c_str()));
   string val = Conv->convert((UChar *)xval, XMLString::stringLen(xval));
   return val;
 }
- 
-int getAttribute_int(DOMElement* element, char* name){
-  const XMLCh *xval =  element->getAttribute(XMLString::transcode(name));
+
+// return int value of attribute 'name', 
+//  or -1 is conversion to int fails,
+//  or -1
+int getAttribute_int(DOMElement* element, string name){
+  const XMLCh *xval =  element->getAttribute(XMLString::transcode(name.c_str()));
   if (xval==NULL) return -1;
 
   const char *str = XMLCh2UTF8(xval);
@@ -190,68 +204,269 @@ int getAttribute_int(DOMElement* element, char* name){
   int res = strtol(str, &end, 10);
   if ((*end != '\0') || (str == end))
     {
-      // cout <<  "expected integer value for attribute '" << name << "', got '" << str << "' ";
+      if (strlen(str)>1)
+	// temp hack to allow node names of form letter + int eg. "v1"
+	{
+	  res = strtol(str+1, &end, 10);
+	  if (!((*end != '\0') || (str == end)))
+	    {
+	      //cout << "STR: " << str << endl;
+	      return res;
+	    }
+	}
+
+      cout <<  "[WARNING] expected integer value for attribute '" << name << "' but got '" << str << "'" << endl;
     res = -1;
     }
   return res;
 }
 
-string getTextContent_string(DOMElement* element){
+// return text content if element has only text children, or ""
+string getTextContent_string(DOMElement* element)
+{
+  // all children should be text nodes
+  DOMNodeList *nodes=element->getChildNodes();
+  const XMLSize_t nodeCount = nodes->getLength() ;
+
+  // iterate through slots, and abort if non-text node daughter
+  for( XMLSize_t ix = 0 ; ix < nodeCount ; ++ix )
+    {
+      DOMNode* node = nodes->item( ix ) ;
+      //      if (!node->getNodeType()==TEXT_NODE)
+      //serializeDOM(node); 
+      if (!(node->getNodeType()==3))
+	return "";
+    }
+
+  // finally, get the text content
   const XMLCh *xval =  element->getTextContent();
   string val = Conv->convert((UChar *)xval, XMLString::stringLen(xval));
   return val;
 }
 
-/*
-tInputItem* getInputItemFromW(DOMElement* element){
-    //serializeDOM(wNode);
-    
-    string id = getAttribute_string(element,"id");
-    int start = getAttribute_int(element,"cstart");
-    int end = getAttribute_int(element,"cend");
-    int source = start;
-    int target = end;
-    string surface = getTextContent_string(element);
-    downcase(surface);
+string getSlot(DOMElement* element, string name)
+{
+  // get all slots
+  XMLCh* xstr = XMLString::transcode("slot");
+  DOMNodeList *slots=element->getElementsByTagName(xstr);
+  const XMLSize_t nodeCount = slots->getLength() ;
 
-    ::modlist mods;
-
-    tInputItem* item = new tInputItem(id, source, target, start, end, surface, ""
-				      , tPaths()
-				      , WORD_TOKEN_CLASS, mods);
-    
-    return item;
+  // iterate through slots
+  for( XMLSize_t ix = 0 ; ix < nodeCount ; ++ix )
+    {
+      DOMNode* sNode = slots->item( ix ) ;
+      DOMElement* slot = dynamic_cast< xercesc::DOMElement* >( sNode );
+      string sName = getAttribute_string(slot,"name");
+      // if name matches return values
+      if (sName==name)
+	{
+	string val = getTextContent_string(slot);
+	if (val.length()!=0)
+	  {
+	    return val;
+	  }
+	}
+    }
+  return "";
 }
-*/
 
-//FIXME:
-// - SMAF soure/target should be general text
-// - smaf.dtd
-// - <olac:olac>
+// map a SMAF token edge to an internal tInputItem
+tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok){
+  // sanity check
+  string type = getAttribute_string(element,"type");
+  if (type!="token")
+    throw Error("INTERNAL");
+  
+  // surface is SIMPLE CONTENT...
+  string surface = getTextContent_string(element);
+  if (surface.length()==0) 
+    // ... or VALUE
+    surface = getAttribute_string(element,"value");
+  if (surface.length()==0)
+    // ... or a SLOT
+    surface = getSlot(element,"surface");
+  if (surface.length()==0)
+    {
+      cout << "[WARNING] unable to extract surface value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
 
-tInputItem* getInputItemFromEdge(DOMElement* element){  
+
+  downcase(surface);
+
   string id = getAttribute_string(element,"id");
   int start = getAttribute_int(element,"cfrom");
   int end = getAttribute_int(element,"cto");
-  int source = getAttribute_int(element,"source");
-  int target = getAttribute_int(element,"target");
-  string surface = getTextContent_string(element);
-  if (surface.length()==0) 
-    surface = getAttribute_string(element,"value");
-  
-  downcase(surface);
+  string sourceSmaf = getAttribute_string(element,"source");
+  string targetSmaf = getAttribute_string(element,"target");
+
+  if (sourceSmaf.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'source' value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  if (targetSmaf.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'target' value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  int source, target;
+  source = (*tok).add2nodeMapping(sourceSmaf);
+  target = (*tok).add2nodeMapping(targetSmaf);
+
+  //cout << "SOURCE= " << source << " / " << sourceSmaf << endl;
+  //cout << "TARGET= " << target << " / " << targetSmaf << endl;
 
   ::modlist mods;
   
+  if (start<0)
+    {
+      cout << "[WARNING] unable to extract 'cfrom' value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  if (end<0)
+    {
+      cout << "[WARNING] unable to extract 'cto' value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
   tInputItem* item = new tInputItem(id, source, target, start, end, surface, ""
+  //tInputItem* item = new tInputItem(id, start, end, start, end, surface, ""
 				    , tPaths()
 				    , WORD_TOKEN_CLASS, mods);
+
   return item;
 }
 
+// return item matching (external) id
+tInputItem* getItemById(string id, inp_list &items)
+{
+  for(list<tInputItem *>::iterator it = items.begin()
+        ; it != items.end(); it++) {
+      if (((*it)->external_id())==id)
+	{
+	  return *it;
+	}
+    }
+  return NULL;
+}
+
+void processPosEdge(DOMElement* element, inp_list &items){
+  string type = getAttribute_string(element,"type");
+  if (type!="pos")
+    throw Error("INTERNAL");
+
+  // tag is SIMPLE CONTENT...
+  string tag = getTextContent_string(element);
+  if (tag.length()==0) 
+    // ... or VALUE
+    tag = getAttribute_string(element,"value");
+  if (tag.length()==0)
+    // ... or a SLOT
+    tag = getSlot(element,"tag");
+  if (tag.length()==0)
+    {
+      cout << "[WARNING] unable to extract tag from edge:";
+      serializeDOM(element);
+      cout << endl;
+      return;
+    }
+  //cout << "tag= ." << tag << "." << endl;
+
+  string deps = getAttribute_string(element,"deps");
+
+  // we only handle SINGLE dependencies
+  if (deps.find(' ')!=string::npos)
+    {
+      cout << "[WARNING] ignoring edge with unhandled multiple dependencies:";
+      serializeDOM(element);
+      cout << endl;
+      return;
+    }
+  string dep = deps;
+
+  tInputItem* item = getItemById(dep, items);
+  if (item!=NULL)
+    {
+      postags pos;
+      pos.add(tag);
+      item->set_in_postags(pos);
+    }
+
+  return;
+}
+
+
 void tSMAFTokenizer::tokenize(string input, inp_list &result) {
+
+  clearNodeMapping();
   DOMDocument* dom = xml2dom(input);
+
+  // abort if something went wrong
+  if (dom==NULL)
+    return;
+
+  // process lattice element
+  {
+      XMLCh* xstr = XMLString::transcode("lattice");
+      DOMNodeList* elts = dom->getElementsByTagName(xstr);
+      XMLString::release(&xstr);
+      const XMLSize_t nodeCount = elts->getLength() ;
+      if (nodeCount!=1)
+	{
+	  cout << "[WARNING] corrupted lattice (multiple lattice elements found)!" << endl;
+	  return;
+	}
+      DOMNode* lNode = elts->item( 0 ) ;
+      DOMElement* element = dynamic_cast< xercesc::DOMElement* >( lNode );
+
+      string init, final;
+      init = getAttribute_string(element,"init");
+      final = getAttribute_string(element,"final");
+
+      if (init.length()==0)
+	{
+	  cout << "[ERROR] no 'init' value found in lattice!" << endl;
+	  return;
+	}
+      else
+	{
+	  setNodeMap(init,0);
+	  _chartNodeMax=0;
+	}
+
+      if (final.length()==0)
+	{
+	  cout << "[ERROR] no 'final' value found in lattice!" << endl;
+	  return;
+	}
+      else
+	{
+	  //we will set final node to number of edges
+	  XMLCh* xstr2 = XMLString::transcode("edge");
+	  DOMNodeList* welts2 = dom->getElementsByTagName(xstr2);
+	  XMLString::release(&xstr2);
+	  const XMLSize_t nodeCount = welts2->getLength() ;
+
+	  setNodeMap(final,nodeCount);
+	}
+  }
+
   if (dom!=NULL)
+    // TOKENS
     {
       // get all <edge> elements
       XMLCh* xstr = XMLString::transcode("edge");
@@ -263,9 +478,100 @@ void tSMAFTokenizer::tokenize(string input, inp_list &result) {
 	DOMNode* wNode = welts->item( ix ) ;
 	//serializeDOM(wNode);
 	DOMElement* element = dynamic_cast< xercesc::DOMElement* >( wNode );
-	tInputItem* item = getInputItemFromEdge(element);
-	result.push_back(item);    
-      }}
+	string type = getAttribute_string(element,"type");
+	if (type=="token")
+	  {
+	    tInputItem* item = getInputItemFromTokenEdge(element, this);
+	    if (item==NULL)
+	      {
+		cout << "[WARNING] unable to construct chart edge from:" << endl;
+		serializeDOM(element);
+		cout << endl;
+	      }
+	    else
+	      result.push_back(item);
+	  }
+      }
+    }
+
+  //  cout << "tags" << endl;
+  if (dom!=NULL)
+    // TAGS
+    {
+      // get all <edge> elements
+      XMLCh* xstr = XMLString::transcode("edge");
+      DOMNodeList* welts = dom->getElementsByTagName(xstr);
+      XMLString::release(&xstr);
+      const XMLSize_t nodeCount = welts->getLength() ;
+      // map each into a tInputItem
+      for( XMLSize_t ix = 0 ; ix < nodeCount ; ++ix ){
+	DOMNode* wNode = welts->item( ix ) ;
+	
+	//cout << "TAG" << endl;
+	//serializeDOM(wNode);
+	DOMElement* element = dynamic_cast< xercesc::DOMElement* >( wNode );
+	string type = getAttribute_string(element,"type");
+	if (type=="pos")
+	  {
+	    //    cout << "pos" << endl;
+	    processPosEdge(element, result);
+	  }  
+	//cout << "*" << endl;
+      }
+    }
+  
+  // sanity check
+  // to avoid seg fault later (why??) there must be an edge with start=0
+  bool flag=false;
+  for(inp_iterator it = result.begin(); it != result.end(); it++) 
+    {
+      if ((*it)->start()==0)
+	flag=true;
+    }
+  if (!flag)
+    {
+      cout << "[ERROR] cannot find 'init' node in input lattice" << endl;
+      result.clear();
+      return;
+    }
+  
+  //cout << "tokenize OUT" << endl;
+
   return;
 }
 
+void tSMAFTokenizer::clearNodeMapping()
+{
+  _nodeMapping.clear();
+}
+
+int tSMAFTokenizer::add2nodeMapping(string smafNode)
+{
+  //cout << "add2nodeMapping " << smafNode;
+  int node = _nodeMapping[smafNode]-1;
+  if (node==-1)
+    {
+      int chartNode = ++_chartNodeMax;
+      _nodeMapping[smafNode] = chartNode+1;
+      node = chartNode;
+    }
+  //cout << " -> " << node << endl;;
+  return node;
+}
+
+void  tSMAFTokenizer::setNodeMap(string smafNode, int chartNode)
+{
+  _nodeMapping[smafNode] = chartNode+1;
+}
+
+string tSMAFTokenizer::getSmafNode(int chartNode)
+{
+  // not implemented
+  return "";
+}
+
+int tSMAFTokenizer::getChartNode(string smafNode)
+{
+  int chartNode = _nodeMapping[smafNode];
+  return chartNode-1;
+}

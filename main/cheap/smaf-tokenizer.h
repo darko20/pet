@@ -22,7 +22,10 @@ public:
    *  position zero and ending at position one has length two, not one.
    */
   tSMAFTokenizer(position_map position_mapping = STANDOFF_POINTS)
-    : tTokenizer(), _position_mapping(position_mapping) { }
+    : tTokenizer(), _position_mapping(position_mapping) 
+  { 
+    _chartNodeMax = -1;
+  }
   
   virtual ~tSMAFTokenizer() {}
 
@@ -39,8 +42,19 @@ public:
   void set_position_mapping(position_map position_mapping) { 
     _position_mapping = position_mapping ; }
 
+  // node mapping
+
+  void clearNodeMapping();
+  int add2nodeMapping(string smafNode);
+  string getSmafNode(int chartNode);
+  int getChartNode(string smafNode);
+  void setNodeMap(string smafNode, int chartNode);
 private:
   position_map _position_mapping;
+
+  map<string,int> _nodeMapping;
+  int _chartNodeMax;
+
 
 };
 
