@@ -39,9 +39,6 @@
 
 #include <ecl.h>
 
-#define make_string_copy make_base_string_copy
-#define make_simple_string make_simple_base_string
-
 #ifdef __cplusplus
 extern "C" {
 #endif
