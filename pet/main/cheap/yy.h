@@ -28,9 +28,6 @@
 #ifndef _YY_H_
 #define _YY_H_
 
-#include <cstdio>
-#include <cassert>
-
 extern int cheap_server_initialize(int);
 extern void cheap_server(int);
 extern int cheap_server_child(int);

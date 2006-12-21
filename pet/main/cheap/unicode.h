@@ -46,31 +46,31 @@ class EncodingConverter
 {
 public:
   /** Create a converter for the encoding \a encodingname */
-  EncodingConverter(string encodingname);
+  EncodingConverter(std::string encodingname);
   ~EncodingConverter();
 
   /** Convert the string \a from, which has to be encoded in the encoding of
    *  this converter, to UTF8 and return the new string
    */
-  string convert(const UnicodeString from);
+  std::string convert(const UnicodeString from);
   
   /** Convert the string \a from, which has to be encoded in the encoding of
    *  this converter, to UTF8 and return the new string
    */
-  string convert(const UChar* from, int length);
+  std::string convert(const UChar* from, int length);
 
   /** Convert the string \a from, which has to be encoded in UTF8, into the
    *  encoding this converter and return the new string.
    */
-  UnicodeString convert(const string from);
+  UnicodeString convert(const std::string from);
 
 private:
   UErrorCode _status;
   UConverter *_conv;
-  string _encoding;
+  std::string _encoding;
 };
 
 /** Initialize the conversion service and the global encoding converter */
-void initialize_encoding_converter(string encoding);
+void initialize_encoding_converter(std::string encoding);
 
 #endif

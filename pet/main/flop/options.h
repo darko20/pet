@@ -24,7 +24,7 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-#include <stdio.h>
+#include <cstdio>
 
 extern bool opt_pre, opt_chic, opt_expand, opt_expand_all_instances,
   opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,

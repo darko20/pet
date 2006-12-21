@@ -19,13 +19,9 @@
 
 /* dumping the grammar to binary form for cheap*/
 
-#include <vector>
-#include <map>
-#include "flop.h"
-#include "types.h"
+#include "hierarchy.h"
 #include "dumper.h"
-#include "options.h"
-#include "dag.h"
+#include "flop.h"
 
 /** dump a bunch of string pairs that describe various properties of the
  *  grammar.

@@ -19,10 +19,8 @@
 
 /* parser control */
 
-#include "pet-system.h"
-
-#include "cheap.h"
 #include "parse.h"
+#include "cheap.h"
 #include "fs.h"
 #include "item.h"
 #include "item-printer.h"
@@ -31,6 +29,8 @@
 #include "lexparser.h"
 #include "task.h"
 #include "tsdb++.h"
+
+#include <sstream>
 
 #ifdef YY
 #include "yy.h"

@@ -20,7 +20,6 @@
 /* command line options */
 
 #include "options.h"
-#include "pet-system.h"
 
 #include "getopt.h"
 #include "fs.h"
@@ -58,7 +57,7 @@ unsigned int opt_gplevel = 0;
 
 tokenizer_id opt_tok = TOKENIZER_STRING;
 
-string opt_tsdb_dir, opt_jxchg_dir;
+std::string opt_tsdb_dir, opt_jxchg_dir;
 
 int opt_packing = 0;
 

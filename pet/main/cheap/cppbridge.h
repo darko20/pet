@@ -99,7 +99,7 @@ pet_cpp_type_valid_p(int t);
 /** Extract the MRS from the dag \a d printing it to the returned string.
  * The available \a mode values depend on the Lisp code.
  */
-string
+std::string
 ecl_cpp_extract_mrs(dag_node *d, char *mode);
 
 }

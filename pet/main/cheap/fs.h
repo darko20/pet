@@ -31,7 +31,7 @@
  * In these modlists, the path is represented by a string where the feature
  * names are separated by dots ('.')
  */
-typedef list< pair<string, type_t> > modlist;
+typedef std::list< std::pair<std::string, type_t> > modlist;
 
 
 /** Adapter for different dag implementations */
@@ -344,12 +344,12 @@ class fs_alloc_state
 #include "failure.h"
 #include <map>
 
-extern map<unification_failure, int> failure_id;
-extern map<int, unification_failure> id_failure;
-extern map<int, double> failing_paths_unif;
-extern map<list_int *, int, list_int_compare> failing_sets_unif;
-extern map<int, double> failing_paths_subs;
-extern map<list_int *, int, list_int_compare> failing_sets_subs;
+extern std::map<unification_failure, int> failure_id;
+extern std::map<int, unification_failure> id_failure;
+extern std::map<int, double> failing_paths_unif;
+extern std::map<list_int *, int, list_int_compare> failing_sets_unif;
+extern std::map<int, double> failing_paths_subs;
+extern std::map<list_int *, int, list_int_compare> failing_sets_subs;
 
 #endif
 

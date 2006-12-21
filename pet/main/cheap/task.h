@@ -123,7 +123,7 @@ class active_and_passive_task : public basic_task
 
 /** Comparison predicate for tasks based on their priority */
 class task_priority_less 
-: public binary_function<basic_task *, basic_task *, bool>
+  : public std::binary_function<basic_task *, basic_task *, bool>
 {
  public:
     /** \a x is less than \a y if \a x's priority is less than \a y's */

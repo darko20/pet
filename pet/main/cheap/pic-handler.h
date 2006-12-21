@@ -74,7 +74,7 @@ public:
    * umlaut characters are converted to their isomorphix counterpart (ae, ue,
    * ss, etc.)
    */
-  string
+  std::string
   surface_string(const XMLCh *chars, const unsigned int len) const;
 
   /** The list of all input items produced during processing */

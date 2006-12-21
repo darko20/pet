@@ -18,16 +18,20 @@ dnl dejagnu dist-bzip2 no-dependencies
 
 # Let's try putting stuff in delphin/
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-delphin_prefix="/usr/local/delphin"
+if test -d "/usr/local/delphin" ; then
+   delphin_prefix="/usr/local/delphin"
+else
+   delphin_prefix="$HOME/delphin"
+fi
 
 ITSDBDIR="$delphin_prefix/lkb"
 
 # Assume that PET_DEPENDENCIES are all in "/usr/local"
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-ICUDIR=/usr/local
-ECLDIR=/usr/local
-XERCESCDIR=/usr/local
 # default install location for postgresql and boost is /usr/lib & /usr/include
+ICUDIR=
+ECLDIR=
+XERCESCDIR=
 PSQLDIR=
 BOOSTDIR=
 
@@ -57,6 +61,9 @@ case "${CPU}" in
   x86_64)
     OS="linux.x86.64"
     ;;
+  Power?Macintosh)
+    OS="linux.ppc"
+    ;;
   *)
     echo "unknown Linux architecture $CPU (check \`uname -m');"
     OS="UNKNOWN"
@@ -67,6 +74,29 @@ esac
 #elif [ "$OSTYPE" = "cygwin" ]; then
 #  os="windows";
 #fi
+
+# Linux and SunOS have different flags for the dynlib rpath mechanism
+case $(uname -s) in
+  ( linux | Linux)
+    rpath="-Wl,-rpath,";;
+  SunOS)
+    rpath="-R";;
+  Darwin)
+    rpath="";;
+esac
+
+addlibdir() {
+  res="$1 -L$2";
+  if test x$rpath != x ; then res="$res $rpath$2" ; fi
+  echo $res;
+}
+
+case $(uname -s) in
+   CYGWIN* )
+     AC_DEFINE(PATH_SEP,"\","directory path separator char") ;;
+   * )
+     AC_DEFINE(PATH_SEP,"/","directory path separator char") ;;
+esac
 
 # let's use the method given in LKB's install script to get the kernel version
 # too ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 19, 2005
@@ -162,7 +192,7 @@ if test x$tsdb = xtrue && check_tsdb ; then
       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ITSDBDIR}/include"
       # Use OS variable to point to correct linux library ...
       # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-      CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ITSDBDIR}/lib/${OS} -Wl,-rpath,${ITSDBDIR}/lib/${OS}"
+      CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ITSDBDIR}/lib/${OS}"`
 else
     tsdb=false
 fi
@@ -252,6 +282,10 @@ if test x$ecl = xtrue; then
     AC_MSG_WARN([no ecl binary found in ${ECLDIR}/bin; ECL DISABLED])
     ecl=false
   else
+    if test -z "${ECLDIR}" ; then
+       ECLDIR=`dirname $ECL`
+       ECLDIR=${ECLDIR%%/bin}
+    fi
     if test -d ${ECLDIR}/h ; then
       eclincl="-I${ECLDIR}/h"
     fi
@@ -287,7 +321,7 @@ fi
 dnl all tests for ECL components have been executed, draw conclusions
 if test x$ecl = xtrue ; then
   CHEAPLIBS="-lecl $CHEAPLIBS"
-  CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ECLDIR}/lib/ecl -Wl,-rpath,${ECLDIR}/lib/ecl"
+  CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ECLDIR}/lib/ecl"`
   CHEAPCPPFLAGS="$CHEAPCPPFLAGS ${eclincl}"
   if test x$mrs == xtrue ; then
      AC_DEFINE(HAVE_MRS, [1], [use ECL MRS library])
@@ -357,7 +391,7 @@ return 0
 if test x$icu = xtrue && check_icu ; then
     if test x$ICUDIR != x ; then
         CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ICUDIR}/include"
-        CHEAPLDFLAGS="$CHEAPLDFLAGS -L${ICUDIR}/lib -Wl,-rpath,${ICUDIR}/lib"
+        CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ICUDIR}/lib"`
     fi
     CHEAPLIBS="-lpthread -licuuc -licui18n -licudata $CHEAPLIBS"
     AC_DEFINE(HAVE_ICU, [1], [use international character library from IBM]) 
@@ -433,23 +467,29 @@ case "${withval}" in
     *)   xml=true
             XERCESCDIR=${withval} ;;
 esac
-if test $xml = true && test -d "${XERCESCDIR}" ; then
-    save_LD="$LDFLAGS"
-    LDFLAGS="$LDFLAGS -L${XERCESCDIR}/lib"
+save_LD="$LDFLAGS"
+if test x$xml = xtrue && -n "${XERCESCDIR}" ; then
+   if test -d "${XERCESCDIR}" ; then
+      LDFLAGS="$LDFLAGS -L${XERCESCDIR}/lib"
+   else 
+      AC_MSG_WARN([directory ${XERCESCDIR} not found for --with-xml; DISABLED])
+      xml=false
+   fi
+fi
+if test x$xml = xtrue ; then
     AC_CHECK_LIB([xerces-c], [main], [ xml=true ],
         [
         xml=false
         AC_MSG_WARN([Xerces C++ library not found for --with-xml; DISABLED])
         ])
-    LDFLAGS="$save_LD"
 else
     xml=false
-    AC_MSG_WARN([directory ${XERCESCDIR} not found for --with-xml; DISABLED])
 fi
+LDFLAGS="$save_LD"
 ], [xml=false])
 if test x$xml = xtrue ; then
     CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${XERCESCDIR}/include"
-    CHEAPLDFLAGS="$CHEAPLDFLAGS -L${XERCESCDIR}/lib -Wl,-rpath,${XERCESCDIR}/lib"
+    CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${XERCESCDIR}/lib"`
     CHEAPLIBS="-lxerces-c $CHEAPLIBS"
     AC_DEFINE(HAVE_XML, [1], [Enable XML input mode, using XERCES C++ library])
 fi
@@ -497,7 +537,7 @@ return 0
 if test x$lexdb = xtrue && check_psql ; then
    if test x$PSQLDIR != x ; then
       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
-      CHEAPLDFLAGS="$CHEAPLDFLAGS -L${PSQLDIR}/lib -Wl,-rpath,${PSQLDIR}/lib"
+      CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${PSQLDIR}/lib"`
    fi
    CHEAPLIBS="-lpq $CHEAPLIBS"
    AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database]) 
@@ -564,7 +604,8 @@ fi
 # AM_CONDITIONAL(LUI, [test x$lui = xtrue])
 
 AC_LANG_PUSH(C++)
-AC_CHECK_HEADERS([hash_map ext/hash_map],,,)
+AC_CHECK_HEADERS([hash_map],,
+   [AC_CHECK_HEADERS([ext/hash_map],,[AC_MSG_ERROR("No hash_map header found")],)])
 
 
 AC_SUBST(CHEAPLIBS)
@@ -611,7 +652,10 @@ AC_PATH_PROG(DOXYGEN,doxygen,,$PATH:/usr/local/bin:/usr/bin)
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h locale.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h],,
+    [AC_MSG_ERROR("some system header file not found")])
+AC_CHECK_HEADERS([stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h],,
+    [AC_MSG_ERROR("some system header file not found")])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

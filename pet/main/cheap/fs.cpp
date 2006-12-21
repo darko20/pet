@@ -20,12 +20,13 @@
 /* class representing feature structures, abstracting from underlying dag
    module  */
 
-#include "pet-system.h"
 #include "cheap.h"
 #include "fs.h"
 #include "types.h"
 #include "tsdb++.h"
 #include "restrictor.h"
+
+#include <iostream>
 
 // global variables for quick check
 

@@ -19,8 +19,6 @@
 
 /* sample program to illustrate structure of .grm file */
 
-#include "pet-system.h"
-
 #include "grammar.h"
 #include "dumper.h"
 #include "errors.h"

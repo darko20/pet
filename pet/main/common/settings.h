@@ -24,8 +24,6 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
-using namespace std;
-
 #include "lex-tdl.h"
 #include "types.h"
 #include <set>
@@ -68,7 +66,7 @@ class settings
 
 #ifndef FLOP
   // subtype based map
-  set<string> smap(const char *name, int key_type);
+  std::set<std::string> smap(const char *name, int key_type);
 #endif
 
   struct lex_location *lloc() { return _lloc; }
@@ -76,11 +74,11 @@ class settings
  private:
   int _n;
   setting **_set;
-  string _fname, _prefix;
+  std::string _fname, _prefix;
   struct lex_location *_lloc;
 
   /** cache for settings converted to lists of integers (e.g. status values) */
-  map<string, struct list_int *> _li_cache;
+  std::map<std::string, struct list_int *> _li_cache;
 
   void parse();
   void parse_one();

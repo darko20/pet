@@ -24,6 +24,8 @@
 #ifndef _QC_H_
 #define _QC_H_
 
+#include <cstdio>
+
 /** Compute the best quick check paths using the corpus in \a f */
 void
 compute_qc_paths(FILE *f);

@@ -19,14 +19,14 @@
 
 /* lexer for files in TDL syntax */
 
-#include "pet-system.h"
 #include "lex-tdl.h"
 #include "errors.h"
 
 #ifdef FLOP
 #include "flop.h"
-#include "options.h"
 #endif
+
+#include <cassert>
 
 char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",

@@ -26,6 +26,8 @@
 #include "item-printer.h"
 #include "cheap.h"
 
+#include <iostream>
+
 lex_parser global_lexparser;
 lex_parser &Lexparser = global_lexparser;
 extern chart *Chart;

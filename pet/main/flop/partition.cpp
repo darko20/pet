@@ -8,7 +8,7 @@
  */
 
 #include "partition.h"
-#include <assert.h>
+#include <cassert>
 
 tPartition::tPartition(int n) 
 {

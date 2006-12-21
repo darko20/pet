@@ -20,7 +20,6 @@
 /* Bridge from C to C++ into PET for the ECL lisp integration */
 
 #include "pet-config.h"
-#include "pet-system.h"
 #include "types.h"
 #include "fs.h"
 #include "settings.h"
@@ -29,6 +28,9 @@
 
 #include "cppbridge.h"
 #include "petecl.h"
+
+using std::map;
+using std::string;
 
 //
 //
@@ -43,7 +45,7 @@ ecl_cpp_load_files(const char *setting, const char *basename) {
   struct setting *set;
   if((set = cheap_settings->lookup(setting)) == NULL) return ;
   for(int i = 0; i < set->n; i++) {
-    string fname = find_file(set->values[i], LISP_EXT, basename);
+    std::string fname = find_file(set->values[i], LISP_EXT, basename);
     if(! fname.empty()) { ecl_load_lispfile(fname.c_str()); }
   }             
 }
@@ -77,7 +79,7 @@ int next_handle = 1;
 
 int
 get_handle(dag_node *d) {
-  map<dag_node *, int>::iterator it = dag_to_handle.find(d);
+  std::map<dag_node *, int>::iterator it = dag_to_handle.find(d);
   if(it != dag_to_handle.end()) {
     return it->second;
   }
@@ -181,7 +183,7 @@ pet_cpp_type_valid_p(int t) { return is_type(t); }
 extern "C" char *
 ecl_extract_mrs(int fs, char *mode);
 
-string
+std::string
 ecl_cpp_extract_mrs(dag_node *d, char *mode) {
   d = dag_expand(d);
   char *res = ecl_extract_mrs(get_handle(d), mode);

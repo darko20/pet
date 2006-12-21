@@ -21,7 +21,6 @@
 
 #include "types.h"
 #include "bitcode.h"
-#include "pet-system.h"
 #include "dag.h"
 #include "dumper.h"
 #include "hashing.h"
@@ -32,6 +31,8 @@
 #include "cheap.h"
 #undef SUBTYPECACHE
 #endif
+
+using namespace std;
 
 int nleaftypes;
 int *leaftypeparent = 0;

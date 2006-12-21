@@ -19,13 +19,14 @@
 
 /* parse the settings file */
 
-#include "pet-system.h"
 #include "lex-tdl.h"
 #include "settings.h"
 #include "utility.h"
 #include "types.h"
 #include "errors.h"
 #include "list-int.h"
+
+using std::string;
 
 settings::settings(const char *name, const char *base, char *message)
   : _li_cache() {
@@ -164,9 +165,9 @@ char *settings::assoc(const char *name, const char *key, int arity, int nth)
 
 #ifndef FLOP
 // subtype based map
-set<string> settings::smap(const char *name, int key_type)
+std::set<std::string> settings::smap(const char *name, int key_type)
 {
-  set<string> res;
+  std::set<std::string> res;
 
   setting *set = lookup(name);
   if(set == 0) return res;

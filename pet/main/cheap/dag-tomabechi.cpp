@@ -20,10 +20,10 @@
 /* tomabechi quasi destructive graph unification  */
 /* inspired by the LKB implementation */
 
-#include "pet-system.h"
 #include "dag.h"
 #include "tsdb++.h"
 #include "options.h"
+#include <fstream>
 
 static dag_node * const INSIDE = (dag_node *) -2;
 
@@ -1684,7 +1684,8 @@ void dag_print_rec_fed_safe(FILE *f, struct dag_node *dag) {
 }
 
 
-int dag_print_rec_jxchg_safe(ostream &f, struct dag_node *dag, int coref_nr){
+int
+dag_print_rec_jxchg_safe(std::ostream &f, struct dag_node *dag, int coref_nr){
   dag_arc *arc = dag->arcs ;
   int coref = dag_get_visit_safe(dag) - 1;
  

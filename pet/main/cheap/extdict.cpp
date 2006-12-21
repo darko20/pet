@@ -26,7 +26,6 @@
 
 #ifdef HAVE_EXTDICT
 
-#include "pet-system.h"
 #include "errors.h"
 #include "utility.h"
 #include "cheap.h"

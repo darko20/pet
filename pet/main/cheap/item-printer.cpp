@@ -1,9 +1,10 @@
-#include "item.h"
 #include "item-printer.h"
+
+#include <sstream>
 
 const char tcl_chars_to_escape[] = { '\\', '"', '\0' };
 
-void print_string_escaped(ostream &out, const char *str
+void print_string_escaped(std::ostream &out, const char *str
                           , const char *to_escape, char esc_char = '\\'){
   const char *next, *pos;
   while ((next = strpbrk(str, to_escape)) != NULL) {
@@ -64,7 +65,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
     for(dtr = dtrs.begin(); dtr != dtrs.end(); dtr++) {
       _out << _items[(long int) *dtr] << " ";
     }
-    _out << "}" << endl;
+    _out << "}" << std::endl;
     _items[(long int) item] = _item_id;
     _item_id++;
   }
@@ -175,7 +176,7 @@ void tFegramedPrinter::print(const dag_node *dag, const char *name) {
 
 void tFegramedPrinter::print(const tItem *arg, const char *name) { 
   if (name == NULL) {
-    ostringstream out;
+    std::ostringstream out;
     out << arg->printname() 
         << "-" << arg->start() << "-" << arg->end() << "-";
     name = out.str().c_str();
@@ -223,7 +224,7 @@ tJxchgPrinter::real_print(const tLexItem *item) {
     print_yield(dynamic_cast<tInputItem *>(*it));
   _out << " ) ";
   dag_print_jxchg(_out, get_fs(item).dag());
-  _out << endl;
+  _out << std::endl;
 }
 
 void 
@@ -238,5 +239,5 @@ tJxchgPrinter::real_print(const tPhrasalItem *item) {
   }
   _out << " ) ";
   dag_print_jxchg(_out, get_fs(item).dag());
-  _out << endl;
+  _out << std::endl;
 }

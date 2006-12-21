@@ -41,7 +41,6 @@
 #endif
 #endif
 
-#include "pet-system.h"
 #include "mfile.h"
 #include "utility.h"
 #include "errors.h"

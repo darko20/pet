@@ -19,17 +19,10 @@
 
 /* appropriateness and expansion */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-
-#include "flop.h"
-#include "hierarchy.h"
 #include "types.h"
 #include "options.h"
-
+#include "flop.h"
+#include "hierarchy.h"
 #include "partition.h"
 
 #include <set>

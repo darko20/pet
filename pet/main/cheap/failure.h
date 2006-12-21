@@ -92,7 +92,7 @@ class unification_failure
     /** Return the cost of this failure */
     inline int cost() const { return _cost; }
     /** Return the list of paths pointing to cyclic structures */
-    inline list<list_int *> cyclic_paths() const { return _cyclic_paths; }
+    inline std::list<list_int *> cyclic_paths() const { return _cyclic_paths; }
 
     friend bool 
       operator<(const unification_failure &a, const unification_failure &b);
@@ -102,7 +102,7 @@ class unification_failure
     failure_type _type;
     int _s1, _s2;
     int _cost;
-    list<list_int *> _cyclic_paths;
+    std::list<list_int *> _cyclic_paths;
 
     int less_than(const unification_failure &) const;
 };

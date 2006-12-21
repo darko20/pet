@@ -33,6 +33,10 @@
 #include "sm.h"
 #include "lexicon.h"
 
+using std::string;
+using std::map;
+using std::list;
+
 /** @name global variables for quick check */
 /*@{*/
 /** Number of the unification quick check paths to consider */
@@ -330,7 +334,7 @@ class tGrammar
 #endif
 
   map<type_t, lex_stem *> _lexicon;
-  multimap<string, lex_stem *> _stemlexicon;
+  std::multimap<std::string, lex_stem *> _stemlexicon;
 
 #ifdef EXTDICT
   extDictionary *_extDict;

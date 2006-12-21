@@ -19,7 +19,6 @@
 
 /* POS tags */
 
-#include "pet-system.h"
 #include "cheap.h"
 #include "item.h"
 #include "grammar.h"

@@ -39,6 +39,12 @@
 
 #include <ecl.h>
 
+// TODO: do this properly if there is a new usable ECL version
+#ifdef ECL_VERSION_I
+#define make_string_copy make_base_string_copy
+#define make_simple_string make_simple_base_string
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

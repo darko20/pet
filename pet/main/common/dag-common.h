@@ -213,7 +213,7 @@ dag_node *dag_get_path_value_l(dag_node *dag, list_int *path);
 /** Convert a list encoded in a feature structure into a STL list of dag
  *  nodes.
  */
-list<dag_node *> dag_get_list(dag_node* first);
+std::list<dag_node *> dag_get_list(dag_node* first);
 
 /** Build a feature structure list from \a l in reverse order.
  *  A list in feature structure encoding will be produced, with the \c FIRST

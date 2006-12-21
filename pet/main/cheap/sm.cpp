@@ -21,13 +21,13 @@
 
 #include "sm.h"
 #include "hash.h"
-#include "pet-system.h"
 #include "lex-tdl.h"
 #include "utility.h"
 #include "settings.h"
 #include "options.h"
 #include "grammar.h"
 #include "item.h"
+#include <sstream>
 
 int
 tSMFeature::hash() const
@@ -388,7 +388,7 @@ tMEM::~tMEM()
 string
 tMEM::description()
 {
-    ostringstream desc;
+    std::ostringstream desc;
     desc << "MEM[" << string(fileName()) << "] "
          << _weights.size() << "/" << _ctxts;
 

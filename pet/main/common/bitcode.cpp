@@ -19,7 +19,6 @@
 
 /* class to represent bitvectors of fixed size */
 
-#include "pet-system.h"
 #include "bitcode.h"
 #include "list-int.h"
 #include "dumper.h"
@@ -259,12 +258,12 @@ int Hash(const bitcode &C)
   return 0;
 }
 
-ostream& operator<<(ostream& O, const bitcode& C)
+std::ostream& operator<<(std::ostream& O, const bitcode& C)
 {
   for(int i=0; i < C.sz; i++)
     {
       if(C.member(i)) O << i << " "; 
     }
-  O << endl;
+  O << std::endl;
   return O;
 }

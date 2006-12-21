@@ -19,20 +19,12 @@
 
 /** Functions for special and builtin types */
 
-#include "flop.h"
+//#include "flop.h"
 
-/** Register a new builtin type with name \a name */
-int
-new_bi_type(char *name)
-{
-    type *t = new_type(name, false);
-    t->def = new_location("builtin", 0, 0);
-    return t->id;
-}
-
-/** Initialize the builtin types with the topmost type in the hierarchy */
+/** Initialize the builtin types with the topmost type in the hierarchy *
 void
 initialize_builtins()
 {
     BI_TOP = new_bi_type("*top*");
 }
+*/

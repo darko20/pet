@@ -6,10 +6,10 @@
 #ifndef _TITEMPRINTER_H
 #define _TITEMPRINTER_H
 
+#include "item.h"
 #include "errors.h"
 #include <fstream>
 
-#include "item.h"
 
 /** A virtual base class to have a generic print service for chart items.
  *
@@ -86,7 +86,7 @@ private:
   void print_it(const tItem *item, bool passive, bool left_ext);
 
   item_map _items;
-  ofstream _out;
+  std::ofstream _out;
   int _chart_id, _item_id;
 };
 
@@ -290,7 +290,7 @@ private:
 class tJxchgPrinter : public tItemPrinter {
 public:
   /** Print items onto stream \a out. */
-  tJxchgPrinter(ostream &out) : _out(out) {}
+  tJxchgPrinter(std::ostream &out) : _out(out) {}
   
   virtual ~tJxchgPrinter() {}
 
@@ -303,7 +303,7 @@ public:
 private:
   void print_yield(const tInputItem *item);
 
-  ostream &_out;
+  std::ostream &_out;
 };
 
 #endif

@@ -25,6 +25,8 @@
 #define _POSTAG_H_
 
 #include "types.h"
+#include <vector>
+#include <string>
 
 /** Implements a list of POS tags with probabilities. All string handling is
  *  case insensitive.
@@ -37,7 +39,8 @@ class postags
   /** Create a set of POS tags with \a tagslist and \a probslist.
    * \pre the \c size() of the lists has to be equal.
    */
-  postags(const vector<string> &tagslist, const vector<double> &probslist);
+  postags(const std::vector<std::string> &tagslist,
+          const std::vector<double> &probslist);
 #if 0
   /** Create a set of POS tags specified for the stem of \a ff by the setting
    * \c type-to-pos.

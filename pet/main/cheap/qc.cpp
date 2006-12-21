@@ -22,7 +22,6 @@
 #include "pet-config.h"
 #ifdef QC_PATH_COMP
 
-#include "pet-system.h"
 #include "qc.h"
 #include "parse.h"
 #include "grammar.h"
@@ -31,6 +30,8 @@
 #include "settings.h"
 #include "cheap.h"
 #include "failure.h"
+
+#include <queue>
 
 // _fix_me_ this should not be hardwired (need to make sure it exists)
 #define DUMMY_ATTR "ARGS"
@@ -142,7 +143,7 @@ choose_paths(FILE *f,
         // Pursue a greedy strategy: Choose the path that covers the largest
         // number of remaining sets which are not yet covered.
 
-        priority_queue<pq_item<int, int> > candidates;
+        std::priority_queue<pq_item<int, int> > candidates;
 
         for(set<int>::iterator iter = fail_sets[d].begin();
             iter != fail_sets[d].end(); ++iter)
@@ -235,7 +236,7 @@ compute_qc_sets(FILE *f, const char *tname,
 
     int n = 0;
     double count_so_far = 0;
-    priority_queue<pq_item<int, list_int *> > sets_by_size;
+    std::priority_queue<pq_item<int, list_int *> > sets_by_size;
     int maxpathid = 0;
 
     while(!sets_by_frequency.empty())
@@ -365,7 +366,7 @@ compute_qc_traditional(FILE *f, const char *tname,
                        map<int, double> &paths,
                        int max)
 {
-    priority_queue< pq_item<double, int> > top_failures;
+    std::priority_queue< pq_item<double, int> > top_failures;
     
     for(map<int, double>::iterator iter = paths.begin();
         iter != paths.end(); ++iter)

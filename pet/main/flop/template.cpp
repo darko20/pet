@@ -19,16 +19,6 @@
 
 /* expansion of TDL templates */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-
 #include "options.h"
 #include "flop.h"
 #include "utility.h"

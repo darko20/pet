@@ -60,7 +60,7 @@ enum tokenizer_id {
 
 extern tokenizer_id opt_tok;
 
-extern string opt_tsdb_dir, opt_jxchg_dir;
+extern std::string opt_tsdb_dir, opt_jxchg_dir;
 
 #define PACKING_EQUI  (1 << 0)
 #define PACKING_PRO   (1 << 1)

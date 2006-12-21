@@ -70,7 +70,8 @@ class tMorphAnalysis
   /** Two analyses are equal if the base form and the inflection derivation are
    *  equal
    */
-  struct equal : public binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
+  struct equal :
+    public std::binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
     bool operator()(tMorphAnalysis &a, tMorphAnalysis &b) {
       return a == b;
     }
@@ -80,7 +81,7 @@ class tMorphAnalysis
   list<type_t> _rules;
 
   struct less_than 
-    : public binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
+    : public std::binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
     bool operator()(tMorphAnalysis &a, tMorphAnalysis &b) {
       if (a.base() < b.base()) return true;
       if (a.base() == b.base()) {
@@ -204,8 +205,8 @@ class tMorphAnalyzer
    */
   bool _rule_filter;
 
-  multimap<string, tMorphAnalysis *> _irregs_by_stem;
-  multimap<string, tMorphAnalysis *> _irregs_by_form;
+  std::multimap<string, tMorphAnalysis *> _irregs_by_stem;
+  std::multimap<string, tMorphAnalysis *> _irregs_by_form;
 
   
   friend class morph_trie;

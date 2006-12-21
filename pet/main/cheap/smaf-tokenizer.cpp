@@ -23,6 +23,9 @@
 
 #include <iostream>
 
+using std::cout;
+using std::endl;
+
 #include <xercesc/dom/DOM.hpp> 
 #include <xercesc/parsers/XercesDOMParser.hpp>
 #include <xercesc/util/XMLString.hpp>
@@ -43,7 +46,7 @@ string getTextContent_string(DOMElement* element);
 tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok);
 
 void downcase(string &s) {
-  int i;
+  unsigned int i;
 
   for (i=0; i!=s.length(); i++)
     {

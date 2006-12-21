@@ -20,9 +20,13 @@
 /* general helper functions and classes */
 
 #include "pet-config.h"
-#include "pet-system.h"
 #include "utility.h"
 #include "errors.h"
+
+#include <sys/stat.h>
+
+using std::string;
+using std::list;
 
 /** "Safe" \c malloc: call \c malloc and throw an error if
  *   it returns \c NULL.

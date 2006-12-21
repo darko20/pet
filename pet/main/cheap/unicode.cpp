@@ -22,9 +22,10 @@
 // facilities. The ICU library implements the required functionality.
 //
 
-#include "pet-system.h"
 #include "errors.h"
 #include "unicode.h"
+
+using std::string;
 
 EncodingConverter *Conv = 0;
 // \todo obsolete, except for yy

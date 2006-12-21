@@ -1,5 +1,6 @@
 # -*- makefile -*-
 
+#	pet-system.h		\
 EXTRA_DIST = bitcode.cpp	\
 	bitcode.h		\
 	builtins.h		\
@@ -32,7 +33,6 @@ EXTRA_DIST = bitcode.cpp	\
 	list-int.h		\
 	mfile.c			\
 	mfile.h			\
-	pet-system.h		\
 	settings.cpp		\
 	settings.h		\
 	typecache.h		\

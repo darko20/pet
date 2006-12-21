@@ -19,7 +19,6 @@
 
 /* i/o operations for simple typed dags */
 
-#include "pet-system.h"
 #include "dumper.h"
 #include "dag.h"
 #include "types.h"

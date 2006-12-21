@@ -20,11 +20,13 @@
 /** \file symtab.h
  * Symbol tables: mappings from strings to information via unique numeric IDs.
  */
+#ifndef SYMTAB_H
+#define SYMTAB_H
 
 #include <string>
 #include <map>
+#include <vector>
 
-extern int Hash(const string &s);
 
 /** Class template for symbol tables: tables that associate names (strings)
  *  with some other data via a unique id, that is maintained by the symbol
@@ -34,10 +36,10 @@ extern int Hash(const string &s);
 template <class info> class symtab
 {
  private:
-    vector<string> names;
-    map<string, int> ids;
+    std::vector<std::string> names;
+    std::map<std::string, int> ids;
     
-    vector<info> infos;
+    std::vector<info> infos;
     int n;
     
  public:
@@ -48,7 +50,7 @@ template <class info> class symtab
 
     /** Add a new symbol \a name to the table */
     int
-    add(const string& name)
+    add(const std::string& name)
     {
         names.push_back(name);
         infos.push_back(info());
@@ -59,9 +61,9 @@ template <class info> class symtab
     }
     
     /** Return the id for \a name, or -1 if it does not exist in the table. */
-    int id(const string &name) const
+    int id(const std::string &name) const
     {
-        map<string, int>::const_iterator it = ids.find(name);
+        std::map<std::string, int>::const_iterator it = ids.find(name);
         if(it != ids.end())
             return it->second;
         else
@@ -71,7 +73,7 @@ template <class info> class symtab
     /** \brief Return the name associated with \a id. Will be the empty string
      *  if \a id is greater or equal to number().
      */
-    const string &name(int id) const
+    const std::string &name(int id) const
     {
         return names[id];
     }
@@ -90,3 +92,4 @@ template <class info> class symtab
         return n;
     }
 };
+#endif

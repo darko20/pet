@@ -20,8 +20,8 @@
 /* Implementation of class to maintain sets of permissible paths in word
    hypothesis graphs */
 
-#include "pet-system.h"
 #include "paths.h"
+#include <algorithm>
 
 tPaths::tPaths()
     : _all(true), _paths()

@@ -19,11 +19,6 @@
 
 /* conversion from TDL representation to dags */
 
-#include <cassert>
-#include <cstdio>
-#include <vector>
-#include <string>
-
 #include "options.h"
 #include "flop.h"
 #include "dag-arced.h"

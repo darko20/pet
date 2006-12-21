@@ -19,7 +19,6 @@
 
 /* memory management for dags */
 
-#include "pet-system.h"
 #include "dag.h"
 
 int allocated_nodes = 0, allocated_arcs = 0;
