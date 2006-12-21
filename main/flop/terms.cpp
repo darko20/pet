@@ -19,11 +19,8 @@
 
 /* internal TDL term representation - constructors and copy constructors */
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
 #include "flop.h"
+#include "hierarchy.h"
 
 struct avm *new_avm()
 {

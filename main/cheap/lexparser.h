@@ -205,7 +205,7 @@ private:
   list<tMorphology *> _morphs;
   list<tLexicon *> _lexica;
 
-  queue<class lex_task *> _agenda;
+  std::queue<class lex_task *> _agenda;
 
   /** A "chart" of incomplete lexical items (stemming from multi word entries).
    * These have to be deleted after lexical processing, or, alternatively, when

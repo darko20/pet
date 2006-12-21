@@ -21,7 +21,6 @@
  * abstracts away from low level representation (byteorder etc)
  */
 
-#include "pet-system.h"
 #include "byteorder.h"
 #include "dumper.h"
 
@@ -44,7 +43,7 @@ dumper::dumper(const char *fname, bool write)
   _f = fopen(fname, _write ? "wb" : "rb");
 
   if(_f == NULL)
-    throw tError("unable to open file `" + string(fname) + "'");
+    throw tError("unable to open file `" + std::string(fname) + "'");
 
   _buff = new char[BUFF_SIZE];
   setvbuf(_f, _buff, _IOFBF, BUFF_SIZE);

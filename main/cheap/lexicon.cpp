@@ -65,7 +65,7 @@ lex_stem::instantiate()
 }
 
 
-vector<string>
+std::vector<std::string>
 lex_stem::get_stems() {
   fs_alloc_state FSAS;
   vector <string> orth;
@@ -136,7 +136,7 @@ lex_stem::get_stems() {
 
 lex_stem::lex_stem(type_t instance_type //, const modlist &mods
                    , type_t lex_type
-                   , const list<string> &orths)
+                   , const std::list<std::string> &orths)
   : _id(next_id++), _instance_type(instance_type)
   , _lexical_type(lex_type == -1 ? leaftype_parent(instance_type) : lex_type)
                   // , _mods(mods)

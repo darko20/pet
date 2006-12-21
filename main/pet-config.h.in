@@ -84,9 +84,6 @@
    to 0 otherwise. */
 #undef HAVE_MALLOC
 
-/* Define to 1 if you have the <malloc.h> header file. */
-#undef HAVE_MALLOC_H
-
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
@@ -244,6 +241,9 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* "directory path separator char" */
+#undef PATH_SEP
+
 /* Define to 1 if the C compiler supports function prototypes. */
 #undef PROTOTYPES
 
@@ -261,7 +261,7 @@
    release 3. */
 #undef SETVBUF_REVERSED
 
-/* The size of `int *', as computed by sizeof. */
+/* The size of a `int *', as computed by sizeof. */
 #undef SIZEOF_INT_P
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -303,7 +303,7 @@
 /* Define to rpl_realloc if the replacement function should be used. */
 #undef realloc
 
-/* Define to `unsigned int' if <sys/types.h> does not define. */
+/* Define to `unsigned' if <sys/types.h> does not define. */
 #undef size_t
 
 /* Define as `fork' if `vfork' does not work. */

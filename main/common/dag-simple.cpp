@@ -32,7 +32,6 @@
    dag_unify2 (non-destructive unification) and
    dag_unify3 (semi-destructive unification) */
 
-#include "pet-system.h"
 #include "dag.h"
 #include "dag-arced.h"
 #include "types.h"

@@ -21,7 +21,6 @@
 
 #include "grammar.h"
 
-#include "pet-system.h"
 #include <sys/param.h>
 
 #include "cheap.h"
@@ -36,9 +35,6 @@
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
-//#ifdef ONLINEMORPH
-//#include "morph.h"
-//#endif
 
 #include "item-printer.h"
 

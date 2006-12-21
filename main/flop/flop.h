@@ -24,12 +24,7 @@
 #ifndef _FLOP_H_
 #define _FLOP_H_
 
-#include <stdio.h>
-#include <locale.h>
-
-using namespace std;
-
-#include <vector>
+//using namespace std;
 
 #include "list-int.h"
 #include "symtab.h"
@@ -460,6 +455,9 @@ void indent (FILE *f, int nr);
 struct type *new_type(const string &name, bool is_inst, bool define = true);
 /** allocates memory for new type - returns pointer to initialized struct */
 
+/** Register a new builtin type with name \a name */
+int new_bi_type(const char *name);
+
 /** A special form of strcat which returns a new string containing 
  *  \a old + \a add.
  *  \a old may be NULL, then this is equal to \code strdup(add) \endcode
@@ -540,29 +538,6 @@ void initialize_builtins();
  */
 void tdl_start(int toplevel);
 
-/** @name hierarchy.cc */
-/*@{*/
-/** Check and complete the hierarchy to get a BCPO
- *  \param propagate_status if \c true, propagate the status values through the
- *            hierarchy as the last step
- */
-bool process_hierarchy(bool propagate_status);
-
-/** Add type with id \a s to the hierarchy */
-void register_type(int s);
-/** Establish an immediate subtype relation between \a sub and \a super. */
-void subtype_constraint(int sub, int super);
-/** Remove all sub- and supertype relations of type \a t. */
-void undo_subtype_constraints(int t);
-
-/** Return the immediate subtypes of \a t */
-list<int> immediate_subtypes(int t);
-/** Return the immediate supertypes of \a t */
-list<int> immediate_supertypes(int t);
-
-/** Print the hierarchy readably for debugging purposes */
-void print_hierarchy(FILE *f);
-/*@}*/
 
 /** @name expand.cc */
 /*@{*/

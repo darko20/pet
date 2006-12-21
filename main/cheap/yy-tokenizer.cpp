@@ -29,6 +29,7 @@ inflrs: - "null" = do internal morph analysis
 
 #include "yy-tokenizer.h"
 #include "cheap.h"
+#include <iostream>
 
 tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
   : tTokenizer()
@@ -357,7 +358,8 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
 
   if(verbosity > 4)
     {
-      cerr << "received YY tokens:" << endl << s << endl << endl;
+      std::cerr << "received YY tokens:" << std::endl << s 
+                << std::endl << std::endl;
       fprintf(ferr, "[processing yy_tokenizer input]\n");
     };
   

@@ -19,17 +19,6 @@
 
 /* output for the CHIC system */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-#include <map>
-
 #include "flop.h"
 
 int save_lines = 1;

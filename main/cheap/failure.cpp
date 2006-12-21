@@ -19,9 +19,10 @@
 
 /* class representing a unification/subsumption failure */
 
-#include "pet-system.h"
 #include "failure.h"
 #include "types.h"
+
+using std::list;
 
 unification_failure::unification_failure()
   : _cyclic_paths()

@@ -19,13 +19,8 @@
 
 /* utility functions */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-
 #include "flop.h"
+#include "hierarchy.h"
 
 int strcount(char *s, char c)
 {
@@ -61,6 +56,7 @@ void indent (FILE *f, int nr)
   fprintf (f, "%*s", nr, "");
 }
 
+/** the constructor of the type struct */
 struct type *new_type(const string &name, bool is_inst, bool define)
 {
   struct type *t;
@@ -97,6 +93,15 @@ struct type *new_type(const string &name, bool is_inst, bool define)
   t -> parents = 0;
 
   return t;
+}
+
+/** Register a new builtin type with name \a name */
+int
+new_bi_type(const char *name)
+{
+    type *t = new_type(name, false);
+    t->def = new_location("builtin", 0, 0);
+    return t->id;
 }
 
 char *add_inflr(char *old, char *add)

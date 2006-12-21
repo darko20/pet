@@ -30,8 +30,6 @@
 #include <vector>
 #include <string> 
 
-using namespace std;
-
 // types, attributes, and status are represented by (small) integers
 
 /** @name Status
@@ -89,7 +87,7 @@ extern char **printnames;
 extern type_t last_dynamic;
 #ifdef DYNAMIC_SYMBOLS
 /** An extensible vector of dynamic type names */
-extern vector<string> dyntypename;
+extern std::vector<std::string> dyntypename;
 #endif
 /*@}*/
 
@@ -132,7 +130,7 @@ type_t lookup_code(const class bitcode &b);
 #include <list>
 
 /** Immediate supertypes for each non-leaftype. */
-extern vector< list<int> > immediateSupertype;
+extern std::vector< std::list<int> > immediateSupertype;
 #endif
 
 /** Dump the hierarchy to \a f in binary format (bitcodes and leaftypeparents).
@@ -242,12 +240,12 @@ undumpSupertypes(class dumper *f);
 /** Return the list of immediate supertypes of \a type.
  * \pre \a type must be a proper type.
  */
-const list<type_t> &immedate_supertypes(type_t type);
+const std::list<type_t> &immedate_supertypes(type_t type);
 
 /** Return the list of all supertypes of \a type including the type itself but
  * excluding \c *top*.
  */
-const list<type_t> &all_supertypes(type_t type);
+const std::list<type_t> &all_supertypes(type_t type);
 #endif
 
 /** Return \c true if \a a is a subtype of \a b, computed using the

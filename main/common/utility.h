@@ -28,19 +28,9 @@
 #include <list> 
 #include <string>
 
-using namespace std;
-
+// define the path separator char with the configure utility
 #ifdef WINDOWS
 #define strcasecmp stricmp
-#define PATH_SEP "\\"
-#endif
-
-#ifdef linux
-#define PATH_SEP "/"
-#endif
-
-#ifdef macos
-#define PATH_SEP ":"
 #endif
 
 /** allocates \a size bytes of memory - throw error when out of memory */
@@ -69,10 +59,10 @@ void strtoupper(char *s);
 extern int strtoint(const char *s, const char *errloc, bool = false);
 
 /** convert standard C string mnemonic escape sequences in \a s */
-string convert_escapes(const string &s);
+std::string convert_escapes(const std::string &s);
 
 /** escape all '"' and '\' in string \a s using '\' */
-string escape_string(const string &s);
+std::string escape_string(const std::string &s);
 
 /** return current date and time in static string; client must not free() */
 char *current_time(void);
@@ -85,12 +75,12 @@ bool file_exists_p(const char *filename);
  *           character, the appropriate substring otherwise
  *           (with the path separator at the end)
  */
-string dir_name(const char *pathname);
+std::string dir_name(const char *pathname);
 
 /** Extract only the filename part from a pathname, i.e., without directory and
  *  extension components.
  */
-string raw_name(const char *pathname);
+std::string raw_name(const char *pathname);
 
 /** \brief Check if \a name , with or without extension \a ext, is the name of
  *  a readable file. If \base is given in addition, take the directory part of
@@ -103,7 +93,7 @@ string raw_name(const char *pathname);
  * \returns the full pathname of the file, if it exists with or without
  *          extension, an empty string otherwise.
  */
-string 
+std::string 
 find_file(const char *name, const char *extension, const char *base = NULL);
 
 /** Produce an output file name from an input file name \a in by replacing the 
@@ -111,21 +101,21 @@ find_file(const char *name, const char *extension, const char *base = NULL);
  *  \a newextension otherwise.
  *  \returns the new string
  */
-string
-output_name(const string &name, char *oldextension, const char *newextension);
+std::string
+output_name(const std::string &name, char *oldextension, const char *newextension);
 
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.
  */
-string read_line(FILE *f, int commentp = 0);
+std::string read_line(FILE *f, int commentp = 0);
 
 /** Replace all occurences of \a oldText in \a s by \a newText. */
 void
-findAndReplace(string &s, const string &oldText, const string &newText);
+findAndReplace(std::string &s, const std::string &oldText, const std::string &newText);
 
 /** Split each string in a list of strings into tokens seperated by blanks. */
 void
-splitStrings(list<string> &strs);
+splitStrings(std::list<std::string> &strs);
 
 /** Predicate comparing two plain C strings for equality */
 struct cstr_eq {
@@ -150,7 +140,7 @@ struct cstr_lt_case {
 
 /** A function object comparing two strings lexicographically */
 struct string_lt {
-  bool operator()(const string &s, const string &t) const {
+  bool operator()(const std::string &s, const std::string &t) const {
     return strcmp(s.c_str(), t.c_str()) < 0;
   }
 };
@@ -159,7 +149,7 @@ struct string_lt {
  * case.
  */
 struct string_lt_case {
-  bool operator()(const string &s, const string &t) const {
+  bool operator()(const std::string &s, const std::string &t) const {
     return strcasecmp(s.c_str(), t.c_str()) < 0;
   }
 };

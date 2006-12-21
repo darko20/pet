@@ -20,8 +20,6 @@
 /* interface to the [incr tsdb()] system */
 
 #include "tsdb++.h"
-#include "pet-system.h"
-
 #include "cheap.h"
 #include "parse.h"
 #include "chart.h"
@@ -31,6 +29,9 @@
 #ifdef YY
 # include "yy.h"
 #endif
+
+#include<sys/time.h>
+#include<sstream>
 
 statistics stats;
 

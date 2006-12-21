@@ -200,13 +200,13 @@ bool dag_valid(dag_node *dag);
  *                    produced, the cyclic result will be copied to this
  *                    variable, if it is non-NULL.
  */
-list<class unification_failure *>
+std::list<class unification_failure *>
 dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool all_failures,
                        struct list_int *initial_path = 0,
                        dag_node **result_root = 0);
 
 /** Return all (non-cyclic) paths from \a dag to \a search */
-list<struct list_int *> dag_paths(dag_node *dag, dag_node *search);
+std::list<struct list_int *> dag_paths(dag_node *dag, dag_node *search);
 
 /** Return a list of unification_failure points by replaying a (failing)
  *  subsumption.
@@ -217,7 +217,7 @@ list<struct list_int *> dag_paths(dag_node *dag, dag_node *search);
  * \param backward the \a backward argument to dag_subsumes()
  * \param all_failures record all failures or only the first one
  */
-list<class unification_failure *>
+std::list<class unification_failure *>
 dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
                           bool &forward, bool &backward,
                           bool all_failures);
@@ -266,7 +266,7 @@ void dag_print_fed_safe(FILE *f, dag_node *dag);
 /** Print \a dag to \a f in a special, compact syntax, originally intended for
  *  exchange with Java servers/clients.
  */
-void dag_print_jxchg(ostream &f, dag_node *dag);
+void dag_print_jxchg(std::ostream &f, dag_node *dag);
 
 /** @name Generation Protected Slots
  * Accessor functions for the generation protected slots -- inlined for

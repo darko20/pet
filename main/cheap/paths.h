@@ -27,6 +27,9 @@
 #include <list>
 #include <set>
 
+using std::list;
+using std::set;
+
 /** Maintain sets of permissible paths (in a word hypothesis graph)
  *  for items.  Each path is identified by an positive integer
  *  id. This class abstracts from a specific implementation of what

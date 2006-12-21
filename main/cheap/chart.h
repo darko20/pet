@@ -26,6 +26,7 @@
 #define _CHART_H_
 
 #include "item.h"
+#include <queue>
 
 /** Chart data structure for parsing, aka dynamic programming */
 class chart {
@@ -34,7 +35,7 @@ public:
    *  proper destruction of items on chart destruction.
    *  \attention The function length() will return \a len + 1.
    */
-  chart(int len, auto_ptr<item_owner> owner);
+  chart(int len, std::auto_ptr<item_owner> owner);
   ~chart();
 
   /** Add item to the appropriate internal data structures, depending on its
@@ -107,7 +108,7 @@ private:
   vector< list<tItem *> > _Ca_start, _Ca_end;
   vector< vector < list<tItem*> > > _Cp_span;
 
-  auto_ptr<item_owner> _item_owner;
+  std::auto_ptr<item_owner> _item_owner;
 
   friend class chart_iter;
   friend class chart_iter_span_passive;
@@ -386,7 +387,7 @@ void chart::shortest_path(list <tItem *> &result, weight_fn_t weight_fn
   }
 
   /** Extract all best paths */
-  queue < weight_t > current ;
+  std::queue < weight_t > current ;
   bool *unseen = new bool[size + 1] ;
   for (u = 0 ; u <= size ; u++) unseen[u] = true ;
 

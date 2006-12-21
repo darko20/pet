@@ -19,8 +19,6 @@
 
 /* command line options */
 
-#include <stdlib.h>
-
 #include "flop.h"
 #include "getopt.h"
 #include "options.h"

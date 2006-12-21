@@ -24,7 +24,10 @@
 #ifndef _PARSE_H_
 #define _PARSE_H_
 
-#include "tsdb++.h"
+#include "errors.h"
+#include "cheaptimer.h"
+#include <string>
+#include <list>
 
 /** Gives the total time spent in parsing (more specifically: in the function
  *  parse_loop).
@@ -41,7 +44,7 @@ extern timer TotalParseTime;
  * \param errors The errors occured during parsing, e.g., resource exhaustion
  * \param id A unique id for this parse.
  */
-void analyze(string input, class chart *&C, 
-	     class fs_alloc_state &FSAS, list<tError> &errors, int id = 0);
+void analyze(std::string input, class chart *&C, class fs_alloc_state &FSAS,
+             std::list<tError> &errors, int id = 0);
 
 #endif

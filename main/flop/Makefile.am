@@ -30,8 +30,8 @@ nodist_flop_SOURCES = bitcode.cpp	\
 	types.cpp			\
 	utility.cpp
 
-flop_SOURCES = builtins.cpp	\
-	corefs.cpp		\
+# builtins.cpp	
+flop_SOURCES = corefs.cpp		\
 	dag-tdl.cpp		\
 	dump.cpp		\
 	expand.cpp		\

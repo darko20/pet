@@ -19,16 +19,6 @@
 
 /* printing of internal representation in TDL syntax */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-
 #include "flop.h"
 
 int tdl_save_lines = 1;

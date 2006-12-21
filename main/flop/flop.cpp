@@ -19,24 +19,15 @@
 
 /* main module (preprocessor) */
 
-#include <assert.h>
-#include <ctype.h>
-#include <malloc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>
 
-#include <algorithm>
 #include <sstream>
 
 #include "flop.h"
-#include "types.h"
+#include "hierarchy.h"
+#include "settings.h"
+#include "symtab.h"
 #include "options.h"
 #include "version.h"
 
@@ -67,6 +58,7 @@ mem_checkpoint(char *where)
     
     if(verbosity > 1)
     {
+        //fprintf(stderr, "Memory delta %luk (total %luk) [%s]\n"
         fprintf(stderr, "Memory delta %dk (total %dk) [%s]\n"
                 , ((size_t) sbrk(0) - last) / 1024
                 , ((size_t) sbrk(0)) / 1024, where);
@@ -426,7 +418,8 @@ int process(char *ofname) {
     return FILE_NOT_FOUND ;
   }
 
-  initialize_builtins();
+  /* Initialize the builtin types with the topmost type in the hierarchy */
+  BI_TOP = new_bi_type("*top*");
 
   flop_settings = new settings("flop", fname.c_str());
 

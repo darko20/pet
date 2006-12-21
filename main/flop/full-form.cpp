@@ -20,15 +20,6 @@
 /* read a full form table */
 
 #include <iostream>
-#include <cstdlib>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-
 #include <fstream>
 
 #include "flop.h"
@@ -198,6 +189,7 @@ void read_morph(string fname)
           f.clear();
   }
   
+  //fprintf(fstatus, "%lu entries.\n", fullforms.size());
   fprintf(fstatus, "%d entries.\n", fullforms.size());
 }
 

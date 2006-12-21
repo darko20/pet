@@ -19,11 +19,11 @@
 
 /* class `chart' */
 
-#include "pet-system.h"
 #include "cheap.h"
 #include "chart.h"
 #include "tsdb++.h"
 #include "item-printer.h"
+
 
 //#define DEBUG
 

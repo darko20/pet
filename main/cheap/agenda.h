@@ -23,6 +23,9 @@
 #ifndef _AGENDA_H_
 #define _AGENDA_H_
 
+#include <queue>
+#include <vector>
+
 /** agenda: a priority queue adapter */
 template <typename T, typename LESS_THAN > class agenda {
 public:
@@ -45,7 +48,7 @@ public:
 
 private:
 
-  std::priority_queue<T *, vector<T *>, LESS_THAN> _A;
+  std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
 };
 
 #endif

@@ -20,7 +20,6 @@
 /* implementation of LKB style morphological analysis and generation */
 
 #include "pet-config.h"
-#include "pet-system.h"
 #include "morph.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
@@ -182,7 +181,7 @@ string get_next_subrule(string &s,
   // the magic strings `prefix', `suffix' or `letter-set'
   //
   string::size_type open = s.find("(", start);
-  if(open == STRING_NPOS || ++open == s.length()) return string();
+  if(open == string::npos || ++open == s.length()) return string();
 
   //
   // now, extract the subrule or letterset, bounded by a non-escaped closing
@@ -227,7 +226,7 @@ string get_next_letter_set(string &s,
   // first, find opening paren and confirm magic string `letter-set'
   //
   string::size_type open = s.find("(", start);
-  if(open == STRING_NPOS || ++open == s.length()) return string();
+  if(open == string::npos || ++open == s.length()) return string();
   if(s.compare(open, 10, "letter-set") != 0) return string();
 
   return get_next_subrule(s, open, stop, true);
@@ -246,7 +245,7 @@ string get_next_list(string &s, string::size_type start,
   stop = start;
 
   string::size_type openp = s.find("(", start);
-  if(openp == STRING_NPOS)
+  if(openp == string::npos)
     return string();
 
   int plevel = 0;

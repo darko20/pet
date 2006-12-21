@@ -22,17 +22,8 @@
 /* straightforward hand implemented top down parser, builds simple internal
    representation that closely resembles the BNF */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-
 #include "flop.h"
+#include "hierarchy.h"
 #include "options.h"
 #include "lex-tdl.h"
 

@@ -24,7 +24,7 @@
 #ifndef _LEXICON_H_
 #define _LEXICON_H_
 
-#include "fs.h"
+#include "types.h"
 
 /** A lexicon entry. */
 class lex_stem
@@ -51,13 +51,13 @@ class lex_stem
    *              \c orth-path.
    */
   lex_stem(type_t instance_type, type_t lex_type = -1
-           , const list<string> &orths = list<string>());
+           , const std::list<std::string> &orths = std::list<std::string>());
   ~lex_stem();
 
   /** (Re)create the feature structure for this entry from the dags of the
    *  instance and the root type of the instance.
    */
-  fs instantiate();
+  class fs instantiate();
 
   /** Return the (internal) type name for this entry */
   inline const char *name() const { return type_name(_instance_type); }
@@ -114,7 +114,7 @@ class lex_stem
   /** array of _nwords strings */
   char **_orth;
 
-  vector<string> get_stems();
+  std::vector<std::string> get_stems();
 
   friend class tGrammar;
 };
@@ -174,7 +174,7 @@ class full_form
       // it's ok to compare pointers here, as stems are not copied
   }
 
-  fs instantiate();
+  class fs instantiate();
 
   inline const lex_stem *stem() const { return _stem; }
 

@@ -19,7 +19,6 @@
 
 /* operations on dags that are shared between different unifiers */
 
-#include "pet-system.h"
 #include "grammar-dump.h"
 #include "dag.h"
 #include "types.h"

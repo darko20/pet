@@ -22,7 +22,9 @@
 #ifndef _SM_H_
 #define _SM_H_
 
-#include "pet-system.h"
+#include <list>
+#include <vector>
+#include <string>
 
 #define SM_EXT ".sm"
 
@@ -34,7 +36,7 @@
 class tSMFeature
 {
  public:
-    tSMFeature(const vector<int> &v)
+    tSMFeature(const std::vector<int> &v)
         : _v(v)
     {}
 
@@ -45,7 +47,7 @@ class tSMFeature
     print(FILE *f) const;
     
  private:
-    vector<int> _v;
+    std::vector<int> _v;
     
     friend int
     compare(const tSMFeature &f1, const tSMFeature &f2);
@@ -82,31 +84,32 @@ class tSM
     { return _G; }
 
     virtual double
-    scoreLocalTree(class grammar_rule *, list<class tItem *>);
+    scoreLocalTree(class grammar_rule *, std::list<class tItem *>);
     virtual double
-    scoreLocalTree(class grammar_rule *, vector<class tItem *>);
+    scoreLocalTree(class grammar_rule *, std::vector<class tItem *>);
 
     virtual double
     scoreLeaf(class tLexItem *);
-
+  
     /** Return the score for the hypothesis */
-    virtual double score_hypothesis(struct tHypothesis* hypo, list<tItem*> path);
+    virtual double 
+    score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path);
     
     class tSMMap *map()
     { return _map; }
 
     /** Return a description string suitable for printing.*/
-    virtual string
+    virtual std::string
     description() = 0;
 
  protected:
-    const string &
+    const std::string &
     fileName() const 
     { return _fileName; }    
 
  private:
     class tGrammar *_G;
-    string _fileName;
+    std::string _fileName;
 
     class tSMMap *_map;
 };
@@ -137,17 +140,17 @@ class tMEM : public tSM
     { return a + b; }
 
     /** Return a description string suitable for printing.*/
-    virtual string
+    virtual std::string
     description();
     
 
  private:
     
-    vector<double> _weights;
+    std::vector<double> _weights;
 
     /** Number of contexts this model was trained on. For reporting
         purposes only. */
-    string _ctxts;
+    std::string _ctxts;
 
     /** Format version of the model:
 	0: old format 
@@ -155,7 +158,7 @@ class tMEM : public tSM
     int _format;
 
     void
-    readModel(const string &fileName);
+    readModel(const std::string &fileName);
 
     void
     parseModel();

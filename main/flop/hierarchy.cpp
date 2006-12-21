@@ -19,10 +19,6 @@
 
 /* operations on type hierarchy */
 
-#include <cstdlib>
-#include <cstdio>
-#include <ctime>
-
 #include "bitcode.h"
 #include "flop.h"
 #include "hierarchy.h"

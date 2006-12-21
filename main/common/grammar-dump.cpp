@@ -19,8 +19,6 @@
 
 /* support functions for dumping/undumping of the grammar */
 
-#include "pet-system.h"
-#include "errors.h"
 #include "grammar-dump.h"
 
 void

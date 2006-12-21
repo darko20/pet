@@ -20,7 +20,6 @@
 /* chart items */
 
 #include "pet-config.h"
-#include "pet-system.h"
 #include <sys/param.h>
 
 #include "cheap.h"

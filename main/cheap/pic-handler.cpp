@@ -4,6 +4,7 @@
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
+#include <sstream>
 
 using namespace XERCES_CPP_NAMESPACE;
 
@@ -123,7 +124,7 @@ std::ostream &operator <<(std::ostream &out, const pic::pic_base_state &s) {
 
 /** Reject state transition \a from --> \a to */
 void reject(pic_base_state *to, pic_base_state *from) {
-  ostringstream ostr;
+  std::ostringstream ostr;
   ostr << "Can not change from " << from << " into " << to << endl;
   throw Error(ostr.str());
 }

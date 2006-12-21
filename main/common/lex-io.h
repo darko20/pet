@@ -28,8 +28,6 @@
 #include <cstdio>
 #include <string>
 
-using namespace std;
-
 /** maximal nesting depth of include files */
 #define MAX_LEX_NEST 16 
 
@@ -70,7 +68,7 @@ extern FILE *ferr, *fstatus;
 /** Push file \a fname onto include stack, where \a info provides a hint in
  *  which context the function is used.
  */
-void push_file(const string &fname, char *info);
+void push_file(const std::string &fname, char *info);
 /** Pop file from include stack
  *  \return nonzero if there are still open files, zero otherwise.
  */

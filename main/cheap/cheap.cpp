@@ -20,7 +20,6 @@
 /* main module (standalone parser) */
 
 #include "pet-config.h"
-#include "pet-system.h"
 #include "cheap.h"
 #include "parse.h"
 #include "chart.h"

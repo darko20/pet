@@ -32,6 +32,8 @@
 #include "grammar.h"
 #include "paths.h"
 #include "postags.h"
+#include "hashing.h"
+#include <functional>
 
 /** this is a hoax to get the cfrom and cto values into the mrs */
 void init_characterization();
@@ -434,7 +436,7 @@ public:
 
   /** compare two items for linear precendece; used to sort YY tokens */
   struct precedes 
-    : public binary_function<bool, tItem *, tItem *> {
+    : public std::binary_function<bool, tItem *, tItem *> {
     bool operator() (tItem *foo, tItem *bar) const {
       return foo->startposition() < bar->startposition();
     }
@@ -1182,13 +1184,14 @@ typedef list< tInputItem * > inp_list;
 typedef list< tInputItem * >::iterator inp_iterator;
 
 /** A virtual base class for predicates on items */
-struct item_predicate : public unary_function<bool, tItem *> {
+struct item_predicate : public std::unary_function<bool, tItem *> {
   virtual ~item_predicate() {}
   virtual bool operator()(tItem *item) = 0;
 };
 
 /** A function object comparing two items based on their score */
-struct item_greater_than_score : public binary_function<bool, tItem*, tItem*> {
+struct item_greater_than_score :
+  public std::binary_function<bool, tItem*, tItem*> {
   bool operator()(tItem *a, tItem *b) const {
     return a->score() > b->score();
   }

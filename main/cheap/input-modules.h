@@ -45,7 +45,7 @@ public:
 /** function object to compare two modules according to their priority (level)
  */
 struct less_than_module 
-  : public binary_function<bool, const tInputModule *, const tInputModule *> {
+  : public std::binary_function<bool, const tInputModule *, const tInputModule *> {
   bool operator()(const tInputModule *a, const tInputModule *b) {
     return a->level() < b->level();
   }

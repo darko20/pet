@@ -1,3 +1,7 @@
+- write a HOWTO (in pet.opendfki.de) that describes how to build the system
+  using a new SVN snapshot: aclocal && automake -a && autconf && ./configure
+  and describe configuration options
+
 - unpacking of edges does not terminate in some cases with unary rules
   fix: separate the local unary edges and do a fix point computation. This must
   terminate for correct grammars

@@ -19,7 +19,6 @@
 
 /* common operations on arced dags */
 
-#include "pet-system.h"
 #include "errors.h"
 #include "dag.h"
 #include "dag-arced.h"

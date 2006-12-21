@@ -31,10 +31,20 @@
 */
 
 #include "pet-config.h"
-#include "pet-system.h"
 #include "lex-io.h"
 #include "errors.h"
 #include "options.h"
+
+#include <cassert>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#ifdef HAVE_MMAP
+#include <sys/mman.h>
+#endif
+
+using std::string;
 
 static lex_file file_stack[MAX_LEX_NEST];
 static int file_nest = 0;

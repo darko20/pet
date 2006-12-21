@@ -21,7 +21,6 @@
 /* tokenizer base class and simple lingo tokenizer */
 
 #include "pet-config.h"
-#include "pet-system.h"
 #include "settings.h"
 #include "lingo-tokenizer.h"
 #include "utility.h"
@@ -219,7 +218,7 @@ tLingoTokenizer::do_it(string s) {
   {
       s = *pos;
       apo = s.find('\'');
-      if(apo == STRING_NPOS)
+      if(apo == std::string::npos)
       {
           // No apostrophe in word
           if(s.length() > 0)
@@ -227,7 +226,7 @@ tLingoTokenizer::do_it(string s) {
       }
       else
       {
-          if(s.find('\'', apo+1) != STRING_NPOS)
+          if(s.find('\'', apo+1) != std::string::npos)
               throw tError("tokenizer: more than one apostroph in word");
 	  
           if(apo == 0 || apo == s.length() - 1)
