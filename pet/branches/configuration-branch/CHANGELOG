@@ -1,0 +1,236 @@
+v0.99.??
+  (two changes by oe)
+  - repair damage to feature extraction in tSM::score_hypothesis() that i had
+    introduced when trying to suppress signed vs. unsigned comparison compiler
+    warnings;
+  - pass .readings. vector into unpacking routines by reference, so that the
+    accumulation of results actually becomes visible to the caller.
+  (small fix etc. bk)
+  - take identity2-id change back and replace it with a more direct access (for
+    compatibility)
+  - use ICU lowercase handling in lingo-tokenizer
+  - extract exhaustive/selective unpacking functions from collect_readings for
+    better readability.
+  - adapt configure.ac for (non-working) ecl 0.9i header file locations. Still
+    have to use 0.9h because of segfaults in 0.9i with fedora 5
+  (a couple of minor changes by oe)
+  - allow selective unpacking by default if `-packing' option is used;
+  - ignore nsolutions limit in forest construction phase when packing is on;
+    the rationale here is that (a) forest construction is cheap and (b) we need
+    to have the full forest available for selective unpacking to compute the
+    correct sequence of n-best results;
+  - fix bug in YY tokenizer: sort tokens by start position (possibly this could
+    be considered a bug in the lexparser neighborhood, actually: it generally
+    seems okay with tokens coming in out-of-order, but for multi-word lexical
+    entries, lexical lookup goes wrong);
+  - make SM reader robust on all current *feature- parameter values;
+  - ditch legacy tLexItem::identity2() method and use id() instead;
+  - update options `help' summary to reflect latest developments;
+  - eliminate compiler warning (on signed vs. unsigned integer comparison)
+
+v0.99.13
+  - oe integrated a change for the tsdb to escape the yield strings correctly
+  - fixed bug 'assertion: is_type() failed' which occured with packing and
+    dynamic symbols
+  - updated option description to contain the -tok=fsr option
+  - some reformatting
+  - added "EOM" so that Uli can properly handle MRS and partial output in HoG
+  - fixed syntax error in lingo-tokenizer.h which was detected by gcc 4.1.0
+  - SMAF XML input (incomplete)
+
+v0.99.12
+  - remove borland directory from configure/make process
+  - updated TODO list according to Jeres meeting
+  - integration of x-preprocessor code: code split for ecl/mrs/preprocessor
+    and change of library build, command line option -tok=fsr now activates
+    preprocessor code (if compiled in)
+  - changed mrs.system such that it puts the libmrs.a and mrs.h into the 
+    cheap subdirectory
+  - make item trait filtering work correctly (with oe in Jerez), which means
+    that main is now doing as well as the oe branch
+  - some code reformatting and code doc adaptation
+  - chart item copy and assignment constructor inhibition went into a macro
+  - fixed ecl_decode_string, which in some conditions returned improperly
+    terminated C strings
+  - generalized the find_file ugliness in cppbridge.cpp, sm.cpp and 
+    settings.cpp and added some nice pathname functionality in utility.cpp
+
+v0.99.11
+  - fixed error with incomplete characterization (hopefully)
+  - removed warnings on 64 bit machines in dag-tomabechi.h (only for gcc 3.4.4)
+
+v0.99.10
+  - renamed config.h(.in) to pet-config.h(.in) (avoid ecl like problems)
+  - removed problematic sub-shell executions of AC_CHECK_HEADERS
+  - added position-mapper.h to cheap_SOURCES in cheap/Makefile.am
+
+v0.99.9
+  - work on lexical psql database continued (unfinished)
+  - changed characterization to make it work with unfilling
+  - fixed performance problem in boost version of flop
+  - moved propagate_status from flop.cpp to hierarchy.cpp where it logically 
+    belongs 
+  - fixed wrong dumping of inflection rules in some situations with many
+    leaf types
+  - added morph.cpp patches provided by oe (oe@csli.stanford.edu) for escaping
+    certain characters in morph rules and applying irregular entries on every
+    level of analysis
+  - added some more comments
+  - added some virtural destructors gcc4.0 complains about
+  - added fs modifications for stem and form for Berthold
+  - fixed wrong chart position mapping. Now put into its own class and file 
+    position-mapper.h again
+  - corrected behaviour of dependency filter in case lex_exhaustive is used
+  - added printing of feature structures for fegramed
+
+v0.99.8
+  - patches provided by Eric Nichols <eric-n@is.naist.jp> (thanks a lot)
+    , fixing the following problems:
+    * flop bug on 2.6 kernels due to mmap problem
+    * correct creation of mrs.h file in the autoconf/make scripts (no longer
+      distributed by LKB)
+    * fix problems with kernel/architecture specific subdirectories in LKB
+  - patch provided by Francis Bond (thanks) concerning tsdb MWE's output 
+    included
+  - in all chart items that replay infl rules, it is attempted to unify either
+    the base or the surface form into "orth-path"."path-to-inflpos". The base
+    form is taken for all but the last of these, the surface form for the one
+    that satisfies the last infl rule
+  - added function dag_collect_symbols to dag_tomabechi.cpp to collect a type
+    symbol table for a given dag
+  - only tLexItems copy the _inflrs_todo list (saves a bit space)
+  - fixed filtering of duplicate morphology analyses
+  - moved code to collect readings from the chart into its own function
+  - cleaned up handling of global variables in chunk allocator
+
+v0.99.7
+  - merge in oe branch: pass_through_comments, LUI dumping, orthographemic-...
+  - minor code cleanup
+  - bug fix in derivation printer concerning multi word entries
+
+v0.99.6
+  - small fix in common/hashing.h and configure.ac to be able to configure
+    properly with cygwin
+  - optional application of the rule filter during morphological analysis
+    and fixed code to restrict the number of spelling rule applications
+  - bug fix: blanks were not stripped correctly on the right side of
+    orthographemic rules 
+  - bug fix in code assigning input items chart positions derived from external
+    positions
+
+v0.99.5
+  - dump chart in jxchg format even if an error occured, e.g., exhaustion of 
+    passive edges (only if enabled)
+  - deleted inactive code in grammar.cpp (punctuationp, translate_iso_chars)
+  - fixed wrong is_stem_token predicate in item.h
+  - fixed wrong string decoding in XML mode
+  - XML tokenizing works from stream as well as from file, DTD is now optional
+  - flop returns different exit codes depending on the error
+
+v0.99.4
+  - bugfixes and additions for XML input mode: missing infl tag, translate_iso,
+    state names are static members of the state classes, state factory now
+    creates new states, exception are correctly thrown and catched and are 
+    decorated with the error location ; read XML from stdin directly rather
+    than from file.
+  - the isomorphix translation has been put completely into the tokenizers
+  - temporarily removed the error "Duplicate failure path"; it is triggered
+    when the german grammar with new restrictors is used to compute unification
+    quickcheck paths (during computation of the rule filter)
+  - chart::shortest_path is now a template function that gets an additional
+    weight function object as argument
+
+v0.99.3
+  - restrictor can specify paths mixed with features (which are paths of length
+    one anyway)
+
+v0.99.2
+  - build process with automake && autoconfig && configure for flop and cheap,
+    boost and dumpgram binaries may be revived if used by anybody
+  - adaptation of source files to use automatically build config.h
+  - make the use of ICU really optional, i.e. make cheap work without ICU 
+    altogether. 
+  - corpus approximation (jxchg) output format provided anew
+  - separate switches for unification and subsumption quickcheck computation
+  - changed version mechanism to be supported by the auto... tools
+
+v0.99.1
+  - make XML input mode really optional, fixes in Makefile and cheap.cpp
+
+v0.99.0
+  Since this is the first entry, change descriptions are quite coarse
+  grained. This should maybe change in the future.
+
+  - Added doxygen compatible comments to most of the .h files, and some
+    comments to source files too.
+  - New input/lexical processing stage to allow more modularization and
+    flexible exchange of tokenization, morphology, etc.
+  - "japanese multiword bug" fixed
+  - Application of inflection and lexical rules can now be completed before any
+    syntactical processing takes place (which might be beneficial for 
+    chart dependencies in german)
+  - fixed bug in acyclic transitive reduction in the boost version of flop
+  - expansion failures (flop) now report the failure path
+
+  - XML input mode (also as an replacement for the whiteboard version)
+  - first version of fragmentary results in case of parse failure, maybe needs
+    more flexibility for better heuristics.
+  - activation of packing without restrictor setting does no longer lead to a
+    segmentation fault; packing is simply not activated.
+  - translation of iso chars to isomorphix in YY input mode
+  - [incr tsdb()] file dump mode
+  - version string now included in flop and cheap binaries. version number is
+    printed with usage information
+  - printer for hierarchies in VCG tool style, can be used in cheap and flop
+  - support for dynamic symbols
+  - dag_expand now does the job correctly using a scheme similar to delta
+    expansion.
+  - moved the whole agenda code into the .h file with the hope of some positive
+    inlining effects (and, besides, to get rid of another file).
+  - more flexible restrictor functionality
+
+  - lots of minor cleanup issues
+  - first attempt to CHANGELOG, TODO, BUGS, version.h 
+
+Done previously (from old ToDo file, partially redundant)
+
++ XML input mode
+  + complete DTD specification (Uli S. and bk did this)
+  + build SAX parser
+  + supersedes integration of bernd's (whiteboard) version
+
++ fragmentary results in case of parse failure (v1.0)
+  Fragmentsuche/-ausgabe im Falle von Parse-failures
+
++ integrate ecls LISP (seems to work now)
+  + unfilling in PET leads to wrong / incomplete results (German grammar)
+    re-expansion (dag_expand) gefixt
+  + packing/unpacking does characterization too
+
++ leda -> boost migration done and checked
+
++ CFROM/CTO fix: toplevel errors
+
++ bei packing ohne packing-restrictor: segfault, jetzt: Warning & disable
+
++ Nullfehler bei MRS muss Ausgabe produzieren
++ YY-mode macht kein translate-iso-chars
+
++ Schreiben von TSDB-Tabellen aus PET
+  + Erzeugen von item, parse und result tabellen, wenn PET in der HOG laeuft.
+    yy.cpp ausschlachten: TSDBFILEAPI !!
+  + Optionsbeschreibung einbauen
++ Counts fuer lexikalische Ambiguitaet
+
++ correct sorting of results according to score
++ -results=n option to get only the best n results
++ fullform-morphology gibt beim Drucken den Stem mit raus
++ Restricting the number of inflection rule applications
+
++ positions and counts for YY and XML tokenizer
+
++ japanese multiword bug (requires input chart redesign)
++? implement mrs/rmrs code - processor interface ?Is this implemented or not?
+
++ yy_tokenizer removed from yy.cpp
++ runtime selection of online-morphology vs full-forms

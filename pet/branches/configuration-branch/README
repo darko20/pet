@@ -1,0 +1,88 @@
+This directory contains the open source PET system. For license details 
+please refer to the LICENSE file.
+
+Overview
+========
+
+PET consists of two major parts:
+
+1) The `flop' preprocessor. It compiles a given grammar in TDL
+   format into a binary form usable by the runtime system.
+
+2) The `cheap' parser. It parses input with respect to a grammar in the
+   binary form produced by `flop'.
+
+Grammars
+========
+
+Two freely available open source grammars that are compatible with PET
+are the ERG (English, available from http://lingo.stanford.edu/ftp/erg.tgz,
+or http://lingo.stanford.edu) and JACY (Japanese,
+http://www.dfki.de/~siegel/grammar-download/JACY-grammar.html).
+
+If you want to contribute a grammar, or if you are looking for more
+grammars please have a look at www.delph-in.net
+
+Running it
+==========
+
+Binaries for Linux are provided. To run the binaries you need the
+(external) ICU and itsdb libraries (see below for details).
+
+Compiling it
+============
+
+If you want to compile yourself, you additionally need the boost
+library (for flop). The build system used for PET is gnu `make'.
+gcc/g++ version > 3.1.2 are known to work fine. 
+
+Doxygen compatible documentation is included in most header files and some of 
+the source files. Call 'make' in the root directory to build the documentation.
+
+For unit tests and source code documentation you can optionally use
+cppunit. Note that so far only small parts of the system take advantage of
+this.
+
+External Components
+===================
+
+ICU:
+http://oss.software.ibm.com/icu/index.html
+
+itsdb:
+http://www.coli.uni-sb.de/itsdb, also included in recent LKB
+distributions (http://www-csli.stanford.edu/~aac/lkb.html)
+
+Jam:
+http://www.perforce.com/jam/jam.html
+Also included in Boost (www.boost.org)
+
+cppunit:
+http://cppunit.sourceforge.net/
+
+doxygen:
+http://www.doxygen.org/
+
+When using (optional) XML input mode: Apache xerces C++ library:
+http://xml.apache.org/xerces-c/
+
+Layout of the sources
+=====================
+
+common/ contains the sources shared between `flop' and `cheap'.
+
+flop/ contains the sources for the preprocessor.
+
+cheap/ contains the sources for the parser.
+
+goofy/ contains the sources for an outdated GUI prototype. This hasn't been
+compiled for two years and probably won't work.
+
+Contact
+=======
+
+For questions, comments and bug reports please contact me at
+  
+  pet@coli.uni-sb.de
+
+
