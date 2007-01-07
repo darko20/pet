@@ -65,6 +65,12 @@
 /* Define to 1 if you have the <itsdb.h> header file. */
 #undef HAVE_ITSDB_H
 
+/* Define to 1 if you have the `cppunit' library (-lcppunit). */
+#undef HAVE_LIBCPPUNIT
+
+/* Define to 1 if you have the `log4cxx' library (-llog4cxx). */
+#undef HAVE_LIBLOG4CXX
+
 /* Define to 1 if you have the `pq' library (-lpq). */
 #undef HAVE_LIBPQ
 
@@ -261,7 +267,7 @@
    release 3. */
 #undef SETVBUF_REVERSED
 
-/* The size of a `int *', as computed by sizeof. */
+/* The size of `int *', as computed by sizeof. */
 #undef SIZEOF_INT_P
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -303,7 +309,7 @@
 /* Define to rpl_realloc if the replacement function should be used. */
 #undef realloc
 
-/* Define to `unsigned' if <sys/types.h> does not define. */
+/* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
 /* Define as `fork' if `vfork' does not work. */

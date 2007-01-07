@@ -548,6 +548,56 @@ AM_CONDITIONAL(LEXDB, [test x$lexdb = xtrue])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
+dnl Checking where is CppUnit (and if we have it)
+
+AC_ARG_WITH(cppunit,
+[AC_HELP_STRING([--with-cppunit@<:@=DIR@:>@], [use cppunit library in DIR])],
+[
+if test -d "${withval}"; then 
+    cppunit=true
+    CPPUNITDIR=${withval}
+else
+    cppunit=false
+    AC_MSG_ERROR(directory ${withval} not found for --with-cppunit)
+fi
+],
+[cppunit=true])
+
+if test x$cppunit = xtrue; then
+   if test -n "${CPPUNITDIR}"; then
+      LDFLAGS="$LDFLAGS -L${CPPUNITDIR}/lib"
+      CPPFLAGS="$CPPFLAGS -I${CPPUNITDIR}/include"
+   fi
+   AC_CHECK_LIB(cppunit,main,,AC_MSG_ERROR([This program requires CppUnit library.]))
+fi
+
+dnl Checking if user wants to use log4cxx (and if we have it)
+
+AC_ARG_WITH(log4cxx,
+[AC_HELP_STRING([--with-log4cxx@<:@=DIR@:>@], [use log4cxx library (default=yes)])],
+[
+case "${withval}" in
+    yes) log4cxx=true ;;
+    no)  log4cxx=false ;;
+    *)   log4cxx=true
+         LOG4CXXDIR=${withval};;
+esac
+], [log4cxx=true])
+
+if test -n "${LOG4CXXDIR}"; then
+   if test -d "${LOG4CXXDIR}"; then
+      LDFLAGS="$LDFLAGS -L${LOG4CXXDIR}/lib"
+      CPPFLAGS="$CPPFLAGS -I${LOG4CXXDIR}/include"
+   else
+      AC_MSG_WARN([directory ${LOG4CXXDIR} not found for --with-log4cxx; DISABLED])
+      log4cxx=false
+   fi
+fi
+
+if test x$log4cxx = xtrue ; then
+   AC_CHECK_LIB(log4cxx,main,,AC_MSG_WARN([log4cxx library not found. Logging will not be available.]))
+fi
+
 dnl What the *&^@~! is that?
 
 AC_ARG_ENABLE(external-dictionary,
@@ -736,6 +786,8 @@ feature_avail x$preproc xtrue "preprocessor code with ecl"
 feature_avail x$icu xtrue "ICU"
 feature_avail x$xml xtrue "XML input mode"
 feature_avail x$lexdb xtrue "External SQL dictionary"
+feature_avail x$cppunit xtrue "CppUnit"
+feature_avail x$log4cxx xtrue "log4cxx"
 feature_avail x$mmapalloc xyes "Memory allocation with mmap"
 feature_avail x$qccomp xyes "Code for quick-check computation"
 echo "=============================================================" ; echo
