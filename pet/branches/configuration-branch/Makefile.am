@@ -25,3 +25,12 @@ flopdoc:
 
 cheapdoc:
 	doxygen doxyconfig.cheap
+
+TESTS = ConfigurationTest
+
+check_PROGRAMS = ConfigurationTest
+ConfigurationTest_SOURCES = \
+	common/ConfigurationTest.cpp\
+	common/Configuration.cpp
+
+noinst_HEADERS = common/Configuration.h
