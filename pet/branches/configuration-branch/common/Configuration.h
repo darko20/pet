@@ -2,6 +2,8 @@
 #ifndef _CONFIGURATION_H
 #define _CONFIGURATION_H
 
+#include "pet-config.h"
+
 #include <map>
 #include <set>
 #include <string>

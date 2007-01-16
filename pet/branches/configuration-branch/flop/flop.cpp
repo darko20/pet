@@ -31,6 +31,9 @@
 #include "options.h"
 #include "version.h"
 
+#include "pet-config.h"
+#include "logging.h"
+
 /*** global variables ***/
 
 char * version_string = VERSION ;
@@ -424,7 +427,7 @@ int process(char *ofname) {
   flop_settings = new settings("flop", fname.c_str());
 
   if(flop_settings->member("output-style", "stefan")) {
-    opt_linebreaks = true;
+    Configuration::set("opt_linebreaks", true);
   }
 
   grammar_version = parse_version();
@@ -611,6 +614,12 @@ int main(int argc, char* argv[])
   ferr = fstatus = stderr; // preliminary setup
 
   setlocale(LC_ALL, "" );
+
+  // initialization of log4cxx
+#if HAVE_LIBLOG4CXX
+  log4cxx::BasicConfigurator::configure();
+  log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::OFF);
+#endif // HAVE_LIBLOG4CXX
 
   if(!parse_options(argc, argv))
     {

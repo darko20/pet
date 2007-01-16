@@ -1,19 +1,7 @@
 #ifndef _CONFIGURATION_INTERNAL_H
 #define _CONFIGURATION_INTERNAL_H
 
-#if HAVE_LIBLOG4CXX
-#  include <log4cxx/logger.h>
-#  include <log4cxx/basicconfigurator.h>
-#  include <sstream>
-#else
-#  ifndef LOG4CXX_DEBUG // despite lack of log4cxx if can be defined by user
-#    define LOG4CXX_DEBUG(logger, msg) ;
-#    define LOG4CXX_INFO(logger, msg) ;
-#    define LOG4CXX_WARN(logger, msg) ;
-#    define LOG4CXX_ERROR(logger, msg) ;
-#    define LOG4CXX_FATAL(logger, msg) ;
-#  endif // LOG4CXX_DEBUG
-#endif // HAVE_LIBLOG4CXX
+#include "logging.h"
 
 /** @file ConfigurationInternal.h
  * @brief Internal header for configuration subsystem - do not read ;)

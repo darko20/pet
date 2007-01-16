@@ -16,6 +16,7 @@ AM_CXXFLAGS = -O3
 
 # In ../common (without headers)
 nodist_flop_SOURCES = bitcode.cpp	\
+	Configuration.cpp		\
 	chunk-alloc.cpp			\
 	dag-alloc.cpp			\
 	dag-arced.cpp 			\
