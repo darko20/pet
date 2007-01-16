@@ -26,7 +26,7 @@
 
 bool opt_pre, opt_expand_all_instances,
   opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
-  opt_propagate_status, opt_linebreaks, opt_glbdebug;
+  opt_propagate_status, opt_glbdebug;
 
 int opt_cmi;
 int verbosity;
@@ -90,7 +90,8 @@ bool parse_options(int argc, char* argv[])
   opt_minimal = false;
   opt_no_sem = false;
   opt_propagate_status = false;
-  opt_linebreaks = false;
+  Configuration::addOption<bool>("opt_linebreaks");
+  Configuration::set("opt_linebreaks", false);
   opt_glbdebug = false;
 
   opt_cmi = 0;

@@ -56,6 +56,8 @@
 #include "eclpreprocessor.h"
 #endif
 
+#include "logging.h"
+
 char * version_string = VERSION ;
 char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
@@ -489,7 +491,7 @@ void process(const char *s) {
   fprintf(fstatus, "\n%d types in %0.2g s\n",
           ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
-  if(opt_pg) {
+  if(Configuration::get<bool>("opt_pg")) {
     print_grammar(stdout);
   }
   else {
@@ -506,7 +508,7 @@ void process(const char *s) {
       else
 #endif
         {
-          if(opt_nbest)
+          if(Configuration::get<bool>("opt_nbest"))
             nbest();
           else
             interactive();
@@ -531,6 +533,12 @@ int main(int argc, char* argv[])
   flog = (FILE *)NULL;
 
   setlocale(LC_ALL, "C" );
+  
+  // initialization of log4cxx
+#if HAVE_LIBLOG4CXX
+  log4cxx::BasicConfigurator::configure();
+  log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::OFF);
+#endif // HAVE_LIBLOG4CXX
 
 #ifndef __BORLANDC__
   if(!parse_options(argc, argv)) {

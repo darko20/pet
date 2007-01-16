@@ -30,9 +30,9 @@
 
 bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
-  opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
-  opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_nbest, opt_online_morph, opt_fullform_morph, opt_partial,
+  opt_hyper, opt_derivation, opt_rulestatistics,
+  opt_chart_man, opt_interactive_morph, opt_lattice,
+  opt_online_morph, opt_fullform_morph, opt_partial,
   opt_compute_qc_unif, opt_compute_qc_subs;
 #ifdef YY
 bool opt_yy, opt_k2y_segregation;
@@ -193,11 +193,13 @@ void init_options()
   opt_rulestatistics = false;
   opt_default_les = false;
   opt_server = 0;
-  opt_pg = false;
+  Configuration::addOption<bool>("opt_pg");
+  Configuration::set("opt_pg", false);
   opt_chart_man = true;
   opt_interactive_morph = false;
   opt_lattice = false;
-  opt_nbest = false;
+  Configuration::addOption<bool>("opt_nbest");
+  Configuration::set("opt_nbest", false);
   opt_online_morph = true;
   opt_fullform_morph = true;
   opt_packing = 0;
@@ -208,6 +210,8 @@ void init_options()
   opt_tok = TOKENIZER_STRING;
   opt_jxchg_dir = "";
   opt_comment_passthrough = 0;
+  Configuration::addOption<bool>("opt_linebreaks");
+  Configuration::set("opt_linebreaks", false);
 
 #ifdef YY
   opt_yy = false;
@@ -355,7 +359,7 @@ bool parse_options(int argc, char* argv[])
           opt_print_failure = true;
           break;
       case OPTION_PG:
-          opt_pg = true;
+          Configuration::set("opt_pg", true);
           break;
       case OPTION_INTERACTIVE_MORPH:
           opt_interactive_morph = true;
@@ -395,7 +399,7 @@ bool parse_options(int argc, char* argv[])
               else flog = fopen(optarg, "w");
           break;
       case OPTION_NBEST:
-          opt_nbest = true;
+          Configuration::set("opt_nbest", true);
           break;
       case OPTION_NO_ONLINE_MORPH:
           opt_online_morph = false;

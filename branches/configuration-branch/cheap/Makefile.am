@@ -45,6 +45,7 @@ CFLAGS =
 
 # In $(top_srcdir)/common
 nodist_cheap_SOURCES = bitcode.cpp 	\
+	Configuration.cpp		\
 	chunk-alloc.cpp			\
 	dag-alloc.cpp			\
 	dag-arced.cpp			\

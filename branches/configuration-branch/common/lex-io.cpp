@@ -174,7 +174,7 @@ int LConsume(int n)
 
   if(CURR->info)
     {
-      if(opt_linebreaks)
+      if(Configuration::get<bool>("opt_linebreaks"))
 	{
 	  fprintf(fstatus, "\n%s `%s' ", CURR->info, CURR->fname);
 	}
