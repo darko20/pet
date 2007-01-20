@@ -568,6 +568,7 @@ if test x$cppunit = xtrue; then
       LDFLAGS="$LDFLAGS -L${CPPUNITDIR}/lib"
       CPPFLAGS="$CPPFLAGS -I${CPPUNITDIR}/include"
    fi
+   LDFLAGS="$LDFLAGS -ldl"
    AC_CHECK_LIB(cppunit,main,,AC_MSG_ERROR([This program requires CppUnit library.]))
 fi
 

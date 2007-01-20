@@ -281,26 +281,25 @@ packed_edge(tItem *newitem) {
  * \return true -> stop parsing; false -> continue parsing
  */
 bool
-add_root(tItem *it)
-{
-    Chart->trees().push_back(it);
-    // Count all trees for now, some of these may still be blocked in
-    // the packing parser.
-    stats.trees++;
-    if(stats.first == -1)
-    {
-        stats.first = ParseTime.convert2ms(ParseTime.elapsed());
-        if(!opt_packing
-           && opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
-          return true;
-    }
-    return false;
+add_root(tItem *it) {
+  Chart->trees().push_back(it);
+  // Count all trees for now, some of these may still be blocked in
+  // the packing parser.
+  stats.trees++;
+  if(stats.first == -1) {
+    stats.first = ParseTime.convert2ms(ParseTime.elapsed());
+  }
+
+  if(!opt_packing && opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
+    return true;
+        
+  return false;
 }
 
-void
+bool
 add_item(tItem *it) {
   assert(!(opt_packing && it->blocked()));
-
+  
 #ifdef DEBUG
   fprintf(ferr, "add_item ");
   it->print(ferr);
@@ -309,15 +308,15 @@ add_item(tItem *it) {
 
   if(it->passive()) {
     if(opt_packing && packed_edge(it))
-      return;
-
+      return false;
+    
     Chart->add(it);
-
+    
     type_t rule;
     if(it->root(Grammar, Chart->rightmost(), rule)) {
       it->set_result_root(rule);
       if(add_root(it))
-        return;
+        return true;
     }
 
     postulate(it);
@@ -327,39 +326,48 @@ add_item(tItem *it) {
     Chart->add(it);
     fundamental_for_active(dynamic_cast<tPhrasalItem *> (it));
   }
+  return false;
 }
 
 inline bool
-resources_exhausted()
-{
-    return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) || 
-        (memlimit > 0 && t_alloc.max_usage() >= memlimit);
+resources_exhausted(unsigned int pedgelimit, unsigned int memlimit) {
+  return ((pedgelimit > 0 && Chart->pedges() >= pedgelimit) ||
+          (memlimit > 0 && t_alloc.max_usage() >= memlimit)) ;
 }
 
 
 void
-parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
-{
-    while(!Agenda->empty() &&
-          (opt_packing || opt_nsolutions == 0
-           || stats.trees < opt_nsolutions) &&
+parse_loop(fs_alloc_state &FSAS, list<tError> &errors) {
+  unsigned int pedgelimit, memlimit;
+  Configuration::get("pedgelimit", pedgelimit);
+  Configuration::get("memlimit", memlimit);
+
+  basic_task *t;
+  tItem *it;
+  while(!Agenda->empty()
 #ifdef YY
-          (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning) &&
+        && (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning)
 #endif
-          !resources_exhausted())
-    {
-        basic_task *t; tItem *it;
-	  
-        t = Agenda->pop();
-#ifdef DEBUG
-        t->print(stderr);
-        fprintf(stderr, "\n");
-#endif
-        if((it = t->execute()) != 0)
-            add_item(it);
-	  
-        delete t;
+        ) {
+    if (resources_exhausted(pedgelimit, memlimit)) {
+      ostringstream s;
+      if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
+        s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
+      else
+        s << "edge limit exhausted (" << pedgelimit << " pedges)";
+      errors.push_back(s.str());
+      break;
     }
+  
+    t = Agenda->pop();
+#ifdef DEBUG
+    t->print(stderr); fprintf(stderr, "\n");
+#endif
+    it = t->execute();
+    delete t;
+    if((it != 0) && add_item(it))
+      break; // The maximum number of solutions has been reached
+  }
 }
 
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit
@@ -475,41 +483,25 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
 
 void
 parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
-    stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
+  stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
 
-    stats.dyn_bytes = FSAS.dynamic_usage();
-    stats.stat_bytes = FSAS.static_usage();
-    FSAS.clear_stats();
+  stats.dyn_bytes = FSAS.dynamic_usage();
+  stats.stat_bytes = FSAS.static_usage();
+  FSAS.clear_stats();
 
-    get_unifier_stats();
-    Chart->get_statistics();
+  get_unifier_stats();
+  Chart->get_statistics();
 
-    if(opt_shrink_mem)
-    {
-        FSAS.may_shrink();
-        prune_glbcache();
-    }
+  if(opt_shrink_mem) {
+    FSAS.may_shrink();
+    prune_glbcache();
+  }
 
-    if(verbosity > 8)
-        Chart->print(fstatus);
+  if(verbosity > 8)
+    Chart->print(fstatus);
   
-    if(resources_exhausted())
-    {
-        ostringstream s;
-
-        if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
-            s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
-              << " MB)";
-        else
-            s << "edge limit exhausted (" << pedgelimit 
-              << " pedges)";
-
-        errors.push_back(s.str());
-    }
-
-    Chart->readings() = collect_readings(FSAS, errors, Chart->trees());
-    stats.readings = Chart->readings().size();
-
+  Chart->readings() = collect_readings(FSAS, errors, Chart->trees());
+  stats.readings = Chart->readings().size();
 }
 
 

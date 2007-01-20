@@ -93,23 +93,11 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
 
     options_from_settings(cheap_settings);
 
-    //
-    // only reset K2Y modifier segregation if explicity requested from language
-    // server `.ini' file (hence the three-valued logix).
-    //
-    if(k2y_segregation_p >= 0) opt_k2y_segregation = k2y_segregation_p;
-
 #ifndef DONT_EDUCATE_USERS
     if(opt_yy == false)
       {
 	fprintf(fstatus, "you want YY mode\n");
 	opt_yy = true;
-      }
-
-    if(opt_k2y == 0)
-      {
-	fprintf(fstatus, "you want k2y's - turning on opt_k2y\n");
-	opt_k2y = 50;
       }
 
     if(opt_default_les == false)

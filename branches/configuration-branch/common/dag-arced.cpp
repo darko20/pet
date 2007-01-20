@@ -60,8 +60,7 @@ void dag_remove_arcs(struct dag_node *dag, list_int *del)
 static struct qc_node *dag_qc_undumped_nodes = NULL;
 static struct qc_arc *dag_qc_undumped_arcs = NULL;
 
-struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
-{
+struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len) {
   int dag_dump_total_nodes, dag_dump_total_arcs;
 
   struct dag_node_dump dump_n;
@@ -80,53 +79,49 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
   int current_arc = 0;
   qc_len = 0;
 
-  for(int i = 0; i < dag_dump_total_nodes; i++)
-    {
-      undump_node(f, &dump_n);
+  for(int i = 0; i < dag_dump_total_nodes; i++) {
+    undump_node(f, &dump_n);
 
-      if(dump_n.type < 0)
-	dump_n.type = -dump_n.type; // node is not expanded
+    if(dump_n.type < 0)
+      dump_n.type = -dump_n.type; // node is not expanded
 
-      dag_qc_undumped_nodes[i].type = BI_TOP; // we infer the type
-      dag_qc_undumped_nodes[i].qc_pos = 0;
-      dag_qc_undumped_nodes[i].arcs = 0;
+    dag_qc_undumped_nodes[i].type = BI_TOP; // we infer the type
+    dag_qc_undumped_nodes[i].qc_pos = 0;
+    dag_qc_undumped_nodes[i].arcs = 0;
 
-      if(typestatus[dump_n.type] == ATOM_STATUS)
-	{
-	  int val;
+    if(typestatus[dump_n.type] == ATOM_STATUS) {
+      int val;
       
-	  val = strtoint(type_name(dump_n.type), "in qc structure", true);
+      val = strtoint(type_name(dump_n.type), "in qc structure", true);
 
-	  if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
-	    throw tError("invalid node (value too large) in qc structure");
+      if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
+        throw tError("invalid node (value too large) in qc structure");
 
-	  val += 1;
-	  if(limit < 0 || val <= limit)
-	    {
-	      dag_qc_undumped_nodes[i].qc_pos = val;
-	      if(val > qc_len) qc_len = val;
-	    }
-	}
-
-      if(dump_n.nattrs > 0)
-	dag_qc_undumped_nodes[i].arcs = dag_qc_undumped_arcs+current_arc;
-
-      for(int j = 0; j < dump_n.nattrs; j++)
-	{
-	  undump_arc(f, &dump_a);
-	  
-	  dag_qc_undumped_nodes[i].type
-            = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
-
-	  dag_qc_undumped_arcs[current_arc].attr = dump_a.attr;
-	  dag_qc_undumped_arcs[current_arc].val 
-            = dag_qc_undumped_nodes + dump_a.val;
-
-	  dag_qc_undumped_arcs[current_arc].next =
-	    (j == dump_n.nattrs - 1) ? 0 : dag_qc_undumped_arcs+current_arc+1;
-	  current_arc++;
-	}
+      val += 1;
+      if(limit < 0 || val <= limit) {
+        dag_qc_undumped_nodes[i].qc_pos = val;
+        if(val > qc_len) qc_len = val;
+      }
     }
+
+    if(dump_n.nattrs > 0)
+      dag_qc_undumped_nodes[i].arcs = dag_qc_undumped_arcs+current_arc;
+
+    for(int j = 0; j < dump_n.nattrs; j++) {
+      undump_arc(f, &dump_a);
+	  
+      dag_qc_undumped_nodes[i].type
+        = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
+
+      dag_qc_undumped_arcs[current_arc].attr = dump_a.attr;
+      dag_qc_undumped_arcs[current_arc].val 
+        = dag_qc_undumped_nodes + dump_a.val;
+
+      dag_qc_undumped_arcs[current_arc].next =
+        (j == dump_n.nattrs - 1) ? 0 : dag_qc_undumped_arcs+current_arc+1;
+      current_arc++;
+    }
+  }
 
   return dag_qc_undumped_nodes + dag_dump_total_nodes - 2; // remove first level of structure
 }
