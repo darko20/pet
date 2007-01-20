@@ -505,23 +505,17 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 #endif
   pasv->parents.push_back(this);
   
-  if(opt_nqc_unif != 0) {
-    if(passive())
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
-    else
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                      nextarg(f));
-  }
-  
-  if(opt_nqc_subs != 0)
-    if(passive())
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
-  
   // rule stuff + characterization
   if(passive()) {
+    if(opt_nqc_unif != 0)
+      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+    if(opt_nqc_subs != 0)
+      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
     R->passives++;
     characterize(_fs, _startposition, _endposition);
   } else {
+    if(opt_nqc_unif != 0)
+      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, nextarg(f));
     R->actives++;
   }
 
@@ -567,24 +561,19 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 
     _trait = SYNTAX_TRAIT;
 
-    if(opt_nqc_unif != 0)
-    {
-        if(passive())
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
-        else
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                            nextarg(f));
-    }
-    
-    if((opt_nqc_subs != 0) && passive())
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
-
     // rule stuff
     if(passive()) {
       characterize(_fs, _startposition, _endposition);
       active->rule()->passives++;
+      if(opt_nqc_unif != 0)
+        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+      if(opt_nqc_subs != 0)
+        _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
     } else {
       active->rule()->actives++;
+      if(opt_nqc_unif != 0)
+        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif,
+                                        nextarg(f));
     }
 
 #ifdef DEBUG

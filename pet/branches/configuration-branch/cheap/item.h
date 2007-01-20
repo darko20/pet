@@ -186,11 +186,13 @@ public:
     }
       
     if(R->spanningonly()) {
+      /* This is checked by the next two tests, too.
       if(R->arity() == 1) {
         if(span() != length)
           return false;
       }
-      else if(R->nextarg() == 1) {
+      else */
+      if(R->nextarg() == 1) {
         if(_start != 0)
           return false;
       }
@@ -215,27 +217,26 @@ public:
    * -- rules that may only create items spanning the whole chart check for
    *    appropriate start and end positions
    * -- when doing lattice parsing, check the compatiblity of the path sets
+   * \return \c false if not compatible
    */
   inline bool compatible(tItem *active, int length)
   {
     if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
       
-    if(active->spanningonly())
-      {
-        if(active->nextarg() == 1)
-          {
-            if(_start != 0)
-              return false;
-          }
-        else if(active->nextarg() == active->arity() + active->nfilled())
-          {
-            if(_end != length)
-              return false;
-          }
-      }
+    if(active->spanningonly()) {
+      if(active->nextarg() == 1) {  // is it the first arg?
+        if(_start != 0)
+          return false;
+      } else
+        if(active->nextarg() == active->arity() + active->nfilled()) {
+          // or the last? 
+          if(_end != length)
+            return false;
+        }
+    }
   
-    if(!opt_lattice && !_paths.compatible(active->_paths))
+    if(opt_lattice && !_paths.compatible(active->_paths))
       return false;
     
     return true;
@@ -292,8 +293,8 @@ public:
     return get_fs().type();
   }
   
-  /** Return the number of next argument to fill, ranging from zero to
-   *  arity() - 1.
+  /** Return the number of next argument to fill, ranging from one to
+   *  arity().
    */
   inline int nextarg() { return first(_tofill); }
   /** Return the substructure of this item's feature structure that represents
@@ -304,7 +305,7 @@ public:
    *  one 
    */
   inline list_int *restargs() { return rest(_tofill); }
-  /** The number of arguments yet to be filled */
+  /** The number of arguments still to be filled */
   inline int arity() { return length(_tofill); }
   /** The number of arguments that are already filled. */
   inline int nfilled() { return _nfilled; }

@@ -21,6 +21,14 @@
   - foreign character encoding input and output
   - automated tests for single modules ??
 
+- QC computation code in dag-tomabechi: Would it be possible to maintain two
+  versions, one with failure check and one without, maybe using template 
+  functions and namespaces, to gain efficiency and have the choice?
+
+- QC dag: maybe there are unneccessary paths hanging around in the QC 
+  dag due to the options that restrict the number of paths to use. Try to
+  remove these to get better performance
+
 - finish lexdb: lexical database (postgres) integration
 
 - unreleased memory? (see valgrind-errors-15-apr-04)

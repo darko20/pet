@@ -29,14 +29,14 @@
 #include <string>
 
 bool opt_shrink_mem, opt_shaping, opt_default_les,
-  opt_filter, opt_print_failure,
+  
+opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics,
-  opt_chart_man, opt_interactive_morph, opt_lattice,
+  opt_chart_man, opt_lattice,
   opt_online_morph, opt_fullform_morph, opt_partial,
   opt_compute_qc_unif, opt_compute_qc_subs;
 #ifdef YY
-bool opt_yy, opt_k2y_segregation;
-int opt_k2y, opt_nth_meaning;
+bool opt_yy, opt_nth_meaning;
 #endif
 
 int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults;
@@ -103,7 +103,6 @@ void usage(FILE *f)
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
 #ifdef ONLINEMORPH
-  fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
   fprintf(f, "  `-no-online-morph' --- disable online morphology\n");
 #endif
   fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
@@ -146,7 +145,6 @@ void usage(FILE *f)
 #define OPTION_NO_CHART_MAN 16
 #define OPTION_LOG 17
 #define OPTION_MEMLIMIT 18
-#define OPTION_INTERACTIVE_MORPH 19
 #define OPTION_LATTICE 22
 #define OPTION_NBEST 23
 #define OPTION_NO_ONLINE_MORPH 24
@@ -196,7 +194,6 @@ void init_options()
   Configuration::addOption<bool>("opt_pg");
   Configuration::set("opt_pg", false);
   opt_chart_man = true;
-  opt_interactive_morph = false;
   opt_lattice = false;
   Configuration::addOption<bool>("opt_nbest");
   Configuration::set("opt_nbest", false);
@@ -215,8 +212,6 @@ void init_options()
 
 #ifdef YY
   opt_yy = false;
-  opt_k2y = 0;
-  opt_k2y_segregation = false;
   opt_nth_meaning = 0;
 #endif
 }
@@ -249,13 +244,10 @@ bool parse_options(int argc, char* argv[])
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
     {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
-    {"k2y", optional_argument, 0, OPTION_K2Y},
-    {"k2y-segregation", no_argument, 0, OPTION_K2Y_SEGREGATION},
 #endif
     {"server", optional_argument, 0, OPTION_SERVER},
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", no_argument, 0, OPTION_PG},
-    {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"nbest", no_argument, 0, OPTION_NBEST},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
@@ -361,9 +353,6 @@ bool parse_options(int argc, char* argv[])
       case OPTION_PG:
           Configuration::set("opt_pg", true);
           break;
-      case OPTION_INTERACTIVE_MORPH:
-          opt_interactive_morph = true;
-          break;
       case OPTION_LATTICE:
           opt_lattice = true;
           break;
@@ -467,15 +456,6 @@ bool parse_options(int argc, char* argv[])
           else
               opt_nth_meaning = 1;
           break;
-      case OPTION_K2Y:
-          if(optarg != NULL)
-              opt_k2y = strtoint(optarg, "as argument to -k2y");
-          else
-              opt_k2y = 50;
-          break;
-      case OPTION_K2Y_SEGREGATION:
-          opt_k2y_segregation = true;
-          break;
       case OPTION_YY:
           opt_yy = true;
           opt_tok = TOKENIZER_YY;
@@ -534,9 +514,6 @@ void options_from_settings(settings *set)
   opt_hyper = bool_setting(set, "hyper");
   opt_default_les = bool_setting(set, "default-les");
 #ifdef YY
-  opt_k2y = int_setting(set, "k2y");
-  opt_yy = bool_setting(set, "yy");
-  opt_k2y_segregation = bool_setting(set, "k2y-segregation");
   if(bool_setting(set, "one-meaning"))
     opt_nth_meaning = 1;
   else
