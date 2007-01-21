@@ -40,6 +40,12 @@
 
 int grammar_rule::next_id = 0;
 
+//defined in fs.cpp
+extern bool opt_compute_qc_unif, opt_compute_qc_subs;
+
+//defined in parse.cpp
+extern bool opt_filter;
+
 bool
 lexentry_status(type_t t)
 {
@@ -177,12 +183,12 @@ grammar_rule::grammar_rule(type_t t)
     // this is wrong for more than binary branching rules, 
     // since adjacency is not guarantueed.
     
-    if(opt_key == 0)
+    if(Configuration::get<int>("opt_key") == 0)
     {
         if(keyarg != -1) 
             _tofill = append(_tofill, keyarg);
     }
-    else if(opt_key == 3)
+    else if(Configuration::get<int>("opt_key") == 3)
     {
         if(head != -1) 
             _tofill = append(_tofill, head);
@@ -190,7 +196,7 @@ grammar_rule::grammar_rule(type_t t)
             _tofill = append(_tofill, keyarg);
     }
     
-    if(opt_key != 2)
+    if(Configuration::get<int>("opt_key") != 2)
     {
         for(int i = 1; i <= _arity; i++)
             if(!contains(_tofill, i)) _tofill = append(_tofill, i);

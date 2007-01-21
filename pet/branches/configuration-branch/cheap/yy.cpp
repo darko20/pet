@@ -100,10 +100,10 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
 	opt_yy = true;
       }
 
-    if(opt_default_les == false)
+    if(!Configuration::get<bool>("opt_default_les"))
       {
 	fprintf(fstatus, "you want default lexical entries  - turning on opt_default_les\n");
-	opt_default_les = true;
+	Configuration::set("opt_default_les", true);
       }
 
     if(pedgelimit == 0)

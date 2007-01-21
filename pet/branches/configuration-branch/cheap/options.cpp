@@ -28,28 +28,30 @@
 #include "version.h"
 #include <string>
 
-bool opt_shrink_mem, opt_shaping, opt_default_les,
-  
-opt_filter, opt_print_failure,
-  opt_hyper, opt_derivation, opt_rulestatistics,
-  opt_chart_man, opt_lattice,
-  opt_online_morph, opt_fullform_morph, opt_partial,
-  opt_compute_qc_unif, opt_compute_qc_subs;
+bool opt_shrink_mem, opt_shaping,
+  opt_rulestatistics, opt_lattice,
+  opt_online_morph, opt_partial;
+
+// opt_fullform_morph is obsolete
+// bool opt_fullform_morph;
+
+//defined in fs.cpp
+extern bool opt_compute_qc_unif, opt_compute_qc_subs, opt_print_failure;
+
+//defined in parse.cpp
+extern bool opt_filter, opt_hyper;
+extern int  opt_nsolutions;
+
 #ifdef YY
 bool opt_yy, opt_nth_meaning;
 #endif
 
-int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults;
+int opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_server;
 int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
 
-char *opt_compute_qc = 0;
-
 char *opt_mrs = 0;
-
-// 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
-int opt_comment_passthrough = 0;
 
 // 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting
 // level in MEM-based parse selection
@@ -172,41 +174,99 @@ void usage(FILE *f)
 void init_options()
 {
   opt_tsdb = 0;
-  opt_nsolutions = 0;
+  
+  Configuration::addOption<int>("opt_nsolutions", &opt_nsolutions,
+    "The number of solutions until the parser is stopped, if not in packing mode");
+  Configuration::set("opt_nsolutions", 0);
+  
   verbosity = 0;
   pedgelimit = 0;
   memlimit = 0;
   opt_shrink_mem = true;
   opt_shaping = true;
-  opt_filter = true;
+  
+  Configuration::addOption<bool>("opt_filter", &opt_filter,
+    "Use the static rule filter");
+  Configuration::set("opt_filter", true);
+  
   opt_nqc_unif = -1;
   opt_nqc_subs = -1;
-  opt_compute_qc = 0;
-  opt_compute_qc_unif = false;
-  opt_compute_qc_subs = false;
-  opt_print_failure = false;
-  opt_key = 0;
-  opt_hyper = true;
-  opt_derivation = true;
+  
+  Configuration::addOption<char*>("opt_compute_qc",
+    "Activate code that collects unification/subsumption failures "
+    "for quick check computation, contains filename to write results to");
+  Configuration::set<char*>("opt_compute_qc", 0);
+  
+  Configuration::addOption<bool>("opt_compute_qc_unif", &opt_compute_qc_unif,
+    "Activate failure registration for unification");
+  Configuration::set("opt_compute_qc_unif", false);
+  
+  Configuration::addOption<bool>("opt_compute_qc_subs", &opt_compute_qc_subs,
+    "Activate failure registration for subsumption");
+  Configuration::set("opt_compute_qc_subs", false);
+  
+  Configuration::addOption<bool>("opt_print_failure", &opt_print_failure,
+    "Log unification/subsumption failures "
+    "(should be replaced by logging or new/different API functionality)");
+  Configuration::set("opt_print_failure", false);
+  
+  Configuration::addOption<int>("opt_key",
+    "What is the key daughter used in parsing?"
+    "0: key-driven, 1: l-r, 2: r-l, 3: head-driven");
+  Configuration::set("opt_key", 0);
+  
+  Configuration::addOption<bool>("opt_hyper", &opt_hyper,
+    "use hyperactive parsing");
+  Configuration::set("opt_hyper", true);
+  
+  Configuration::addOption<bool>("opt_derivation",
+    "Store derivations in tsdb profile");
+  Configuration::set("opt_derivation", true);
+  
   opt_rulestatistics = false;
-  opt_default_les = false;
+  
+  Configuration::addOption<bool>("opt_default_les",
+    "Try to use default lexical entries if no regular entries could be found. "
+    "Uses POS annotation, if available.");
+  Configuration::set("opt_default_les", false);
+  
   opt_server = 0;
+  
   Configuration::addOption<bool>("opt_pg");
   Configuration::set("opt_pg", false);
-  opt_chart_man = true;
+  
+  Configuration::addOption<bool>("opt_chart_man",
+    "Allow lexical dependency filtering");
+  Configuration::set("opt_chart_man", true);
+  
   opt_lattice = false;
+  
   Configuration::addOption<bool>("opt_nbest");
   Configuration::set("opt_nbest", false);
+  
   opt_online_morph = true;
-  opt_fullform_morph = true;
+  
+  // opt_fullform_morph is obsolete
+  // opt_fullform_morph = true;
+    
   opt_packing = 0;
   opt_mrs = 0;
   opt_tsdb_dir = "";
   opt_partial = false;
-  opt_nresults = 0;
+  
+  Configuration::addOption<int>("opt_nresults",
+    "The number of results to print "
+    "(should be an argument of an API function)");
+  Configuration::set("opt_nresults", 0);
+  
   opt_tok = TOKENIZER_STRING;
   opt_jxchg_dir = "";
-  opt_comment_passthrough = 0;
+  
+  // 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
+  Configuration::addOption<bool>("opt_comment_passthrough",
+    "Ignore/repeat input classified as comment: starts with '#' or '//'");
+  Configuration::set<bool>("opt_comment_passthrough", false);
+  
   Configuration::addOption<bool>("opt_linebreaks");
   Configuration::set("opt_linebreaks", false);
 
@@ -294,15 +354,16 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NSOLUTIONS:
           if(optarg != NULL)
-              opt_nsolutions = strtoint(optarg, "as argument to -nsolutions");
+              Configuration::set("opt_nsolutions",
+                strtoint(optarg, "as argument to -nsolutions"));
           else
-              opt_nsolutions = 1;
+              Configuration::set("opt_nsolutions", 1);
           break;
       case OPTION_DEFAULT_LES:
-          opt_default_les = true;
+          Configuration::set("opt_default_les", true);
           break;
       case OPTION_NO_CHART_MAN:
-          opt_chart_man = false;
+          Configuration::set("opt_chart_man", false); 
           break;
       case OPTION_SERVER:
           if(optarg != NULL)
@@ -314,41 +375,41 @@ bool parse_options(int argc, char* argv[])
           opt_shrink_mem = false;
           break;
       case OPTION_NO_FILTER:
-          opt_filter = false;
+          Configuration::set("opt_filter", false);
           break;
       case OPTION_NO_HYPER:
-          opt_hyper = false;
+          Configuration::set("opt_hyper", false);
           break;
       case OPTION_NO_DERIVATION:
-          opt_derivation = false;
+          Configuration::set("opt_derivation", false);
           break;
       case OPTION_RULE_STATISTICS:
           opt_rulestatistics = true;
           break;
       case OPTION_COMPUTE_QC:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+              Configuration::set("opt_compute_qc", strdup(optarg));
           else
-              opt_compute_qc = "/tmp/qc.tdl";
-          opt_compute_qc_unif = true;
-          opt_compute_qc_subs = true;
+              Configuration::set("opt_compute_qc", "/tmp/qc.tdl");
+          Configuration::set("opt_compute_qc_unif", true);
+          Configuration::set("opt_compute_qc_subs", true);
           break;
       case OPTION_COMPUTE_QC_UNIF:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+              Configuration::set("opt_compute_qc", strdup(optarg));
           else
-              opt_compute_qc = "/tmp/qc.tdl";
-          opt_compute_qc_unif = true;
+              Configuration::set("opt_compute_qc", "/tmp/qc.tdl");
+          Configuration::set("opt_compute_qc_unif", true);
           break;
       case OPTION_COMPUTE_QC_SUBS:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+              Configuration::set("opt_compute_qc", strdup(optarg));
           else
-              opt_compute_qc = "/tmp/qc.tdl";
-          opt_compute_qc_subs = true;
+              Configuration::set("opt_compute_qc", "/tmp/qc.tdl");
+          Configuration::set("opt_compute_qc_subs", true);
           break;
       case OPTION_PRINT_FAILURE:
-          opt_print_failure = true;
+          Configuration::set("opt_print_failure", true);
           break;
       case OPTION_PG:
           Configuration::set("opt_pg", true);
@@ -372,7 +433,8 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_KEY:
           if(optarg != NULL)
-              opt_key = strtoint(optarg, "as argument to `-key'");
+              Configuration::set("opt_key",
+                strtoint(optarg, "as argument to `-key'"));
           break;
       case OPTION_LIMIT:
           if(optarg != NULL)
@@ -394,7 +456,8 @@ bool parse_options(int argc, char* argv[])
           opt_online_morph = false;
           break;
       case OPTION_NO_FULLFORM_MORPH:
-          opt_fullform_morph = false;
+          // opt_fullform_morph is obsolete
+          // opt_fullform_morph = false;
           break;
       case OPTION_PACKING:
           if(optarg != NULL)
@@ -417,7 +480,8 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NRESULTS:
           if(optarg != NULL)
-              opt_nresults = strtoint(optarg, "as argument to -results");
+              Configuration::set("opt_nresults",
+                strtoint(optarg, "as argument to -results"));
           break;
       case OPTION_TOK:
 	opt_tok = TOKENIZER_STRING; //todo: make FSR the default
@@ -443,10 +507,10 @@ bool parse_options(int argc, char* argv[])
 
       case OPTION_COMMENT_PASSTHROUGH:
           if(optarg != NULL)
-            opt_comment_passthrough = 
-              strtoint(optarg, "as argument to -comment-passthrough");
+            Configuration::set("opt_comment_passthrough", 
+              strtoint(optarg, "as argument to -comment-passthrough") == 1);
           else
-              opt_comment_passthrough = 1;
+              Configuration::set("opt_comment_passthrough", true);
 	  break;
 
 #ifdef YY
@@ -471,11 +535,11 @@ bool parse_options(int argc, char* argv[])
     }
   grammar_file_name = argv[optind];
 
-  if(opt_hyper && opt_compute_qc)
+  if(opt_hyper && Configuration::get<char*>("opt_compute_qc") != 0)
   {
       fprintf(ferr, "quickcheck computation doesn't work "
               "in hyperactive mode, disabling hyperactive mode.");
-      opt_hyper = false;
+      Configuration::set("opt_hyper", false);
   }
 
   return true;
@@ -505,14 +569,14 @@ void options_from_settings(settings *set)
 {
   init_options();
   if(bool_setting(set, "one-solution"))
-      opt_nsolutions = 1;
+      Configuration::set("opt_nsolutions", 1);
   else
-      opt_nsolutions = 0;
+      Configuration::set("opt_nsolutions", 0);
   verbosity = int_setting(set, "verbose");
   pedgelimit = int_setting(set, "limit");
   memlimit = 1024 * 1024 * int_setting(set, "memlimit");
-  opt_hyper = bool_setting(set, "hyper");
-  opt_default_les = bool_setting(set, "default-les");
+  Configuration::set("opt_hyper", bool_setting(set, "hyper"));
+  Configuration::set("opt_default_les", bool_setting(set, "default-les"));
 #ifdef YY
   if(bool_setting(set, "one-meaning"))
     opt_nth_meaning = 1;

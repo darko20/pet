@@ -46,6 +46,10 @@ tAgenda *Agenda;
 timer ParseTime;
 timer TotalParseTime(false);
 
+//options managed by configuration subsystem
+bool opt_filter, opt_hyper;
+int  opt_nsolutions;
+
 //
 // filtering
 //
