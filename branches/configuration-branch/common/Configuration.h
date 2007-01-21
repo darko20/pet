@@ -238,7 +238,11 @@ void Configuration::get(const std::string& entry, T& place) {
 
 template<class T>
 void Configuration::set(const std::string& entry, const T& value, int prio) {
-  LOG4CXX_DEBUG(logger, "setting entry " << entry << ", priority is " << prio);
+#if HAVE_LIBLOG4CXX
+  std::stringstream ss;
+  ss << "setting entry " << entry << ", priority is " << prio;
+  LOG4CXX_DEBUG(logger, ss.str());
+#endif // HAVE_LIBLOG4CXX
 
   if(!instance_->isValidName(entry))
     throw WrongEntryNameException();

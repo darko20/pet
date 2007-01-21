@@ -19,6 +19,7 @@
 
 /** \file options.h
  * Command line options for cheap
+ * @todo opt_fullform_morph is obsolete
  */
 
 #ifndef _OPTIONS_H_
@@ -31,25 +32,21 @@
 
 #define CHEAP_SERVER_PORT 4711
 
-extern bool opt_shrink_mem, opt_shaping, opt_default_les,
-  opt_filter, opt_print_failure,
-  opt_hyper, opt_derivation, opt_rulestatistics,
-  opt_chart_man, opt_lattice,
-  opt_partial, opt_compute_qc_unif, opt_compute_qc_subs;
+extern bool opt_shrink_mem, opt_shaping, opt_rulestatistics, opt_lattice,
+  opt_partial;
+
 #ifdef YY
 extern bool opt_yy, opt_nth_meaning;
 #endif
-extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults;
+extern int verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_server;
 extern int opt_tsdb;
 
 extern long int memlimit;
-extern bool opt_linebreaks, opt_chart_man, opt_online_morph, opt_fullform_morph;
+extern bool opt_linebreaks, opt_online_morph;
+// extern bool opt_fullform_morph;
 extern char *grammar_file_name;
 
-extern char *opt_compute_qc;
-
 extern char *opt_mrs;
-extern int opt_comment_passthrough;
 extern unsigned int opt_gplevel;
 
 enum tokenizer_id { 

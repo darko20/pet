@@ -35,6 +35,13 @@ qc_node *qc_paths_unif;
 int qc_len_subs;
 qc_node *qc_paths_subs;
 
+//options managed by configuration subsystem
+bool opt_compute_qc_unif, opt_compute_qc_subs,
+     opt_print_failure;
+
+// defined in parse.cpp
+extern bool opt_hyper;
+
 /** The type that indicates pruning in a dag restrictor */
 type_t dag_restrictor::dag_rest_state::DEL_TYPE;
 

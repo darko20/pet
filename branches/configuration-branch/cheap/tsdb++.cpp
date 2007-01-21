@@ -35,6 +35,9 @@
 
 statistics stats;
 
+//defined in parse.cpp
+extern bool opt_filter;
+
 void
 statistics::reset()
 {
@@ -181,15 +184,18 @@ initialize_version()
             opt_packing,
             Grammar->sm() ? "+" : "-",
             Grammar->sm() ? Grammar->sm()->description().c_str() : "",
-            opt_key == 0 ? "key" : (opt_key == 1 ? "l-r"
-                                    : (opt_key == 2 ? "r-l"
-                                       : (opt_key == 3 ? "head" : "unknown"))),
-            opt_hyper ? "+HA" : "-HA",
+            Configuration::get<int>("opt_key") == 0 ?
+              "key" : (Configuration::get<int>("opt_key") == 1 ?
+                "l-r" : (Configuration::get<int>("opt_key") == 2 ?
+                  "r-l" : (Configuration::get<int>("opt_key") == 3 ?
+                    "head" : "unknown"))),
+            Configuration::get<bool>("opt_hyper") ? "+HA" : "-HA",
             Grammar->nhyperrules(),
             opt_filter ? "+FI" : "-FI",
             opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
             opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
-            ((opt_nsolutions != 0) ? "+OS" : "-OS"), opt_nsolutions, 
+            ((Configuration::get<int>("opt_nsolutions") != 0) ? "+OS" : "-OS"),
+            Configuration::get<int>("opt_nsolutions"), 
             opt_shrink_mem ? "+SM" : "-SM", 
             opt_shaping ? "+SH" : "-SH",
             sizeof(dag_node),
@@ -555,7 +561,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                           int treal, int nderivations, 
                           tsdb_parse &T)
 {
-    if(opt_derivation)
+    if(Configuration::get<bool>("opt_derivation"))
     {
         int nres = 0;
         if(nderivations >= 0) // default case, report results

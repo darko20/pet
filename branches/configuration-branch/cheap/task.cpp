@@ -25,6 +25,9 @@
 #include "cheap.h"
 #include "tsdb++.h"
 
+// defined in parse.cpp
+extern bool opt_hyper;
+
 int basic_task::next_id = 0;
 
 tItem *

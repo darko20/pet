@@ -147,7 +147,8 @@ void interactive() {
               , opt_tsdb_dir.c_str());
   }
 
-  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+  while(!(input = read_line(stdin,
+      Configuration::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
     chart *Chart = 0;
 
     tsdb_dump.start();
@@ -193,7 +194,8 @@ void interactive() {
         // results.sort(item_greater_than_score());
         for(list<tItem *>::iterator iter = results.begin()
               ; (iter != results.end())
-              && ((opt_nresults == 0) || (opt_nresults > nres))
+              && ((Configuration::get<int>("opt_nresults") == 0)
+                   || (Configuration::get<int>("opt_nresults") > nres))
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
@@ -288,7 +290,8 @@ void nbest() {
     int selected = -1;
     int time = 0;
         
-    while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+    while(!(input = read_line(stdin,
+        Configuration::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
       if(selected != -1)
         continue;
 
