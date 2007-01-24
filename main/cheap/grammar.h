@@ -33,6 +33,10 @@
 #include "sm.h"
 #include "lexicon.h"
 
+#include <string>
+#include <list>
+#include <map>
+
 using std::string;
 using std::map;
 using std::list;
