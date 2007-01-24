@@ -468,7 +468,7 @@ case "${withval}" in
             XERCESCDIR=${withval} ;;
 esac
 save_LD="$LDFLAGS"
-if test x$xml = xtrue && -n "${XERCESCDIR}" ; then
+if test x$xml = xtrue -a -n "${XERCESCDIR}" ; then
    if test -d "${XERCESCDIR}" ; then
       LDFLAGS="$LDFLAGS -L${XERCESCDIR}/lib"
    else 
