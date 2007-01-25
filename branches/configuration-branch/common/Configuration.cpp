@@ -27,9 +27,21 @@ void Configuration::check(const std::string &entry) {
   }
 }
 
- void Configuration::add(const std::string &entry, IOption* option) {
-   keyValue_[entry] = option;
- }
+void Configuration::add(const std::string &entry, IOption* option) {
+  keyValue_[entry] = option;
+}
+
+const std::string& Configuration::getDescription(const std::string& entry) {
+  if(!instance_->isValidName(entry))
+    throw WrongEntryNameException();
+    
+  KeyValueMap::iterator i = instance_->keyValue_.find(entry);
+
+  if(i == instance_->keyValue_.end())
+    throw NoSuchEntryException();
+    
+  return (*(i->second)).getDescription();
+}
 
 Configuration::~Configuration() {
   for(KeyValueMap::iterator i = keyValue_.begin(); i != keyValue_.end(); i++) {

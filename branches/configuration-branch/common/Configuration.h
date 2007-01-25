@@ -153,6 +153,18 @@ public:
    */
   static bool hasOption(const std::string& entry);
 
+  /**
+   * Retrieves description of an option.
+   * @param entry Name of the option.
+   * @return description of the option.
+   *
+   * @exception WrongEntryNameException Thrown if entry is not valid name,
+   *                                    eg. it is empty.
+   * @exception NoSuchEntryException    Thrown if there is no option with
+   *                                    given name.
+   */
+  static const std::string& getDescription(const std::string& entry);
+
 protected:
   /**
    * Checks if string can be used as a name for an configuration option.
@@ -189,7 +201,7 @@ Configuration::addOption(const std::string& entry,
                          const std::string& description)
 {
   instance_->check(entry);
-  instance_->add(entry, new HandledOption<T>());
+  instance_->add(entry, new HandledOption<T>(description));
 }
 
 template<class T> void 
@@ -197,7 +209,7 @@ Configuration::addOption(const std::string& entry, T* value,
                          const std::string& description)
 {
   instance_->check(entry);
-  instance_->add(entry, new ReferenceOption<T>(value));
+  instance_->add(entry, new ReferenceOption<T>(value, description));
 }
 
 template <class T> void
@@ -205,7 +217,7 @@ Configuration::addCallback(const std::string& entry, Callback<T>* callback,
                            const std::string& description)
 {
   instance_->check(entry);
-  instance_->add(entry, new CallbackOption<T>(callback));
+  instance_->add(entry, new CallbackOption<T>(callback, description));
 }
 
 template<class T> 
