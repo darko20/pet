@@ -90,7 +90,9 @@ public:
   CPPUNIT_TEST( testCallback );
     
   CPPUNIT_TEST( testPriority );
-    
+  
+  CPPUNIT_TEST( testDescription );
+
   CPPUNIT_TEST_SUITE_END();
 
   /*
@@ -236,6 +238,22 @@ public:
         
     Configuration::set("prio1", 44, 11);
     CPPUNIT_ASSERT_EQUAL( 44, Configuration::get<int>("prio1"));
+  }
+
+  void testDescription() {
+    Configuration::addOption<int>("opt_desc_H", "desc1");
+    CPPUNIT_ASSERT_EQUAL(std::string("desc1"),
+                         Configuration::getDescription("opt_desc_H"));
+
+    int i;
+    Configuration::addOption<int>("opt_desc_R", &i, "desc2");
+    CPPUNIT_ASSERT_EQUAL(std::string("desc2"),
+                         Configuration::getDescription("opt_desc_R"));
+    
+    MyCallbackTester cb;
+    Configuration::addCallback("opt_desc_C", &cb, "desc3");
+    CPPUNIT_ASSERT_EQUAL(std::string("desc2"),
+                         Configuration::getDescription("opt_desc_C"));
   }
 };
 

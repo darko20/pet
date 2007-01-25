@@ -13,9 +13,17 @@
 /** @brief Root class for managing one option. */
 class IOption {
 public:
-  IOption() : greatestPriority_(0) {}
+  /**
+   * @param description a description of this option
+   */
+  IOption(const std::string& description)
+    : greatestPriority_(0), description_(description) {}
 
   virtual ~IOption() {}
+  
+  const std::string& getDescription() {
+    return description_;
+  }
 
 protected:
   /**
@@ -36,6 +44,7 @@ protected:
 
 private:   
   int greatestPriority_; //greatest value used in set()
+  const std::string& description_;
 };
 
 /**
@@ -43,6 +52,11 @@ private:
  */
 template<class T> class Option : public IOption {
 public:
+  /**
+   * @param description a description of this option
+   */
+  Option(const std::string& description) : IOption(description) {}
+
   virtual ~Option() {}
 
   /** Returns value of the option. */
@@ -68,6 +82,11 @@ public:
 template<class T>
 class HandledOption : public Option<T> {
 public:
+  /**
+   * @param description a description of this option
+   */
+  HandledOption(const std::string& description) : Option<T>(description) {}
+  
   virtual ~HandledOption() {}
 
   /** Returns value of the option. */
@@ -102,8 +121,10 @@ public:
    * If object is created with this constructor, then it uses external (via
    * reference) variable for value of the option.
    * @param valueRef Reference to variable which stores value of the option.
+   * @param description a description of this option
    */
-  ReferenceOption(T* valueRef) : value_(valueRef) {}
+  ReferenceOption(T* valueRef, const std::string& description)
+    : Option<T>(description), value_(valueRef) {}
 
   virtual ~ReferenceOption() {}
 
@@ -144,8 +165,10 @@ public:
    * callback
    * @param callback Function-object which is called every time value of option
    *                 is changed
+   * @param description a description of this option
    */
-  CallbackOption(Callback<T>* callback) : callback_(*callback) {}
+  CallbackOption(Callback<T>* callback, const std::string& description)
+    : Option<T>(description), callback_(*callback) {}
 
   virtual ~CallbackOption() {}
 
