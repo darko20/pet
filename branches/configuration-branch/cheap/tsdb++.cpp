@@ -37,6 +37,7 @@ statistics stats;
 
 //defined in parse.cpp
 extern bool opt_filter;
+extern int  opt_packing;
 
 void
 statistics::reset()
@@ -589,10 +590,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 }
                 
 #ifdef HAVE_MRS
-                if(opt_mrs)
+                if(Configuration::get<char*>("opt_mrs"))
                 {
-                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag()
-                                                , opt_mrs);
+                  R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
+                            Configuration::get<char*>("opt_mrs"));
                 }
 #endif
                 T.push_result(R);
@@ -617,7 +618,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         }
     }
 
-    if(opt_rulestatistics)
+    if(Configuration::get<bool>("opt_rulestatistics"))
     {
         for(rule_iter rule(Grammar); rule.valid(); rule++)
         {

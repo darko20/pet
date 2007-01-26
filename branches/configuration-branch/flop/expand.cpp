@@ -211,6 +211,8 @@ bool delta_expand_types()
 {
   int i, e;
   list<int> l;
+  bool opt_expand_all_instances =
+    Configuration::get<bool>("opt_expand_all_instances");
 
   fprintf(fstatus, "- delta expansion for types\n");
   
@@ -381,7 +383,8 @@ bool fully_expand_types()
         
       if(!pseudo_type(i))
 	{
-          list_int *path = fully_expand(types[i]->thedag, opt_full_expansion);
+          list_int *path = fully_expand(types[i]->thedag,
+                             Configuration::get<bool>("opt_full_expansion"));
 
 	  if(path != NULL)
 	    {

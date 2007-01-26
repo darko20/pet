@@ -27,6 +27,7 @@
 
 // defined in parse.cpp
 extern bool opt_hyper;
+extern int  opt_packing;
 
 int basic_task::next_id = 0;
 

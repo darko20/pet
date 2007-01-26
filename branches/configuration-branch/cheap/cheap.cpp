@@ -185,7 +185,7 @@ void interactive() {
 
       //dump_jxchg(surface, Chart);
 
-      if(verbosity > 1 || opt_mrs) {
+      if(verbosity > 1 || Configuration::get<char*>("opt_mrs")) {
         int nres = 0;
                 
         list< tItem * > results(Chart->readings().begin()
@@ -213,11 +213,12 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(opt_mrs) {
+          if(Configuration::get<char*>("opt_mrs")) {
             string mrs;
-            mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
+            mrs = ecl_cpp_extract_mrs(it->get_fs().dag(),
+                                      Configuration::get<char*>("opt_mrs"));
             if (mrs.empty()) {
-              if (strcmp(opt_mrs, "xml") == 0)
+              if (strcmp(Configuration::get<char*>("opt_mrs"), "xml") == 0)
                 fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
                         "</rmrs>\n");
               else
@@ -230,20 +231,23 @@ void interactive() {
         }
 
 #ifdef HAVE_MRS
-        if(opt_partial && (Chart->readings().empty())) {
+        if(Configuration::get<bool>("opt_partial")
+           && (Chart->readings().empty()))
+        {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(opt_mrs, "xml") == 0);
+          bool rmrs_xml = (strcmp(Configuration::get<char*>("opt_mrs"), "xml")
+                           == 0);
           if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
           for(list<tItem *>::iterator it = partials.begin()
                 ; it != partials.end(); ++it) {
-            if(opt_mrs) {
+            if(Configuration::get<char*>("opt_mrs")) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
                 string mrs;
-                mrs = ecl_cpp_extract_mrs(item->get_fs().dag()
-                                          , opt_mrs);
+                mrs = ecl_cpp_extract_mrs(item->get_fs().dag(),
+                                          Configuration::get<char*>("opt_mrs"));
                 if (! mrs.empty()) {
                   fprintf(fstatus, "%s\n", mrs.c_str());
                 }
@@ -400,25 +404,29 @@ void process(const char *s) {
       Lexparser.register_morphology(ff);
       // ff->print(fstatus);
     }
-    if(opt_online_morph) {
+    if(Configuration::get<bool>("opt_online_morph")) {
       tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
       if (lkbm != NULL)
         Lexparser.register_morphology(lkbm);
       else
-        opt_online_morph = false;
+        Configuration::set("opt_online_morph", false);
     }
     Lexparser.register_lexicon(new tInternalLexicon());
 
     tTokenizer *tok;
-    switch (opt_tok) {
+    switch (Configuration::get<tokenizer_id>("opt_tok")) {
     case TOKENIZER_YY: 
     case TOKENIZER_YY_COUNTS: 
       {
         char *classchar = cheap_settings->value("class-name-char");
         if (classchar != NULL)
-          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
+          tok = new tYYTokenizer(
+            (Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
+               ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
         else
-          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS));
+          tok = new tYYTokenizer((
+            Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
+              ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
     case TOKENIZER_STRING: 
@@ -430,7 +438,9 @@ void process(const char *s) {
 #ifdef HAVE_XML
       xml_initialize();
       XMLServices = true;
-      tok = new tXMLTokenizer((opt_tok == TOKENIZER_XML_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
+      tok = new tXMLTokenizer((
+        Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_XML_COUNTS
+          ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
 #else
       fprintf(ferr, "No XML input mode compiled into this cheap\n");
       exit(1);

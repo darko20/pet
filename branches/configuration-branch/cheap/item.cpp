@@ -35,6 +35,13 @@
 //#define DEBUG
 //#define DEBUGPOS
 
+// options managed by the configuration system
+bool opt_lattice;
+unsigned int opt_gplevel;
+
+// defined in parse.cpp
+extern int opt_packing;
+
 // this is a hoax to get the cfrom and cto values into the mrs
 #ifdef DYNAMIC_SYMBOLS
 struct charz_t {
@@ -81,7 +88,7 @@ void init_characterization() {
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
-  if((opt_mrs != 0) && charz_init) {
+  if((Configuration::get<char*>("opt_mrs") != 0) && charz_init) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
                                , lookup_unsigned_symbol(from))

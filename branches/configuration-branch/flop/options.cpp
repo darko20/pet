@@ -24,11 +24,8 @@
 #include "options.h"
 #include "version.h"
 
-bool opt_pre, opt_expand_all_instances,
-  opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
-  opt_propagate_status, opt_glbdebug;
+bool opt_unfill, opt_no_sem, opt_propagate_status, opt_glbdebug;
 
-int opt_cmi;
 int verbosity;
 int errors_to;
 
@@ -83,18 +80,26 @@ bool parse_options(int argc, char* argv[])
     {0, 0, 0, 0}
   }; /* struct option */
   
-  opt_pre = false;
-  opt_expand_all_instances = false;
-  opt_full_expansion = false;
+  Configuration::addOption<bool>("opt_pre",
+    "perform only the preprocessing stage (set local variable in fn process)",
+    false);
+  Configuration::addOption<bool>("opt_expand_all_instances",
+    "expand  expand all type definitions, except for pseudo types", false);
+  Configuration::addOption<bool>("opt_full_expansion",
+    "expand the feature structures fully to find possible inconsistencies",
+    false);
   opt_unfill = false;
-  opt_minimal = false;
+  Configuration::addOption<bool>("opt_minimal", false);
   opt_no_sem = false;
   opt_propagate_status = false;
   Configuration::addOption<bool>("opt_linebreaks");
   Configuration::set("opt_linebreaks", false);
   opt_glbdebug = false;
 
-  opt_cmi = 0;
+  Configuration::addOption<int>("opt_cmi",
+    "print information about morphological processing "
+    "(different types depending on value)",  0);
+
   verbosity = 0;
   errors_to = -1;
   
@@ -106,19 +111,19 @@ bool parse_options(int argc, char* argv[])
       return false;
       break;
     case OPTION_PRE:
-      opt_pre = true;
+      Configuration::set("opt_pre", true);
       break;
     case OPTION_UNFILL:
       opt_unfill = true;
       break;
     case OPTION_MINIMAL:
-      opt_minimal = true;
+      Configuration::set("opt_minimal", true);
       break;
     case OPTION_FULL_EXPANSION:
-      opt_full_expansion = true;
+      Configuration::set("opt_full_expansion", true);
       break;
     case OPTION_EXPAND_ALL_INSTANCES:
-      opt_expand_all_instances = true;
+      Configuration::set("opt_expand_all_instances", true);
       break;
     case OPTION_NO_SEM:
       opt_no_sem = true;
@@ -131,7 +136,8 @@ bool parse_options(int argc, char* argv[])
       break;
     case OPTION_CMI:
       if(optarg != NULL)
-        opt_cmi = strtoint(optarg, "as argument to `-cmi'");
+        Configuration::set("opt_cmi",
+          strtoint(optarg, "as argument to `-cmi'"));
       break;
     case OPTION_VERBOSE:
       if(optarg != NULL)
