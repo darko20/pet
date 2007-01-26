@@ -2,11 +2,15 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
+#include <string>
+
 #include "Configuration.h"
 
 #if HAVE_LIBLOG4CXX
 #  include <log4cxx/basicconfigurator.h>
 #endif // HAVE_LIBLOG4CXX
+
+using namespace std;
 
 //for testing callbacks
 class MyCallbackTester : public Callback<int> {
@@ -68,6 +72,13 @@ public:
   }
 };
 
+// for testing initial values of options
+class WithDefConstructor {
+public:
+  WithDefConstructor(string s = "abc") : s_(s) {};
+  string s_;
+};
+
 class ConfigurationTest : public CppUnit::TestFixture {
 public:
   CPPUNIT_TEST_SUITE( ConfigurationTest );
@@ -92,6 +103,7 @@ public:
   CPPUNIT_TEST( testPriority );
   
   CPPUNIT_TEST( testDescription );
+  CPPUNIT_TEST( testInitial );
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -240,6 +252,7 @@ public:
     CPPUNIT_ASSERT_EQUAL( 44, Configuration::get<int>("prio1"));
   }
 
+  // test if the descriptions of options are handled correctly
   void testDescription() {
     Configuration::addOption<int>("opt_desc_H", "desc1");
     CPPUNIT_ASSERT_EQUAL(std::string("desc1"),
@@ -254,6 +267,44 @@ public:
     Configuration::addCallback("opt_desc_C", &cb, "desc3");
     CPPUNIT_ASSERT_EQUAL(std::string("desc2"),
                          Configuration::getDescription("opt_desc_C"));
+  }
+
+  // test if the initial values of options are applied correctly
+  void testInitial() {
+    // --------------- Handled ---------------
+    Configuration::addOption<int>("initH1", "description", 3);
+    CPPUNIT_ASSERT_EQUAL( 3, Configuration::get<int>("initH1") );
+
+    // default constructors of primitive types
+    // initialize variables to 0, 0.0, false, etc.
+    Configuration::addOption<int>("initH2");
+    CPPUNIT_ASSERT_EQUAL( 0, Configuration::get<int>("initH2") );
+    
+    Configuration::addOption<WithDefConstructor>("initH3");
+    CPPUNIT_ASSERT_EQUAL( string("abc"),
+                          Configuration::get<WithDefConstructor>("initH3").s_ );
+    Configuration::addOption<WithDefConstructor>("initH4", "descr",
+                                                 WithDefConstructor("xyz"));
+    CPPUNIT_ASSERT_EQUAL( string("xyz"),
+                          Configuration::get<WithDefConstructor>("initH4").s_ );
+
+    // --------------- Reference ---------------
+    int i;
+    Configuration::addOption<int>("initR1", &i, "description", 5);
+    CPPUNIT_ASSERT_EQUAL( 5, i );
+    CPPUNIT_ASSERT_EQUAL( 5, Configuration::get<int>("initR1") );
+    
+    double d;
+    Configuration::addOption<double>("initR2", &d);
+    CPPUNIT_ASSERT_EQUAL( 0.0, d );
+    CPPUNIT_ASSERT_EQUAL( 0.0, Configuration::get<double>("initR2") );
+
+    WithDefConstructor wdc1, wdc2;
+    Configuration::addOption<WithDefConstructor>("initR3", &wdc1, "descr",
+                                                 WithDefConstructor("xyz"));
+    CPPUNIT_ASSERT_EQUAL( string("xyz"), wdc1.s_ );
+    Configuration::addOption<WithDefConstructor>("initR4", &wdc2);
+    CPPUNIT_ASSERT_EQUAL( string("abc"), wdc2.s_ );
   }
 };
 

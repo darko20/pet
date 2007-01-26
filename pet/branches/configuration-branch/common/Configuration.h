@@ -67,19 +67,22 @@ public:
    * Adds new configuration option. Value is handled internally
    * @param entry Name of the option.
    * @param description
+   * @param initial initial value of the option.
    *
    * @exception WrongEntryNameException     Thrown if entry is not valid name,
    *                                        eg. it is empty.
    * @exception EntryAlreadyExistsException Thrown if entry already exists.
    */
   template<class T> static void 
-  addOption(const std::string& entry, const std::string& description = "");
+  addOption(const std::string& entry, const std::string& description = "",
+            T initial = T());
 
   /**
    * Adds new configuration option. Value is stored in given location.
    * @param entry Name of the option.
    * @param value Pointer to place where value is stored.
    * @param description
+   * @param initial initial value of the option.
    *
    * @exception WrongEntryNameException     Thrown if entry is not valid name,
    *                                        eg. it is empty.
@@ -87,7 +90,7 @@ public:
    */
   template<class T> static void 
   addOption(const std::string& entry, T* value,
-            const std::string& description = "");
+            const std::string& description = "", T initial = T());
 
   /**
    * Adds new callback configuration option. Only access functions are provided
@@ -198,18 +201,22 @@ private:
 
 template<class T> void 
 Configuration::addOption(const std::string& entry,
-                         const std::string& description)
+                         const std::string& description, T initial)
 {
   instance_->check(entry);
-  instance_->add(entry, new HandledOption<T>(description));
+  Option<T> *opt = new HandledOption<T>(description);
+  opt->set(initial);
+  instance_->add(entry, opt);
 }
 
 template<class T> void 
 Configuration::addOption(const std::string& entry, T* value,
-                         const std::string& description)
+                         const std::string& description, T initial)
 {
   instance_->check(entry);
-  instance_->add(entry, new ReferenceOption<T>(value, description));
+  Option<T> *opt = new ReferenceOption<T>(value, description);
+  opt->set(initial);
+  instance_->add(entry, opt);
 }
 
 template <class T> void
