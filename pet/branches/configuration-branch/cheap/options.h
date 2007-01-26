@@ -32,8 +32,7 @@
 
 #define CHEAP_SERVER_PORT 4711
 
-extern bool opt_shrink_mem, opt_shaping, opt_rulestatistics, opt_lattice,
-  opt_partial;
+extern bool opt_shrink_mem, opt_shaping;
 
 #ifdef YY
 extern bool opt_yy, opt_nth_meaning;
@@ -42,12 +41,9 @@ extern int verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_server;
 extern int opt_tsdb;
 
 extern long int memlimit;
-extern bool opt_linebreaks, opt_online_morph;
+extern bool opt_linebreaks;
 // extern bool opt_fullform_morph;
 extern char *grammar_file_name;
-
-extern char *opt_mrs;
-extern unsigned int opt_gplevel;
 
 enum tokenizer_id { 
   TOKENIZER_INVALID, TOKENIZER_STRING
@@ -56,8 +52,6 @@ enum tokenizer_id {
   , TOKENIZER_FSR, TOKENIZER_SMAF
 } ;
 
-extern tokenizer_id opt_tok;
-
 extern std::string opt_tsdb_dir, opt_jxchg_dir;
 
 #define PACKING_EQUI  (1 << 0)
@@ -65,7 +59,6 @@ extern std::string opt_tsdb_dir, opt_jxchg_dir;
 #define PACKING_RETRO (1 << 2)
 #define PACKING_SELUNPACK (1 << 3)
 #define PACKING_NOUNPACK (1 << 7)
-extern int opt_packing;
 
 void usage(FILE *f);
 

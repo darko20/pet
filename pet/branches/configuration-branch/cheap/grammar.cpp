@@ -40,11 +40,12 @@
 
 int grammar_rule::next_id = 0;
 
-//defined in fs.cpp
+// defined in fs.cpp
 extern bool opt_compute_qc_unif, opt_compute_qc_subs;
 
-//defined in parse.cpp
+// defined in parse.cpp
 extern bool opt_filter;
+extern int  opt_packing;
 
 bool
 lexentry_status(type_t t)
@@ -562,7 +563,7 @@ tGrammar::tGrammar(const char * filename)
         }
 
         if(_morph->empty())
-            opt_online_morph = false;
+            Configuration::set("opt_online_morph", false);
         
         if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
         if(verbosity >14) _morph->print(fstatus);
@@ -1066,7 +1067,7 @@ tGrammar::lookup_form(const string form)
     list<full_form> result;
   
 #ifdef ONLINEMORPH
-    if(opt_online_morph)
+    if(Configuration::get<bool>("opt_online_morph"))
     {
         list<tMorphAnalysis> m = _morph->analyze(form);
         for(list<tMorphAnalysis>::iterator it = m.begin(); it != m.end(); ++it)

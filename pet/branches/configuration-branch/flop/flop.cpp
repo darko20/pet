@@ -291,7 +291,7 @@ void process_types()
   if(verbosity > 9)
     log_types("before dumping");
 
-  compute_feat_sets(opt_minimal);
+  compute_feat_sets(Configuration::get<bool>("opt_minimal"));
 }
 
 void
@@ -309,7 +309,7 @@ fill_grammar_properties()
         opt_unfill ? "true" : "false";
 
     grammar_properties["full-expansion"] =
-        opt_full_expansion ? "true" : "false";
+        Configuration::get<bool>("opt_full_expansion") ? "true" : "false";
 }
 
 /*
@@ -433,8 +433,8 @@ int process(char *ofname) {
   grammar_version = parse_version();
   if(grammar_version == 0) grammar_version = "unknown";
 
-  string outfname = output_name(fname, TDL_EXT
-                               , opt_pre ? PRE_EXT : GRAMMAR_EXT);
+  string outfname = output_name(fname, TDL_EXT,
+           Configuration::get<bool>("opt_pre") ? PRE_EXT : GRAMMAR_EXT);
   FILE *outf = fopen(outfname.c_str(), "wb");
   
   if(outf) {
@@ -484,7 +484,7 @@ int process(char *ofname) {
         read_irregs(irregfnamestr.c_str());
     }
 
-    if(!opt_pre)
+    if(!Configuration::get<bool>("opt_pre"))
       check_undefined_types();
 
     fprintf(fstatus, "\nfinished parsing - %d syntax errors, %d lines "
@@ -507,14 +507,14 @@ int process(char *ofname) {
     preprocess_types();
     mem_checkpoint("after preprocessing types");
 
-    if(!opt_pre)
+    if(!Configuration::get<bool>("opt_pre"))
       process_types();
 
     mem_checkpoint("after processing types");
 
     fill_grammar_properties();        
 
-    if(opt_pre) {
+    if(Configuration::get<bool>("opt_pre")) {
       write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version);
       write_pre(outf);
     } else {
@@ -537,13 +537,13 @@ int process(char *ofname) {
     fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
             (clock() - t_start) / (float) CLOCKS_PER_SEC);
 
-    if(opt_cmi > 0) {
+    if(Configuration::get<int>("opt_cmi") > 0) {
       string moifile = output_name(fname, TDL_EXT, ".moi");
       FILE *moif = fopen(moifile.c_str(), "wb");
       fprintf(fstatus, "Extracting morphological information "
               "into `%s'...", moifile.c_str());
       print_morph_info(moif);
-      if(opt_cmi > 1) {
+      if(Configuration::get<int>("opt_cmi") > 1) {
         fprintf(fstatus, " type hierarchy...");
         fprintf(moif, "\n");
         print_hierarchy(moif);

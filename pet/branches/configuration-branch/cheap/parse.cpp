@@ -48,7 +48,7 @@ timer TotalParseTime(false);
 
 //options managed by configuration subsystem
 bool opt_filter, opt_hyper;
-int  opt_nsolutions;
+int  opt_nsolutions, opt_packing;
 
 //
 // filtering

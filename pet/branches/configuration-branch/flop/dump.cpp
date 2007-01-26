@@ -82,7 +82,7 @@ void
 dump_tables(dumper *f)
 {
   // write encoding type
-  if(opt_minimal == false)
+  if(!Configuration::get<bool>("opt_minimal"))
     f->dump_int(0);
   else
     f->dump_int(1);

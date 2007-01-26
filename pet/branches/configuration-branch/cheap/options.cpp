@@ -28,9 +28,7 @@
 #include "version.h"
 #include <string>
 
-bool opt_shrink_mem, opt_shaping,
-  opt_rulestatistics, opt_lattice,
-  opt_online_morph, opt_partial;
+bool opt_shrink_mem, opt_shaping;
 
 // opt_fullform_morph is obsolete
 // bool opt_fullform_morph;
@@ -42,6 +40,9 @@ extern bool opt_compute_qc_unif, opt_compute_qc_subs, opt_print_failure;
 extern bool opt_filter, opt_hyper;
 extern int  opt_nsolutions;
 
+// defined in item.cpp
+extern bool opt_lattice;
+
 #ifdef YY
 bool opt_yy, opt_nth_meaning;
 #endif
@@ -51,17 +52,15 @@ int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
 
-char *opt_mrs = 0;
-
 // 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting
 // level in MEM-based parse selection
-unsigned int opt_gplevel = 0;
-
-tokenizer_id opt_tok = TOKENIZER_STRING;
+// defined in item.cpp
+extern unsigned int opt_gplevel;
 
 std::string opt_tsdb_dir, opt_jxchg_dir;
 
-int opt_packing = 0;
+// defined in parse.cpp
+extern int opt_packing;
 
 void usage(FILE *f)
 {
@@ -176,9 +175,9 @@ void init_options()
   opt_tsdb = 0;
   
   Configuration::addOption<int>("opt_nsolutions", &opt_nsolutions,
-    "The number of solutions until the parser is stopped, if not in packing mode");
-  Configuration::set("opt_nsolutions", 0);
-  
+    "The number of solutions until the parser is stopped, "
+    "if not in packing mode", 0);
+    
   verbosity = 0;
   pedgelimit = 0;
   memlimit = 0;
@@ -186,89 +185,93 @@ void init_options()
   opt_shaping = true;
   
   Configuration::addOption<bool>("opt_filter", &opt_filter,
-    "Use the static rule filter");
-  Configuration::set("opt_filter", true);
+    "Use the static rule filter", true);
   
   opt_nqc_unif = -1;
   opt_nqc_subs = -1;
   
   Configuration::addOption<char*>("opt_compute_qc",
     "Activate code that collects unification/subsumption failures "
-    "for quick check computation, contains filename to write results to");
-  Configuration::set<char*>("opt_compute_qc", 0);
+    "for quick check computation, contains filename to write results to", 0);
   
   Configuration::addOption<bool>("opt_compute_qc_unif", &opt_compute_qc_unif,
-    "Activate failure registration for unification");
-  Configuration::set("opt_compute_qc_unif", false);
+    "Activate failure registration for unification", false);
   
   Configuration::addOption<bool>("opt_compute_qc_subs", &opt_compute_qc_subs,
-    "Activate failure registration for subsumption");
-  Configuration::set("opt_compute_qc_subs", false);
+    "Activate failure registration for subsumption", false);
   
   Configuration::addOption<bool>("opt_print_failure", &opt_print_failure,
     "Log unification/subsumption failures "
-    "(should be replaced by logging or new/different API functionality)");
-  Configuration::set("opt_print_failure", false);
+    "(should be replaced by logging or new/different API functionality)",
+    false);
   
   Configuration::addOption<int>("opt_key",
     "What is the key daughter used in parsing?"
-    "0: key-driven, 1: l-r, 2: r-l, 3: head-driven");
-  Configuration::set("opt_key", 0);
+    "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", 0);
   
   Configuration::addOption<bool>("opt_hyper", &opt_hyper,
-    "use hyperactive parsing");
-  Configuration::set("opt_hyper", true);
+    "use hyperactive parsing", true);
   
   Configuration::addOption<bool>("opt_derivation",
-    "Store derivations in tsdb profile");
-  Configuration::set("opt_derivation", true);
+    "Store derivations in tsdb profile", true);
   
-  opt_rulestatistics = false;
+  Configuration::addOption<bool>("opt_rulestatistics",
+    "dump the per-rule statistics to the tsdb database", false);
   
   Configuration::addOption<bool>("opt_default_les",
     "Try to use default lexical entries if no regular entries could be found. "
-    "Uses POS annotation, if available.");
-  Configuration::set("opt_default_les", false);
+    "Uses POS annotation, if available.", false);
   
   opt_server = 0;
   
-  Configuration::addOption<bool>("opt_pg");
-  Configuration::set("opt_pg", false);
+  Configuration::addOption<bool>("opt_pg", "", false);
   
   Configuration::addOption<bool>("opt_chart_man",
-    "Allow lexical dependency filtering");
-  Configuration::set("opt_chart_man", true);
+    "Allow lexical dependency filtering", true);
   
-  opt_lattice = false;
+  Configuration::addOption<bool>("opt_lattice", &opt_lattice, 
+    "is the lattice structure specified in the input "
+    "used to restrict the search space in parsing", false);
   
-  Configuration::addOption<bool>("opt_nbest");
-  Configuration::set("opt_nbest", false);
+  Configuration::addOption<bool>("opt_nbest", "", false);
   
-  opt_online_morph = true;
+  Configuration::addOption<bool>("opt_online_morph", 
+    "use the internal morphology (the regular expression style one)", true);
   
   // opt_fullform_morph is obsolete
   // opt_fullform_morph = true;
     
-  opt_packing = 0;
-  opt_mrs = 0;
+  Configuration::addOption<int>("opt_packing", &opt_packing,
+    "a bit vector of flags: 1:equivalence 2:proactive 4:retroactive packing "
+    "8:selective 128:no unpacking", 0);
+
+  Configuration::addOption<char*>("opt_mrs",
+    "determines if and which kind of MRS output is generated", 0 );
+  
   opt_tsdb_dir = "";
-  opt_partial = false;
+
+  Configuration::addOption<bool>("opt_partial",
+    "in case of parse failure, find a set of chart edges "
+    "that covers the chart in a good manner", false);
   
   Configuration::addOption<int>("opt_nresults",
     "The number of results to print "
-    "(should be an argument of an API function)");
-  Configuration::set("opt_nresults", 0);
+    "(should be an argument of an API function)", 0);
   
-  opt_tok = TOKENIZER_STRING;
+  Configuration::addOption<tokenizer_id>("opt_tok", "", TOKENIZER_STRING);
+
   opt_jxchg_dir = "";
   
   // 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
   Configuration::addOption<bool>("opt_comment_passthrough",
-    "Ignore/repeat input classified as comment: starts with '#' or '//'");
-  Configuration::set<bool>("opt_comment_passthrough", false);
+    "Ignore/repeat input classified as comment: starts with '#' or '//'",
+    false);
   
-  Configuration::addOption<bool>("opt_linebreaks");
-  Configuration::set("opt_linebreaks", false);
+  Configuration::addOption<bool>("opt_linebreaks", "", false);
+  
+  Configuration::addOption<unsigned int>("opt_gplevel", &opt_gplevel,
+    "determine the level of grandparenting "
+    "used in the models for selective unpacking", 0);
 
 #ifdef YY
   opt_yy = false;
@@ -384,7 +387,7 @@ bool parse_options(int argc, char* argv[])
           Configuration::set("opt_derivation", false);
           break;
       case OPTION_RULE_STATISTICS:
-          opt_rulestatistics = true;
+          Configuration::set("opt_rulestatistics", true);
           break;
       case OPTION_COMPUTE_QC:
           if(optarg != NULL)
@@ -415,7 +418,7 @@ bool parse_options(int argc, char* argv[])
           Configuration::set("opt_pg", true);
           break;
       case OPTION_LATTICE:
-          opt_lattice = true;
+          Configuration::set("opt_lattice", true);
           break;
       case OPTION_VERBOSE:
           if(optarg != NULL)
@@ -453,7 +456,7 @@ bool parse_options(int argc, char* argv[])
           Configuration::set("opt_nbest", true);
           break;
       case OPTION_NO_ONLINE_MORPH:
-          opt_online_morph = false;
+          Configuration::set("opt_online_morph", false);
           break;
       case OPTION_NO_FULLFORM_MORPH:
           // opt_fullform_morph is obsolete
@@ -461,22 +464,23 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_PACKING:
           if(optarg != NULL)
-              opt_packing = strtoint(optarg, "as argument to `-packing'");
+            Configuration::set("opt_packing",
+              strtoint(optarg, "as argument to `-packing'"));
           else
-              opt_packing
-                = PACKING_EQUI|PACKING_PRO|PACKING_RETRO|PACKING_SELUNPACK;
+            Configuration::set("opt_packing",
+              PACKING_EQUI|PACKING_PRO|PACKING_RETRO|PACKING_SELUNPACK);
           break;
       case OPTION_MRS:
           if(optarg != NULL)
-              opt_mrs = strdup(optarg);
+            Configuration::set("opt_mrs", strdup(optarg));
           else
-              opt_mrs = "simple";
+            Configuration::set("opt_mrs", "simple");
           break;
       case OPTION_TSDB_DUMP:
           opt_tsdb_dir = optarg;
           break;
       case OPTION_PARTIAL:
-          opt_partial = true;
+          Configuration::set("opt_partial", true);
           break;
       case OPTION_NRESULTS:
           if(optarg != NULL)
@@ -484,21 +488,34 @@ bool parse_options(int argc, char* argv[])
                 strtoint(optarg, "as argument to -results"));
           break;
       case OPTION_TOK:
-	opt_tok = TOKENIZER_STRING; //todo: make FSR the default
-	if (optarg != NULL) {
-	  if (strcasecmp(optarg, "string") == 0) opt_tok = TOKENIZER_STRING;
-	  else if (strcasecmp(optarg, "yy") == 0) opt_tok = TOKENIZER_YY;
-	  else if (strcasecmp(optarg, "yy_counts") == 0) opt_tok = TOKENIZER_YY_COUNTS;
-	  else if (strcasecmp(optarg, "xml") == 0) opt_tok = TOKENIZER_XML; //obsolete
-	  else if (strcasecmp(optarg, "xml_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS; //obsolete
-	  else if (strcasecmp(optarg, "pic") == 0) opt_tok = TOKENIZER_XML;
-	  else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS;
-	  else if (strcasecmp(optarg, "smaf") == 0) opt_tok = TOKENIZER_SMAF;
-	  else if (strcasecmp(optarg, "fsr") == 0)
-	    opt_tok = TOKENIZER_FSR;
-	  else fprintf(ferr, "WARNING: unknown tokenizer mode \"%s\": using 'tok=string'\n", optarg);
-	}
-	break;
+        {
+          tokenizer_id opt_tok = TOKENIZER_STRING; //todo: make FSR the default
+          if (optarg != NULL) {
+            if (strcasecmp(optarg, "string") == 0)
+              opt_tok = TOKENIZER_STRING;
+            else if (strcasecmp(optarg, "yy") == 0)
+              opt_tok = TOKENIZER_YY;
+            else if (strcasecmp(optarg, "yy_counts") == 0)
+              opt_tok = TOKENIZER_YY_COUNTS;
+            else if (strcasecmp(optarg, "xml") == 0)
+              opt_tok = TOKENIZER_XML; //obsolete
+            else if (strcasecmp(optarg, "xml_counts") == 0)
+              opt_tok = TOKENIZER_XML_COUNTS; //obsolete
+            else if (strcasecmp(optarg, "pic") == 0)
+              opt_tok = TOKENIZER_XML;
+            else if (strcasecmp(optarg, "pic_counts") == 0)
+              opt_tok = TOKENIZER_XML_COUNTS;
+            else if (strcasecmp(optarg, "smaf") == 0)
+              opt_tok = TOKENIZER_SMAF;
+            else if (strcasecmp(optarg, "fsr") == 0)
+              opt_tok = TOKENIZER_FSR;
+            else
+              fprintf(ferr, "WARNING: unknown tokenizer mode "
+                            "\"%s\": using 'tok=string'\n", optarg);
+          }
+          Configuration::set("opt_tok", opt_tok);
+        }
+        break;
       case OPTION_JXCHG_DUMP:
           opt_jxchg_dir = optarg;
           if (*(opt_jxchg_dir.end()--) != '/') 
@@ -522,7 +539,7 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_YY:
           opt_yy = true;
-          opt_tok = TOKENIZER_YY;
+          Configuration::set("opt_tok", TOKENIZER_YY);
           break;
 #endif
         }

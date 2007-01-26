@@ -29,6 +29,9 @@
 #include "item.h"
 #include <sstream>
 
+// defined in item.cpp
+extern unsigned int opt_gplevel;
+
 int
 tSMFeature::hash() const
 {

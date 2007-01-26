@@ -35,6 +35,9 @@
 #include "hashing.h"
 #include <functional>
 
+// options managed by the configuration system
+extern bool opt_lattice;
+
 /** this is a hoax to get the cfrom and cto values into the mrs */
 void init_characterization();
 
