@@ -219,7 +219,9 @@ public:
 class w : public pic_base_state {
   STATE_COMMON_CODE(w)
 public:
-  w(PICHandler *picreader) : pic_base_state(picreader), _items(0) {} ;
+  // _prio must be initialized because otherwise there can be floating point
+  // exceptions due to uninitialized values
+  w(PICHandler *picreader) : pic_base_state(picreader), _prio(0), _items(0) {};
   virtual ~w() {}
 
   /**
@@ -305,7 +307,10 @@ private:
 class ne : public pic_base_state {
   STATE_COMMON_CODE(ne)
 public:
-  ne(PICHandler *picreader) : pic_base_state(picreader), _items(0) {} ;
+  // _prio must be initialized because otherwise there can be floating point
+  // exceptions due to uninitialized values
+  ne(PICHandler *picreader) 
+    : pic_base_state(picreader), _prio(0), _items(0) {};
   virtual ~ne() {}
   
   /** pet_input_chart state --> ne state. */
@@ -396,11 +401,13 @@ private:
     _id = req_string_attr(attr, "id");
     // baseform == yes means: this is a stem (base form), not a type name
     _base = opt_bool_attr(attr, "baseform", true);
-    _prio = opt_double_attr(attr, "prio", 0.0);
+    _prio = opt_double_attr(attr, "prio", 0.0l);
   }
 
 public:
-  typeinfo(PICHandler *picreader) : pic_base_state(picreader) {} ;
+  // _prio must be initialized because otherwise there can be floating point
+  // exceptions due to uninitialized values
+  typeinfo(PICHandler *picreader) : pic_base_state(picreader), _prio(0) {} ;
   virtual ~typeinfo() {}
   
   /** @name w state <--> typeinfo state. */
