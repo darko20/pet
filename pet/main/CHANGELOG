@@ -1,4 +1,7 @@
 v0.99.??
+  - efficiency improvement for selective unpacking by i) avoid propagating 
+    hypotheses that failed to instantiate ii) better recording of
+    seen indices for decompositions
   (two changes by oe)
   - repair damage to feature extraction in tSM::score_hypothesis() that i had
     introduced when trying to suppress signed vs. unsigned comparison compiler
