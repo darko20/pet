@@ -47,6 +47,11 @@ private:
   const std::string& description_;
 };
 
+template<class T>
+class IConverter;
+
+class NoConverterException;
+
 /**
  * @brief Abstract class for managing one option of given type.
  */
@@ -55,7 +60,8 @@ public:
   /**
    * @param description a description of this option
    */
-  Option(const std::string& description) : IOption(description) {}
+  Option(const std::string& description)
+    : IOption(description), converter_(0) {}
 
   virtual ~Option() {}
 
@@ -72,6 +78,45 @@ public:
    *       configuration file, even if configuration file is processed later.
    */
   virtual void set(const T& value, int priority = 1) = 0;
+
+  /**
+   * Set converter used for conversion from/to std::string  of this option.
+   * @param converter converter to be used.
+   */
+  virtual void setConverter(IConverter<T> *converter) {
+    converter_ = converter;
+  }
+  
+  /**
+   * Get a value of the option as string.
+   * Uses converter.
+   * @return a value of the option as std:string
+   * @exception NoConverterException no converter defined for this option,
+   *                                 use #Option<T>::setConverter prior
+   *                                 this method.
+   */
+  virtual std::string getString() {
+    if(converter_ == 0)
+      throw NoConverterException();
+    
+    return converter_->toString( this->get() );
+  }
+
+  /**
+   * Set a value of this option using string argument.
+   * Uses converter.
+   * @param s string containing new value of the option.
+   * @param priority see #Option<T>::set
+   */
+  virtual void setString(const std::string& s, int priority = 1) {
+    if(converter_ == 0)
+      throw NoConverterException();
+    
+    this->set(converter_->fromString(s) , priority);
+  }
+
+private:
+  IConverter<T> *converter_;
 };
 
 /**

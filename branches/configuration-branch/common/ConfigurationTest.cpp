@@ -3,6 +3,7 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
 #include <string>
+#include <iostream>
 
 #include "Configuration.h"
 
@@ -79,6 +80,82 @@ public:
   string s_;
 };
 
+//tests of Converters
+class ConvertersTest : public CppUnit::TestFixture {
+private:
+  class CustomType {
+  public:
+    int x_, y_;
+    CustomType(int x = 0, int y = 0) : x_(x), y_(y) {}
+    
+    friend ostream& operator<<(ostream& os, const CustomType& ct) {
+      os << ct.x_ << ' ' << ct.y_;
+      return os;
+    }
+    
+    friend istream& operator>>(istream& is, CustomType& ct) {
+      is >> ct.x_ >> ct.y_;
+      return is;
+    }
+    
+    bool operator==(const CustomType& ct) const {
+      return (this->x_ == ct.x_) && (this->y_ == ct.y_);
+    }
+  };
+
+public:
+
+  CPPUNIT_TEST_SUITE( ConvertersTest );
+  CPPUNIT_TEST( testConverterGetInstance );
+  CPPUNIT_TEST( testConverterInt );
+  CPPUNIT_TEST( testConverterCustom );
+  CPPUNIT_TEST( testMapConverter );
+  CPPUNIT_TEST_SUITE_END();
+
+  void testConverterGetInstance() {
+    Converter<int> *ci1, *ci2;
+    Converter<float> *cf;
+    
+    ci1 = Converter<int>::getInstance();
+    ci2 = Converter<int>::getInstance();
+    cf  = Converter<float>::getInstance();
+
+    CPPUNIT_ASSERT( ci1 != 0 );
+    CPPUNIT_ASSERT( ci1 == ci2 );
+    CPPUNIT_ASSERT( cf != 0 );
+    CPPUNIT_ASSERT( (void*)cf != (void*)ci1 );
+  }
+
+  void testConverterInt() {
+    Converter<int> *ci;
+    ci = Converter<int>::getInstance();
+    
+    CPPUNIT_ASSERT_EQUAL( 42, ci->fromString("42") );
+    CPPUNIT_ASSERT_EQUAL( string("45"), ci->toString(45) );
+  }
+
+  void testConverterCustom() {
+    Converter<CustomType> *cct = Converter<CustomType>::getInstance();
+    
+    CPPUNIT_ASSERT_EQUAL( CustomType(10,5), cct->fromString("10 5") );
+    CPPUNIT_ASSERT_EQUAL( string("7 19"), cct->toString(CustomType(7, 19)) );
+  }
+
+  void testMapConverter() {
+    MapConverter<int>::Map m;
+    m["one"]   = 1;
+    m["two"]   = 2;
+    m["three"] = 3;
+    MapConverter<int> mc(m);
+    
+    CPPUNIT_ASSERT_EQUAL( 2, mc.fromString("two") );
+    CPPUNIT_ASSERT_EQUAL( string("one"), mc.toString(1) );
+    
+    CPPUNIT_ASSERT_THROW( mc.fromString("6"), ConvertionException );
+    CPPUNIT_ASSERT_THROW( mc.toString(5), ConvertionException );
+  }
+};
+
 class ConfigurationTest : public CppUnit::TestFixture {
 public:
   CPPUNIT_TEST_SUITE( ConfigurationTest );
@@ -104,7 +181,10 @@ public:
   
   CPPUNIT_TEST( testDescription );
   CPPUNIT_TEST( testInitial );
-
+  CPPUNIT_TEST( testConverter );
+  CPPUNIT_TEST( testConverterExceptions );
+  CPPUNIT_TEST( testMapConverter );
+  
   CPPUNIT_TEST_SUITE_END();
 
   /*
@@ -306,8 +386,64 @@ public:
     Configuration::addOption<WithDefConstructor>("initR4", &wdc2);
     CPPUNIT_ASSERT_EQUAL( string("abc"), wdc2.s_ );
   }
+
+  void testConverter() {
+    // --------------- Handled -----------------
+    Configuration::addOption<int>("conv_1", "descr", 3,
+                                  Converter<int>::getInstance());
+    CPPUNIT_ASSERT_EQUAL( string("3"),
+                          Configuration::getString<int>("conv_1") );
+    Configuration::setString<int>("conv_1", "47");
+    CPPUNIT_ASSERT_EQUAL( 47,  Configuration::get<int>("conv_1") );
+    
+    // --------------- Reference ---------------
+    int i;
+    Configuration::addOption<int>("conv_2", &i, "descr", 3,
+                                  Converter<int>::getInstance());
+    CPPUNIT_ASSERT_EQUAL( string("3"),
+                          Configuration::getString<int>("conv_2") );
+    Configuration::setString<int>("conv_2", "47");
+    CPPUNIT_ASSERT_EQUAL( 47,  i );
+  }
+
+  void testConverterExceptions() {
+    Configuration::addOption<int>("convEx_1", "descr", 3);
+    CPPUNIT_ASSERT_THROW( Configuration::getString<int>("convEx_1"),
+                          NoConverterException );
+  }
+
+  void testMapConverter() {
+    MapConverter<int>::Map m;
+    m["one"]   = 1;
+    m["two"]   = 2;
+    m["three"] = 3;
+    MapConverter<int> mc(m);
+    
+    // --------------- Handled -----------------
+    Configuration::addOption<int>("mconv_1", "descr", 3, &mc);
+    CPPUNIT_ASSERT_EQUAL( string("three"),
+                          Configuration::getString<int>("mconv_1") );
+    Configuration::setString<int>("mconv_1", "two");
+    CPPUNIT_ASSERT_EQUAL( 2,  Configuration::get<int>("mconv_1") );
+    
+    Configuration::set("mconv_1", 42);
+    CPPUNIT_ASSERT_THROW( Configuration::getString<int>("mconv_1"),
+                          ConvertionException );
+
+    // --------------- Reference ---------------
+    int i;
+    Configuration::addOption<int>("mconv_2", &i, "descr", 1, &mc);
+    CPPUNIT_ASSERT_EQUAL( string("one"),
+                          Configuration::getString<int>("mconv_2") );
+    Configuration::setString<int>("mconv_2", "three");
+    CPPUNIT_ASSERT_EQUAL( 3,  i );
+    i = 42;
+    CPPUNIT_ASSERT_THROW( Configuration::getString<int>("mconv_2"),
+                          ConvertionException );
+  }
 };
 
+CPPUNIT_TEST_SUITE_REGISTRATION( ConvertersTest );
 CPPUNIT_TEST_SUITE_REGISTRATION( ConfigurationTest );
 
 int main(int argc, char *argv[]) {
