@@ -327,7 +327,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
     unsigned int j = path.size();
     for (list<tItem*>::iterator gp = path.begin();
          gp != path.end(); gp ++, j --)
-      if (j <= i) {
+      if (j <= (unsigned int)i) {
         if (*gp == NULL) {
           v1.push_back(INT_MAX);
           v2.push_back(INT_MAX);
