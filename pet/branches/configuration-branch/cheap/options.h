@@ -20,6 +20,9 @@
 /** \file options.h
  * Command line options for cheap
  * @todo opt_fullform_morph is obsolete
+ * @todo opt_comment_passthrough was initially int, but later it was changed
+ *       to bool (during integration with configuration system). That changed
+ *       behaviour of the program.
  */
 
 #ifndef _OPTIONS_H_
