@@ -568,6 +568,8 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       modlist in_mods = (*it)->mods();
       // _fix_me_
       add_surface_mod((*it)->orth(), in_mods);
+      // TODO: is it sensible here to apply the (guessed) inflection rules here
+      // to the generics??
       combine(*ls, *it, (*it)->inflrs(), in_mods);
     }
   }

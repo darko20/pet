@@ -1,7 +1,16 @@
 v0.99.??
   - efficiency improvement for selective unpacking by i) avoid propagating 
     hypotheses that failed to instantiate ii) better recording of
-    seen indices for decompositions
+    seen indices for decompositions (changeset 290)
+  - fixed error which caused cheap crash with SIGFPE under certain conditions
+    in XML reader code. Copying of uninitialized double values have lead to 
+    underflow exception in FPU (changeset 287)
+  - problem with map not being included in grammar.h (ticket 3)
+    wrong test in configure.ac concering xerces fixed (changeset 284)
+  - major cleanup of header files, remove ubiquitous pet-system.h
+    changes in configure.ac: path separator char detection, default system
+    locations handled by empty variables, support for Mac OS X, better handling
+    of "rpath" linker options, removed obsolete headers (changesets 275-276)
   (two changes by oe)
   - repair damage to feature extraction in tSM::score_hypothesis() that i had
     introduced when trying to suppress signed vs. unsigned comparison compiler

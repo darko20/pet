@@ -258,8 +258,9 @@ void interactive() {
       if(verbosity > 0) stats.print(fstatus);
       stats.readings = -1;
 
-      dump_jxchg(get_surface_string(Chart), Chart);
-      tsdb_dump.error(Chart, e);
+      string surface = get_surface_string(Chart);
+      dump_jxchg(surface, Chart);
+      tsdb_dump.error(Chart, surface, e);
 
     }
 

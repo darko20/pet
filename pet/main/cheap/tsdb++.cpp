@@ -759,10 +759,13 @@ tsdb_result::file_print(FILE *f)
             parse_id, result_id, time,
             r_ctasks, r_ftasks, r_etasks, r_stasks, 
             size, r_aedges, r_pedges);
-    fprintf(f, "%s@%s@%s\n",
-          tsdb_escape_string(derivation).c_str(),
+    fprintf(f, "%s@%s@%s@%s@%s\n",
+            tsdb_escape_string(derivation).c_str(),
+            tsdb_escape_string(surface).c_str(),
             tsdb_escape_string(tree).c_str(),
-            tsdb_escape_string(mrs).c_str());
+            tsdb_escape_string(mrs).c_str(),
+            tsdb_escape_string(flags).c_str()
+            );
 }
 
 void
@@ -807,15 +810,21 @@ tTsdbDump::tTsdbDump(string directory)
     if(directory[directory.size() - 1] != '/')
       directory += "/";
     
-    if ((_item_file = fopen((directory + "item").c_str(), "w"))) {
-      if ((_result_file = fopen((directory + "result").c_str(), "w"))) {
-        if ((_parse_file = fopen((directory + "parse").c_str(), "w"))
-            == NULL) {
-          fclose(_result_file); _result_file = NULL;
-          fclose(_item_file); _item_file = NULL;
-        }
-      } else {
+    // returns true on error
+    if (print_relations(directory)) return;
+
+    _item_file = fopen((directory + "item").c_str(), "w");
+    _result_file = fopen((directory + "result").c_str(), "w");
+    _parse_file = fopen((directory + "parse").c_str(), "w");
+    if (_item_file == NULL || _result_file == NULL || _parse_file == NULL) {
+      if (_item_file != NULL) {
         fclose(_item_file); _item_file = NULL;
+      }
+      if (_result_file != NULL) {
+        fclose(_result_file); _result_file = NULL;
+      }
+      if (_parse_file != NULL) {
+        fclose(_parse_file); _parse_file = NULL;
       }
     }
   }
@@ -835,7 +844,7 @@ void tTsdbDump::start() {
   }
 }
 
-void tTsdbDump::finish(chart *Chart, string input) {
+void tTsdbDump::finish(chart *Chart, const string &input) {
   if (_current != NULL) {
     _current->set_input(input);
     _current->set_i_length(Chart->length());
@@ -844,10 +853,13 @@ void tTsdbDump::finish(chart *Chart, string input) {
   }
 }
 
-void tTsdbDump::error(class chart *Chart, const class tError & e){
+void tTsdbDump::error(class chart *Chart, const string &input, 
+                      const class tError & e){
   if (_current != NULL) {
-    if(Chart)
+    if(Chart) {
+      _current->set_input(input);
       _current->set_i_length(Chart->length());
+    }
     list<tError> errors;
     errors.push_back(e);
     cheap_tsdb_summarize_error(errors, -1, *_current);
@@ -861,4 +873,248 @@ void tTsdbDump::dump_current() {
     delete _current;
     _current = 0;
   }
+}
+
+bool tTsdbDump::print_relations(string directory) {
+  FILE *relations_file = fopen((directory + "relations").c_str(), "w");
+  if (relations_file) {
+    fprintf(relations_file, "%s\n", "\n\
+item:\n\
+  i-id :integer :key\n\
+  i-origin :string\n\
+  i-register :string\n\
+  i-format :string\n\
+  i-difficulty :integer\n\
+  i-category :string\n\
+  i-input :string\n\
+  i-wf :integer\n\
+  i-length :integer\n\
+  i-comment :string\n\
+  i-author :string\n\
+  i-date :date\n\
+\n\
+analysis:\n\
+  i-id :integer :key\n\
+  a-position :string\n\
+  a-instance :string\n\
+  a-category :string\n\
+  a-function :string\n\
+  a-domain :string\n\
+  a-tag :string\n\
+  a-comment :string\n\
+\n\
+phenomenon:\n\
+  p-id :integer :key\n\
+  p-name :string\n\
+  p-supertypes :string\n\
+  p-presupposition :string\n\
+  p-interaction :string\n\
+  p-purpose :string\n\
+  p-restrictions :string\n\
+  p-comment :string\n\
+  p-author :string\n\
+  p-date :date\n\
+\n\
+parameter:\n\
+  ip-id :integer :key\n\
+  position :string\n\
+  attribute :string\n\
+  value :string\n\
+  instance :string\n\
+  pa-comment :string\n\
+\n\
+set:\n\
+  s-id :integer :key\n\
+  p-id :integer :key :partial\n\
+  s-author :string\n\
+  s-date :date\n\
+\n\
+item-phenomenon:\n\
+  ip-id :integer :key\n\
+  i-id :integer :key\n\
+  p-id :integer :key\n\
+  ip-author :string\n\
+  ip-date :date\n\
+\n\
+item-set:\n\
+  i-id :integer :key :partial\n\
+  s-id :integer :key\n\
+  polarity :integer\n\
+\n\
+run:\n\
+  run-id :integer :key                  # unique test run identifier\n\
+  run-comment :string                   # descriptive narrative\n\
+  platform :string                      # implementation platform (version)\n\
+  tsdb :string                          # tsdb(1) (version) used\n\
+  application :string                   # application (version) used\n\
+  environment :string                   # application-specific information\n\
+  grammar :string                       # grammar (version) used\n\
+  avms :integer                         # number of avm types in image\n\
+  sorts :integer                        # number of sort types in image\n\
+  templates :integer                    # number of templates in image\n\
+  lexicon :integer                      # number of lexical entries\n\
+  lrules :integer                       # number of lexical rules\n\
+  rules :integer                        # number of (non-lexical) rules\n\
+  user :string                          # user who did the test run\n\
+  host :string                          # machine used for this run\n\
+  os :string                            # operating system (version)\n\
+  start :date                           # start time of this test run\n\
+  end :date                             # end time for this test run\n\
+  items :integer                        # number of test items in this run\n\
+  status :string                        # exit status (PVM only)\n\
+\n\
+parse:\n\
+  parse-id :integer :key                # unique parse identifier\n\
+  run-id :integer :key                  # test run for this parse\n\
+  i-id :integer :key                    # item parsed\n\
+  readings :integer                     # number of readings obtained\n\
+  first :integer                        # time to find first reading (msec)\n\
+  total :integer                        # total time for parsing (msec)\n\
+  tcpu :integer                         # total (cpu) processing time (msec)\n\
+  tgc :integer                          # gc time used (msec)\n\
+  treal :integer                        # overall real time (msec)\n\
+  words :integer                        # lexical entries retrieved\n\
+  l-stasks :integer                     # successful lexical rule applications\n\
+  p-ctasks :integer                     # parser contemplated tasks (LKB)\n\
+  p-ftasks :integer                     # parser filtered tasks\n\
+  p-etasks :integer                     # parser executed tasks\n\
+  p-stasks :integer                     # parser succeeding tasks\n\
+  aedges :integer                       # active items in chart (PAGE)\n\
+  pedges :integer                       # passive items in chart\n\
+  raedges :integer                      # active items contributing to result\n\
+  rpedges :integer                      # passive items contributing to result\n\
+  unifications :integer                 # number of (node) unifications\n\
+  copies :integer                       # number of (node) copy operations\n\
+  conses :integer                       # cons() cells allocated\n\
+  symbols :integer                      # symbols allocated\n\
+  others :integer                       # bytes of memory allocated\n\
+  gcs :integer                          # number of garbage collections\n\
+  i-load :integer                       # initial load (start of parse)\n\
+  a-load :integer                       # average load\n\
+  date :date                            # date and time of parse\n\
+  error :string                         # error string (if applicable |:-)\n\
+  comment :string                       # application-specific comment\n\
+\n\
+result:\n\
+  parse-id :integer :key                # parse for this result\n\
+  result-id :integer                    # unique result identifier\n\
+  time :integer                         # time to find this result (msec)\n\
+  r-ctasks :integer                     # parser contemplated tasks\n\
+  r-ftasks :integer                     # parser filtered tasks\n\
+  r-etasks :integer                     # parser executed tasks\n\
+  r-stasks :integer                     # parser succeeding tasks\n\
+  size :integer                         # size of feature structure\n\
+  r-aedges :integer                     # active items for this result\n\
+  r-pedges :integer                     # passive items in this result\n\
+  derivation :string                    # derivation tree for this reading\n\
+  surface :string                       # surface string (e.g. realization)\n\
+  tree :string                          # phrase structure tree (CSLI labels)\n\
+  mrs :string                           # mrs for this reading\n\
+  flags :string                         # arbitrary annotation (e.g. BLEU)\n\
+\n\
+rule:\n\
+  parse-id :integer :key                # parse for this rule summary\n\
+  rule :string                          # rule name\n\
+  filtered :integer                     # rule postulations filtered\n\
+  executed :integer                     # rule postulations executed\n\
+  successes :integer                    # successful rule postulations\n\
+  actives :integer                      # active edges built from this rule\n\
+  passives :integer                     # passive edges built from this rule\n\
+\n\
+output:\n\
+  i-id :integer :key                    # item for this output specification\n\
+  o-application :string                 # applicable appliaction(s)\n\
+  o-grammar :string                     # applicable grammar(s)\n\
+  o-ignore :string                      # ignore this item flag\n\
+  o-wf :integer                         # application-specific grammaticality\n\
+  o-gc :integer                         # maximal number of garbage collections\n\
+  o-derivation :string                  # expected derivation\n\
+  o-surface :string                     # expected surface string\n\
+  o-tree :string                        # expected phrase structure tree\n\
+  o-mrs :string                         # expected mrs\n\
+  o-edges :integer                      # maximal number of edges to build\n\
+  o-user :string                        # author of this output specification\n\
+  o-date :date                          # creation date\n\
+\n\
+edge:\n\
+  e-id :integer :key                    # unique edge identifier\n\
+  parse-id :integer :key                # parse for this edge\n\
+  e-name :string                        # edge label (as in `derivation')\n\
+  e-status :integer                     # 0 : passive; 1 : active\n\
+  e-result :integer                     # 0 : nope; 1 : yup, result\n\
+  e-start :integer                      # start vertex for this edge\n\
+  e-end :integer                        # end vertex for this edge\n\
+  e-daughters :string                   # (Common-Lisp) list of daughters\n\
+  e-parents :string                     # (Common-Lisp) list of parents\n\
+  e-alternates :string                  # alternates packed into this edge\n\
+\n\
+tree:\n\
+  parse-id :integer :key\n\
+  t-version :integer\n\
+  t-active :integer :key\n\
+  t-confidence :integer\n\
+  t-author :string\n\
+  t-start :date\n\
+  t-end :date\n\
+  t-comment :string\n\
+\n\
+decision:\n\
+  parse-id :integer :key\n\
+  t-version :integer\n\
+  d-state :integer\n\
+  d-type :integer\n\
+  d-key :string\n\
+  d-value :string\n\
+  d-start :integer\n\
+  d-end :integer\n\
+  d-date :date\n\
+\n\
+preference:\n\
+  parse-id :integer :key\n\
+  t-version :integer\n\
+  result-id :integer\n\
+\n\
+update:\n\
+  parse-id :integer :key\n\
+  t-version :integer\n\
+  u-matches :integer\n\
+  u-mismatches :integer\n\
+  u-new :integer\n\
+  u-gin :integer\n\
+  u-gout :integer\n\
+  u-pin :integer\n\
+  u-pout :integer\n\
+  u-in :integer\n\
+  u-out :integer\n\
+\n\
+fold:\n\
+  f-id :integer :key\n\
+  f-train :integer\n\
+  f-trains :string\n\
+  f-test :integer\n\
+  f-tests :string\n\
+  f-events :integer\n\
+  f-features :integer\n\
+  f-environment :string\n\
+  f-iterations :integer\n\
+  f-etime :integer\n\
+  f-estimation :string\n\
+  f-accuracy :string\n\
+  f-extras :string\n\
+  f-user :string\n\
+  f-host :string\n\
+  f-start :date\n\
+  f-end :date\n\
+  f-comment :string\n\
+\n\
+score:\n\
+  parse-id :integer :key\n\
+  result-id :integer\n\
+  rank :integer\n\
+  score :string\n\
+");
+    fclose(relations_file);
+    return false;
+  }
+  return true;
 }
