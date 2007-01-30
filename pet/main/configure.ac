@@ -1,20 +1,12 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.13], [kiefer@dfki.de])
+AC_INIT([PET], [0.99.14svn], [kiefer@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])
 
 AM_INIT_AUTOMAKE([foreign])
 dnl dejagnu dist-bzip2 no-dependencies
-
-# These are defaults to make life easier for the developers.  Normally
-# you'll write something like this (as far as the libraries are not in
-# a standard location):
-# $ ./configure CPPFLAGS="-I/proj/contrib/lkb/include -I/proj/contrib/lib/icu/include" LDFLAGS="-L/proj/contrib/lkb/lib/linux -L/proj/contrib/lib/icu/lib"
-# or alternatively
-# $ ./configure --with-boost=/path/to/boost ...
-# (which is not quite the same)
 
 # Let's try putting stuff in delphin/
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
@@ -26,9 +18,7 @@ fi
 
 ITSDBDIR="$delphin_prefix/lkb"
 
-# Assume that PET_DEPENDENCIES are all in "/usr/local"
-# ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-# default install location for postgresql and boost is /usr/lib & /usr/include
+# Assume that the following packages are all in system default locations
 ICUDIR=
 ECLDIR=
 XERCESCDIR=
@@ -498,17 +488,18 @@ CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
 
+dnl external lexicon based on postgresql database
 
-AC_ARG_WITH(lexdb,
-[AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
-[
-case "${withval}" in
-    yes) lexdb=true ;;
-    no)  lexdb=false ;;
-    *)   lexdb=true
-         PSQLDIR=${withval} ;;
-esac
-], [ lexdb=true ])
+dnl AC_ARG_WITH(lexdb,
+dnl [AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
+dnl [
+dnl case "${withval}" in
+dnl     yes) lexdb=true ;;
+dnl     no)  lexdb=false ;;
+dnl     *)   lexdb=true
+dnl          PSQLDIR=${withval} ;;
+dnl esac
+dnl ], [ lexdb=true ])
 
 check_psql() {
 if test x$PSQLDIR != x ; then
@@ -534,44 +525,19 @@ AC_CHECK_LIB([pq], [main], [],
 return 0
 }
 
-if test x$lexdb = xtrue && check_psql ; then
-   if test x$PSQLDIR != x ; then
-      CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
-      CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${PSQLDIR}/lib"`
-   fi
-   CHEAPLIBS="-lpq $CHEAPLIBS"
-   AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database]) 
-else
-   lexdb=false
-fi
-AM_CONDITIONAL(LEXDB, [test x$lexdb = xtrue])
-CPPFLAGS="$saveCPPFLAGS"
-LDFLAGS="$saveLDFLAGS"
-
-dnl What the *&^@~! is that?
-
-AC_ARG_ENABLE(external-dictionary,
-[AC_HELP_STRING([--enable-external-dictionary@<:@=DIR@:>@], [use an external dictionary (default=no)])],
-[case "${enableval}" in
-   yes) extdict=true ;;
-   no)  extdict=false ;;
-   *)   AC_MSG_ERROR([bad value ${enableval} for --enable-external-dictionary])
- esac
- if test x$extdict = xtrue ; then
-    AC_DEFINE(HAVE_EXTDICT, [1], [enable external dictionary])
- fi
-], [extdict=false])
-AM_CONDITIONAL(EXTDICT, [test x$extdict = xtrue])
-
-
-AC_ARG_ENABLE(rcu,
-[AC_HELP_STRING([--enable-rcu@<:@=ARG@:>@], [use the RCU extensions (default=no)])],
-[case "${enableval}" in
-   yes) rcu=true ;;
-   no)  rcu=false ;;
-   *)   AC_MSG_ERROR([bad value ${enableval} for --enable-rcu])
-esac], [rcu=false])
-AM_CONDITIONAL(RCU, [test x$rcu = xtrue])
+dnl if test x$lexdb = xtrue && check_psql ; then
+dnl    if test x$PSQLDIR != x ; then
+dnl       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
+dnl       CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${PSQLDIR}/lib"`
+dnl    fi
+dnl    CHEAPLIBS="-lpq $CHEAPLIBS"
+dnl    AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database]) 
+dnl else
+dnl    lexdb=false
+dnl fi
+dnl AM_CONDITIONAL(LEXDB, [test x$lexdb = xtrue])
+dnl CPPFLAGS="$saveCPPFLAGS"
+dnl LDFLAGS="$saveLDFLAGS"
 
 
 AC_ARG_ENABLE(yy,
@@ -588,6 +554,7 @@ if test x$yy = xtrue; then
 fi
 AM_CONDITIONAL(YY, [test x$yy = xtrue])
 
+
 AC_ARG_ENABLE(lui,
 AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
 [case "${enableval}" in
@@ -600,8 +567,33 @@ AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
 if test x$lui = xtrue; then 
     AC_DEFINE(LUI, [1], [Enable grammar dumping in LUI format])
 fi
+
 # no extra files, don't need Makefile conditional
 # AM_CONDITIONAL(LUI, [test x$lui = xtrue])
+
+dnl What the *&^@~! is that?
+dnl AC_ARG_ENABLE(external-dictionary,
+dnl [AC_HELP_STRING([--enable-external-dictionary@<:@=DIR@:>@], [use an external dictionary (default=no)])],
+dnl [case "${enableval}" in
+dnl    yes) extdict=true ;;
+dnl    no)  extdict=false ;;
+dnl    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-external-dictionary])
+dnl  esac
+dnl  if test x$extdict = xtrue ; then
+dnl     AC_DEFINE(HAVE_EXTDICT, [1], [enable external dictionary])
+dnl  fi
+dnl ], [extdict=false])
+dnl AM_CONDITIONAL(EXTDICT, [test x$extdict = xtrue])
+
+dnl robust processing code by frederik fouvry, not supported at the moment
+dnl AC_ARG_ENABLE(rcu,
+dnl [AC_HELP_STRING([--enable-rcu@<:@=ARG@:>@], [use the RCU extensions (default=no)])],
+dnl [case "${enableval}" in
+dnl    yes) rcu=true ;;
+dnl    no)  rcu=false ;;
+dnl    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-rcu])
+dnl esac], [rcu=false])
+dnl AM_CONDITIONAL(RCU, [test x$rcu = xtrue])
 
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADERS([hash_map],,
@@ -688,7 +680,7 @@ AC_FUNC_MMAP
 fi
 
 AC_ARG_ENABLE(qccomp,
-[AC_HELP_STRING([--enable-qccomp], [enable/disable recording of failures for quick check computation])],
+[AC_HELP_STRING([--enable-qccomp], [enable/disable recording of failures for quick check computation (default: no)])],
 [case "${enableval}" in
    no)   qccomp=no;;
    *)    qccomp=yes;;
@@ -735,7 +727,7 @@ feature_avail x$mrs xtrue "MRS code with ecl"
 feature_avail x$preproc xtrue "preprocessor code with ecl"
 feature_avail x$icu xtrue "ICU"
 feature_avail x$xml xtrue "XML input mode"
-feature_avail x$lexdb xtrue "External SQL dictionary"
+dnl feature_avail x$lexdb xtrue "External SQL dictionary"
 feature_avail x$mmapalloc xyes "Memory allocation with mmap"
 feature_avail x$qccomp xyes "Code for quick-check computation"
 echo "=============================================================" ; echo

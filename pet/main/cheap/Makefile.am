@@ -137,10 +137,10 @@ if ICU
 cheap_SOURCES += $(ICU_FILES)
 endif
 
-PSQL_FILES = psqllex.h psqllex.cpp
-if LEXDB
-cheap_SOURCES += $(PSQL_FILES)
-endif
+# PSQL_FILES = psqllex.h psqllex.cpp
+# if LEXDB
+# cheap_SOURCES += $(PSQL_FILES)
+# endif
 
 YY_FILES = yy.h yy.cpp
 if YY
