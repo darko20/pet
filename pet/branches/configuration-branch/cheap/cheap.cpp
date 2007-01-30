@@ -114,10 +114,10 @@ string get_surface_string(chart *ch) {
 
 
 void dump_jxchg(string surface, chart *current) {
-  if (! opt_jxchg_dir.empty()) {
+  if (! Configuration::get<std::string>("opt_jxchg_dir").empty()) {
     string yieldname = surface;
     replace(yieldname.begin(), yieldname.end(), ' ', '_');
-    yieldname = opt_jxchg_dir + yieldname;
+    yieldname = Configuration::get<std::string>("opt_jxchg_dir") + yieldname;
     ofstream out(yieldname.c_str());
     if (! out) {
       fprintf(ferr, "Can not open file %s\n", yieldname.c_str());
@@ -138,13 +138,13 @@ void interactive() {
   //chp.print(type_dag(lookup_type("quant-rel")));
   //exit(1);
 
-  tTsdbDump tsdb_dump(opt_tsdb_dir);
+  tTsdbDump tsdb_dump(Configuration::get<std::string>("opt_tsdb_dir"));
   if (tsdb_dump.active()) {
     opt_tsdb = 1;
   } else {
-    if (! opt_tsdb_dir.empty())
+    if (! Configuration::get<std::string>("opt_tsdb_dir").empty())
       fprintf(ferr, "Could not open TSDB dump files in directory %s\n"
-              , opt_tsdb_dir.c_str());
+              , Configuration::get<std::string>("opt_tsdb_dir").c_str());
   }
 
   while(!(input = read_line(stdin,
