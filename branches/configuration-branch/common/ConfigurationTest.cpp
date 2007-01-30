@@ -184,6 +184,7 @@ public:
   CPPUNIT_TEST( testConverter );
   CPPUNIT_TEST( testConverterExceptions );
   CPPUNIT_TEST( testMapConverter );
+  CPPUNIT_TEST (testOnStrings );
   
   CPPUNIT_TEST_SUITE_END();
 
@@ -440,6 +441,18 @@ public:
     i = 42;
     CPPUNIT_ASSERT_THROW( Configuration::getString<int>("mconv_2"),
                           ConvertionException );
+  }
+
+  void testOnStrings() {
+    Configuration::addOption<string>("onString_1", "", string(""));
+    CPPUNIT_ASSERT_EQUAL( string(""),
+                          Configuration::get<string>("onString_1") );
+    Configuration::set<string>("onString_1", "ab");
+    CPPUNIT_ASSERT_EQUAL( string("ab"),
+                          Configuration::get<string>("onString_1") );
+    Configuration::get<string>("onString_1") += "cde";
+    CPPUNIT_ASSERT_EQUAL( string("abcde"),
+    Configuration::get<string>("onString_1") );
   }
 };
 

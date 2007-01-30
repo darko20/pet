@@ -57,8 +57,6 @@ char *grammar_file_name = 0;
 // defined in item.cpp
 extern unsigned int opt_gplevel;
 
-std::string opt_tsdb_dir, opt_jxchg_dir;
-
 // defined in parse.cpp
 extern int opt_packing;
 
@@ -248,7 +246,7 @@ void init_options()
   Configuration::addOption<char*>("opt_mrs",
     "determines if and which kind of MRS output is generated", 0 );
   
-  opt_tsdb_dir = "";
+  Configuration::addOption<std::string>("opt_tsdb_dir", "", "");
 
   Configuration::addOption<bool>("opt_partial",
     "in case of parse failure, find a set of chart edges "
@@ -260,7 +258,9 @@ void init_options()
   
   Configuration::addOption<tokenizer_id>("opt_tok", "", TOKENIZER_STRING);
 
-  opt_jxchg_dir = "";
+  Configuration::addOption<std::string>("opt_jxchg_dir",
+    "the directory to write parse charts in jxchg format to",
+    "");
   
   // 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
   Configuration::addOption<bool>("opt_comment_passthrough",
@@ -477,7 +477,7 @@ bool parse_options(int argc, char* argv[])
             Configuration::set("opt_mrs", "simple");
           break;
       case OPTION_TSDB_DUMP:
-          opt_tsdb_dir = optarg;
+          Configuration::set<std::string>("opt_tsdb_dir", optarg);
           break;
       case OPTION_PARTIAL:
           Configuration::set("opt_partial", true);
@@ -517,9 +517,10 @@ bool parse_options(int argc, char* argv[])
         }
         break;
       case OPTION_JXCHG_DUMP:
-          opt_jxchg_dir = optarg;
-          if (*(opt_jxchg_dir.end()--) != '/') 
-            opt_jxchg_dir += '/';
+          Configuration::set<std::string>("opt_jxchg_dir", optarg);
+          if (*(Configuration::get<std::string>("opt_jxchg_dir").end()--)
+              != '/') 
+            Configuration::get<std::string>("opt_jxchg_dir") += '/';
           break;
 
       case OPTION_COMMENT_PASSTHROUGH:

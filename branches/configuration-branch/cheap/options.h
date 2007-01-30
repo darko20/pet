@@ -55,8 +55,6 @@ enum tokenizer_id {
   , TOKENIZER_FSR, TOKENIZER_SMAF
 } ;
 
-extern std::string opt_tsdb_dir, opt_jxchg_dir;
-
 #define PACKING_EQUI  (1 << 0)
 #define PACKING_PRO   (1 << 1)
 #define PACKING_RETRO (1 << 2)
