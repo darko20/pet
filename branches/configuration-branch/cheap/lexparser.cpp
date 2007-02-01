@@ -563,12 +563,34 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       gens = (*it)->generics();
     }
 
-    for(list<lex_stem *>::iterator ls = gens.begin()
-          ; ls != gens.end(); ls++) {
-      modlist in_mods = (*it)->mods();
-      // _fix_me_
-      add_surface_mod((*it)->orth(), in_mods);
-      combine(*ls, *it, (*it)->inflrs(), in_mods);
+    // the input tokens which lead to generics must be considered a word_token,
+    // because otherwise, the precomputed stem would not lead to a lexicon
+    // entry (bad) or the precomputed type name would not exist (even worse)
+    if (!gens.empty()) {
+      // TODO: is it sensible here to apply the (guessed) inflection rules here
+      // to the generics??
+
+      // re-do morphology computation. 
+      // TODO: check if this uses up significant processing time. There is
+      // another way to do this (store the previous result in the tInputItem),
+      // but that messes up the whole failed stem token thing and all
+      list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
+      for(list<lex_stem *>::iterator ls = gens.begin()
+            ; ls != gens.end(); ls++) {
+        modlist in_mods = (*it)->mods();
+        // _fix_me_
+        add_surface_mod((*it)->orth(), in_mods);
+        if (morphs.empty()) {
+          combine(*ls, *it, (*it)->inflrs(), in_mods);
+        } else {
+          for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
+                ; mrph != morphs.end(); mrph++) {
+            list_int *rules = copy_list(mrph->rules());
+            combine(*ls, *it, rules, in_mods);
+            free_list(rules);
+          }
+        }
+      }
     }
   }
 }

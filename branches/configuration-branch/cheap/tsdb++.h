@@ -1,3 +1,4 @@
+/* -*- Mode: C++ -*- */
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
@@ -167,7 +168,7 @@ class tsdb_result
   tsdb_result() :
     parse_id(-1), result_id(-1), time(-1), r_ctasks(-1), r_ftasks(-1),
     r_etasks(-1), r_stasks(-1), size(-1), r_aedges(-1), r_pedges(-1),
-    derivation(), edge_id(-1), tree(), mrs(), scored(false)
+    derivation(), edge_id(-1), surface(), tree(), mrs(), scored(false), flags()
     {
     }    
 
@@ -203,6 +204,8 @@ class tsdb_result
   /** edge id for derivation (v2) */
   int edge_id;
 
+  /** surface string (e.g. realization) */
+  string surface;
   /** phrase structure tree (CSLI labels) */
   string tree;
   /** mrs for this reading */
@@ -211,6 +214,8 @@ class tsdb_result
   bool scored;
   /** score assigned by stochastic model */
   double score;
+  /** arbitrary annotation (e.g. BLEU) */
+  string flags;
 };
 
 /** The tsdb representation of a chart edge */
@@ -409,13 +414,14 @@ public:
   void start();
 
   /** Call this method at the end of a successful parse */
-  void finish(class chart *Chart, string input);
+  void finish(class chart *Chart, const string &input);
 
   /** Call this method at the end of a parse that produced an error */
-  void error(class chart *Chart, const class tError &e);
+  void error(class chart *Chart, const string &input, const class tError &e);
 
 private:
   void dump_current();
+  bool print_relations(string directory);
 
   FILE *_parse_file, *_result_file , *_item_file;
   tsdb_parse *_current;
