@@ -29,9 +29,6 @@
 /* Define to 1 if you have the <ecl.h> header file. */
 #undef HAVE_ECL_H
 
-/* enable external dictionary */
-#undef HAVE_EXTDICT
-
 /* Define to 1 if you have the <ext/hash_map> header file. */
 #undef HAVE_EXT_HASH_MAP
 
@@ -107,9 +104,6 @@
 
 /* use ECL x-preprocessing library */
 #undef HAVE_PREPROC
-
-/* use external postgres lexical database */
-#undef HAVE_PSQL_LEXDB
 
 /* Define to 1 if your system has a GNU libc compatible `realloc' function,
    and to 0 otherwise. */

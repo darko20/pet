@@ -53,7 +53,7 @@ void init_characterization();
 struct tDecomposition
 {
 public:
-  list<vector<int> > indices;
+  set<vector<int> > indices;
   list<tItem*> rhs;
   tDecomposition(list<tItem*> rhs) 
   {
@@ -72,6 +72,7 @@ public:
   map<list<tItem*>,double> scores;
   tItem* edge;
   tItem* inst_edge;
+  bool inst_failed;
   tDecomposition* decomposition;
   //  list<tHypothesis*> hypo_parents;
   list<tHypothesis*> hypo_dtrs;
@@ -80,6 +81,7 @@ public:
   {
     edge = e;
     inst_edge = NULL;
+    inst_failed = false;
     decomposition = decomp;
     indices = ind;
     hypo_dtrs = dtrs;
@@ -88,6 +90,7 @@ public:
   {
     edge = e;
     inst_edge = NULL;
+    inst_failed = false;
     decomposition = NULL;
   }
   /** constructor for non-conventional top level usage only*/
@@ -95,6 +98,7 @@ public:
   {
     edge = e;
     inst_edge = NULL;
+    inst_failed = false;
     scores = hdtr->scores;
     hypo_dtrs.push_back(hdtr);
     indices.push_back(idx);
@@ -1096,7 +1100,9 @@ class tPhrasalItem : public tItem {
   vector<tHypothesis*> _hypotheses;
   /** a map from path to corresponding cached hypotheses */
   map<list<tItem*>,vector<tHypothesis*> > _hypotheses_path;
-  
+  /** a map from path to corresponding max number of hypothese */
+  map<list<tItem*>,unsigned int> _hypo_path_max;
+
   /** Hypothesis agenda*/
   map<list<tItem*>,list<tHypothesis*> > _hypo_agendas;
 
