@@ -380,7 +380,11 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
   // selectively unpacking
   list<tItem*> uroots;
   for (vector<tItem*>::iterator tree = trees.begin();
+       // TODO: this should be checked beforehand, because it does not change
+       // in the loop, and will either lead to no or all trees ending up in
+       // uroots, or am i wrong??
        (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
+       // END TODO 
          && tree != trees.end(); ++tree) {
     if (! (*tree)->blocked()) {
       stats.trees ++;

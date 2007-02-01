@@ -267,7 +267,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
         fs_alloc_state FSAS;
         
         Configuration::set("pedgelimit",(unsigned int) edges);
-        opt_nsolutions = nanalyses;
+        Configuration::set("opt_nsolutions", nanalyses);
         
         gettimeofday(&tA, NULL);
 
@@ -329,10 +329,10 @@ cheap_complete_test_run(int run_id, char *custom)
             (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
 
 #ifdef QC_PATH_COMP
-    if(opt_compute_qc)
+    if(Configuration::get<char *>("opt_compute_qc") != NULL)
     {
         fprintf(ferr, "computing quick check paths\n");
-        FILE *qc = fopen(opt_compute_qc, "w");
+        FILE *qc = fopen(Configuration::get<char *>("opt_compute_qc"), "w");
         compute_qc_paths(qc);
         fclose(qc);
     }

@@ -24,7 +24,7 @@
 #include "options.h"
 #include "version.h"
 
-bool opt_unfill, opt_no_sem, opt_propagate_status, opt_glbdebug;
+bool opt_no_sem;
 
 int verbosity;
 int errors_to;
@@ -88,13 +88,12 @@ bool parse_options(int argc, char* argv[])
   Configuration::addOption<bool>("opt_full_expansion",
     "expand the feature structures fully to find possible inconsistencies",
     false);
-  opt_unfill = false;
+  Configuration::addOption<bool>("opt_unfill", false);
   Configuration::addOption<bool>("opt_minimal", false);
   opt_no_sem = false;
-  opt_propagate_status = false;
-  Configuration::addOption<bool>("opt_linebreaks");
-  Configuration::set("opt_linebreaks", false);
-  opt_glbdebug = false;
+  Configuration::addOption<bool>("opt_propagate_status", false);
+  Configuration::addOption<bool>("opt_linebreaks", false);
+  Configuration::addOption<bool>("opt_glbdebug", false);
 
   Configuration::addOption<int>("opt_cmi",
     "print information about morphological processing "
@@ -114,7 +113,7 @@ bool parse_options(int argc, char* argv[])
       Configuration::set("opt_pre", true);
       break;
     case OPTION_UNFILL:
-      opt_unfill = true;
+      Configuration::set("opt_unfill", true);
       break;
     case OPTION_MINIMAL:
       Configuration::set("opt_minimal", true);
@@ -129,10 +128,10 @@ bool parse_options(int argc, char* argv[])
       opt_no_sem = true;
       break;
     case OPTION_PROPAGATE_STATUS:
-      opt_propagate_status = true;
+      Configuration::set("opt_propagate_status", true);
       break;
     case OPTION_GLBDEBUG:
-      opt_glbdebug = true;
+      Configuration::set("opt_glbdebug", true);
       break;
     case OPTION_CMI:
       if(optarg != NULL)

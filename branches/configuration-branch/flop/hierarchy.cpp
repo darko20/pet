@@ -272,6 +272,7 @@ void make_semilattice()
   // scratch bitcode
   bitcode *temp = new bitcode(codesize);
 
+  bool glbdebug = Configuration::get<bool>("opt_glbdebug");
   fprintf(fstatus, "glbs ");
 
   low = 0; high = types.number();
@@ -307,7 +308,7 @@ void make_semilattice()
 	      glbtype->def = new_location("synthesized", 0, 0);
 	      glbtype->bcode = temp;
 
-           if(opt_glbdebug)
+           if(glbdebug)
            {
              fprintf(fstatus, "Introducing %s for %s and %s:\n",
                      name, types.name(i).c_str(), types.name(j).c_str());

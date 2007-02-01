@@ -1,3 +1,4 @@
+/* -*- Mode: C++ -*- */
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
@@ -93,7 +94,8 @@ class tSM
   
     /** Return the score for the hypothesis */
     virtual double 
-    score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path);
+    score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path,
+                     int gplevel);
     
     class tSMMap *map()
     { return _map; }

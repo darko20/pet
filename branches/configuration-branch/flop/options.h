@@ -29,9 +29,7 @@
 #include "pet-config.h"
 #include "Configuration.h"
 
-extern bool opt_chic, opt_expand,
-  opt_unfill, opt_no_sem,
-  opt_propagate_status, opt_glbdebug;
+extern bool opt_no_sem;
 
 extern int verbosity;
 extern int errors_to;

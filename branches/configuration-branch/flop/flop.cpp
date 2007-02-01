@@ -217,7 +217,7 @@ void preprocess_types()
   process_conjunctive_subtype_constraints();
   process_multi_instances();
 
-  process_hierarchy(opt_propagate_status);
+  process_hierarchy(Configuration::get<bool>("opt_propagate_status"));
 
   assign_printnames();
 }
@@ -278,12 +278,12 @@ void process_types()
   if(!delta_expand_types())
     exit(1);
 
-  if(!fully_expand_types())
+  if(!fully_expand_types(Configuration::get<bool>("opt_full_expansion")))
     exit(1);
 
   compute_maxapp();
   
-  if(opt_unfill)
+  if(Configuration::get<bool>("opt_unfill"))
     unfill_types();
 
   demote_instances();
@@ -295,21 +295,20 @@ void process_types()
 }
 
 void
-fill_grammar_properties()
-{
-    std::string s;
-    std::ostringstream ss(s);
+fill_grammar_properties() {
+  std::string s;
+  std::ostringstream ss(s);
 
-    grammar_properties["version"] = grammar_version;
+  grammar_properties["version"] = grammar_version;
     
-    ss << templates.number();
-    grammar_properties["ntemplates"] = ss.str();
+  ss << templates.number();
+  grammar_properties["ntemplates"] = ss.str();
 
-    grammar_properties["unfilling"] =
-        opt_unfill ? "true" : "false";
+  grammar_properties["unfilling"] =
+    Configuration::get<bool>("opt_unfill") ? "true" : "false";
 
-    grammar_properties["full-expansion"] =
-        Configuration::get<bool>("opt_full_expansion") ? "true" : "false";
+  grammar_properties["full-expansion"] =
+    Configuration::get<bool>("opt_full_expansion") ? "true" : "false";
 }
 
 /*

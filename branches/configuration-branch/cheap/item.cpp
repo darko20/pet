@@ -68,6 +68,7 @@ struct charz_t {
 static charz_t cfrom, cto;
 static list_int *carg_path = NULL;
 static bool charz_init = false;
+static bool charz_use = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
@@ -81,6 +82,7 @@ void init_characterization() {
     cfrom.set(cfrom_path);
     cto.set(cto_path);
     charz_init = true;
+    charz_use = (Configuration::get<char*>("opt_mrs") != 0);
   }
   char *carg_path_string = cheap_settings->value("mrs-carg-path");
   if (NULL != carg_path_string)
@@ -88,7 +90,7 @@ void init_characterization() {
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
-  if((Configuration::get<char*>("opt_mrs") != 0) && charz_init) {
+  if(charz_use) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
                                , lookup_unsigned_symbol(from))
@@ -1202,7 +1204,7 @@ tLexItem::hypothesize_edge(list<tItem*> path, unsigned int i) {
     if (_hypo == NULL) {
       _hypo = new tHypothesis(this);
     }
-    Grammar->sm()->score_hypothesis(_hypo, path);
+    Grammar->sm()->score_hypothesis(_hypo, path, opt_gplevel);
     
     return _hypo;
   } else
@@ -1225,7 +1227,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     _hypo_agendas[path].clear();
     for (vector<tHypothesis*>::iterator h = _hypotheses.begin();
 	 h != _hypotheses.end(); h ++) {
-      Grammar->sm()->score_hypothesis(*h, path);
+      Grammar->sm()->score_hypothesis(*h, path, opt_gplevel);
       hagenda_insert(_hypo_agendas[path], *h, path);
     }
   }
@@ -1349,7 +1351,7 @@ tPhrasalItem::new_hypothesis(tDecomposition* decomposition,
   decomposition->indices.push_back(indices);
   for (map<list<tItem*>, list<tHypothesis*> >::iterator iter = _hypo_agendas.begin();
        iter != _hypo_agendas.end(); iter++) {
-    Grammar->sm()->score_hypothesis(hypo, (*iter).first);
+    Grammar->sm()->score_hypothesis(hypo, (*iter).first, opt_gplevel);
     hagenda_insert(_hypo_agendas[(*iter).first], hypo, (*iter).first);
   }
 }
@@ -1431,6 +1433,14 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 }
 */
 
+/** Unpack at most \a n trees from the packed parse forest given by \a roots.
+ * \param roots       a set of packed trees
+ * \param n           the maximal number of trees to unpack
+ * \param end         the rightmost position of the chart
+ * \param upedgelimit the maximal number of passive edges to create during
+ *                    unpacking
+ * \return a list of the best, at most \a n unpacked trees
+ */
 list<tItem *> 
 tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit) 
 {
