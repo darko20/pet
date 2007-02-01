@@ -278,8 +278,8 @@ void interactive() {
   } /* while */
 
 #ifdef QC_PATH_COMP
-  if(opt_compute_qc) {
-    FILE *qc = fopen(opt_compute_qc, "w");
+  if(Configuration::get<char *>("opt_compute_qc")) {
+    FILE *qc = fopen(Configuration::get<char *>("opt_compute_qc"), "w");
     compute_qc_paths(qc);
     fclose(qc);
   }

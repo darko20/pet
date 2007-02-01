@@ -579,9 +579,11 @@ bool delta_expand_types();
  * feature structure constraints fully in topological order over this graph.
  * Otherwise, there are illegal cyclic type dependencies in the definitions 
  *
+ * \param full_expansion if \c true, expand all dags, even those which have
+ *                       (currently) no arcs
  * \return true if the definitions are all OK, false otherwise
  */
-bool fully_expand_types();
+bool fully_expand_types(bool full_expansion);
 bool process_instances();
 
 /** Compute the number of features introduced by each type and the maximal
