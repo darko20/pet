@@ -11,6 +11,8 @@
 #include <functional>
 #include <sstream>
 
+#include "errors.h"
+
 #include "ConfigurationInternal.h"
 
 /** @file Configuration.h
@@ -18,27 +20,48 @@
  */
 
 /** @brief Root of all exceptions used in configuration system. */
-class ConfigurationException {};
+class ConfigurationException : public tError {
+public:
+  ConfigurationException(std::string message);
+};
 
 /** @brief There is no option with given name. */
-class NoSuchEntryException : public ConfigurationException {};
+class NoSuchEntryException : public ConfigurationException {
+public:
+  NoSuchEntryException(std::string message);
+};
 
 /** @brief Option has different type than one given. */
-class WrongTypeException : public ConfigurationException {};
+class WrongTypeException : public ConfigurationException {
+public:
+  WrongTypeException(std::string message);
+};
 
 /** @brief System does not allow given option name.
  *  Eg. empty name can be forbidden.
  */
-class WrongEntryNameException : public ConfigurationException {};
+class WrongEntryNameException : public ConfigurationException {
+public:
+  WrongEntryNameException(std::string message);
+};
 
 /** @brief Entry with given name already exists in configuration. */
-class EntryAlreadyExistsException : public ConfigurationException {};
+class EntryAlreadyExistsException : public ConfigurationException {
+public:
+  EntryAlreadyExistsException(std::string message);
+};
 
 /** @brief An error occured during convertion from/to string. **/
-class ConvertionException : public ConfigurationException {};
+class ConvertionException : public ConfigurationException {
+public:
+  ConvertionException(std::string message);
+};
 
 /** @brief No converter present for the option */
-class NoConverterException : public ConfigurationException {};
+class NoConverterException : public ConfigurationException {
+public:
+  NoConverterException(std::string message);
+};
 
 /**
  * @brief Converts values to/from string.
@@ -142,7 +165,8 @@ public:
     typename RMap::iterator i =
       t2Str_.find(t);
     if(i == t2Str_.end())
-      throw ConvertionException();
+      throw ConvertionException(std::string("cannot convert to string, type ")
+                                + typeid(T).name());
     
     return i->second;
   }
@@ -151,7 +175,9 @@ public:
     typename Map::iterator i =
       str2T_.find(s);
     if(i == str2T_.end())
-      throw ConvertionException();
+      throw ConvertionException(
+        std::string("cannot convert from string (") + s + "), type"
+        + typeid(T).name());
     
     return i->second;
   }
@@ -326,6 +352,18 @@ protected:
    */
   bool isValidName(const std::string& entry) const;
 
+  /**
+   * Get IOption for given entry. This is common part of a few functions
+   * in Configuration.
+   * @param entry name of the option.
+   * @return IOption for given entry.
+   * @exception WrongEntryNameException Thrown if entry is not valid name,
+   *                                    eg. it is empty.
+   * @exception NoSuchEntryException    Thrown if there is no option with
+   *                                    given name.
+   */
+  IOption& getIOption(const std::string& entry);
+
 #if HAVE_LIBLOG4CXX
   static log4cxx::LoggerPtr logger;
 #endif // HAVE_LIBLOG4CXX
@@ -384,23 +422,13 @@ Configuration::addCallback(const std::string& entry, Callback<T>* callback,
 template<class T> 
 T& Configuration::get(const std::string& entry) {
   LOG4CXX_DEBUG(logger, "getting entry " + entry);
-
-  if(!instance_->isValidName(entry))
-    throw WrongEntryNameException();
-    
-  KeyValueMap::iterator i = instance_->keyValue_.find(entry);
-
-  if(i == instance_->keyValue_.end())
-    throw NoSuchEntryException();
-    
-  IOption& io = *(i->second);
-
+  
   try {
-    Option<T>& o = dynamic_cast<Option<T>&>(io);
+    Option<T>& o = dynamic_cast<Option<T>&>( instance_->getIOption(entry) );
     return o.get();
   }
   catch(std::bad_cast) {
-    throw WrongTypeException();
+    throw WrongTypeException("wrong type was used for entry " + entry);
   }
 }
 
@@ -417,22 +445,12 @@ void Configuration::set(const std::string& entry, const T& value, int prio) {
   LOG4CXX_DEBUG(logger, ss.str());
 #endif // HAVE_LIBLOG4CXX
 
-  if(!instance_->isValidName(entry))
-    throw WrongEntryNameException();
-    
-  KeyValueMap::iterator i = instance_->keyValue_.find(entry);
-
-  if(i == instance_->keyValue_.end())
-    throw NoSuchEntryException();
-    
-  IOption& io = *(i->second);
-
   try {
-    Option<T>& o = dynamic_cast<Option<T>&>(io);
+    Option<T>& o = dynamic_cast<Option<T>&>( instance_->getIOption(entry) );
     o.set(value, prio);
   }
   catch(std::bad_cast) {
-    throw WrongTypeException();
+    throw WrongTypeException("wrong type was used for entry " + entry);
   }
 }
 
@@ -440,43 +458,23 @@ template <class T> void
 Configuration::setString(const std::string& entry,
                          const std::string& value, int prio)
 {
-  if(!instance_->isValidName(entry))
-    throw WrongEntryNameException();
-    
-  KeyValueMap::iterator i = instance_->keyValue_.find(entry);
-
-  if(i == instance_->keyValue_.end())
-    throw NoSuchEntryException();
-    
-  IOption& io = *(i->second);
-
   try {
-    Option<T>& o = dynamic_cast<Option<T>&>(io);
+    Option<T>& o = dynamic_cast<Option<T>&>( instance_->getIOption(entry) );
     o.setString(value, prio);
   }
   catch(std::bad_cast) {
-    throw WrongTypeException();
+    throw WrongTypeException("wrong type was used for entry " + entry);
   }
 }
 
 template <class T> std::string
 Configuration::getString(const std::string& entry) {
-  if(!instance_->isValidName(entry))
-    throw WrongEntryNameException();
-    
-  KeyValueMap::iterator i = instance_->keyValue_.find(entry);
-
-  if(i == instance_->keyValue_.end())
-    throw NoSuchEntryException();
-    
-  IOption& io = *(i->second);
-
   try {
-    Option<T>& o = dynamic_cast<Option<T>&>(io);
+    Option<T>& o = dynamic_cast<Option<T>&>( instance_->getIOption(entry) );
     return o.getString();
   }
   catch(std::bad_cast) {
-    throw WrongTypeException();
+    throw WrongTypeException("wrong type was used for entry " + entry);
   }
 }
 

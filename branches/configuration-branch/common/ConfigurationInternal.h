@@ -97,7 +97,7 @@ public:
    */
   virtual std::string getString() {
     if(converter_ == 0)
-      throw NoConverterException();
+      throw NoConverterException("no converter");
     
     return converter_->toString( this->get() );
   }
@@ -110,7 +110,7 @@ public:
    */
   virtual void setString(const std::string& s, int priority = 1) {
     if(converter_ == 0)
-      throw NoConverterException();
+      throw NoConverterException("no converter");
     
     this->set(converter_->fromString(s) , priority);
   }

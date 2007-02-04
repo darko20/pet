@@ -551,8 +551,8 @@ int main(int argc, char* argv[])
   
   // initialization of log4cxx
 #if HAVE_LIBLOG4CXX
-  log4cxx::BasicConfigurator::configure();
-  log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::OFF);
+  log4cxx::BasicConfigurator::resetConfiguration();
+  log4cxx::PropertyConfigurator::configure(std::string("logging.conf"));
 #endif // HAVE_LIBLOG4CXX
 
 #ifndef __BORLANDC__

@@ -12,6 +12,7 @@
 #  endif // HAVE_XML
 #  include <log4cxx/logger.h>
 #  include <log4cxx/basicconfigurator.h>
+#  include <log4cxx/propertyconfigurator.h>
 #  include <sstream>
 #  ifdef WE_HAVE_XML
 #    undef WE_HAVE_XML
