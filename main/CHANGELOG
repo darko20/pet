@@ -1,4 +1,7 @@
 v0.99.??
+  - fix incompatible blocking application of non-inflectional lexical rules on
+    phrasal items (resolves issue of ticket #2 by Francis)
+  - fix broken handling of file input when using PIC XML input format
   - remove all (currently) unused options from configure.ac
     add morphology computation for generic entries, too (requested by 
     Berthold): this requires proper blocking of these rules in the grammar, 

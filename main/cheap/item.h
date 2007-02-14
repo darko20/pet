@@ -181,10 +181,10 @@ public:
       if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
         return false;
     }
-    else if(R->trait() == LEX_TRAIT) {
-      if(_trait == SYNTAX_TRAIT) 
-        return false;
-    }
+    // incompatible to LKB treatment and therefore removed
+    //     else if(R->trait() == LEX_TRAIT) {
+    //       if(_trait == SYNTAX_TRAIT) return false;
+    //     }
     else if(R->trait() == SYNTAX_TRAIT) {
       if(! inflrs_complete_p()) return false;
     }
