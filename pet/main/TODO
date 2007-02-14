@@ -1,4 +1,15 @@
-- make morphology computation available to generic entries
+- inconsistencies between LKB and PET (ticket #2 by Francis Bond)
+
+- proper handling of upcase/lowercase handling in a) tokenizers and b) lexicon
+  access (have to use ICU?). Is it enough to have two modes: strict (no
+  conversion) and robust (all to lower)? At least the lexicon that comes from
+  the binary grammar file must get an additional access table for "normalized"
+  strings to be able to switch the mode at runtime --> uppercase umlauts are
+  now converted correctly to lowercase in lingo-tokenizer, but not in
+  yy-tokenizer. This should be done in a common way and an option should be
+  introduced that controls if conversion to lower case is done at all.
+
+- reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 
 - unpacking of edges does not terminate in some cases with unary rules
   fix: separate the local unary edges and do a fix point computation. This must
@@ -6,10 +17,6 @@
 
 - "unpack edge limit exhausted" error: wrong result number to tsdb
 
-- uppercase umlauts are now converted correctly to lowercase in 
-  lingo-tokenizer, but not in yy-tokenizer. This should be done in a common way
-  and an option should be introduced that controls if conversion to lower case
-  is done at all.
 
 - "automatic" tests (preferably with tsdb) for unfilling/packing modes
   - freeze an english and german grammar version for performance comparisons
@@ -29,17 +36,16 @@
   the problem of <failing constructor>.
 
 - mmap disabling makes segfaults (Francis tries to pin this down)
-- 64bit version does not work properly
-
-- reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
-
-- extension of TDL syntax to type extension and comments
-  (check mail/wiki/tickets)
 
 - mmap problems seem to come up again and again!
   Idea: Make sure that permanent dags avoid using one of the slots that are 
         used for unification and mark it with a special value. After some 
         thinking, i would say that this might not be feasible.
+
+- 64bit version does not work properly
+
+- extension of TDL syntax to type extension and comments (ticket #1 by Emily
+  Bender)
 
 - remove all uses of negative values as `marker'-values, especially where casts
   from integers to pointers and back are involved. 
@@ -182,4 +188,4 @@ refactoring:
 + write a HOWTO (in pet.opendfki.de) that describes how to build the system
   using a new SVN snapshot: aclocal && automake -a && autconf && ./configure
   and describe configuration options
-
++ make morphology computation available to generic entries

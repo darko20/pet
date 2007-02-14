@@ -628,7 +628,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
 void
 lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
                                , fs_alloc_state &FSAS, list<tError> &errors) {
-  // if opt_lex_exhaustive, process inflectional and lexical rules first and
+  // if lex_exhaustive, process inflectional and lexical rules first and
   // exhaustively before applying syntactic rules
   // This allows more elaborate checking of gaps and chart dependencies
   if (lex_exhaustive) {

@@ -26,8 +26,15 @@ void tXMLTokenizer::tokenize(string input, inp_list &result) {
 
   if (input.compare(0, 2, "<?") == 0)
     tokenize_from_stream(input, result);
-  else
+  else {
+    string::iterator it = input.find_last_of('\n');
+    // trim trailing newlines
+    while (it != input.end() && it + 1 == input.end()) {
+      input.erase(it);
+      it = input.find_last_of('\n');
+    }
     tokenize_from_file(input, result);
+  }
 }
 
 /** Produce a set of tInputItem tokens from the given XML input on stdin. */
