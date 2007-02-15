@@ -27,11 +27,13 @@ void tXMLTokenizer::tokenize(string input, inp_list &result) {
   if (input.compare(0, 2, "<?") == 0)
     tokenize_from_stream(input, result);
   else {
-    string::iterator it = input.find_last_of('\n');
+    string::size_type len = input.length();
+    string::size_type pos = input.find_last_of('\n');
     // trim trailing newlines
-    while (it != input.end() && it + 1 == input.end()) {
-      input.erase(it);
-      it = input.find_last_of('\n');
+    while (pos != string::npos && pos == len - 1) {
+      input.erase(pos);
+      len--;
+      pos = input.find_last_of('\n');
     }
     tokenize_from_file(input, result);
   }
