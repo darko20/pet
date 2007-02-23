@@ -595,6 +595,83 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   }
 }
 
+list<lex_stem *>
+predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
+   list<lex_stem*> results;
+  if (Grammar->lexsm()) {
+    vector<string> words(5);
+    
+    words[4] = item->orth();
+    vector<vector<type_t> > types(4);
+    for (list<tInputItem*>::iterator it = inp_tokens.begin();
+	 it != inp_tokens.end(); it ++) {
+      int idx = -1;
+      if ((*it)->endposition() == item->startposition() - 1)
+	idx = 0;
+      if ((*it)->endposition() == item->startposition())
+	idx = 1;
+      if ((*it)->startposition() == item->endposition())
+	idx = 2;
+      if ((*it)->startposition() == item->endposition() + 1)
+	idx = 3;
+      if (idx != -1) {
+	words[idx] = (*it)->orth();
+	chart_iter_topo iter(Chart);
+	while (iter.valid()) {
+	  tLexItem *lex = dynamic_cast<tLexItem*>(iter.current());
+	  if (lex != NULL)
+	    for (list<tItem*>::const_iterator dtrit = lex->daughters().begin();
+		 dtrit != lex->daughters().end(); dtrit ++)
+	      if (*it == *dtrit)
+		types[idx].push_back(lex->identity());
+	  iter ++; 
+	}
+      }
+    }
+    list<type_t> pred_types = Grammar->lexsm()->bestPredict(words,types, n);
+    for (list<type_t>::iterator tit = pred_types.begin();
+	 tit != pred_types.end(); tit ++) 
+      results.push_back(Grammar->find_stem(*tit));
+  }
+    
+  return results; 
+}
+
+void 
+lex_parser::add_predicts(list<tInputItem *> &unexpanded, inp_list &inp_tokens) {
+  list<lex_stem*> predicts;
+  
+  if (verbosity > 4)
+    fprintf(ferr, "adding prediction les\n");
+  
+  for (list<tInputItem *>::iterator it = unexpanded.begin();
+       it != unexpanded.end(); it ++) {
+    if (verbosity > 4) {
+      fprintf(ferr, "  token ");
+      (*it)->print(ferr);
+      fprintf(ferr, "\n");
+    }
+    
+    predicts = predict_les(*it, inp_tokens, opt_predict_les);
+    list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
+    for (list<lex_stem*>::iterator ls = predicts.begin();
+	 ls != predicts.end(); ls ++) {
+      modlist in_mods = (*it)->mods();
+      add_surface_mod((*it)->orth(), in_mods);
+      if (morphs.empty()) {
+	combine(*ls, *it, (*it)->inflrs(), in_mods);
+      } else {
+	for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
+	       ; mrph != morphs.end(); mrph++) {
+	  list_int *rules = copy_list(mrph->rules());
+	  combine(*ls, *it, rules, in_mods);
+	  free_list(rules);
+	}
+      }
+    }
+  }
+}
+
 void 
 lex_parser::reset() {
   // The items were created with an active default_owner and because of this
@@ -694,6 +771,23 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
       _agenda.pop();
     }
     
+    if (lex_exhaustive) {
+      parse_loop(FSAS, errors);
+    }
+    if (! Chart->connected(*valid)) {
+      unexpanded = find_unexpanded(Chart, *valid);
+    }
+  }
+  // Lexical type predictor will only be used when there is
+  // unexpanded inps and the `-default-les' is not used.
+  else if (opt_predict_les && ! unexpanded.empty()) {
+    add_predicts(unexpanded, inp_tokens);
+    unexpanded.clear();
+    while (! _agenda.empty()) {
+      _agenda.front()->execute(*this);
+      _agenda.pop();
+    }
+  
     if (lex_exhaustive) {
       parse_loop(FSAS, errors);
     }

@@ -136,6 +136,12 @@ private:
    */
   void add_generics(list<tInputItem *> &unexpanded);
 
+  /** Add predicted entries for uncovered input items.  
+   * This is only applied if the option \c opt_predict_les is \c
+   * non-zero and \opt_default_les is false.
+   */
+  void add_predicts(list<tInputItem *> &unexpanded, inp_list &inp_tokens);
+
   /** Use the registered tokenizer(s) to tokenize the input string and put the
    *  result into \a tokens.
    *

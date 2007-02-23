@@ -28,6 +28,7 @@
 #include "grammar.h"
 #include "item.h"
 #include <sstream>
+#include <float.h>
 
 int
 tSMFeature::hash() const
@@ -432,6 +433,8 @@ tMEM::parseModel()
       _format = 0;
     else if (strcmp(tmp, "model") == 0)
       _format = 1;
+    else if (strcmp(tmp, "lexmem") == 0)
+      _format = 2;
     else 
         syntax_error("expecting `mem|model' section", LA(0));
 
@@ -536,6 +539,9 @@ tMEM::parseFeatures(int nFeatures)
 	  break;
 	case 1:  // new format (as of sep-2006)
 	  parseFeature2(n++);
+	  break;
+	case 2:  // lexical type prediction model
+	  parseFeature_lexpred(n++);
 	  break;
 	}
     }
@@ -755,4 +761,256 @@ tMEM::score(const tSMFeature &f)
         return _weights[code];
     else
         return 0.0;
+}
+
+void
+tMEM::parseFeature_lexpred(int n)
+{
+    char *tmp;
+
+    if(verbosity > 9)
+        fprintf(fstatus, "\n[%d]", n);
+
+    match(T_LBRACKET, "begin of feature vector", true);
+
+    // Vector of subfeatures.
+    vector<int> v;
+
+    bool good = true;
+    while(LA(0)->tag != T_RBRACKET && LA(0)->tag != T_EOF)
+    {
+        if(LA(0)->tag == T_ID)
+        {
+            // This can be an integer or an identifier.
+            tmp = match(T_ID, "subfeature in feature vector", false);
+            if(verbosity > 9)
+                fprintf(fstatus, " %s", tmp);
+
+            char *endptr;
+            int t = strtol(tmp, &endptr, 10);
+            if(endptr == 0 || *endptr != 0)
+            {
+                // This is not an integer, so it must be a type/instance.
+                char *inst = (char *) malloc(strlen(tmp)+2);
+                strcpy(inst, "$");
+                strcat(inst, tmp);
+                t = lookup_type(inst);
+                if(t == -1)
+                    t = lookup_type(inst+1);
+                free(inst);
+                
+                if(t == -1)
+                {
+                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
+                            tmp, n);
+                    good = false;
+                }
+                else
+                {
+                    v.push_back(map()->typeToSubfeature(t));
+                }
+            }
+            else
+            {
+                // This is an integer.
+                v.push_back(map()->intToSubfeature(t));
+            }
+            free(tmp);
+        }
+        else if(LA(0)->tag == T_STRING)
+        {
+            tmp = match(T_STRING, "subfeature in feature vector", false);
+            if(verbosity > 9)
+                fprintf(fstatus, " \"%s\"", tmp);
+            v.push_back(map()->stringToSubfeature(string(tmp)));
+            free(tmp);
+        }
+	else if (LA(0)->tag == T_CAP) {
+	  // This is a special 
+	  consume(1);
+	  v.push_back(INT_MAX);
+	}
+	else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
+	  consume(1);
+	}
+        else
+        {
+            syntax_error("expecting subfeature", LA(0));
+            consume(1);
+        }
+    }
+
+    match(T_RBRACKET, "end of feature vector", true);
+    
+    tmp = match(T_ID, "feature weight", false);
+    // _fix_me_
+    // check syntax of number
+    double w = strtod(tmp, NULL);
+    free(tmp);
+    if(verbosity > 9)
+        fprintf(fstatus, ": %g", w);
+
+    if(good)
+    {
+        int code = map()->featureToCode(v);
+        if(verbosity > 9)
+            fprintf(fstatus, " (code %d)\n", code);
+        assert(code >= 0);
+        if(code >= (int) _weights.size()) _weights.resize(code + 1);
+        _weights[code] = w;
+    }
+}
+
+
+string normstr(string str) {
+  string newstr;
+  for (unsigned int i = 0; i < str.length(); i ++) {
+    if (islower(str[i]) || isdigit(str[i]) ||
+	str[i] == '-' || str[i] == '_' ||
+	str[i] == ' ' || str[i] == '\'')
+      newstr += str[i];
+    else if (isupper(str[i]))
+      newstr += tolower(str[i]);
+  }
+  return newstr;
+}
+
+std::list<int>
+tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letypes, int n) {
+  // for each output, create the features and accumulate the values
+  //double max = DBL_MIN; // _fix_me DBL_MIN?
+  list<double> scores(n);
+  for (list<double>::iterator it = scores.begin();
+       it != scores.end(); it ++) {
+    *it = DBL_MIN;
+  }
+  list<type_t> types(n);
+  //  type_t type;
+  list_int* outputs = G()->predicts();
+
+  for (; outputs != 0; outputs = rest(outputs)) {
+    type_t output = first(outputs);
+    vector<int> v;
+    double total = neutralScore();
+    string lword = normstr(words[4]);
+
+    //0: has digit? 0:1
+    v.push_back(map()->typeToSubfeature(output));
+    v.push_back(map()->intToSubfeature(0));
+    int dc = 0;
+    for (unsigned int p = 0; p < words[4].length(); p ++)
+      if (isdigit(words[4][p])) {
+	dc = 1;
+	break;
+      }
+    v.push_back(map()->intToSubfeature(dc));
+    total = combineScores(total, score(tSMFeature(v)));
+    v.clear();
+
+    //1: has uppercase? 0:1
+    v.push_back(map()->typeToSubfeature(output));
+    v.push_back(map()->intToSubfeature(1));
+    int uc = 0;
+    for (unsigned int p = 0; p < words[4].length(); p ++)
+      if (isupper(words[4][p])) {
+	uc = 1;
+	break;
+      }
+    v.push_back(map()->intToSubfeature(uc));
+    total = combineScores(total, score(tSMFeature(v)));
+    v.clear();
+
+    //2: with space or hypen? 0:1
+    v.push_back(map()->typeToSubfeature(output));
+    v.push_back(map()->intToSubfeature(2));
+    if (words[4].find(' ') != string::npos || 
+	words[4].find('-') != string::npos)
+      v.push_back(map()->intToSubfeature(1));
+    else 
+      v.push_back(map()->intToSubfeature(0));
+    total = combineScores(total, score(tSMFeature(v)));
+    v.clear();
+
+    //3: prefix len str
+    for (unsigned int i = 1; i < 3; i ++) {
+      v.push_back(map()->typeToSubfeature(output));
+      v.push_back(map()->intToSubfeature(3));
+      v.push_back(map()->intToSubfeature(i));
+      if (lword.length() >= i) {
+	v.push_back(map()->stringToSubfeature(lword.substr(0,i)));
+      } else {
+	v.push_back(map()->stringToSubfeature(string("_")));
+      }
+      total = combineScores(total, score(tSMFeature(v)));
+      v.clear();
+    }
+
+    //4: suffix len str
+    for (unsigned int i = 1; i < 3; i ++) {
+      v.push_back(map()->typeToSubfeature(output));
+      v.push_back(map()->intToSubfeature(4));
+      v.push_back(map()->intToSubfeature(i));
+      if (lword.length() >= i) {
+	v.push_back(map()->stringToSubfeature(lword.substr(lword.length()-i,i)));
+      } else {
+	v.push_back(map()->stringToSubfeature(string("_")));
+      }
+      total = combineScores(total, score(tSMFeature(v)));
+      v.clear();
+    }
+
+    //5: context word features
+    for (int i = 0; i < 4; i ++) {
+      string word;
+      if (words[i].empty())
+	word = "_";
+      else
+	word = normstr(words[i]);
+      // _fix_me: transform(words[i].begin(),words[i].end(),word.begin(), tolower);
+      v.push_back(map()->typeToSubfeature(output));
+      v.push_back(map()->intToSubfeature(5));
+      v.push_back(map()->intToSubfeature(i));
+      v.push_back(map()->stringToSubfeature(word));
+      total = combineScores(total, score(tSMFeature(v)));
+      v.clear();
+    }
+    //6: context type features
+    for (int i = 0; i < 4; i ++) {
+      if (letypes[i].empty()) {
+	v.push_back(map()->typeToSubfeature(output));
+	v.push_back(map()->intToSubfeature(6));
+	v.push_back(map()->intToSubfeature(i));
+	v.push_back(INT_MAX);
+	total = combineScores(total, score(tSMFeature(v)));
+	v.clear();
+      } else {
+	for (vector<type_t>::iterator it = letypes[i].begin();
+	     it != letypes[i].end(); it ++) {
+	  v.push_back(map()->typeToSubfeature(output));
+	  v.push_back(map()->intToSubfeature(6));
+	  v.push_back(map()->intToSubfeature(i));	
+	  v.push_back(map()->typeToSubfeature(*it));
+	  total = combineScores(total, score(tSMFeature(v)));
+	  v.clear();
+	}
+      }
+    }
+    list<type_t>::iterator tit = types.begin();
+    for (list<double>::iterator sit = scores.begin();
+	 sit != scores.end() && tit != types.end(); sit ++, tit ++ ) {
+      if (total > *sit) {
+	scores.insert(sit, 1, total);
+	types.insert(tit, 1, output);
+	scores.resize(n);
+	types.resize(n);
+	break;
+      }
+    }
+    //    if (total > max) {
+    //      max = total;
+    //      type = output;
+    //    }
+  }
+  //  return type;
+  return types;
 }
