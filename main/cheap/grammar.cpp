@@ -55,6 +55,13 @@ genle_status(type_t t)
 }
 
 bool
+predle_status(type_t t)
+{
+  return cheap_settings->statusmember("predict-lexentry-status-values",
+				      typestatus[t]);
+}
+
+bool
 rule_status(type_t t)
 {
   return cheap_settings->statusmember("rule-status-values", typestatus[t]);
@@ -349,7 +356,7 @@ tGrammar::tGrammar(const char * filename)
     : _properties(), _nrules(0), _root_insts(0), _generics(0),
       _filter(0), _subsumption_filter(0), _qc_inst_unif(0), _qc_inst_subs(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0)
+      _sm(0), _lexsm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
@@ -468,6 +475,10 @@ tGrammar::tGrammar(const char * filename)
             _generics = cons(i, _generics);
             _lexicon[i] = new lex_stem(i);
         }
+	else if (predle_status(i)) {
+	  _predicts = cons(i, _predicts);
+	  _lexicon[i] = new lex_stem(i);
+	}
     }
 
     /*
@@ -631,6 +642,15 @@ tGrammar::tGrammar(const char * filename)
         _sm = 0;
       }
     }
+    char *lexsm_file;
+    if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
+      try { _lexsm = new tMEM(this, lexsm_file, filename); }
+      catch(tError &e) {
+	fprintf(ferr, "\n%s", e.getMessage().c_str());
+	_lexsm = 0;
+      }
+    }
+
 
 #ifdef HAVE_EXTDICT
     try

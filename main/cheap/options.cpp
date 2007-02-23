@@ -39,7 +39,7 @@ bool opt_yy, opt_k2y_segregation;
 int opt_k2y, opt_nth_meaning;
 #endif
 
-int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults;
+int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les;
 int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
@@ -90,6 +90,7 @@ void usage(FILE *f)
   fprintf(f, "  `-rulestats' --- enable tsdb output of rule statistics\n");
   fprintf(f, "  `-no-chart-man' --- disable chart manipulation\n");
   fprintf(f, "  `-default-les' --- enable use of default lexical entries\n");
+  fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
   fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
 #ifdef YY
@@ -162,6 +163,7 @@ void usage(FILE *f)
 #define OPTION_COMPUTE_QC_SUBS 34
 #define OPTION_JXCHG_DUMP 35
 #define OPTION_COMMENT_PASSTHROUGH 36
+#define OPTION_PREDICT_LES 37
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -208,6 +210,7 @@ void init_options()
   opt_tok = TOKENIZER_STRING;
   opt_jxchg_dir = "";
   opt_comment_passthrough = 0;
+  opt_predict_les = 0;
 
 #ifdef YY
   opt_yy = false;
@@ -242,6 +245,7 @@ bool parse_options(int argc, char* argv[])
     {"rulestats", no_argument, 0, OPTION_RULE_STATISTICS},
     {"no-chart-man", no_argument, 0, OPTION_NO_CHART_MAN},
     {"default-les", no_argument, 0, OPTION_DEFAULT_LES},
+    {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
     {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
@@ -456,6 +460,13 @@ bool parse_options(int argc, char* argv[])
               opt_comment_passthrough = 1;
 	  break;
 
+      case OPTION_PREDICT_LES:
+	  if (optarg != NULL)
+	    opt_predict_les = strtoint(optarg, "as argument to -predict-les");
+	  else 
+	    opt_predict_les = 1;
+	  break;
+
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
@@ -529,6 +540,7 @@ void options_from_settings(settings *set)
   memlimit = 1024 * 1024 * int_setting(set, "memlimit");
   opt_hyper = bool_setting(set, "hyper");
   opt_default_les = bool_setting(set, "default-les");
+  opt_predict_les = int_setting(set, "predict-les");
 #ifdef YY
   opt_k2y = int_setting(set, "k2y");
   opt_yy = bool_setting(set, "yy");
