@@ -1581,7 +1581,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
     if (dtr)
       daughters.push_back(dtr);
     else {
-      hypo->inst_failed = true;
+      //hypo->inst_failed = true;//
       return NULL;
     }
   }
@@ -1604,7 +1604,8 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   }
   if (!res.valid()) {
     //    FSAS.release();
-    hypo->inst_failed = true;
+    //hypo->inst_failed = true;//
+    propagate_failure(hypo);
     return NULL;
   }
   if (passive()) {
@@ -1616,6 +1617,15 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   result->score(hypo->scores[path]);
   hypo->inst_edge = result;
   return result;
+}
+
+void propagate_failure(tHypothesis *hypo) {
+  hypo->inst_failed = true;
+
+  for (list<tHypothesis *>::iterator p_hypo = hypo->hypo_parents.begin();
+       p_hypo != hypo->hypo_parents.end(); p_hypo ++) {
+    propagate_failure(*p_hypo);
+  }
 }
 
 list<vector<int> > advance_indices(vector<int> indices) {
