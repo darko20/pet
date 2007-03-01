@@ -71,7 +71,7 @@ public:
   tItem* inst_edge;
   bool inst_failed;
   tDecomposition* decomposition;
-  //  list<tHypothesis*> hypo_parents;
+  list<tHypothesis*> hypo_parents;
   list<tHypothesis*> hypo_dtrs;
   vector<int> indices;
   tHypothesis(tItem* e, tDecomposition* decomp, list<tHypothesis*> dtrs, vector<int> ind) 
@@ -82,6 +82,11 @@ public:
     decomposition = decomp;
     indices = ind;
     hypo_dtrs = dtrs;
+    hypo_parents.clear();
+    for (list<tHypothesis*>::iterator dtr = hypo_dtrs.begin();
+	 dtr != hypo_dtrs.end(); dtr ++) {
+      (*dtr)->hypo_parents.push_back(this);
+    }
   }
   tHypothesis(tItem* e)
   {
@@ -89,6 +94,7 @@ public:
     inst_edge = NULL;
     inst_failed = false;
     decomposition = NULL;
+    hypo_parents.clear();
   }
   /** constructor for non-conventional top level usage only*/
   tHypothesis(tItem* e, tHypothesis *hdtr, int idx)
@@ -98,6 +104,7 @@ public:
     inst_failed = false;
     scores = hdtr->scores;
     hypo_dtrs.push_back(hdtr);
+    //hdtr->hypo_parents.push_back(this);
     indices.push_back(idx);
   }
 };
@@ -1109,6 +1116,10 @@ class tPhrasalItem : public tItem {
   friend class tItemPrinter;
 };
 
+/** Recursively propagate instantiation failure of the hypothesis to
+ * parents.
+ */
+void propagate_failure(tHypothesis *hypo);
 
 /** Advance the indices vector.
  * e.g. <0 2 1> -> {<1 2 1> <0 3 1> <0 2 2>}
