@@ -58,10 +58,16 @@
 
 #include "logging.h"
 
+using namespace log4cxx;
+
 char * version_string = VERSION ;
 char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
+#if HAVE_LIBLOG4CXX
+const int logBufferSize = 65536;
+char logBuffer[65536];
+#endif // HAVE_LIBLOG4CXX
 
 // global variables for parsing
 
@@ -376,7 +382,8 @@ void process(const char *s) {
     string base = raw_name(s);
     cheap_settings = new settings(base.c_str(), s, "reading");
     fprintf(fstatus, "\n");
-    fprintf(fstatus, "loading `%s' ", s);
+    //fprintf(fstatus, "loading `%s' ", s);
+    LOG(Logger::getRootLogger(), Level::INFO, "loading `%s' ", s);
     Grammar = new tGrammar(s); 
   }
   catch(tError &e) {
@@ -551,8 +558,8 @@ int main(int argc, char* argv[])
   
   // initialization of log4cxx
 #if HAVE_LIBLOG4CXX
-  log4cxx::BasicConfigurator::resetConfiguration();
-  log4cxx::PropertyConfigurator::configure(std::string("logging.conf"));
+  BasicConfigurator::resetConfiguration();
+  PropertyConfigurator::configure(std::string("logging.conf"));
 #endif // HAVE_LIBLOG4CXX
 
 #ifndef __BORLANDC__
