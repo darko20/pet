@@ -291,7 +291,8 @@ add_root(tItem *it)
     {
         stats.first = ParseTime.convert2ms(ParseTime.elapsed());
         if(!opt_packing
-           && opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
+           && opt_nsolutions > 0 && stats.trees >= opt_nsolutions
+           || opt_packing & PACKING_NOUNPACK)
           return true;
     }
     return false;
@@ -340,9 +341,16 @@ resources_exhausted()
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
 {
-    while(!Agenda->empty() &&
-          (opt_packing || opt_nsolutions == 0
-           || stats.trees < opt_nsolutions) &&
+    //
+    // run the core parser loop until either (a) we empty out the agenda, (b)
+    // in no-unpacking mode (aiming to determine parseability only), we have
+    // found at least one tree, or (c) in (non-packing) best-first mode, the
+    // number of trees found equals the number of requested solutions.
+    //
+    while(!Agenda->empty() 
+          && !(opt_packing & PACKING_NOUNPACK && stats.trees > 0)
+          && (opt_packing || opt_nsolutions == 0
+              || stats.trees < opt_nsolutions) &&
 #ifdef YY
           (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning) &&
 #endif
@@ -442,7 +450,9 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
                        // are blocked or don't unpack.
       int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
       
-      if ((opt_packing & PACKING_SELUNPACK) && opt_nsolutions > 0) {
+      if ((opt_packing & PACKING_SELUNPACK)
+          && opt_nsolutions > 0
+          && Grammar->sm()) {
         nres = unpack_selectively(trees, upedgelimit, UnpackTime, readings);
       } else { // unpack exhaustively
         nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);

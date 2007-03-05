@@ -1,4 +1,6 @@
 v0.99.??
+  (minor `new' feature by oe)
+  - re-enable `-interactive-morphology' mode (requested by tim);
   - add new feature: lexical type prediction for lexical gaps  
   - fix incompatible blocking application of non-inflectional lexical rules on
     phrasal items (resolves issue of ticket #2 by Francis)
