@@ -103,8 +103,8 @@ void usage(FILE *f)
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
-#ifdef ONLINEMORPH
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
+#ifdef ONLINEMORPH
   fprintf(f, "  `-no-online-morph' --- disable online morphology\n");
 #endif
   fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
