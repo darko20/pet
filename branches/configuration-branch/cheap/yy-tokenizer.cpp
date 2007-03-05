@@ -250,7 +250,8 @@ tYYTokenizer::read_token()
   // skip empty tokens and punctuation
   if(stem.empty() || punctuationp(stem)) {
     if(verbosity > 4)
-      fprintf(ferr, " - punctuation");
+      LOG(loggerUncategorized, Level::INFO,
+          " - punctuation");
 
     token_class = SKIP_TOKEN_CLASS;
   } else {
@@ -319,8 +320,9 @@ tYYTokenizer::read_token()
       infl_rules.push_back(infl_rule);
     } else {
       if(verbosity > 4)
-        fprintf(ferr, "Ignoring token containing unknown "
-                "infl rule %s.\n", inflr.c_str());
+      LOG(loggerUncategorized, Level::INFO,
+          "Ignoring token containing unknown "
+          "infl rule %s.", inflr.c_str());
       return NULL;
     }
   } while (read_string(inflr, true)) ; 
@@ -358,9 +360,10 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
 
   if(verbosity > 4)
     {
-      std::cerr << "received YY tokens:" << std::endl << s 
-                << std::endl << std::endl;
-      fprintf(ferr, "[processing yy_tokenizer input]\n");
+      LOG(loggerUncategorized, Level::INFO,
+          "received YY tokens: %s", s.c_str());
+      LOG(loggerUncategorized, Level::INFO,
+          "[processing yy_tokenizer input]");
     };
   
   tInputItem *tok = 0;

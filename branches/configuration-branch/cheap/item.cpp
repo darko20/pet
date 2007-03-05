@@ -147,7 +147,8 @@ tItem::~tItem()
 void tItem::lui_dump(const char *path) {
 
   if(chdir(path)) {
-    fprintf(ferr, "tItem::lui_dump(): invalid target directory `%s'.\n", path);
+    LOG(loggerUncategorized, Level::INFO,
+        "tItem::lui_dump(): invalid target directory `%s'.", path);
     return;
   } // if
   char name[MAXPATHLEN + 1];
@@ -340,8 +341,9 @@ tInputItem::generics(postags onlyfor)
         return result;
 
     if(verbosity > 4)
-        fprintf(ferr, "using generics for [%d - %d] `%s':\n", 
-                _start, _end, _surface.c_str());
+      LOG(loggerUncategorized, Level::INFO,
+          "using generics for [%d - %d] `%s':", 
+          _start, _end, _surface.c_str());
 
     for(; gens != 0; gens = rest(gens))
     {

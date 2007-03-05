@@ -207,7 +207,8 @@ int print_exp_list(FILE *f, int level, struct tdl_list *L, struct coref_table *c
       fprintf(f, "[ LIST "), ind = 7, complex = 1;
       if(dl_cor)
         {
-          fprintf(ferr, "nested diff_list - enhance dl_cor mechanism...\n");
+          LOG_FATAL(loggerUncategorized,
+                    "nested diff_list - enhance dl_cor mechanism...");
           exit(1);
         }
     }
@@ -372,16 +373,18 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
             complex = print_exp_list(f, level, C -> term[i] -> L, coref) || complex;
           else
             complex = print_list(f, level, C -> term[i] -> L, coref) || complex;
-	  break;
-	case TEMPL_PAR:
-	case TEMPL_CALL:
-	  fprintf(ferr, "internal error: unresolved template call/parameter\n");
-	  exit(1);
-	  break;
-	default:
-	  fprintf(ferr, "unknown type of term `%d'\n", C -> term[i] -> tag); 
-	  break;
-	}
+          break;
+        case TEMPL_PAR:
+        case TEMPL_CALL:
+          LOG_FATAL(loggerUncategorized,
+                    "internal error: unresolved template call/parameter");
+          exit(1);
+          break;
+        default:
+          LOG(loggerUncategorized, Level::INFO,
+              "unknown type of term `%d'", C -> term[i] -> tag); 
+          break;
+        }
     }
 
   return complex;

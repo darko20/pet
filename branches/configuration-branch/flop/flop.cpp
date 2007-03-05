@@ -34,6 +34,21 @@
 #include "pet-config.h"
 #include "logging.h"
 
+#if HAVE_LIBLOG4CXX
+using namespace log4cxx;
+
+const int logBufferSize = 65536;
+char logBuffer[65536];
+LoggerPtr loggerUncategorized = Logger::getLogger("uncategorized");
+LoggerPtr loggerExpand = Logger::getLogger("expand");
+LoggerPtr loggerFs = Logger::getLogger("fs");
+LoggerPtr loggerGrammar = Logger::getLogger("grammar");
+LoggerPtr loggerHierarchy = Logger::getLogger("hierarchy");
+LoggerPtr loggerLexproc = Logger::getLogger("lexproc");
+LoggerPtr loggerParse = Logger::getLogger("parse");
+LoggerPtr loggerTsdb = Logger::getLogger("tsdb");
+#endif // HAVE_LIBLOG4CXX
+
 /*** global variables ***/
 
 char * version_string = VERSION ;
@@ -81,9 +96,10 @@ check_undefined_types()
 	  if(loc == 0)
 	    loc = new_location("unknown", 0, 0);
 
-	  fprintf(ferr, "warning: type `%s' (introduced at %s:%d) has no definition\n",
-		  types.name(i).c_str(),
-		  loc->fname, loc->linenr);
+          LOG(loggerUncategorized, Level::WARN,
+              "warning: type `%s' (introduced at %s:%d) has no definition",
+              types.name(i).c_str(),
+              loc->fname, loc->linenr);
 	}
     }
 }
@@ -265,13 +281,15 @@ void process_types()
 
   if(!compute_appropriateness())
     {
-      fprintf(ferr, "non maximal introduction of features\n");
+      LOG_FATAL(loggerUncategorized,
+          "non maximal introduction of features");
       exit(1);
     }
   
   if(!apply_appropriateness())
     {
-      fprintf(ferr, "non well-formed feature structures\n");
+      LOG_FATAL(loggerUncategorized,
+                "non well-formed feature structures");
       exit(1);
     }
 
@@ -373,8 +391,9 @@ char *parse_version() {
          && flop_settings->member("version-string", LA(0)->text)) {
         consume(1);
         if(LA(0)->tag != T_STRING) {
-          fprintf(ferr, "string expected for version at %s:%d\n",
-                  LA(0)->loc->fname, LA(0)->loc->linenr);
+          LOG(loggerUncategorized, Level::WARN,
+              "string expected for version at %s:%d",
+              LA(0)->loc->fname, LA(0)->loc->linenr);
         }
         else {
           version = LA(0)->text; LA(0)->text = 0;
@@ -416,7 +435,8 @@ int process(char *ofname) {
   string fname = find_file(ofname, TDL_EXT);
   
   if(fname.empty()) {
-    fprintf(ferr, "file `%s' not found - skipping...\n", ofname);
+    LOG(loggerUncategorized, Level::WARN,
+        "file `%s' not found - skipping...", ofname);
     return FILE_NOT_FOUND ;
   }
 
@@ -552,8 +572,9 @@ int process(char *ofname) {
     }
   }
   else {
-    fprintf(ferr, "couldn't open output file `%s' for `%s' - "
-            "skipping...\n", outfname.c_str(), fname.c_str());
+    LOG(loggerUncategorized, Level::WARN,
+        "couldn't open output file `%s' for `%s' - "
+        "skipping...", outfname.c_str(), fname.c_str());
     res = FILE_NOT_FOUND;
   }
   return res;
@@ -631,19 +652,22 @@ int main(int argc, char* argv[])
   try { retval = process(grammar_file_name); }
   catch(tError &e)
     {
-      fprintf(ferr, "%s\n", e.getMessage().c_str());
+      LOG_FATAL(loggerUncategorized,
+                "%s", e.getMessage().c_str());
       exit(1);
     }
 
   catch(bad_alloc)
     {
-      fprintf(ferr, "out of memory\n");
+      LOG_FATAL(loggerUncategorized,
+                "out of memory");
       exit(1);
     }
 
   catch(...)
     {
-      fprintf(ferr, "unknown exception\n");
+      LOG_FATAL(loggerUncategorized,
+                "unknown exception");
       exit(1);
     }
   

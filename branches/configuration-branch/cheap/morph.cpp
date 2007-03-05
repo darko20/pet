@@ -468,14 +468,16 @@ void morph_lettersets::add(string s)
     }
     else
     {
-      fprintf(ferr, "Ignoring ill-formed letterset definition: %s\n",
-              s.c_str());
+      LOG(loggerUncategorized, Level::INFO,
+          "Ignoring ill-formed letterset definition: %s",
+          s.c_str());
     }
   }
   else
   {
-    fprintf(ferr, "Ignoring ill-formed letterset definition: %s\n",
-            s.c_str());
+    LOG(loggerUncategorized, Level::INFO,
+        "Ignoring ill-formed letterset definition: %s",
+        s.c_str());
   }
 }
 
@@ -929,7 +931,8 @@ tMorphAnalyzer::~tMorphAnalyzer()
 
 void tMorphAnalyzer::add_global(string rule) {
   if(verbosity > 9)
-    fprintf(fstatus, "INFLR<global>: %s\n", rule.c_str());
+    LOG(loggerUncategorized, Level::INFO,
+        "INFLR<global>: %s", rule.c_str());
 
   string::size_type start, stop;
   
@@ -947,9 +950,9 @@ void tMorphAnalyzer::add_global(string rule) {
       //
       if(rule.compare(start, 2, "))") != 0) {
         string s = rule.substr(start);
-        fprintf(ferr,
-                "ignoring remaining letter-set(s) <%s>\n",
-                s.c_str());
+        LOG(loggerUncategorized, Level::INFO,
+            "ignoring remaining letter-set(s) <%s>",
+            s.c_str());
       } // if 
     } // else
   } // while
@@ -982,7 +985,8 @@ void tMorphAnalyzer::parse_rule(type_t t, string rule, bool suffix)
 void tMorphAnalyzer::add_rule(type_t t, string rule)
 {
   if(verbosity > 9)
-    fprintf(fstatus, "INFLR<%s>: %s\n", print_name(t), rule.c_str());
+    LOG(loggerUncategorized, Level::INFO,
+        "INFLR<%s>: %s", print_name(t), rule.c_str());
 
   if(rule.compare(0, 6, "suffix") == 0)
     parse_rule(t, rule.substr(6, rule.length() - 6), true);
@@ -995,8 +999,9 @@ void tMorphAnalyzer::add_rule(type_t t, string rule)
 void tMorphAnalyzer::add_irreg(string stem, type_t t, string form)
 {
   if(verbosity > 14)
-    fprintf(fstatus, "IRREG: %s + %s = %s\n",
-            stem.c_str(), print_name(t), form.c_str());
+    LOG(loggerUncategorized, Level::INFO,
+        "IRREG: %s + %s = %s",
+        stem.c_str(), print_name(t), form.c_str());
 
   list<type_t> rules;
   rules.push_front(t);
@@ -1213,22 +1218,26 @@ tLKBMorphology::undump_inflrs(dumper &dmp) {
           grammar_rule *rule = Grammar->find_rule(t);
           if (rule != NULL) {
             if(rule->trait() == SYNTAX_TRAIT)
-              fprintf(ferr, "warning: found syntax `%s' rule "
-                      "with attached infl rule `%s'\n",
-                      print_name(t), r);
+              LOG(loggerUncategorized, Level::WARN,
+                  "warning: found syntax `%s' rule "
+                  "with attached infl rule `%s'",
+                  print_name(t), r);
                 
             rule->trait(INFL_TRAIT);
           } else {
-            fprintf(ferr, "warning: rule `%s' with infl annotation "
-                    "`%s' doesn't correspond to any of the parser's "
-                    "rules\n", print_name(t), r);
+            LOG(loggerUncategorized, Level::WARN,
+                "warning: rule `%s' with infl annotation "
+                "`%s' doesn't correspond to any of the parser's "
+                "rules", print_name(t), r);
           }
         }
 
       delete[] r;
     }
 
-  if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
+  if(verbosity > 4)
+    LOG(loggerUncategorized, Level::INFO, ", %d infl rules", ninflrs);
+
   if(verbosity >14) _morph.print(fstatus);
 }
 
@@ -1245,8 +1254,9 @@ tLKBMorphology::undump_irregs(dumper &dmp) {  // irregular forms
       type_t inflr = lookup_type(infl);
       if(inflr == -1)
         {
-          fprintf(ferr, "Ignoring entry with unknown rule `%s' "
-                  "in irregular forms\n", infl);
+          LOG(loggerUncategorized, Level::INFO,
+              "Ignoring entry with unknown rule `%s' "
+              "in irregular forms", infl);
           delete[] form; delete[] infl; delete[] stem;
           continue;
         }

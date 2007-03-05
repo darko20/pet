@@ -26,6 +26,8 @@
 #include "errors.h"
 #include "list-int.h"
 
+#include "logging.h"
+
 using std::string;
 
 settings::settings(const char *name, const char *base, char *message)
@@ -117,7 +119,8 @@ char *settings::req_value(const char *name)
   char *v = value(name);
   if(v == 0)
     {
-      fprintf(ferr, "\nno definition for required parameter `%s'\n", name);
+      LOG_ERROR(loggerUncategorized,
+                "no definition for required parameter `%s'", name);
       throw tError("no definition for required parameter `" + string(name) + "'");
     }
   return v;
@@ -241,7 +244,8 @@ void settings::parse_one()
   set = lookup(option);
   if(set)
     {
-      fprintf(ferr, "warning: more than one definition for setting `%s'...\n", option);
+      LOG(loggerUncategorized, Level::WARN,
+          "warning: more than one definition for setting `%s'...", option);
     }
   else
     {
@@ -272,10 +276,11 @@ void settings::parse_one()
 	      set->values[set->n++] = LA(0)->text; LA(0)->text=NULL;
 	    }
 	  else
-	    {
-	      fprintf(ferr, "ignoring `%s' at %s:%d...\n", LA(0)->text,
-		      LA(0)->loc->fname, LA(0)->loc->linenr);
-	    }
+            {
+              LOG(loggerUncategorized, Level::WARN,
+                  "ignoring `%s' at %s:%d...", LA(0)->text,
+                  LA(0)->loc->fname, LA(0)->loc->linenr);
+            }
 	  
 	  consume(1);
 	}
@@ -296,7 +301,8 @@ void settings::parse() {
       consume(1);
       
       if(LA(0)->tag != T_STRING) {
-        fprintf(ferr, "expecting include file name at %s:%d...\n",
+        LOG(loggerUncategorized, Level::WARN,
+            "expecting include file name at %s:%d...",
                 LA(0)->loc->fname, LA(0)->loc->linenr);
       }
       else {
@@ -308,7 +314,8 @@ void settings::parse() {
         if(file_exists_p(ofname.c_str())) {
           push_file(ofname, "including");
         } else {
-          fprintf(ferr, "file `%s' not found. skipping...\n", ofname.c_str());
+          LOG(loggerUncategorized, Level::WARN,
+              "file `%s' not found. skipping...", ofname.c_str());
         }
       }
     }

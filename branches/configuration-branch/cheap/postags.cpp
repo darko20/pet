@@ -164,8 +164,9 @@ postags::contains(type_t t, const class setting *set) const
     {
       if(i+2 > set->n)
         {
-          fprintf(ferr, "warning: incomplete last entry "
-                  "in POS mapping - ignored\n");
+          LOG(loggerUncategorized, Level::WARN,
+              "warning: incomplete last entry "
+              "in POS mapping - ignored");
           break;
         }
             
@@ -174,7 +175,8 @@ postags::contains(type_t t, const class setting *set) const
       int type = lookup_type(rhs);
       if(type == -1)
         {
-          fprintf(ferr, "warning: unknown type `%s' in POS mapping\n", rhs);
+          LOG(loggerUncategorized, Level::WARN,
+              "warning: unknown type `%s' in POS mapping", rhs);
         }
       else
         {

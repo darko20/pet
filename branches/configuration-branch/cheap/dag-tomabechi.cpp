@@ -198,7 +198,9 @@ dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool all_failures,
   unification_cost = 0;
 
   if(unify_path_rev != 0)
-    fprintf(ferr, "dag_unify_get_failures: unify_path_rev not empty\n");
+    LOG_ERROR(loggerUncategorized,
+              "dag_unify_get_failures: unify_path_rev not empty");
+
   unify_path_rev = reverse(initial_path);
 
   dag_unify1(dag1, dag2);
@@ -254,7 +256,8 @@ dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
   unification_cost = 0;
 
   if(unify_path_rev != 0)
-    fprintf(ferr, "dag_subsumes_get_failures: unify_path_rev not empty\n");
+    LOG_ERROR(loggerUncategorized,
+              "dag_subsumes_get_failures: unify_path_rev not empty");
 
   unify_path_rev = 0;
 
@@ -582,16 +585,17 @@ dag_node *dag_unify2(dag_node *dag1, dag_node *dag2) {
          || (dag_has_arcs(dag2) && featset[s2] != featset[new_type])) {
         if((dag_has_arcs(dag1) && featset[s1] == featset[new_type])
            || (dag_has_arcs(dag2) && featset[s2] == featset[new_type]))
-          fprintf(ferr, "glb: one compatible set\n");
+          LOG(loggerUncategorized, Level::INFO, "glb: one compatible set");
         else
-          fprintf(ferr, "glb: %s%s(%d) & %s%s(%d) -> %s(%d)\n",
-                  type_name(s1), dag_has_arcs(dag1) ? "[]" : "", featset[s1],
-                  type_name(s2), dag_has_arcs(dag2) ? "[]" : "", featset[s2],
-                  type_name(new_type), featset[new_type]);
+          LOG(loggerUncategorized, Level::INFO,
+              "glb: %s%s(%d) & %s%s(%d) -> %s(%d)",
+              type_name(s1), dag_has_arcs(dag1) ? "[]" : "", featset[s1],
+              type_name(s2), dag_has_arcs(dag2) ? "[]" : "", featset[s2],
+              type_name(new_type), featset[new_type]);
       } else
-        fprintf(ferr, "glb: compatible feature sets\n");
+        LOG(loggerUncategorized, Level::INFO, "glb: compatible feature sets");
     } else {
-      fprintf(ferr, "glb: type unchanged\n");
+      LOG(loggerUncategorized, Level::INFO, "glb: type unchanged");
     }
   }
 #endif
@@ -1567,8 +1571,9 @@ dag_node *dag_expand_rec(dag_node *dag) {
     if(type_dag(super)->arcs && type_dag(super)->type == super) {
       if(dag_unify1(dag, cached_constraint_of(super)) == FAIL)
         {
-          fprintf(ferr, "expansion failed @ 0x%x for `%s'\n",
-                  (size_t) dag, type_name(new_type));
+          LOG(loggerUncategorized, Level::INFO,
+              "expansion failed @ 0x%x for `%s'",
+              (size_t) dag, type_name(new_type));
           return FAIL;
         }
     }
@@ -1599,14 +1604,14 @@ dag_node *dag_expand(dag_node *dag) {
 
 bool dag_valid_rec(dag_node *dag) {
   if(dag == 0 || dag == INSIDE || dag == FAIL) {
-    fprintf(ferr, "(1) dag is 0x%x\n", (size_t) dag);
+    LOG(loggerUncategorized, Level::DEBUG, "(1) dag is 0x%x", (size_t) dag);
     return false;
   }
 
   dag = dag_deref1(dag);
 
   if(dag == 0 || dag == INSIDE || dag == FAIL) {
-    fprintf(ferr, "(2) dag is 0x%x\n", (size_t) dag);
+    LOG(loggerUncategorized, Level::DEBUG,"(2) dag is 0x%x", (size_t) dag);
     return false;
   }
 
@@ -1620,14 +1625,15 @@ bool dag_valid_rec(dag_node *dag) {
       
     while(arc) {
       if(! is_attr(arc->attr)) {
-        fprintf(ferr, "(3) invalid attr: %d, val: 0x%x\n",
-                arc->attr, (size_t) arc->val);
+        LOG(loggerUncategorized, Level::DEBUG,
+            "(3) invalid attr: %d, val: 0x%x",
+            arc->attr, (size_t) arc->val);
         return false;
       }
 
       if(dag_valid_rec(arc->val) == false) {
-        fprintf(ferr, "(4) invalid value under %s\n",
-                attrname[arc->attr]);
+        LOG(loggerUncategorized, Level::DEBUG, "(4) invalid value under %s",
+            attrname[arc->attr]);
         return false;
       }
 
@@ -1638,7 +1644,7 @@ bool dag_valid_rec(dag_node *dag) {
   }
   else if(v == INSIDE) {
     // cycle found
-    fprintf(ferr, "(5) invalid dag: cyclic\n");
+    LOG(loggerUncategorized, Level::DEBUG, "(5) invalid dag: cyclic");
     return false;
   }
 

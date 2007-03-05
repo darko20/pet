@@ -246,22 +246,22 @@ dump_grammar(dumper *f, char *desc)
   toc.start_section(SEC_PRINTNAMES);
   dump_print_names(f);
 
-  fprintf(fstatus, "symbols %dk", kbwritten(f));
+  LOG(loggerUncategorized, Level::INFO, "symbols %dk", kbwritten(f));
 
   toc.start_section(SEC_HIERARCHY);
   dump_hierarchy(f);
 
-  fprintf(fstatus, ", hierarchy %dk", kbwritten(f));
+  LOG(loggerUncategorized, Level::INFO, ", hierarchy %dk", kbwritten(f));
 
   toc.start_section(SEC_FEATTABS);
   dump_tables(f);
 
-  fprintf(fstatus, ", feature tables %dk", kbwritten(f));
+  LOG(loggerUncategorized, Level::INFO, ", feature tables %dk", kbwritten(f));
 
   toc.start_section(SEC_SUPERTYPES);
   dump_supertypes(f);
 
-  fprintf(fstatus, ", supertypes %dk", kbwritten(f));
+  LOG(loggerUncategorized, Level::INFO, ", supertypes %dk", kbwritten(f));
 
   toc.start_section(SEC_FULLFORMS);
   dump_fullforms(f);
@@ -272,13 +272,13 @@ dump_grammar(dumper *f, char *desc)
   toc.start_section(SEC_IRREGS);
   dump_irregs(f);
 
-  fprintf(fstatus, ", lexicon %dk", kbwritten(f));
+  LOG(loggerUncategorized, Level::INFO, ", lexicon %dk", kbwritten(f));
 
   toc.start_section(SEC_CONSTRAINTS);
 
   for(int i = 0; i < types.number(); i++)
     dag_dump(f, types[rleaftype_order[i]]->thedag);
 
-  fprintf(fstatus, ", types %dk", kbwritten(f));
+  LOG(loggerUncategorized, Level::INFO, ", types %dk", kbwritten(f));
 
 }

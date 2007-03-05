@@ -81,10 +81,9 @@ bool compute_appropriateness() {
 
         if(apptype[attr] != BI_TOP) {
           if(!subtype(i, apptype[attr])) {
-            fprintf(ferr, "error: feature `%s' introduced at"
-                    " `%s' and `%s'.\n", attrname[attr],
-                    typenames[i],
-                    typenames[apptype[attr]]);
+            LOG_ERROR(loggerExpand, "error: feature `%s' introduced at"
+                      " `%s' and `%s'.", attrname[attr],
+                      typenames[i], typenames[apptype[attr]]);
             fail = true;
           }
         }
@@ -109,8 +108,9 @@ bool compute_appropriateness() {
       else
         // This attribute did not appear on the top level of a type
         // definition, so maybe it was not introduced correctly
-        fprintf(ferr, "warning: attribute `%s' introduced on top (?)\n",
-                attributes.name(i).c_str());
+        LOG(loggerExpand, Level::WARN,
+            "warning: attribute `%s' introduced on top (?)",
+            attributes.name(i).c_str());
     }
   }
 
@@ -140,10 +140,11 @@ bool apply_appropriateness_rec(struct dag_node *dag) {
       new_type = glb(new_type, apptype[arc->attr]);
 
       if(new_type == -1) {
-        fprintf(ferr, "feature `%s' on type `%s' (refined to `%s' from other features) not appropriate "
-                "(appropriate type is `%s')\n",
-                attrname[arc->attr], typenames[dag->type], typenames[old_type],
-                typenames[apptype[arc->attr]]);
+        LOG(loggerExpand, Level::INFO,
+            "feature `%s' on type `%s' (refined to `%s' from other features) "
+            "not appropriate (appropriate type is `%s')",
+            attrname[arc->attr], typenames[dag->type], typenames[old_type],
+            typenames[apptype[arc->attr]]);
         return false;
       }
 
@@ -171,8 +172,9 @@ bool apply_appropriateness() {
 
   for(i = 0; i < types.number(); i++) {
     if(!pseudo_type(i) && !apply_appropriateness_rec(types[i]->thedag)) {
-      fprintf(ferr, "when applying appropriateness constraints on type `%s'\n",
-              types.name(i).c_str());
+      LOG(loggerExpand, Level::INFO,
+          "when applying appropriateness constraints on type `%s'",
+          types.name(i).c_str());
       fail = true;;
     }
 
@@ -209,8 +211,9 @@ bool delta_expand_types() {
       l = immediate_supertypes(i);
       forallint(e, l) {
         if(dag_unify3(types[e]->thedag, types[i]->thedag) == FAIL) {
-          fprintf(ferr, "`%s' incompatible with parent constraints"
-                  " (`%s')\n", typenames[i], typenames[e]);
+          LOG(loggerExpand, Level::INFO,
+              "`%s' incompatible with parent constraints"
+              " (`%s')", typenames[i], typenames[e]);
           return false;
         }
       }
@@ -269,16 +272,16 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
     depth++;
 
     if(depth > MAX_EXP_DEPTH) {
-      fprintf(ferr, "expansion [cycle with `%s'] for",
-              typenames[dag->type]);
+      LOG(loggerExpand, Level::INFO,
+          "expansion [cycle with `%s'] for", typenames[dag->type]);
       depth--;
       return cons(T_BOTTOM, NULL);
     }
 
     if(dag->type < types.number() && (full || dag->arcs)) {
       if(dag_unify3(types[dag->type]->thedag, dag) == FAIL) {
-        fprintf(ferr, "full expansion with `%s' for",
-                typenames[dag->type]);
+        LOG(loggerExpand, Level::INFO,
+            "full expansion with `%s' for", typenames[dag->type]);
         depth--;
         return cons(T_BOTTOM, NULL);
       }

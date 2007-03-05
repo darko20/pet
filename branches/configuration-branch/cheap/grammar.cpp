@@ -162,8 +162,9 @@ grammar_rule::grammar_rule(type_t t)
     {
         if(keyarg != -1)
         {
-            fprintf(ferr, "warning: both keyarg-marker-path and rule-keyargs "
-                    "supply information on key argument...\n");
+          LOG(loggerGrammar, Level::WARN,
+              "warning: both keyarg-marker-path and rule-keyargs "
+              "supply information on key argument...");
         }
         char *s = cheap_settings->assoc("rule-keyargs", type_name(t));
         if(s && strtoint(s, "in `rule-keyargs'"))
@@ -239,7 +240,7 @@ grammar_rule::make_grammar_rule(type_t t) {
     return new grammar_rule(t);
   }
   catch (tError e) {
-    fprintf(ferr, "%s\n", e.getMessage().c_str());
+    LOG_ERROR(loggerGrammar, e.getMessage().c_str());
   }
   return NULL;
 }
@@ -264,18 +265,18 @@ void
 grammar_rule::lui_dump(const char *path) {
 
   if(chdir(path)) {
-    fprintf(ferr, 
-            "grammar_rule::lui_dump(): invalid target directory `%s'.\n",
-            path);
+    LOG_ERROR(loggerGrammar,
+              "grammar_rule::lui_dump(): invalid target directory `%s'.",
+              path);
     return;
   } // if
   char name[MAXPATHLEN + 1];
   sprintf(name, "rule.%d.lui", _id);
   FILE *stream;
   if((stream = fopen(name, "w")) == NULL) {
-    fprintf(ferr, 
-            "grammar_rule::lui_dump(): unable to open `%s' (in `%s').\n",
-            name, path);
+    LOG_ERROR(loggerGrammar,
+              "grammar_rule::lui_dump(): unable to open `%s' (in `%s').",
+              name, path);
     return;
   } // if
   fprintf(stream, "avm -%d ", _id);
@@ -544,9 +545,10 @@ tGrammar::tGrammar(const char * filename)
                     if(iter.current()->type() == t)
                     {
                         if(iter.current()->trait() == SYNTAX_TRAIT)
-                            fprintf(ferr, "warning: found syntax `%s' rule "
-                                    "with attached infl rule `%s'\n",
-                                    print_name(t), r);
+                          LOG(loggerGrammar, Level::WARN,
+                              "warning: found syntax `%s' rule "
+                              "with attached infl rule `%s'",
+                              print_name(t), r);
 		      
                         iter.current()->trait(INFL_TRAIT);
                         found = true;
@@ -554,9 +556,10 @@ tGrammar::tGrammar(const char * filename)
                 }
 	      
                 if(!found)
-                    fprintf(ferr, "warning: rule `%s' with infl annotation "
-                            "`%s' doesn't correspond to any of the parser's "
-                            "rules\n", print_name(t), r);
+                  LOG(loggerGrammar, Level::WARN,
+                      "warning: rule `%s' with infl annotation "
+                      "`%s' doesn't correspond to any of the parser's "
+                      "rules", print_name(t), r);
             }
 
             delete[] r;
@@ -582,8 +585,9 @@ tGrammar::tGrammar(const char * filename)
             type_t inflr = lookup_type(infl);
             if(inflr == -1)
             {
-                fprintf(ferr, "Ignoring entry with unknown rule `%s' "
-                        "in irregular forms\n", infl);
+              LOG(loggerGrammar, Level::INFO,
+                  "Ignoring entry with unknown rule `%s' "
+                  "in irregular forms", infl);
                 delete[] form; delete[] infl; delete[] stem;
                 continue;
             }
@@ -634,7 +638,8 @@ tGrammar::tGrammar(const char * filename)
       try { _sm = new tMEM(this, sm_file, filename); }
       catch(tError &e)
       {
-        fprintf(ferr, "\n%s", e.getMessage().c_str());
+        LOG_ERROR(loggerGrammar,
+                  "%s", e.getMessage().c_str());
         _sm = 0;
       }
     }
@@ -669,8 +674,9 @@ tGrammar::tGrammar(const char * filename)
 
     if(property("unfilling") == "true" && opt_packing)
     {
-        fprintf(ferr, "warning: cannot using packing on unfilled grammar -"
-                " packing disabled\n");
+      LOG(loggerGrammar, Level::WARN,
+          "warning: cannot using packing on unfilled grammar -"
+          " packing disabled");
         opt_packing = 0;
     }
 
@@ -767,8 +773,9 @@ tGrammar::init_parameters()
                 _deleted_daughters = cons(a, _deleted_daughters);
             else
             {
-                fprintf(ferr, "ignoring unknown attribute `%s' in deleted_daughters.\n",
-                        set->values[i]);
+              LOG(loggerGrammar, Level::INFO,
+                  "ignoring unknown attribute `%s' in deleted_daughters.",
+                  set->values[i]);
             }
         }
     }
@@ -790,9 +797,10 @@ tGrammar::init_parameters()
             del_paths.push_front(del_attrs);
           }
           else {
-            fprintf(ferr, "ignoring path with unknown attribute `%s' "
-                    "in packing_restrictor.\n",
-                    set->values[i]);
+            LOG(loggerGrammar, Level::INFO,
+                "ignoring path with unknown attribute `%s' "
+                "in packing_restrictor.",
+                set->values[i]);
           }
         }
       if (extended) {
@@ -820,8 +828,9 @@ tGrammar::init_parameters()
       }
     }
     if(opt_packing && (_packing_restrictor == NULL)) {
-      fprintf(ferr, "\nWarning: packing enabled but no packing restrictor: "
-              "packing disabled\n");
+      LOG(loggerGrammar, Level::WARN,
+          "Warning: packing enabled but no packing restrictor: "
+          "packing disabled");
       opt_packing = 0;
     }
 }

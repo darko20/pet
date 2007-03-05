@@ -168,7 +168,8 @@ int LConsume(int n)
 
   if(CURR->pos + n > CURR->len)
     {
-      fprintf(ferr, "nothing to consume...\n");
+      LOG(loggerUncategorized, Level::INFO,
+          "nothing to consume...");
       return 0;
     }
 

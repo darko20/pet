@@ -460,9 +460,10 @@ unify_np(fs &root, const fs &a, fs &b)
         
 #ifdef QC_PATH_COMP
         if(opt_print_failure)
-        {   
-            fprintf(ferr, "unification failure: unexpected failure in non"
-                    " permanent unification\n");
+        {
+          LOG_ERROR(loggerFs,
+                    "unification failure: unexpected failure in non"
+                    " permanent unification");
         }
 #endif
     }
@@ -603,7 +604,8 @@ qc_compatible_unif(int qc_len, type_t *a, type_t *b)
         if(glb(a[i], b[i]) < 0)
         {
 #ifdef DEBUG
-            fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
+          LOG_ERROR(loggerFs,
+                    "quickcheck fails for path %d with `%s' vs. `%s'"
                     i, print_name(a[i]), print_name(b[i]));
 #endif
             return false;
