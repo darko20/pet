@@ -330,6 +330,28 @@ void nbest() {
   }
 }
 
+void interactive_morphology() {
+
+  string input;
+  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+    timer clock;
+    list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
+    
+    for(list<tMorphAnalysis>::iterator it = res.begin(); 
+        it != res.end(); 
+        ++it) {
+      fprintf(stdout, "%s\t", it->base().c_str());
+      it->print_lkb(stdout);
+      fprintf(stdout, "\n");
+    } // for
+    fprintf(fstatus,
+            "\n%d chains in %0.2g s\n",
+            res.size(), clock.convert2ms(clock.elapsed()) / 1000.);
+  } // while
+
+} // interactive_morphology()
+
+
 void dump_glbs(FILE *f) {
   int i, j;
   for(i = 0; i < ntypes; i++) {
@@ -507,7 +529,9 @@ void process(const char *s) {
       else
 #endif
         {
-          if(opt_nbest)
+          if(opt_interactive_morph)
+            interactive_morphology();
+          else if(opt_nbest)
             nbest();
           else
             interactive();
