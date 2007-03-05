@@ -153,7 +153,8 @@ bool parse_options(int argc, char* argv[])
   
   if(optind != argc - 1)
   {
-    fprintf(ferr, "parse_options(): expecting name of TDL grammar to process\n");
+    LOG_ERROR(loggerUncategorized,
+              "parse_options(): expecting name of TDL grammar to process");
     return false;
   }
   

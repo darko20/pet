@@ -472,13 +472,13 @@ int cheap_server_initialize(int port) {
 
   int i;
   if((i = fork()) < 0) {
-    fprintf(ferr,
-            "server_initialize(): unable to fork(2) server [%d].\n",
-            errno);
-    fprintf(flog,
-            "server_initialize(): "
-            "unable to change process group [%d].\n",
-            errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): unable to fork(2) server [%d].",
+              errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): "
+              "unable to change process group [%d].",
+              errno);
     fflush(flog)
     return -1;
   } /* if */
@@ -488,13 +488,13 @@ int cheap_server_initialize(int port) {
 
 #if defined(__SUNOS__)
   if(setpgrp(0, getpid()) == -1) {
-    fprintf(ferr,
-            "server_initialize(): "
-            "unable to change process group [%d].\n",
-            errno);
-    fprintf(flog,
-            "server_initialize(): "
-            "unable to change process group [%d].\n", errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): "
+              "unable to change process group [%d].",
+              errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): "
+              "unable to change process group [%d].", errno);
     fflush(flog);
     return -1;
   } /* if */
@@ -504,22 +504,22 @@ int cheap_server_initialize(int port) {
   } /* if */
 #else
   if(setsid() == -1) {
-    fprintf(ferr,
-            "server_initialize(): "
-            "unable to change process group [%d].\n", errno);
-    fprintf(flog,
-            "server_initialize(): "
-            "unable to change process group [%d].\n", errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): "
+              "unable to change process group [%d].", errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): "
+              "unable to change process group [%d].", errno);
     fflush(flog);
     return -1;
   } /* if */
   if((i = fork()) < 0) {
-    fprintf(ferr,
-            "server_initialize(): unable to fork(2) server [%d].\n",
-            errno);
-    fprintf(flog,
-            "server_initialize(): unable to fork(2) server [%d].\n",
-            errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): unable to fork(2) server [%d].",
+              errno);
+    LOG_ERROR(loggerUncategorized,
+              "server_initialize(): unable to fork(2) server [%d].",
+              errno);
     fflush(flog);
     return -1;
   } /* if */

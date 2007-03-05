@@ -21,6 +21,7 @@
 
 #include "lex-tdl.h"
 #include "errors.h"
+#include "logging.h"
 
 #ifdef FLOP
 #include "flop.h"
@@ -153,8 +154,9 @@ struct lex_token *get_next_token()
       
       if(LLA(i) == EOF)
       { // runaway comment
-          fprintf(ferr, "runaway block comment starting in %s:%d.%d\n",
-                  curr_fname(), curr_line(), curr_col());
+          LOG_ERROR(loggerUncategorized,
+                    "runaway block comment starting in %s:%d.%d",
+                    curr_fname(), curr_line(), curr_col());
           throw tError("runaway block comment");
       }
       
@@ -171,14 +173,15 @@ struct lex_token *get_next_token()
       i = 1;
 
       while(LLA(i) != EOF && (LLA(i) != '"' || LLA(i-1) == '\\'))
-	i++;
+        i++;
 
       if(LLA(i) == EOF)
-	{ // runaway string
-	  fprintf(ferr, "runaway string starting in %s:%d.%d\n",
-		  curr_fname(), curr_line(), curr_col());
-	  throw tError("runaway string");
-	}
+        { // runaway string
+          LOG_ERROR(loggerUncategorized,
+                    "runaway string starting in %s:%d.%d",
+                    curr_fname(), curr_line(), curr_col());
+          throw tError("runaway string");
+        }
 
       i += 1;
       t = make_token(T_STRING, start + 1, i - 2);
@@ -200,11 +203,12 @@ struct lex_token *get_next_token()
 	}
 
       if(LLA(i) == EOF)
-	{ // runaway LISP expression
-	  fprintf(ferr, "runaway LISP expression starting in %s:%d.%d\n",
-		  curr_fname(), curr_line(), curr_col());
-	  throw tError("runaway LISP expression");
-	}
+       { // runaway LISP expression
+         LOG_ERROR(loggerUncategorized,
+                   "runaway LISP expression starting in %s:%d.%d",
+                   curr_fname(), curr_line(), curr_col());
+         throw tError("runaway LISP expression");
+       }
       
       t = make_token(T_LISP, start, i);
       LConsume(i);
@@ -255,9 +259,10 @@ struct lex_token *get_next_token()
           
           if(i == 0)
           {
-	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
-		    (char) c, curr_fname(), curr_line(), curr_col());
-	    throw tError("unexpected character in input");
+            LOG_ERROR(loggerUncategorized,
+                      "unexpected character '%c' in %s:%d.%d",
+                      (char) c, curr_fname(), curr_line(), curr_col());
+            throw tError("unexpected character in input");
           }
       }
           
@@ -367,12 +372,13 @@ struct lex_token *get_next_token()
 	  tag = T_RANGLE;
 	  break;
 	default:
-	  {
-	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
-		    (char) c, curr_fname(), curr_line(), curr_col());
-	    throw tError("unexpected character in input");
-	  }
-	}
+          {
+            LOG_ERROR(loggerUncategorized,
+                      "unexpected character '%c' in %s:%d.%d",
+                      (char) c, curr_fname(), curr_line(), curr_col());
+           throw tError("unexpected character in input");
+         }
+       }
       txt[0] = (char) c;
       t = make_token(tag, txt, 1);
       LConsume(1);
@@ -476,7 +482,8 @@ void consume1()
 
   if(LA_BUF[0] == NULL)
     {
-      fprintf(ferr, "warning: consuming tokens not looked at yet\n");
+      LOG(loggerUncategorized, Level::WARN,
+          "warning: consuming tokens not looked at yet");
       get_token();
     }
   else
@@ -509,18 +516,19 @@ void syntax_error(char *msg, struct lex_token *t)
   syntax_errors ++;
   if(t->tag == T_EOF)
     {
-      fprintf(ferr, "syntax error at end of input: %s\n", msg);
+      LOG_ERROR(loggerUncategorized, "syntax error at end of input: %s", msg);
     }
   else if(t->loc == NULL)
     {
-      fprintf(ferr, "syntax error - got `%.20s', %s\n",
-	      t->text, msg);
+      LOG_ERROR(loggerUncategorized, "syntax error - got `%.20s', %s",
+                t->text, msg);
     }
   else
     {
-      fprintf(ferr, "syntax error in %s:%d.%d - got `%.20s', %s\n",
-	      t->loc->fname, t->loc->linenr, t->loc->colnr,
-	      t->text, msg);
+      LOG_ERROR(loggerUncategorized,
+                "syntax error in %s:%d.%d - got `%.20s', %s",
+                t->loc->fname, t->loc->linenr, t->loc->colnr,
+                t->text, msg);
     }
 }
 
@@ -532,7 +540,8 @@ void recover(enum TOKEN_TAG tag)
 
   if(LA(0) ->tag == T_EOF)
     {
-      fprintf(ferr, "confused by previous errors, bailing out...\n");
+      LOG_ERROR(loggerUncategorized,
+                "confused by previous errors, bailing out...");
       throw tError("confused");
     }
   

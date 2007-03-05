@@ -119,18 +119,18 @@ void expand_avm(struct avm *A)
 
 	  if(p == 0 || p -> value == 0)
 	    {
-	      fprintf(ferr,
-		      "error (in `%s'): template parameter `$%s' without "
-		      "value.\n", context_descr, A->av[j]->attr);
+              LOG_ERROR(loggerUncategorized,
+                        "error (in `%s'): template parameter `$%s' without "
+                        "value.", context_descr, A->av[j]->attr);
 	      exit(1);
 	    }
 	  else
 	    {
 	      if(p->value->n != 1 || p->value->term[0]->tag != TYPE)
 		{
-		  fprintf(ferr,
-			  "error (in `%s'): template parameter `$%s' with "
-			  "illegal value.\n", context_descr, A->av[j]->attr);
+                  LOG_ERROR(loggerUncategorized,
+                            "error (in `%s'): template parameter `$%s' with "
+                            "illegal value.", context_descr, A->av[j]->attr);
 		  exit(1);
 		}
 	      else
@@ -179,9 +179,11 @@ void expand_term (struct term *T)
 	  
 	  if(verbosity > 10)
 	    {
-	      fprintf(fstatus, "expanding `%s': new name `%s' for tag(%d/%d) `%s'\n",
-		      context_descr, uniq.c_str(), T->coidx + 1, templ_stack[templ_nest-1]->coref->n,
-		      templ_stack[templ_nest-1]->coref->coref[T->coidx]);
+              LOG(loggerUncategorized, Level::INFO,
+                  "expanding `%s': new name `%s' for tag(%d/%d) `%s'",
+                  context_descr, uniq.c_str(), T->coidx + 1,
+                  templ_stack[templ_nest-1]->coref->n,
+                  templ_stack[templ_nest-1]->coref->coref[T->coidx]);
 	    }
 
 	  int id = add_coref(crefs, strdup(uniq.c_str()));
@@ -200,7 +202,7 @@ void expand_term (struct term *T)
       assert(!"this cannot happen");
       break;
     default:
-      fprintf(ferr, "unknown kind of term: %d\n", T -> tag);
+      LOG_ERROR(loggerUncategorized, "unknown kind of term: %d", T -> tag);
       break;
     }
 }
@@ -234,9 +236,11 @@ void check_params(struct param_list *actual, struct param_list *def)
   for(int i = 0; i < actual -> n; i++)
     {
       if(!find_param(actual->param[i]->name, def))
-	{
-	  fprintf(ferr, "warning: assignment to undefined parameter `%s' (in %s)\n", actual->param[i]->name, context_descr);
-	}
+        {
+          LOG(loggerUncategorized, Level::WARN,
+              "warning: assignment to undefined parameter `%s' (in %s)",
+              actual->param[i]->name, context_descr);
+        }
     }
 }
 
@@ -253,21 +257,23 @@ void expand_conjunction(struct conjunction *C)
       struct term *term;
       term = C->term[i];
       if(term == 0) 
-	{
-	  fprintf(ferr, "funny...\n");
-	  continue;
-	}
+        {
+          LOG(loggerUncategorized, Level::INFO, "funny...");
+          continue;
+        }
       if(term -> tag == TEMPL_CALL)
 	{
 	  int ti;
 	  ti = templates.id(term -> value);
 
-	  if(ti == -1)
-	    {
-	      fprintf(ferr, "error: call to undefined template `%s'\n", term -> value);
-	      term -> tag = TYPE;
-	      term -> type = 0;
-	    }
+          if(ti == -1)
+            {
+              LOG_ERROR(loggerUncategorized,
+                        "error: call to undefined template `%s'",
+                        term -> value);
+              term -> tag = TYPE;
+              term -> type = 0;
+            }
 	  else
 	    {
 	      struct conjunction *tC;
@@ -298,11 +304,13 @@ void expand_conjunction(struct conjunction *C)
 		    }
 		}
 	      else
-		{
-		  fprintf(ferr, "warning: template call to `%s' expanding to nothing (?)\n", term -> value);
-		  term -> tag = TYPE;
-		  term -> type = 0;
-		}
+                {
+                  LOG(loggerUncategorized, Level::WARN,
+                      "warning: template call to `%s' expanding to nothing (?)",
+                      term -> value);
+                  term -> tag = TYPE;
+                  term -> type = 0;
+                }
 	      
 	      templ_nest--;
 	    }
@@ -313,13 +321,15 @@ void expand_conjunction(struct conjunction *C)
 
 	  p = lookup_param(term -> value);
 
-	  if(p == 0 || p -> value == 0)
-	    {
-	      fprintf(ferr, "in `%s': template parameter `$%s' without value.\n", context_descr, term -> value);
-	      term -> tag = TYPE;
-	      term -> type = 0;
-	      exit(1);
-	    }
+          if(p == 0 || p -> value == 0)
+            {
+              LOG_FATAL(loggerUncategorized,
+                  "in `%s': template parameter `$%s' without value.",
+                  context_descr, term -> value);
+              term -> tag = TYPE;
+              term -> type = 0;
+              exit(1);
+            }
 	  else
 	    {
 	      if(p->value -> n > 0)
@@ -331,10 +341,12 @@ void expand_conjunction(struct conjunction *C)
 		    }
 		}
 	      else
-		{
-		  fprintf(ferr, "warning: template parameter `$%s' expanding to nothing (?)\n", term -> value);
-		  term -> tag = TYPE;
-		  term -> type = 0;
+                {
+                  LOG(loggerUncategorized, Level::WARN,
+                      "warning: template parameter `$%s'"
+                      " expanding to nothing (?)", term -> value);
+                  term -> tag = TYPE;
+                  term -> type = 0;
 		}
 	    }
 	}
@@ -405,7 +417,8 @@ void check_sorts_term (struct term *T)
       assert(!"this cannot happen");
       break;
     default:
-      fprintf(ferr, "unknown kind of term: %d\n", T -> tag);
+      LOG(loggerUncategorized, Level::INFO,
+          "unknown kind of term: %d", T -> tag);
       break;
     }
 }
@@ -424,7 +437,7 @@ void expand_templates()
 {
   int i;
 
-  fprintf(fstatus, "- expanding templates: ");
+  LOG(loggerUncategorized, Level::INFO, "- expanding templates: ");
 
   for(i = 0; i < types.number(); i++)
     {
@@ -435,6 +448,7 @@ void expand_templates()
       check_sorts_conjunction(types[i]->constraint);
     }
 
-  fprintf(fstatus, "%d template instantiations\n", ntemplinstantiations);
+  LOG(loggerUncategorized, Level::INFO,
+      "%d template instantiations", ntemplinstantiations);
 }
 /*@}*/

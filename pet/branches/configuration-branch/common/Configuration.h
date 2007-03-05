@@ -421,7 +421,7 @@ Configuration::addCallback(const std::string& entry, Callback<T>* callback,
 
 template<class T> 
 T& Configuration::get(const std::string& entry) {
-  LOG4CXX_DEBUG(logger, "getting entry " + entry);
+  LOG(logger, log4cxx::Level::DEBUG, "getting entry %s", entry.c_str());
   
   try {
     Option<T>& o = dynamic_cast<Option<T>&>( instance_->getIOption(entry) );

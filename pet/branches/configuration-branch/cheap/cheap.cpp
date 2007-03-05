@@ -58,7 +58,9 @@
 
 #include "logging.h"
 
+#ifdef HAVE_LIBLOG4CXX
 using namespace log4cxx;
+#endif // HAVE_LIBLOG4CXX
 
 char * version_string = VERSION ;
 char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
@@ -67,6 +69,14 @@ FILE *ferr, *fstatus, *flog;
 #if HAVE_LIBLOG4CXX
 const int logBufferSize = 65536;
 char logBuffer[65536];
+LoggerPtr loggerUncategorized = Logger::getLogger("uncategorized");
+LoggerPtr loggerExpand = Logger::getLogger("expand");
+LoggerPtr loggerFs = Logger::getLogger("fs");
+LoggerPtr loggerGrammar = Logger::getLogger("grammar");
+LoggerPtr loggerHierarchy = Logger::getLogger("hierarchy");
+LoggerPtr loggerLexproc = Logger::getLogger("lexproc");
+LoggerPtr loggerParse = Logger::getLogger("parse");
+LoggerPtr loggerTsdb = Logger::getLogger("tsdb");
 #endif // HAVE_LIBLOG4CXX
 
 // global variables for parsing
@@ -173,13 +183,13 @@ void interactive() {
 
       string surface = get_surface_string(Chart);
 
-      fprintf(fstatus, 
-              "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-              stats.id, surface.c_str(), 
-              Configuration::get<unsigned int>("pedgelimit"), stats.readings, 
-              stats.first/1000., stats.tcpu / 1000.,
-              stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-              TotalParseTime.elapsed_ts() / 10.);
+      LOG(loggerUncategorized, Level::INFO,
+          "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]",
+          stats.id, surface.c_str(), 
+          Configuration::get<unsigned int>("pedgelimit"), stats.readings, 
+          stats.first/1000., stats.tcpu / 1000.,
+          stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+          TotalParseTime.elapsed_ts() / 10.);
 
       if(verbosity > 0) stats.print(fstatus);
 
@@ -225,12 +235,12 @@ void interactive() {
                                       Configuration::get<char*>("opt_mrs"));
             if (mrs.empty()) {
               if (strcmp(Configuration::get<char*>("opt_mrs"), "xml") == 0)
-                fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
-                        "</rmrs>\n");
+                LOG(loggerUncategorized, Level::INFO,
+                    "<rmrs cfrom='-2' cto='-2'>\n</rmrs>");
               else
-                fprintf(fstatus, "\nNo MRS\n");
+                LOG(loggerUncategorized, Level::INFO, "No MRS");
             } else {
-              fprintf(fstatus, "%s\n", mrs.c_str());
+              LOG(loggerUncategorized, Level::INFO, "%s", mrs.c_str());
             }
           }
 #endif
@@ -245,7 +255,8 @@ void interactive() {
           Chart->shortest_path<unsigned int>(partials, pass, true);
           bool rmrs_xml = (strcmp(Configuration::get<char*>("opt_mrs"), "xml")
                            == 0);
-          if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
+          if (rmrs_xml)
+            LOG(loggerUncategorized, Level::INFO, "<rmrs-list>");
           for(list<tItem *>::iterator it = partials.begin()
                 ; it != partials.end(); ++it) {
             if(Configuration::get<char*>("opt_mrs")) {
@@ -255,13 +266,16 @@ void interactive() {
                 mrs = ecl_cpp_extract_mrs(item->get_fs().dag(),
                                           Configuration::get<char*>("opt_mrs"));
                 if (! mrs.empty()) {
-                  fprintf(fstatus, "%s\n", mrs.c_str());
+                  LOG(loggerUncategorized, Level::INFO,
+                      "%s", mrs.c_str());
                 }
               }
             }
           }
-          if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
-          else fprintf(fstatus, "EOM\n");
+          if (rmrs_xml)
+            LOG(loggerUncategorized, Level::INFO, "</rmrs-list>");
+          else 
+            LOG(loggerUncategorized, Level::INFO, "EOM");
         }
 #endif           
       }
@@ -342,7 +356,7 @@ void nbest() {
 
     fflush(stdout);
 
-    fprintf(fstatus, "ttcpu: %d\n", time);
+    LOG(loggerUncategorized, Level::INFO, "ttcpu: %d", time);
   }
 }
 
@@ -382,12 +396,12 @@ void process(const char *s) {
     string base = raw_name(s);
     cheap_settings = new settings(base.c_str(), s, "reading");
     fprintf(fstatus, "\n");
-    //fprintf(fstatus, "loading `%s' ", s);
-    LOG(Logger::getRootLogger(), Level::INFO, "loading `%s' ", s);
+    LOG(loggerUncategorized, Level::INFO, "loading `%s' ", s);
     Grammar = new tGrammar(s); 
   }
   catch(tError &e) {
-    fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
+    LOG_FATAL(loggerUncategorized, "aborted\n%s",
+              e.getMessage().c_str());
     delete cheap_settings;
     return;
   }
@@ -450,7 +464,8 @@ void process(const char *s) {
         Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_XML_COUNTS
           ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
 #else
-      fprintf(ferr, "No XML input mode compiled into this cheap\n");
+      LOG_FATAL(loggerUncategorized,
+                "No XML input mode compiled into this cheap");
       exit(1);
 #endif
 
@@ -460,8 +475,8 @@ void process(const char *s) {
       tok = new tFSRTokenizer(s); break;
 #endif
 #else
-      fprintf(ferr, "No ecl/Lisp based FSR preprocessor "
-              "compiled into this cheap\n");
+      LOG_FATAL(loggerUncategorized, "No ecl/Lisp based FSR preprocessor "
+                "compiled into this cheap");
       exit(1);
 #endif
 
@@ -472,11 +487,13 @@ void process(const char *s) {
       XMLServices = true;
       tok = new tSMAFTokenizer(); break;
 #else
-      fprintf(ferr, "\nERROR: No ICU (Unicode) support compiled into this cheap.\n");
+      LOG_FATAL(loggerUncategorized,
+               "No ICU (Unicode) support compiled into this cheap.");
       exit(1);
 #endif
 #else
-      fprintf(ferr, "\nERROR: No XML support compiled into this cheap.\n");
+      LOG_FATAL(loggerUncategorized,
+                "No XML support compiled into this cheap.");
       exit(1);
 #endif
 
@@ -487,7 +504,8 @@ void process(const char *s) {
   }
     
   catch(tError &e) {
-    fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
+    LOG_FATAL(loggerUncategorized,
+              "aborted\n%s", e.getMessage().c_str());
     delete Grammar;
     delete cheap_settings;
     return;
@@ -510,7 +528,7 @@ void process(const char *s) {
   ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
 #endif // HAVE_ECL
 
-  fprintf(fstatus, "\n%d types in %0.2g s\n",
+  LOG(loggerUncategorized, Level::INFO, "%d types in %0.2g s",
           ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
   if(Configuration::get<bool>("opt_pg")) {
@@ -583,19 +601,19 @@ int main(int argc, char* argv[])
 
   string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
   if(grammar_name.empty()) {
-    fprintf(ferr, "Grammar not found\n");
+    LOG_FATAL(loggerUncategorized, "Grammar not found");
     exit(1);
   }
 
   try { process(grammar_name.c_str()); }
 
   catch(tError &e) {
-    fprintf(ferr, "%s\n", e.getMessage().c_str());
+    LOG_FATAL(loggerUncategorized, "%s", e.getMessage().c_str());
     exit(1);
   }
 
   catch(bad_alloc) {
-    fprintf(ferr, "out of memory\n");
+    LOG_FATAL(loggerUncategorized, "out of memory");
     exit(1);
   }
 

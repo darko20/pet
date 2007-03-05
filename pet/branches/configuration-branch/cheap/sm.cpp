@@ -581,9 +581,10 @@ tMEM::parseFeature(int n)
                 
                 if(t == -1)
                 {
-                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
-                            tmp, n);
-                    good = false;
+                  LOG(loggerParse, Level::INFO,
+                      "Unknown type/instance `%s' in feature #%d",
+                      tmp, n);
+                  good = false;
                 }
                 else
                 {
@@ -680,9 +681,10 @@ tMEM::parseFeature2(int n)
                 
                 if(t == -1)
                 {
-                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
-                            tmp, n);
-                    good = false;
+                  LOG(loggerParse, Level::INFO,
+                      "Unknown type/instance `%s' in feature #%d",
+                      tmp, n);
+                  good = false;
                 }
                 else
                 {

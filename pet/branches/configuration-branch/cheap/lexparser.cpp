@@ -352,14 +352,15 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
       f = lex->get_fs();
     
       if(verbosity > 4)
-        fprintf(fstatus, "dependency information for %s:\n",
-                lex->printname());
+        LOG(loggerLexproc, Level::INFO, "dependency information for %s:",
+            lex->printname());
     
       for(int j = 0; j < deps->n; j++) {
         fs v = f.get_path_value(deps->values[j]);
         if(v.valid()) {
           if(verbosity > 4)
-            fprintf(fstatus, "  %s : %s\n", deps->values[j], v.name());
+            LOG(loggerLexproc, Level::INFO,
+                "  %s : %s", deps->values[j], v.name());
 
           if(!unidirectional || j % 2 != 0) {
             satisfied[j].insert(v.type());
@@ -393,9 +394,9 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
         // we have to resolve a required dependency
         pair<int, int> req = dep->second;
         if(verbosity > 4)
-          fprintf(fstatus, "`%s' requires %s at %d -> ",
-                  lex->printname(),
-                  type_name(req.second), req.first);
+          LOG(loggerLexproc, Level::INFO, "`%s' requires %s at %d -> ",
+              lex->printname(),
+              type_name(req.second), req.first);
        
         bool found = false;
         for(set<int>::iterator it2 = satisfied[req.first].begin();
@@ -403,7 +404,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
           if(glb(*it2, req.second) != -1)
             {
               if(verbosity > 4)
-                fprintf(fstatus, "[%s]", type_name(*it2));
+                LOG(loggerLexproc, Level::INFO, "[%s]", type_name(*it2));
               found = true;
               break;
             }
@@ -415,7 +416,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
         }
 
         if(verbosity > 4)
-          fprintf(fstatus, "%s satisfied\n", ok ? "" : "not");
+          LOG(loggerLexproc, Level::INFO, "%s satisfied", ok ? "" : "not");
       }
     
       if(!ok)

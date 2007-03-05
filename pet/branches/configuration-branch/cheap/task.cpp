@@ -50,8 +50,8 @@ build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
     
     if(!arg.valid())
     {
-        fprintf(ferr, "trouble getting arg of rule\n");
-        return 0;
+      LOG_ERROR(loggerUncategorized, "trouble getting arg of rule");
+      return 0;
     }
     
     if(!opt_hyper || R->hyperactive() == false)
@@ -122,8 +122,8 @@ build_combined_item(chart *C, tItem *active, tItem *passive)
     
     if(!arg.valid())
     {
-        fprintf(ferr, "trouble getting arg of active item\n");
-        return 0;
+      LOG_ERROR(loggerUncategorized, "trouble getting arg of active item");
+      return 0;
     }
     
     if(!opt_hyper || active->rule()->hyperactive() == false)

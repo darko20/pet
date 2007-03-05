@@ -345,8 +345,9 @@ bool parse_options(int argc, char* argv[])
               opt_tsdb = strtoint(optarg, "as argument to -tsdb");
               if(opt_tsdb < 0 || opt_tsdb > 2)
               {
-                  fprintf(ferr, "parse_options(): invalid tsdb++ protocol"
-                          " version\n");
+                LOG_ERROR(loggerUncategorized, 
+                          "parse_options(): invalid tsdb++ protocol"
+                          " version");
                   return false;
               }
           }
@@ -510,8 +511,9 @@ bool parse_options(int argc, char* argv[])
             else if (strcasecmp(optarg, "fsr") == 0)
               opt_tok = TOKENIZER_FSR;
             else
-              fprintf(ferr, "WARNING: unknown tokenizer mode "
-                            "\"%s\": using 'tok=string'\n", optarg);
+              LOG_ERROR(loggerUncategorized,
+                        "WARNING: unknown tokenizer mode "
+                        "\"%s\": using 'tok=string'", optarg);
           }
           Configuration::set("opt_tok", opt_tok);
         }
@@ -548,14 +550,16 @@ bool parse_options(int argc, char* argv[])
 
   if(optind != argc - 1)
     {
-      fprintf(ferr, "parse_options(): expecting name of grammar to load\n");
+      LOG_ERROR(loggerUncategorized, 
+                "parse_options(): expecting name of grammar to load");
       return false;
     }
   grammar_file_name = argv[optind];
 
   if(opt_hyper && Configuration::get<char*>("opt_compute_qc") != 0)
   {
-      fprintf(ferr, "quickcheck computation doesn't work "
+    LOG_ERROR(loggerUncategorized, 
+              "quickcheck computation doesn't work "
               "in hyperactive mode, disabling hyperactive mode.");
       Configuration::set("opt_hyper", false);
   }

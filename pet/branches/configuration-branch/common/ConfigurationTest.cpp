@@ -9,6 +9,8 @@
 
 #if HAVE_LIBLOG4CXX
 #  include <log4cxx/basicconfigurator.h>
+const int logBufferSize = 65536;
+char logBuffer[65536];
 #endif // HAVE_LIBLOG4CXX
 
 using namespace std;

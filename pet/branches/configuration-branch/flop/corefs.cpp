@@ -93,7 +93,8 @@ void find_coref_term (struct term *T, struct coref_table *coref)
       assert(!"this cannot happen");
       break;
     default:
-      fprintf(ferr, "unknown kind of term: %d\n", T -> tag);
+      LOG(loggerUncategorized, Level::WARN,
+          "unknown kind of term: %d", T -> tag);
       break;
     }
 }

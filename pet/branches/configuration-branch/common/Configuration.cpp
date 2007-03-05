@@ -39,12 +39,14 @@ bool Configuration::isValidName(const std::string& entry) const {
 
 void Configuration::check(const std::string &entry) {
   if(!isValidName(entry)) {
-    LOG4CXX_WARN(logger, "isValidName(" + entry + ") == false");
+    LOG(logger, log4cxx::Level::WARN,
+        "isValidName(%s) == false", entry.c_str());
     throw WrongEntryNameException(entry + " is not a valid entry name");
   }
   
   if(hasOption(entry)) {
-    LOG4CXX_WARN(logger, "entry \"" + entry + "\" already exists");
+    LOG(logger, log4cxx::Level::WARN,
+        "entry \"%s\" already exists", entry.c_str());
     throw EntryAlreadyExistsException("entry " + entry + " already exists");
   }
 }

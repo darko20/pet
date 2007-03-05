@@ -401,8 +401,9 @@ void dump_hierarchy(dumper *f)
         typecode[rleaftype_order[i]]->dump(f);
       }
     else
-      fprintf(ferr, "leaf type conception error a: `%s' (%d -> %d)\n", 
-              type_name(rleaftype_order[i]), i, rleaftype_order[i]);
+      LOG(loggerUncategorized, Level::INFO,
+          "leaf type conception error a: `%s' (%d -> %d)", 
+          type_name(rleaftype_order[i]), i, rleaftype_order[i]);
 
   // parents for all leaf types
   for(i = first_leaftype; i < ntypes; i++)
@@ -411,8 +412,9 @@ void dump_hierarchy(dumper *f)
 	f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
       }
     else
-      fprintf(ferr, "leaf type conception error b: `%s' (%d -> %d)\n", 
-              type_name(rleaftype_order[i]), i, rleaftype_order[i]);
+      LOG(loggerUncategorized, Level::INFO,
+          "leaf type conception error b: `%s' (%d -> %d)", 
+          type_name(rleaftype_order[i]), i, rleaftype_order[i]);
 }
 
 #endif

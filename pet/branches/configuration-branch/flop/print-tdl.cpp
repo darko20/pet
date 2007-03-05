@@ -148,11 +148,13 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
 	  break;
 	case TEMPL_PAR:
 	case TEMPL_CALL:
-	  fprintf(ferr, "internal error: unresolved template call/parameter\n");
+	  LOG_FATAL(loggerUncategorized,
+                    "internal error: unresolved template call/parameter");
 	  exit(1);
 	  break;
 	default:
-	  fprintf(ferr, "unknown term tag `%d'\n", C -> term[i] -> tag); 
+	  LOG(loggerUncategorized, Level::INFO,
+              "unknown term tag `%d'", C -> term[i] -> tag); 
 	  break;
 	}
     }

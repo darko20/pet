@@ -165,9 +165,10 @@ void tdl_subtype_def(char *name, char *printname)
 		  if(subt->implicit == false)
 		    {
 		      if(!allow_redefinitions)
-			fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
-				types.name(sub).c_str(),
-				LA(0)->loc->fname, LA(0)->loc->linenr);
+                        LOG(loggerUncategorized, Level::WARN,
+                            "warning: redefinition of `%s' at %s:%d",
+                            types.name(sub).c_str(),
+                            LA(0)->loc->fname, LA(0)->loc->linenr);
 		      
 		      undo_subtype_constraints(subt->id);
 		      
@@ -535,10 +536,11 @@ struct templ *tdl_templ_call(struct coref_table *co, bool readonly)
       t = (struct templ *) salloc(sizeof(struct templ));
       t->name = match(T_ID, "template name", false);
       if(templates.id(t->name) == -1)
-	{
-	  fprintf(ferr, "warning: call to undefined template `%s' at %s:%d\n",
-		  t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
-	}
+        {
+          LOG(loggerUncategorized, Level::WARN,
+              "warning: call to undefined template `%s' at %s:%d",
+              t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
+        }
       t->params = tdl_templ_par_list(co, readonly);
       t->constraint = NULL;
     }
@@ -781,9 +783,10 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
 	  
 	  if(t->implicit == false)
 	    {
-	      if(!allow_redefinitions)
-		fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
-			name, LA(0)->loc->fname, LA(0)->loc->linenr);
+              if(!allow_redefinitions)
+                LOG(loggerUncategorized, Level::WARN,
+                    "warning: redefinition of `%s' at %s:%d",
+                    name, LA(0)->loc->fname, LA(0)->loc->linenr);
 	      
 	      undo_subtype_constraints(t->id);
 	    }
@@ -932,8 +935,9 @@ void tdl_template_def(char *name)
   if((old = templates.id(t->name)) >= 0)
     {
       if(!allow_redefinitions)
-        fprintf(ferr, "warning: redefinition of template `%s' at %s:%d\n",
-                t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
+        LOG(loggerUncategorized, Level::WARN,
+            "warning: redefinition of template `%s' at %s:%d",
+            t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
       templates[old] = t;
     }
   else
@@ -1267,9 +1271,10 @@ void tdl_statement() {
       match(T_DOT, "`.'", true);
 
       string fname = find_file(ofname, TDL_EXT);
-	  
+      
       if(fname.empty()) {
-        fprintf(ferr, "file `%s' not found. skipping...\n", ofname);
+        LOG(loggerUncategorized, Level::WARN,
+            "file `%s' not found. skipping...", ofname);
       } else {
         push_file(fname, "including");
       }

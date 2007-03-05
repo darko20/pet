@@ -229,10 +229,12 @@ PICHandler::~PICHandler() {
 
 void PICHandler::
 print_sax_exception(const char * errtype, const SAXParseException& e) {
-  fprintf(ferr, "SAX: %s %s:%d:%d: "
-          , errtype, XMLCh2Latin(e.getSystemId())
-          , (int) e.getLineNumber(), (int) e.getColumnNumber()) ;
-  fprintf(ferr, "%s\n", XMLCh2Latin(e.getMessage()));
+  LOG_ERROR(loggerUncategorized,
+            "SAX: %s %s:%d:%d: ",
+            errtype, XMLCh2Latin(e.getSystemId()),
+            (int) e.getLineNumber(), (int) e.getColumnNumber()) ;
+  LOG_ERROR(loggerUncategorized,
+            "%s", XMLCh2Latin(e.getMessage()));
 }
 
 void 

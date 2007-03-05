@@ -214,8 +214,11 @@ class typecache
   inline void prune()
     {
 #ifdef CACHESTATS
-      fprintf(ferr, "typecache: %d entries, %d overflows, %d buckets, %ld searches, %ld fast path, avg chain %g, max chain %d\n",
-	      _size, _overflows, _nbuckets, _totalsearches, _totalfp, double(_totalcl) / _totalsearches, _maxcl);
+      LOG(loggerUncategorized, Level::INFO,
+          "typecache: %d entries, %d overflows, %d buckets, "
+          "%ld searches, %ld fast path, avg chain %g, max chain %d",
+          _size, _overflows, _nbuckets, _totalsearches, _totalfp,
+          double(_totalcl) / _totalsearches, _maxcl);
 
 #ifdef PRUNING
       int _prune_poss = 0, _prune_done = 0;
@@ -233,7 +236,8 @@ class typecache
 		}
 	    }
 	}
-      fprintf(ferr, "pruning: poss %d, done %d\n", _prune_poss, _prune_done);
+      LOG(loggerUncategorized, Level::INFO,
+          "pruning: poss %d, done %d", _prune_poss, _prune_done);
 #endif
 
       map<int, int> distr;
@@ -248,9 +252,11 @@ class typecache
 	{
 	  sum += iter->second;
 	  if(iter->second > 50)
-	    fprintf(ferr, "  %d : %d\n", iter->first, iter->second);
+	    LOG(loggerUncategorized, Level::INFO,
+                "  %d : %d", iter->first, iter->second);
 	}
-      fprintf(ferr, "  total : %d\n", sum);
+      LOG(loggerUncategorized, Level::INFO,
+          "  total : %d", sum);
 #endif
     }
 };

@@ -180,7 +180,7 @@ initialize_version()
             " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
             da,
             version_string,
-            Configuration::get<unsigned int>("pedgelimit"),
+            pedgelimit,
             opt_packing ? "+" : "-",
             opt_packing,
             Grammar->sm() ? "+" : "-",
@@ -266,7 +266,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        Configuration::set("pedgelimit",(unsigned int) edges);
+        pedgelimit = edges;
         Configuration::set("opt_nsolutions", nanalyses);
         
         gettimeofday(&tA, NULL);
@@ -322,16 +322,18 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
 int
 cheap_complete_test_run(int run_id, char *custom)
 {
-    fprintf(ferr, "total elapsed parse time %.3fs; %d items;"
-            " avg time per item %.4fs\n",
-            TotalParseTime.elapsed_ts() / 10.,
-            nprocessed,
-            (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
+  LOG(loggerTsdb, Level::INFO,
+      "total elapsed parse time %.3fs; %d items;"
+      " avg time per item %.4fs",
+      TotalParseTime.elapsed_ts() / 10.,
+      nprocessed,
+      (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
 
 #ifdef QC_PATH_COMP
     if(Configuration::get<char *>("opt_compute_qc") != NULL)
     {
-        fprintf(ferr, "computing quick check paths\n");
+      LOG(loggerTsdb, Level::INFO,
+          "computing quick check paths");
         FILE *qc = fopen(Configuration::get<char *>("opt_compute_qc"), "w");
         compute_qc_paths(qc);
         fclose(qc);
@@ -344,7 +346,7 @@ cheap_complete_test_run(int run_id, char *custom)
 int
 cheap_reconstruct_item(char *derivation)
 {
-    fprintf(ferr, "cheap_reconstruct_item(%s)\n", derivation);
+    LOG(loggerTsdb, Level::INFO, "cheap_reconstruct_item(%s)", derivation);
     return 0;
 }
 
