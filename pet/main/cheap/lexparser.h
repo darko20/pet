@@ -86,6 +86,13 @@ public:
    */
   void lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
                           , fs_alloc_state &FSAS, list<tError> &errors);
+
+  /** Do a morphological analysis of \a form and return the results.
+   *
+   * The morphological analyzers are called in the same way as the lexical
+   * \see get_lex_entries for an explanation.
+   */
+  list<tMorphAnalysis> morph_analyze(string form);
   
   /** Register different input modules in the lexical parser. */
   //@{
@@ -168,13 +175,6 @@ private:
    */
   list<lex_stem *> get_lex_entries(string stem);
 
-  /** Do a morphological analysis of \a form and return the results.
-   *
-   * The morphological analyzers are called in the same way as the lexical
-   * \see get_lex_entries for an explanation.
-   */
-  list<tMorphAnalysis> morph_analyze(string form);
-  
   /** Add a new tLexItem to our internal chart if active and to the global
    * chart if passive.
    * If the item is active, create appropriate new tasks
