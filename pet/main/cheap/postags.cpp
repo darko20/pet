@@ -152,6 +152,24 @@ postags::print(FILE *f) const
     }
 }
 
+// similar to print(FIle *f) above, but returns a string
+string
+postags::getPrintString() const
+{
+  string out = "";
+  bool start=true;
+  for(set<string>::const_iterator iter = _tags.begin(); iter != _tags.end();
+      ++iter)
+    {
+      if (start) 
+	start=false;
+      else
+	out += " ";
+      out += iter->c_str();
+    }
+  return out;
+}
+
 // Determine if given type is licensed under posmapping
 // Find first matching tuple in mapping.
 bool

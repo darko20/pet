@@ -1,4 +1,6 @@
 v0.99.??
+  - change message "no lexicon entries for ..." to include POS tag info when 
+    using '-default-les'
   (minor `new' feature by oe)
   - re-enable `-interactive-morphology' mode (requested by tim);
   - add new feature: lexical type prediction for lexical gaps  

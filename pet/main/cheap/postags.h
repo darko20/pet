@@ -102,6 +102,9 @@ class postags
   /** Print the contents of this set for debugging purposes */
   void print(FILE *) const;
 
+  /** serialise as string (for debugging purposes) **/
+  string getPrintString() const;
+
  private:
   bool contains(type_t t, const class setting *set) const;
 
