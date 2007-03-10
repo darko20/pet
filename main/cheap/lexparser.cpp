@@ -217,8 +217,14 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   newfs.modify_eagerly(mods);
 
   if (newfs.valid()) {
+    //fprintf(ferr, "combine() succeeded in creating valid fs\n");
     add(new tLexItem(stem, i_item, newfs, infl_rules));
   }
+  else
+    {
+      if(verbosity > 4)
+	fprintf(ferr, "ERROR: combine() failed in creating valid fs\n");
+    }
 }
 
 
@@ -530,16 +536,22 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
 
   for(list<tInputItem *>::iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
+
+    // debug messages
     if(verbosity > 4) {
       fprintf(ferr, "  token ");
       (*it)->print(ferr);
       fprintf(ferr, "\n");
     }
 
+    // instantiate gens
     if ((! (*it)->parents.empty())
         && cheap_settings->lookup("pos-completion")) {
+      // optional pos-completion mode
+
       postags missing((*it)->get_in_postags());
 
+      // debug messages
       if(verbosity > 4) {
         fprintf(ferr, "    token provides tags:");
         missing.print(ferr);
@@ -550,6 +562,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
 
       missing.remove(postags((*it)->parents));
 
+      // debug messages
       if(verbosity > 4) {
         fprintf(ferr, "    -> missing tags:");
         missing.print(ferr);
@@ -574,9 +587,13 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       // TODO: check if this uses up significant processing time. There is
       // another way to do this (store the previous result in the tInputItem),
       // but that messes up the whole failed stem token thing and all
+
+      // get morphs
       list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
+      // iterate thru gens
       for(list<lex_stem *>::iterator ls = gens.begin()
             ; ls != gens.end(); ls++) {
+	// get mods
         modlist in_mods = (*it)->mods();
         // _fix_me_
         add_surface_mod((*it)->orth(), in_mods);
@@ -798,12 +815,18 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
 
   // throw an error if there are unexpanded input items
   if (! unexpanded.empty()) {
-    string missing = unexpanded.front()->orth();
-    for(inp_iterator inp = ++unexpanded.begin()
+    string missing = "";
+    for(inp_iterator inp = unexpanded.begin()
           ; inp != unexpanded.end(); inp++) {
-      missing += ", " + (*inp)->orth();
+      missing += "\n\t\"" + (*inp)->orth() + "\"";
+      if(opt_default_les) 
+	// it's useful to know the pos tags of failed entries
+	{
+	  postags tags = (*inp)->get_in_postags();
+	  missing += " ["+ tags.getPrintString() +"]";
+	}
     }
-    throw tError("no lexicon entries for " + missing) ;
+    throw tError("no lexicon entries for:" + missing) ;
   }
   
   if (lex_exhaustive) {
