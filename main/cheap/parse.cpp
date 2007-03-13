@@ -36,6 +36,9 @@
 #include "yy.h"
 #endif
 
+// output for excessive subsumption failure debugging in the German grammar
+//#define DEBUG_SUBSFAILS
+
 //
 // global variables for parsing
 //
@@ -179,6 +182,9 @@ fundamental_for_active(tPhrasalItem *active) {
                                                active, it.current()));
 }
 
+extern void start_recording_failures();
+extern unification_failure * stop_recording_failures();
+
 bool
 packed_edge(tItem *newitem) {
   if(! newitem->inflrs_complete_p()) return false;
@@ -198,6 +204,10 @@ packed_edge(tItem *newitem) {
                                              newitem->rule(),
                                              forward, backward);
 
+#ifdef DEBUG_SUBSFAILS
+    unification_failure *uf = NULL;
+#endif
+
     if(forward ==false && backward == false) {
       stats.fsubs_fi++;
     }
@@ -208,12 +218,21 @@ packed_edge(tItem *newitem) {
                            olditem->qc_vector_subs(),
                            newitem->qc_vector_subs(),
                            f1, b1);
+
+#ifdef DEBUG_SUBSFAILS
+      start_recording_failures();
+#endif
             
       if(forward ==false && backward == false)
         stats.fsubs_qc++;
       else
         subsumes(olditem->get_fs(), newitem->get_fs(),
                  forward, backward);
+
+#ifdef DEBUG_SUBSFAILS
+      uf = stop_recording_failures();
+#endif
+
 #if 0
       //
       // according to ulrich (sometime mid-2004), we sometimes hit this
@@ -231,6 +250,23 @@ packed_edge(tItem *newitem) {
 #endif
     }
 
+#ifdef DEBUG_SUBSFAILS
+    if ((! ((forward && !olditem->blocked()) &&
+            ((!backward && (opt_packing & PACKING_PRO))
+             || (backward && (opt_packing & PACKING_EQUI)))))
+        &&
+        (! (backward && (opt_packing & PACKING_RETRO) && !olditem->frosted())))
+      {
+        const char *id1 = (newitem->rule() != NULL) 
+          ? newitem->rule()->printname() : newitem->printname() ;
+        const char *id2 = (olditem->rule() != NULL) 
+          ? olditem->rule()->printname() : olditem->printname() ;
+        fprintf(ferr, "SF: %s <-> %s ", id1, id2);
+        if (uf != NULL) uf->print(ferr);
+        fprintf(ferr, "\n");
+      }
+#endif
+    
     if(forward && !olditem->blocked()) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {
