@@ -182,6 +182,17 @@ void save_or_clear_failure() {
   else
     clear_failure();
 }
+
+void start_recording_failures() {
+  unify_record_failure = true;
+  clear_failure();
+}
+
+unification_failure * stop_recording_failures() {
+  unify_record_failure = false;
+  return failure;
+}
+
 #endif
 
 dag_node *dag_cyclic_copy(dag_node *src, list_int *del);
