@@ -180,11 +180,11 @@ std::set<std::string> settings::smap(const char *name, int key_type)
   for(int i = 0; i < set->n; i+=2)
     {
       if(i+2 > set->n)
-	{
-	  fprintf(ferr, "warning: incomplete last entry in "
-		  "`%s' mapping - ignored\n", name);
-	  break;
-	}
+        {
+          LOG(loggerUncategorized, Level::WARN,
+              "warning: incomplete last entry in `%s' mapping - ignored", name);
+          break;
+        }
       
       char *lhs = set->values[i], *rhs = set->values[i+1];
       int id = lookup_type(lhs);
@@ -194,8 +194,8 @@ std::set<std::string> settings::smap(const char *name, int key_type)
 	    res.insert(rhs);
 	}
       else
-	fprintf(ferr, "warning: unknown type `%s' in "
-		"`%s' mapping - ignored\n", name, lhs);
+        LOG(loggerUncategorized, Level::WARN,
+            "warning: unknown type `%s' in `%s' mapping - ignored", name, lhs);
       
     }
 
@@ -216,20 +216,21 @@ bool settings::statusmember(const char *name, type_t key)
       // it in the cache. All status names that do not occur in the grammar
       // are reported to be unknown.
       if(set != 0)
-	{
-	  for(int i = 0; i < set->n; i++)
-	    {
-	      int v = lookup_status(set->values[i]);
-	      if(v == -1)
-		{
-		  fprintf(ferr, "ignoring unknown status `%s' in setting "
-			  "`%s'\n", set->values[i], name);
-		}
-	      else
-		l = cons(v, l);
-	    }
-	  _li_cache[string(name)] = l;
-	}
+        {
+          for(int i = 0; i < set->n; i++)
+            {
+              int v = lookup_status(set->values[i]);
+              if(v == -1)
+                {
+                  LOG(loggerUncategorized, Level::INFO,
+                      "ignoring unknown status `%s' in setting "
+                      "`%s'", set->values[i], name);
+                }
+              else
+                l = cons(v, l);
+            }
+          _li_cache[string(name)] = l;
+        }
     }
   return contains(l, key);
 }

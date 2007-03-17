@@ -60,7 +60,7 @@ bool compute_appropriateness() {
 
   bool fail = false;
 
-  fprintf(fstatus, "- computing appropriateness\n");
+  LOG(loggerExpand, Level::INFO, "- computing appropriateness");
 
   apptype = new int[attributes.number()];
 
@@ -168,7 +168,8 @@ bool apply_appropriateness() {
 
   bool fail = false;
 
-  fprintf(fstatus, "- applying appropriateness constraints for types\n");
+  LOG(loggerExpand, Level::INFO,
+      "- applying appropriateness constraints for types");
 
   for(i = 0; i < types.number(); i++) {
     if(!pseudo_type(i) && !apply_appropriateness_rec(types[i]->thedag)) {
@@ -199,7 +200,8 @@ bool delta_expand_types() {
   bool opt_expand_all_instances =
     Configuration::get<bool>("opt_expand_all_instances");
 
-  fprintf(fstatus, "- delta expansion for types\n");
+  LOG(loggerExpand, Level::INFO,
+      "- delta expansion for types");
 
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));
@@ -320,7 +322,7 @@ bool fully_expand_types(bool full_expansion) {
 
   tHierarchy G;
 
-  fprintf(fstatus, "- full type expansion\n");
+  LOG(loggerExpand, Level::INFO, "- full type expansion");
 
   bool fail = false;
 
@@ -370,7 +372,8 @@ bool fully_expand_types(bool full_expansion) {
       dag_invalidate_visited();
 
       if(!fail && dag_cyclic(types[i]->thedag)) {
-        fprintf(ferr, " `%s' failed (cyclic structure)\n", typenames[i]);
+        LOG(loggerExpand, Level::INFO,
+            "`%s' failed (cyclic structure)", typenames[i]);
         fail = true;
       }
     }
@@ -414,13 +417,13 @@ void compute_maxapp() {
     if(cval && cval != FAIL)
       maxapp[i] = dag_type(cval);
 
-    if(verbosity > 7) {
-      fprintf(fstatus, "feature `%s': value: %s `%s', introduced by `%s'\n",
-              attributes.name(i).c_str(),
-              maxapp[i] > types.number() ? "symbol" : "type",
-              typenames[maxapp[i]],
-              types.name(apptype[i]).c_str());
-    }
+    LOG(loggerExpand, Level::DEBUG,
+        "feature `%s': value: %s `%s', introduced by `%s'",
+        attributes.name(i).c_str(),
+        maxapp[i] > types.number() ? "symbol" : "type",
+        typenames[maxapp[i]],
+        types.name(apptype[i]).c_str());
+
   }
 }
 
@@ -497,7 +500,7 @@ int unfill_dag_rec(struct dag_node *dag, int root) {
 void unfill_types() {
   int i, n = 0;
 
-  fprintf(fstatus, "- unfilling ");
+  LOG(loggerExpand, Level::INFO, "- unfilling ");
 
   for(i = 0; i < types.number(); i++) {
     struct dag_node *curr = dag_deref(types[i]->thedag);
@@ -507,7 +510,8 @@ void unfill_types() {
     dag_invalidate_visited();
   }
 
-  fprintf(fstatus, "(%d total nodes, %d removed)\n", total_nodes, n);
+  LOG(loggerExpand, Level::INFO,
+      "(%d total nodes, %d removed)", total_nodes, n);
 }
 /*@}*/
 
@@ -526,9 +530,8 @@ map<int, int> prefixl;
 
 void prefix_down(int t, int l) {
   prefixl[t] = l + nintro[t];
-  if(verbosity > 7)
-    fprintf(fstatus, "prefix length of `%s' = %d\n",
-            types.name(t).c_str(), prefixl[t]);
+  LOG(loggerExpand, Level::DEBUG, "prefix length of `%s' = %d",
+      types.name(t).c_str(), prefixl[t]);
 
   if(boost::out_degree(t, hierarchy) != 1)
     return;
@@ -569,11 +572,10 @@ void merge_partitions(int t, int p, tPartition &P, int s) {
   if(subtype(P(t), t))
     P.make_rep(t);
   else {
-    if(verbosity > 7)
-      fprintf(fstatus, "merging %s into %s partition (from %s)\n",
-              types.name(t).c_str(),
-              types.name(P(t)).c_str(),
-              types.name(s).c_str());
+    LOG(loggerExpand, Level::DEBUG, "merging %s into %s partition (from %s)",
+        types.name(t).c_str(),
+        types.name(P(t)).c_str(),
+        types.name(s).c_str());
   }
 
   list<int> parents = immediate_supertypes(t);
@@ -593,7 +595,7 @@ void bottom_up_partitions() {
   assert(types.number() == (int) boost::num_vertices(hierarchy));
   tPartition part(types.number());
 
-  fprintf(fstatus, "- partitioning hierarchy ");
+  LOG(loggerExpand, Level::INFO, "- partitioning hierarchy ");
 
   merge_top_down(0, part(0), part);
 
@@ -608,17 +610,14 @@ void bottom_up_partitions() {
   for(int i = 0; i < types.number(); i++)
     if(!reached[i]) {
       list_int *feats = 0;
-      if(verbosity > 4)
-        fprintf(fstatus, "partition %d (`%s'):\n",
-                nfeatsets,
-                types.name(part(i)).c_str());
+      LOG(loggerExpand, Level::DEBUG, "partition %d (`%s'):",
+          nfeatsets, types.name(part(i)).c_str());
 
       for(int j = 0; j < types.number(); j++)
         if(!reached[j] && part.same_set(i, j)) {
           featset[j] = nfeatsets;
           reached[j] = true;
-          if(verbosity > 4)
-            fprintf(fstatus, "  %s\n", types.name(j).c_str());
+          LOG(loggerExpand, Level::DEBUG, "  %s", types.name(j).c_str());
 
           list_int *l = theconf[featconf[j]];
           while(l) {
@@ -643,7 +642,7 @@ void bottom_up_partitions() {
       nfeatsets++;
     }
 
-  fprintf(fstatus, "(%d partitions)\n", nfeatsets);
+  LOG(loggerExpand, Level::INFO, "(%d partitions)", nfeatsets);
 }
 
 // featconf and featset computation

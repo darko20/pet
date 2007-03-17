@@ -33,11 +33,8 @@ void tXMLTokenizer::tokenize(string input, inp_list &result) {
 /** Produce a set of tInputItem tokens from the given XML input on stdin. */
 void tXMLTokenizer::tokenize_from_stream(string input, inp_list &result) {
   string buffer = input;
-  if(verbosity > 4)
-    {
-      //cerr << "received from :pic preprocessor:" << endl << buffer << endl << endl;
-      fprintf(ferr, "[processing PIC XML input]\n");
-    };
+  //cerr << "received from :pic preprocessor:" << endl << buffer << endl << endl;
+  LOG(loggerXml, Level::INFO, "[processing PIC XML input]");
   
   PICHandler picreader(true, _translate_iso_chars);
   MemBufInputSource xmlinput((const XMLByte *) buffer.c_str()

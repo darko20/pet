@@ -77,6 +77,7 @@ LoggerPtr loggerHierarchy = Logger::getLogger("hierarchy");
 LoggerPtr loggerLexproc = Logger::getLogger("lexproc");
 LoggerPtr loggerParse = Logger::getLogger("parse");
 LoggerPtr loggerTsdb = Logger::getLogger("tsdb");
+LoggerPtr loggerXml = Logger::getLogger("xml");
 #endif // HAVE_LIBLOG4CXX
 
 // global variables for parsing
@@ -136,7 +137,8 @@ void dump_jxchg(string surface, chart *current) {
     yieldname = Configuration::get<std::string>("opt_jxchg_dir") + yieldname;
     ofstream out(yieldname.c_str());
     if (! out) {
-      fprintf(ferr, "Can not open file %s\n", yieldname.c_str());
+      LOG(loggerUncategorized, Level::WARN,
+          "Can not open file %s", yieldname.c_str());
     } else {
       out << "0 " << current->rightmost() << endl;
       tJxchgPrinter chp(out);
@@ -159,8 +161,9 @@ void interactive() {
     opt_tsdb = 1;
   } else {
     if (! Configuration::get<std::string>("opt_tsdb_dir").empty())
-      fprintf(ferr, "Could not open TSDB dump files in directory %s\n"
-              , Configuration::get<std::string>("opt_tsdb_dir").c_str());
+      LOG_ERROR(loggerUncategorized,
+                "Could not open TSDB dump files in directory %s\n",
+                Configuration::get<std::string>("opt_tsdb_dir").c_str());
   }
 
   while(!(input = read_line(stdin,
@@ -283,7 +286,7 @@ void interactive() {
     } /* try */
         
     catch(tError e) {
-      fprintf(ferr, "%s\n", e.getMessage().c_str());
+      LOG_ERROR(loggerUncategorized, "%s", e.getMessage().c_str());
       if(verbosity > 0) stats.print(fstatus);
       stats.readings = -1;
 
@@ -339,7 +342,7 @@ void nbest() {
       } /* try */
             
       catch(tError e) {
-        fprintf(ferr, "%s\n", e.getMessage().c_str());
+        LOG_ERROR(loggerUncategorized, "%s", e.getMessage().c_str());
         stats.print(fstatus);
         fflush(fstatus);
         stats.readings = -1;

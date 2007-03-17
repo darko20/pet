@@ -635,15 +635,11 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     // precondition: a != b, a >= 0, b >= 0
     // postcondition: forward == subtype(a, b) && backward == subtype(b, a)
     
-#ifdef SUBTYPE_PROFILING
-    fprintf(ferr, "ST %d %d - ", a, b);
-#endif
+    LOG(loggerUncategorized, Level::DEBUG, "ST %d %d - ", a, b);
 
     if(a == BI_TOP)
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "1\n");
-#endif
+        LOG(loggerUncategorized, Level::DEBUG, "1");
         forward = false;
         backward = true;
         return;
@@ -651,9 +647,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
 
     if(b == BI_TOP)
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "2\n");
-#endif
+        LOG(loggerUncategorized, Level::DEBUG, "2");
         forward = true;
         backward = false;
         return;
@@ -677,9 +671,8 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     // another leaftype.
     if(is_leaftype(a) && is_leaftype(b)) // both types are leaftypes
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "3");
-#endif
+        LOG(loggerUncategorized, Level::DEBUG, "3");
+
         // Follow the leaftype_parent chain of a up to the first
         // non-leaftype or b. If we encounter b, a is a subtype of b.
         // Otherwise do the same for b.
@@ -693,9 +686,8 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         {
             forward = true;
             backward = false;
-#ifdef SUBTYPE_PROFILING
-            fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
+            LOG(loggerUncategorized, Level::DEBUG,
+                " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
             return;
         }
         a = savedA;
@@ -707,48 +699,41 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         {
             backward = true;
             forward = false;
-#ifdef SUBTYPE_PROFILING
-            fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
+            LOG(loggerUncategorized, Level::DEBUG,
+                " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
             return;
         }
         forward = false;
         backward = false;
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
+        LOG(loggerUncategorized, Level::DEBUG,
+            " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
     else if(is_leaftype(a)) // a is a leaftype, b not
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "4");
-#endif
+        LOG(loggerUncategorized, Level::DEBUG, "4");
+
         backward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
             a = leaftypeparent[a - first_leaftype]; 
         } while(is_leaftype(a));
         forward = core_subtype(a, b);
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
+        LOG(loggerUncategorized, Level::DEBUG,
+            " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
     else if(is_leaftype(b)) // b is a leaftype, a not
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "5");
-#endif
+        LOG(loggerUncategorized, Level::DEBUG, "5");
         forward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
             b = leaftypeparent[b - first_leaftype]; 
         } while(is_leaftype(b));
         backward = core_subtype(b, a);
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
+        LOG(loggerUncategorized, Level::DEBUG,
+            " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
 #else
@@ -756,17 +741,15 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     {
         forward = subtype(a, b);
         backward = subtype(b, a);
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "456 - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
+        LOG(loggerUncategorized, Level::DEBUG,
+            "456 - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
 #endif
     
     subset_bidir(*typecode[a], *typecode[b], forward, backward);
-#ifdef SUBTYPE_PROFILING
-    fprintf(ferr, "6 - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
+    LOG(loggerUncategorized, Level::DEBUG,
+        "6 - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
 }
 #endif
 

@@ -155,9 +155,9 @@ void tItem::lui_dump(const char *path) {
   sprintf(name, "%d.lui", _id);
   FILE *stream;
   if((stream = fopen(name, "w")) == NULL) {
-    fprintf(ferr, 
-            "tItem::lui_dump(): unable to open `%s' (in `%s').\n",
-            name, path);
+    LOG_ERROR(loggerUncategorized,
+              "tItem::lui_dump(): unable to open `%s' (in `%s').",
+              name, path);
     return;
   } // if
   fprintf(stream, "avm %d ", _id);

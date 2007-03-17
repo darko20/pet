@@ -327,15 +327,15 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
     {
         if(qc_inst_unif != 0 && i == qc_inst_unif)
         {
-            if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
-                                      print_name(qc_inst_unif));
+            LOG(loggerGrammar, Level::DEBUG,
+                "[qc unif structure `%s'] ", print_name(qc_inst_unif));
             qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
             dag = 0;
         }
         else if(qc_inst_subs && i == qc_inst_subs)
         {
-            if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
-                                      print_name(qc_inst_subs));
+            LOG(loggerGrammar, Level::DEBUG,
+                "[qc subs structure `%s'] ", print_name(qc_inst_subs));
             qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
             dag = 0;
         }
@@ -374,7 +374,8 @@ tGrammar::tGrammar(const char * filename)
     
     int version;
     char *s = undump_header(&dmp, version);
-    if(s) fprintf(fstatus, "(%s) ", s);
+    if(s)
+      LOG(loggerGrammar, Level::INFO, "(%s) ", s);
     
     dump_toc toc(&dmp);
     
@@ -418,13 +419,15 @@ tGrammar::tGrammar(const char * filename)
 
     if(opt_nqc_unif && _qc_inst_unif == 0)
     {
-        fprintf(fstatus, "[ disabling unification quickcheck ] ");
+        LOG(loggerGrammar, Level::INFO,
+            "[ disabling unification quickcheck ] ");
         opt_nqc_unif = 0;
     }
 
     if(opt_nqc_subs && _qc_inst_subs == 0)
     {
-        fprintf(fstatus, "[ disabling subsumption quickcheck ] ");
+        LOG(loggerGrammar, Level::INFO,
+            "[ disabling subsumption quickcheck ] ");
         opt_nqc_subs = 0;
     }
 
@@ -492,8 +495,8 @@ tGrammar::tGrammar(const char * filename)
     // The number of all rules for the unification and subsumption rule
     // filtering
     _nrules = _rules.size();
-    if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules", nstems(), 
-                              length(_generics), _nrules);
+    LOG(loggerGrammar, Level::DEBUG,
+        "%d+%d stems, %d rules", nstems(), length(_generics), _nrules);
 
 #if 0
     // full forms
@@ -509,7 +512,8 @@ tGrammar::tGrammar(const char * filename)
                 delete ff;
         }
 
-        if(verbosity > 4) fprintf(fstatus, ", %d full form entries", nffs);
+        LOG(loggerGrammar, Level::DEBUG,
+            ", %d full form entries", nffs);
     }
 
     if(_fullforms.size() == 0)
@@ -568,7 +572,7 @@ tGrammar::tGrammar(const char * filename)
         if(_morph->empty())
             Configuration::set("opt_online_morph", false);
         
-        if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
+        LOG(loggerGrammar, Level::DEBUG, ", %d infl rules", ninflrs);
         if(verbosity >14) _morph->print(fstatus);
     }
     // irregular forms
@@ -665,7 +669,8 @@ tGrammar::tGrammar(const char * filename)
     }
     catch(tError &e)
     {
-        fprintf(fstatus, "EXTDICT disabled: %s\n", e.msg().c_str());
+        LOG_ERROR(loggerGrammar,
+                  "EXTDICT disabled: %s", e.msg().c_str());
         _extDict = 0;
     }
 #endif

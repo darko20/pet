@@ -83,58 +83,60 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
   ferr = fstatus;
 
   try {
-    fprintf(fstatus, "[%s] l2_parser_init(\"%s\", \"%s\", %d)\n",
-	    current_time(), grammar_path.c_str(), log_file_path.c_str(),
-	    k2y_segregation_p);
+    LOG(loggerUncategorized, Level::INFO,
+        "[%s] l2_parser_init(\"%s\", \"%s\", %d)",
+        current_time(), grammar_path.c_str(), log_file_path.c_str(),
+        k2y_segregation_p);
 
     cheap_settings = new settings(settings::basename(grammar_path.c_str()),
 				  grammar_path.c_str(), "reading");
-    fprintf(fstatus, "\n");
 
     options_from_settings(cheap_settings);
 
 #ifndef DONT_EDUCATE_USERS
     if(opt_yy == false)
       {
-	fprintf(fstatus, "you want YY mode\n");
-	opt_yy = true;
+        LOG(loggerUncategorized, Level::INFO, "you want YY mode");
+        opt_yy = true;
       }
 
     if(!Configuration::get<bool>("opt_default_les"))
       {
-	fprintf(fstatus, "you want default lexical entries  - turning on opt_default_les\n");
-	Configuration::set("opt_default_les", true);
+        LOG(loggerUncategorized, Level::INFO,
+            "you want default lexical entries  - turning on opt_default_les");
+        Configuration::set("opt_default_les", true);
       }
 
     if(pedgelimit == 0)
       {
-	fprintf(fstatus, "you don't want to parse forever - setting edge limit\n");
-	pedgelimit = 10000;
+        LOG(loggerUncategorized, Level::INFO,
+            "you don't want to parse forever - setting edge limit");
+        pedgelimit = 10000;
       }
 
     if(memlimit == 0)
       {
-	fprintf(fstatus, "you don't want to use up all memory - setting mem limit\n");
-	memlimit = 50 * 1024 * 1024;
+        LOG(loggerUncategorized, Level::INFO,
+            "you don't want to use up all memory - setting mem limit");
+        memlimit = 50 * 1024 * 1024;
       }
 #endif
 
     timer t_start;
-    fprintf(fstatus, "loading `%s' ", grammar_path.c_str());
+    LOG(loggerUncategorized, Level::INFO,
+        "loading `%s' ", grammar_path.c_str());
     Grammar = new tGrammar(grammar_path.c_str());
 
-    fprintf(fstatus, "\n%d types in %0.2g s\n",
-	    ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+    LOG(loggerUncategorized, Level::INFO,
+        "%d types in %0.2g s",
+        ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
     initialize_version();
-
-    fflush(fstatus);
   }
 
   catch(tError &e)
     {
-      fprintf(fstatus, "\nL2 error: `%s'.\n", e.getMessage().c_str());
-      fflush(fstatus);
+      LOG_ERROR(loggerUncategorized, "L2 error: `%s'.", e.getMessage().c_str());
 
       throw l2_error(e.getMessage());
     }
@@ -156,14 +158,18 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
     string input = massageUTF8(inputUTF8);
 
-    fprintf(fstatus, "[%s] (%d) l2_parser_parse(\"%s\", %d)\n", current_time(),
-            stats.id, input.c_str(), nskip);
+    LOG(loggerUncategorized, Level::INFO,
+        "[%s] (%d) l2_parser_parse(\"%s\", %d)",
+        current_time(), stats.id, input.c_str(), nskip);
 
-    fprintf(fstatus, " Permanent dag storage: %d*%dk\n Dynamic dag storage: %d*%dk\n GLB cache: %d*%dk, Constraint cache: %d entries\n",
-            p_alloc.nchunks(), p_alloc.chunksize() / 1024,
-            t_alloc.nchunks(), t_alloc.chunksize() / 1024,
-            glbcache.alloc().nchunks(), glbcache.alloc().chunksize() / 1024,
-            total_cached_constraints);
+    LOG(loggerUncategorized, Level::INFO,
+        "Permanent dag storage: %d*%dk\n"
+        "Dynamic dag storage: %d*%dk\n"
+        "GLB cache: %d*%dk, Constraint cache: %d entries\n",
+        p_alloc.nchunks(), p_alloc.chunksize() / 1024,
+        t_alloc.nchunks(), t_alloc.chunksize() / 1024,
+        glbcache.alloc().nchunks(), glbcache.alloc().chunksize() / 1024,
+        total_cached_constraints);
 
     opt_nth_meaning = nskip + 1;
 
@@ -186,11 +192,12 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
         if(!errors.empty())
             throw errors.front();
 
-        fprintf(fstatus," (%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]\n",
-                stats.id, pedgelimit, stats.readings,
-                stats.first / 1000., stats.tcpu / 1000.,
-                stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-                TotalParseTime.elapsed_ts() / 10.);
+        LOG(loggerUncategorized, Level::INFO,
+            "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]",
+            stats.id, pedgelimit, stats.readings,
+            stats.first / 1000., stats.tcpu / 1000.,
+            stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+            TotalParseTime.elapsed_ts() / 10.);
 
         if(verbosity > 1) stats.print(fstatus);
         fflush(fstatus);
@@ -235,12 +242,13 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
     catch(tError &e)
     {
-        fprintf(fstatus, " (%d) [%d] --- L2 error `%s'",
-                stats.id, pedgelimit, e.getMessage().c_str());
-        fprintf(fstatus, " (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-                stats.first / 1000., stats.tcpu / 1000.,
-                stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-        fflush(fstatus);
+        LOG(loggerUncategorized, Level::INFO,
+            "(%d) [%d] --- L2 error `%s'",
+            stats.id, pedgelimit, e.getMessage().c_str());
+        LOG(loggerUncategorized, Level::INFO,
+            " (%.1f|%.1fs) <%d:%d> (%.1fK)",
+            stats.first / 1000., stats.tcpu / 1000.,
+            stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
 
 #ifdef TSDBFILEAPI
         if(Chart)
@@ -306,8 +314,7 @@ vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
 
   catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
-    fflush(fstatus);
+    LOG_ERROR(loggerUncategorized, "L2 error: `%s'.", e.getMessage().c_str());
 
     throw l2_error(e.msg());
   }
@@ -349,8 +356,7 @@ string l2_morph_analyse_imp(const string& formUTF8)
 
   catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
-    fflush(fstatus);
+    LOG_ERROR(loggerUncategorized, "L2 error: `%s'.", e.getMessage().c_str());
 
     throw l2_error(e.msg());
   }
@@ -368,8 +374,7 @@ l2_parser_punctuationp(const string &input)
   }
   catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
-    fflush(fstatus);
+    LOG_ERROR(loggerUncategorized, "L2 error: `%s'.", e.getMessage().c_str());
 
     throw l2_error(e.msg());
   }
@@ -378,7 +383,8 @@ l2_parser_punctuationp(const string &input)
 // free resources of parser
 void l2_parser_exit_imp()
 {
-  fprintf(fstatus, "[%s] l2_parser_exit_imp()\n", current_time());
+  LOG(loggerUncategorized, Level::INFO,
+      "[%s] l2_parser_exit_imp()", current_time());
 
   try // destructors should not throw, but we want to be safe
   { 
@@ -395,8 +401,7 @@ void l2_parser_exit_imp()
 
   catch(tError &e)
   {
-    fprintf(fstatus, " L2 error: `%s'.\n", e.getMessage().c_str());
-    fflush(fstatus);
+    LOG_ERROR(loggerUncategorized, "L2 error: `%s'.", e.getMessage().c_str());
     
     throw l2_error(e.msg());
   }
