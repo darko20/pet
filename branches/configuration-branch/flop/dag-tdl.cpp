@@ -123,8 +123,9 @@ struct dag_node *dagify_avm(struct avm *A)
         {
           if(dag_unify1(arc->val, val) == FAIL)
             {
-              fprintf(ferr, "type `%s': unification under `%s' failed\n",
-                      typenames[current_toplevel_type], attrname[attr]);
+              LOG(loggerUncategorized, Level::INFO,
+                  "type `%s': unification under `%s' failed",
+                  typenames[current_toplevel_type], attrname[attr]);
               return FAIL;
             }
         }
@@ -151,8 +152,9 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
             {
               if(dag_unify1(last, result) == FAIL)
                 {
-                  fprintf(ferr, "type `%s': unification of `LAST' failed\n",
-                          typenames[current_toplevel_type]);
+                  LOG(loggerUncategorized, Level::INFO,
+                      "type `%s': unification of `LAST' failed",
+                      typenames[current_toplevel_type]);
                   return FAIL;
                 }
             }
@@ -213,14 +215,16 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
 	    C->term[i]->type = types.id(string("\"") + C->term[i]->value + string("\""));
 	  }
 
-	newtype = glb(type, C->term[i]->type);
-	if(newtype == -1)
-	  {
-	    fprintf(ferr, "type `%s': inconsistent term detected: `%s' & `%s' have no glb...\n",
-                    typenames[current_toplevel_type],
-		    typenames[type],
-		    typenames[C->term[i]->type]);
-	    return FAIL;
+        newtype = glb(type, C->term[i]->type);
+        if(newtype == -1)
+          {
+            LOG(loggerUncategorized, Level::INFO,
+                "type `%s': inconsistent term detected: "
+                "`%s' & `%s' have no glb...",
+                typenames[current_toplevel_type],
+                typenames[type],
+                typenames[C->term[i]->type]);
+            return FAIL;
 	  }
 	type = newtype;
       }
@@ -228,9 +232,11 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
       {
 	if(cref != -1 && cref != C->term[i]->coidx)
 	  {
-	    fprintf(ferr, "type `%s': term specifies two coreference indices: %d & %d...\n",
-                    typenames[current_toplevel_type],
-		    cref, C->term[i]->coidx);
+            LOG(loggerUncategorized, Level::INFO,
+                "type `%s': term specifies two coreference indices:"
+                " %d & %d...",
+                typenames[current_toplevel_type],
+                cref, C->term[i]->coidx);
 	    return FAIL;
 	  }
 	else
@@ -251,8 +257,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              fprintf(ferr, "type `%s': feature term unification failed\n",
-                      typenames[current_toplevel_type]);
+              LOG(loggerUncategorized, Level::INFO,
+                  "type `%s': feature term unification failed",
+                  typenames[current_toplevel_type]);
               return FAIL;
             }
         }
@@ -262,8 +269,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              fprintf(ferr, "type `%s': list term unification failed\n",
-                      typenames[current_toplevel_type]);
+              LOG(loggerUncategorized, Level::INFO,
+                  "type `%s': list term unification failed",
+                  typenames[current_toplevel_type]);
               return FAIL;
             }
         }
@@ -276,8 +284,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
         {
           if(dag_unify1(dagify_corefs[cref], result) == FAIL)
             {
-              fprintf(ferr, "type `%s': coreference unification failed\n",
-                      typenames[current_toplevel_type]);
+              LOG(loggerUncategorized, Level::INFO,
+                  "type `%s': coreference unification failed",
+                  typenames[current_toplevel_type]);
               return FAIL;
             }
         }

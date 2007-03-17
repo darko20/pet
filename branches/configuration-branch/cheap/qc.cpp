@@ -87,10 +87,8 @@ choose_paths(FILE *f,
    depth (number of sets), n the total number of sets
  */
 {
-    if(verbosity > 1)
-    {
-        fprintf(ferr, "%*s> (%d) (%d): ", d/10, "", d, covered.size());
-    }
+  LOG(loggerParse, Level::DEBUG, 
+      "%*s> (%d) (%d): ", d/10, "", d, covered.size());
 
     if(d == n)
     {
@@ -101,9 +99,8 @@ choose_paths(FILE *f,
             min_sol = selected;
             min_sol_cost = selected.size();
 
-            if(verbosity > 1)
-                fprintf(ferr, "new solution (cost %d)\n",
-                        min_sol_cost);
+            LOG(loggerParse, Level::DEBUG,
+                "new solution (cost %d)", min_sol_cost);
             
             fprintf(f, "; found solution with %d paths on %s",
                     min_sol_cost, ctime(&t));
@@ -112,10 +109,7 @@ choose_paths(FILE *f,
             fflush(f);
         }
         else
-        {
-            if(verbosity > 1)
-                fprintf(ferr, "too expensive\n");
-        }
+          LOG(loggerParse, Level::DEBUG, "too expensive");
 
         if(t > timeout)
         {
@@ -129,8 +123,7 @@ choose_paths(FILE *f,
     
     if(selected.size() > min_sol_cost)
     {
-        if(verbosity > 1)
-            fprintf(ferr, "too expensive\n");
+        LOG(loggerParse, Level::DEBUG, "too expensive");
         return true;
     }
     
@@ -139,9 +132,8 @@ choose_paths(FILE *f,
     {   
         // Set is not yet covered.
 
-        if(verbosity > 1)
-            fprintf(ferr, "not covered, %d candidates\n",
-                    fail_sets[d].size());
+        LOG(loggerParse, Level::DEBUG,
+            "not covered, %d candidates", fail_sets[d].size());
 
         // Pursue a greedy strategy: Choose the path that covers the largest
         // number of remaining sets which are not yet covered.
@@ -166,9 +158,9 @@ choose_paths(FILE *f,
             pq_item<int, int> top = candidates.top();
             searchspace *= candidates.size();
             
-            if(verbosity > 1)
-                fprintf(ferr, "%*s- (%d): trying %d (covers %d more sets)\n",
-                        d/10, "", d, top.inf, top.prio);
+            LOG(loggerParse, Level::DEBUG,
+                "%*s- (%d): trying %d (covers %d more sets)",
+                d/10, "", d, top.inf, top.prio);
 
             selected.insert(top.inf);
             for(list<int>::iterator it = path_covers[top.inf].begin(); 
@@ -191,8 +183,7 @@ choose_paths(FILE *f,
     }
     else
     {
-        if(verbosity > 1)
-            fprintf(ferr, "already covered\n");
+        LOG(loggerParse, Level::DEBUG, "already covered");
 
         if(!choose_paths(f, fail_sets, path_covers, selected, covered,
                          d+1, n, timeout))
