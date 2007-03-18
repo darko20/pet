@@ -129,6 +129,21 @@ private:
 };
 
 /**
+ * Works like PrintfBuffer but output is not captured, it is sent to
+ * a stdio's FILE.
+ */
+class StreamPrinter : public PrintfBuffer {
+public:
+  StreamPrinter(FILE *file);
+  virtual ~StreamPrinter();
+  virtual char* getContents();
+  virtual bool isOverflowed();
+  virtual int vprintf(char *fmt, va_list ap);
+private:
+  FILE *file_;
+};
+
+/**
  * @brief Substitutes fprintf, uses PrintfBuffer to capture output.
  *
  * @param printfBuffer object that accumulates results.

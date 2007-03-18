@@ -46,10 +46,9 @@ chart::~chart()
 
 void chart::add(tItem *it)
 {
-#ifdef DEBUG
-    it->print(ferr);
-    fprintf(ferr, "\n");
-#endif
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(it->print(&pb));
+    LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 
     _Chart.push_back(it);
 
@@ -85,10 +84,6 @@ void chart::remove(hash_set<tItem *> &to_delete)
                  , _Chart.end());
     for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
           ; hit != to_delete.end(); hit++) {
-#ifdef DEBUG
-      it->print(ferr);
-      fprintf(ferr, "removed \n");
-#endif
       
       tItem *it = *hit;
       if(it->passive())
@@ -108,13 +103,13 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
-void chart::print(FILE *f)
+void chart::print(PrintfBuffer *pb)
 {
     int i = 0;
     for(chart_iter pos(this); pos.valid(); pos++, i++)
     {
-        (pos.current())->print(f);
-        fprintf(f, "\n");
+        (pos.current())->print(pb);
+        pbprintf(pb, "\n");
     }
 }
 

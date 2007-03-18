@@ -49,3 +49,24 @@ int pbprintf(PrintfBuffer *printfBuffer, char *fmt, ...) {
   
   return res;
 }
+
+
+StreamPrinter::StreamPrinter(FILE *file)
+  : PrintfBuffer(0,-1), file_(file)
+{
+}
+
+StreamPrinter::~StreamPrinter() {
+}
+
+char* StreamPrinter::getContents() {
+  return 0;
+}
+
+bool StreamPrinter::isOverflowed() {
+  return false;
+}
+
+int StreamPrinter::vprintf(char *fmt, va_list ap) {
+  return vfprintf(file_, fmt, ap);
+}

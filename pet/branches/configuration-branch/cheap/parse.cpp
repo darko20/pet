@@ -61,7 +61,7 @@ filter_rule_task(grammar_rule *R, tItem *passive)
     LOG_ONLY(pbprintf(&pb, "trying "));
     LOG_ONLY(R->print(&pb));
     LOG_ONLY(pbprintf(&pb, " & passive "));
-    LOG_ONLY(passive->print(ferr));
+    LOG_ONLY(passive->print(&pb));
     LOG_ONLY(pbprintf(&pb, " ==> "));
 
     if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(),
@@ -91,19 +91,18 @@ filter_rule_task(grammar_rule *R, tItem *passive)
 bool
 filter_combine_task(tItem *active, tItem *passive)
 {
-#ifdef DEBUG
-    fprintf(ferr, "trying active "); active->print(ferr);
-    fprintf(ferr, " & passive "); passive->print(ferr);
-    fprintf(ferr, " ==> ");
-#endif
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(pbprintf(&pb, "trying active "));
+    LOG_ONLY(active->print(&pb));
+    LOG_ONLY(pbprintf(&pb, " & passive "));
+    LOG_ONLY(passive->print(&pb));
+    LOG_ONLY(pbprintf(&pb, " ==> "));
 
     if(opt_filter && !Grammar->filter_compatible(active->rule(),
                                                  active->nextarg(),
                                                  passive->rule()))
     {
-#ifdef DEBUG
-        fprintf(ferr, "filtered (rf)\n");
-#endif
+        LOG_ONLY(pbprintf(&pb, "filtered (rf)\n"));
 
         stats.ftasks_fi++;
         return false;
@@ -113,17 +112,14 @@ filter_combine_task(tItem *active, tItem *passive)
        && !qc_compatible_unif(qc_len_unif, active->qc_vector_unif(),
                               passive->qc_vector_unif()))
     {
-#ifdef DEBUG
-        fprintf(ferr, "filtered (qc)\n");
-#endif
+        LOG_ONLY(pbprintf(&pb, "filtered (qc)\n"));
 
         stats.ftasks_qc++;
         return false;
     }
 
-#ifdef DEBUG
-    fprintf(ferr, "passed filters\n");
-#endif
+    LOG_ONLY(pbprintf(&pb, "passed filters\n"));
+    LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
 
     return true;
 }
@@ -230,14 +226,15 @@ packed_edge(tItem *newitem) {
     if(forward && !olditem->blocked()) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {
-        if(verbosity > 4) {
-          fprintf(ferr, "proactive (%s) packing:\n", backward
-                  ? "equi" : "subs");
-          newitem->print(ferr);
-          fprintf(ferr, "\n --> \n");
-          olditem->print(ferr);
-          fprintf(ferr, "\n");
-        }
+        
+        LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+        LOG_ONLY(pbprintf(&pb, "proactive (%s) packing:\n", backward
+                  ? "equi" : "subs"));
+        LOG_ONLY(newitem->print(&pb));
+        LOG_ONLY(pbprintf(&pb, "\n --> \n"));
+        LOG_ONLY(olditem->print(&pb));
+        LOG_ONLY(pbprintf(&pb, "\n"));
+        LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
                 
         if(backward)
           stats.p_equivalent++;
@@ -250,13 +247,13 @@ packed_edge(tItem *newitem) {
     }
       
     if(backward && (opt_packing & PACKING_RETRO) && !olditem->frosted()) {
-      if(verbosity > 4) {
-        fprintf(ferr, "retroactive packing:\n");
-        newitem->print(ferr);
-        fprintf(ferr, " <- ");
-        olditem->print(ferr);
-        fprintf(ferr, "\n");
-      }
+      LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+      LOG_ONLY(pbprintf(&pb, "retroactive packing:\n"));
+      LOG_ONLY(newitem->print(&pb));
+      LOG_ONLY(pbprintf(&pb, " <- "));
+      LOG_ONLY(olditem->print(&pb));
+      LOG_ONLY(pbprintf(&pb, "\n"));
+      LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
 
       newitem->packed.splice(newitem->packed.begin(), olditem->packed);
 
@@ -296,11 +293,10 @@ bool
 add_item(tItem *it) {
   assert(!(opt_packing && it->blocked()));
   
-#ifdef DEBUG
-  fprintf(ferr, "add_item ");
-  it->print(ferr);
-  fprintf(ferr, "\n");
-#endif
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(pbprintf(&pb, "add_item "));
+  LOG_ONLY(it->print(&pb));
+  LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
 
   if(it->passive()) {
     if(opt_packing && packed_edge(it))
@@ -392,13 +388,13 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
     //if((*res)->root(Grammar, Chart->rightmost(), rule)) {
     // the checking is moved into selectively_unpack()
     readings.push_back(*res);
-    if(verbosity > 2) {
-      fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
-              UnpackTime->convert2ms(UnpackTime->elapsed())
-              / 1000.);
-      (*res)->print_derivation(stderr, false);
-      fprintf(stderr, "\n");
-    }
+
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(pbprintf(&pb, "unpacked[%d] (%.1f): ", nres++,
+                      UnpackTime->convert2ms(UnpackTime->elapsed())
+                      / 1000.));
+    LOG_ONLY((*res)->print_derivation(&pb, false));
+    LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
     //} 
   }
   return nres;
@@ -423,13 +419,12 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
         type_t rule;
         if((*res)->root(Grammar, Chart->rightmost(), rule)) {
           readings.push_back(*res);
-          if(verbosity > 2) {
-            fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
-                    UnpackTime->convert2ms(UnpackTime->elapsed())
-                    / 1000.);
-            (*res)->print_derivation(stderr, false);
-            fprintf(stderr, "\n");
-          }
+          LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+          LOG_ONLY(pbprintf(&pb, "unpacked[%d] (%.1f): ", nres++,
+                            UnpackTime->convert2ms(UnpackTime->elapsed())
+                            / 1000.));
+          LOG_ONLY((*res)->print_derivation(&pb, false));
+          LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
         }
       }
     }
@@ -497,9 +492,10 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
     prune_glbcache();
   }
 
-  if(verbosity > 8)
-    Chart->print(fstatus);
-  
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(Chart->print(&pb));
+  LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
+
   Chart->readings() = collect_readings(FSAS, errors, Chart->trees());
   stats.readings = Chart->readings().size();
 }

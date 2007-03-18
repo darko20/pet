@@ -76,11 +76,11 @@ lex_stem::get_stems() {
     dag = dag_get_path_value(e.dag(),
                              cheap_settings->req_value("orth-path"));
   if(dag == FAIL) {
-    fprintf(ferr, "no orth-path in `%s'\n", type_name(_instance_type));
-    if(verbosity > 9) {
-      dag_print(stderr, e.dag());
-      fprintf(ferr, "\n");
-    }
+    LOG(loggerUncategorized, Level::INFO,
+        "no orth-path in `%s'", type_name(_instance_type));
+    // TODO
+    //    if(verbosity > 9)
+    //  dag_print(stderr, e.dag());
         
     orth.push_back("");
     return orth;
@@ -105,7 +105,8 @@ lex_stem::get_stems() {
       }
     }
     else {
-      fprintf(ferr, "no valid stem in `%s'\n", type_name(_instance_type));
+      LOG(loggerUncategorized, Level::INFO,
+          "no valid stem in `%s'", type_name(_instance_type));
     }
         
     return orth;
@@ -117,7 +118,8 @@ lex_stem::get_stems() {
       iter != stemlist.end(); ++iter) {
     dag = *iter;
     if(dag == FAIL) {
-      fprintf(ferr, "no stem %d in `%s'\n", n, type_name(_instance_type));
+      LOG(loggerUncategorized, Level::INFO,
+          "no stem %d in `%s'", n, type_name(_instance_type));
       return vector<string>();
     }
         
@@ -125,7 +127,8 @@ lex_stem::get_stems() {
       string s(type_name(dag_type(dag)));
       orth.push_back(s.substr(1,s.length()-2));
     } else {
-      fprintf(ferr, "no valid stem %d in `%s'\n",n,type_name(_instance_type));
+      LOG(loggerUncategorized, Level::INFO,
+          "no valid stem %d in `%s'",n,type_name(_instance_type));
       return vector<string>();
     }
     n++;

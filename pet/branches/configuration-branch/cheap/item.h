@@ -34,6 +34,7 @@
 #include "postags.h"
 #include "hashing.h"
 #include <functional>
+#include "logging.h"
 
 // options managed by the configuration system
 extern bool opt_lattice;
@@ -325,15 +326,15 @@ public:
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
-  virtual void print(FILE *f, bool compact = false);
+  virtual void print(PrintfBuffer *pb, bool compact = false);
   /** Print the ID's of daughters and parents of this item to \a f */
-  void print_family(FILE *f);
+  void print_family(PrintfBuffer *pb);
   /** Print the ID's of all items packed into this item to \a f */
-  virtual void print_packed(FILE *f);
+  virtual void print_packed(PrintfBuffer *pb);
   /** \brief Print the whole derivation of this item to \a f. Escape double
    *  quotes with backslashes if \a quoted is \c true.
    */
-  virtual void print_derivation(FILE *f, bool quoted) = 0;
+  virtual void print_derivation(PrintfBuffer *pb, bool quoted) = 0;
   
   /** Print the yield of this item */
   virtual void print_yield(FILE *f) = 0;
@@ -615,12 +616,12 @@ public:
   INHIBIT_COPY_ASSIGN(tInputItem);
 
   /** \brief Print item readably to \a f. \a compact is ignored here */
-  virtual void print(FILE *f, bool compact=true);
+  virtual void print(PrintfBuffer *pb, bool compact=true);
   /** Print the yield of this item */
   virtual void print_yield(FILE *f);
   /** Print a readable description of the derivation tree encoded in this item.
    */
-  virtual void print_derivation(FILE *f, bool quoted);
+  virtual void print_derivation(PrintfBuffer *pb, bool quoted);
 
   /** Print a machine readable description of the derivation tree encoded in
    *  this item for use with the incr[tsdb] system.
@@ -810,12 +811,12 @@ class tLexItem : public tItem
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
-  virtual void print(FILE *f, bool compact = false);
+  virtual void print(PrintfBuffer *pb, bool compact = false);
 
   /** \brief Print the whole derivation of this item to \a f. Escape double
    *  quotes with backslashes if \a quoted is \c true.
    */
-  virtual void print_derivation(FILE *f, bool quoted);
+  virtual void print_derivation(PrintfBuffer *pb, bool quoted);
   /** Print the yield of this item */
   virtual void print_yield(FILE *f);
   /** Print the derivation of this item in incr[tsdb()] compatible form,
@@ -988,11 +989,11 @@ class tPhrasalItem : public tItem {
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
-  virtual void print(FILE *f, bool compact = false);
+  virtual void print(PrintfBuffer *pb, bool compact = false);
   /** \brief Print the whole derivation of this item to \a f. Escape double
    *  quotes with backslashes if \a quoted is \c true.
    */
-  virtual void print_derivation(FILE *f, bool quoted);
+  virtual void print_derivation(PrintfBuffer *pb, bool quoted);
   /** Print the yield of this item */
   virtual void print_yield(FILE *f);
   /** Print the derivation of this item in incr[tsdb()] compatible form,
@@ -1157,13 +1158,13 @@ class item_owner
       tItem::reset_ids();
     }
   void add(tItem *it) { _list.push_back(it); }
-  void print(FILE *stream) {
+  void print(PrintfBuffer *stream) {
     for(list<tItem *>::iterator item = _list.begin(); 
         item != _list.end(); 
         ++item)
       if(!(*item)->frozen()) {
         (*item)->print(stream);
-        fprintf(stream, "\n");
+        pbprintf(stream, "\n");
       } // if
   } // print()
  private:

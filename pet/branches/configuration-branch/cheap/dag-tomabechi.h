@@ -31,6 +31,7 @@
 
 #include <list>
 #include "types.h"
+#include "logging.h"
 
 /** Use partial copying if possible if \c SMART_COPYING is defined */
 #define SMART_COPYING
@@ -256,7 +257,7 @@ dag_node *dag_nth_arg_temp(dag_node *dag, int n);
  *  treated as such, and the generation protected members will be considered
  *  too, to print its complete state.
  */
-void dag_print_safe(FILE *f, dag_node *dag, bool temporary, 
+void dag_print_safe(PrintfBuffer *pb, dag_node *dag, bool temporary, 
                     int format = DAG_FORMAT_TRADITIONAL);
 /*@}*/
 

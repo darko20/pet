@@ -100,14 +100,12 @@ void lex_parser::tokenize(string input, inp_list &tokens) {
   _tokenizers.front()->tokenize(input, tokens);
   
   // trace output
-  if(verbosity > 4)
-    {
-    cerr << "tokenizer output:" << endl ;
-      for(inp_list::iterator r = tokens.begin();
-  	  r != tokens.end(); ++r)
-  	  (*r)->print(ferr);      
-    }
- 
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(pbprintf(&pb, "tokenizer output:\n"));
+  LOG_ONLY(for(inp_list::iterator r = tokens.begin();
+               r != tokens.end(); ++r)
+           (*r)->print(&pb));
+  LOG(loggerLexproc, Level::DEBUG, "%s", pb.getContents());
 }
 
 /** Call the registered taggers which add their results to the individual
@@ -526,36 +524,30 @@ void
 lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   list< lex_stem * > gens;
 
-  if(verbosity > 4)
-    fprintf(ferr, "adding generic les\n");
-
+  LOG(loggerUncategorized, Level::DEBUG, "adding generic les");
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+ 
   for(list<tInputItem *>::iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
-    if(verbosity > 4) {
-      fprintf(ferr, "  token ");
-      (*it)->print(ferr);
-      fprintf(ferr, "\n");
-    }
+    LOG_ONLY(pbprintf(&pb, "  token "));
+    LOG_ONLY((*it)->print(&pb));
+    LOG_ONLY(pbprintf(&pb, "\n"));
 
     if ((! (*it)->parents.empty())
         && cheap_settings->lookup("pos-completion")) {
       postags missing((*it)->get_in_postags());
 
-      if(verbosity > 4) {
-        fprintf(ferr, "    token provides tags:");
-        missing.print(ferr);
-        fprintf(ferr, "\n    already supplied:");
-        postags((*it)->parents).print(ferr);
-        fprintf(ferr, "\n");
-      }
+      LOG_ONLY(pbprintf(&pb, "    token provides tags:"));
+      LOG_ONLY(missing.print(&pb));
+      LOG_ONLY(pbprintf(&pb, "\n    already supplied:"));
+      LOG_ONLY(postags((*it)->parents).print(&pb));
+      LOG_ONLY(pbprintf(&pb, "\n"));
 
       missing.remove(postags((*it)->parents));
 
-      if(verbosity > 4) {
-        fprintf(ferr, "    -> missing tags:");
-        missing.print(ferr);
-        fprintf(ferr, "\n");
-      }
+      LOG_ONLY(pbprintf(&pb, "    -> missing tags:"));
+      LOG_ONLY(missing.print(&pb));
+      LOG_ONLY(pbprintf(&pb, "\n"));
             
       if(!missing.empty())
         gens = (*it)->generics(missing);
@@ -594,6 +586,8 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       }
     }
   }
+  
+  LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 }
 
 void 

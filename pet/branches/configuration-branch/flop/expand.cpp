@@ -357,14 +357,17 @@ bool fully_expand_types(bool full_expansion) {
       list_int *path = fully_expand(types[i]->thedag, full_expansion);
 
       if(path != NULL) {
-        fprintf(ferr, " `%s' failed under path (", typenames[i]);
+        LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+        LOG_ONLY(pbprintf(&pb, " `%s' failed under path (", typenames[i]));
         list_int *start = path;
         while (rest(start) != NULL) { // last element is invalid
-          fprintf(ferr, "%s", attrname[first(start)]);
+          LOG_ONLY(pbprintf(&pb, "%s", attrname[first(start)]));
           start = rest(start);
-          if (rest(start) != NULL) fprintf(ferr, "|");
+          if (rest(start) != NULL)
+            LOG_ONLY(pbprintf(&pb, "|"));
         }
-        fprintf(ferr, ")\n");
+        LOG_ONLY(pbprintf(&pb, ")\n"));
+        LOG(loggerExpand, Level::INFO, "%s", pb.getContents());
         fail = true;
         free_list(path);
       }
