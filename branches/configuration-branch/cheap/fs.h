@@ -26,6 +26,7 @@
 
 #include "types.h"
 #include "dag.h"
+#include "logging.h"
 
 /** Features structure modification list: a list of pairs (path, type).
  * In these modlists, the path is represented by a string where the feature
@@ -152,7 +153,7 @@ class fs
   bool characterize(list_int *path, attr_t attr, type_t value);  
 
   /** Print readably for debugging purposes */
-  void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL);
+  void print(PrintfBuffer *pb, int format = DAG_FORMAT_TRADITIONAL);
 
  private:
   

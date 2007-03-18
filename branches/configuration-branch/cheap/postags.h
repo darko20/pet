@@ -100,7 +100,7 @@ class postags
   bool license(type_t t) const;
 
   /** Print the contents of this set for debugging purposes */
-  void print(FILE *) const;
+  void print(PrintfBuffer *pb) const;
 
  private:
   bool contains(type_t t, const class setting *set) const;

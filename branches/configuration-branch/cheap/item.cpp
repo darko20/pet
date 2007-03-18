@@ -161,7 +161,8 @@ void tItem::lui_dump(const char *path) {
     return;
   } // if
   fprintf(stream, "avm %d ", _id);
-  _fs.print(stream, DAG_FORMAT_LUI);
+  StreamPrinter sp(stream);
+  _fs.print(&sp, DAG_FORMAT_LUI);
   fprintf(stream, " \"Edge # %d\"\f\n", _id);
   fclose(stream);
 
@@ -218,24 +219,26 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   _trait = INPUT_TRAIT;
 }
   
-void tInputItem::print(FILE *f, bool compact)
+void tInputItem::print(PrintfBuffer *pb, bool compact)
 {
-  fprintf(f, "[%d - %d] (%s) \"%s\" \"%s\" "
-          , _startposition, _endposition, _input_id.c_str()
-          , _stem.c_str(), _surface.c_str());
+  pbprintf(pb, "[%d - %d] (%s) \"%s\" \"%s\" "
+           , _startposition, _endposition, _input_id.c_str()
+           , _stem.c_str(), _surface.c_str());
 
   list_int *li = _inflrs_todo;
   while(li != NULL) {
-    fprintf(f, "+%s", type_name(first(li)));
+    pbprintf(pb, "+%s", type_name(first(li)));
     li = rest(li);
   }
 
   // fprintf(f, "@%d", inflpos);
 
-  fprintf(ferr, " {");
-  _postags.print(ferr);
-  fprintf(ferr, " }");
-  fprintf(ferr, "\n");
+  LOG_ONLY(PrintfBuffer pb2(defaultPb, defaultPbSize));
+  LOG_ONLY(pbprintf(&pb2, " {"));
+  LOG_ONLY(_postags.print(&pb2));
+  LOG_ONLY(pbprintf(&pb2, " }"));
+  LOG_ONLY(pbprintf(&pb2, "\n"));
+  LOG(loggerUncategorized, Level::DEBUG, "%s", pb2.getContents());
 }
 
 void
@@ -245,12 +248,12 @@ tInputItem::print_gen(class tItemPrinter *ip) const
 }
 
 void
-tInputItem::print_derivation(FILE *f, bool quoted) {
-    fprintf (f, "(%s\"%s%s\" %.4g %d %d)",
+tInputItem::print_derivation(PrintfBuffer *pb, bool quoted) {
+    pbprintf(pb, "(%s\"%s%s\" %.4g %d %d)",
              quoted ? "\\" : "", orth().c_str(), quoted ? "\\" : "", score(),
              _start, _end);
 
-    fprintf(f, ")");
+    pbprintf(pb, ")");
 }
 
 void 
@@ -360,10 +363,10 @@ tInputItem::generics(postags onlyfor)
 
         if(_postags.license(gen) && (onlyfor.empty() || onlyfor.contains(gen)))
         {
-          if(verbosity > 4)
-              fprintf(ferr, "  ==> %s [%s]\n", print_name(gen),
-                      suffix == 0 ? "*" : suffix);
-	  
+          LOG(loggerUncategorized, Level::DEBUG,
+              "  ==> %s [%s]", print_name(gen),
+              suffix == 0 ? "*" : suffix);
+          
           result.push_back(Grammar->find_stem(gen));
         }
     }
@@ -422,11 +425,12 @@ void tLexItem::init(fs &f) {
 
   }
 
-#ifdef DEBUG
-  fprintf(ferr, "new lexical item (`%s'):", printname());
-  print(ferr);
-  fprintf(ferr, "\n");
-#endif
+
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(pbprintf(&pb, "new lexical item (`%s'):", printname()));
+  LOG_ONLY(print(&pb));
+  LOG_ONLY(pbprintf(&pb, "\n"));
+  LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 }
 
 tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
@@ -530,12 +534,12 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     R->actives++;
   }
 
-#ifdef DEBUG
-  fprintf(ferr, "new rule tItem (`%s' + %d@%d):", 
-          R->printname(), pasv->id(), R->nextarg());
-  print(ferr);
-  fprintf(ferr, "\n");
-#endif
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(pbprintf(&pb, "new rule tItem (`%s' + %d@%d):", 
+                    R->printname(), pasv->id(), R->nextarg()));
+  LOG_ONLY(print(&pb));
+  LOG_ONLY(pbprintf(&pb, "\n"));
+  LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 }
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
@@ -587,12 +591,12 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
                                         nextarg(f));
     }
 
-#ifdef DEBUG
-    fprintf(ferr, "new combined item (%d + %d@%d):", 
-            active->id(), pasv->id(), active->nextarg());
-    print(ferr);
-    fprintf(ferr, "\n");
-#endif
+
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(pbprintf(&pb, "new combined item (%d + %d@%d):", 
+                      active->id(), pasv->id(), active->nextarg()));
+    LOG_ONLY(print(&pb));
+    LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 }
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
@@ -635,47 +639,47 @@ tPhrasalItem::set_result_root(type_t rule)
 }
 
 void
-tItem::print(FILE *f, bool compact)
+tItem::print(PrintfBuffer *pb, bool compact)
 {
-    fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
-            _trait);
+    pbprintf(pb, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
+             _trait);
 
-    fprintf(f, "%.4g", _score);
+    pbprintf(pb, "%.4g", _score);
 
-    fprintf(f, " {");
+    pbprintf(pb, " {");
 
     list_int *l = _tofill;
     while(l)
     {
-        fprintf(f, "%d ", first(l));
+        pbprintf(pb, "%d ", first(l));
         l = rest(l);
     }
 
-    fprintf(f, "} {");
+    pbprintf(pb, "} {");
 
     l = _inflrs_todo;
     while(l)
     {
-        fprintf(f, "%s ", print_name(first(l)));
+        pbprintf(pb, "%s ", print_name(first(l)));
         l = rest(l);
     }
 
-    fprintf(f, "} {");
+    pbprintf(pb, "} {");
 
     list<int> paths = _paths.get();
     for(list<int>::iterator it = paths.begin(); it != paths.end(); ++it)
     {
-        fprintf(f, "%s%d", it == paths.begin() ? "" : " ", *it);
+        pbprintf(pb, "%s%d", it == paths.begin() ? "" : " ", *it);
     }
   
-    fprintf(f, "}]");
+    pbprintf(pb, "}]");
 
-    print_family(f);
-    print_packed(f);
+    print_family(pb);
+    print_packed(pb);
 
     if(verbosity > 2 && compact == false)
     {
-        print_derivation(f, false);
+        print_derivation(pb, false);
     }
 #ifdef LUI
     lui_dump();
@@ -683,14 +687,14 @@ tItem::print(FILE *f, bool compact)
 }
 
 void
-tLexItem::print(FILE *f, bool compact)
+tLexItem::print(PrintfBuffer *pb, bool compact)
 {
-    fprintf(f, "L ");
-    tItem::print(f);
+    pbprintf(pb, "L ");
+    tItem::print(pb);
     if(verbosity > 10 && compact == false)
     {
-        fprintf(f, "\n");
-        _fs.print(f);
+        pbprintf(pb, "\n");
+        _fs.print(pb);
     }
 }
 
@@ -719,15 +723,15 @@ tLexItem::orth()
 }
 
 void
-tPhrasalItem::print(FILE *f, bool compact)
+tPhrasalItem::print(PrintfBuffer *pb, bool compact)
 {
-    fprintf(f, "P ");
-    tItem::print(f);
+    pbprintf(pb, "P ");
+    tItem::print(pb);
 
     if(verbosity > 10 && compact == false)
     {
-        fprintf(f, "\n");
-        _fs.print(f);
+        pbprintf(pb, "\n");
+        _fs.print(pb);
     }
 }
 
@@ -738,51 +742,51 @@ tPhrasalItem::print_gen(class tItemPrinter *ip) const
 }
 
 void
-tItem::print_packed(FILE *f)
+tItem::print_packed(PrintfBuffer *pb)
 {
     if(packed.size() == 0)
         return;
 
-    fprintf(f, " < packed: ");
+    pbprintf(pb, " < packed: ");
     for(list<tItem *>::iterator pos = packed.begin();
         pos != packed.end(); ++pos)
-        fprintf(f, "%d ",(*pos)->_id);
-    fprintf(f, ">");
+        pbprintf(pb, "%d ",(*pos)->_id);
+    pbprintf(pb, ">");
 }
 
 void
-tItem::print_family(FILE *f)
+tItem::print_family(PrintfBuffer *pb)
 {
-    fprintf(f, " < dtrs: ");
+    pbprintf(pb, " < dtrs: ");
     for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
-        fprintf(f, "%d ",(*pos)->_id);
-    fprintf(f, " parents: ");
+        pbprintf(pb, "%d ",(*pos)->_id);
+    pbprintf(pb, " parents: ");
     for(list<tItem *>::iterator pos = parents.begin();
         pos != parents.end(); ++pos)
-        fprintf(f, "%d ",(*pos)->_id);
-    fprintf(f, ">");
+        pbprintf(pb, "%d ",(*pos)->_id);
+    pbprintf(pb, ">");
 }
 
 static int derivation_indentation = 0; // not elegant
 
 void
-tLexItem::print_derivation(FILE *f, bool quoted)
+tLexItem::print_derivation(PrintfBuffer *pb, bool quoted)
 {
     if(derivation_indentation == 0)
-        fprintf(f, "\n");
+        pbprintf(pb, "\n");
     else
-        fprintf(f, "%*s", derivation_indentation, "");
+        pbprintf(pb, "%*s", derivation_indentation, "");
 
-    fprintf (f, "(%d %s/%s %.4g %d %d ", _id, _stem->printname(),
+    pbprintf(pb, "(%d %s/%s %.4g %d %d ", _id, _stem->printname(),
              print_name(type()), score(), _start, _end);
 
-    fprintf(f, "[");
+    pbprintf(pb, "[");
     for(list_int *l = _inflrs_todo; l != 0; l = rest(l))
-        fprintf(f, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
-    fprintf(f, "] ");
+        pbprintf(pb, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
+    pbprintf(pb, "] ");
 
-    _keydaughter->print_derivation(f, quoted);
+    _keydaughter->print_derivation(pb, quoted);
 }
 
 void
@@ -820,53 +824,53 @@ tLexItem::collect_children(list<tItem *> &result)
 }
 
 void
-tPhrasalItem::print_derivation(FILE *f, bool quoted)
+tPhrasalItem::print_derivation(PrintfBuffer *pb, bool quoted)
 {
     if(derivation_indentation == 0)
-        fprintf(f, "\n");
+        pbprintf(pb, "\n");
     else
-        fprintf(f, "%*s", derivation_indentation, "");
+        pbprintf(pb, "%*s", derivation_indentation, "");
 
-    fprintf(f, 
+    pbprintf(pb, 
             "(%d %s %.4g %d %d", 
             _id, printname(), _score, _start, _end);
 
     if(packed.size())
     {
-        fprintf(f, " {");
+        pbprintf(pb, " {");
         for(list<tItem *>::iterator pack = packed.begin();
             pack != packed.end(); ++pack)
         {
-            fprintf(f, "%s%d", pack == packed.begin() ? "" : " ", (*pack)->id()); 
+            pbprintf(pb, "%s%d", pack == packed.begin() ? "" : " ", (*pack)->id()); 
         }
-        fprintf(f, "}");
+        pbprintf(pb, "}");
     }
 
     if(_result_root != -1)
     {
-        fprintf(f, " [%s]", print_name(_result_root));
+        pbprintf(pb, " [%s]", print_name(_result_root));
     }
   
     if(_inflrs_todo)
     {
-        fprintf(f, " [");
+        pbprintf(pb, " [");
         for(list_int *l = _inflrs_todo; l != 0; l = rest(l))
         {
-            fprintf(f, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
+            pbprintf(pb, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
         }
-        fprintf(f, "]");
+        pbprintf(pb, "]");
     }
 
     derivation_indentation+=2;
     for(list<tItem *>::iterator pos = _daughters.begin();
         pos != _daughters.end(); ++pos)
     {
-        fprintf(f, "\n");
-        (*pos)->print_derivation(f, quoted);
+        pbprintf(pb, "\n");
+        (*pos)->print_derivation(pb, quoted);
     }
     derivation_indentation-=2;
 
-    fprintf(f, ")");
+    pbprintf(pb, ")");
 }
 
 void
@@ -979,12 +983,12 @@ void tPhrasalItem::recreate_fs()
 void
 tItem::block(int mark)
 {
-    if(verbosity > 4)
-    {
-        fprintf(ferr, "%sing ", mark == 1 ? "frost" : "freez");
-        print(ferr);
-        fprintf(ferr, "\n");
-    }
+    LOG(loggerUncategorized, Level::DEBUG,
+        "%sing ", mark == 1 ? "frost" : "freez");
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(print(&pb));
+    LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
+
     if(!blocked() || mark == 2)
     {
         if(mark == 2) 
@@ -1093,12 +1097,12 @@ tPhrasalItem::unpack1(int upedgelimit)
 }
 
 void
-print_config(FILE *f, int motherid, vector<tItem *> &config)
+print_config(PrintfBuffer *pb, int motherid, vector<tItem *> &config)
 {
-    fprintf(f, "%d[", motherid);
+    pbprintf(pb, "%d[", motherid);
     for(vector<tItem *>::iterator it = config.begin(); it != config.end(); ++it)
-        fprintf(f, "%s%d", it == config.begin() ? "" : " ", (*it)->id());
-    fprintf(f, "]");
+        pbprintf(pb, "%s%d", it == config.begin() ? "" : " ", (*it)->id());
+    pbprintf(pb, "]");
 }
 
 // Recursively compute all configurations of dtrs, and accumulate valid
@@ -1113,31 +1117,30 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
         tItem *combined = unpack_combine(config);
         if(combined)
         {
-            if(verbosity > 9)
-            {
-                fprintf(stderr, "%*screated edge %d from ",
-                        unpacking_level * 2, "", combined->id());
-                print_config(stderr, id(), config);
-                fprintf(stderr, "\n");
-                combined->print(stderr);
-                fprintf(stderr, "\n");
-                if(verbosity > 14)
-                    dag_print(stderr, combined->get_fs().dag());
-            }
+            LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+            LOG_ONLY(pbprintf(&pb, "%*screated edge %d from ",
+                              unpacking_level * 2, "", combined->id()));
+            LOG_ONLY(print_config(&pb, id(), config));
+            LOG_ONLY(pbprintf(&pb, "\n"));
+            LOG_ONLY(combined->print(&pb));
+            LOG_ONLY(pbprintf(&pb, "\n"));
+            // TODO
+            // LOG_ONLY(dag_print(&pb, combined->get_fs().dag()));
+            LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
+
             res.push_back(combined);
         }
         else
         {
             stats.p_failures++;
-            if(verbosity > 9)
-            {
-                fprintf(stderr, "%*sfailure instantiating ",
-                        unpacking_level * 2, "");
-                print_config(stderr, id(), config);
-                fprintf(stderr, "\n");
-            }
+            LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+            LOG_ONLY(pbprintf(&pb, "%*sfailure instantiating ",
+                              unpacking_level * 2, ""));
+            LOG_ONLY(print_config(&pb, id(), config));
+            LOG_ONLY(pbprintf(&pb, "\n"));
+            LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
         }
-	return;
+        return;
     }
 
     for(list<tItem *>::iterator i = dtrs[index].begin(); i != dtrs[index].end();

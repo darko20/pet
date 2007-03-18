@@ -280,7 +280,9 @@ grammar_rule::lui_dump(const char *path) {
   } // if
   fprintf(stream, "avm -%d ", _id);
   fs foo = instantiate(true);
-  foo.print(stream, DAG_FORMAT_LUI);
+  PrintfBuffer pb(defaultPb, defaultPbSize);
+  foo.print(&pb, DAG_FORMAT_LUI);
+  fprintf(stream, "%s", pb.getContents());
   fprintf(stream, " \"Rule # %d (%s)\"\f\n", _id, printname());
   fclose(stream);
 
