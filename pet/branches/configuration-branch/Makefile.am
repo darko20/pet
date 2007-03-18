@@ -26,11 +26,15 @@ flopdoc:
 cheapdoc:
 	doxygen doxyconfig.cheap
 
-TESTS = ConfigurationTest
+TESTS = ConfigurationTest loggingTest
 
-check_PROGRAMS = ConfigurationTest
+check_PROGRAMS = ConfigurationTest loggingTest
 ConfigurationTest_SOURCES = \
 	common/ConfigurationTest.cpp\
 	common/Configuration.cpp
+
+loggingTest_SOURCES = \
+	common/logging.cpp\
+	common/loggingTest.cpp
 
 noinst_HEADERS = common/Configuration.h

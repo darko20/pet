@@ -176,16 +176,23 @@ int LConsume(int n)
   if(CURR->info)
     {
       if(Configuration::get<bool>("opt_linebreaks"))
-	{
-	  fprintf(fstatus, "\n%s `%s' ", CURR->info, CURR->fname);
-	}
+        {
+          LOG(loggerUncategorized, Level::INFO,
+              "%s `%s' ", CURR->info, CURR->fname);
+        }
       else
-	{
-	  if(last_info != CURR->info)
-	    fprintf(fstatus, "%s `%s'... ", CURR->info, CURR->fname);
-	  else
-	    fprintf(fstatus, "`%s'... ", CURR->fname);
-	}
+        {
+          if(last_info != CURR->info)
+            {
+              LOG(loggerUncategorized, Level::INFO,
+                  "%s `%s'... ", CURR->info, CURR->fname);
+              }
+          else
+            {
+              LOG(loggerUncategorized, Level::INFO,
+                  "`%s'... ", CURR->fname);
+            }
+        }
 
       last_info = CURR->info;
       CURR->info = NULL;

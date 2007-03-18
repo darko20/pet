@@ -43,7 +43,7 @@ int is_idchar(int c)
 
 int lisp_mode = 0; // shall lexer recognize lisp expressions 
 
-void print_token(struct lex_token *t);
+void print_token(PrintfBuffer *pb, struct lex_token *t);
 
 struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len)
 {
@@ -387,17 +387,17 @@ struct lex_token *get_next_token()
   return t;
 }
 
-void print_token(struct lex_token *t)
+void print_token(PrintfBuffer *pb, struct lex_token *t)
 {
   assert(t != NULL);
   
   if(t->tag == T_EOF)
     {
-      fprintf(fstatus, "*EOF*\n");
+      pbprintf(pb, "*EOF*\n");
     }
   else
     {
-      fprintf(fstatus, "[%d]<%s>\n", t->tag, t->text);
+      pbprintf(pb, "[%d]<%s>\n", t->tag, t->text);
     }
 }
 
@@ -406,38 +406,39 @@ int tokensdelivered = 0;
 struct lex_token *
 get_token()
 {
-    struct lex_token *t;
-    int hope = 1;
-    
-    while(hope)
+  struct lex_token *t;
+  int hope = 1;
+  
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  
+  while(hope)
     {
-        while((t = get_next_token())->tag != T_EOF)
-	{
-            if(t->tag != T_WS && t->tag != T_COMM)
-	    {
-#ifdef DEBUG
-                fprintf(fstatus, "delivering "); print_token(t);
-#endif
-                tokensdelivered++;
-                return t;
-	    }
-#ifdef DEBUG
-            else
+      while((t = get_next_token())->tag != T_EOF)
+        {
+          if(t->tag != T_WS && t->tag != T_COMM)
             {
-                fprintf(fstatus, "not delivering "); print_token(t);
+              LOG_ONLY(pbprintf(&pb, "delivering "));
+              LOG_ONLY(print_token(&pb, t));
+              tokensdelivered++;
+              return t;
             }
-#endif
-            free(t);
-	}
-        if(!pop_file()) hope = 0;
+          else
+            {
+              LOG_ONLY(pbprintf(&pb, "not delivering "));
+              LOG_ONLY(print_token(&pb, t));
+            }
+          free(t);
+        }
+      if(!pop_file()) hope = 0;
     }
+  
+  LOG_ONLY(pbprintf(&pb, "delivering "));
+  LOG_ONLY(print_token(&pb, t));
 
-#ifdef DEBUG
-    fprintf(fstatus, "delivering "); print_token(t);
-#endif
-    
-    tokensdelivered++;
-    return t;
+  LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
+  
+  tokensdelivered++;
+  return t;
 }
 
 /* the parser operates on a stream of tokens. these are provided by get_token().

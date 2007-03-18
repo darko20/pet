@@ -41,6 +41,8 @@ flop_SOURCES = corefs.cpp		\
 	full-form.cpp		\
 	hierarchy.cpp		\
 	hierarchy.h		\
+	logging.cpp		\
+	logging.h		\
 	options.cpp		\
 	options.h		\
 	parse-tdl.cpp		\

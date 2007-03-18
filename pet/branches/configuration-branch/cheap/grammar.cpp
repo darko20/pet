@@ -228,10 +228,9 @@ grammar_rule::grammar_rule(type_t t)
         _spanningonly = true;
     }
     
-    if(verbosity > 14)
-    {
-        print(fstatus); fprintf(fstatus, "\n");
-    }
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(print(&pb));
+    LOG(loggerGrammar, Level::DEBUG, "%s", pb.getContents());
 }
 
 grammar_rule *
@@ -240,25 +239,25 @@ grammar_rule::make_grammar_rule(type_t t) {
     return new grammar_rule(t);
   }
   catch (tError e) {
-    LOG_ERROR(loggerGrammar, e.getMessage().c_str());
+    LOG_ERROR(loggerGrammar, "%s", e.getMessage().c_str());
   }
   return NULL;
 }
 
 void
-grammar_rule::print(FILE *f)
+grammar_rule::print(PrintfBuffer *pb)
 {
-    fprintf(f, "%s/%d%s (", print_name(_type), _arity,
-            _hyper == false ? "[-HA]" : "");
+    pbprintf(pb, "%s/%d%s (", print_name(_type), _arity,
+             _hyper == false ? "[-HA]" : "");
     
     list_int *l = _tofill;
     while(l)
     {
-        fprintf(f, " %d", first(l));
+        pbprintf(pb, " %d", first(l));
         l = rest(l);
     }
     
-    fprintf(f, ")");
+    pbprintf(pb, ")");
 }
 
 void
@@ -663,7 +662,6 @@ tGrammar::tGrammar(const char * filename)
         char *mappath = cheap_settings->value("extdict-mapping");
         if(extdictpath != 0 && mappath)
         {
-            fprintf(fstatus, "\n");
             _extDict = new extDictionary(extdictpath, mappath);
         }
     }
@@ -696,8 +694,9 @@ tGrammar::tGrammar(const char * filename)
 void
 tGrammar::undump_properties(dumper *f)
 {
-    if(verbosity > 4)
-        fprintf(fstatus, " [");
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+
+    LOG_ONLY(pbprintf(&pb, "["));
 
     int nproperties = f->undump_int();
     for(int i = 0; i < nproperties; i++)
@@ -706,14 +705,13 @@ tGrammar::undump_properties(dumper *f)
         key = f->undump_string();
         val = f->undump_string();
         _properties[key] = val;
-        if(verbosity > 4)
-            fprintf(fstatus, "%s%s=%s", i ? ", " : "", key, val);
+        LOG_ONLY(pbprintf(&pb, "%s%s=%s", i ? ", " : "", key, val));
         delete[] key;
         delete[] val;
     }
 
-    if(verbosity > 4)
-        fprintf(fstatus, "]");
+    LOG_ONLY(pbprintf(&pb, "]"));
+    LOG(loggerGrammar, Level::INFO, "%s", pb.getContents());
 }
 
 string
@@ -1018,8 +1016,8 @@ tGrammar::lookup_stem(string s)
     list<extDictMapEntry> extDictMapped;
     _extDict->getMapped(s, extDictMapped);
 
-    if(verbosity > 2)
-        fprintf(fstatus, "[EXTDICT] %s:", s.c_str());
+    LOG_ONLY(PrintBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(pbprintf(&pb, "[EXTDICT] %s:", s.c_str()));
 
     for(list<extDictMapEntry>::iterator it = extDictMapped.begin(); it != extDictMapped.end(); ++it)
     {
@@ -1028,14 +1026,12 @@ tGrammar::lookup_stem(string s)
         // Create stem if not blocked by entry from native lexicon.
         if(native_types.find(_extDict->equiv_rep(t)) != native_types.end())
         {
-            if(verbosity > 2)
-                fprintf(fstatus, " (%s)", type_name(t));
-            continue;
+          LOG_ONLY(pbprintf(&pb, " (%s)", type_name(t)));
+          continue;
         }
         else
         {
-            if(verbosity > 2)
-                fprintf(fstatus, " %s", type_name(t));
+          LOG_ONLY(pbprintf(&pb, " %s", type_name(t)));
         }
 
         modlist mods;
@@ -1055,8 +1051,8 @@ tGrammar::lookup_stem(string s)
         results.push_back(st);
     }
 
-    if(verbosity > 2)
-        fprintf(fstatus, "\n");
+    LOG_ONLY(pbprintf(&pb, "\n"));
+    LOG(loggerGrammar, Level::INFO, "%s", pb.getContents());
 #endif
 
     return results;

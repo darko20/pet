@@ -71,6 +71,7 @@ cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
 	input-modules.h item-printer.cpp item-printer.h item.cpp item.h	\
 	lexicon.cpp lexicon.h lexparser.cpp lexparser.h 		\
 	lingo-tokenizer.cpp lingo-tokenizer.h				\
+	logging.cpp logging.h						\
 	morph.cpp morph.h options.cpp options.h parse.cpp parse.h 	\
 	paths.cpp paths.h position-mapper.h postags.cpp postags.h       \
   restrictor.h sm.cpp sm.h task.cpp task.h itsdb.h timer.h tsdb++.h \

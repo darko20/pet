@@ -165,9 +165,9 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
     }
   }
 
-  if(verbosity > 14) {
-    print(fstatus); fprintf(fstatus, "\n");
-  }
+  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(print(&pb));
+  LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 }
 
 
@@ -180,11 +180,11 @@ lex_stem::~lex_stem()
 }
 
 void
-lex_stem::print(FILE *f) const
+lex_stem::print(PrintfBuffer *pb) const
 {
-  fprintf(f, "%s:", printname());
+  pbprintf(pb, "%s:", printname());
   for(int i = 0; i < _nwords; i++)
-    fprintf(f, " \"%s\"", _orth[i]);
+    pbprintf(pb, " \"%s\"", _orth[i]);
 }
 
 
