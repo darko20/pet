@@ -444,9 +444,7 @@ void morph_letterset::print(FILE *f)
 
 void morph_lettersets::add(string s)
 {
-
-  if(verbosity > 14)
-    fprintf(fstatus, "LETTERSET: <%s>", s.c_str());
+  LOG(loggerUncategorized, Level::DEBUG,"LETTERSET: <%s>", s.c_str());
 
   // s consists of the name and the characters making up the set
   // seperated by whitespace
@@ -460,9 +458,8 @@ void morph_lettersets::add(string s)
     if(p < s.length())
     {
       string elems = s.substr(p, s.length() - p); 
-      if(verbosity > 14)
-        fprintf(fstatus, " -> <%s> <%s>\n", name.c_str(), elems.c_str());
-	  
+      LOG(loggerUncategorized, Level::DEBUG,
+          " -> <%s> <%s>", name.c_str(), elems.c_str());
       morph_letterset *ls = new morph_letterset(name, elems);
       _m[name] = ls;
     }
@@ -742,10 +739,9 @@ void morph_trie::add_subrule(type_t rule, string subrule)
     reverse_subrule(right);
   }
 
-  if(verbosity > 14)
-    fprintf(fstatus, "INFLSUBRULE<%s>: %s (`%s' -> `%s')\n",
-            print_name(rule), subrule.c_str(),
-            Conv->convert(left).c_str(), Conv->convert(right).c_str());
+  LOG(loggerUncategorized, Level::DEBUG, "INFLSUBRULE<%s>: %s (`%s' -> `%s')",
+      print_name(rule), subrule.c_str(),
+      Conv->convert(left).c_str(), Conv->convert(right).c_str());
 
   morph_subrule *sr = new morph_subrule(_analyzer, rule, left, right);
   _analyzer->add_subrule(sr);
@@ -1146,8 +1142,8 @@ bool tMorphAnalyzer::matching_irreg_form(tMorphAnalysis a)
 
 list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
 {
-  if(verbosity > 7)
-    fprintf(fstatus, "tMorphAnalyzer::analyze(%s)\n", form.c_str());
+  LOG(loggerUncategorized, Level::DEBUG,
+      "tMorphAnalyzer::analyze(%s)", form.c_str());
 
   // least fixpoint iteration
   
@@ -1367,21 +1363,28 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
 
         if(verbosity > 14)
           {
-            fprintf(fstatus, "(");
-            for(list<type_t>::iterator affix = affixes.begin()
+            LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+            LOG_ONLY(pbprintf(&pb, "("));
+            LOG_ONLY(
+              for(list<type_t>::iterator affix = affixes.begin()
                   ; affix != affixes.end(); affix++)
               {
-                fprintf(fstatus, "%s@%d ", print_name(*affix), offset);
+                pbprintf(&pb, "%s@%d ", print_name(*affix), offset);
               }
+            );
               
-            fprintf(fstatus, "(");
-            lstem->print(fstatus);
-            fprintf(fstatus, ")");
+            LOG_ONLY(pbprintf(&pb, "("));
+            LOG_ONLY(lstem->print(&pb));
+            LOG_ONLY(pbprintf(&pb, ")"));
               
-            for(int i = 0; i < lstem->length(); i++)
-              fprintf(fstatus, " \"%s\"", lstem->orth(i));
-              
-            fprintf(fstatus, ")%s\n", (found ? "dupl" : ""));
+            LOG_ONLY(
+              for(int i = 0; i < lstem->length(); i++)
+                pbprintf(&pb, " \"%s\"", lstem->orth(i));
+            );
+  
+            LOG_ONLY( pbprintf(&pb, ")%s", (found ? "dupl" : "")));
+            
+            LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
           }
       } else {
         invalid++;
@@ -1390,10 +1393,9 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
       delete[] s;
     }
 
-  if(verbosity > 4) {
-    fprintf(fstatus, ", %d full form entries", nffs);
-    if (invalid > 0) fprintf(fstatus, ", %d of them invalid", invalid);
-  }
+  LOG(loggerUncategorized, Level::DEBUG, "%d full form entries", nffs);
+  if (invalid > 0)
+    LOG(loggerUncategorized, Level::DEBUG, "%d of them invalid", invalid);
 }
 
 void tFullformMorphology::print(FILE *out) {

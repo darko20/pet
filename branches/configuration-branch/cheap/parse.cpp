@@ -57,22 +57,18 @@ int  opt_nsolutions, opt_packing;
 bool
 filter_rule_task(grammar_rule *R, tItem *passive)
 {
-
-#ifdef DEBUG
-    fprintf(ferr, "trying "); R->print(ferr);
-    fprintf(ferr, " & passive "); passive->print(ferr);
-    fprintf(ferr, " ==> ");
-#endif
+    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(pbprintf(&pb, "trying "));
+    LOG_ONLY(R->print(&pb));
+    LOG_ONLY(pbprintf(&pb, " & passive "));
+    LOG_ONLY(passive->print(ferr));
+    LOG_ONLY(pbprintf(&pb, " ==> "));
 
     if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(),
                                                  passive->rule()))
     {
         stats.ftasks_fi++;
-
-#ifdef DEBUG
-        fprintf(ferr, "filtered (rf)\n");
-#endif
-
+        LOG_ONLY(pbprintf(&pb, "filtered (rf)"));
         return false;
     }
 
@@ -81,18 +77,14 @@ filter_rule_task(grammar_rule *R, tItem *passive)
                               passive->qc_vector_unif()))
     {
         stats.ftasks_qc++;
-
-#ifdef DEBUG
-        fprintf(ferr, "filtered (qc)\n");
-#endif
-
+        LOG_ONLY(pbprintf(&pb, "filtered (qc)"));
         return false;
     }
 
-#ifdef DEBUG
-    fprintf(ferr, "passed filters\n");
-#endif
+    LOG_ONLY(pbprintf(&pb, "passed filters"));
 
+    LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
+    
     return true;
 }
 

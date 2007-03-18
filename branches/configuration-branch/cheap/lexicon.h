@@ -25,6 +25,7 @@
 #define _LEXICON_H_
 
 #include "types.h"
+#include "logging.h"
 
 /** A lexicon entry. */
 class lex_stem
@@ -90,7 +91,7 @@ class lex_stem
   }
   
   /** Print readable representation for debugging purposes */
-  void print(FILE *f) const;
+  void print(PrintfBuffer *pb) const;
 
  private:
   /** Inhibited copy constructor */

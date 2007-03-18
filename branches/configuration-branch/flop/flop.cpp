@@ -38,7 +38,8 @@
 using namespace log4cxx;
 
 const int logBufferSize = 65536;
-char logBuffer[65536];
+char logBuffer[logBufferSize];
+
 LoggerPtr loggerUncategorized = Logger::getLogger("uncategorized");
 LoggerPtr loggerExpand = Logger::getLogger("expand");
 LoggerPtr loggerFs = Logger::getLogger("fs");
@@ -47,6 +48,10 @@ LoggerPtr loggerHierarchy = Logger::getLogger("hierarchy");
 LoggerPtr loggerLexproc = Logger::getLogger("lexproc");
 LoggerPtr loggerParse = Logger::getLogger("parse");
 LoggerPtr loggerTsdb = Logger::getLogger("tsdb");
+
+const int  defaultPbSize = 65536;
+char defaultPb[defaultPbSize];
+
 #endif // HAVE_LIBLOG4CXX
 
 /*** global variables ***/
@@ -142,14 +147,12 @@ void process_multi_instances()
   for(i = 0; i < n; i++)
     if((t = types[i])->tdl_instance && length(t->parents) > 1)
       {
-	if(verbosity > 4)
-	  {
-	    fprintf(fstatus, "TDL instance `%s' has multiple parents: ",
-		    types.name(i).c_str());
-	    for(list_int *l = t->parents; l != 0; l = rest(l))
-	      fprintf(fstatus, " %s", types.name(first(l)).c_str());
-	    fprintf(fstatus, "\n");
-	  }
+        LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+        LOG_ONLY(pbprintf(&pb, "TDL instance `%s' has multiple parents: ",
+                          types.name(i).c_str()));
+        LOG_ONLY(for(list_int *l = t->parents; l != 0; l = rest(l))
+                   pbprintf(&pb, " %s", types.name(first(l)).c_str()));
+        LOG(loggerUncategorized, Level::DEBUG, pb.getContents());
 
 	if(ptype[t->parents] == 0)
 	  {
@@ -163,8 +166,9 @@ void process_multi_instances()
 
 	    ptype[t->parents] = p->id;
 
-	    if(verbosity > 4)
-	      fprintf(fstatus, "Synthesizing new parent type `%d'\n", p->id); 
+
+            LOG(loggerUncategorized, Level::INFO,
+                "Synthesizing new parent type `%d'", p->id); 
 	  }
 
 	undo_subtype_constraints(t->id);
@@ -270,7 +274,7 @@ void demote_instances()
 
 void process_types()
 {
-  fprintf(fstatus, "- building dag representation\n");
+  LOG(loggerUncategorized, Level::INFO, "- building dag representation");
   unify_wellformed = false;
   dagify_symtabs();
   dagify_types();
@@ -463,8 +467,9 @@ int process(char *ofname) {
     initialize_specials(flop_settings);
     initialize_status();
 
-    fprintf(fstatus, "\nconverting `%s' (%s) into `%s' ...\n"
-            , fname.c_str(), grammar_version, outfname.c_str());
+    LOG(loggerUncategorized, Level::INFO,
+        "\nconverting `%s' (%s) into `%s' ...",
+        fname.c_str(), grammar_version, outfname.c_str());
       
     if((set = flop_settings->lookup("postload-files")) != 0)
       for(i = set->n - 1; i >= 0; i--) {
@@ -506,16 +511,17 @@ int process(char *ofname) {
     if(!Configuration::get<bool>("opt_pre"))
       check_undefined_types();
 
-    fprintf(fstatus, "\nfinished parsing - %d syntax errors, %d lines "
-            "in %0.3g s\n",
-            syntax_errors, total_lexed_lines,
-            (clock() - t_start) / (float) CLOCKS_PER_SEC);
+    LOG(loggerUncategorized, Level::INFO,
+        "finished parsing - %d syntax errors, %d lines in %0.3g s",
+        syntax_errors, total_lexed_lines,
+        (clock() - t_start) / (float) CLOCKS_PER_SEC);
+
     if (syntax_errors > 0) res = SYNTAX_ERRORS;
 
     mem_checkpoint("before preprocessing types");
 
-    fprintf(fstatus, "processing type constraints (%d types):\n",
-            types.number());
+    LOG(loggerUncategorized, Level::INFO,
+        "processing type constraints (%d types):", types.number());
       
     t_start = clock();
 
@@ -541,26 +547,26 @@ int process(char *ofname) {
       fprintf(fstatus, "dumping grammar (");
       dump_grammar(&dmp, grammar_version);
       fprintf(fstatus, ")\n");
-      if(verbosity > 10)
-        fprintf(fstatus,
-                "%d[%d]/%d (%0.2g) total grammar nodes"
-                "[atoms]/arcs (ratio) dumped\n",
-                dag_dump_grand_total_nodes, 
-                dag_dump_grand_total_atomic,
-                dag_dump_grand_total_arcs,
-                double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
+      LOG(loggerUncategorized, Level::DEBUG,
+          "%d[%d]/%d (%0.2g) total grammar nodes [atoms]/arcs (ratio) dumped",
+          dag_dump_grand_total_nodes, 
+          dag_dump_grand_total_atomic,
+          dag_dump_grand_total_arcs,
+          double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
     }
       
     fclose(outf);
-      
-    fprintf(fstatus, "finished conversion - output generated in %0.3g s\n",
-            (clock() - t_start) / (float) CLOCKS_PER_SEC);
+    
+    LOG(loggerUncategorized, Level::INFO,
+        "finished conversion - output generated in %0.3g s",
+        (clock() - t_start) / (float) CLOCKS_PER_SEC);
 
     if(Configuration::get<int>("opt_cmi") > 0) {
       string moifile = output_name(fname, TDL_EXT, ".moi");
       FILE *moif = fopen(moifile.c_str(), "wb");
-      fprintf(fstatus, "Extracting morphological information "
-              "into `%s'...", moifile.c_str());
+      LOG(loggerUncategorized, Level::INFO,
+          "Extracting morphological information into `%s'...",
+          moifile.c_str());
       print_morph_info(moif);
       if(Configuration::get<int>("opt_cmi") > 1) {
         fprintf(fstatus, " type hierarchy...");
@@ -614,7 +620,8 @@ void setup_io()
 	    }
 	  if((val & O_ACCMODE) == O_RDONLY)
 	    {
-	      fprintf(stderr, "setup_io(): fd errors_to is read only\n");
+              LOG_FATAL(loggerUncategorized,
+                        "setup_io(): fd errors_to is read only");
 	      exit(1);
 	    }
 	  ferr = fdopen(errors_to, "w");

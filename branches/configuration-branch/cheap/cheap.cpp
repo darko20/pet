@@ -67,8 +67,10 @@ char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
 #if HAVE_LIBLOG4CXX
+
 const int logBufferSize = 65536;
-char logBuffer[65536];
+char logBuffer[logBufferSize];
+
 LoggerPtr loggerUncategorized = Logger::getLogger("uncategorized");
 LoggerPtr loggerExpand = Logger::getLogger("expand");
 LoggerPtr loggerFs = Logger::getLogger("fs");
@@ -78,6 +80,10 @@ LoggerPtr loggerLexproc = Logger::getLogger("lexproc");
 LoggerPtr loggerParse = Logger::getLogger("parse");
 LoggerPtr loggerTsdb = Logger::getLogger("tsdb");
 LoggerPtr loggerXml = Logger::getLogger("xml");
+
+const int  defaultPbSize = 65536;
+char defaultPb[defaultPbSize];
+
 #endif // HAVE_LIBLOG4CXX
 
 // global variables for parsing
