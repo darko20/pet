@@ -554,6 +554,19 @@ if test x$yy = xtrue; then
 fi
 AM_CONDITIONAL(YY, [test x$yy = xtrue])
 
+AC_ARG_ENABLE(instfc,
+AC_HELP_STRING([--enable-instfc@<:@=ARG@:>@], [use the instantiation failure cache (default=yes)]),
+[case "${enableval}" in
+   yes) instfc=true ;;
+   no)  instfc=false ;;
+   *)   instfc=false
+        AC_MSG_ERROR(bad value ${enableval} for --enable-instfc) ;;
+ esac
+], [instfc=true])
+if test x$instfc = xtrue; then 
+    AC_DEFINE(INSTFC, [1], [Include instantiation failure cache code])
+fi
+AM_CONDITIONAL(INSTFC, [test x$instfc = xtrue])
 
 AC_ARG_ENABLE(lui,
 AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),

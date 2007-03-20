@@ -1205,6 +1205,7 @@ tLexItem::hypothesize_edge(list<tItem*> path, unsigned int i) {
   if (i == 0) {
     if (_hypo == NULL) {
       _hypo = new tHypothesis(this);
+      stats.p_hypotheses ++;
     }
     Grammar->sm()->score_hypothesis(_hypo, path);
     
@@ -1379,6 +1380,7 @@ tPhrasalItem::new_hypothesis(tDecomposition* decomposition,
 			     vector<int> indices) 
 {
   tHypothesis *hypo = new tHypothesis(this, decomposition, dtrs, indices);
+  stats.p_hypotheses ++;
   _hypotheses.push_back(hypo);
   for (map<list<tItem*>, list<tHypothesis*> >::iterator iter = _hypo_agendas.begin();
        iter != _hypo_agendas.end(); iter++) {
@@ -1418,6 +1420,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
   if (hypo) {
     //Grammar->sm()->score_hypothesis(hypo);
     aitem = new tHypothesis(this, hypo, 0);
+    stats.p_hypotheses ++;
     hagenda_insert(ragenda, aitem);
   }
   for (list<tItem*>::iterator edge = packed.begin();
@@ -1431,6 +1434,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
       continue;
     //Grammar->sm()->score_hypothesis(hypo);
     aitem = new tHypothesis(*edge, hypo, 0);
+    stats.p_hypotheses ++;
     hagenda_insert(ragenda, aitem);
   }
 
@@ -1450,6 +1454,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
     if (hypo) {
       //Grammar->sm()->score_hypothesis(hypo);
       tHypothesis* naitem = new tHypothesis(aitem->edge, hypo, aitem->indices[0]+1);
+      stats.p_hypotheses ++;
       hagenda_insert(ragenda, naitem);
     }
     delete aitem;
@@ -1486,6 +1491,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
     if (hypo) {
       // Grammar->sm()->score_hypothesis(hypo);
       aitem = new tHypothesis(root, hypo, 0);
+      stats.p_hypotheses ++;
       hagenda_insert(ragenda, aitem, path);
     }
     for (list<tItem*>::iterator edge = root->packed.begin();
@@ -1498,6 +1504,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
 	continue;
       //Grammar->sm()->score_hypothesis(hypo);
       aitem = new tHypothesis(*edge, hypo, 0);
+      stats.p_hypotheses ++;
       hagenda_insert(ragenda, aitem, path);
     }
   }
@@ -1522,6 +1529,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
     if (hypo) {
       //Grammar->sm()->score_hypothesis(hypo);
       tHypothesis* naitem = new tHypothesis(aitem->edge, hypo, aitem->indices[0]+1);
+      stats.p_hypotheses ++;
       hagenda_insert(ragenda, naitem, path);
     }
     delete aitem;
@@ -1561,8 +1569,10 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
     return hypo->inst_edge;
 
   // If the instantiation failed before, don't bother trying again
+#ifdef INSTFC
   if (hypo->inst_failed)
     return NULL;
+#endif
   
   vector<tItem*> daughters;
 
@@ -1606,7 +1616,10 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   if (!res.valid()) {
     //    FSAS.release();
     //hypo->inst_failed = true;//
+#ifdef INSTFC
     propagate_failure(hypo);
+#endif
+    stats.p_failures ++;
     return NULL;
   }
   if (passive()) {
@@ -1620,6 +1633,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   return result;
 }
 
+#ifdef INSTFC
 void propagate_failure(tHypothesis *hypo) {
   hypo->inst_failed = true;
 
@@ -1628,6 +1642,7 @@ void propagate_failure(tHypothesis *hypo) {
     propagate_failure(*p_hypo);
   }
 }
+#endif
 
 list<vector<int> > advance_indices(vector<int> indices) {
   list<vector<int> > results;
