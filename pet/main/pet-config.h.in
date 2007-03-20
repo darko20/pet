@@ -204,6 +204,9 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
+/* Include instantiation failure cache code */
+#undef INSTFC
+
 /* Current Linux kernel is 2.4.x */
 #undef KERNEL_2_4
 

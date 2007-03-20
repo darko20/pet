@@ -144,6 +144,8 @@ class statistics
   int p_upedges;
   /** failures in unpacking */
   int p_failures;
+  /** hypotheses in unpacking */
+  int p_hypotheses;
   /** total dynamic memory in bytes in unpacking */
   long p_dyn_bytes;
   /** total static memory in bytes in unpacking */
@@ -272,7 +274,7 @@ class tsdb_parse
         date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
         subsumptions(-1), p_equivalent(-1), p_proactive(-1),
         p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
-        p_upedges(-1),
+	p_hypotheses(-1), p_upedges(-1),
         results(), edges(), rule_stats(), i_input(), i_length(-1)
         {
         }
@@ -383,6 +385,7 @@ class tsdb_parse
   int p_frozen;
   int p_utcpu;
   int p_failures;
+  int p_hypotheses;
   /** passive items in unpacking  */
   int p_upedges;
     
