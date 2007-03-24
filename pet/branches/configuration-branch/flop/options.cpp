@@ -88,12 +88,12 @@ bool parse_options(int argc, char* argv[])
   Configuration::addOption<bool>("opt_full_expansion",
     "expand the feature structures fully to find possible inconsistencies",
     false);
-  Configuration::addOption<bool>("opt_unfill", false);
-  Configuration::addOption<bool>("opt_minimal", false);
+  Configuration::addOption<bool>("opt_unfill", "", false);
+  Configuration::addOption<bool>("opt_minimal", "", false);
   opt_no_sem = false;
-  Configuration::addOption<bool>("opt_propagate_status", false);
-  Configuration::addOption<bool>("opt_linebreaks", false);
-  Configuration::addOption<bool>("opt_glbdebug", false);
+  Configuration::addOption<bool>("opt_propagate_status", "", false);
+  Configuration::addOption<bool>("opt_linebreaks", "", false);
+  Configuration::addOption<bool>("opt_glbdebug", "", false);
 
   Configuration::addOption<int>("opt_cmi",
     "print information about morphological processing "
