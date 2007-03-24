@@ -140,15 +140,15 @@ postags::remove(const postags &s)
 }
 
 void
-postags::print(PrintfBuffer *pb) const
+postags::print(IPrintfHandler &iph) const
 {
     for(set<string>::const_iterator iter = _tags.begin(); iter != _tags.end();
         ++iter)
     {
-        pbprintf(pb, " %s", iter->c_str());
+        pbprintf(iph, " %s", iter->c_str());
         map<string, double>::const_iterator p = _probs.find(*iter);
         if(p != _probs.end())
-            pbprintf(pb, " %.2g", p->second);
+            pbprintf(iph, " %.2g", p->second);
     }
 }
 

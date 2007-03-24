@@ -153,7 +153,7 @@ class fs
   bool characterize(list_int *path, attr_t attr, type_t value);  
 
   /** Print readably for debugging purposes */
-  void print(PrintfBuffer *pb, int format = DAG_FORMAT_TRADITIONAL);
+  void print(IPrintfHandler &iph, int format = DAG_FORMAT_TRADITIONAL);
 
  private:
   

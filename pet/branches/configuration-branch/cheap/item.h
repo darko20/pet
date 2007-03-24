@@ -326,15 +326,15 @@ public:
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
-  virtual void print(PrintfBuffer *pb, bool compact = false);
+  virtual void print(IPrintfHandler &iph, bool compact = false);
   /** Print the ID's of daughters and parents of this item to \a f */
-  void print_family(PrintfBuffer *pb);
+  void print_family(IPrintfHandler &iph);
   /** Print the ID's of all items packed into this item to \a f */
-  virtual void print_packed(PrintfBuffer *pb);
+  virtual void print_packed(IPrintfHandler &iph);
   /** \brief Print the whole derivation of this item to \a f. Escape double
    *  quotes with backslashes if \a quoted is \c true.
    */
-  virtual void print_derivation(PrintfBuffer *pb, bool quoted) = 0;
+  virtual void print_derivation(IPrintfHandler &iph, bool quoted) = 0;
   
   /** Print the yield of this item */
   virtual void print_yield(FILE *f) = 0;
@@ -616,12 +616,12 @@ public:
   INHIBIT_COPY_ASSIGN(tInputItem);
 
   /** \brief Print item readably to \a f. \a compact is ignored here */
-  virtual void print(PrintfBuffer *pb, bool compact=true);
+  virtual void print(IPrintfHandler &iph, bool compact=true);
   /** Print the yield of this item */
   virtual void print_yield(FILE *f);
   /** Print a readable description of the derivation tree encoded in this item.
    */
-  virtual void print_derivation(PrintfBuffer *pb, bool quoted);
+  virtual void print_derivation(IPrintfHandler &iph, bool quoted);
 
   /** Print a machine readable description of the derivation tree encoded in
    *  this item for use with the incr[tsdb] system.
@@ -811,12 +811,12 @@ class tLexItem : public tItem
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
-  virtual void print(PrintfBuffer *pb, bool compact = false);
+  virtual void print(IPrintfHandler &iph, bool compact = false);
 
   /** \brief Print the whole derivation of this item to \a f. Escape double
    *  quotes with backslashes if \a quoted is \c true.
    */
-  virtual void print_derivation(PrintfBuffer *pb, bool quoted);
+  virtual void print_derivation(IPrintfHandler &iph, bool quoted);
   /** Print the yield of this item */
   virtual void print_yield(FILE *f);
   /** Print the derivation of this item in incr[tsdb()] compatible form,
@@ -989,11 +989,11 @@ class tPhrasalItem : public tItem {
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
-  virtual void print(PrintfBuffer *pb, bool compact = false);
+  virtual void print(IPrintfHandler &iph, bool compact = false);
   /** \brief Print the whole derivation of this item to \a f. Escape double
    *  quotes with backslashes if \a quoted is \c true.
    */
-  virtual void print_derivation(PrintfBuffer *pb, bool quoted);
+  virtual void print_derivation(IPrintfHandler &iph, bool quoted);
   /** Print the yield of this item */
   virtual void print_yield(FILE *f);
   /** Print the derivation of this item in incr[tsdb()] compatible form,
@@ -1158,7 +1158,7 @@ class item_owner
       tItem::reset_ids();
     }
   void add(tItem *it) { _list.push_back(it); }
-  void print(PrintfBuffer *stream) {
+  void print(IPrintfHandler &stream) {
     for(list<tItem *>::iterator item = _list.begin(); 
         item != _list.end(); 
         ++item)

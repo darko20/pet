@@ -1354,10 +1354,10 @@ void dag_mark_coreferences_safe(struct dag_node *dag, bool temporary) {
   }
 }
 
-void dag_print_rec_safe(PrintfBuffer *pb, dag_node *dag, int indent
+void dag_print_rec_safe(IPrintfHandler &iph, dag_node *dag, int indent
                         , bool temporary, int format);
 
-void dag_print_arcs_safe(PrintfBuffer *pb, dag_arc *arc, int indent
+void dag_print_arcs_safe(IPrintfHandler &iph, dag_arc *arc, int indent
                          , bool temporary, int format) {
   if(arc == 0) return;
 
@@ -1377,26 +1377,26 @@ void dag_print_arcs_safe(PrintfBuffer *pb, dag_arc *arc, int indent
     arc=arc->next;
   }
 
-  if(format == DAG_FORMAT_TRADITIONAL) pbprintf(pb, "\n%*s[ ", indent, "");
+  if(format == DAG_FORMAT_TRADITIONAL) pbprintf(iph, "\n%*s[ ", indent, "");
   
   bool first = true;
   for(int j = 0; j <= maxatt; j++) if(print_attrs[j]) {
     i = attrnamelen[j];
     switch(format) {
     case DAG_FORMAT_TRADITIONAL:
-      if(!first) pbprintf(pb, ",\n%*s",indent + 2,"");
+      if(!first) pbprintf(iph, ",\n%*s",indent + 2,"");
       else first = false;
-      pbprintf(pb, "%s%*s", attrname[j], maxlen-i+1, "");
+      pbprintf(iph, "%s%*s", attrname[j], maxlen-i+1, "");
       break;
     case DAG_FORMAT_LUI:
-      pbprintf(pb, " %s: ", attrname[j]);
+      pbprintf(iph, " %s: ", attrname[j]);
       break;
     } // switch
-    dag_print_rec_safe(pb, print_attrs[j], 
+    dag_print_rec_safe(iph, print_attrs[j], 
                        indent + 2 + maxlen + 1, temporary, format);
   }
   
-  if(format == DAG_FORMAT_TRADITIONAL) pbprintf(pb, " ]");
+  if(format == DAG_FORMAT_TRADITIONAL) pbprintf(iph, " ]");
   free(print_attrs);
 }
 
@@ -1404,7 +1404,7 @@ void dag_print_arcs_safe(PrintfBuffer *pb, dag_arc *arc, int indent
  * mark_coreferences. negative value in `visit' field means that node
  * is coreferenced, and already printed
  */
-void dag_print_rec_safe(PrintfBuffer *pb, dag_node *dag, int indent
+void dag_print_rec_safe(IPrintfHandler &iph, dag_node *dag, int indent
                         , bool temporary, int format) {
   int coref;
   bool arcsp = (dag->arcs != NULL 
@@ -1412,7 +1412,7 @@ void dag_print_rec_safe(PrintfBuffer *pb, dag_node *dag, int indent
   dag_node *orig = dag;
   if(temporary) {
     dag = dag_deref1(dag);
-    if(dag != orig && format == DAG_FORMAT_TRADITIONAL) pbprintf(pb, "~");
+    if(dag != orig && format == DAG_FORMAT_TRADITIONAL) pbprintf(iph, "~");
   }
 
   coref = dag_get_visit_safe(dag) - 1;
@@ -1420,10 +1420,10 @@ void dag_print_rec_safe(PrintfBuffer *pb, dag_node *dag, int indent
     // dag is coreferenced, already printed
     switch(format) {
     case DAG_FORMAT_TRADITIONAL:
-      pbprintf(pb, "#%d", -(coref+1));
+      pbprintf(iph, "#%d", -(coref+1));
       break;
     case DAG_FORMAT_LUI:
-      pbprintf(pb, "<%d>", -(coref+1));
+      pbprintf(iph, "<%d>", -(coref+1));
       break;
     } // switch
     return;
@@ -1433,47 +1433,47 @@ void dag_print_rec_safe(PrintfBuffer *pb, dag_node *dag, int indent
     coref = -dag_set_visit_safe(dag, -(coref_nr++));
     switch(format) {
     case DAG_FORMAT_TRADITIONAL:
-      indent += pbprintf(pb, "#%d:", coref);
+      indent += pbprintf(iph, "#%d:", coref);
       break;
     case DAG_FORMAT_LUI:
-      indent += pbprintf(pb, "<%d>=", coref);
+      indent += pbprintf(iph, "<%d>=", coref);
       break;
     } // switch
   }
 
   switch(format) {
   case DAG_FORMAT_TRADITIONAL:
-    pbprintf(pb, "%s(", type_name(dag->type));
-    if(dag != orig) pbprintf(pb, "%x->", (size_t) orig);
-    pbprintf(pb, "%x)", (size_t) dag);
+    pbprintf(iph, "%s(", type_name(dag->type));
+    if(dag != orig) pbprintf(iph, "%x->", (size_t) orig);
+    pbprintf(iph, "%x)", (size_t) dag);
     break;
   case DAG_FORMAT_LUI:
-    if(arcsp) pbprintf(pb, "#D[%s", type_name(dag->type));
-    else pbprintf(pb, "%s", type_name(dag->type));
+    if(arcsp) pbprintf(iph, "#D[%s", type_name(dag->type));
+    else pbprintf(iph, "%s", type_name(dag->type));
     break;
   } // switch
-  dag_print_arcs_safe(pb, dag->arcs, indent, temporary, format);
+  dag_print_arcs_safe(iph, dag->arcs, indent, temporary, format);
   if(temporary)
-    dag_print_arcs_safe(pb, dag_get_comp_arcs(dag), indent, temporary, format);
-  if(arcsp && format == DAG_FORMAT_LUI) pbprintf(pb, "]");
+    dag_print_arcs_safe(iph, dag_get_comp_arcs(dag), indent, temporary, format);
+  if(arcsp && format == DAG_FORMAT_LUI) pbprintf(iph, "]");
 }
 
-void dag_print_safe(PrintfBuffer *pb, struct dag_node *dag,
+void dag_print_safe(IPrintfHandler &iph, struct dag_node *dag,
                     bool temporary, int format)
 {
   if(dag == 0) {
-    pbprintf(pb, "%s", type_name(0));
+    pbprintf(iph, "%s", type_name(0));
     return;
   }
   if(dag == FAIL) {
-    pbprintf(pb, "fail");
+    pbprintf(iph, "fail");
     return;
   }
 
   dag_mark_coreferences_safe(dag, temporary);
   
   coref_nr = 1;
-  dag_print_rec_safe(pb, dag, 0, temporary, format);
+  dag_print_rec_safe(iph, dag, 0, temporary, format);
   dags_visited.clear();
 }
 

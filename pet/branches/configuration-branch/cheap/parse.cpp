@@ -57,18 +57,18 @@ int  opt_nsolutions, opt_packing;
 bool
 filter_rule_task(grammar_rule *R, tItem *passive)
 {
-    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-    LOG_ONLY(pbprintf(&pb, "trying "));
-    LOG_ONLY(R->print(&pb));
-    LOG_ONLY(pbprintf(&pb, " & passive "));
-    LOG_ONLY(passive->print(&pb));
-    LOG_ONLY(pbprintf(&pb, " ==> "));
+    LOG_ONLY(PrintfBuffer pb);
+    LOG_ONLY(pbprintf(pb, "trying "));
+    LOG_ONLY(R->print(pb));
+    LOG_ONLY(pbprintf(pb, " & passive "));
+    LOG_ONLY(passive->print(pb));
+    LOG_ONLY(pbprintf(pb, " ==> "));
 
     if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(),
                                                  passive->rule()))
     {
         stats.ftasks_fi++;
-        LOG_ONLY(pbprintf(&pb, "filtered (rf)"));
+        LOG_ONLY(pbprintf(pb, "filtered (rf)"));
         return false;
     }
 
@@ -77,11 +77,11 @@ filter_rule_task(grammar_rule *R, tItem *passive)
                               passive->qc_vector_unif()))
     {
         stats.ftasks_qc++;
-        LOG_ONLY(pbprintf(&pb, "filtered (qc)"));
+        LOG_ONLY(pbprintf(pb, "filtered (qc)"));
         return false;
     }
 
-    LOG_ONLY(pbprintf(&pb, "passed filters"));
+    LOG_ONLY(pbprintf(pb, "passed filters"));
 
     LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
     
@@ -91,18 +91,18 @@ filter_rule_task(grammar_rule *R, tItem *passive)
 bool
 filter_combine_task(tItem *active, tItem *passive)
 {
-    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-    LOG_ONLY(pbprintf(&pb, "trying active "));
-    LOG_ONLY(active->print(&pb));
-    LOG_ONLY(pbprintf(&pb, " & passive "));
-    LOG_ONLY(passive->print(&pb));
-    LOG_ONLY(pbprintf(&pb, " ==> "));
+    LOG_ONLY(PrintfBuffer pb);
+    LOG_ONLY(pbprintf(pb, "trying active "));
+    LOG_ONLY(active->print(pb));
+    LOG_ONLY(pbprintf(pb, " & passive "));
+    LOG_ONLY(passive->print(pb));
+    LOG_ONLY(pbprintf(pb, " ==> "));
 
     if(opt_filter && !Grammar->filter_compatible(active->rule(),
                                                  active->nextarg(),
                                                  passive->rule()))
     {
-        LOG_ONLY(pbprintf(&pb, "filtered (rf)\n"));
+        LOG_ONLY(pbprintf(pb, "filtered (rf)\n"));
 
         stats.ftasks_fi++;
         return false;
@@ -112,13 +112,13 @@ filter_combine_task(tItem *active, tItem *passive)
        && !qc_compatible_unif(qc_len_unif, active->qc_vector_unif(),
                               passive->qc_vector_unif()))
     {
-        LOG_ONLY(pbprintf(&pb, "filtered (qc)\n"));
+        LOG_ONLY(pbprintf(pb, "filtered (qc)\n"));
 
         stats.ftasks_qc++;
         return false;
     }
 
-    LOG_ONLY(pbprintf(&pb, "passed filters\n"));
+    LOG_ONLY(pbprintf(pb, "passed filters\n"));
     LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
 
     return true;
@@ -227,13 +227,13 @@ packed_edge(tItem *newitem) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {
         
-        LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-        LOG_ONLY(pbprintf(&pb, "proactive (%s) packing:\n", backward
+        LOG_ONLY(PrintfBuffer pb);
+        LOG_ONLY(pbprintf(pb, "proactive (%s) packing:\n", backward
                   ? "equi" : "subs"));
-        LOG_ONLY(newitem->print(&pb));
-        LOG_ONLY(pbprintf(&pb, "\n --> \n"));
-        LOG_ONLY(olditem->print(&pb));
-        LOG_ONLY(pbprintf(&pb, "\n"));
+        LOG_ONLY(newitem->print(pb));
+        LOG_ONLY(pbprintf(pb, "\n --> \n"));
+        LOG_ONLY(olditem->print(pb));
+        LOG_ONLY(pbprintf(pb, "\n"));
         LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
                 
         if(backward)
@@ -247,12 +247,12 @@ packed_edge(tItem *newitem) {
     }
       
     if(backward && (opt_packing & PACKING_RETRO) && !olditem->frosted()) {
-      LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-      LOG_ONLY(pbprintf(&pb, "retroactive packing:\n"));
-      LOG_ONLY(newitem->print(&pb));
-      LOG_ONLY(pbprintf(&pb, " <- "));
-      LOG_ONLY(olditem->print(&pb));
-      LOG_ONLY(pbprintf(&pb, "\n"));
+      LOG_ONLY(PrintfBuffer pb);
+      LOG_ONLY(pbprintf(pb, "retroactive packing:\n"));
+      LOG_ONLY(newitem->print(pb));
+      LOG_ONLY(pbprintf(pb, " <- "));
+      LOG_ONLY(olditem->print(pb));
+      LOG_ONLY(pbprintf(pb, "\n"));
       LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
 
       newitem->packed.splice(newitem->packed.begin(), olditem->packed);
@@ -293,9 +293,9 @@ bool
 add_item(tItem *it) {
   assert(!(opt_packing && it->blocked()));
   
-  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-  LOG_ONLY(pbprintf(&pb, "add_item "));
-  LOG_ONLY(it->print(&pb));
+  LOG_ONLY(PrintfBuffer pb);
+  LOG_ONLY(pbprintf(pb, "add_item "));
+  LOG_ONLY(it->print(pb));
   LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
 
   if(it->passive()) {
@@ -389,11 +389,11 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
     // the checking is moved into selectively_unpack()
     readings.push_back(*res);
 
-    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-    LOG_ONLY(pbprintf(&pb, "unpacked[%d] (%.1f): ", nres++,
+    LOG_ONLY(PrintfBuffer pb);
+    LOG_ONLY(pbprintf(pb, "unpacked[%d] (%.1f): ", nres++,
                       UnpackTime->convert2ms(UnpackTime->elapsed())
                       / 1000.));
-    LOG_ONLY((*res)->print_derivation(&pb, false));
+    LOG_ONLY((*res)->print_derivation(pb, false));
     LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
     //} 
   }
@@ -419,11 +419,11 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
         type_t rule;
         if((*res)->root(Grammar, Chart->rightmost(), rule)) {
           readings.push_back(*res);
-          LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-          LOG_ONLY(pbprintf(&pb, "unpacked[%d] (%.1f): ", nres++,
+          LOG_ONLY(PrintfBuffer pb);
+          LOG_ONLY(pbprintf(pb, "unpacked[%d] (%.1f): ", nres++,
                             UnpackTime->convert2ms(UnpackTime->elapsed())
                             / 1000.));
-          LOG_ONLY((*res)->print_derivation(&pb, false));
+          LOG_ONLY((*res)->print_derivation(pb, false));
           LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
         }
       }
@@ -492,8 +492,8 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
     prune_glbcache();
   }
 
-  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-  LOG_ONLY(Chart->print(&pb));
+  LOG_ONLY(PrintfBuffer pb);
+  LOG_ONLY(Chart->print(pb));
   LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
 
   Chart->readings() = collect_readings(FSAS, errors, Chart->trees());

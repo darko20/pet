@@ -43,7 +43,7 @@ int is_idchar(int c)
 
 int lisp_mode = 0; // shall lexer recognize lisp expressions 
 
-void print_token(PrintfBuffer *pb, struct lex_token *t);
+void print_token(IPrintfHandler &iph, struct lex_token *t);
 
 struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len)
 {
@@ -387,17 +387,17 @@ struct lex_token *get_next_token()
   return t;
 }
 
-void print_token(PrintfBuffer *pb, struct lex_token *t)
+void print_token(IPrintfHandler &iph, struct lex_token *t)
 {
   assert(t != NULL);
   
   if(t->tag == T_EOF)
     {
-      pbprintf(pb, "*EOF*\n");
+      pbprintf(iph, "*EOF*\n");
     }
   else
     {
-      pbprintf(pb, "[%d]<%s>\n", t->tag, t->text);
+      pbprintf(iph, "[%d]<%s>\n", t->tag, t->text);
     }
 }
 
@@ -409,7 +409,7 @@ get_token()
   struct lex_token *t;
   int hope = 1;
   
-  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(PrintfBuffer pb);
   
   while(hope)
     {
@@ -417,23 +417,23 @@ get_token()
         {
           if(t->tag != T_WS && t->tag != T_COMM)
             {
-              LOG_ONLY(pbprintf(&pb, "delivering "));
-              LOG_ONLY(print_token(&pb, t));
+              LOG_ONLY(pbprintf(pb, "delivering "));
+              LOG_ONLY(print_token(pb, t));
               tokensdelivered++;
               return t;
             }
           else
             {
-              LOG_ONLY(pbprintf(&pb, "not delivering "));
-              LOG_ONLY(print_token(&pb, t));
+              LOG_ONLY(pbprintf(pb, "not delivering "));
+              LOG_ONLY(print_token(pb, t));
             }
           free(t);
         }
       if(!pop_file()) hope = 0;
     }
   
-  LOG_ONLY(pbprintf(&pb, "delivering "));
-  LOG_ONLY(print_token(&pb, t));
+  LOG_ONLY(pbprintf(pb, "delivering "));
+  LOG_ONLY(print_token(pb, t));
 
   LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
   

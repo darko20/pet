@@ -257,7 +257,7 @@ dag_node *dag_nth_arg_temp(dag_node *dag, int n);
  *  treated as such, and the generation protected members will be considered
  *  too, to print its complete state.
  */
-void dag_print_safe(PrintfBuffer *pb, dag_node *dag, bool temporary, 
+void dag_print_safe(IPrintfHandler &iph, dag_node *dag, bool temporary, 
                     int format = DAG_FORMAT_TRADITIONAL);
 /*@}*/
 

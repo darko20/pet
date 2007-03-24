@@ -46,8 +46,8 @@ chart::~chart()
 
 void chart::add(tItem *it)
 {
-    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-    LOG_ONLY(it->print(&pb));
+    LOG_ONLY(PrintfBuffer pb);
+    LOG_ONLY(it->print(pb));
     LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 
     _Chart.push_back(it);
@@ -103,13 +103,13 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
-void chart::print(PrintfBuffer *pb)
+void chart::print(IPrintfHandler &iph)
 {
     int i = 0;
     for(chart_iter pos(this); pos.valid(); pos++, i++)
     {
-        (pos.current())->print(pb);
-        pbprintf(pb, "\n");
+        (pos.current())->print(iph);
+        pbprintf(iph, "\n");
     }
 }
 
