@@ -330,9 +330,9 @@ resources_exhausted(unsigned int pedgelimit, unsigned int memlimit) {
 
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors) {
-  unsigned int pedgelimit, memlimit;
-  Configuration::get("pedgelimit", pedgelimit);
-  Configuration::get("memlimit", memlimit);
+  //unsigned int pedgelimit, memlimit;
+  //Configuration::get("pedgelimit", pedgelimit);
+  //Configuration::get("memlimit", memlimit);
 
   basic_task *t;
   tItem *it;

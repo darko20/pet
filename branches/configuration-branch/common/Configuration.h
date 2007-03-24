@@ -247,9 +247,9 @@ public:
    * @exception EntryAlreadyExistsException Thrown if entry already exists.
    */
   template<class T> static void 
-  addOption(const std::string& entry, T* value,
-            const std::string& description = "", T initial = T(),
-            IConverter<T> *converter = 0);
+  addRefOption(const std::string& entry, T* value,
+               const std::string& description = "", T initial = T(),
+               IConverter<T> *converter = 0);
 
   /**
    * Adds new callback configuration option. Only access functions are provided
@@ -400,7 +400,7 @@ Configuration::addOption(const std::string& entry,
 }
 
 template<class T> void 
-Configuration::addOption(const std::string& entry, T* value,
+Configuration::addRefOption(const std::string& entry, T* value,
                          const std::string& description, T initial,
                          IConverter<T> *converter)
 {

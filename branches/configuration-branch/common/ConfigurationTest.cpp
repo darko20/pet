@@ -202,13 +202,13 @@ public:
   void testConfigurationPresence() {
     CPPUNIT_ASSERT_EQUAL(false, Configuration::hasOption("statusmember"));
     StatusMap statusmembers;
-    Configuration::addOption("statusmember", &statusmembers);
+    Configuration::addRefOption("statusmember", &statusmembers);
     CPPUNIT_ASSERT_EQUAL(true, Configuration::hasOption("statusmember"));
   }
 
   void testConfigurationSimpleOwn() {
     int int0 = 0;
-    Configuration::addOption("int1", &int0);
+    Configuration::addRefOption("int1", &int0);
     int0 = 42;
     Configuration::set<int>("int1", 42);
     int& int1 = Configuration::get<int>("int1");
@@ -218,7 +218,7 @@ public:
     CPPUNIT_ASSERT_EQUAL( 43, int0 );
 
     float float0 = 15.5f;
-    Configuration::addOption("MyFloat", &float0);
+    Configuration::addRefOption("MyFloat", &float0);
     Configuration::set("MyFloat", 15.5f);
     float& myFloat = Configuration::get<float>("MyFloat");
     //comparing floats is generally not a good idea but here it should work
@@ -262,7 +262,7 @@ public:
 
   void testConfigurationComplexOwn() {
     StatusMap statusmembers;
-    Configuration::addOption("statusmember1", &statusmembers);
+    Configuration::addRefOption("statusmember1", &statusmembers);
     StatusMap &sm 
       = Configuration::get< StatusMap >("statusmember1");
     CPPUNIT_ASSERT(&sm == &statusmembers);
@@ -302,7 +302,7 @@ public:
 
     int entry2;
     Configuration::addOption<int>("entry2");
-    CPPUNIT_ASSERT_THROW( Configuration::addOption<int>("entry2", &entry2),
+    CPPUNIT_ASSERT_THROW( Configuration::addRefOption<int>("entry2", &entry2),
                           EntryAlreadyExistsException );
   }
 
@@ -342,7 +342,7 @@ public:
                          Configuration::getDescription("opt_desc_H"));
 
     int i;
-    Configuration::addOption<int>("opt_desc_R", &i, "desc2");
+    Configuration::addRefOption<int>("opt_desc_R", &i, "desc2");
     CPPUNIT_ASSERT_EQUAL(std::string("desc2"),
                          Configuration::getDescription("opt_desc_R"));
     
@@ -373,20 +373,20 @@ public:
 
     // --------------- Reference ---------------
     int i;
-    Configuration::addOption<int>("initR1", &i, "description", 5);
+    Configuration::addRefOption<int>("initR1", &i, "description", 5);
     CPPUNIT_ASSERT_EQUAL( 5, i );
     CPPUNIT_ASSERT_EQUAL( 5, Configuration::get<int>("initR1") );
     
     double d;
-    Configuration::addOption<double>("initR2", &d);
+    Configuration::addRefOption<double>("initR2", &d);
     CPPUNIT_ASSERT_EQUAL( 0.0, d );
     CPPUNIT_ASSERT_EQUAL( 0.0, Configuration::get<double>("initR2") );
 
     WithDefConstructor wdc1, wdc2;
-    Configuration::addOption<WithDefConstructor>("initR3", &wdc1, "descr",
+    Configuration::addRefOption<WithDefConstructor>("initR3", &wdc1, "descr",
                                                  WithDefConstructor("xyz"));
     CPPUNIT_ASSERT_EQUAL( string("xyz"), wdc1.s_ );
-    Configuration::addOption<WithDefConstructor>("initR4", &wdc2);
+    Configuration::addRefOption<WithDefConstructor>("initR4", &wdc2);
     CPPUNIT_ASSERT_EQUAL( string("abc"), wdc2.s_ );
   }
 
@@ -401,7 +401,7 @@ public:
     
     // --------------- Reference ---------------
     int i;
-    Configuration::addOption<int>("conv_2", &i, "descr", 3,
+    Configuration::addRefOption<int>("conv_2", &i, "descr", 3,
                                   Converter<int>::getInstance());
     CPPUNIT_ASSERT_EQUAL( string("3"),
                           Configuration::getString<int>("conv_2") );
@@ -435,7 +435,7 @@ public:
 
     // --------------- Reference ---------------
     int i;
-    Configuration::addOption<int>("mconv_2", &i, "descr", 1, &mc);
+    Configuration::addRefOption<int>("mconv_2", &i, "descr", 1, &mc);
     CPPUNIT_ASSERT_EQUAL( string("one"),
                           Configuration::getString<int>("mconv_2") );
     Configuration::setString<int>("mconv_2", "three");

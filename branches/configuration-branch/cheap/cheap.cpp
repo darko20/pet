@@ -192,13 +192,12 @@ void interactive() {
 
       string surface = get_surface_string(Chart);
 
-      LOG(loggerUncategorized, Level::INFO,
-          "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]",
-          stats.id, surface.c_str(), 
-          Configuration::get<unsigned int>("pedgelimit"), stats.readings, 
-          stats.first/1000., stats.tcpu / 1000.,
-          stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-          TotalParseTime.elapsed_ts() / 10.);
+      printf("(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
+             stats.id, surface.c_str(), 
+             pedgelimit, stats.readings, 
+             stats.first/1000., stats.tcpu / 1000.,
+             stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+             TotalParseTime.elapsed_ts() / 10.);
 
       if(verbosity > 0) stats.print(fstatus);
 
