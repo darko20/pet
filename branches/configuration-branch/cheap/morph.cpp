@@ -1363,26 +1363,26 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
 
         if(verbosity > 14)
           {
-            LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-            LOG_ONLY(pbprintf(&pb, "("));
+            LOG_ONLY(PrintfBuffer pb);
+            LOG_ONLY(pbprintf(pb, "("));
             LOG_ONLY(
               for(list<type_t>::iterator affix = affixes.begin()
                   ; affix != affixes.end(); affix++)
               {
-                pbprintf(&pb, "%s@%d ", print_name(*affix), offset);
+                pbprintf(pb, "%s@%d ", print_name(*affix), offset);
               }
             );
               
-            LOG_ONLY(pbprintf(&pb, "("));
-            LOG_ONLY(lstem->print(&pb));
-            LOG_ONLY(pbprintf(&pb, ")"));
+            LOG_ONLY(pbprintf(pb, "("));
+            LOG_ONLY(lstem->print(pb));
+            LOG_ONLY(pbprintf(pb, ")"));
               
             LOG_ONLY(
               for(int i = 0; i < lstem->length(); i++)
-                pbprintf(&pb, " \"%s\"", lstem->orth(i));
+                pbprintf(pb, " \"%s\"", lstem->orth(i));
             );
   
-            LOG_ONLY( pbprintf(&pb, ")%s", (found ? "dupl" : "")));
+            LOG_ONLY( pbprintf(pb, ")%s", (found ? "dupl" : "")));
             
             LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
           }

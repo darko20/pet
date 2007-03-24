@@ -48,7 +48,7 @@ public:
   void remove(hash_set<tItem *> &to_delete);
 
   /** Print all chart items */
-  void print(PrintfBuffer *pb);
+  void print(IPrintfHandler &iph);
 
   /** Print chart items using \a f, select active and passive items with \a
    *  passives and \a actives.

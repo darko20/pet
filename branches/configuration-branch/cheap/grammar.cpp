@@ -228,8 +228,8 @@ grammar_rule::grammar_rule(type_t t)
         _spanningonly = true;
     }
     
-    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-    LOG_ONLY(print(&pb));
+    LOG_ONLY(PrintfBuffer pb);
+    LOG_ONLY(print(pb));
     LOG(loggerGrammar, Level::DEBUG, "%s", pb.getContents());
 }
 
@@ -245,19 +245,19 @@ grammar_rule::make_grammar_rule(type_t t) {
 }
 
 void
-grammar_rule::print(PrintfBuffer *pb)
+grammar_rule::print(IPrintfHandler &iph)
 {
-    pbprintf(pb, "%s/%d%s (", print_name(_type), _arity,
+    pbprintf(iph, "%s/%d%s (", print_name(_type), _arity,
              _hyper == false ? "[-HA]" : "");
     
     list_int *l = _tofill;
     while(l)
     {
-        pbprintf(pb, " %d", first(l));
+        pbprintf(iph, " %d", first(l));
         l = rest(l);
     }
     
-    pbprintf(pb, ")");
+    pbprintf(iph, ")");
 }
 
 void
@@ -280,8 +280,8 @@ grammar_rule::lui_dump(const char *path) {
   } // if
   fprintf(stream, "avm -%d ", _id);
   fs foo = instantiate(true);
-  PrintfBuffer pb(defaultPb, defaultPbSize);
-  foo.print(&pb, DAG_FORMAT_LUI);
+  PrintfBuffer pb;
+  foo.print(pb, DAG_FORMAT_LUI);
   fprintf(stream, "%s", pb.getContents());
   fprintf(stream, " \"Rule # %d (%s)\"\f\n", _id, printname());
   fclose(stream);
@@ -696,9 +696,9 @@ tGrammar::tGrammar(const char * filename)
 void
 tGrammar::undump_properties(dumper *f)
 {
-    LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+    LOG_ONLY(PrintfBuffer pb);
 
-    LOG_ONLY(pbprintf(&pb, "["));
+    LOG_ONLY(pbprintf(pb, "["));
 
     int nproperties = f->undump_int();
     for(int i = 0; i < nproperties; i++)
@@ -707,12 +707,12 @@ tGrammar::undump_properties(dumper *f)
         key = f->undump_string();
         val = f->undump_string();
         _properties[key] = val;
-        LOG_ONLY(pbprintf(&pb, "%s%s=%s", i ? ", " : "", key, val));
+        LOG_ONLY(pbprintf(pb, "%s%s=%s", i ? ", " : "", key, val));
         delete[] key;
         delete[] val;
     }
 
-    LOG_ONLY(pbprintf(&pb, "]"));
+    LOG_ONLY(pbprintf(pb, "]"));
     LOG(loggerGrammar, Level::INFO, "%s", pb.getContents());
 }
 
@@ -1018,8 +1018,8 @@ tGrammar::lookup_stem(string s)
     list<extDictMapEntry> extDictMapped;
     _extDict->getMapped(s, extDictMapped);
 
-    LOG_ONLY(PrintBuffer pb(defaultPb, defaultPbSize));
-    LOG_ONLY(pbprintf(&pb, "[EXTDICT] %s:", s.c_str()));
+    LOG_ONLY(PrintBuffer pb);
+    LOG_ONLY(pbprintf(pb, "[EXTDICT] %s:", s.c_str()));
 
     for(list<extDictMapEntry>::iterator it = extDictMapped.begin(); it != extDictMapped.end(); ++it)
     {
@@ -1028,12 +1028,12 @@ tGrammar::lookup_stem(string s)
         // Create stem if not blocked by entry from native lexicon.
         if(native_types.find(_extDict->equiv_rep(t)) != native_types.end())
         {
-          LOG_ONLY(pbprintf(&pb, " (%s)", type_name(t)));
+          LOG_ONLY(pbprintf(pb, " (%s)", type_name(t)));
           continue;
         }
         else
         {
-          LOG_ONLY(pbprintf(&pb, " %s", type_name(t)));
+          LOG_ONLY(pbprintf(pb, " %s", type_name(t)));
         }
 
         modlist mods;
@@ -1053,7 +1053,7 @@ tGrammar::lookup_stem(string s)
         results.push_back(st);
     }
 
-    LOG_ONLY(pbprintf(&pb, "\n"));
+    LOG_ONLY(pbprintf(pb, "\n"));
     LOG(loggerGrammar, Level::INFO, "%s", pb.getContents());
 #endif
 

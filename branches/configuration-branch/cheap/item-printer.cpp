@@ -166,7 +166,7 @@ tDelegateDerivationPrinter::real_print(const tPhrasalItem *item) {
 
 void tFSPrinter::print(const tItem *arg) {
   StreamPrinter sp(_out);
-  const_cast<tItem *>(arg)->get_fs().print(&sp);
+  const_cast<tItem *>(arg)->get_fs().print(sp);
 }
 
 void tFegramedPrinter::print(const dag_node *dag, const char *name) { 

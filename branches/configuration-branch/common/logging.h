@@ -83,71 +83,80 @@ extern char defaultPb[];
 
 #endif // HAVE_LIBLOG4CXX
 
+/**
+ * @brief Interface for a class processing printf calls.
+ *
+ * A Class that implements this interface can be used in function
+ * pbprintf(). It allows a programmer to change legacy code to use
+ * more flexible I/O. This interface was designed to switch from fprintf-based
+ * logging to log4cxx.
+ */
+class IPrintfHandler {
+public:
+  /**
+   * This method is called by pbprintf(). See code of pbprintf.
+   */
+  virtual int vprintf(char *fmt, va_list ap) = 0;
+  
+  virtual ~IPrintfHandler();
+};
+
 /** @brief A Class for intercepting fprintf.
  *
  * Subsequent calls to printf method write to a buffer that can
- * be accessed at the end.
+ * be accessed at the end. Buffer's size changes dynamically.
  */
-class PrintfBuffer {
+class PrintfBuffer : public IPrintfHandler {
 public:
   /**
-   * @param buffer  an external buffer used for writing output from printf.
-   * @param size    size of the buffer.
+   * Use without parameters (default values shouuld be ok for everything).
    */
-  PrintfBuffer(char *buffer, int size = 65536);
+  PrintfBuffer(int size = 1024, int chunkSize = 1024);
 
-  //make gcc not complain about non-virtual destructor
   virtual ~PrintfBuffer();
 
   /**
    * Gets a C-style string containing everything that has been printed
-   * (by method printf) so far. (Provided that the buffer has not 
-   * been overflowed).
+   * (by method vprintf) so far.  Returned pointer is valid until the object
+   * is destructed.
    */
   virtual char* getContents();
   
-  /**
-   * Checks if the buffer is overflowed.
-   * @return true iff the buffer is overflowed.
-   */
-  virtual bool isOverflowed();
-
-  /**
-   * Writes to a buffer. Works like stdio's vprintf.
-   * @return result of internal call to vsnprintf() or -1 on error
-   */
   virtual int vprintf(char *fmt, va_list ap);
 
 protected:
   char *buffer_;
-  const int size_;  //size of the buffer_
-  int nWritten_;    //sum of positive results of vsnprintf,
-                    //in case of no errors this is the number of character
-                    //written so far
+  int size_;        // size of the buffer_
+  int chunkSize_;   // buffer size will be increased by this number
+                    // each time it is neccessary
+  int nWritten_;    // number of characters written so far
+                    // (including trailing '\0')
+  
+#if HAVE_LIBLOG4CXX
+  static log4cxx::LoggerPtr logger;
+#endif // HAVE_LIBLOG4CXX
+
 private:
   PrintfBuffer(const PrintfBuffer &pb);
 };
 
 /**
- * Works like PrintfBuffer but output is not captured, it is sent to
- * a stdio's FILE.
+ * Output is sent to a stdio's FILE*.
  */
 class StreamPrinter : public PrintfBuffer {
 public:
   StreamPrinter(FILE *file);
   virtual ~StreamPrinter();
-  virtual char* getContents();
-  virtual bool isOverflowed();
   virtual int vprintf(char *fmt, va_list ap);
 private:
   FILE *file_;
 };
 
 /**
- * @brief Substitutes fprintf, uses PrintfBuffer to capture output.
+ * @brief Substitutes fprintf, uses IPrintfHandler to process arguments.
  *
- * @param printfBuffer object that accumulates results.
+ * @param iph object that processes the rest of the arguments.
  */
-int pbprintf(PrintfBuffer *printfBuffer, char *fmt, ...);
+int pbprintf(IPrintfHandler &iph, char *fmt, ...);
 
 #endif // _LOGGING_H

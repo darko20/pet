@@ -100,11 +100,11 @@ void lex_parser::tokenize(string input, inp_list &tokens) {
   _tokenizers.front()->tokenize(input, tokens);
   
   // trace output
-  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-  LOG_ONLY(pbprintf(&pb, "tokenizer output:\n"));
+  LOG_ONLY(PrintfBuffer pb);
+  LOG_ONLY(pbprintf(pb, "tokenizer output:\n"));
   LOG_ONLY(for(inp_list::iterator r = tokens.begin();
                r != tokens.end(); ++r)
-           (*r)->print(&pb));
+           (*r)->print(pb));
   LOG(loggerLexproc, Level::DEBUG, "%s", pb.getContents());
 }
 
@@ -525,29 +525,29 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   list< lex_stem * > gens;
 
   LOG(loggerUncategorized, Level::DEBUG, "adding generic les");
-  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
+  LOG_ONLY(PrintfBuffer pb);
  
   for(list<tInputItem *>::iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
-    LOG_ONLY(pbprintf(&pb, "  token "));
-    LOG_ONLY((*it)->print(&pb));
-    LOG_ONLY(pbprintf(&pb, "\n"));
+    LOG_ONLY(pbprintf(pb, "  token "));
+    LOG_ONLY((*it)->print(pb));
+    LOG_ONLY(pbprintf(pb, "\n"));
 
     if ((! (*it)->parents.empty())
         && cheap_settings->lookup("pos-completion")) {
       postags missing((*it)->get_in_postags());
 
-      LOG_ONLY(pbprintf(&pb, "    token provides tags:"));
-      LOG_ONLY(missing.print(&pb));
-      LOG_ONLY(pbprintf(&pb, "\n    already supplied:"));
-      LOG_ONLY(postags((*it)->parents).print(&pb));
-      LOG_ONLY(pbprintf(&pb, "\n"));
+      LOG_ONLY(pbprintf(pb, "    token provides tags:"));
+      LOG_ONLY(missing.print(pb));
+      LOG_ONLY(pbprintf(pb, "\n    already supplied:"));
+      LOG_ONLY(postags((*it)->parents).print(pb));
+      LOG_ONLY(pbprintf(pb, "\n"));
 
       missing.remove(postags((*it)->parents));
 
-      LOG_ONLY(pbprintf(&pb, "    -> missing tags:"));
-      LOG_ONLY(missing.print(&pb));
-      LOG_ONLY(pbprintf(&pb, "\n"));
+      LOG_ONLY(pbprintf(pb, "    -> missing tags:"));
+      LOG_ONLY(missing.print(pb));
+      LOG_ONLY(pbprintf(pb, "\n"));
             
       if(!missing.empty())
         gens = (*it)->generics(missing);

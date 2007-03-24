@@ -91,7 +91,7 @@ class lex_stem
   }
   
   /** Print readable representation for debugging purposes */
-  void print(PrintfBuffer *pb) const;
+  void print(IPrintfHandler &iph) const;
 
  private:
   /** Inhibited copy constructor */

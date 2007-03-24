@@ -101,10 +101,10 @@ fs::printname()
 }
 
 void
-fs::print(PrintfBuffer *pb, int format)
+fs::print(IPrintfHandler &iph, int format)
 {
-    if(temp()) dag_print_safe(pb, _dag, true, format);
-    else dag_print_safe(pb, _dag, false, format);
+    if(temp()) dag_print_safe(iph, _dag, true, format);
+    else dag_print_safe(iph, _dag, false, format);
 }
 
 void
@@ -385,13 +385,13 @@ print_failures(list<unification_failure *> fails, bool unification,
                dag_node *a = 0, dag_node *b = 0) {
   LOG(loggerFs, Level::INFO,
       "failure (%s) at\n", unification ? "unif" : "subs");
-  PrintfBuffer pb(defaultPb, defaultPbSize);
+  PrintfBuffer pb;
   
   for(list<unification_failure *>::iterator iter = fails.begin();
       iter != fails.end(); ++iter) {
-      pbprintf(&pb, "  ");
-      (*iter)->print(&pb);
-      pbprintf(&pb, "\n");
+      pbprintf(pb, "  ");
+      (*iter)->print(pb);
+      pbprintf(pb, "\n");
   }
 
   LOG(loggerFs, Level::DEBUG, "%s", pb.getContents());

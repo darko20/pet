@@ -168,8 +168,8 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
     }
   }
 
-  LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-  LOG_ONLY(print(&pb));
+  LOG_ONLY(PrintfBuffer pb);
+  LOG_ONLY(print(pb));
   LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
 }
 
@@ -183,11 +183,11 @@ lex_stem::~lex_stem()
 }
 
 void
-lex_stem::print(PrintfBuffer *pb) const
+lex_stem::print(IPrintfHandler &iph) const
 {
-  pbprintf(pb, "%s:", printname());
+  pbprintf(iph, "%s:", printname());
   for(int i = 0; i < _nwords; i++)
-    pbprintf(pb, " \"%s\"", _orth[i]);
+    pbprintf(iph, " \"%s\"", _orth[i]);
 }
 
 

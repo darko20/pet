@@ -96,7 +96,7 @@ class grammar_rule
   inline void trait(rule_trait t) { _trait = t; }
 
   /** Print in readable form for debugging purposes */
-  void print(PrintfBuffer *pb);
+  void print(IPrintfHandler &iph);
 
   /** Dump grammar in a format feasible for LUI (?) into \a directory */
   void lui_dump(const char* directory = "/tmp");

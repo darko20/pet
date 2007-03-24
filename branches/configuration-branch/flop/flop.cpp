@@ -147,11 +147,11 @@ void process_multi_instances()
   for(i = 0; i < n; i++)
     if((t = types[i])->tdl_instance && length(t->parents) > 1)
       {
-        LOG_ONLY(PrintfBuffer pb(defaultPb, defaultPbSize));
-        LOG_ONLY(pbprintf(&pb, "TDL instance `%s' has multiple parents: ",
+        LOG_ONLY(PrintfBuffer pb);
+        LOG_ONLY(pbprintf(pb, "TDL instance `%s' has multiple parents: ",
                           types.name(i).c_str()));
         LOG_ONLY(for(list_int *l = t->parents; l != 0; l = rest(l))
-                   pbprintf(&pb, " %s", types.name(first(l)).c_str()));
+                   pbprintf(pb, " %s", types.name(first(l)).c_str()));
         LOG(loggerUncategorized, Level::DEBUG, pb.getContents());
 
 	if(ptype[t->parents] == 0)
