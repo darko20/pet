@@ -8,6 +8,7 @@
   now converted correctly to lowercase in lingo-tokenizer, but not in
   yy-tokenizer. This should be done in a common way and an option should be
   introduced that controls if conversion to lower case is done at all.
+  (ticket #5)
 
 - reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 
@@ -16,7 +17,6 @@
   terminate for correct grammars
 
 - "unpack edge limit exhausted" error: wrong result number to tsdb
-
 
 - "automatic" tests (preferably with tsdb) for unfilling/packing modes
   - freeze an english and german grammar version for performance comparisons

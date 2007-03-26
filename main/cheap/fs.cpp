@@ -203,6 +203,8 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
         dag_node *newdag = dag_unify(curr, charz_dag, first, 0);
         if (newdag != FAIL) {
           curr = newdag;
+          charz_dag
+            = dag_create_attr_value(feature, dag_full_copy(type_dag(value)));
           succeeded = true;
         }
       }
