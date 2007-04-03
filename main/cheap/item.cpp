@@ -210,8 +210,9 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   
 void tInputItem::print(FILE *f, bool compact)
 {
-  fprintf(f, "[%d - %d] (%s) \"%s\" \"%s\" "
-          , _startposition, _endposition, _input_id.c_str()
+  // [bmw] print also start/end nodes
+  fprintf(f, "[n%d - n%d] [%d - %d] (%s) \"%s\" \"%s\" "
+          , _start, _end, _startposition, _endposition , _input_id.c_str()
           , _stem.c_str(), _surface.c_str());
 
   list_int *li = _inflrs_todo;
