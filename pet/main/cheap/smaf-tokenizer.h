@@ -49,13 +49,24 @@ public:
   string getSmafNode(int chartNode);
   int getChartNode(string smafNode);
   void setNodeMap(string smafNode, int chartNode);
+
+  // id mapping
+  void clearIdMapping();
+  bool add2idMapping(string id, tInputItem* item);
+
+  bool addNodePoint(int node, int point);
+
 private:
   position_map _position_mapping;
 
   map<string,int> _nodeMapping;
   int _chartNodeMax;
 
+  // ids
+  map<string,tInputItem*> _idMapping;
 
+  // node + point
+  map<int,int> _nodePoint;
 };
 
 #endif

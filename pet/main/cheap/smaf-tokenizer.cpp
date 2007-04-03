@@ -273,12 +273,12 @@ string getSlot(DOMElement* element, string name)
   return "";
 }
 
-// map a SMAF token edge to an internal tInputItem
+// map a SMAF TOKEN edge to an internal tInputItem
 tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok){
   // sanity check
   string type = getAttribute_string(element,"type");
   if (type!="token")
-    throw Error("INTERNAL");
+    throw Error("INTERNAL ERROR: expected edge of type 'token'");
   
   // surface is SIMPLE CONTENT...
   string surface = getTextContent_string(element);
@@ -296,15 +296,17 @@ tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok){
       return NULL;
     }
 
-
+  // convert surface to lower-case
   downcase(surface);
 
+  // get remaining attribs
   string id = getAttribute_string(element,"id");
   int start = getAttribute_int(element,"cfrom");
   int end = getAttribute_int(element,"cto");
   string sourceSmaf = getAttribute_string(element,"source");
   string targetSmaf = getAttribute_string(element,"target");
 
+  // give up if no 'source'
   if (sourceSmaf.length()==0)
     {
       cout << "[WARNING] unable to extract 'source' value from edge:" << endl;
@@ -313,6 +315,7 @@ tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok){
       return NULL;
     }
 
+  // give up if no 'target'
   if (targetSmaf.length()==0)
     {
       cout << "[WARNING] unable to extract 'target' value from edge:" << endl;
@@ -321,15 +324,14 @@ tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok){
       return NULL;
     }
 
+  // generate integer source and target for tInputItem
   int source, target;
   source = (*tok).add2nodeMapping(sourceSmaf);
   target = (*tok).add2nodeMapping(targetSmaf);
 
-  //cout << "SOURCE= " << source << " / " << sourceSmaf << endl;
-  //cout << "TARGET= " << target << " / " << targetSmaf << endl;
-
   ::modlist mods;
   
+  // give up if no 'cfrom'
   if (start<0)
     {
       cout << "[WARNING] unable to extract 'cfrom' value from edge:" << endl;
@@ -338,6 +340,7 @@ tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok){
       return NULL;
     }
 
+  // give up if no 'cto'
   if (end<0)
     {
       cout << "[WARNING] unable to extract 'cto' value from edge:" << endl;
@@ -347,9 +350,223 @@ tInputItem* getInputItemFromTokenEdge(DOMElement* element, tSMAFTokenizer* tok){
     }
 
   tInputItem* item = new tInputItem(id, source, target, start, end, surface, ""
-  //tInputItem* item = new tInputItem(id, start, end, start, end, surface, ""
 				    , tPaths()
 				    , WORD_TOKEN_CLASS, mods);
+
+  // give up if 'id' is a duplicate
+  bool flag = (*tok).add2idMapping(id,item);
+  if (!flag)
+    return NULL;
+
+  return item;
+}
+
+// map a SMAF token edge to an internal tInputItem
+tInputItem* getInputItemFromErsatzEdge(DOMElement* element, tSMAFTokenizer* tok){
+  // sanity check
+  string type = getAttribute_string(element,"type");
+  if (type!="ersatz")
+    throw Error("INTERNAL ERROR: expected element with type='ersatz'");
+  
+  // surface is CONTENT.surface
+  string surface = getSlot(element,"surface");
+  // name is CONTENT.name
+  string name = getSlot(element,"name");
+
+  // give up if no 'name'
+  if (name.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'name' slot from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // convert name to lower-case
+  downcase(name);
+
+  // retrieve remaining attribs
+  string id = getAttribute_string(element,"id");
+  int start = getAttribute_int(element,"cfrom");
+  int end = getAttribute_int(element,"cto");
+  string sourceSmaf = getAttribute_string(element,"source");
+  string targetSmaf = getAttribute_string(element,"target");
+
+  // give up if no 'source'
+  if (sourceSmaf.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'source' for edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // give up if no 'target'
+  if (targetSmaf.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'target' for edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // get source/target as integers
+  int source, target;
+  source = (*tok).add2nodeMapping(sourceSmaf);
+  target = (*tok).add2nodeMapping(targetSmaf);
+
+  // give up if no 'cfrom'
+  if (start<0)
+    {
+      cout << "[WARNING] unable to extract 'cfrom' for edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // give up if no 'cto'
+  if (end<0)
+    {
+      cout << "[WARNING] unable to extract 'cto' value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // add surface form of ersatzes to fsmod, if necessary
+  modlist fsmods = modlist() ;
+  char* carg_path = cheap_settings->value("carg-path");
+  // fallback to deprecated 'ersatz-carg-path'
+  if (carg_path == NULL)
+    {
+      carg_path = cheap_settings->value("ersatz-carg-path");
+      if (carg_path != NULL)
+	cout << "WARNING: cheap setting 'ersatz-carg-path' is deprecated. Please use 'carg'path' instead." << endl;
+    }
+  if (carg_path == NULL)
+    throw tError("The cheap setting 'carg-path' is unset.");
+  // ensure val will become a string (surely there is a better way to do this???)
+  string val = '"' + surface + '"'; 
+  fsmods.push_back(pair<string, type_t>(carg_path, lookup_symbol(val.c_str())));
+  
+  tInputItem* item = new tInputItem(id, source, target, start, end, name, ""
+				    , tPaths()
+				    , WORD_TOKEN_CLASS, fsmods);
+
+  // give up if 'id' is duplicate
+  bool flag = (*tok).add2idMapping(id,item);
+  if (!flag)
+    return NULL;
+
+  return item;
+}
+
+// map a SMAF token edge to an internal tInputItem
+tInputItem* getInputItemFromOscarEdge(DOMElement* element, tSMAFTokenizer* tok){
+  // sanity check
+  string type = getAttribute_string(element,"type");
+  if (type!="oscar")
+    throw Error("INTERNAL ERROR: expected edge with type 'oscar'");
+  
+  // surface is CONTENT.surface ...
+  string surface = getSlot(element,"surface");
+  // give up if no 'surface'
+  if (surface.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'surface' slot from oscar edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+  // convert surface to lower-case
+  downcase(surface);
+
+  // oscarType is CONTENT.type
+  string oscarType = getSlot(element,"type");
+  // give up if no 'type'
+  if (oscarType.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'type' for oscar edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // retrieve remaining attribs
+  string id = getAttribute_string(element,"id");
+  int start = getAttribute_int(element,"cfrom");
+  int end = getAttribute_int(element,"cto");
+  string sourceSmaf = getAttribute_string(element,"source");
+  string targetSmaf = getAttribute_string(element,"target");
+
+  // give up if no 'source'
+  if (sourceSmaf.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'source' for edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // give up if no 'target'
+  if (targetSmaf.length()==0)
+    {
+      cout << "[WARNING] unable to extract 'target' value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // convert source/target to ints
+  int source, target;
+  source = (*tok).add2nodeMapping(sourceSmaf);
+  target = (*tok).add2nodeMapping(targetSmaf);
+
+  // give up if no 'cfrom'
+  if (start<0)
+    {
+      cout << "[WARNING] unable to extract 'cfrom' for edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // give up if no 'cto'
+  if (end<0)
+    {
+      cout << "[WARNING] unable to extract 'cto' value from edge:" << endl;
+      serializeDOM(element);
+      cout << endl;
+      return NULL;
+    }
+
+  // add CARG
+  modlist fsmods = modlist() ;
+  char* carg_path = cheap_settings->value("carg-path");
+  if (carg_path == NULL)
+    throw tError("The cheap setting 'carg-path' is unset.");
+  // ensure val will become a string (surely there is a better way to do this???)
+  string val = '"' + surface + '"'; 
+  fsmods.push_back(pair<string, type_t>(carg_path, lookup_symbol(val.c_str())));
+  
+  tInputItem* item = new tInputItem(id, source, target, start, end, surface, ""
+				    , tPaths()
+				    , WORD_TOKEN_CLASS, fsmods);
+
+  // set POS using the 'name' slot
+  {
+    string tag=oscarType;
+
+    postags pos;
+    pos.add(tag);
+    item->set_in_postags(pos);
+    
+  }
+  
+  // give up if 'id' is duplicate
+  bool flag = (*tok).add2idMapping(id,item);
+  if (!flag)
+    return NULL;
 
   return item;
 }
@@ -387,7 +604,6 @@ void processPosEdge(DOMElement* element, inp_list &items){
       cout << endl;
       return;
     }
-  //cout << "tag= ." << tag << "." << endl;
 
   string deps = getAttribute_string(element,"deps");
 
@@ -407,6 +623,23 @@ void processPosEdge(DOMElement* element, inp_list &items){
       postags pos;
       pos.add(tag);
       item->set_in_postags(pos);
+
+      // add surface form as CARG
+      {
+	modlist fsmods = modlist() ;
+	char* carg_path = cheap_settings->value("carg-path");
+	
+	if (carg_path == NULL)
+	  throw tError("The cheap setting 'carg-path' is unset.");
+	
+	// ensure val will become a string (surely there is a better way to do this???)
+	string surface = item->form();
+	string val = '"' + surface + '"'; 
+	fsmods.push_back(pair<string, type_t>(carg_path, lookup_symbol(val.c_str())));
+	
+	// set CARG
+	item->set_mods(fsmods);
+      }
     }
 
   return;
@@ -415,6 +648,7 @@ void processPosEdge(DOMElement* element, inp_list &items){
 
 void tSMAFTokenizer::tokenize(string input, inp_list &result) {
 
+  clearIdMapping();
   clearNodeMapping();
   DOMDocument* dom = xml2dom(input);
 
@@ -487,7 +721,31 @@ void tSMAFTokenizer::tokenize(string input, inp_list &result) {
 	    tInputItem* item = getInputItemFromTokenEdge(element, this);
 	    if (item==NULL)
 	      {
-		cout << "[WARNING] unable to construct chart edge from:" << endl;
+		cout << "[WARNING] unable to construct chart edge from 'token' annot:" << endl;
+		serializeDOM(element);
+		cout << endl;
+	      }
+	    else
+	      result.push_back(item);
+	  }
+	else if (type=="ersatz")
+	  {
+	    tInputItem* item = getInputItemFromErsatzEdge(element, this);
+	    if (item==NULL)
+	      {
+		cout << "[WARNING] unable to construct chart edge from 'ersatz' annot:" << endl;
+		serializeDOM(element);
+		cout << endl;
+	      }
+	    else
+	      result.push_back(item);
+	  }
+	else if (type=="oscar")
+	  {
+	    tInputItem* item = getInputItemFromOscarEdge(element, this);
+	    if (item==NULL)
+	      {
+		cout << "[WARNING] unable to construct chart edge from 'oscar' annot:" << endl;
 		serializeDOM(element);
 		cout << endl;
 	      }
@@ -538,7 +796,56 @@ void tSMAFTokenizer::tokenize(string input, inp_list &result) {
       return;
     }
   
-  //cout << "tokenize OUT" << endl;
+  // rename nodes in forward seq to avoid seg fault later (!)
+  map<int,int> nodePoint;
+  // construct node point map
+  for(inp_iterator it = result.begin(); it != result.end(); it++) 
+    {
+      int from,to,cfrom,cto;
+      from=(*it)->start();
+      to=(*it)->end();
+      cfrom=(*it)->startposition();
+      cto=(*it)->endposition();
+
+      // process 'from' node
+      if (nodePoint[from]<cfrom)
+	nodePoint[from]=cfrom;
+      // process 'to' node
+      if (nodePoint[to]<cto)
+	nodePoint[to]=cto;
+    }
+  // construct sorted point node map
+  map<int,int> pointNode;
+  for (map<int,int>::iterator it = nodePoint.begin(); it != nodePoint.end(); it++)
+    {
+      int node=it->first;
+      int point=it->second;
+      pointNode[point]=node;
+    }
+
+  // construct node rename mapping
+  map<int,int> nodeRename;
+  int i=0;
+  for (map<int,int>::iterator it = pointNode.begin(); it != pointNode.end(); it++)
+    {
+      int node=it->second;
+
+      nodeRename[node]=i;
+      i++;
+    }
+
+  // finally, rename the nodes
+  for(inp_iterator it = result.begin(); it != result.end(); it++) 
+    {
+      int from,to;
+      // retrieve new values
+      from=(*it)->start();
+      to=(*it)->end();
+      // set new values
+      (*it)->set_start(nodeRename[from]);
+      (*it)->set_end(nodeRename[to]);
+
+    }
 
   return;
 }
@@ -578,3 +885,39 @@ int tSMAFTokenizer::getChartNode(string smafNode)
   int chartNode = _nodeMapping[smafNode];
   return chartNode-1;
 }
+
+void tSMAFTokenizer::clearIdMapping()
+{
+  _idMapping.clear();
+}
+
+bool tSMAFTokenizer::add2idMapping(string id, tInputItem* item)
+{
+  //cout << "add2idMapping: " << id << endl;
+  if (_idMapping[id]==NULL)
+    {
+      _idMapping[id] = item;
+      return true;
+    }
+  else
+    {
+      //throw tError("Duplicate id in SMAF input");
+      cout << "Duplicate id in SMAF input: " << id << endl;
+      return false;
+    }
+}
+
+bool tSMAFTokenizer::addNodePoint(int node, int point)
+{
+  //cout << "addNodePoint: " << node << "," << point << endl;
+  if (_nodePoint[node]<point)
+    {
+      _nodePoint[node] = point;
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}
+
