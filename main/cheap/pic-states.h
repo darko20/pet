@@ -21,7 +21,7 @@
 
 namespace pic {
 
-XERCES_CPP_NAMESPACE_USE
+  //XERCES_CPP_NAMESPACE_USE
 using namespace std;
 
 /**
@@ -595,13 +595,13 @@ class pic_state_factory {
   struct hash_xmlstring {
     unsigned int operator()(const XMLCh *s) const {
       return bjhash((const ub1 *) s
-                    , XMLString::stringLen(s) * sizeof(XMLCh), 0);
+                    , XERCES_CPP_NAMESPACE_QUALIFIER XMLString::stringLen(s) * sizeof(XMLCh), 0);
     }
   };
 
   struct xmlstring_equal {
     bool operator()(const XMLCh *s1, const XMLCh *s2) {
-      return (XMLString::compareString(s1, s2) == 0);
+      return (XERCES_CPP_NAMESPACE_QUALIFIER XMLString::compareString(s1, s2) == 0);
     }
   };
 

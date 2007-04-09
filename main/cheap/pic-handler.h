@@ -13,7 +13,8 @@
 #include <list>
 //#include <string>
 
-XERCES_CPP_NAMESPACE_USE
+//XERCES_CPP_NAMESPACE_USE
+//XERCES_CPP_NAMESPACE_BEGIN 
 
 /** Namespace for pet input chart xml parser */
 namespace pic {
@@ -30,7 +31,7 @@ namespace pic {
  *
  * For a detailed description, of HandlerBase see the Xerces C++ API.
  */
-class PICHandler : public HandlerBase {
+class PICHandler : public XERCES_CPP_NAMESPACE_QUALIFIER HandlerBase {
 public:
   /** Constructor: Make a new PICHandler */
   PICHandler(bool downcase, bool translate_iso);
@@ -47,17 +48,17 @@ public:
   /** ErrorHandler Interface */
   /*@{*/
   /** An XML error occured */
-  virtual void error(const SAXParseException& e){
+  virtual void error(const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e){
     print_sax_exception("Error", e);
     _error_occurred = true;
   }
   /** A fatal XML error occured */
-  virtual void fatalError(const SAXParseException& e){
+  virtual void fatalError(const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e){
     print_sax_exception("Fatal Error", e);
     _error_occurred = true;
   }
   /** An XML warning should be issued */
-  virtual void warning(const SAXParseException& e){
+  virtual void warning(const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e){
     print_sax_exception("Warning", e);
     _error_occurred = true;
   }
@@ -94,7 +95,7 @@ public:
   /** Add \a new_item to the list of already produced input items */
   void add_item(class tInputItem *new_item);
 
-  void setDocumentLocator(const Locator* const locator) { 
+  void setDocumentLocator(const XERCES_CPP_NAMESPACE_QUALIFIER Locator* const locator) { 
     _loc = locator;
   }
 
@@ -103,18 +104,18 @@ private:
   PICHandler(const PICHandler &x) {}
 
   /** Print a SAX exception in a convenient form */
-  void print_sax_exception(const char * errtype, const SAXParseException& e);
+  void print_sax_exception(const char * errtype, const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e);
 
   /** The state factory that produces the appropriate state for each XML tag */
   class pic::pic_state_factory *_state_factory;
 
-  const Locator *_loc;
+  const XERCES_CPP_NAMESPACE_QUALIFIER Locator *_loc;
 
   XMLCh *_errbuf;
 
   const XMLCh * errmsg(std::string msg) {
-    if (_errbuf != NULL) XMLString::release(&_errbuf) ;
-    _errbuf = XMLString::transcode(msg.c_str());
+    if (_errbuf != NULL) XERCES_CPP_NAMESPACE_QUALIFIER XMLString::release(&_errbuf) ;
+    _errbuf = XERCES_CPP_NAMESPACE_QUALIFIER XMLString::transcode(msg.c_str());
     return _errbuf;
   }
 
@@ -148,5 +149,6 @@ private:
   std::list<class tInputItem *> _items;
 };
 
+//XERCES_CPP_NAMESPACE_END 
 
 #endif

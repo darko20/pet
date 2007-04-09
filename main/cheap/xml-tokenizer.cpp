@@ -21,6 +21,8 @@
 #include "xml-tokenizer.h"
 #include "cheap.h"
 
+XERCES_CPP_NAMESPACE_USE
+
 /** Produce a set of tokens from the given XML input. */
 void tXMLTokenizer::tokenize(string input, inp_list &result) {
 
