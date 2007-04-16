@@ -1,4 +1,7 @@
 v0.99.??
+  - re-ordered library configuration checks because of problems with current 
+    version of ICU; fixed bug that caused wrong type fs inconsistencies in 
+    flop when used without mmap (part of ticket #4)
   - further SMAF XML support (Ersatz, OSCAR named entities)
   - fixed creation of additional (wrong) coreferences with characterization
     (ticket #6)
