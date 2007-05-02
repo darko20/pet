@@ -1483,6 +1483,8 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
   tHypothesis* hypo;
   list<tItem*> path;
   path.push_back(NULL); // root path
+  while (path.size() > opt_gplevel)
+    path.pop_front();
 
   for (list<tItem*>::iterator it = roots.begin();
        it != roots.end(); it ++) {
