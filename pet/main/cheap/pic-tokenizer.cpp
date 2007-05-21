@@ -18,13 +18,13 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "xml-tokenizer.h"
+#include "pic-tokenizer.h"
 #include "cheap.h"
 
 XERCES_CPP_NAMESPACE_USE
 
 /** Produce a set of tokens from the given XML input. */
-void tXMLTokenizer::tokenize(string input, inp_list &result) {
+void tPICTokenizer::tokenize(string input, inp_list &result) {
 
   if (input.compare(0, 2, "<?") == 0)
     tokenize_from_stream(input, result);
@@ -42,7 +42,7 @@ void tXMLTokenizer::tokenize(string input, inp_list &result) {
 }
 
 /** Produce a set of tInputItem tokens from the given XML input on stdin. */
-void tXMLTokenizer::tokenize_from_stream(string input, inp_list &result) {
+void tPICTokenizer::tokenize_from_stream(string input, inp_list &result) {
   string buffer = input;
   if(verbosity > 4)
     {
@@ -52,7 +52,7 @@ void tXMLTokenizer::tokenize_from_stream(string input, inp_list &result) {
   
   PICHandler picreader(true, _translate_iso_chars);
   MemBufInputSource xmlinput((const XMLByte *) buffer.c_str()
-			     , buffer.length(), "STDIN");
+                             , buffer.length(), "STDIN");
   if (parse_file(xmlinput, &picreader)
       && (! picreader.error())) {
     result = picreader.items();
@@ -61,7 +61,7 @@ void tXMLTokenizer::tokenize_from_stream(string input, inp_list &result) {
 }
 
 /** Produce a set of tokens from the given XML file. */
-void tXMLTokenizer::tokenize_from_file(string filename, inp_list &result) {
+void tPICTokenizer::tokenize_from_file(string filename, inp_list &result) {
   PICHandler picreader(true, _translate_iso_chars);
   XMLCh * XMLFilename = XMLString::transcode(filename.c_str());
   LocalFileInputSource inputfile(XMLFilename);

@@ -216,7 +216,7 @@ LDFLAGS="$saveLDFLAGS"
 
 
 AC_ARG_WITH(xml,
-[AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the XML input mode (needs xerces c++ library) (default=no)])],
+[AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the Xerces C++ library (enables XML input modes) (default=no)])],
 [
 case "${withval}" in
     yes) xml=true ;;
@@ -248,7 +248,7 @@ if test x$xml = xtrue ; then
     CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${XERCESCDIR}/include"
     CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${XERCESCDIR}/lib"`
     CHEAPLIBS="-lxerces-c $CHEAPLIBS"
-    AC_DEFINE(HAVE_XML, [1], [Enable XML input mode, using XERCES C++ library])
+    AC_DEFINE(HAVE_XML, [1], [Enable XML input modes, using Xerces C++ library])
 fi
 AM_CONDITIONAL(XML, [test x$xml = xtrue])
 CPPFLAGS="$saveCPPFLAGS"
@@ -741,7 +741,7 @@ feature_avail x$ecl xtrue "ecl lisp processor"
 feature_avail x$mrs xtrue "MRS code with ecl"
 feature_avail x$preproc xtrue "preprocessor code with ecl"
 feature_avail x$icu xtrue "ICU"
-feature_avail x$xml xtrue "XML input mode"
+feature_avail x$xml xtrue "Xerces C++ (for XML input modes)"
 dnl feature_avail x$lexdb xtrue "External SQL dictionary"
 feature_avail x$mmapalloc xyes "Memory allocation with mmap"
 feature_avail x$qccomp xyes "Code for quick-check computation"

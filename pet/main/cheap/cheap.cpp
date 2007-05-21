@@ -31,7 +31,7 @@
 #include "yy-tokenizer.h"
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
-#include "xml-tokenizer.h"
+#include "pic-tokenizer.h"
 #include "smaf-tokenizer.h"
 #endif
 #include "item-printer.h"
@@ -442,12 +442,12 @@ void process(const char *s) {
     case TOKENIZER_INVALID: 
       tok = new tLingoTokenizer(); break;
 
-    case TOKENIZER_XML:
-    case TOKENIZER_XML_COUNTS: 
+    case TOKENIZER_PIC:
+    case TOKENIZER_PIC_COUNTS: 
 #ifdef HAVE_XML
       xml_initialize();
       XMLServices = true;
-      tok = new tXMLTokenizer((opt_tok == TOKENIZER_XML_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
+      tok = new tPICTokenizer((opt_tok == TOKENIZER_PIC_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
 #else
       fprintf(ferr, "No XML input mode compiled into this cheap\n");
       exit(1);
