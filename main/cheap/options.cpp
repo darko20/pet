@@ -121,7 +121,7 @@ void usage(FILE *f)
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");  
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
-  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|xml|xml_counts' --- "
+  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
              "select input method (default `string')\n");  
 
   fprintf(f, "  `-comment-passthrough[=1]' --- "
@@ -431,21 +431,26 @@ bool parse_options(int argc, char* argv[])
               opt_nresults = strtoint(optarg, "as argument to -results");
           break;
       case OPTION_TOK:
-	opt_tok = TOKENIZER_STRING; //todo: make FSR the default
-	if (optarg != NULL) {
-	  if (strcasecmp(optarg, "string") == 0) opt_tok = TOKENIZER_STRING;
-	  else if (strcasecmp(optarg, "yy") == 0) opt_tok = TOKENIZER_YY;
-	  else if (strcasecmp(optarg, "yy_counts") == 0) opt_tok = TOKENIZER_YY_COUNTS;
-	  else if (strcasecmp(optarg, "xml") == 0) opt_tok = TOKENIZER_XML; //obsolete
-	  else if (strcasecmp(optarg, "xml_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS; //obsolete
-	  else if (strcasecmp(optarg, "pic") == 0) opt_tok = TOKENIZER_XML;
-	  else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_XML_COUNTS;
-	  else if (strcasecmp(optarg, "smaf") == 0) opt_tok = TOKENIZER_SMAF;
-	  else if (strcasecmp(optarg, "fsr") == 0)
-	    opt_tok = TOKENIZER_FSR;
-	  else fprintf(ferr, "WARNING: unknown tokenizer mode \"%s\": using 'tok=string'\n", optarg);
-	}
-	break;
+          opt_tok = TOKENIZER_STRING; //todo: make FSR the default
+          if (optarg != NULL) {
+            if (strcasecmp(optarg, "string") == 0) opt_tok = TOKENIZER_STRING;
+            else if (strcasecmp(optarg, "fsr") == 0) opt_tok = TOKENIZER_FSR;
+            else if (strcasecmp(optarg, "yy") == 0) opt_tok = TOKENIZER_YY;
+            else if (strcasecmp(optarg, "yy_counts") == 0) opt_tok = TOKENIZER_YY_COUNTS;
+            else if (strcasecmp(optarg, "pic") == 0) opt_tok = TOKENIZER_PIC;
+            else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_PIC_COUNTS;
+            else if (strcasecmp(optarg, "smaf") == 0) opt_tok = TOKENIZER_SMAF;
+            else if (strcasecmp(optarg, "xml") == 0) {
+              fprintf(ferr, "WARNING: deprecated command-line option -tok=xml, use -tok=pic instead\n");
+              opt_tok = TOKENIZER_PIC; //deprecated command-line option
+            }
+            else if (strcasecmp(optarg, "xml_counts") == 0) {
+              fprintf(ferr, "WARNING: deprecated command-line option -tok=xml_counts, use -tok=pic_counts instead\n");
+              opt_tok = TOKENIZER_PIC; //deprecated command-line option
+            }
+            else fprintf(ferr, "WARNING: unknown tokenizer mode \"%s\": using 'tok=string'\n", optarg);
+          }
+          break;
       case OPTION_JXCHG_DUMP:
           opt_jxchg_dir = optarg;
           if (*(opt_jxchg_dir.end()--) != '/') 

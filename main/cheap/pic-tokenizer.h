@@ -1,10 +1,10 @@
 /* -*- Mode: C++ -*- */
-/** \file xml-tokenizer.h
+/** \file pic-tokenizer.h
  * XML input mode reader for PET, similar to the YY mode tokenizer.
  */
 
-#ifndef _XML_TOKENIZER_H
-#define _XML_TOKENIZER_H
+#ifndef _PIC_TOKENIZER_H
+#define _PIC_TOKENIZER_H
 
 #include "input-modules.h"
 #include "pic-handler.h"
@@ -15,16 +15,16 @@
 /** Tokenizer similar to the yy mode tokenizer, using a custom XML DTD giving
  *  more flexibility for the input stage, and also maybe more clarity.
  */
-class tXMLTokenizer : public tTokenizer {
+class tPICTokenizer : public tTokenizer {
 public:
   /** Create a new XML input reader.
    *  \param position_map if \c STANDOFF_COUNTS, an item starting, e.g., at
    *  position zero and ending at position one has length two, not one.
    */
-  tXMLTokenizer(position_map position_mapping = STANDOFF_POINTS)
+  tPICTokenizer(position_map position_mapping = STANDOFF_POINTS)
     : tTokenizer(), _position_mapping(position_mapping) { }
   
-  virtual ~tXMLTokenizer() {}
+  virtual ~tPICTokenizer() {}
 
   /** Produce a set of tokens from the given XML input. */
   virtual void tokenize(string input, inp_list &result);

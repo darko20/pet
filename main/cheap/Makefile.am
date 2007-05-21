@@ -127,7 +127,7 @@ libmrs.a:
 	echo "(mk::ecl-finalize-libbuild :module \"mrs\")"; \
 	) | $(ECL)
 
-XML_FILES = pic-handler.cpp pic-handler.h pic-states.h xmlparser.cpp xmlparser.h xml-tokenizer.h xml-tokenizer.cpp smaf-tokenizer.h smaf-tokenizer.cpp
+XML_FILES = pic-handler.cpp pic-handler.h pic-states.h pic-tokenizer.h pic-tokenizer.cpp xmlparser.cpp xmlparser.h smaf-tokenizer.h smaf-tokenizer.cpp
 if XML
 cheap_SOURCES += $(XML_FILES)
 endif
