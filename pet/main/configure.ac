@@ -686,8 +686,8 @@ AC_FUNC_MALLOC
 AC_ARG_ENABLE(mmapalloc,
 [AC_HELP_STRING([--enable-mmapalloc], [enable/disable use of mmap allocator (default=check for mmap)])],
 [case "${enableval}" in
-   no)   mmapalloc=no;;
-   *)    mmapalloc=yes;;
+   yes) mmapalloc=yes;;
+   *)   mmapalloc=no;;
  esac
 ], [mmapalloc=yes])
 if test "$mmapalloc" = "yes" ; then
