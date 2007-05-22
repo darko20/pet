@@ -312,43 +312,39 @@ grammar_rule::init_qc_vector_unif()
 
 
 void
-undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
-{
-    struct dag_node *dag;
-    
-    initialize_dags(ntypes);
+undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
+  struct dag_node *dag;
+  // allocate an array holding ntypes pointers to the typedags
+  initialize_dags(ntypes);
     
 #ifdef CONSTRAINT_CACHE
-    init_constraint_cache(ntypes);
+  // allocate an array holding ntypes pointers to typedag caches
+  init_constraint_cache(ntypes);
 #endif
-    
-    for(int i = 0; i < ntypes; i++)
-    {
-        if(qc_inst_unif != 0 && i == qc_inst_unif)
-        {
-            if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
-                                      print_name(qc_inst_unif));
-            qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
-            dag = 0;
-        }
-        else if(qc_inst_subs && i == qc_inst_subs)
-        {
-            if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
-                                      print_name(qc_inst_subs));
-            qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
-            dag = 0;
-        }
-        else
-            dag = dag_undump(f);
+ 
+  for(int i = 0; i < ntypes; i++) {
+    if(qc_inst_unif != 0 && i == qc_inst_unif) {
+      if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
+                                print_name(qc_inst_unif));
+      qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
+      dag = 0;
+    }
+    else if(qc_inst_subs && i == qc_inst_subs) {
+      if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
+                                print_name(qc_inst_subs));
+      qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
+      dag = 0;
+    }
+    else
+      dag = dag_undump(f);
         
-        register_dag(i, dag);
-    }
+    register_dag(i, dag);
+  }
 
-    if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs)
-    {
-        qc_paths_subs = qc_paths_unif;
-        qc_len_subs = qc_len_unif;
-    }
+  if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs) {
+    qc_paths_subs = qc_paths_unif;
+    qc_len_subs = qc_len_unif;
+  }
 }
 
 // Construct a grammar object from binary representation in a file

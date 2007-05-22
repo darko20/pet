@@ -1,5 +1,3 @@
-- inconsistencies between LKB and PET (ticket #2 by Francis Bond)
-
 - proper handling of upcase/lowercase handling in a) tokenizers and b) lexicon
   access (have to use ICU?). Is it enough to have two modes: strict (no
   conversion) and robust (all to lower)? At least the lexicon that comes from
@@ -8,7 +6,12 @@
   now converted correctly to lowercase in lingo-tokenizer, but not in
   yy-tokenizer. This should be done in a common way and an option should be
   introduced that controls if conversion to lower case is done at all.
-  (ticket #5)
+  (ticket #5) (The Ueber- bzw. Aegypten bug)
+
+- implement a less efficient form of unfilling that might allow simple but
+  correct subsumption tests for packing: Either a structure is completely
+  represented by its type and no features, or all appropriate features are
+  present.
 
 - reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 
@@ -189,3 +192,5 @@ refactoring:
   using a new SVN snapshot: aclocal && automake -a && autconf && ./configure
   and describe configuration options
 + make morphology computation available to generic entries
++ inconsistencies between LKB and PET (ticket #2 by Francis Bond) fixed
+
