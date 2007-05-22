@@ -27,7 +27,6 @@
 
 #include "item.h"
 #include <queue>
-#include "logging.h"
 
 /** Chart data structure for parsing, aka dynamic programming */
 class chart {
@@ -48,7 +47,7 @@ public:
   void remove(hash_set<tItem *> &to_delete);
 
   /** Print all chart items */
-  void print(IPrintfHandler &iph);
+  void print(std::ostream &);
 
   /** Print chart items using \a f, select active and passive items with \a
    *  passives and \a actives.

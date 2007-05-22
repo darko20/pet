@@ -230,8 +230,8 @@ public:
    * @exception EntryAlreadyExistsException Thrown if entry already exists.
    */
   template<class T> static void 
-  addOption(const std::string& entry, const std::string& description = "",
-            T initial = T(), IConverter<T> *converter = 0);
+  addOption(const std::string& entry, const std::string& description,
+            T initial, IConverter<T> *converter = 0);
 
   /**
    * Adds new configuration option. Value is stored in given location.
@@ -247,8 +247,8 @@ public:
    * @exception EntryAlreadyExistsException Thrown if entry already exists.
    */
   template<class T> static void 
-  addRefOption(const std::string& entry, T* value,
-               const std::string& description = "", T initial = T(),
+  addReference(const std::string& entry, T* value,
+               const std::string& description, T initial = T(),
                IConverter<T> *converter = 0);
 
   /**
@@ -400,9 +400,9 @@ Configuration::addOption(const std::string& entry,
 }
 
 template<class T> void 
-Configuration::addRefOption(const std::string& entry, T* value,
-                         const std::string& description, T initial,
-                         IConverter<T> *converter)
+Configuration::addReference(const std::string& entry, T* value,
+                            const std::string& description, T initial,
+                            IConverter<T> *converter)
 {
   instance_->check(entry);
   Option<T> *opt = new ReferenceOption<T>(value, description);
