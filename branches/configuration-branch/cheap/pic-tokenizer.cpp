@@ -18,27 +18,41 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "xml-tokenizer.h"
+#include "pic-tokenizer.h"
 #include "cheap.h"
 
+XERCES_CPP_NAMESPACE_USE
+
 /** Produce a set of tokens from the given XML input. */
-void tXMLTokenizer::tokenize(string input, inp_list &result) {
+void tPICTokenizer::tokenize(string input, inp_list &result) {
 
   if (input.compare(0, 2, "<?") == 0)
     tokenize_from_stream(input, result);
-  else
+  else {
+    string::size_type len = input.length();
+    string::size_type pos = input.find_last_of('\n');
+    // trim trailing newlines
+    while (pos != string::npos && pos == len - 1) {
+      input.erase(pos);
+      len--;
+      pos = input.find_last_of('\n');
+    }
     tokenize_from_file(input, result);
+  }
 }
 
 /** Produce a set of tInputItem tokens from the given XML input on stdin. */
-void tXMLTokenizer::tokenize_from_stream(string input, inp_list &result) {
+void tPICTokenizer::tokenize_from_stream(string input, inp_list &result) {
   string buffer = input;
-  //cerr << "received from :pic preprocessor:" << endl << buffer << endl << endl;
-  LOG(loggerXml, Level::INFO, "[processing PIC XML input]");
+  if(verbosity > 4)
+    {
+      //cerr << "received from :pic preprocessor:" << endl << buffer << endl << endl;
+      fprintf(ferr, "[processing PIC XML input]\n");
+    };
   
   PICHandler picreader(true, _translate_iso_chars);
   MemBufInputSource xmlinput((const XMLByte *) buffer.c_str()
-			     , buffer.length(), "STDIN");
+                             , buffer.length(), "STDIN");
   if (parse_file(xmlinput, &picreader)
       && (! picreader.error())) {
     result = picreader.items();
@@ -47,7 +61,7 @@ void tXMLTokenizer::tokenize_from_stream(string input, inp_list &result) {
 }
 
 /** Produce a set of tokens from the given XML file. */
-void tXMLTokenizer::tokenize_from_file(string filename, inp_list &result) {
+void tPICTokenizer::tokenize_from_file(string filename, inp_list &result) {
   PICHandler picreader(true, _translate_iso_chars);
   XMLCh * XMLFilename = XMLString::transcode(filename.c_str());
   LocalFileInputSource inputfile(XMLFilename);

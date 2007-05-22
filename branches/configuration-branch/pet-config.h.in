@@ -204,11 +204,14 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
-/* Enable XML input mode, using XERCES C++ library */
+/* Enable XML input modes, using Xerces C++ library */
 #undef HAVE_XML
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
+
+/* Include instantiation failure cache code */
+#undef INSTFC
 
 /* Current Linux kernel is 2.4.x */
 #undef KERNEL_2_4
@@ -261,7 +264,7 @@
    release 3. */
 #undef SETVBUF_REVERSED
 
-/* The size of an `int *', as computed by sizeof. */
+/* The size of `int *', as computed by sizeof. */
 #undef SIZEOF_INT_P
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -303,7 +306,7 @@
 /* Define to rpl_realloc if the replacement function should be used. */
 #undef realloc
 
-/* Define to `unsigned' if <sys/types.h> does not define. */
+/* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
 /* Define as `fork' if `vfork' does not work. */

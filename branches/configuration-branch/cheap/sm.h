@@ -97,6 +97,12 @@ class tSM
     score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path,
                      int gplevel);
     
+    /** Return the best predicted lexical (entry) types for the given
+     * context.
+     */
+    virtual std::list<int>
+    bestPredict(std::vector<std::string> words, std::vector<std::vector<int> > letypes, int n);
+
     class tSMMap *map()
     { return _map; }
 
@@ -156,7 +162,9 @@ class tMEM : public tSM
 
     /** Format version of the model:
 	0: old format 
-	1: new format (as of sep-06). */
+	1: new format (as of sep-06). 
+        2: lexical type prediction model format
+    */
     int _format;
 
     void
@@ -176,6 +184,9 @@ class tMEM : public tSM
 
     /** Handler of new format for feature representation. */ 
     void parseFeature2(int); 
+
+    /** Handler for lexical type prediction model */
+    void parseFeature_lexpred(int);
 };
 
 #endif

@@ -271,6 +271,9 @@ class tGrammar
   /** Return the list of generic lexicon entries in this grammar */
   list_int *generics() { return _generics; }
 
+  /** Return the list of predictor lexicon entries in this grammar*/
+  list_int *predicts() { return _predicts; }
+
   /** \todo becomes obsolete when yy.cpp does */
   bool punctuationp(const string &s);
 
@@ -283,6 +286,9 @@ class tGrammar
 
   /** Return the statistic maxent model of this grammar */
   inline tSM *sm() { return _sm; }
+
+  /** Return the lexical type predictor ME model */
+  inline tSM *lexsm() { return _lexsm; }
 
   /** deactivate all rules */
   void deactivate_all_rules() {
@@ -378,7 +384,12 @@ class tGrammar
    *  lexicon entry is found
    */
   list_int *_generics;
-  
+
+  /** Prediction lexicon entries, selected via lexical type prediction
+      model
+   */
+  list_int *_predicts;
+
   char *_filter;
   char *_subsumption_filter;
   void initialize_filter();
@@ -392,6 +403,9 @@ class tGrammar
 
   /// Stochastic model.
   class tSM *_sm;
+
+  // Lexical type predictor model.
+  class tSM *_lexsm;
 
   void undump_properties(dumper *f);
   void init_parameters();

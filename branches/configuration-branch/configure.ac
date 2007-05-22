@@ -131,6 +131,129 @@ saveLDFLAGS="$LDFLAGS"
 # IF requested AND libraries and headers OK; THEN add to configuration
 # For libraries: it should be possible to choose for static ones
 
+AC_ARG_WITH(icu,
+[AC_HELP_STRING([--with-icu@<:@=DIR@:>@], [use the ICU library (default=yes)])],
+[
+case "${withval}" in
+    yes) icu=true ;;
+    no)  icu=false ;;
+    *)   icu=true
+         ICUDIR=${withval} ;;
+esac
+], [ icu=true ])
+
+check_icu() {
+if test x$ICUDIR != x ; then
+    if test -d ${ICUDIR} && test -d $ICUDIR/include && test -d $ICUDIR/lib ; then 
+        LDFLAGS="$LDFLAGS -L${ICUDIR}/lib"
+        export LDFLAGS
+    else 
+        AC_MSG_WARN([directory ${ICUDIR}, ${ICUDIR}/lib or ${ICUDIR}/include not found for --with-icu; DISABLED])
+        return 1
+    fi
+fi
+# Not detected by autoheader, but required by ICU
+AC_CHECK_LIB([pthread], [pthread_exit], [ icu=true ],
+    [ AC_MSG_WARN([pthread library not found for --with-icu; DISABLED])
+        return 1 ])
+AC_CHECK_LIB([icudata], [main], [ icu=true ], 
+    [ AC_MSG_WARN([icudata library not found for --with-icu; DISABLED])
+        return 1 ])
+dnl AC_CHECK_LIB([icuuc], [main], [ icu=true ], 
+dnl     [ AC_MSG_WARN([icuuc library not found for --with-icu; DISABLED])
+dnl         return 1 ])
+dnl AC_CHECK_LIB([icui18n], [main], [ icu=true ], 
+dnl     [ AC_MSG_WARN([icui18n library not found for --with-icu; DISABLED])
+dnl           return 1 ])
+return 0
+}
+
+if test x$icu = xtrue && check_icu ; then
+    if test x$ICUDIR != x ; then
+        CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ICUDIR}/include"
+        CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ICUDIR}/lib"`
+    fi
+    CHEAPLIBS="-lpthread -licuuc -licui18n -licudata $CHEAPLIBS"
+    AC_DEFINE(HAVE_ICU, [1], [use international character library from IBM]) 
+else
+    icu=false
+fi
+AM_CONDITIONAL(ICU, [test X$icu = Xtrue])
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
+
+
+
+AC_ARG_WITH(boost,
+[AC_HELP_STRING([--with-boost=DIR], [use the BOOST library in DIR])],
+[
+if test -d "${withval}"; then 
+    boost=true
+    BOOSTDIR=${withval}
+else
+    boost=false
+    AC_MSG_ERROR(directory ${withval} not found for --with-boost)
+fi
+],
+[ boost=true ])
+
+if test x$boost = xtrue ; then
+    AC_LANG_PUSH(C++)
+    if test x${BOOSTDIR} != x ; then
+       CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
+    fi
+    AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
+    dnl Necessary only for test binary boost:
+    dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
+fi
+AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
+if test x$boost = xtrue -a -n "${BOOSTDIR}" ; then
+    FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
+fi
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
+
+
+
+AC_ARG_WITH(xml,
+[AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the Xerces C++ library (enables XML input modes) (default=no)])],
+[
+case "${withval}" in
+    yes) xml=true ;;
+    no)  xml=false ;;
+    *)   xml=true
+            XERCESCDIR=${withval} ;;
+esac
+save_LD="$LDFLAGS"
+if test x$xml = xtrue -a -n "${XERCESCDIR}" ; then
+   if test -d "${XERCESCDIR}" ; then
+      LDFLAGS="$LDFLAGS -L${XERCESCDIR}/lib -licuuc -licudata"
+   else 
+      AC_MSG_WARN([directory ${XERCESCDIR} not found for --with-xml; DISABLED])
+      xml=false
+   fi
+fi
+if test x$xml = xtrue ; then
+    AC_CHECK_LIB([xerces-c], [_init], [ xml=true ],
+        [
+        xml=false
+        AC_MSG_WARN([Xerces C++ library not found for --with-xml; DISABLED])
+        ])
+else
+    xml=false
+fi
+LDFLAGS="$save_LD"
+], [xml=false])
+if test x$xml = xtrue ; then
+    CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${XERCESCDIR}/include"
+    CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${XERCESCDIR}/lib"`
+    CHEAPLIBS="-lxerces-c $CHEAPLIBS"
+    AC_DEFINE(HAVE_XML, [1], [Enable XML input modes, using Xerces C++ library])
+fi
+AM_CONDITIONAL(XML, [test x$xml = xtrue])
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
+
 
 AC_ARG_WITH(tsdb,
 [AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default=yes)])],
@@ -341,88 +464,6 @@ CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
 
-AC_ARG_WITH(icu,
-[AC_HELP_STRING([--with-icu@<:@=DIR@:>@], [use the ICU library (default=yes)])],
-[
-case "${withval}" in
-    yes) icu=true ;;
-    no)  icu=false ;;
-    *)   icu=true
-         ICUDIR=${withval} ;;
-esac
-], [ icu=true ])
-
-check_icu() {
-if test x$ICUDIR != x ; then
-    if test -d ${ICUDIR} && test -d $ICUDIR/include && test -d $ICUDIR/lib ; then 
-        LDFLAGS="$LDFLAGS -L${ICUDIR}/lib"
-        export LDFLAGS
-    else 
-        AC_MSG_WARN([directory ${ICUDIR}, ${ICUDIR}/lib or ${ICUDIR}/include not found for --with-icu; DISABLED])
-        return 1
-    fi
-fi
-# Not detected by autoheader, but required by ICU
-AC_CHECK_LIB([pthread], [pthread_exit], [ icu=true ],
-    [ AC_MSG_WARN([pthread library not found for --with-icu; DISABLED])
-        return 1 ])
-AC_CHECK_LIB([icudata], [main], [ icu=true ], 
-    [ AC_MSG_WARN([icudata library not found for --with-icu; DISABLED])
-        return 1 ])
-dnl AC_CHECK_LIB([icuuc], [main], [ icu=true ], 
-dnl     [ AC_MSG_WARN([icuuc library not found for --with-icu; DISABLED])
-dnl         return 1 ])
-dnl AC_CHECK_LIB([icui18n], [main], [ icu=true ], 
-dnl     [ AC_MSG_WARN([icui18n library not found for --with-icu; DISABLED])
-dnl           return 1 ])
-return 0
-}
-
-if test x$icu = xtrue && check_icu ; then
-    if test x$ICUDIR != x ; then
-        CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ICUDIR}/include"
-        CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ICUDIR}/lib"`
-    fi
-    CHEAPLIBS="-lpthread -licuuc -licui18n -licudata $CHEAPLIBS"
-    AC_DEFINE(HAVE_ICU, [1], [use international character library from IBM]) 
-else
-    icu=false
-fi
-AM_CONDITIONAL(ICU, [test X$icu = Xtrue])
-CPPFLAGS="$saveCPPFLAGS"
-LDFLAGS="$saveLDFLAGS"
-
-
-
-AC_ARG_WITH(boost,
-[AC_HELP_STRING([--with-boost=DIR], [use the BOOST library in DIR])],
-[
-if test -d "${withval}"; then 
-    boost=true
-    BOOSTDIR=${withval}
-else
-    boost=false
-    AC_MSG_ERROR(directory ${withval} not found for --with-boost)
-fi
-],
-[ boost=true ])
-
-if test x$boost = xtrue ; then
-    AC_LANG_PUSH(C++)
-    if test x${BOOSTDIR} != x ; then
-       CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
-    fi
-    AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-    dnl Necessary only for test binary boost:
-    dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-fi
-AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
-if test x$boost = xtrue -a -n "${BOOSTDIR}" ; then
-    FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
-fi
-CPPFLAGS="$saveCPPFLAGS"
-LDFLAGS="$saveLDFLAGS"
-
 
 
 # Not via defines in config.h because there is no choice for flop!
@@ -447,45 +488,6 @@ AM_CONDITIONAL(SIMPLE_UNIFIER, [test x$unifier = xsimple])
 #if test x$dynsymbols=xyes ; then
 #   AC_DEFINE([DYNAMIC_SYMBOLS],[1],[Enable the use of dynamic symbols/atoms])
 #fi
-
-AC_ARG_WITH(xml,
-[AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the XML input mode (needs xerces c++ library) (default=no)])],
-[
-case "${withval}" in
-    yes) xml=true ;;
-    no)  xml=false ;;
-    *)   xml=true
-            XERCESCDIR=${withval} ;;
-esac
-save_LD="$LDFLAGS"
-if test x$xml = xtrue && -n "${XERCESCDIR}" ; then
-   if test -d "${XERCESCDIR}" ; then
-      LDFLAGS="$LDFLAGS -L${XERCESCDIR}/lib"
-   else 
-      AC_MSG_WARN([directory ${XERCESCDIR} not found for --with-xml; DISABLED])
-      xml=false
-   fi
-fi
-if test x$xml = xtrue ; then
-    AC_CHECK_LIB([xerces-c], [main], [ xml=true ],
-        [
-        xml=false
-        AC_MSG_WARN([Xerces C++ library not found for --with-xml; DISABLED])
-        ])
-else
-    xml=false
-fi
-LDFLAGS="$save_LD"
-], [xml=false])
-if test x$xml = xtrue ; then
-    CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${XERCESCDIR}/include"
-    CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${XERCESCDIR}/lib"`
-    CHEAPLIBS="-lxerces-c $CHEAPLIBS"
-    AC_DEFINE(HAVE_XML, [1], [Enable XML input mode, using XERCES C++ library])
-fi
-AM_CONDITIONAL(XML, [test x$xml = xtrue])
-CPPFLAGS="$saveCPPFLAGS"
-LDFLAGS="$saveLDFLAGS"
 
 
 dnl external lexicon based on postgresql database
@@ -606,6 +608,19 @@ if test x$yy = xtrue; then
 fi
 AM_CONDITIONAL(YY, [test x$yy = xtrue])
 
+AC_ARG_ENABLE(instfc,
+AC_HELP_STRING([--enable-instfc@<:@=ARG@:>@], [use the instantiation failure cache (default=yes)]),
+[case "${enableval}" in
+   yes) instfc=true ;;
+   no)  instfc=false ;;
+   *)   instfc=false
+        AC_MSG_ERROR(bad value ${enableval} for --enable-instfc) ;;
+ esac
+], [instfc=true])
+if test x$instfc = xtrue; then 
+    AC_DEFINE(INSTFC, [1], [Include instantiation failure cache code])
+fi
+AM_CONDITIONAL(INSTFC, [test x$instfc = xtrue])
 
 AC_ARG_ENABLE(lui,
 AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
@@ -723,8 +738,8 @@ AC_FUNC_MALLOC
 AC_ARG_ENABLE(mmapalloc,
 [AC_HELP_STRING([--enable-mmapalloc], [enable/disable use of mmap allocator (default=check for mmap)])],
 [case "${enableval}" in
-   no)   mmapalloc=no;;
-   *)    mmapalloc=yes;;
+   yes) mmapalloc=yes;;
+   *)   mmapalloc=no;;
  esac
 ], [mmapalloc=yes])
 if test "$mmapalloc" = "yes" ; then
@@ -778,7 +793,7 @@ feature_avail x$ecl xtrue "ecl lisp processor"
 feature_avail x$mrs xtrue "MRS code with ecl"
 feature_avail x$preproc xtrue "preprocessor code with ecl"
 feature_avail x$icu xtrue "ICU"
-feature_avail x$xml xtrue "XML input mode"
+feature_avail x$xml xtrue "Xerces C++ (for XML input modes)"
 dnl feature_avail x$lexdb xtrue "External SQL dictionary"
 feature_avail x$cppunit xtrue "CppUnit"
 feature_avail x$log4cxx xtrue "log4cxx"
