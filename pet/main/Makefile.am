@@ -21,7 +21,10 @@ sign: dist
 doc: flopdoc cheapdoc
 
 flopdoc:
-	doxygen doxyconfig.flop
+	mkdir -p doc/flop
+	$(DOXYGEN) doxyconfig.flop
 
 cheapdoc:
-	doxygen doxyconfig.cheap
+	mkdir -p doc/cheap
+	$(DOXYGEN) doxyconfig.cheap
+
