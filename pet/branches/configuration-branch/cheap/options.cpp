@@ -89,6 +89,7 @@ void usage(FILE *f)
   fprintf(f, "  `-rulestats' --- enable tsdb output of rule statistics\n");
   fprintf(f, "  `-no-chart-man' --- disable chart manipulation\n");
   fprintf(f, "  `-default-les' --- enable use of default lexical entries\n");
+  fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
   fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
 #ifdef YY
@@ -101,6 +102,7 @@ void usage(FILE *f)
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
+  fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
 #ifdef ONLINEMORPH
   fprintf(f, "  `-no-online-morph' --- disable online morphology\n");
 #endif
@@ -118,7 +120,7 @@ void usage(FILE *f)
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");  
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
-  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|xml|xml_counts' --- "
+  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
              "select input method (default `string')\n");  
 
   fprintf(f, "  `-comment-passthrough[=1]' --- "
@@ -159,6 +161,7 @@ void usage(FILE *f)
 #define OPTION_COMPUTE_QC_SUBS 34
 #define OPTION_JXCHG_DUMP 35
 #define OPTION_COMMENT_PASSTHROUGH 36
+#define OPTION_PREDICT_LES 37
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -232,6 +235,7 @@ void init_options()
   Configuration::addReference<int>("opt_packing", &opt_packing,
     "a bit vector of flags: 1:equivalence 2:proactive 4:retroactive packing "
     "8:selective 128:no unpacking", 0);
+  opt_predict_les = 0;
 
   Configuration::addOption<char*>("opt_mrs",
     "determines if and which kind of MRS output is generated", 0 );
@@ -294,6 +298,7 @@ bool parse_options(int argc, char* argv[])
     {"rulestats", no_argument, 0, OPTION_RULE_STATISTICS},
     {"no-chart-man", no_argument, 0, OPTION_NO_CHART_MAN},
     {"default-les", no_argument, 0, OPTION_DEFAULT_LES},
+    {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
     {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
@@ -478,7 +483,7 @@ bool parse_options(int argc, char* argv[])
               Configuration::set("opt_nresults",
                 strtoint(optarg, "as argument to -results"));
           break;
-      case OPTION_TOK:
+      case OPTION_TOK: 
         {
           tokenizer_id opt_tok = TOKENIZER_STRING; //todo: make FSR the default
           if (optarg != NULL) {
@@ -488,14 +493,20 @@ bool parse_options(int argc, char* argv[])
               opt_tok = TOKENIZER_YY;
             else if (strcasecmp(optarg, "yy_counts") == 0)
               opt_tok = TOKENIZER_YY_COUNTS;
-            else if (strcasecmp(optarg, "xml") == 0)
-              opt_tok = TOKENIZER_XML; //obsolete
-            else if (strcasecmp(optarg, "xml_counts") == 0)
-              opt_tok = TOKENIZER_XML_COUNTS; //obsolete
+            else if (strcasecmp(optarg, "xml") == 0) {
+              LOG_WARN(loggerUncategorized, "WARNING: deprecated command-line option "
+                       " -tok=xml, use -tok=pic instead\n");
+              opt_tok = TOKENIZER_PIC; // deprecated command-line option
+            }
+            else if (strcasecmp(optarg, "xml_counts") == 0) {
+              LOG_WARN(loggerUncategorized, "WARNING: deprecated command-line option "
+                       " -tok=xml_counts, use -tok=pic_counts instead\n");
+              opt_tok = TOKENIZER_PIC_COUNTS; // deprecated command-line option
+            }
             else if (strcasecmp(optarg, "pic") == 0)
-              opt_tok = TOKENIZER_XML;
+              opt_tok = TOKENIZER_PIC;
             else if (strcasecmp(optarg, "pic_counts") == 0)
-              opt_tok = TOKENIZER_XML_COUNTS;
+              opt_tok = TOKENIZER_PIC_COUNTS;
             else if (strcasecmp(optarg, "smaf") == 0)
               opt_tok = TOKENIZER_SMAF;
             else if (strcasecmp(optarg, "fsr") == 0)
@@ -521,6 +532,13 @@ bool parse_options(int argc, char* argv[])
               strtoint(optarg, "as argument to -comment-passthrough") == 1);
           else
               Configuration::set("opt_comment_passthrough", true);
+	  break;
+
+      case OPTION_PREDICT_LES:
+	  if (optarg != NULL)
+	    opt_predict_les = strtoint(optarg, "as argument to -predict-les");
+	  else 
+	    opt_predict_les = 1;
 	  break;
 
 #ifdef YY
@@ -589,6 +607,7 @@ void options_from_settings(settings *set)
   memlimit = 1024 * 1024 * int_setting(set, "memlimit");
   Configuration::set("opt_hyper", bool_setting(set, "hyper"));
   Configuration::set("opt_default_les", bool_setting(set, "default-les"));
+  opt_predict_les = int_setting(set, "predict-les");
 #ifdef YY
   if(bool_setting(set, "one-meaning"))
     opt_nth_meaning = 1;

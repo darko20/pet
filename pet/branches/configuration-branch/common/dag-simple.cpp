@@ -55,10 +55,17 @@ void dag_init(dag_node *dag, int s)
 
 struct dag_node *current_base = 0;
 
+// This function is only there to save some copies. Since this unifier is used
+// only in flop and the amount of copies saved is negligible, this function
+// always enforces copying in case mmap is not available and "currency" can not
+// be determined efficiently.
 inline bool dag_current(dag_node *dag)
 {
-  // fixme: this doesn't work unless mmap is available
+#ifdef HAVE_MMAP
   return dag >= current_base && dag <= p_alloc.current_base();
+#else
+  return false;
+#endif
 }
 
 int dag_type(dag_node *dag)

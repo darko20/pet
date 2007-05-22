@@ -182,6 +182,17 @@ void save_or_clear_failure() {
   else
     clear_failure();
 }
+
+void start_recording_failures() {
+  unify_record_failure = true;
+  clear_failure();
+}
+
+unification_failure * stop_recording_failures() {
+  unify_record_failure = false;
+  return failure;
+}
+
 #endif
 
 dag_node *dag_cyclic_copy(dag_node *src, list_int *del);
@@ -364,15 +375,6 @@ dag_node *dag_full_p_copy(dag_node *dag) {
 
 int total_cached_constraints = 0;
 
-/* 
-// Seems to be obsolete
-inline dag_node *fresh_constraint_of(type_t s)
-{
-  temporary_generation save(++unify_generation_max);
-  return dag_full_copy(type_dag(s));
-}
-*/
-
 /** Cache for type dags that have been allocated but not used due to
  *  unification failure. Only type dags containing arcs are cached here, so we
  *  do not need to worry about dynamic types, since their type dags don't
@@ -403,25 +405,6 @@ void free_constraint_cache(type_t size) {
   delete[] constraint_cache;
 }
 
-/** Create a new permanent type dag (by coping) in a constraint_info bucket for
- *  use with the constraint_cache.
- *
- *  \todo Explain why the copy has to be made with an increased generation
- *  counter. If all type dag unifications come from the constraint cache, which
- *  makes full permanent copies of the type dags, the original dag from the
- *  data base should never be involved. What fact am i missing here?
- */
-inline constraint_info *fresh_p_constraint(type_t s, constraint_info *next) {
-  constraint_info *c = new constraint_info;
-  c -> next = next;
-  c -> gen = 0;
-
-  temporary_generation save(++unify_generation_max);
-  c -> dag = dag_full_p_copy(type_dag(s));
-
-  return c;
-}
-
 /** Return an unused type dag for type \a s. 
  *  Either an unused dag can be found in the cache and is returned or another
  *  (permanent) copy is made, added to the cache, and returned.
@@ -434,7 +417,32 @@ struct dag_node *cached_constraint_of(type_t s) {
 
   if(c == 0) {
     total_cached_constraints++;
-    c = constraint_cache[s] = fresh_p_constraint(s, constraint_cache[s]);
+    c = new constraint_info;
+    c->next = constraint_cache[s];
+    /* Create a new permanent type dag (by coping) in a constraint_info bucket
+     * for use with the constraint_cache.
+     *
+     * The copy is made with an increased generation counter because otherwise
+     * the copy slots would not be invalidated and structures from the
+     * unification could interfere. 
+     *
+     * But If all type dag unifications come from
+     * the constraint cache, which makes full copies of the type dags, the
+     * original dag from the data base should never be touched. \todo What fact
+     * am i missing here?
+     *
+     * If it is right that the permanent dags never get touched by this scheme,
+     * we could use it for rule and lexicon entry dags too and get rid of the
+     * permanent storage problem. 
+     *
+     * All this permanent storage thing is there to
+     * support partial structure sharing
+     */
+    temporary_generation save(++unify_generation_max);
+    // \todo check if this works for a big corpus
+    c -> dag = dag_full_p_copy(type_dag(s));
+    //c->dag = dag_full_copy(type_dag(s));
+    constraint_cache[s] = c;
   }
 
   c->gen = unify_generation;

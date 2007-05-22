@@ -31,7 +31,7 @@
 #include "yy-tokenizer.h"
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
-#include "xml-tokenizer.h"
+#include "pic-tokenizer.h"
 #include "smaf-tokenizer.h"
 #endif
 #include "item-printer.h"
@@ -368,6 +368,28 @@ void nbest() {
   }
 }
 
+void interactive_morphology() {
+
+  string input;
+  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+    timer clock;
+    list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
+    
+    for(list<tMorphAnalysis>::iterator it = res.begin(); 
+        it != res.end(); 
+        ++it) {
+      fprintf(stdout, "%s\t", it->base().c_str());
+      it->print_lkb(stdout);
+      fprintf(stdout, "\n");
+    } // for
+    fprintf(fstatus,
+            "\n%d chains in %0.2g s\n",
+            res.size(), clock.convert2ms(clock.elapsed()) / 1000.);
+  } // while
+
+} // interactive_morphology()
+
+
 void dump_glbs(FILE *f) {
   int i, j;
   for(i = 0; i < ntypes; i++) {
@@ -463,14 +485,14 @@ void process(const char *s) {
     case TOKENIZER_INVALID: 
       tok = new tLingoTokenizer(); break;
 
-    case TOKENIZER_XML:
-    case TOKENIZER_XML_COUNTS: 
+    case TOKENIZER_PIC:
+    case TOKENIZER_PIC_COUNTS: 
 #ifdef HAVE_XML
       xml_initialize();
       XMLServices = true;
-      tok = new tXMLTokenizer((
-        Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_XML_COUNTS
-          ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
+      tok = new tPICTokenizer((
+        Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_PIC_COUNTS
+        ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
 #else
       LOG_FATAL(loggerUncategorized,
                 "No XML input mode compiled into this cheap");
@@ -556,7 +578,9 @@ void process(const char *s) {
       else
 #endif
         {
-          if(Configuration::get<bool>("opt_nbest"))
+          if(Configuration::get<bool>("opt_interactive_morph"))
+            interactive_morphology();
+          else if(Configuration::get<bool>("opt_nbest"))
             nbest();
           else
             interactive();

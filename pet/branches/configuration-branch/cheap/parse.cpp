@@ -36,6 +36,9 @@
 #include "yy.h"
 #endif
 
+// output for excessive subsumption failure debugging in the German grammar
+//#define DEBUG_SUBSFAILS
+
 //
 // global variables for parsing
 //
@@ -191,6 +194,9 @@ fundamental_for_active(tPhrasalItem *active) {
                                                active, it.current()));
 }
 
+extern void start_recording_failures();
+extern class unification_failure * stop_recording_failures();
+
 bool
 packed_edge(tItem *newitem) {
   if(! newitem->inflrs_complete_p()) return false;
@@ -210,6 +216,10 @@ packed_edge(tItem *newitem) {
                                              newitem->rule(),
                                              forward, backward);
 
+#ifdef DEBUG_SUBSFAILS
+    unification_failure *uf = NULL;
+#endif
+
     if(forward ==false && backward == false) {
       stats.fsubs_fi++;
     }
@@ -220,12 +230,21 @@ packed_edge(tItem *newitem) {
                            olditem->qc_vector_subs(),
                            newitem->qc_vector_subs(),
                            f1, b1);
+
+#ifdef DEBUG_SUBSFAILS
+      start_recording_failures();
+#endif
             
       if(forward ==false && backward == false)
         stats.fsubs_qc++;
       else
         subsumes(olditem->get_fs(), newitem->get_fs(),
                  forward, backward);
+
+#ifdef DEBUG_SUBSFAILS
+      uf = stop_recording_failures();
+#endif
+
 #if 0
       //
       // according to ulrich (sometime mid-2004), we sometimes hit this
@@ -243,6 +262,23 @@ packed_edge(tItem *newitem) {
 #endif
     }
 
+#ifdef DEBUG_SUBSFAILS
+    if ((! ((forward && !olditem->blocked()) &&
+            ((!backward && (opt_packing & PACKING_PRO))
+             || (backward && (opt_packing & PACKING_EQUI)))))
+        &&
+        (! (backward && (opt_packing & PACKING_RETRO) && !olditem->frosted())))
+      {
+        const char *id1 = (newitem->rule() != NULL) 
+          ? newitem->rule()->printname() : newitem->printname() ;
+        const char *id2 = (olditem->rule() != NULL) 
+          ? olditem->rule()->printname() : olditem->printname() ;
+        fprintf(ferr, "SF: %s <-> %s ", id1, id2);
+        if (uf != NULL) uf->print(ferr);
+        fprintf(ferr, "\n");
+      }
+#endif
+    
     if(forward && !olditem->blocked()) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {
@@ -290,27 +326,26 @@ packed_edge(tItem *newitem) {
   return false;
 }
 
-/** deals with result item
- * \return true -> stop parsing; false -> continue parsing
- */
-bool
-add_root(tItem *it) {
-  Chart->trees().push_back(it);
-  // Count all trees for now, some of these may still be blocked in
-  // the packing parser.
-  stats.trees++;
-  if(stats.first == -1) {
-    stats.first = ParseTime.convert2ms(ParseTime.elapsed());
-  }
 
-  if(!opt_packing && opt_nsolutions > 0 && stats.trees >= opt_nsolutions)
-    return true;
-        
+bool result_limits() {
+  // in no-unpacking mode (aiming to determine parseability only), have we
+  // found at least one tree?
+  if ((opt_packing & PACKING_NOUNPACK) != 0 && stats.trees > 0) return true;
+  
+  // in (non-packing) best-first mode, is the number of trees found equal to
+  // the number of requested solutions?
+  // opt_packing w/unpacking implies exhaustive parsing
+  if (! opt_packing
+      || (opt_nsolutions == 0 || stats.trees < opt_nsolutions)
+#ifdef YY
+      || (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning)
+#endif
+      ) return true;
   return false;
 }
 
-bool
-add_item(tItem *it) {
+
+bool add_item(tItem *it) {
   assert(!(opt_packing && it->blocked()));
   
   LOG_ONLY(PrintfBuffer pb);
@@ -327,8 +362,15 @@ add_item(tItem *it) {
     type_t rule;
     if(it->root(Grammar, Chart->rightmost(), rule)) {
       it->set_result_root(rule);
-      if(add_root(it))
-        return true;
+      // Add the tree to the complete results
+      Chart->trees().push_back(it);
+      // Count all trees for now, some of these may still be blocked in
+      // the packing parser.
+      stats.trees++;
+      if(stats.first == -1) {
+        stats.first = ParseTime.convert2ms(ParseTime.elapsed());
+      }
+      if (result_limits()) return true;
     }
 
     postulate(it);
@@ -341,20 +383,17 @@ add_item(tItem *it) {
   return false;
 }
 
-
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors) {
   int pedgelimit, memlimit;
   Configuration::get("pedgelimit", pedgelimit);
   Configuration::get("memlimit", memlimit);
 
-  basic_task *t;
-  tItem *it;
-  while(!Agenda->empty()
-#ifdef YY
-        && (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning)
-#endif
-        ) {
+  //
+  // run the core parser loop until either (a) we empty out the agenda, , or (c) in (non-packing) best-first mode, the
+  // number of trees found equals the number of requested solutions.
+  //
+  while(! Agenda->empty()) {
     // edge limit hit? 
     if (pedgelimit > 0 && Chart->pedges() >= pedgelimit) {
       ostringstream s;
@@ -376,8 +415,10 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors) {
 #endif
     it = t->execute();
     delete t;
-    if((it != 0) && add_item(it))
-      break; // The maximum number of solutions has been reached
+    // add_item checks all limits that have to do with the number of
+    // analyses. If it returns true that means that one of these limits has
+    // been reached
+    if ((it != 0) && add_item(it)) break;
   }
 }
 
@@ -464,7 +505,9 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
                        // are blocked or don't unpack.
       int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
       
-      if ((opt_packing & PACKING_SELUNPACK) && opt_nsolutions > 0) {
+      if ((opt_packing & PACKING_SELUNPACK)
+          && opt_nsolutions > 0
+          && Grammar->sm()) {
         nres = unpack_selectively(trees, upedgelimit, UnpackTime, readings);
       } else { // unpack exhaustively
         nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);

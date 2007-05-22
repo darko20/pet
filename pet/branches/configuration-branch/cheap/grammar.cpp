@@ -62,6 +62,13 @@ genle_status(type_t t)
 }
 
 bool
+predle_status(type_t t)
+{
+  return cheap_settings->statusmember("predict-lexentry-status-values",
+				      typestatus[t]);
+}
+
+bool
 rule_status(type_t t)
 {
   return cheap_settings->statusmember("rule-status-values", typestatus[t]);
@@ -314,43 +321,39 @@ grammar_rule::init_qc_vector_unif()
 
 
 void
-undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs)
-{
-    struct dag_node *dag;
-    
-    initialize_dags(ntypes);
+undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
+  struct dag_node *dag;
+  // allocate an array holding ntypes pointers to the typedags
+  initialize_dags(ntypes);
     
 #ifdef CONSTRAINT_CACHE
-    init_constraint_cache(ntypes);
+  // allocate an array holding ntypes pointers to typedag caches
+  init_constraint_cache(ntypes);
 #endif
-    
-    for(int i = 0; i < ntypes; i++)
-    {
-        if(qc_inst_unif != 0 && i == qc_inst_unif)
-        {
-            LOG(loggerGrammar, Level::DEBUG,
-                "[qc unif structure `%s'] ", print_name(qc_inst_unif));
-            qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
-            dag = 0;
-        }
-        else if(qc_inst_subs && i == qc_inst_subs)
-        {
-            LOG(loggerGrammar, Level::DEBUG,
-                "[qc subs structure `%s'] ", print_name(qc_inst_subs));
-            qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
-            dag = 0;
-        }
-        else
-            dag = dag_undump(f);
+ 
+  for(int i = 0; i < ntypes; i++) {
+    if(qc_inst_unif != 0 && i == qc_inst_unif) {
+      LOG(loggerGrammar, Level::DEBUG,
+          "[qc unif structure `%s'] ", print_name(qc_inst_unif));
+      qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
+      dag = 0;
+    }
+    else if(qc_inst_subs && i == qc_inst_subs) {
+      LOG(loggerGrammar, Level::DEBUG,
+          "[qc subs structure `%s'] ", print_name(qc_inst_subs));
+      qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
+      dag = 0;
+    }
+    else
+      dag = dag_undump(f);
         
-        register_dag(i, dag);
-    }
+    register_dag(i, dag);
+  }
 
-    if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs)
-    {
-        qc_paths_subs = qc_paths_unif;
-        qc_len_subs = qc_len_unif;
-    }
+  if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs) {
+    qc_paths_subs = qc_paths_unif;
+    qc_len_subs = qc_len_unif;
+  }
 }
 
 // Construct a grammar object from binary representation in a file
@@ -358,7 +361,7 @@ tGrammar::tGrammar(const char * filename)
     : _properties(), _nrules(0), _root_insts(0), _generics(0),
       _filter(0), _subsumption_filter(0), _qc_inst_unif(0), _qc_inst_subs(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0)
+      _sm(0), _lexsm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
@@ -480,6 +483,10 @@ tGrammar::tGrammar(const char * filename)
             _generics = cons(i, _generics);
             _lexicon[i] = new lex_stem(i);
         }
+	else if (predle_status(i)) {
+	  _predicts = cons(i, _predicts);
+	  _lexicon[i] = new lex_stem(i);
+	}
     }
 
     /*
@@ -648,6 +655,15 @@ tGrammar::tGrammar(const char * filename)
         _sm = 0;
       }
     }
+    char *lexsm_file;
+    if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
+      try { _lexsm = new tMEM(this, lexsm_file, filename); }
+      catch(tError &e) {
+	fprintf(ferr, "\n%s", e.getMessage().c_str());
+	_lexsm = 0;
+      }
+    }
+
 
 #ifdef HAVE_EXTDICT
     try

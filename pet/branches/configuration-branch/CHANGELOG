@@ -1,4 +1,21 @@
 v0.99.??
+  - Moved functionality of fresh_constraint_p into cached_constraint_of
+  - Default for memory allocation is now NO mmap, because of the notorious
+    problems with the ecl-based modules. Works fine for cheap and flop.
+  - re-ordered library configuration checks because of problems with current 
+    version of ICU; fixed bug that caused wrong type fs inconsistencies in 
+    flop when used without mmap (part of ticket #4)
+  - further SMAF XML support (Ersatz, OSCAR named entities)
+  - fixed creation of additional (wrong) coreferences with characterization
+    (ticket #6)
+  - change message "no lexicon entries for ..." to include POS tag info when 
+    using '-default-les'
+  (minor `new' feature by oe)
+  - re-enable `-interactive-morphology' mode (requested by tim);
+  - add new feature: lexical type prediction for lexical gaps  
+  - fix incompatible blocking application of non-inflectional lexical rules on
+    phrasal items (resolves issue of ticket #2 by Francis)
+  - fix broken handling of file input when using PIC XML input format
   - remove all (currently) unused options from configure.ac
     add morphology computation for generic entries, too (requested by 
     Berthold): this requires proper blocking of these rules in the grammar, 

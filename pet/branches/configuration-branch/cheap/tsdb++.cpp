@@ -80,6 +80,7 @@ statistics::reset()
   p_utcpu = 0;
   p_upedges = 0;
   p_failures = 0;
+  p_hypotheses = 0;
   p_dyn_bytes = 0;
   p_stat_bytes = 0;
 
@@ -110,7 +111,7 @@ statistics::print(FILE *f)
 	   "cycles: %d\nfssize: %d\n"
 	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
-           "frozen: %d\nfailures: %d\n",
+           "frozen: %d\nfailures: %d\nhypotheses: %d\n",
 	   id, trees, readings, words, words_pruned,
            mtcpu, first, tcpu, p_utcpu,
 	   ftasks_fi, ftasks_qc,
@@ -126,7 +127,7 @@ statistics::print(FILE *f)
 	   cycles, fssize,
 	   unify_cost_succ, unify_cost_fail,
            p_equivalent, p_proactive, p_retroactive,
-           p_frozen, p_failures
+           p_frozen, p_failures, p_hypotheses
 	   );
 }
 
@@ -510,7 +511,8 @@ tsdb_parse::capi_print()
                 "(:retroactive . %d) "
                 "(:utcpu . %d) " 
                 "(:upedges . %d) " 
-                "(:failures . %d) " 
+                "(:failures . %d) "
+		"(:hypotheses . %d) "
                 "\")",
                 nmeanings, 
                 mtcpu,
@@ -524,7 +526,8 @@ tsdb_parse::capi_print()
                 p_retroactive, 
                 p_utcpu,
                 p_upedges,
-                p_failures);
+                p_failures,
+		p_hypotheses);
 }
 
 #endif
@@ -677,6 +680,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.p_utcpu = stats.p_utcpu;                    
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
+    T.p_hypotheses = stats.p_hypotheses;
 }
 
 void
@@ -721,7 +725,8 @@ cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
     T.p_utcpu = stats.p_utcpu;                    
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
-    
+    T.p_hypotheses = stats.p_hypotheses;
+
     for(list<tError>::iterator it = conditions.begin(); it != conditions.end();
         ++it)
         T.err += string((it == conditions.begin() ? "" : " ")) + it->getMessage();
