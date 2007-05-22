@@ -50,6 +50,26 @@ timer TotalParseTime(false);
 bool opt_filter, opt_hyper;
 int  opt_nsolutions, opt_packing;
 
+/** Initialize global variables and options for the parser */
+void parser_init() {
+  Configuration::addReference("opt_filter", &opt_filter,
+                              "Use the static rule filter", true);
+  Configuration::addReference("opt_hyper", &opt_hyper,
+                              "use hyperactive parsing", true);
+  Configuration::addReference("opt_nsolutions", &opt_nsolutions,
+                              "The number of solutions until the parser is"
+                              "stopped, if not in packing mode", 0);
+  Configuration::addOption("opt_pedgelimit", 
+                           "maximum number of passive edges",
+                           (int) 0);
+
+
+
+
+}
+
+
+
 //
 // filtering
 //
@@ -321,18 +341,12 @@ add_item(tItem *it) {
   return false;
 }
 
-inline bool
-resources_exhausted(unsigned int pedgelimit, unsigned int memlimit) {
-  return ((pedgelimit > 0 && Chart->pedges() >= pedgelimit) ||
-          (memlimit > 0 && t_alloc.max_usage() >= memlimit)) ;
-}
-
 
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors) {
-  //unsigned int pedgelimit, memlimit;
-  //Configuration::get("pedgelimit", pedgelimit);
-  //Configuration::get("memlimit", memlimit);
+  int pedgelimit, memlimit;
+  Configuration::get("pedgelimit", pedgelimit);
+  Configuration::get("memlimit", memlimit);
 
   basic_task *t;
   tItem *it;
@@ -341,12 +355,17 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors) {
         && (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning)
 #endif
         ) {
-    if (resources_exhausted(pedgelimit, memlimit)) {
+    // edge limit hit? 
+    if (pedgelimit > 0 && Chart->pedges() >= pedgelimit) {
       ostringstream s;
-      if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
-        s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
-      else
-        s << "edge limit exhausted (" << pedgelimit << " pedges)";
+      s << "edge limit exhausted (" << pedgelimit << " pedges)";
+      errors.push_back(s.str());
+      break;
+    }
+    // memory limit hit?
+    if (memlimit > 0 && t_alloc.max_usage() >= memlimit) {
+      ostringstream s;
+      s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
       errors.push_back(s.str());
       break;
     }

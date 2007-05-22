@@ -172,18 +172,11 @@ void init_options()
 {
   opt_tsdb = 0;
   
-  Configuration::addRefOption<int>("opt_nsolutions", &opt_nsolutions,
-    "The number of solutions until the parser is stopped, "
-    "if not in packing mode", 0);
-    
   verbosity = 0;
   pedgelimit = 0;
   memlimit = 0;
   opt_shrink_mem = true;
   opt_shaping = true;
-  
-  Configuration::addRefOption<bool>("opt_filter", &opt_filter,
-    "Use the static rule filter", true);
   
   opt_nqc_unif = -1;
   opt_nqc_subs = -1;
@@ -192,13 +185,13 @@ void init_options()
     "Activate code that collects unification/subsumption failures "
     "for quick check computation, contains filename to write results to", 0);
   
-  Configuration::addRefOption<bool>("opt_compute_qc_unif", &opt_compute_qc_unif,
+  Configuration::addReference<bool>("opt_compute_qc_unif", &opt_compute_qc_unif,
     "Activate failure registration for unification", false);
   
-  Configuration::addRefOption<bool>("opt_compute_qc_subs", &opt_compute_qc_subs,
+  Configuration::addReference<bool>("opt_compute_qc_subs", &opt_compute_qc_subs,
     "Activate failure registration for subsumption", false);
   
-  Configuration::addRefOption<bool>("opt_print_failure", &opt_print_failure,
+  Configuration::addReference<bool>("opt_print_failure", &opt_print_failure,
     "Log unification/subsumption failures "
     "(should be replaced by logging or new/different API functionality)",
     false);
@@ -206,9 +199,6 @@ void init_options()
   Configuration::addOption<int>("opt_key",
     "What is the key daughter used in parsing?"
     "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", 0);
-  
-  Configuration::addRefOption<bool>("opt_hyper", &opt_hyper,
-    "use hyperactive parsing", true);
   
   Configuration::addOption<bool>("opt_derivation",
     "Store derivations in tsdb profile", true);
@@ -227,7 +217,7 @@ void init_options()
   Configuration::addOption<bool>("opt_chart_man",
     "Allow lexical dependency filtering", true);
   
-  Configuration::addRefOption<bool>("opt_lattice", &opt_lattice, 
+  Configuration::addReference<bool>("opt_lattice", &opt_lattice, 
     "is the lattice structure specified in the input "
     "used to restrict the search space in parsing", false);
   
@@ -239,7 +229,7 @@ void init_options()
   // opt_fullform_morph is obsolete
   // opt_fullform_morph = true;
     
-  Configuration::addRefOption<int>("opt_packing", &opt_packing,
+  Configuration::addReference<int>("opt_packing", &opt_packing,
     "a bit vector of flags: 1:equivalence 2:proactive 4:retroactive packing "
     "8:selective 128:no unpacking", 0);
 
@@ -269,7 +259,7 @@ void init_options()
   
   Configuration::addOption<bool>("opt_linebreaks", "", false);
   
-  Configuration::addRefOption<unsigned int>("opt_gplevel", &opt_gplevel,
+  Configuration::addReference<unsigned int>("opt_gplevel", &opt_gplevel,
     "determine the level of grandparenting "
     "used in the models for selective unpacking", 0);
 

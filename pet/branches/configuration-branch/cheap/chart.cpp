@@ -24,6 +24,7 @@
 #include "tsdb++.h"
 #include "item-printer.h"
 
+#include <ostream>
 
 //#define DEBUG
 
@@ -46,9 +47,9 @@ chart::~chart()
 
 void chart::add(tItem *it)
 {
-    LOG_ONLY(PrintfBuffer pb);
-    LOG_ONLY(it->print(pb));
-    LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
+#ifdef DEBUG
+  it->print(DEBUGLOGGER); DEBUGLOGGER << endl;
+#endif
 
     _Chart.push_back(it);
 
@@ -84,6 +85,9 @@ void chart::remove(hash_set<tItem *> &to_delete)
                  , _Chart.end());
     for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
           ; hit != to_delete.end(); hit++) {
+#ifdef DEBUG
+      it->print(DEBUGLOGGER); DEBUGLOGGER << "removed " << endl;
+#endif
       
       tItem *it = *hit;
       if(it->passive())
@@ -103,13 +107,13 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
-void chart::print(IPrintfHandler &iph)
+void chart::print(std::ostream &out)
 {
     int i = 0;
     for(chart_iter pos(this); pos.valid(); pos++, i++)
     {
-        (pos.current())->print(iph);
-        pbprintf(iph, "\n");
+        (pos.current())->print(out);
+        out << endl;
     }
 }
 
