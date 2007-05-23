@@ -176,7 +176,9 @@ fs::modify_eagerly(fs &mod) {
 }
 
 /** Special modification function used in `characterization', which stamps
- *  the input positions of relations into the feature structures.
+ *  the input positions of relations into the feature structures. This
+ *  destructively changes the fs by assigning it the new dag, if successful.
+ *
  *  Make sure that \a path exists (if possible), go to the end of that path,
  *  which must contain a f.s. list and try to find the element of the list
  *  where \a attr : \a value can be unified into.
@@ -536,55 +538,62 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
         stats.subsumptions_fail++;
 }
 
+/* \todo why isn't this a method of fs?
+ */
 fs
-packing_partial_copy(const fs &a, const restrictor &del, bool perm)
-{
-    struct dag_node *res = del.dag_partial_copy(a._dag);
-    dag_invalidate_changes();
-    if(perm)
-    {
-        res = dag_full_p_copy(res);
+packing_partial_copy(const fs &a, const restrictor &del, bool perm) {
+  struct dag_node *res = del.dag_partial_copy(a._dag);
+  dag_invalidate_changes();
+  if(perm) {
+    res = dag_full_p_copy(res);
         
-        // _fix_me_ generalize this
+    // \todo generalize this. This is heavily connected with getting a good
+    // context-free approximation out of an HPSG grammar. So maybe more general
+    // (dynamic) restrictors a la Kiefer&Krieger would be a good idea.
 #if 0
-        //
-        // one contrastive test run on the 700-item PARC (WSJ) dependency bank
-        // seems to suggest that this is not worth it: we get a small increase
-        // in pro- and retro-active packings, at the cost of fewer equivalence 
-        // packings, a hand-full reduction in edges, and a two percent increase
-        // in parsing time.  may need more research             (7-jun-03; oe)
-        //
-        if(subtype(res->type, lookup_type("rule")))
-            res->type = lookup_type("rule");
-        else if(subtype(res->type, lookup_type("lexrule_supermost")))
-            res->type = lookup_type("lexrule_supermost");
+    //
+    // one contrastive test run on the 700-item PARC (WSJ) dependency bank
+    // seems to suggest that this is not worth it: we get a small increase
+    // in pro- and retro-active packings, at the cost of fewer equivalence 
+    // packings, a hand-full reduction in edges, and a two percent increase
+    // in parsing time.  may need more research             (7-jun-03; oe)
+    //
+    if(subtype(res->type, lookup_type("rule")))
+      res->type = lookup_type("rule");
+    else if(subtype(res->type, lookup_type("lexrule_supermost")))
+      res->type = lookup_type("lexrule_supermost");
 #endif
 
-        dag_invalidate_changes();
-        return res;
-    }
-    return res;
+    dag_invalidate_changes();
+  }
+  // return res; // implicit type conversion calling fs(dag_node *,int). Yuck!
+  return fs(res);
 }
 
+/* \todo why isn't this a method of fs?
+ */
 bool
-compatible(const fs &a, const fs &b)
-{
-    struct dag_alloc_state s;
-    dag_alloc_mark(s);
+compatible(const fs &a, const fs &b) {
+  struct dag_alloc_state s;
+  dag_alloc_mark(s);
     
-    bool res = dags_compatible(a._dag, b._dag);
+  bool res = dags_compatible(a._dag, b._dag);
     
-    dag_alloc_release(s);
+  dag_alloc_release(s);
     
-    return res;
+  return res;
 }
 
+/* \todo why isn't this a method of fs?
+ */
 int
 compare(const fs &a, const fs &b)
 {
     return a._dag - b._dag;
 }
 
+/* \todo why isn't this a method of fs?
+ */
 type_t *
 get_qc_vector(qc_node *qc_paths, int qc_len, const fs &f)
 {

@@ -741,7 +741,7 @@ AC_ARG_ENABLE(mmapalloc,
    yes) mmapalloc=yes;;
    *)   mmapalloc=no;;
  esac
-], [mmapalloc=yes])
+], [mmapalloc=no])
 if test "$mmapalloc" = "yes" ; then
 AC_FUNC_MMAP
 fi

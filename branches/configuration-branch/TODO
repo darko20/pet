@@ -201,4 +201,6 @@ refactoring:
   and describe configuration options
 + make morphology computation available to generic entries
 + inconsistencies between LKB and PET (ticket #2 by Francis Bond) fixed
++ characterization bug during exhaustive unpacking because of restricted fs
+  in tLexItem
 
