@@ -927,7 +927,7 @@ class tLexItem : public tItem
   //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
 
  private:
-  void init(fs &fs);
+  void init();
 
   int _ldot, _rdot;
   tInputItem *_keydaughter;

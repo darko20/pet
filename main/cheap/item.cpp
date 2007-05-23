@@ -361,7 +361,7 @@ tInputItem::generics(postags onlyfor)
     return result;
 }
 
-void tLexItem::init(fs &f) {
+void tLexItem::init() {
   if (passive()) {
     _supplied_pos = postags(_stem);
 
@@ -389,27 +389,27 @@ void tLexItem::init(fs &f) {
       = fs(dag_create_path_value(orth_path.c_str()
                               , lookup_symbol(_stem->orth(_stem->inflpos()))));
 
-    // _fix_me_
-    // Not nice to overwrite the _fs field.
-    if(opt_packing)
-      _fs = packing_partial_copy(f, Grammar->packing_restrictor(), false);
-
+    characterize(_fs_full, _startposition, _endposition);
+    
+    // \todo Not nice to overwrite the _fs field.
+    // A copy of _fs_full and the containing dag is made
+   if(opt_packing)
+     _fs = packing_partial_copy(_fs_full, Grammar->packing_restrictor(),
+                                false);
+   
     _trait = LEX_TRAIT;
-    // _fix_me_ Berthold says, this is the right number
+    // \todo Berthold says, this is the right number. Settle this
     // stats.words++;
 
     if(opt_nqc_unif != 0)
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, _fs_full);
 
     if(opt_nqc_subs != 0)
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, _fs_full);
 
     // compute _score score for lexical items
     if(Grammar->sm())
       score(Grammar->sm()->scoreLeaf(this));
-
-    characterize(_fs, _startposition, _endposition);
-
   }
 
 #ifdef DEBUG
@@ -432,7 +432,7 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
   _key_item = this;
   _daughters.push_back(i_item);
   _keydaughter = i_item;
-  init(f);
+  init();
 }
 
 tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
@@ -463,7 +463,7 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
     _rdot++;
     from->_expanded.push_back(_end);
   }
-  init(_fs);
+  init();
 }
 
 tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
@@ -1066,11 +1066,11 @@ tItem::unpack(int upedgelimit)
 }
 
 list<tItem *>
-tLexItem::unpack1(int limit)
-{
-    list<tItem *> res;
-    res.push_back(this);
-    return res;
+tLexItem::unpack1(int limit) {
+  // reconstruct the full feature structure and do characterization
+  list<tItem *> res;
+  res.push_back(this);
+  return res;
 }
 
 list<tItem *>
