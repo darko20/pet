@@ -51,6 +51,8 @@ struct less_than_module
   }
 };
 
+enum position_map { NO_POSITION_MAP = 0, STANDOFF_POINTS, STANDOFF_COUNTS};
+
 /** Tokenize the input (not necessarily unambiguous)
  *
  * The token class must be registered, either as morphologizable token, or
@@ -66,9 +68,6 @@ struct less_than_module
  * Other way round: Since morphology possibly makes several items out of one
  * item, processing of skip items should precede morphology.
  */
-
-enum position_map { NO_POSITION_MAP = 0, STANDOFF_POINTS, STANDOFF_COUNTS};
-
 class tTokenizer : public tInputModule {
 public:
   virtual ~tTokenizer() { }
