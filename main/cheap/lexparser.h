@@ -124,16 +124,29 @@ public:
 
 private:
   /** Remove unrecognized tokens and close gaps that result from this
-   *  deletion.
-   * \ret the end position of the rightmost item.
+   * deletion or gaps in the input positions.
+   *  \param tokens the list of input tokens.
+   *  \param position_mapping if \c STANDOFF_COUNTS, the positions of the input
+   *                tokens are counts rather than points (\c STANDOFF_POINTS),
+   *                i.e., a word with length one has positions (j, j) rather
+   *                than (j, j+1).
+   *  \return the end position of the rightmost item.
    */
   int map_positions(inp_list &tokens, position_map position_mapping);
 
   /** Check the chart dependencies.
-   * Chart dependencies extract properties (types) from feature structures of
-   * items under certain paths and require that other items exist, that 
-   * have properties fulfilling these requirements.
-   * \param deps depending on the parameter \c unidirectional, these are 
+   * Chart dependencies allow the user to express certain cooccurrence
+   * restrictions for two items in the chart. A chart dependency is a pair of
+   * feature-structure paths (say \e A and \e B), and is interpreted as follows:
+   * if there is an item in the chart with path \e A, there must also be another
+   * item in the chart with path \e B such that both types are compatible;
+   * otherwise the item with path \e A will be deleted.
+   * \param deps           setting containing a (flat) list of dependent pairs
+   *                       of paths (in \a deps.values).
+   * \param unidirectional specifies whether the pairs of paths in \a deps are
+   *                       interpreted as unidirectional dependencies.
+   * \param lex_exhaustive specifies whether we have performed an exhaustive
+   *                       lexical processing before.
    */
   void dependency_filter(struct setting *deps, bool unidirectional
                          , bool lex_exhaustive);

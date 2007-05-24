@@ -563,23 +563,25 @@ enum tok_class { SKIP_TOKEN_CLASS = -3, WORD_TOKEN_CLASS, STEM_TOKEN_CLASS };
 class tInputItem : public tItem {
 public:
   /** Create a new input item.
+   * The \a stem argument is ignored if \a token_class is not \c
+   * STEM_TOKEN_CLASS. If \a token_class is
+   * - \c WORD_TOKEN_CLASS, the stem is produced by calling
+   *   morphological analysis
+   * - \c STEM_TOKEN_CLASS, \a stem is used as the stem of this input item
+   * - an HPSG type, the lexicon entry is accessed directly using this type.
    * \param id A unique external id
    * \param start The external start position
    * \param end The external end position
    * \param surface The surface form for this entry.
-   * \param stem The base form for this entry. See remark at the end of this
-   *             comment.
+   * \param stem The base form for this entry (only used if \a token_class is
+   *             \c STEM_TOKEN_CLASS)
    * \param paths The paths (ids) in the input graph this item belongs to.
    * \param token_class One of \c SKIP_TOKEN_CLASS, \c WORD_TOKEN_CLASS (the
    *                    default), \c STEM_TOKEN_CLASS or a valid HPSG type.
    * \param fsmods A list of feature structure modifications (default: no
    *               modifications).
-   * The \a stem argument is ignored if \a token_class is not \c
-   * STEM_TOKEN_CLASS. If \a token_class is \c WORD_TOKEN_CLASS, it is produced
-   * by calling morphological analysis, if it is a HPSG type, the lexicon entry
-   * in accessed directly using this type.
    */
-
+  //@{
   // constructor with start/end NODES specified
   tInputItem(string id, int startnode, int endnode, int start, int end, string surface, string stem
              , const tPaths &paths = tPaths()
@@ -591,21 +593,24 @@ public:
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
+  //@}
   
   /** Create a new complex input item (an input item with input item
    *  daughters). 
+   * The \a stem argument is ignored if \a token_class is not \c
+   * STEM_TOKEN_CLASS. If \a token_class is
+   * - \c WORD_TOKEN_CLASS, the stem is produced by calling
+   *   morphological analysis
+   * - \c STEM_TOKEN_CLASS, \a stem is used as the stem of this input item
+   * - an HPSG type, the lexicon entry is accessed directly using this type.
    * \param id A unique external id
    * \param dtrs The daughters of this node.
-   * \param stem The base form for this entry. See remark at the end of this
-   *             comment.
+   * \param stem The base form for this entry (only used if \a token_class is
+   *             \c STEM_TOKEN_CLASS)
    * \param token_class One of \c SKIP_TOKEN_CLASS, \c WORD_TOKEN_CLASS (the
    *                    default), \c STEM_TOKEN_CLASS or a valid HPSG type.
    * \param fsmods A list of feature structure modifications (default: no
    *               modifications) .
-   * The \a stem argument is ignored if \a token_class is not \c
-   * STEM_TOKEN_CLASS. If \a token_class is \c WORD_TOKEN_CLASS, it is produced
-   * by calling morphological analysis, if it is a HPSG type, the lexicon entry
-   * in accessed directly using this type.
    */
   tInputItem(string id, const list< tInputItem * > &dtrs, string stem
              , int token_class = WORD_TOKEN_CLASS
