@@ -91,22 +91,19 @@ void lex_parser::tokenize(string input, inp_list &tokens) {
     input=get_xml_input(input);
 
   // trace output
-  if(verbosity > 4)
-    {
-      cerr << "tokenizer = " << _tokenizers.front()->description() << endl;
-	cerr << "tokenizer input:" << endl << input << endl << endl;
-    }
+  if(verbosity > 4) {
+    cerr << "tokenizer = " << _tokenizers.front()->description() << endl;
+    cerr << "tokenizer input:" << endl << input << endl << endl;
+  }
 
   _tokenizers.front()->tokenize(input, tokens);
   
   // trace output
-  if(verbosity > 4)
-    {
-    cerr << "tokenizer output:" << endl ;
-      for(inp_list::iterator r = tokens.begin();
-  	  r != tokens.end(); ++r)
-  	  (*r)->print(ferr);      
-    }
+  if(verbosity > 4) {
+    cerr << "tokenizer output:" << endl;
+    for(inp_list::iterator r = tokens.begin(); r != tokens.end(); ++r)
+      (*r)->print(ferr);
+  }
  
 }
 
@@ -220,11 +217,8 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
     //fprintf(ferr, "combine() succeeded in creating valid fs\n");
     add(new tLexItem(stem, i_item, newfs, infl_rules));
   }
-  else
-    {
-      if(verbosity > 4)
-	fprintf(ferr, "ERROR: combine() failed in creating valid fs\n");
-    }
+  else if(verbosity > 4)
+    fprintf(ferr, "ERROR: combine() failed in creating valid fs\n");
 }
 
 
@@ -306,13 +300,6 @@ struct tInputItem_position_less
   }
 };
 
-
-/** Remove unrecognized tokens and close gaps that result from this deletion or
- *  gaps in the input positions.
- *  \param counts if \c true, the positions of the input tokens are counts
- *                rather than positions, i.e., a word with length one has
- *                positions (j, j) rather than (j, j+1)
- */
 int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
   int maxend = 0;
   if (position_mapping==NO_POSITION_MAP) {
@@ -593,7 +580,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       // iterate thru gens
       for(list<lex_stem *>::iterator ls = gens.begin()
             ; ls != gens.end(); ls++) {
-	// get mods
+        // get mods
         modlist in_mods = (*it)->mods();
         // _fix_me_
         add_surface_mod((*it)->orth(), in_mods);
@@ -621,33 +608,33 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
     words[4] = item->orth();
     vector<vector<type_t> > types(4);
     for (list<tInputItem*>::iterator it = inp_tokens.begin();
-	 it != inp_tokens.end(); it ++) {
+         it != inp_tokens.end(); it ++) {
       int idx = -1;
       if ((*it)->endposition() == item->startposition() - 1)
-	idx = 0;
+        idx = 0;
       if ((*it)->endposition() == item->startposition())
-	idx = 1;
+        idx = 1;
       if ((*it)->startposition() == item->endposition())
-	idx = 2;
+        idx = 2;
       if ((*it)->startposition() == item->endposition() + 1)
-	idx = 3;
+        idx = 3;
       if (idx != -1) {
-	words[idx] = (*it)->orth();
-	chart_iter_topo iter(Chart);
-	while (iter.valid()) {
-	  tLexItem *lex = dynamic_cast<tLexItem*>(iter.current());
-	  if (lex != NULL)
-	    for (list<tItem*>::const_iterator dtrit = lex->daughters().begin();
-		 dtrit != lex->daughters().end(); dtrit ++)
-	      if (*it == *dtrit)
-		types[idx].push_back(lex->identity());
-	  iter ++; 
-	}
+        words[idx] = (*it)->orth();
+        chart_iter_topo iter(Chart);
+        while (iter.valid()) {
+          tLexItem *lex = dynamic_cast<tLexItem*>(iter.current());
+          if (lex != NULL)
+            for (list<tItem*>::const_iterator dtrit = lex->daughters().begin();
+                 dtrit != lex->daughters().end(); dtrit ++)
+              if (*it == *dtrit)
+                types[idx].push_back(lex->identity());
+          iter ++; 
+        }
       }
     }
     list<type_t> pred_types = Grammar->lexsm()->bestPredict(words,types, n);
     for (list<type_t>::iterator tit = pred_types.begin();
-	 tit != pred_types.end(); tit ++) 
+         tit != pred_types.end(); tit ++) 
       results.push_back(Grammar->find_stem(*tit));
   }
     
@@ -672,18 +659,18 @@ lex_parser::add_predicts(list<tInputItem *> &unexpanded, inp_list &inp_tokens) {
     predicts = predict_les(*it, inp_tokens, opt_predict_les);
     list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
     for (list<lex_stem*>::iterator ls = predicts.begin();
-	 ls != predicts.end(); ls ++) {
+         ls != predicts.end(); ls ++) {
       modlist in_mods = (*it)->mods();
       add_surface_mod((*it)->orth(), in_mods);
       if (morphs.empty()) {
-	combine(*ls, *it, (*it)->inflrs(), in_mods);
+        combine(*ls, *it, (*it)->inflrs(), in_mods);
       } else {
-	for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
-	       ; mrph != morphs.end(); mrph++) {
-	  list_int *rules = copy_list(mrph->rules());
-	  combine(*ls, *it, rules, in_mods);
-	  free_list(rules);
-	}
+        for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
+               ; mrph != morphs.end(); mrph++) {
+          list_int *rules = copy_list(mrph->rules());
+          combine(*ls, *it, rules, in_mods);
+          free_list(rules);
+        }
       }
     }
   }
@@ -704,17 +691,17 @@ int
 lex_parser::process_input(string input, inp_list &inp_tokens) {
   // Tokenize the input
   tokenize(input, inp_tokens);
-
+  
   // Attach POS tags to the input 
   tag(input, inp_tokens);
-
+  
   // NE recognition has to care about morphology itself
   ne_recognition(input, inp_tokens);
-
+  
   // map the input positions into chart positions
   position_map position_mapping = _tokenizers.front()->position_mapping();
   _maxpos = map_positions(inp_tokens, position_mapping);
-
+  
   return _maxpos;
 }
 
@@ -745,11 +732,11 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     _agenda.pop();
   }
 
+  // exhaustively apply lexical and inflection rules
   if (lex_exhaustive) {
     parse_loop(FSAS, errors);
   }
 
-  // exhaustively apply lexical and inflection rules
   // dependency filtering is done on the chart itself
   dependency_filter(cheap_settings->lookup("chart-dependencies"),
                     (cheap_settings->lookup(
@@ -820,11 +807,11 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
           ; inp != unexpanded.end(); inp++) {
       missing += "\n\t\"" + (*inp)->orth() + "\"";
       if(opt_default_les) 
-	// it's useful to know the pos tags of failed entries
-	{
-	  postags tags = (*inp)->get_in_postags();
-	  missing += " ["+ tags.getPrintString() +"]";
-	}
+        // it's useful to know the pos tags of failed entries
+        {
+          postags tags = (*inp)->get_in_postags();
+          missing += " ["+ tags.getPrintString() +"]";
+        }
     }
     throw tError("no lexicon entries for:" + missing) ;
   }
