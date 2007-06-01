@@ -42,8 +42,8 @@ preprocessor_initialize(const char *preproc_pathname) {
   read_VV(OBJNULL,initialize_eclpreprocessor);
   // fix_me: get rid of (ECL) WARNING messages
   funcall(2
-	  , c_string_to_object("preprocessor::x-read-preprocessor")
-	  , make_string_copy(preproc_pathname));
+          , c_string_to_object("preprocessor::x-read-preprocessor")
+          , make_string_copy(preproc_pathname));
   Conv2 = new EncodingConverter("utf-8");
   return 0; 
 }

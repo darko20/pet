@@ -82,10 +82,10 @@ void check_id(struct lex_token *t)
   for(i = 0; i< N_KEYWORDS; i++)
     {
       if(strcmp(t->text, keywords[i]) == 0)
-	{
-	  t->tag = T_KEYWORD;
-	  break;
-	}
+        {
+          t->tag = T_KEYWORD;
+          break;
+        }
     }
 }
 
@@ -171,14 +171,14 @@ struct lex_token *get_next_token()
       i = 1;
 
       while(LLA(i) != EOF && (LLA(i) != '"' || LLA(i-1) == '\\'))
-	i++;
+        i++;
 
       if(LLA(i) == EOF)
-	{ // runaway string
-	  fprintf(ferr, "runaway string starting in %s:%d.%d\n",
-		  curr_fname(), curr_line(), curr_col());
-	  throw tError("runaway string");
-	}
+        { // runaway string
+          fprintf(ferr, "runaway string starting in %s:%d.%d\n",
+                  curr_fname(), curr_line(), curr_col());
+          throw tError("runaway string");
+        }
 
       i += 1;
       t = make_token(T_STRING, start + 1, i - 2);
@@ -193,18 +193,18 @@ struct lex_token *get_next_token()
       i = 1; parlevel = 1;
 
       while(parlevel > 0 && LLA(i) != EOF)
-	{
-	  if(LLA(i) == '(') parlevel++;
-	  else if(LLA(i) == ')') parlevel--;
-	  i++;
-	}
+        {
+          if(LLA(i) == '(') parlevel++;
+          else if(LLA(i) == ')') parlevel--;
+          i++;
+        }
 
       if(LLA(i) == EOF)
-	{ // runaway LISP expression
-	  fprintf(ferr, "runaway LISP expression starting in %s:%d.%d\n",
-		  curr_fname(), curr_line(), curr_col());
-	  throw tError("runaway LISP expression");
-	}
+        { // runaway LISP expression
+          fprintf(ferr, "runaway LISP expression starting in %s:%d.%d\n",
+                  curr_fname(), curr_line(), curr_col());
+          throw tError("runaway LISP expression");
+        }
       
       t = make_token(T_LISP, start, i);
       LConsume(i);
@@ -255,9 +255,9 @@ struct lex_token *get_next_token()
           
           if(i == 0)
           {
-	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
-		    (char) c, curr_fname(), curr_line(), curr_col());
-	    throw tError("unexpected character in input");
+            fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
+                    (char) c, curr_fname(), curr_line(), curr_col());
+            throw tError("unexpected character in input");
           }
       }
           
@@ -269,20 +269,20 @@ struct lex_token *get_next_token()
   else if(c == ':')
     {
       if(LLA(1) == '<')
-	{
-	  t = make_token(T_ISA, ":<", 2);
-	  LConsume(2);
-	}
+        {
+          t = make_token(T_ISA, ":<", 2);
+          LConsume(2);
+        }
       else if(LLA(1) == '=')
-	{
-	  t = make_token(T_ISEQ, ":=", 2);
-	  LConsume(2);
-	}
+        {
+          t = make_token(T_ISEQ, ":=", 2);
+          LConsume(2);
+        }
       else
-	{
-	  t = make_token(T_COLON, ":", 1);
-	  LConsume(1);
-	}
+        {
+          t = make_token(T_COLON, ":", 1);
+          LConsume(1);
+        }
     }
   else if(c == '<' && LLA(1) == '!')
     {
@@ -314,65 +314,65 @@ struct lex_token *get_next_token()
       char txt[2] = "x";
 
       switch(c)
-	{
-	case '.':
-	  tag = T_DOT;
-	  break;
-	case ',':
-	  tag = T_COMMA;
-	  break;
-	case '=':
-	  tag = T_EQUALS;
-	  break;
-	case '#':
-	  tag = T_HASH;
-	  break;
-	case '\'':
-	  tag = T_QUOTE;
-	  break;
-	case '&':
-	  tag = T_AMPERSAND;
-	  break;
-	case '@':
-	  tag = T_AT;
-	  break;
-	case '^':
-	  tag = T_CAP;
-	  break;
-	case '$':
-	  tag = T_DOLLAR;
-	  break;
-	case '(':
-	  tag = T_LPAREN;
-	  break;
-	case ')':
-	  tag = T_RPAREN;
-	  break;
-	case '[':
-	  tag = T_LBRACKET;
-	  break;
-	case ']':
-	  tag = T_RBRACKET;
-	  break;
-	case '{':
-	  tag = T_LBRACE;
-	  break;
-	case '}':
-	  tag = T_RBRACE;
-	  break;
-	case '<':
-	  tag = T_LANGLE;
-	  break;
-	case '>':
-	  tag = T_RANGLE;
-	  break;
-	default:
-	  {
-	    fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
-		    (char) c, curr_fname(), curr_line(), curr_col());
-	    throw tError("unexpected character in input");
-	  }
-	}
+        {
+        case '.':
+          tag = T_DOT;
+          break;
+        case ',':
+          tag = T_COMMA;
+          break;
+        case '=':
+          tag = T_EQUALS;
+          break;
+        case '#':
+          tag = T_HASH;
+          break;
+        case '\'':
+          tag = T_QUOTE;
+          break;
+        case '&':
+          tag = T_AMPERSAND;
+          break;
+        case '@':
+          tag = T_AT;
+          break;
+        case '^':
+          tag = T_CAP;
+          break;
+        case '$':
+          tag = T_DOLLAR;
+          break;
+        case '(':
+          tag = T_LPAREN;
+          break;
+        case ')':
+          tag = T_RPAREN;
+          break;
+        case '[':
+          tag = T_LBRACKET;
+          break;
+        case ']':
+          tag = T_RBRACKET;
+          break;
+        case '{':
+          tag = T_LBRACE;
+          break;
+        case '}':
+          tag = T_RBRACE;
+          break;
+        case '<':
+          tag = T_LANGLE;
+          break;
+        case '>':
+          tag = T_RANGLE;
+          break;
+        default:
+          {
+            fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
+                    (char) c, curr_fname(), curr_line(), curr_col());
+            throw tError("unexpected character in input");
+          }
+        }
       txt[0] = (char) c;
       t = make_token(tag, txt, 1);
       LConsume(1);
@@ -406,15 +406,15 @@ get_token()
     while(hope)
     {
         while((t = get_next_token())->tag != T_EOF)
-	{
+        {
             if(t->tag != T_WS && t->tag != T_COMM)
-	    {
+            {
 #ifdef DEBUG
                 fprintf(fstatus, "delivering "); print_token(t);
 #endif
                 tokensdelivered++;
                 return t;
-	    }
+            }
 #ifdef DEBUG
             else
             {
@@ -422,7 +422,7 @@ get_token()
             }
 #endif
             free(t);
-	}
+        }
         if(!pop_file()) hope = 0;
     }
 
@@ -462,9 +462,9 @@ LA(int n)
     for(i = 0; i <= n; i++)
     {
         if(LA_BUF[i] == NULL)
-	{
+        {
             LA_BUF[i] = get_token();
-	}
+        }
     }
   
     return LA_BUF[n];
@@ -514,13 +514,13 @@ void syntax_error(char *msg, struct lex_token *t)
   else if(t->loc == NULL)
     {
       fprintf(ferr, "syntax error - got `%.20s', %s\n",
-	      t->text, msg);
+              t->text, msg);
     }
   else
     {
       fprintf(ferr, "syntax error in %s:%d.%d - got `%.20s', %s\n",
-	      t->loc->fname, t->loc->linenr, t->loc->colnr,
-	      t->text, msg);
+              t->loc->fname, t->loc->linenr, t->loc->colnr,
+              t->text, msg);
     }
 }
 
@@ -559,12 +559,12 @@ char *match(enum TOKEN_TAG tag, char *s, bool readonly)
   else
     {
       if(!readonly)
-	{
-	  text = LA(0)->text;
-	  LA(0)->text = NULL;
-	}
+        {
+          text = LA(0)->text;
+          LA(0)->text = NULL;
+        }
       else
-	text = NULL;
+        text = NULL;
 
       consume(1);
     }

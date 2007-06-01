@@ -58,7 +58,7 @@ bool
 predle_status(type_t t)
 {
   return cheap_settings->statusmember("predict-lexentry-status-values",
-				      typestatus[t]);
+                                      typestatus[t]);
 }
 
 bool
@@ -471,10 +471,10 @@ tGrammar::tGrammar(const char * filename)
             _generics = cons(i, _generics);
             _lexicon[i] = new lex_stem(i);
         }
-	else if (predle_status(i)) {
-	  _predicts = cons(i, _predicts);
-	  _lexicon[i] = new lex_stem(i);
-	}
+        else if (predle_status(i)) {
+          _predicts = cons(i, _predicts);
+          _lexicon[i] = new lex_stem(i);
+        }
     }
 
     /*
@@ -531,7 +531,7 @@ tGrammar::tGrammar(const char * filename)
 
             if(r == 0)
                 continue;
-	  
+            
             if(t == -1)
                 _morph->add_global(string(r));
             else
@@ -547,12 +547,12 @@ tGrammar::tGrammar(const char * filename)
                             fprintf(ferr, "warning: found syntax `%s' rule "
                                     "with attached infl rule `%s'\n",
                                     print_name(t), r);
-		      
+                        
                         iter.current()->trait(INFL_TRAIT);
                         found = true;
                     }
                 }
-	      
+                
                 if(!found)
                     fprintf(ferr, "warning: rule `%s' with infl annotation "
                             "`%s' doesn't correspond to any of the parser's "
@@ -587,7 +587,7 @@ tGrammar::tGrammar(const char * filename)
                 delete[] form; delete[] infl; delete[] stem;
                 continue;
             }
-	  
+            
             _morph->add_irreg(string(stem), inflr, string(form));
             delete[] form; delete[] infl; delete[] stem;
         }
@@ -642,8 +642,8 @@ tGrammar::tGrammar(const char * filename)
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
       catch(tError &e) {
-	fprintf(ferr, "\n%s", e.getMessage().c_str());
-	_lexsm = 0;
+        fprintf(ferr, "\n%s", e.getMessage().c_str());
+        _lexsm = 0;
       }
     }
 

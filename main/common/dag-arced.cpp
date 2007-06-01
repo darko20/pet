@@ -43,17 +43,17 @@ void dag_remove_arcs(struct dag_node *dag, list_int *del)
   while(arc1 != 0)
     {
       if(!contains(del, arc1->attr)) // keep this one
-	{
-	  arc2 = arc1;
-	  arc1 = arc1->next;
+        {
+          arc2 = arc1;
+          arc1 = arc1->next;
 
-	  arc2->next = dag->arcs;
-	  dag->arcs = arc2;
-	}
+          arc2->next = dag->arcs;
+          dag->arcs = arc2;
+        }
       else // ignore this one
-	{
-	  arc1 = arc1->next;
-	}
+        {
+          arc1 = arc1->next;
+        }
     }
 }
 
@@ -85,47 +85,47 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
       undump_node(f, &dump_n);
 
       if(dump_n.type < 0)
-	dump_n.type = -dump_n.type; // node is not expanded
+        dump_n.type = -dump_n.type; // node is not expanded
 
       dag_qc_undumped_nodes[i].type = BI_TOP; // we infer the type
       dag_qc_undumped_nodes[i].qc_pos = 0;
       dag_qc_undumped_nodes[i].arcs = 0;
 
       if(typestatus[dump_n.type] == ATOM_STATUS)
-	{
-	  int val;
+        {
+          int val;
       
-	  val = strtoint(type_name(dump_n.type), "in qc structure", true);
+          val = strtoint(type_name(dump_n.type), "in qc structure", true);
 
-	  if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
-	    throw tError("invalid node (value too large) in qc structure");
+          if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
+            throw tError("invalid node (value too large) in qc structure");
 
-	  val += 1;
-	  if(limit < 0 || val <= limit)
-	    {
-	      dag_qc_undumped_nodes[i].qc_pos = val;
-	      if(val > qc_len) qc_len = val;
-	    }
-	}
+          val += 1;
+          if(limit < 0 || val <= limit)
+            {
+              dag_qc_undumped_nodes[i].qc_pos = val;
+              if(val > qc_len) qc_len = val;
+            }
+        }
 
       if(dump_n.nattrs > 0)
-	dag_qc_undumped_nodes[i].arcs = dag_qc_undumped_arcs+current_arc;
+        dag_qc_undumped_nodes[i].arcs = dag_qc_undumped_arcs+current_arc;
 
       for(int j = 0; j < dump_n.nattrs; j++)
-	{
-	  undump_arc(f, &dump_a);
-	  
-	  dag_qc_undumped_nodes[i].type
+        {
+          undump_arc(f, &dump_a);
+          
+          dag_qc_undumped_nodes[i].type
             = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
 
-	  dag_qc_undumped_arcs[current_arc].attr = dump_a.attr;
-	  dag_qc_undumped_arcs[current_arc].val 
+          dag_qc_undumped_arcs[current_arc].attr = dump_a.attr;
+          dag_qc_undumped_arcs[current_arc].val 
             = dag_qc_undumped_nodes + dump_a.val;
 
-	  dag_qc_undumped_arcs[current_arc].next =
-	    (j == dump_n.nattrs - 1) ? 0 : dag_qc_undumped_arcs+current_arc+1;
-	  current_arc++;
-	}
+          dag_qc_undumped_arcs[current_arc].next =
+            (j == dump_n.nattrs - 1) ? 0 : dag_qc_undumped_arcs+current_arc+1;
+          current_arc++;
+        }
     }
 
   return dag_qc_undumped_nodes + dag_dump_total_nodes - 2; // remove first level of structure
@@ -156,9 +156,9 @@ bool dag_prune_qc_paths(dag_node *qc_paths)
   while(arc != 0)
     {
       if(dag_prune_qc_paths(arc->val) == false)
-	useful = true;
+        useful = true;
       else
-	arc->val = 0; // mark for deletion
+        arc->val = 0; // mark for deletion
       arc = arc->next;
     }
 
@@ -211,10 +211,10 @@ void dag_size_rec(struct dag_node *dag, int &nodes)
       struct dag_arc *arc;
       arc = dag->arcs;
       while(arc)
-	{
+        {
           dag_size_rec(arc->val, nodes);
-	  arc = arc->next;
-	}
+          arc = arc->next;
+        }
     }
 }
 

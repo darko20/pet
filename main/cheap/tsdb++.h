@@ -274,7 +274,7 @@ class tsdb_parse
         date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
         subsumptions(-1), p_equivalent(-1), p_proactive(-1),
         p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
-	p_hypotheses(-1), p_upedges(-1),
+        p_hypotheses(-1), p_upedges(-1),
         results(), edges(), rule_stats(), i_input(), i_length(-1)
         {
         }

@@ -8,8 +8,8 @@
 #include <vector>
 
 /*	The entire contents of this file, in printed or electronic form, are
-	(c) Copyright YY Technologies, Mountain View, CA 1999,2000,2001
-	Unpublished work -- all rights reserved -- proprietary, trade secret
+    (c) Copyright YY Technologies, Mountain View, CA 1999,2000,2001
+    Unpublished work -- all rights reserved -- proprietary, trade secret
 */
 
 /*

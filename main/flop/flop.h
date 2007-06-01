@@ -351,7 +351,7 @@ class ff_entry
    *  \param line        The line number of this full form definition
    */
   ff_entry(string preterminal, string affix, string form, int inflpos,
-	   string filename = "unknown", int line = 0) 
+           string filename = "unknown", int line = 0) 
     : _preterminal(preterminal), _affix(affix), _form(form), _inflpos(inflpos),
     _fname(filename), _line(line)
     {};

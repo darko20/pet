@@ -147,7 +147,7 @@ choose_paths(FILE *f,
 
         for(set<int>::iterator iter = fail_sets[d].begin();
             iter != fail_sets[d].end(); ++iter)
-	{
+        {
             int value = 0;
             for(list<int>::iterator it = path_covers[*iter].begin();
                 it != path_covers[*iter].end(); ++it)

@@ -75,7 +75,7 @@
 // initialize parser with specified grammar
 
 void l2_parser_init(const string& grammar_path, const string& log_file_path,
-		      int k2y_segregation_p)
+                      int k2y_segregation_p)
 {
   fstatus = fopen(log_file_path.c_str(), "w");
   if(fstatus == 0)
@@ -84,11 +84,11 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
 
   try {
     fprintf(fstatus, "[%s] l2_parser_init(\"%s\", \"%s\", %d)\n",
-	    current_time(), grammar_path.c_str(), log_file_path.c_str(),
-	    k2y_segregation_p);
+            current_time(), grammar_path.c_str(), log_file_path.c_str(),
+            k2y_segregation_p);
 
     cheap_settings = new settings(settings::basename(grammar_path.c_str()),
-				  grammar_path.c_str(), "reading");
+                                  grammar_path.c_str(), "reading");
     fprintf(fstatus, "\n");
 
     options_from_settings(cheap_settings);
@@ -102,32 +102,32 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
 #ifndef DONT_EDUCATE_USERS
     if(opt_yy == false)
       {
-	fprintf(fstatus, "you want YY mode\n");
-	opt_yy = true;
+        fprintf(fstatus, "you want YY mode\n");
+        opt_yy = true;
       }
 
     if(opt_k2y == 0)
       {
-	fprintf(fstatus, "you want k2y's - turning on opt_k2y\n");
-	opt_k2y = 50;
+        fprintf(fstatus, "you want k2y's - turning on opt_k2y\n");
+        opt_k2y = 50;
       }
 
     if(opt_default_les == false)
       {
-	fprintf(fstatus, "you want default lexical entries  - turning on opt_default_les\n");
-	opt_default_les = true;
+        fprintf(fstatus, "you want default lexical entries  - turning on opt_default_les\n");
+        opt_default_les = true;
       }
 
     if(pedgelimit == 0)
       {
-	fprintf(fstatus, "you don't want to parse forever - setting edge limit\n");
-	pedgelimit = 10000;
+        fprintf(fstatus, "you don't want to parse forever - setting edge limit\n");
+        pedgelimit = 10000;
       }
 
     if(memlimit == 0)
       {
-	fprintf(fstatus, "you don't want to use up all memory - setting mem limit\n");
-	memlimit = 50 * 1024 * 1024;
+        fprintf(fstatus, "you don't want to use up all memory - setting mem limit\n");
+        memlimit = 50 * 1024 * 1024;
       }
 #endif
 
@@ -136,7 +136,7 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
     Grammar = new tGrammar(grammar_path.c_str());
 
     fprintf(fstatus, "\n%d types in %0.2g s\n",
-	    ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+            ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
     initialize_version();
 
@@ -300,19 +300,19 @@ vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
     list<tMorphAnalysis> res = Grammar->morph()->analyze(form, false);
     for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
       {
-	l2_tMorphAnalysis a;
+        l2_tMorphAnalysis a;
 
-	for(list<string>::iterator f = it->forms().begin();
+        for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();
             ++f)
-	  a.forms.push_back(massagetoUTF8(*f));
+          a.forms.push_back(massagetoUTF8(*f));
 
-	for(list<type_t>::iterator r = it->rules().begin();
+        for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r)
-	  a.rules.push_back(massagetoUTF8(string(type_name(*r))));
+          a.rules.push_back(massagetoUTF8(string(type_name(*r))));
 
-	results.push_back(a);
+        results.push_back(a);
       }
   }
 
@@ -341,14 +341,14 @@ string l2_morph_analyse_imp(const string& formUTF8)
     list<tMorphAnalysis> res = Grammar->morph()->analyze(form, false);
     for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
       {
-	for(list<string>::iterator f = it->forms().begin();
+        for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();
             ++f) {
           results += massagetoUTF8(*f);
           results += "\f+\nF";
         }
 
-	for(list<type_t>::iterator r = it->rules().begin();
+        for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r) {
           results += massagetoUTF8(string(type_name(*r)));
@@ -771,19 +771,19 @@ int cheap_server_child(int socket) {
                 
       gettimeofday(&tend, NULL);
       treal = (tend.tv_sec - tstart.tv_sec) * 1000 
-	+ (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);
+        + (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);
       
       for(list<FILE *>::iterator log = _log_channels.begin();
-	  log != _log_channels.end();
-	  log++) {
-	fprintf(*log,
-		"[%d] server_child(): "
-		"(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-		getpid(),
-		stats.id, pedgelimit, stats.readings, 
-		stats.first / 1000., stats.tcpu / 1000.,
-		stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-	fflush(*log);
+          log != _log_channels.end();
+          log++) {
+        fprintf(*log,
+                "[%d] server_child(): "
+                "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+                getpid(),
+                stats.id, pedgelimit, stats.readings, 
+                stats.first / 1000., stats.tcpu / 1000.,
+                stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
+        fflush(*log);
       } /* for */
 
 #if 0
@@ -793,22 +793,22 @@ int cheap_server_child(int socket) {
       for(vector<item *>::iterator iter = Chart->readings().begin();
           iter != Chart->readings().end(); 
           ++iter)
-	{
-	  mflush(mstream);
-	  int n = construct_k2y(nres++, *iter, false, mstream);
-	  if(n >= 0)
-	    {
-	      if(skipped >= (opt_nth_meaning-1))
-		{
-		  socket_write(socket, mstring(mstream));
-		  if((opt_nth_meaning-1) != 0 &&
-		     skipped == (opt_nth_meaning-1))
-		    break;
-		}
-	      else
-		skipped++;
-	    }
-	}
+        {
+          mflush(mstream);
+          int n = construct_k2y(nres++, *iter, false, mstream);
+          if(n >= 0)
+            {
+              if(skipped >= (opt_nth_meaning-1))
+                {
+                  socket_write(socket, mstring(mstream));
+                  if((opt_nth_meaning-1) != 0 &&
+                     skipped == (opt_nth_meaning-1))
+                    break;
+                }
+              else
+                skipped++;
+            }
+        }
       mclose(mstream);
 #endif
     } /* try */
@@ -993,7 +993,7 @@ static void _sigchld(int foo) {
 
 #ifdef TSDBAPI
 int yy_tsdb_summarize_item(chart &Chart, const char *item,
-			   int length, int treal, const char *rt) {
+                           int length, int treal, const char *rt) {
 
   if(!client_open_item_summary()) {
     capi_printf("(:run . (");

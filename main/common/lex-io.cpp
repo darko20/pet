@@ -175,16 +175,16 @@ int LConsume(int n)
   if(CURR->info)
     {
       if(opt_linebreaks)
-	{
-	  fprintf(fstatus, "\n%s `%s' ", CURR->info, CURR->fname);
-	}
+        {
+          fprintf(fstatus, "\n%s `%s' ", CURR->info, CURR->fname);
+        }
       else
-	{
-	  if(last_info != CURR->info)
-	    fprintf(fstatus, "%s `%s'... ", CURR->info, CURR->fname);
-	  else
-	    fprintf(fstatus, "`%s'... ", CURR->fname);
-	}
+        {
+          if(last_info != CURR->info)
+            fprintf(fstatus, "%s `%s'... ", CURR->info, CURR->fname);
+          else
+            fprintf(fstatus, "`%s'... ", CURR->fname);
+        }
 
       last_info = CURR->info;
       CURR->info = NULL;
@@ -195,11 +195,11 @@ int LConsume(int n)
       CURR->colnr++;
 
       if(CURR->buff[CURR->pos + i] == '\n')
-	{
-	  CURR->colnr = 1;
-	  CURR->linenr++;
-	  total_lexed_lines ++;
-	}
+        {
+          CURR->colnr = 1;
+          CURR->linenr++;
+          total_lexed_lines ++;
+        }
     }
 
   CURR->pos += n;

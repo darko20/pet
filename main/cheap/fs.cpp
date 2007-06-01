@@ -389,7 +389,7 @@ record_failures(list<unification_failure *> fails, bool unification,
             }
             i++;
             delete f;
-	    // _fix_me_ may not delete f if opt_print_failure is on
+            // _fix_me_ may not delete f if opt_print_failure is on
         }
         
         delete[] value;
@@ -405,7 +405,7 @@ record_failures(list<unification_failure *> fails, bool unification,
             (*iter)->print(ferr);
             fprintf(ferr, "\n");
         }
-	// _fix_me_ need to delete f here
+        // _fix_me_ need to delete f here
     }
 }
 
@@ -523,7 +523,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
             }
             if(good)
                 filtered.push_back(*f);
-	    else
+            else
                 delete *f;
 
         }

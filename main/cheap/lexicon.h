@@ -189,7 +189,7 @@ class full_form
   {
     if(i >= 0 && i < length())
       {
-	if(i != offset()) return _stem->orth(i); else return _form;
+        if(i != offset()) return _stem->orth(i); else return _form;
       }
     else
       return 0;

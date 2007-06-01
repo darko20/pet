@@ -340,46 +340,46 @@ void driver2()
     {
       for (j=0; j<8; ++j)   /*------------------------ for each input bit, */
       {
-	for (m=1; m<8; ++m) /*------------ for serveral possible initvals, */
-	{
-	  for (l=0; l<HASHSTATE; ++l) e[l]=f[l]=g[l]=h[l]=x[l]=y[l]=~((ub4)0);
+        for (m=1; m<8; ++m) /*------------ for serveral possible initvals, */
+        {
+          for (l=0; l<HASHSTATE; ++l) e[l]=f[l]=g[l]=h[l]=x[l]=y[l]=~((ub4)0);
 
-      	  /*---- check that every output bit is affected by that input bit */
-	  for (k=0; k<MAXPAIR; k+=2)
-	  { 
-	    ub4 finished=1;
-	    /* keys have one bit different */
-	    for (l=0; l<hlen+1; ++l) {a[l] = b[l] = (ub1)0;}
-	    /* have a and b be two keys differing in only one bit */
-	    a[i] ^= (k<<j);
-	    a[i] ^= (k>>(8-j));
-	     c[0] = hash(a, hlen, m);
-	    b[i] ^= ((k+1)<<j);
-	    b[i] ^= ((k+1)>>(8-j));
-	     d[0] = hash(b, hlen, m);
-	    /* check every bit is 1, 0, set, and not set at least once */
-	    for (l=0; l<HASHSTATE; ++l)
-	    {
-	      e[l] &= (c[l]^d[l]);
-	      f[l] &= ~(c[l]^d[l]);
-	      g[l] &= c[l];
-	      h[l] &= ~c[l];
-	      x[l] &= d[l];
-	      y[l] &= ~d[l];
-	      if (e[l]|f[l]|g[l]|h[l]|x[l]|y[l]) finished=0;
-	    }
-	    if (finished) break;
-	  }
-	  if (k>z) z=k;
-	  if (k==MAXPAIR) 
-	  {
-	     printf("Some bit didn't change: ");
-	     printf("%.8lx %.8lx %.8lx %.8lx %.8lx %.8lx  ",
-	            e[0],f[0],g[0],h[0],x[0],y[0]);
-	     printf("i %ld j %ld m %ld len %ld\n",i,j,m,hlen);
-	  }
-	  if (z==MAXPAIR) goto done;
-	}
+          /*---- check that every output bit is affected by that input bit */
+          for (k=0; k<MAXPAIR; k+=2)
+          { 
+            ub4 finished=1;
+            /* keys have one bit different */
+            for (l=0; l<hlen+1; ++l) {a[l] = b[l] = (ub1)0;}
+            /* have a and b be two keys differing in only one bit */
+            a[i] ^= (k<<j);
+            a[i] ^= (k>>(8-j));
+             c[0] = hash(a, hlen, m);
+            b[i] ^= ((k+1)<<j);
+            b[i] ^= ((k+1)>>(8-j));
+             d[0] = hash(b, hlen, m);
+            /* check every bit is 1, 0, set, and not set at least once */
+            for (l=0; l<HASHSTATE; ++l)
+            {
+              e[l] &= (c[l]^d[l]);
+              f[l] &= ~(c[l]^d[l]);
+              g[l] &= c[l];
+              h[l] &= ~c[l];
+              x[l] &= d[l];
+              y[l] &= ~d[l];
+              if (e[l]|f[l]|g[l]|h[l]|x[l]|y[l]) finished=0;
+            }
+            if (finished) break;
+          }
+          if (k>z) z=k;
+          if (k==MAXPAIR) 
+          {
+             printf("Some bit didn't change: ");
+             printf("%.8lx %.8lx %.8lx %.8lx %.8lx %.8lx  ",
+                    e[0],f[0],g[0],h[0],x[0],y[0]);
+             printf("i %ld j %ld m %ld len %ld\n",i,j,m,hlen);
+          }
+          if (z==MAXPAIR) goto done;
+        }
       }
     }
    done:
@@ -424,7 +424,7 @@ void driver3()
       y = hash(b, len, (ub4)1);
       if ((ref != x) || (ref != y)) 
       {
-	printf("alignment error: %.8lx %.8lx %.8lx %ld %ld\n",ref,x,y,h,i);
+        printf("alignment error: %.8lx %.8lx %.8lx %ld %ld\n",ref,x,y,h,i);
       }
     }
   }

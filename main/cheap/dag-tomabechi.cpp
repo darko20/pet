@@ -901,7 +901,7 @@ dag_node *dag_cyclic_copy(dag_node *src, list_int *del) {
     if(!contains(del, arc->attr)) {
       if((v = dag_cyclic_copy(arc->val, 0)) == FAIL)
         return FAIL;
-	  
+      
       new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
     }
     arc = arc->next;
@@ -1025,10 +1025,10 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
       {
         if((v = dag_copy(arc->val, 0)) == FAIL)
           return FAIL;
-	  
+        
         if(arc->val != v) 
           copy_p = true;
-	  
+        
         new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
       }
     arc = arc->next;
@@ -1071,7 +1071,7 @@ inline bool arcs_contain(dag_arc *arc, attr_t attr) {
 inline dag_arc *clone_arcs_del(dag_arc *src, dag_arc *dst, dag_arc *del) {
   while(src) {
       if(!arcs_contain(del, src->attr))
-	dst = dag_cons_arc(src->attr, src->val, dst);
+        dst = dag_cons_arc(src->attr, src->val, dst);
       src = src->next;
     }
 
@@ -1088,7 +1088,7 @@ clone_arcs_del_del(dag_arc *src, dag_arc *dst,
                    dag_arc *del_arcs, list_int *del_attrs) {
   while(src) {
       if(!contains(del_attrs,src->attr) && !arcs_contain(del_arcs, src->attr))
-	dst = dag_cons_arc(src->attr, src->val, dst);
+        dst = dag_cons_arc(src->attr, src->val, dst);
       src = src->next;
     }
 
@@ -1175,7 +1175,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
     if(!contains(del, arc->attr)) {
       if((v = dag_copy(arc->val, 0)) == FAIL)
         return FAIL;
-	  
+      
       if(arc->val != v) {
         copy_p = true;
         new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
@@ -1233,7 +1233,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
     if(!contains(del, arc->attr)) {
       if((v = dag_copy(arc->val, 0)) == FAIL)
         return FAIL;
-	  
+      
       new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
     }
     arc = arc->next;
@@ -1313,8 +1313,8 @@ void dag_get_qc_vector_temp(qc_node *path, dag_node *dag, type_t *qc_vector)
 
   for(qc_arc *arc = path->arcs; arc != 0; arc = arc->next)
     dag_get_qc_vector_temp(arc->val,
-			 dag_get_attr_value_temp(dag, arc->attr),
-			 qc_vector);
+                           dag_get_attr_value_temp(dag, arc->attr),
+                           qc_vector);
 }
 
 
@@ -1813,14 +1813,14 @@ dag_partial_copy1(dag_node *dag, attr_t attr, const restrictor &del)
         {
             arc = dag->arcs;
             while(arc != 0)
-	    {
+            {
                 dag_add_arc(copy,
                             new_arc(arc->attr,dag_partial_copy1(arc->val,
                                                                 arc->attr,
                                                                 del)));
                 arc = arc->next;
-	    }
-	}
+            }
+        }
         else if(attr != -1)
         {
             copy->type = maxapp[attr];

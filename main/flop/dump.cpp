@@ -101,7 +101,7 @@ dump_tables(dumper *f)
       short int n = featsetdesc[i].n;
       f->dump_short(n);
       for(int j = 0; j < n; j++)
-	f->dump_short(featsetdesc[i].attr[j]);
+        f->dump_short(featsetdesc[i].attr[j]);
     }
 
   for(int i = 0; i < nattrs; i++)
@@ -134,10 +134,10 @@ dump_print_names(dumper *f)
   for(int i = 0; i < ntypes; i++)
     {
       if(strcmp(printnames[rleaftype_order[i]],
-		typenames[rleaftype_order[i]]) != 0)
-	f->dump_string(printnames[rleaftype_order[i]]);
+                typenames[rleaftype_order[i]]) != 0)
+        f->dump_string(printnames[rleaftype_order[i]]);
       else
-	f->dump_string(0);
+        f->dump_string(0);
     }
 }
 
@@ -180,10 +180,10 @@ dump_inflrs(dumper *f)
   for(int i = 0; i < ntypes; i++)
     {
       if(types[i]->inflr != 0)
-	{
-	  ninflr++;
-	  dump_inflr(f, leaftype_order[i], types[i]->inflr);
-	}
+        {
+          ninflr++;
+          dump_inflr(f, leaftype_order[i], types[i]->inflr);
+        }
     }
   
   f->set_int_variable(ninflr_var, ninflr);

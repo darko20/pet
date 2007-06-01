@@ -353,7 +353,7 @@ tInputItem::generics(postags onlyfor)
           if(verbosity > 4)
               fprintf(ferr, "  ==> %s [%s]\n", print_name(gen),
                       suffix == 0 ? "*" : suffix);
-	  
+          
           result.push_back(Grammar->find_stem(gen));
         }
     }
@@ -1138,7 +1138,7 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
                 fprintf(stderr, "\n");
             }
         }
-	return;
+        return;
     }
 
     for(list<tItem *>::iterator i = dtrs[index].begin(); i != dtrs[index].end();
@@ -1230,7 +1230,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     // * create the hypothese cache
     _hypo_agendas[path].clear();
     for (vector<tHypothesis*>::iterator h = _hypotheses.begin();
-	 h != _hypotheses.end(); h ++) {
+         h != _hypotheses.end(); h ++) {
       Grammar->sm()->score_hypothesis(*h, path);
       hagenda_insert(_hypo_agendas[path], *h, path);
     }
@@ -1258,22 +1258,22 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   if (i == 0 && _hypotheses_path.size() == 1) {
     decompose_edge();
     for (list<tDecomposition*>::iterator decomposition = decompositions.begin();
-	 decomposition != decompositions.end(); decomposition++) {
+         decomposition != decompositions.end(); decomposition++) {
       list<tHypothesis*> dtrs;
       vector<int> indices;
       for (list<tItem*>::const_iterator edge = (*decomposition)->rhs.begin();
-	   edge != (*decomposition)->rhs.end(); edge ++) {
-	tHypothesis* dtr = (*edge)->hypothesize_edge(newpath, 0);
-	if (!dtr) {
-	  dtrs.clear();
-	  break;
-	}
-	dtrs.push_back(dtr);
-	indices.push_back(0);
+           edge != (*decomposition)->rhs.end(); edge ++) {
+        tHypothesis* dtr = (*edge)->hypothesize_edge(newpath, 0);
+        if (!dtr) {
+          dtrs.clear();
+          break;
+        }
+        dtrs.push_back(dtr);
+        indices.push_back(0);
       }
       if (dtrs.size() != 0) {
-	new_hypothesis(*decomposition, dtrs, indices);
-	(*decomposition)->indices.insert(indices);
+        new_hypothesis(*decomposition, dtrs, indices);
+        (*decomposition)->indices.insert(indices);
       }
     }
   }
@@ -1288,39 +1288,39 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
       indices_adv.pop_front();
       // skip seen configurations
       if (! hypo->decomposition->indices.insert(indices).second) // seen before
-	continue;
+        continue;
 
       list<tHypothesis*> dtrs;
       list<int> fdtr_idx;
       int idx = 0;
       for (list<tItem*>::iterator edge = hypo->decomposition->rhs.begin();
-	   edge != hypo->decomposition->rhs.end(); edge ++, idx ++) {
-	tHypothesis* dtr = (*edge)->hypothesize_edge(newpath, indices[idx]);
-	if (!dtr) {
-	  dtrs.clear();
-	  break;
-	}
-	if (dtr->inst_failed) // record the failed positions
-	  fdtr_idx.push_back(idx);
+           edge != hypo->decomposition->rhs.end(); edge ++, idx ++) {
+        tHypothesis* dtr = (*edge)->hypothesize_edge(newpath, indices[idx]);
+        if (!dtr) {
+          dtrs.clear();
+          break;
+        }
+        if (dtr->inst_failed) // record the failed positions
+          fdtr_idx.push_back(idx);
 
-	dtrs.push_back(dtr);
+        dtrs.push_back(dtr);
       }
       if (dtrs.size() == 0) // at least one of the daughter hypotheses
-			    // does not exist
-	continue;
+                            // does not exist
+        continue;
       else if (fdtr_idx.size() > 0) { // at least one of the daughter
-				       // hypotheses failed to
-				       // instantiate
-	// skip creating the hypothesis that determined not to instantiate,
-	// but still put in the advanced indices
-	vector<int> new_indices = indices;
-	for (list<int>::iterator fidx = fdtr_idx.begin();
-	     fidx != fdtr_idx.end(); fidx ++) {
-	  new_indices[*fidx] ++; 
-	}
-	indices_adv.push_back(new_indices);
+                                       // hypotheses failed to
+                                       // instantiate
+        // skip creating the hypothesis that determined not to instantiate,
+        // but still put in the advanced indices
+        vector<int> new_indices = indices;
+        for (list<int>::iterator fidx = fdtr_idx.begin();
+             fidx != fdtr_idx.end(); fidx ++) {
+          new_indices[*fidx] ++; 
+        }
+        indices_adv.push_back(new_indices);
       } else // every thing fine, create the new hypothesis
-	new_hypothesis(hypo->decomposition, dtrs, indices);
+        new_hypothesis(hypo->decomposition, dtrs, indices);
     }
     if (!hypo->inst_failed)
       _hypotheses_path[path].push_back(hypo);
@@ -1351,9 +1351,9 @@ tPhrasalItem::decompose_edge()
     dtr_items.resize(i+1);
     dtr_items[i].push_back(*it);
     for (list<tItem*>::const_iterator pi = (*it)->packed.begin();
-	 pi != (*it)->packed.end(); pi ++) {
+         pi != (*it)->packed.end(); pi ++) {
       if (!(*pi)->frozen()) {
-	dtr_items[i].push_back(*pi);
+        dtr_items[i].push_back(*pi);
       }
     }
     dnum *= dtr_items[i].size();
@@ -1364,7 +1364,7 @@ tPhrasalItem::decompose_edge()
     int j = i;
     int k = 0;
     for (list<tItem*>::const_iterator it = _daughters.begin();
-	 it != _daughters.end(); it ++, k ++) {
+         it != _daughters.end(); it ++, k ++) {
       int psize = dtr_items[k].size();
       int mod = j % psize;
       rhs.push_back(dtr_items[k][mod]);
@@ -1377,8 +1377,8 @@ tPhrasalItem::decompose_edge()
 
 void
 tPhrasalItem::new_hypothesis(tDecomposition* decomposition,
-			     list<tHypothesis *> dtrs,
-			     vector<int> indices) 
+                             list<tHypothesis *> dtrs,
+                             vector<int> indices) 
 {
   tHypothesis *hypo = new tHypothesis(this, decomposition, dtrs, indices);
   stats.p_hypotheses ++;
@@ -1449,7 +1449,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
       results.push_back(result);
       n --;
       if (n == 0)
-	break;
+        break;
     }
     hypo = aitem->edge->hypothesize_edge(aitem->indices[0]+1);
     if (hypo) {
@@ -1498,13 +1498,13 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
       hagenda_insert(ragenda, aitem, path);
     }
     for (list<tItem*>::iterator edge = root->packed.begin();
-	 edge != root->packed.end(); edge++) {
+         edge != root->packed.end(); edge++) {
       // ignore frozen edges
       if ((*edge)->frozen())
-	continue;
+        continue;
       hypo = (*edge)->hypothesize_edge(path, 0);
       if (!hypo)
-	continue;
+        continue;
       //Grammar->sm()->score_hypothesis(hypo);
       aitem = new tHypothesis(*edge, hypo, 0);
       stats.p_hypotheses ++;
@@ -1524,8 +1524,8 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
       results.push_back(result);
       n --;
       if (n == 0) {
-	delete aitem;
-	break;
+        delete aitem;
+        break;
       }
     }
     hypo = aitem->edge->hypothesize_edge(path, aitem->indices[0]+1);
@@ -1611,8 +1611,8 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
       res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
     } else {
       res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
-			   arg,
-			   Grammar->deleted_daughters());
+                           arg,
+                           Grammar->deleted_daughters());
     }
     tofill = rest(tofill);
   }

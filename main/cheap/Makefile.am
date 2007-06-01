@@ -65,18 +65,18 @@ nodist_cheap_SOURCES = bitcode.cpp 	\
 # The headers do not need to be listed for compilation, but they need
 # to be found for making a distribution.
 
-cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
-	fs.cpp fs.h grammar.cpp grammar.h		 		\
-	input-modules.h item-printer.cpp item-printer.h item.cpp item.h	\
-	lexicon.cpp lexicon.h lexparser.cpp lexparser.h 		\
-	lingo-tokenizer.cpp lingo-tokenizer.h				\
-	morph.cpp morph.h options.cpp options.h parse.cpp parse.h 	\
-	paths.cpp paths.h position-mapper.h postags.cpp postags.h       \
-  restrictor.h sm.cpp sm.h task.cpp task.h itsdb.h timer.h tsdb++.h \
-  tsdb++.cpp yy-tokenizer.cpp yy-tokenizer.h
+cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h            \
+        fs.cpp fs.h grammar.cpp grammar.h                               \
+        input-modules.h item-printer.cpp item-printer.h item.cpp item.h \
+        lexicon.cpp lexicon.h lexparser.cpp lexparser.h                 \
+        lingo-tokenizer.cpp lingo-tokenizer.h                           \
+        morph.cpp morph.h options.cpp options.h parse.cpp parse.h       \
+        paths.cpp paths.h position-mapper.h postags.cpp postags.h       \
+        restrictor.h sm.cpp sm.h task.cpp task.h itsdb.h timer.h tsdb++.h \
+        tsdb++.cpp yy-tokenizer.cpp yy-tokenizer.h
 
-TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h	\
-	failure.cpp qc.h qc.cpp
+TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h      \
+        failure.cpp qc.h qc.cpp
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI
 cheap_SOURCES += $(TOMABECHI_UNIF_FILES)

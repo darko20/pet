@@ -463,14 +463,14 @@ bool parse_options(int argc, char* argv[])
               strtoint(optarg, "as argument to -comment-passthrough");
           else
               opt_comment_passthrough = 1;
-	  break;
+          break;
 
       case OPTION_PREDICT_LES:
-	  if (optarg != NULL)
-	    opt_predict_les = strtoint(optarg, "as argument to -predict-les");
-	  else 
-	    opt_predict_les = 1;
-	  break;
+          if (optarg != NULL)
+            opt_predict_les = strtoint(optarg, "as argument to -predict-les");
+          else 
+            opt_predict_les = 1;
+          break;
 
 #ifdef YY
       case OPTION_ONE_MEANING:

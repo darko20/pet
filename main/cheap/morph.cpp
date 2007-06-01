@@ -462,7 +462,7 @@ void morph_lettersets::add(string s)
       string elems = s.substr(p, s.length() - p); 
       if(verbosity > 14)
         fprintf(fstatus, " -> <%s> <%s>\n", name.c_str(), elems.c_str());
-	  
+      
       morph_letterset *ls = new morph_letterset(name, elems);
       _m[name] = ls;
     }
@@ -837,7 +837,7 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
 
       rules.push_front(candidate);
       forms.push_front(st);
-	  
+      
       res.push_back(tMorphAnalysis(forms, rules));
     }
   }
@@ -1203,7 +1203,7 @@ tLKBMorphology::undump_inflrs(dumper &dmp) {
 
       if(r == 0)
         continue;
-	  
+      
       if(t == -1)
         _morph.add_global(string(r));
       else
@@ -1250,7 +1250,7 @@ tLKBMorphology::undump_irregs(dumper &dmp) {  // irregular forms
           delete[] form; delete[] infl; delete[] stem;
           continue;
         }
-	  
+      
       _morph.add_irreg(string(stem), inflr, string(form));
       delete[] form; delete[] infl; delete[] stem;
     }

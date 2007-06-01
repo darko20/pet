@@ -84,15 +84,15 @@ build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
         tPhrasalItem *it;
         
         if(temporary)
-	{
+        {
             temporary_generation save(res.temp());
             it = new tPhrasalItem(R, passive, res);
             FSAS.release();
-	}
+        }
         else
-	{
+        {
             it = new tPhrasalItem(R, passive, res);
-	}
+        }
         
         return it;
     }
@@ -156,17 +156,17 @@ build_combined_item(chart *C, tItem *active, tItem *passive)
         tPhrasalItem *it;
         
         if(temporary)
-	{
+        {
             temporary_generation save(res.temp());
             it = new tPhrasalItem(dynamic_cast<tPhrasalItem *>(active),
                                   passive, res);
             FSAS.release();
-	}
+        }
         else
-	{
+        {
             it = new tPhrasalItem(dynamic_cast<tPhrasalItem *>(active),
                                   passive, res);
-	}
+        }
         
         return it;
     }

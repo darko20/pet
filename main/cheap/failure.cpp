@@ -160,10 +160,10 @@ unification_failure::print(FILE *f) const
         fprintf(f, ":");
         for(list<list_int *>::const_iterator iter = _cyclic_paths.begin();
             iter != _cyclic_paths.end(); ++iter)
-	{
+        {
             fprintf(f, "\n  ");
             ::print_path(f, *iter);
-	}
+        }
     }
 }
 

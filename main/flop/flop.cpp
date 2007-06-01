@@ -72,16 +72,16 @@ check_undefined_types()
   for(int i = 0; i < types.number(); i++)
     {
       if(types[i]->implicit)
-	{
-	  lex_location *loc = types[i]->def;
+        {
+          lex_location *loc = types[i]->def;
 
-	  if(loc == 0)
-	    loc = new_location("unknown", 0, 0);
+          if(loc == 0)
+            loc = new_location("unknown", 0, 0);
 
-	  fprintf(ferr, "warning: type `%s' (introduced at %s:%d) has no definition\n",
-		  types.name(i).c_str(),
-		  loc->fname, loc->linenr);
-	}
+          fprintf(ferr, "warning: type `%s' (introduced at %s:%d) has no definition\n",
+                  types.name(i).c_str(),
+                  loc->fname, loc->linenr);
+        }
     }
 }
 
@@ -94,12 +94,12 @@ void process_conjunctive_subtype_constraints()
   for(i = 0; i<types.number(); i++)
     if((c = (t = types[i])->constraint) != 0)
       for(j = 0; j < c->n; j++)
-	if( c->term[j]->tag == TYPE)
-	  {
-	    t->parents = cons(c->term[j]->type, t->parents);
-	    subtype_constraint(t->id, c->term[j]->type);
-	    c->term[j--] = c->term[--c->n];
-	  }
+        if( c->term[j]->tag == TYPE)
+          {
+            t->parents = cons(c->term[j]->type, t->parents);
+            subtype_constraint(t->id, c->term[j]->type);
+            c->term[j--] = c->term[--c->n];
+          }
 }
 
 char *synth_type_name(int offset = 0)
@@ -123,35 +123,35 @@ void process_multi_instances()
   for(i = 0; i < n; i++)
     if((t = types[i])->tdl_instance && length(t->parents) > 1)
       {
-	if(verbosity > 4)
-	  {
-	    fprintf(fstatus, "TDL instance `%s' has multiple parents: ",
-		    types.name(i).c_str());
-	    for(list_int *l = t->parents; l != 0; l = rest(l))
-	      fprintf(fstatus, " %s", types.name(first(l)).c_str());
-	    fprintf(fstatus, "\n");
-	  }
+        if(verbosity > 4)
+          {
+            fprintf(fstatus, "TDL instance `%s' has multiple parents: ",
+                    types.name(i).c_str());
+            for(list_int *l = t->parents; l != 0; l = rest(l))
+              fprintf(fstatus, " %s", types.name(first(l)).c_str());
+            fprintf(fstatus, "\n");
+          }
 
-	if(ptype[t->parents] == 0)
-	  {
-	    char *name = synth_type_name();
-	    struct type *p = new_type(name, false);
-	    p->def = new_location("synthesized", 0, 0);
-	    p->parents = t->parents;
-	    
-	    for(list_int *l = t->parents; l != 0; l = rest(l))
-	      subtype_constraint(p->id, first(l));
+        if(ptype[t->parents] == 0)
+          {
+            char *name = synth_type_name();
+            struct type *p = new_type(name, false);
+            p->def = new_location("synthesized", 0, 0);
+            p->parents = t->parents;
+            
+            for(list_int *l = t->parents; l != 0; l = rest(l))
+              subtype_constraint(p->id, first(l));
 
-	    ptype[t->parents] = p->id;
+            ptype[t->parents] = p->id;
 
-	    if(verbosity > 4)
-	      fprintf(fstatus, "Synthesizing new parent type `%d'\n", p->id); 
-	  }
+            if(verbosity > 4)
+              fprintf(fstatus, "Synthesizing new parent type `%d'\n", p->id); 
+          }
 
-	undo_subtype_constraints(t->id);
-	subtype_constraint(t->id, ptype[t->parents]);
-	
-	t->parents = cons(ptype[t->parents], 0);
+        undo_subtype_constraints(t->id);
+        subtype_constraint(t->id, ptype[t->parents]);
+        
+        t->parents = cons(ptype[t->parents], 0);
       }
 }
 
@@ -190,12 +190,12 @@ void reorder_leaftypes()
   for(i = 0; i < ntypes; i++)
     {
       if(rleaftype_order[i] == -1)
-	{
-	  fprintf(stderr, "conception error in leaftype reordering\n");
-	  exit(1);
-	}
+        {
+          fprintf(stderr, "conception error in leaftype reordering\n");
+          exit(1);
+        }
       if(rleaftype_order[i] != leaftype_order[i])
-	fprintf(stderr, "gotcha: %d: %d <-> %d", i, leaftype_order[i], rleaftype_order[i]);
+        fprintf(stderr, "gotcha: %d: %d <-> %d", i, leaftype_order[i], rleaftype_order[i]);
     }
 }
 
@@ -235,17 +235,17 @@ void demote_instances()
   for(int i = 0; i < types.number(); i++)
     {
       if(types[i]->tdl_instance)
-	{
-	  // all instances should be leaftypes
-	  if(leaftypeparent[i] == -1)
-	    {
-	      fprintf(stderr, "warning: tdl instance `%s' is not a leaftype\n",
-		      types.name(i).c_str());
-	      // assert(leaftypeparent[i] != -1);
-	    }
-	  else
-	    dag_set_type(types[i]->thedag, leaftypeparent[i]);
-	}
+        {
+          // all instances should be leaftypes
+          if(leaftypeparent[i] == -1)
+            {
+              fprintf(stderr, "warning: tdl instance `%s' is not a leaftype\n",
+                      types.name(i).c_str());
+              // assert(leaftypeparent[i] != -1);
+            }
+          else
+            dag_set_type(types[i]->thedag, leaftypeparent[i]);
+        }
     }
 }
 
@@ -334,25 +334,25 @@ print_morph_info(FILE *f)
     for(int i = 0; i < ntypes; i++)
     {
         if(flop_settings->statusmember("infl-rule-status-values",
-					typestatus[i]))
-	{
-  	    fprintf(f, "%s:\n", typenames[i]);
-	    dag_node *dag = dag_copy(types[i]->thedag);
+                                        typestatus[i]))
+        {
+            fprintf(f, "%s:\n", typenames[i]);
+            dag_node *dag = dag_copy(types[i]->thedag);
             
             if(dag != FAIL)
             {
                 fully_expand(dag, true);
                 dag_invalidate_visited(); 
-	    } 
+            } 
             if(dag != FAIL)
                 dag = dag_get_path_value(dag, path);
 
-	    if(dag != FAIL) 
-	      dag_print(f, dag);
-	    else
-	      fprintf(f, "(no structure under %s)\n", path);
-	    fprintf(f, "\n");
-	}
+            if(dag != FAIL) 
+              dag_print(f, dag);
+            else
+              fprintf(f, "(no structure under %s)\n", path);
+            fprintf(f, "\n");
+        }
     }
     //    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
 }
@@ -579,23 +579,23 @@ void setup_io()
     {
       val = fcntl(errors_to, F_GETFL, 0);
       if(val < 0 && errno == EBADF)
-	{
-	  ferr = stderr;
-	}
+        {
+          ferr = stderr;
+        }
       else
-	{
-	  if(val < 0)
-	    {
-	      perror("setup_io() [status of fd errors_to]");
-	      exit(1);
-	    }
-	  if((val & O_ACCMODE) == O_RDONLY)
-	    {
-	      fprintf(stderr, "setup_io(): fd errors_to is read only\n");
-	      exit(1);
-	    }
-	  ferr = fdopen(errors_to, "w");
-	}
+        {
+          if(val < 0)
+            {
+              perror("setup_io() [status of fd errors_to]");
+              exit(1);
+            }
+          if((val & O_ACCMODE) == O_RDONLY)
+            {
+              fprintf(stderr, "setup_io(): fd errors_to is read only\n");
+              exit(1);
+            }
+          ferr = fdopen(errors_to, "w");
+        }
     }
   else
     ferr = stderr;
