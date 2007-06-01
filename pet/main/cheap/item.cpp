@@ -223,10 +223,10 @@ void tInputItem::print(FILE *f, bool compact)
 
   // fprintf(f, "@%d", inflpos);
 
-  fprintf(ferr, " {");
-  _postags.print(ferr);
-  fprintf(ferr, " }");
-  fprintf(ferr, "\n");
+  fprintf(f, " {");
+  _postags.print(f);
+  fprintf(f, " }");
+  fprintf(f, "\n");
 }
 
 void
