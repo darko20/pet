@@ -38,13 +38,13 @@ int print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_table *
       if(i != 0)
         {
           fprintf(f, ",");
-	  if(last_complex)
-	    {
-	      fprintf(f, "\n");
-	      indent(f, level);
-	    }
-	  else
-	    fprintf(f, " ");
+          if(last_complex)
+            {
+              fprintf(f, "\n");
+              indent(f, level);
+            }
+          else
+            fprintf(f, " ");
 
           complex = 1;
         }
@@ -127,10 +127,10 @@ void munge_in_coref(struct conjunction *C, struct coref_table *co)
   for(i = 0; i < C -> n; i++)
     {
       if(C -> term[i] -> tag == COREF)
-	{
+        {
           dl_cor = co -> coref[C -> term[i] -> coidx];
           ncorefs ++;
-	}
+        }
     }
 
   if(ncorefs == 0)
@@ -256,10 +256,10 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
   for(i = 0; i < C -> n; i++)
     {
       if(C -> term[i] -> tag == COREF)
-	{
-	  fprintf(f, "#%s", coref->coref[C -> term[i] -> coidx]);
+        {
+          fprintf(f, "#%s", coref->coref[C -> term[i] -> coidx]);
           ncorefs ++;
-	}
+        }
       if(C -> term[i] -> tag == LIST && C -> term[i] -> L -> difflist == 0 &&
          C -> term[i] -> L -> dottedpair == 1) contains_cons++;
     }
@@ -272,12 +272,12 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
             {
               if(ncorefs > 0 && ntypes == 0) fprintf(f, ":");
               fprintf(f, "%s%s", ntypes == 0 ? "" : "^",
-		      types.name(C -> term[i] -> type).c_str());
+                      types.name(C -> term[i] -> type).c_str());
               ntypes ++;
             }
           if(C->term[i]->type != BI_CONS &&
-	     C->term[i]->type != BI_LIST &&
-	     C->term[i]->type != BI_DIFF_LIST)
+             C->term[i]->type != BI_LIST &&
+             C->term[i]->type != BI_DIFF_LIST)
             not_builtin_list++;
         }
     }
@@ -285,52 +285,52 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
   for(i = 0; i < C -> n; i++)
     {
       switch(C -> term[i] -> tag)
-	{
-	case COREF:
-	case TYPE:
-	  break;
-	case ATOM:
+        {
+        case COREF:
+        case TYPE:
+          break;
+        case ATOM:
           nrest ++;
 
-	  if(nrest > 1)
-	    {
-	      fprintf(f, " &");
-	      if(complex)
-		{
-		  fprintf(f, "\n");
-		  indent(f, level);
-		}
-	      else
-		fprintf(f, " ");
-	    }
+          if(nrest > 1)
+            {
+              fprintf(f, " &");
+              if(complex)
+                {
+                  fprintf(f, "\n");
+                  indent(f, level);
+                }
+              else
+                fprintf(f, " ");
+            }
 
-	  fprintf(f, "'%s", C -> term[i] -> value);
-	  break;
-	case STRING:
+          fprintf(f, "'%s", C -> term[i] -> value);
+          break;
+        case STRING:
           nrest ++;
 
-	  if(nrest > 1)
-	    {
-	      fprintf(f, " &");
-	      if(complex)
-		{
-		  fprintf(f, "\n");
-		  indent(f, level);
-		}
-	      else
-		fprintf(f, " ");
-	    }
+          if(nrest > 1)
+            {
+              fprintf(f, " &");
+              if(complex)
+                {
+                  fprintf(f, "\n");
+                  indent(f, level);
+                }
+              else
+                fprintf(f, " ");
+            }
 
-	  fprintf(f, "%s\"%s\"", (ncorefs > 0) ? ":" : "", C -> term[i] -> value);
-	  break;
-	case FEAT_TERM:
+          fprintf(f, "%s\"%s\"", (ncorefs > 0) ? ":" : "", C -> term[i] -> value);
+          break;
+        case FEAT_TERM:
           nrest ++;
 
-	  if(nrest > 1)
-	    {
-	      fprintf(f, " &\n");
-	      indent(f, level);
-	    
+          if(nrest > 1)
+            {
+              fprintf(f, " &\n");
+              indent(f, level);
+            
               ntypes = ncorefs = 0;
             }
           
@@ -344,17 +344,17 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
             }
 
           indent(f, level);
-	  complex = print_avm(f, level, C -> term[i] -> A, coref) || complex;
-	  break;
-	case LIST:
-	case DIFF_LIST:
+          complex = print_avm(f, level, C -> term[i] -> A, coref) || complex;
+          break;
+        case LIST:
+        case DIFF_LIST:
           nrest ++;
 
-	  if(nrest > 1)
-	    {
-	      fprintf(f, " &\n");
-	      indent(f, level);
-	    }
+          if(nrest > 1)
+            {
+              fprintf(f, " &\n");
+              indent(f, level);
+            }
 
           if(ntypes > 0)
             {
@@ -372,16 +372,16 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
             complex = print_exp_list(f, level, C -> term[i] -> L, coref) || complex;
           else
             complex = print_list(f, level, C -> term[i] -> L, coref) || complex;
-	  break;
-	case TEMPL_PAR:
-	case TEMPL_CALL:
-	  fprintf(ferr, "internal error: unresolved template call/parameter\n");
-	  exit(1);
-	  break;
-	default:
-	  fprintf(ferr, "unknown type of term `%d'\n", C -> term[i] -> tag); 
-	  break;
-	}
+          break;
+        case TEMPL_PAR:
+        case TEMPL_CALL:
+          fprintf(ferr, "internal error: unresolved template call/parameter\n");
+          exit(1);
+          break;
+        default:
+          fprintf(ferr, "unknown type of term `%d'\n", C -> term[i] -> tag); 
+          break;
+        }
     }
 
   return complex;
@@ -422,18 +422,18 @@ int print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
       fprintf(f, "[ ");
       
       for(j = 0; j < A -> n; j++)
-	{
+        {
           if(j != 0)
             {
               indent(f, level + 2); complex = 1;
             }
 
-	  fprintf(f, "%s", A -> av[featorder[j]] -> attr);
+          fprintf(f, "%s", A -> av[featorder[j]] -> attr);
           l = strlen(A -> av[featorder[j]] -> attr);
 
           indent(f, maxl - l + 1);
 
-	  if(print_conjunction(f, level + 2 + maxl + 1, A -> av[featorder[j]] -> val, coref))
+          if(print_conjunction(f, level + 2 + maxl + 1, A -> av[featorder[j]] -> val, coref))
             complex = 1;
 
           if(j == A -> n -1)
@@ -473,16 +473,16 @@ void print_constraint(FILE *f, struct type *t, const string &name)
   for(j = 0; c != NULL && j < c -> n; j++)
     {
       if (c -> term[j] -> tag == FEAT_TERM)
-	{
-	  navm ++;
+        {
+          navm ++;
 
-	  if(navm > 1)
-	    {
-	      fprintf(f, " & top\n");
-	    }
-	  
-	  print_avm(f, 0, c -> term[j] -> A, t->coref);
-	}
+          if(navm > 1)
+            {
+              fprintf(f, " & top\n");
+            }
+          
+          print_avm(f, 0, c -> term[j] -> A, t->coref);
+        }
     }
 
   fprintf(f, "\n");

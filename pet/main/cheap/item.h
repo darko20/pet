@@ -84,7 +84,7 @@ public:
     hypo_dtrs = dtrs;
     hypo_parents.clear();
     for (list<tHypothesis*>::iterator dtr = hypo_dtrs.begin();
-	 dtr != hypo_dtrs.end(); dtr ++) {
+         dtr != hypo_dtrs.end(); dtr ++) {
       (*dtr)->hypo_parents.push_back(this);
     }
   }
@@ -1163,9 +1163,9 @@ class item_owner
   ~item_owner()
     {
       for(list<tItem *>::iterator curr = _list.begin(); 
-	  curr != _list.end(); 
-	  ++curr)
-	delete *curr;
+          curr != _list.end(); 
+          ++curr)
+        delete *curr;
       tItem::reset_ids();
     }
   void add(tItem *it) { _list.push_back(it); }

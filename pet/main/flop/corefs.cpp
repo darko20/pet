@@ -29,7 +29,7 @@ int add_coref(struct coref_table *co, char *name)
   for(i = 0; i < co->n; i++)
     {
       if(strcmp(co->coref[i], name) == 0)
-	break;
+        break;
     }
 
   if(i < co->n)
@@ -134,9 +134,9 @@ void find_coref_conjunction(struct conjunction *C, struct coref_table *coref)
               for(j = 0; j < coref -> n; j++)
                 if(coref->coref[j] == old1 || coref->coref[j] == old2)
                   coref->coref[j] = newname;
-	      
-	      /* now remove coref */
-	      C->term[i--] = C->term[--C->n];
+              
+              /* now remove coref */
+              C->term[i--] = C->term[--C->n];
             }
         }
     }

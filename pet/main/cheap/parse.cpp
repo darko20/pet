@@ -393,7 +393,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
           !resources_exhausted())
     {
         basic_task *t; tItem *it;
-	  
+        
         t = Agenda->pop();
 #ifdef DEBUG
         t->print(stderr);
@@ -401,7 +401,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
 #endif
         if((it = t->execute()) != 0)
             add_item(it);
-	  
+        
         delete t;
     }
 }
@@ -449,11 +449,11 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
     if(! (*tree)->blocked()) {
 
       stats.trees++;
-	    
+      
       list<tItem *> results;
-	    
+      
       results = (*tree)->unpack(upedgelimit);
-	    
+      
       for(list<tItem *>::iterator res = results.begin();
           res != results.end(); ++res) {
         type_t rule;

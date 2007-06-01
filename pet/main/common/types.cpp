@@ -336,7 +336,7 @@ void undump_printnames(dumper *f)
     {
       printnames[i] = f->undump_string();
       if(printnames[i] == 0)
-	printnames[i] = typenames[i];
+        printnames[i] = typenames[i];
     }
 }
 
@@ -408,7 +408,7 @@ void dump_hierarchy(dumper *f)
   for(i = first_leaftype; i < ntypes; i++)
     if(leaftypeparent[rleaftype_order[i]] != -1)
       {
-	f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
+        f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
       }
     else
       fprintf(ferr, "leaf type conception error b: `%s' (%d -> %d)\n", 
@@ -482,7 +482,7 @@ void undump_tables(dumper *f)
       featsetdesc[i].attr = na > 0 ? new short int[na] : 0;
 
       for(int j = 0; j < na; j++)
-	featsetdesc[i].attr[j] = f->undump_short();
+        featsetdesc[i].attr[j] = f->undump_short();
     }
 
   // read appropriate sorts table
@@ -824,18 +824,18 @@ int glb(int s1, int s2)
       if(subtype(s1, s2))
         return s1;
       else if(subtype(s2, s1))
-	return s2;
+        return s2;
       else
-	return -1;
+        return -1;
     }
   else if(leaftypeparent[s2] != -1)
     {
       if(subtype(s2, s1))
         return s2;
       else if(subtype(s1, s2))
-	return s1;
+        return s1;
       else
-	return 1;
+        return 1;
     }
 #endif
 

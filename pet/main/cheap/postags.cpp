@@ -162,9 +162,9 @@ postags::getPrintString() const
       ++iter)
     {
       if (start) 
-	start=false;
+        start=false;
       else
-	out += " ";
+        out += " ";
       out += iter->c_str();
     }
   return out;

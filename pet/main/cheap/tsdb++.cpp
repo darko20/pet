@@ -92,39 +92,39 @@ void
 statistics::print(FILE *f)
 {
   fprintf (f,
-	   "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
+           "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
            "mtcpu: %d\nfirst: %d\ntcpu: %d\nutcpu: %d\n"
-	   "ftasks_fi: %d\nftasks_qc: %d\n"
-	   "fsubs_fi: %d\nfsubs_qc: %d\n"
+           "ftasks_fi: %d\nftasks_qc: %d\n"
+           "fsubs_fi: %d\nfsubs_qc: %d\n"
            "etasks: %d\nstasks: %d\n"
-	   "aedges: %d\npedges: %d\nupedges: %d\n"
+           "aedges: %d\npedges: %d\nupedges: %d\n"
            "raedges: %d\nrpedges: %d\n"
-	   "medges: %d\n"
-	   "unifications_succ: %d\nunifications_fail: %d\n"
-	   "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
-	   "dyn_bytes: %ld\nstat_bytes: %ld\n"
-	   "p_dyn_bytes: %ld\np_nstat_bytes: %ld\n"
-	   "cycles: %d\nfssize: %d\n"
-	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
+           "medges: %d\n"
+           "unifications_succ: %d\nunifications_fail: %d\n"
+           "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
+           "dyn_bytes: %ld\nstat_bytes: %ld\n"
+           "p_dyn_bytes: %ld\np_nstat_bytes: %ld\n"
+           "cycles: %d\nfssize: %d\n"
+           "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\nhypotheses: %d\n",
-	   id, trees, readings, words, words_pruned,
+           id, trees, readings, words, words_pruned,
            mtcpu, first, tcpu, p_utcpu,
-	   ftasks_fi, ftasks_qc,
+           ftasks_fi, ftasks_qc,
            fsubs_fi, fsubs_qc,
            etasks, stasks,
-	   aedges, pedges, p_upedges, 
+           aedges, pedges, p_upedges, 
            raedges, rpedges,
-	   medges,
-	   unifications_succ, unifications_fail,
-	   subsumptions_succ, subsumptions_fail, copies,
-	   dyn_bytes, stat_bytes,
-	   p_dyn_bytes, p_stat_bytes,
-	   cycles, fssize,
-	   unify_cost_succ, unify_cost_fail,
+           medges,
+           unifications_succ, unifications_fail,
+           subsumptions_succ, subsumptions_fail, copies,
+           dyn_bytes, stat_bytes,
+           p_dyn_bytes, p_stat_bytes,
+           cycles, fssize,
+           unify_cost_succ, unify_cost_fail,
            p_equivalent, p_proactive, p_retroactive,
            p_frozen, p_failures, p_hypotheses
-	   );
+           );
 }
 
 #define ABSBS 80 /* arbitrary small buffer size */
@@ -503,7 +503,7 @@ tsdb_parse::capi_print()
                 "(:utcpu . %d) " 
                 "(:upedges . %d) " 
                 "(:failures . %d) "
-		"(:hypotheses . %d) "
+                "(:hypotheses . %d) "
                 "\")",
                 nmeanings, 
                 mtcpu,
@@ -518,7 +518,7 @@ tsdb_parse::capi_print()
                 p_utcpu,
                 p_upedges,
                 p_failures,
-		p_hypotheses);
+                p_hypotheses);
 }
 
 #endif

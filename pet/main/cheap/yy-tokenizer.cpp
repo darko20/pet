@@ -60,7 +60,7 @@ bool tYYTokenizer::adv(int n)
   while(n > 0)
     {
       if(eos())
-	return false;
+        return false;
       _yypos++; n--;
     }
   return true;
@@ -142,13 +142,13 @@ bool tYYTokenizer::read_string(string &target, bool quotedp, bool downcasep)
   if(quotedp)
     {
       if(cur() != '"')
-	return false;
+        return false;
       else
-	adv();
+        adv();
 
       char last = (char)0;
       while(!eos() && (cur() != '"' || last == '\\'))
-	{
+        {
           if(cur() != '\\' || last == '\\') {
             if(downcasep && (unsigned char)cur() < 127)
               target += tolower(cur());
@@ -156,24 +156,24 @@ bool tYYTokenizer::read_string(string &target, bool quotedp, bool downcasep)
               target += cur();
           } // if
           last = (last == '\\' ? 0 : cur());
-	  adv();
-	}
+          adv();
+        }
 
       if(cur() != '"')
-	return false;
+        return false;
       else
-	adv();
+        adv();
     }
   else
     {
       while(!eos() && (is_idchar(cur())))
-	{
-	  target +=
+        {
+          target +=
             (downcasep && (unsigned char)cur() < 127 ? tolower(cur()) : cur());
-	  adv();
-	}
+          adv();
+        }
       if(target.empty())
-	return false;
+        return false;
     }
 
   return true;
@@ -193,12 +193,12 @@ bool tYYTokenizer::read_pos(string &tag, double &prob)
       read_ws();
 
       if(eos())
-	return false;
+        return false;
 
       if(read_double(prob))
-	return true;
+        return true;
       else
-	return false;
+        return false;
     }
   else
     return false;

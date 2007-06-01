@@ -143,7 +143,7 @@ void ff_entry::dump(dumper *f)
   if(!_affix.empty() && affix == -1)
     {
       fprintf(ferr, "unknown affix `%s' for `%s'\n", _affix.c_str(),
-	      _preterminal.c_str());
+              _preterminal.c_str());
     }
 
   inflpos = _inflpos == 0 ? 0 : _inflpos - 1;

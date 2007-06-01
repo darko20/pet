@@ -159,8 +159,8 @@ class tMEM : public tSM
     std::string _ctxts;
 
     /** Format version of the model:
-	0: old format 
-	1: new format (as of sep-06). 
+        0: old format 
+        1: new format (as of sep-06). 
         2: lexical type prediction model format
     */
     int _format;

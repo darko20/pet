@@ -38,13 +38,13 @@ int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_tab
       if(i != 0)
         {
           fprintf(f, ",");
-	  if(last_complex)
-	    {
-	      fprintf(f, "\n");
-	      indent(f, level);
-	    }
-	  else
-	    fprintf(f, " ");
+          if(last_complex)
+            {
+              fprintf(f, "\n");
+              indent(f, level);
+            }
+          else
+            fprintf(f, " ");
 
           complex = 1;
         }
@@ -123,38 +123,38 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
         }
 
       switch(C -> term[i] -> tag)
-	{
-	case COREF:
-	  assert(C->term[i]->coidx < coref->n);
-	  fprintf(f, "#%s", coref -> coref[C -> term[i] -> coidx]);
+        {
+        case COREF:
+          assert(C->term[i]->coidx < coref->n);
+          fprintf(f, "#%s", coref -> coref[C -> term[i] -> coidx]);
           break;
-	case TYPE:
+        case TYPE:
           {
-	    fprintf(f, "%s", types[C -> term[i] -> type]->printname);
+            fprintf(f, "%s", types[C -> term[i] -> type]->printname);
             break;
           }
-	case ATOM:
-	  fprintf(f, "'%s", C -> term[i] -> value);
-	  break;
-	case STRING:
-	  fprintf(f, "\"%s\"",  C -> term[i] -> value);
-	  break;
-	case FEAT_TERM:
-	  complex = tdl_print_avm(f, level, C -> term[i] -> A, coref) || complex;
-	  break;
-	case LIST:
-	case DIFF_LIST:
-	  complex = tdl_print_list(f, level, C -> term[i] -> L, coref) || complex;
-	  break;
-	case TEMPL_PAR:
-	case TEMPL_CALL:
-	  fprintf(ferr, "internal error: unresolved template call/parameter\n");
-	  exit(1);
-	  break;
-	default:
-	  fprintf(ferr, "unknown term tag `%d'\n", C -> term[i] -> tag); 
-	  break;
-	}
+        case ATOM:
+          fprintf(f, "'%s", C -> term[i] -> value);
+          break;
+        case STRING:
+          fprintf(f, "\"%s\"",  C -> term[i] -> value);
+          break;
+        case FEAT_TERM:
+          complex = tdl_print_avm(f, level, C -> term[i] -> A, coref) || complex;
+          break;
+        case LIST:
+        case DIFF_LIST:
+          complex = tdl_print_list(f, level, C -> term[i] -> L, coref) || complex;
+          break;
+        case TEMPL_PAR:
+        case TEMPL_CALL:
+          fprintf(ferr, "internal error: unresolved template call/parameter\n");
+          exit(1);
+          break;
+        default:
+          fprintf(ferr, "unknown term tag `%d'\n", C -> term[i] -> tag); 
+          break;
+        }
     }
 
   return complex;
@@ -178,18 +178,18 @@ int tdl_print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
       fprintf(f, "[ ");
       
       for(j = 0; j < A -> n; j++)
-	{
+        {
           if(j != 0)
             {
               indent(f, level + 2); complex = 1;
             }
 
-	  fprintf(f, "%s", A -> av[j] -> attr);
+          fprintf(f, "%s", A -> av[j] -> attr);
           l = strlen(A -> av[j] -> attr);
 
           indent(f, maxl - l + 1);
 
-	  if(tdl_print_conjunction(f, level + 2 + maxl + 1, A -> av[j] -> val, coref))
+          if(tdl_print_conjunction(f, level + 2 + maxl + 1, A -> av[j] -> val, coref))
             complex = 1;
 
           if(j == A -> n -1)
@@ -251,7 +251,7 @@ void write_pre_header(FILE *outf, const char *outfname, const char *fname
   time_t t = time(NULL);
   
   fprintf(outf, ";;; `%s' -- generated from `%s' (%s) on %s\n",
-	  outfname, fname, grammar_version, ctime(&t));
+          outfname, fname, grammar_version, ctime(&t));
 }
 
 void write_pre(FILE *f)
@@ -264,11 +264,11 @@ void write_pre(FILE *f)
     {
       t = types[i];
       if(!t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
-	{
-	  fprintf(f, ";; type definition from %s:%d\n", t->def->fname, t->def->linenr);
-	  tdl_print_constraint(f, t, types[i]->printname);
-	  fprintf(f, "\n");
-	}
+        {
+          fprintf(f, ";; type definition from %s:%d\n", t->def->fname, t->def->linenr);
+          tdl_print_constraint(f, t, types[i]->printname);
+          fprintf(f, "\n");
+        }
     }
   fprintf(f, ":end :type.\n");
 
@@ -277,11 +277,11 @@ void write_pre(FILE *f)
     {
       t = types[i];
       if(t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
-	{
-	  fprintf(f, ";; instance definition from %s:%d\n", t->def->fname, t->def->linenr);
-	  tdl_print_constraint(f, t, types[i]->printname);
-	  fprintf(f, "\n");
-	}
+        {
+          fprintf(f, ";; instance definition from %s:%d\n", t->def->fname, t->def->linenr);
+          tdl_print_constraint(f, t, types[i]->printname);
+          fprintf(f, "\n");
+        }
     }
   fprintf(f, ":end :instance.\n");
 }

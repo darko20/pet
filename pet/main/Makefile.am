@@ -4,7 +4,7 @@ SUBDIRS += fspp
 endif
 DIST_SUBDIRS = $(SUBDIRS) common
 EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
-	       doxyconfig.cheap doxyconfig.flop
+               doxyconfig.cheap doxyconfig.flop
 
 # For ebrowse (Emacs)
 BROWSE: 

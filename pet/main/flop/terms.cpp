@@ -214,7 +214,7 @@ int nr_avm_constraints(struct conjunction *C)
   for(j = 0; j < C -> n; j++)
     {
       if (C -> term[j] -> tag == FEAT_TERM)
-	cnt++;
+        cnt++;
     }
   return cnt;
 }
@@ -230,7 +230,7 @@ struct term *single_avm_constraint(struct conjunction *C)
   for(j = 0; j < C -> n; j++)
     {
       if (C -> term[j] -> tag == FEAT_TERM)
-	return C -> term[j];
+        return C -> term[j];
     }
 
   return NULL;
@@ -323,8 +323,8 @@ struct term *copy_term(struct term *T)
     T1 -> A = NULL;
 
   T1 -> params = T -> params; /* this is _NOT_ copied - that's ok the way templates are
-				 implemented now, but must be kept in mind when making
-				 changes to the template mechanism */
+                                 implemented now, but must be kept in mind when making
+                                 changes to the template mechanism */
 
   return T1;
 }

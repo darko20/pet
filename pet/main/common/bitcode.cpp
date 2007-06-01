@@ -98,14 +98,14 @@ list_int *bitcode::get_elements()
   for(p = V, i = 0; p < end(); p++, i++)
     if(*p)
       {
-	w = *p;
+        w = *p;
 
-	for(int j = 0; j < SIZE_OF_WORD; j++)
-	  {
-	    if((w & (CODEWORD)1) == 1)
-	      l = cons(i*SIZE_OF_WORD + j, l);
-	    w >>= 1;
-	  }
+        for(int j = 0; j < SIZE_OF_WORD; j++)
+          {
+            if((w & (CODEWORD)1) == 1)
+              l = cons(i*SIZE_OF_WORD + j, l);
+            w >>= 1;
+          }
       }
 
   return l;
@@ -191,18 +191,18 @@ void bitcode::dump(dumper *f)
     {
       f->dump_int(V[i]);
       if(V[i] == 0)
-	{
-	  int j = i + 1;
+        {
+          int j = i + 1;
 
-	  while(j < n && V[j] == 0)
-	    j++;
+          while(j < n && V[j] == 0)
+            j++;
 
-	  f->dump_short((short int) (j - i));
+          f->dump_short((short int) (j - i));
 
-	  i = j;
-	}
+          i = j;
+        }
       else
-	i++;
+        i++;
     }
 
   f->dump_int(0);
@@ -218,17 +218,17 @@ void bitcode::undump(dumper *f)
     {
       V[i] = f->undump_int();
       if(V[i] == 0)
-	{
-	  int l = f->undump_short();
+        {
+          int l = f->undump_short();
 
-	  while(--l > 0)
-	    {
-	      i++;
-	      if(i >= n)
-		throw tError("invalid compressed bitcode (too long)");
-	      V[i] = 0;
-	    }
-	}
+          while(--l > 0)
+            {
+              i++;
+              if(i >= n)
+                throw tError("invalid compressed bitcode (too long)");
+              V[i] = 0;
+            }
+        }
       i++;
     }
 
@@ -244,11 +244,11 @@ int Hash(const bitcode &C)
   for(CODEWORD *p = C.V; p < C.end(); p++)
     if(*p != 0)
       {
-	for(int j = 0; j < C.SIZE_OF_WORD ; j++)
-	  {
-	    if(*p & (1 << j))
-	      return (p - C.V) * C.sz + j;
-	  }
+        for(int j = 0; j < C.SIZE_OF_WORD ; j++)
+          {
+            if(*p & (1 << j))
+              return (p - C.V) * C.sz + j;
+          }
       }
 
   //  CODEWORD *stop = C.V + C.sz/C.SIZE_OF_WORD + 1;

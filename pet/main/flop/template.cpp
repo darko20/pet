@@ -49,7 +49,7 @@ struct param *find_param(char *name, struct param_list *env)
       assert(env -> param[j] != 0);
       
       if(strcasecmp(env -> param[j] -> name, name) == 0)
-	return env -> param[j];
+        return env -> param[j];
     }
   return 0;
 }
@@ -113,35 +113,35 @@ void expand_avm(struct avm *A)
   for (j = 0; j < A -> n; ++j)
     {
       if(A -> av[j] -> attr[0] == '$')
-	{
-	  struct param *p;
-	  p = lookup_param(A -> av[j] -> attr + 1);
+        {
+          struct param *p;
+          p = lookup_param(A -> av[j] -> attr + 1);
 
-	  if(p == 0 || p -> value == 0)
-	    {
-	      fprintf(ferr,
-		      "error (in `%s'): template parameter `$%s' without "
-		      "value.\n", context_descr, A->av[j]->attr);
-	      exit(1);
-	    }
-	  else
-	    {
-	      if(p->value->n != 1 || p->value->term[0]->tag != TYPE)
-		{
-		  fprintf(ferr,
-			  "error (in `%s'): template parameter `$%s' with "
-			  "illegal value.\n", context_descr, A->av[j]->attr);
-		  exit(1);
-		}
-	      else
-		{
-		  A->av[j]->attr = strdup(p->value->term[0]->value);
-		  strtoupper(A->av[j]->attr);
-		  if(attributes.id(A->av[j]->attr) == -1)
-		    attributes.add(A->av[j]->attr);
-		}
-	    }
-	}
+          if(p == 0 || p -> value == 0)
+            {
+              fprintf(ferr,
+                      "error (in `%s'): template parameter `$%s' without "
+                      "value.\n", context_descr, A->av[j]->attr);
+              exit(1);
+            }
+          else
+            {
+              if(p->value->n != 1 || p->value->term[0]->tag != TYPE)
+                {
+                  fprintf(ferr,
+                          "error (in `%s'): template parameter `$%s' with "
+                          "illegal value.\n", context_descr, A->av[j]->attr);
+                  exit(1);
+                }
+              else
+                {
+                  A->av[j]->attr = strdup(p->value->term[0]->value);
+                  strtoupper(A->av[j]->attr);
+                  if(attributes.id(A->av[j]->attr) == -1)
+                    attributes.add(A->av[j]->attr);
+                }
+            }
+        }
 
       expand_conjunction(A -> av[j] -> val);
     }
@@ -172,21 +172,21 @@ void expand_term (struct term *T)
       break;
     case COREF:
       if(templ_nest > 0)
-	{
-	  // we need to make up a new name, and enter it into the main coref table
-	  assert(T->coidx < templ_stack[templ_nest-1]->coref->n);
-	  string uniq = expand_coref_tag(templ_stack[templ_nest-1]->coref->coref[T->coidx]);
-	  
-	  if(verbosity > 10)
-	    {
-	      fprintf(fstatus, "expanding `%s': new name `%s' for tag(%d/%d) `%s'\n",
-		      context_descr, uniq.c_str(), T->coidx + 1, templ_stack[templ_nest-1]->coref->n,
-		      templ_stack[templ_nest-1]->coref->coref[T->coidx]);
-	    }
+        {
+          // we need to make up a new name, and enter it into the main coref table
+          assert(T->coidx < templ_stack[templ_nest-1]->coref->n);
+          string uniq = expand_coref_tag(templ_stack[templ_nest-1]->coref->coref[T->coidx]);
+          
+          if(verbosity > 10)
+            {
+              fprintf(fstatus, "expanding `%s': new name `%s' for tag(%d/%d) `%s'\n",
+                      context_descr, uniq.c_str(), T->coidx + 1, templ_stack[templ_nest-1]->coref->n,
+                      templ_stack[templ_nest-1]->coref->coref[T->coidx]);
+            }
 
-	  int id = add_coref(crefs, strdup(uniq.c_str()));
-	  T -> coidx = id;
-	}
+          int id = add_coref(crefs, strdup(uniq.c_str()));
+          T -> coidx = id;
+        }
       break;
     case FEAT_TERM:
       expand_avm(T -> A);
@@ -234,9 +234,9 @@ void check_params(struct param_list *actual, struct param_list *def)
   for(int i = 0; i < actual -> n; i++)
     {
       if(!find_param(actual->param[i]->name, def))
-	{
-	  fprintf(ferr, "warning: assignment to undefined parameter `%s' (in %s)\n", actual->param[i]->name, context_descr);
-	}
+        {
+          fprintf(ferr, "warning: assignment to undefined parameter `%s' (in %s)\n", actual->param[i]->name, context_descr);
+        }
     }
 }
 
@@ -253,93 +253,93 @@ void expand_conjunction(struct conjunction *C)
       struct term *term;
       term = C->term[i];
       if(term == 0) 
-	{
-	  fprintf(ferr, "funny...\n");
-	  continue;
-	}
+        {
+          fprintf(ferr, "funny...\n");
+          continue;
+        }
       if(term -> tag == TEMPL_CALL)
-	{
-	  int ti;
-	  ti = templates.id(term -> value);
+        {
+          int ti;
+          ti = templates.id(term -> value);
 
-	  if(ti == -1)
-	    {
-	      fprintf(ferr, "error: call to undefined template `%s'\n", term -> value);
-	      term -> tag = TYPE;
-	      term -> type = 0;
-	    }
-	  else
-	    {
-	      struct conjunction *tC;
-	
-	      ntemplinstantiations++;
+          if(ti == -1)
+            {
+              fprintf(ferr, "error: call to undefined template `%s'\n", term -> value);
+              term -> tag = TYPE;
+              term -> type = 0;
+            }
+          else
+            {
+              struct conjunction *tC;
+              
+              ntemplinstantiations++;
 
-	      assert((templ_nest + 1) * 2 < TABLE_SIZE);
+              assert((templ_nest + 1) * 2 < TABLE_SIZE);
 
-	      templates[ti] -> calls ++;
-	      templ_stack[templ_nest] = templates[ti];
-	      templ_crefs[templ_nest] ++;
+              templates[ti] -> calls ++;
+              templ_stack[templ_nest] = templates[ti];
+              templ_crefs[templ_nest] ++;
 
-	      check_params(term->params, templates[ti]->params);
-	      templ_env[templ_nest*2] = expand_params(templates[ti] -> params);
-	      templ_env[templ_nest*2 + 1] = expand_params(term -> params);
+              check_params(term->params, templates[ti]->params);
+              templ_env[templ_nest*2] = expand_params(templates[ti] -> params);
+              templ_env[templ_nest*2 + 1] = expand_params(term -> params);
 
-	      templ_nest++;
+              templ_nest++;
 
-	      if((tC = copy_conjunction(templates[ti] -> constraint)))
-		 expand_conjunction(tC);
-	      
-	      if(tC && tC -> n > 0)
-		{
-		  C -> term[i] = tC -> term[0];
-		  for(j = 1; j < tC -> n; j++)
-		    {
-		      C -> term[C -> n++] = tC -> term[j];
-		    }
-		}
-	      else
-		{
-		  fprintf(ferr, "warning: template call to `%s' expanding to nothing (?)\n", term -> value);
-		  term -> tag = TYPE;
-		  term -> type = 0;
-		}
-	      
-	      templ_nest--;
-	    }
-	}
+              if((tC = copy_conjunction(templates[ti] -> constraint)))
+                 expand_conjunction(tC);
+              
+              if(tC && tC -> n > 0)
+                {
+                  C -> term[i] = tC -> term[0];
+                  for(j = 1; j < tC -> n; j++)
+                    {
+                      C -> term[C -> n++] = tC -> term[j];
+                    }
+                }
+              else
+                {
+                  fprintf(ferr, "warning: template call to `%s' expanding to nothing (?)\n", term -> value);
+                  term -> tag = TYPE;
+                  term -> type = 0;
+                }
+              
+              templ_nest--;
+            }
+        }
       else if(term -> tag == TEMPL_PAR)
-	{
-	  struct param *p;
+        {
+          struct param *p;
 
-	  p = lookup_param(term -> value);
+          p = lookup_param(term -> value);
 
-	  if(p == 0 || p -> value == 0)
-	    {
-	      fprintf(ferr, "in `%s': template parameter `$%s' without value.\n", context_descr, term -> value);
-	      term -> tag = TYPE;
-	      term -> type = 0;
-	      exit(1);
-	    }
-	  else
-	    {
-	      if(p->value -> n > 0)
-		{
-		  C -> term[i] = p->value -> term[0];
-		  for(j = 1; j < p->value -> n; j++)
-		    {
-		      C -> term[C -> n++] = p->value -> term[j];
-		    }
-		}
-	      else
-		{
-		  fprintf(ferr, "warning: template parameter `$%s' expanding to nothing (?)\n", term -> value);
-		  term -> tag = TYPE;
-		  term -> type = 0;
-		}
-	    }
-	}
+          if(p == 0 || p -> value == 0)
+            {
+              fprintf(ferr, "in `%s': template parameter `$%s' without value.\n", context_descr, term -> value);
+              term -> tag = TYPE;
+              term -> type = 0;
+              exit(1);
+            }
+          else
+            {
+              if(p->value -> n > 0)
+                {
+                  C -> term[i] = p->value -> term[0];
+                  for(j = 1; j < p->value -> n; j++)
+                    {
+                      C -> term[C -> n++] = p->value -> term[j];
+                    }
+                }
+              else
+                {
+                  fprintf(ferr, "warning: template parameter `$%s' expanding to nothing (?)\n", term -> value);
+                  term -> tag = TYPE;
+                  term -> type = 0;
+                }
+            }
+        }
       else
-	expand_term(C -> term[i]);
+        expand_term(C -> term[i]);
     }
 }
 
@@ -375,17 +375,17 @@ void check_sorts_term (struct term *T)
     {
     case TYPE:
       {
-	int id = types.id(T->value);
-	if(id == -1)
-	  {
-	    struct type *typ;
-	    typ = new_type(T->value, false);
-	    typ->def = templ_stack[0]->loc;
-	    id = typ->id;
-	    typ->implicit = 1;
-	  }
-	
-	T->type = id;
+        int id = types.id(T->value);
+        if(id == -1)
+          {
+            struct type *typ;
+            typ = new_type(T->value, false);
+            typ->def = templ_stack[0]->loc;
+            id = typ->id;
+            typ->implicit = 1;
+          }
+        
+        T->type = id;
       }
       break;
     case ATOM:

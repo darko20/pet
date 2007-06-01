@@ -175,8 +175,8 @@ private:
 
   // process 'edge' elements
   void processEdges(const XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument &dom, 
-		    list<tSaf*> &tEdges, 
-		    list<tSaf*> &mEdges);
+                    list<tSaf*> &tEdges, 
+                    list<tSaf*> &mEdges);
 
   // map 'edge' to saf
   tSaf* getSaf(const XERCES_CPP_NAMESPACE_QUALIFIER DOMElement &element);
@@ -213,8 +213,8 @@ private:
   void setLocalContent(tSaf &saf);
   // update local content wrt single saf conf
   bool updateLocalContent(map<string,string> &localContent, 
-			  const tSafConf &safConf, 
-			  const tSaf &saf);
+                          const tSafConf &safConf, 
+                          const tSaf &saf);
 
   // retrieve saf by saf id
   tSaf* getSafById(const string &dep) const;

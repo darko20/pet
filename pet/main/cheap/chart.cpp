@@ -141,18 +141,18 @@ void chart::get_statistics()
         tItem *it = iter.current();
         
         if(it->trait() == INFL_TRAIT)
-	{
+        {
             stats.medges++;
-	}
+        }
         else if(it -> passive())
-	{
+        {
             stats.pedges++;
             if(it -> result_contrib())
                 stats.rpedges++;
             
             fs f = it -> get_fs();
             totalsize += f.size();
-	}
+        }
         else
         {
             stats.aedges++;
