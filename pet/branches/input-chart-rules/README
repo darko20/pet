@@ -1,0 +1,135 @@
+This directory contains the open source PET system. For license details 
+please refer to the LICENSE file.
+
+Overview
+========
+
+PET consists of two major parts:
+
+1) The `flop' preprocessor. It compiles a given grammar in TDL
+   format into a binary form usable by the runtime system.
+
+2) The `cheap' parser. It parses input with respect to a grammar in the
+   binary form produced by `flop'.
+
+Grammars
+========
+
+Two freely available open source grammars that are compatible with PET
+are the ERG (English, available from http://lingo.stanford.edu/ftp/erg.tgz,
+or http://lingo.stanford.edu) and JACY (Japanese,
+http://www.dfki.de/~siegel/grammar-download/JACY-grammar.html).
+
+If you want to contribute a grammar, or if you are looking for more
+grammars please have a look at www.delph-in.net
+
+There are no binaries provided due to the vast amount of different 
+distributions around. You have to first compile the package to be able to run
+it. 
+
+Compiling it
+============
+
+If you want to compile yourself, you at least need the header files from the
+boost library (for flop). Most current Linux distributions provide packages to
+install boost, but that usually requires administrator privileges. If you
+install boost via packages, remember to install the boost-devel package, too
+(for example on debian or fedora systems). Only this package contains the
+header files. This is also true for most other packages that you also might
+want to install for compiling PET, for example for Unicode support (see below).
+
+The build system used for PET is gnu `configure'/`autoconf' and `make'.
+gcc/g++ version > 3.1.2 are known to work fine.
+
+If you installed a tarfile version, change into the directory containing the
+`configure' script and type:
+
+ ./configure --help
+
+Have a look at the available options, and configure your system as needed.
+
+If you checked out your first SVN snapshot, you first have to run a current
+autoconf (version >=2.59), aclocal and automake (both version 1.9.x) in
+order to create the build system. Change into the directory containing
+`configure.ac' and type:
+
+aclocal && automake -a && autoconf
+
+Note that on some systems (e.g. Ubuntu Linux), the specific version of aclocal
+and automake has to be called explicitly by executing aclocal-1.9 and
+automake-1.9. Having run these commands, proceed with configuration as
+described above.
+
+Doxygen compatible documentation is included in most header files and some of 
+the source files. Call 'make' in the root directory to build the documentation.
+
+For unit tests and source code documentation you can optionally use
+cppunit. Note that so far only small parts of the system take advantage of
+this.
+
+External Components
+===================
+
+If you want UniCode support in PET, you need the icu package freely available
+from IBM. Most current Linux distributions have pre-build packages for
+this. Remember to install also the `...-devel' package containing the header
+files. 
+
+Link to the ICU source package:
+http://icu.sourceforge.net/download/
+
+itsdb:
+http://www.coli.uni-sb.de/itsdb, also included in recent LKB
+distributions (http://www-csli.stanford.edu/~aac/lkb.html)
+
+For the MRS output and FSPP preprocessor modules, you need a version of
+Embeddable Common Lisp (ECL for short). The version that is known to work at
+the moment is 0.9h, while 0.9i seems to have problems. You can get it at 
+http://ecls.sourceforge.net/
+
+cppunit:
+http://cppunit.sourceforge.net/
+
+doxygen:
+http://www.doxygen.org/
+
+When using (optional) XML input mode, you need the Apache xerces C++
+library. Again, pre-build packages are available for most Linux
+distributions. Remember do install the `...-devel' package too.
+http://xml.apache.org/xerces-c/
+
+Jam:
+http://www.perforce.com/jam/jam.html
+Also included in Boost (www.boost.org), and no longer needed because replaced
+by the gnu autoconf tools
+
+Layout of the sources
+=====================
+
+common/ contains the sources shared between `flop' and `cheap'.
+
+flop/ contains the sources for the preprocessor.
+
+cheap/ contains the sources for the parser.
+
+fspp/  lisp-based input preprocessor module for cheap. Very slow.
+
+goofy/ contains the sources for an outdated GUI prototype. This hasn't been
+compiled for two years and probably won't work.
+
+Contact
+=======
+
+For bug reports or feature requests, check the ticket system at
+ 
+  http://pet.opendfki.de
+
+For questions and comments, please have a look at the mailing list
+  
+  pet@delph-in.net
+
+or contact me directly at
+
+  kiefer@dfki.de
+
+
