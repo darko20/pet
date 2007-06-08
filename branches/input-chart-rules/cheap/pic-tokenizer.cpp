@@ -21,6 +21,9 @@
 #include "pic-tokenizer.h"
 #include "cheap.h"
 
+using std::string;
+using std::list;
+
 XERCES_CPP_NAMESPACE_USE
 
 /** Produce a set of tokens from the given XML input. */

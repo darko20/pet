@@ -25,6 +25,12 @@
 #include "utility.h"
 #include "postags.h"
 
+using std::string;
+using std::list;
+using std::map;
+using std::set;
+using std::vector;
+
 postags::postags(const vector<string> &tags, const vector<double> &probs)
 {
     assert(tags.size() == probs.size());

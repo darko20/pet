@@ -28,8 +28,7 @@
 #include "pet-config.h"
 #include "errors.h"
 #include <list>
-
-using namespace std;
+#include <string>
 
 #ifdef TSDBAPI
 extern "C" {
@@ -58,7 +57,7 @@ void cheap_tsdb_summarize_item(class chart &Chart, int length, int treal,
  * \param treal the real time used for the parse
  * \param tp the data structure where the data is collected (the result) 
  */
-void cheap_tsdb_summarize_error(list<tError> &, int treal,
+void cheap_tsdb_summarize_error(std::list<tError> &, int treal,
                                 class tsdb_parse &tp);
 
 /** Statistics for one parse */
@@ -201,23 +200,23 @@ class tsdb_result
   int r_pedges;
 
   /** derivation tree for this reading (v1) */
-  string derivation;
+  std::string derivation;
 
   /** edge id for derivation (v2) */
   int edge_id;
 
   /** surface string (e.g. realization) */
-  string surface;
+  std::string surface;
   /** phrase structure tree (CSLI labels) */
-  string tree;
+  std::string tree;
   /** mrs for this reading */
-  string mrs;
+  std::string mrs;
   /** has a score been assigned? */
   bool scored;
   /** score assigned by stochastic model */
   double score;
   /** arbitrary annotation (e.g. BLEU) */
-  string flags;
+  std::string flags;
 };
 
 /** The tsdb representation of a chart edge */
@@ -234,11 +233,11 @@ class tsdb_edge
 #endif  
 
     int id;
-    string label;
+    std::string label;
     double score;
     int start, end;
     int status;
-    string daughters;
+    std::string daughters;
 };
 
 /** Statistics for a single rule */
@@ -254,7 +253,7 @@ class tsdb_rule_stat
   void capi_print();
 #endif  
 
-  string rule;
+  std::string rule;
   int actives;
   int passives;
 };
@@ -294,7 +293,7 @@ class tsdb_parse
       rule_stats.push_back(r);
     }
 
-  void set_input(const string &s)
+  void set_input(const std::string &s)
     {
       i_input = s;
     }
@@ -369,9 +368,9 @@ class tsdb_parse
   /** average load */
   int a_load;
   /** date and time of parse */
-  string date;
+  std::string date;
   /** error string (if applicable |:-) */
-  string err;
+  std::string err;
   int nmeanings;
   /** number of failed unifications */
   int clashes;
@@ -391,10 +390,10 @@ class tsdb_parse
     
  private:
     
-  list<tsdb_result> results;
-  list<tsdb_edge> edges;
-  list<tsdb_rule_stat> rule_stats;
-  string i_input;
+  std::list<tsdb_result> results;
+  std::list<tsdb_edge> edges;
+  std::list<tsdb_rule_stat> rule_stats;
+  std::string i_input;
   int i_length; 
 };
 
@@ -406,7 +405,7 @@ public:
   /** Create the tsdb dump database in \a directory.
    * If \a directory is the empty string, this dumper remains inactive.
    */
-  tTsdbDump(string directory);
+  tTsdbDump(std::string directory);
 
   ~tTsdbDump();
 
@@ -417,14 +416,14 @@ public:
   void start();
 
   /** Call this method at the end of a successful parse */
-  void finish(class chart *Chart, const string &input);
+  void finish(class chart *Chart, const std::string &input);
 
   /** Call this method at the end of a parse that produced an error */
-  void error(class chart *Chart, const string &input, const class tError &e);
+  void error(class chart *Chart, const std::string &input, const class tError &e);
 
 private:
   void dump_current();
-  bool print_relations(string directory);
+  bool print_relations(std::string directory);
 
   FILE *_parse_file, *_result_file , *_item_file;
   tsdb_parse *_current;

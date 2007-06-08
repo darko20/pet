@@ -9,6 +9,7 @@
 #include <vector>
 #include <list>
 #include <queue>
+#include <string>
 #include "input-modules.h"
 #include "morph.h"
 
@@ -19,15 +20,15 @@
  * considered if no module on a lower level delivered a result.
  */
 template <typename RET_TYPE, typename MOD_ITER> 
-list<RET_TYPE>
+std::list<RET_TYPE>
 call_resp_chain (MOD_ITER begin, MOD_ITER end
                  , const myString &str) {
   int level;
-  list< RET_TYPE > res;
+  std::list< RET_TYPE > res;
   MOD_ITER mod = begin;
   do {
     level = (*mod)->level();
-    list<RET_TYPE> tmp = (**mod)(str);
+    std::list<RET_TYPE> tmp = (**mod)(str);
     res.splice(res.end(), tmp);
     mod++;
   } while ((mod != end) && ((level == (*mod)->level()) || res.empty()));
@@ -63,12 +64,12 @@ public:
 
   /** Perform tokenization, named entity recognition, POS tagging and skipping
    *  of unknown tokens.
-   *  \par input The input string, not necessarily a simple sentence.
+   *  \param input The input string, not necessarily a simple sentence.
+   *  \param[in,out] inp_tokens The set of input tokens we get from input processing.
    *  \return The rightmost position of the parsing chart that has to be
    *  created. 
-   *  \retval inp_tokens The set of input tokens we get from input processing.
    */
-  int process_input(string input, inp_list &inp_tokens);
+  int process_input(std::string input, inp_list &inp_tokens);
 
   /** \brief Perform lexical processing. 
    *
@@ -77,47 +78,47 @@ public:
    * possible. After that, prune the chart applying the specified chart
    * dependencies. 
    *
-   * \par inp_tokens The input tokens coming from process_input
-   * \par lex_exhaustive If true, do exhaustive lexical processing before
-   *      looking for gaps and chart dependencies. This allows to catch more
-   *      complex problems and properties.
-   * \par FSAS the allocation state for the whole parse
-   * \par errors a list of eventual errors ??? _fix_me_ if i'm sure
+   * \param inp_tokens The input tokens coming from process_input
+   * \param lex_exhaustive If true, do exhaustive lexical processing before
+   *        looking for gaps and chart dependencies. This allows to catch more
+   *        complex problems and properties.
+   * \param FSAS the allocation state for the whole parse
+   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
    */
   void lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
-                          , fs_alloc_state &FSAS, list<tError> &errors);
+                          , fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** Do a morphological analysis of \a form and return the results.
    *
    * The morphological analyzers are called in the same way as the lexical
    * \see get_lex_entries for an explanation.
    */
-  list<tMorphAnalysis> morph_analyze(string form);
+  std::list<tMorphAnalysis> morph_analyze(std::string form);
   
   /** Register different input modules in the lexical parser. */
   //@{
   void register_tokenizer(tTokenizer *m) {
-    list<tTokenizer *> new_list(1, m) ;
+    std::list<tTokenizer *> new_list(1, m) ;
     _tokenizers.merge(new_list, less_than_module());
   }
   
   void register_tagger(tPOSTagger *m) {
-    list<tPOSTagger *> new_list(1, m);
+    std::list<tPOSTagger *> new_list(1, m);
     _taggers.merge(new_list, less_than_module());
   }
 
   void register_ne_recognizer(tNE_recognizer *m) {
-    list<tNE_recognizer *> new_list(1, m);
+    std::list<tNE_recognizer *> new_list(1, m);
     _ne_recogs.merge(new_list, less_than_module());
   }
 
   void register_morphology(tMorphology *m) {
-    list<tMorphology *> new_list(1, m);
+    std::list<tMorphology *> new_list(1, m);
     _morphs.merge(new_list, less_than_module());
   }
 
   void register_lexicon(tLexicon *m) {
-    list<tLexicon *> new_list(1, m);
+    std::list<tLexicon *> new_list(1, m);
     _lexica.merge(new_list, less_than_module());
   }
   //@}
@@ -154,13 +155,13 @@ private:
   /** Add generic entries for uncovered input items.
    * This is only applied if the option \c opt_default_les is \c true.
    */
-  void add_generics(list<tInputItem *> &unexpanded);
+  void add_generics(std::list<tInputItem *> &unexpanded);
 
   /** Add predicted entries for uncovered input items.  
    * This is only applied if the option \c opt_predict_les is \c
    * non-zero and \opt_default_les is false.
    */
-  void add_predicts(list<tInputItem *> &unexpanded, inp_list &inp_tokens);
+  void add_predicts(std::list<tInputItem *> &unexpanded, inp_list &inp_tokens);
 
   /** Use the registered tokenizer(s) to tokenize the input string and put the
    *  result into \a tokens.
@@ -168,16 +169,16 @@ private:
    * At the moment, it seems unlikely that more than one tokenizer should be
    * registered. Nevertheless, the structure to have multiple tokenizers
    */
-  void tokenize(string input, inp_list &tokens);
+  void tokenize(std::string input, inp_list &tokens);
 
   /** Call the registered taggers which add their results to the individual
    *  \a tokens.
    */
-  void tag(string input, inp_list &tokens);
+  void tag(std::string input, inp_list &tokens);
 
   /** Call the registered NE recognizers which add their results to \a tokens.
    */
-  void ne_recognition(string input, inp_list &tokens);
+  void ne_recognition(std::string input, inp_list &tokens);
 
   /** Consider lexica, some parallel and some in a chain of responsibility.
    *
@@ -186,7 +187,7 @@ private:
    * the result list. Lexica on a higher level (lower priority) are only
    * considered if no lexicon on a lower level delivered a result.
    */
-  list<lex_stem *> get_lex_entries(string stem);
+  std::list<lex_stem *> get_lex_entries(std::string stem);
 
   /** Add a new tLexItem to our internal chart if active and to the global
    * chart if passive.
@@ -216,13 +217,13 @@ private:
    *  only done for generic entries and input items whose HPSG class is
    *  pre-determined (which are presumably externally computed named entities).
    */
-  void add_surface_mod(const string &carg, modlist &mods);
+  void add_surface_mod(const std::string &carg, modlist &mods);
 
-  list<tTokenizer *> _tokenizers;
-  list<tPOSTagger *> _taggers;
-  list<tNE_recognizer *> _ne_recogs;
-  list<tMorphology *> _morphs;
-  list<tLexicon *> _lexica;
+  std::list<tTokenizer *> _tokenizers;
+  std::list<tPOSTagger *> _taggers;
+  std::list<tNE_recognizer *> _ne_recogs;
+  std::list<tMorphology *> _morphs;
+  std::list<tLexicon *> _lexica;
 
   std::queue<class lex_task *> _agenda;
 
@@ -230,8 +231,8 @@ private:
    * These have to be deleted after lexical processing, or, alternatively, when
    * new input is processed (preferable).
    */
-  vector< list< tLexItem * > > _active_left;
-  vector< list< tLexItem * > > _active_right;
+  std::vector< std::list< tLexItem * > > _active_left;
+  std::vector< std::list< tLexItem * > > _active_right;
   
   /** The rightmost position in our private chart */
   int _maxpos;

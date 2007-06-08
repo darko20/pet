@@ -32,6 +32,9 @@
 #include "sm.h"
 
 #include <sstream>
+
+using namespace std;
+
 //#define DEBUG
 //#define DEBUGPOS
 

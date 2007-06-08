@@ -32,6 +32,8 @@
 
 #include <sstream>
 
+using namespace std;
+
 #ifdef YY
 #include "yy.h"
 #endif
@@ -139,6 +141,9 @@ filter_combine_task(tItem *active, tItem *passive)
 // parser control
 //
 
+/** Add all tasks to the agenda that try to combine the specified (passive)
+ *  item with a suitable rule.
+ */
 void
 postulate(tItem *passive)
 {

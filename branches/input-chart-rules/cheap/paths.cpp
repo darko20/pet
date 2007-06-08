@@ -23,6 +23,9 @@
 #include "paths.h"
 #include <algorithm>
 
+using std::list;
+using std::set;
+
 tPaths::tPaths()
     : _all(true), _paths()
 {
