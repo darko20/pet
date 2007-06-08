@@ -240,7 +240,7 @@ undumpSupertypes(class dumper *f);
 /** Return the list of immediate supertypes of \a type.
  * \pre \a type must be a proper type.
  */
-const std::list<type_t> &immedate_supertypes(type_t type);
+const std::list<type_t> &immediate_supertypes(type_t type);
 
 /** Return the list of all supertypes of \a type including the type itself but
  * excluding \c *top*.
