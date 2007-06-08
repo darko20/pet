@@ -33,6 +33,8 @@
 #include<sys/time.h>
 #include<sstream>
 
+using namespace std;
+
 statistics stats;
 
 void

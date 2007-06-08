@@ -65,10 +65,10 @@ public:
  */
 class path_restrictor : public restrictor {
   class tree_node {
-    typedef pair<attr_t, tree_node> tree_arc;
-    typedef list< tree_arc > dtrs_list;
+    typedef std::pair<attr_t, tree_node> tree_arc;
+    typedef std::list< tree_arc > dtrs_list;
 
-    list< tree_arc > _dtrs;
+    std::list< tree_arc > _dtrs;
 
     tree_node *walk_arc_internal(attr_t a) {
       for(dtrs_list::iterator it=_dtrs.begin(); it != _dtrs.end(); it++){
@@ -77,7 +77,7 @@ class path_restrictor : public restrictor {
       return NULL;
     }
 
-    void add_path_internal(const list<int> &l, list<int>::const_iterator it) {
+    void add_path_internal(const std::list<int> &l, std::list<int>::const_iterator it) {
       if (it != l.end()) {
         tree_node *sub = walk_arc_internal(l.front());
         if (sub == NULL) {
@@ -96,7 +96,7 @@ class path_restrictor : public restrictor {
       return NULL;
     }
 
-    inline void add_path(const list<int> &l) { 
+    inline void add_path(const std::list<int> &l) { 
       add_path_internal(l, l.begin());
     }
 
@@ -115,7 +115,7 @@ class path_restrictor : public restrictor {
   };
 
   class path_restrictor_state {
-    typedef list< const tree_node * > state_list;
+    typedef std::list< const tree_node * > state_list;
 
     const tree_node *_root;
     state_list _states;
@@ -172,8 +172,8 @@ public:
   /** Create a restrictor object that is encoded in the list of paths given by
    *  \a paths
    */
-  path_restrictor(list< list<int> > paths) : _root_state(&_paths_to_delete) {
-    for(list< list<int> >::iterator it = paths.begin()
+  path_restrictor(std::list< std::list<int> > paths) : _root_state(&_paths_to_delete) {
+    for(std::list< std::list<int> >::iterator it = paths.begin()
           ; it != paths.end(); it++) {
       _paths_to_delete.add_path(*it);
     }
@@ -182,8 +182,8 @@ public:
   /** Create a restrictor object that is encoded in the list of paths given by
    *  \a paths
    */
-  path_restrictor(list< list_int * > paths) : _root_state(&_paths_to_delete) {
-    for(list< list_int * >::iterator it = paths.begin()
+  path_restrictor(std::list< list_int * > paths) : _root_state(&_paths_to_delete) {
+    for(std::list< list_int * >::iterator it = paths.begin()
           ; it != paths.end(); it++) {
       _paths_to_delete.add_path(*it);
     }

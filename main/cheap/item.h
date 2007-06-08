@@ -618,7 +618,8 @@ public:
    * \param fsmods A list of feature structure modifications (default: no
    *               modifications) .
    */
-  tInputItem(std::string id, const list< tInputItem * > &dtrs, std::string stem
+  tInputItem(std::string id, const std::list< tInputItem * > &dtrs
+             , std::string stem
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
   

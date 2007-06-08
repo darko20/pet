@@ -25,6 +25,8 @@
 #include "cheap.h"
 #include "tsdb++.h"
 
+using namespace std;
+
 int basic_task::next_id = 0;
 
 tItem *
