@@ -8,6 +8,8 @@
 
 #include "input-modules.h"
 
+#include <string>
+
 /** A tokenizer for yy input mode */
 class tYYTokenizer : public tTokenizer {
 public:
@@ -23,7 +25,7 @@ public:
   virtual void tokenize(myString s, inp_list &result);
   
   /** A string to describe the module */
-  virtual string description() { return "YY style tokenizer"; }
+  virtual std::string description() { return "YY style tokenizer"; }
 
   /** Return \c true if the position in the returned tokens are counts instead
    *  of positions.
@@ -54,18 +56,18 @@ private:
    *      otherwise, read as long as all chars are \c id_char \see lex-tdl.cpp
    * \arg downcasep if true, convert string to downcase
    */
-  bool read_string(string &target, bool quotedp, bool downcasep = false);
+  bool read_string(std::string &target, bool quotedp, bool downcasep = false);
   /** Read a pair of string and double, which represents a part of speech and
    *  its probability.
    */
-  bool read_pos(string &tag, double &prob);
+  bool read_pos(std::string &tag, double &prob);
 
   /** Get the next token */
   class tInputItem *read_token();
 
   position_map _position_mapping;
-  string _yyinput;
-  string::size_type _yypos;
+  std::string _yyinput;
+  std::string::size_type _yypos;
   char _class_name_char;
 };
 

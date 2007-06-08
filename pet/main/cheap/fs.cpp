@@ -28,6 +28,8 @@
 
 #include <iostream>
 
+using namespace std;
+
 // global variables for quick check
 
 int qc_len_unif;

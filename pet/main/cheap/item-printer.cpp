@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+using namespace std;
+
 const char tcl_chars_to_escape[] = { '\\', '"', '\0' };
 
 void print_string_escaped(std::ostream &out, const char *str

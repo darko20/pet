@@ -27,9 +27,6 @@
 #include <list>
 #include <set>
 
-using std::list;
-using std::set;
-
 /** Maintain sets of permissible paths (in a word hypothesis graph)
  *  for items.  Each path is identified by an positive integer
  *  id. This class abstracts from a specific implementation of what
@@ -46,7 +43,7 @@ class tPaths
 
     /** Construct from a list of integers. All integers must be positive
      *  (0 is allowed). */
-    tPaths(const list<int> &);
+    tPaths(const std::list<int> &);
 
     /** Compute new paths common to \a that. */
     tPaths common(const tPaths &that) const;
@@ -62,10 +59,10 @@ class tPaths
     /** Get list of all paths. The wildcard path is represented by the 
      *  empty list, the empty set of paths by a list containing just a -1.
      */
-    list<int> get() const;
+    std::list<int> get() const;
 
  private:
-    tPaths(const set<int> &paths)
+    tPaths(const std::set<int> &paths)
         : _all(false), _paths(paths)
     { }
 
@@ -80,7 +77,7 @@ class tPaths
     }
 
     bool _all;
-    set<int> _paths;
+    std::set<int> _paths;
 };
 
 #endif

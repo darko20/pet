@@ -28,6 +28,8 @@
 
 #include <iostream>
 
+using namespace std;
+
 lex_parser global_lexparser;
 lex_parser &Lexparser = global_lexparser;
 extern chart *Chart;

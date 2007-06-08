@@ -8,8 +8,8 @@
 
 #include "item.h"
 #include "errors.h"
+#include "hashing.h"
 #include <fstream>
-
 
 /** A virtual base class to have a generic print service for chart items.
  *
@@ -102,7 +102,7 @@ public:
   tDerivationPrinter(const char *filename, int indent = 2)
     : _indentation(-indent), _indent_delta(indent) {
     if ((_out = fopen(filename, "w")) == NULL) {
-      throw(tError((string) "could not open file" + filename));
+      throw(tError((std::string) "could not open file" + filename));
     }
   }
   
@@ -188,7 +188,7 @@ public:
 
   tFSPrinter(const char *filename) {
     if ((_out = fopen(filename, "w")) == NULL) {
-      throw(tError((string) "could not open file" + filename));
+      throw(tError((std::string) "could not open file" + filename));
     }
   }
   
@@ -262,7 +262,7 @@ private:
       strcpy(unique + strlen(_filename_prefix) + strlen(name), "XXXXXX");
       int fildes = mkstemp(unique);
       if ((fildes == -1) || ((_out = fdopen(fildes, "w")) == NULL)) {
-        throw(tError((string) "could not open file" + unique));
+        throw(tError((std::string) "could not open file" + unique));
       }
       delete[] unique;
     }

@@ -31,6 +31,9 @@ inflrs: - "null" = do internal morph analysis
 #include "cheap.h"
 #include <iostream>
 
+using std::string;
+using std::list;
+
 tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
   : tTokenizer()
     , _position_mapping(position_mapping)

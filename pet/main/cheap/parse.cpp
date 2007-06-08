@@ -32,6 +32,8 @@
 
 #include <sstream>
 
+using namespace std;
+
 #ifdef YY
 #include "yy.h"
 #endif

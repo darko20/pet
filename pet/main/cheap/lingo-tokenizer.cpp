@@ -28,6 +28,9 @@
 #include "unicode.h"
 #endif
 
+using std::string;
+using std::list;
+
 extern settings *cheap_settings;
 
 tTokenizer::tTokenizer() {
