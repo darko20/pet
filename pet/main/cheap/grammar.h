@@ -197,7 +197,7 @@ class tGrammar
     return *_packing_restrictor;
   }
 
-  /** Is successful unification of \a daugther as \a arg th argument of \a
+  /** Is successful unification of \a daughter as \a arg th argument of \a
    *  mother possible?
    * This is a precomputed table containing all the possible rule combinations,
    * which can be rapidly looked up to avoid failing unifications.
@@ -210,7 +210,7 @@ class tGrammar
       (1 << (arg - 1));
   }
 
-  /** Is successful unification of \a daugther as \a arg th argument of \a
+  /** Is successful unification of \a daughter as \a arg th argument of \a
    *  mother possible? 
    * This is a precomputed table containing all the possible rule combinations,
    * which can be rapidly looked up to avoid failing unifications.

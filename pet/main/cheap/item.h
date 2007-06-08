@@ -164,6 +164,9 @@ public:
   */
   inline rule_trait trait() { return _trait; }
 
+  /** Return \c true if there are no more pending inflectional rules
+   *  for this item.
+   */
   inline bool inflrs_complete_p() { return _inflrs_todo == 0; }
 
   /** Return \c true if this item has all of its arguments filled. */
