@@ -30,6 +30,9 @@
 #include <sstream>
 #include <float.h>
 
+using std::string;
+using std::list;
+
 int
 tSMFeature::hash() const
 {

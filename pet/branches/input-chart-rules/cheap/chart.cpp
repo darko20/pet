@@ -24,6 +24,7 @@
 #include "tsdb++.h"
 #include "item-printer.h"
 
+using namespace std;
 
 //#define DEBUG
 

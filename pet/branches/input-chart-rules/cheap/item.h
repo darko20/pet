@@ -35,6 +35,12 @@
 #include "hashing.h"
 #include <functional>
 
+#include <list>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 /** this is a hoax to get the cfrom and cto values into the mrs */
 void init_characterization();
 
@@ -50,9 +56,9 @@ void init_characterization();
 struct tDecomposition
 {
 public:
-  set<vector<int> > indices;
-  list<tItem*> rhs;
-  tDecomposition(list<tItem*> rhs) 
+  std::set<std::vector<int> > indices;
+  std::list<tItem*> rhs;
+  tDecomposition(std::list<tItem*> rhs) 
   {
     this->rhs = rhs; 
   }
@@ -66,15 +72,15 @@ public:
 struct tHypothesis 
 {
 public:
-  map<list<tItem*>,double> scores;
+  std::map<std::list<tItem*>,double> scores;
   tItem* edge;
   tItem* inst_edge;
   bool inst_failed;
   tDecomposition* decomposition;
-  list<tHypothesis*> hypo_parents;
-  list<tHypothesis*> hypo_dtrs;
-  vector<int> indices;
-  tHypothesis(tItem* e, tDecomposition* decomp, list<tHypothesis*> dtrs, vector<int> ind) 
+  std::list<tHypothesis*> hypo_parents;
+  std::list<tHypothesis*> hypo_dtrs;
+  std::vector<int> indices;
+  tHypothesis(tItem* e, tDecomposition* decomp, std::list<tHypothesis*> dtrs, std::vector<int> ind) 
   {
     edge = e;
     inst_edge = NULL;
@@ -83,7 +89,7 @@ public:
     indices = ind;
     hypo_dtrs = dtrs;
     hypo_parents.clear();
-    for (list<tHypothesis*>::iterator dtr = hypo_dtrs.begin();
+    for (std::list<tHypothesis*>::iterator dtr = hypo_dtrs.begin();
          dtr != hypo_dtrs.end(); dtr ++) {
       (*dtr)->hypo_parents.push_back(this);
     }
@@ -158,6 +164,9 @@ public:
   */
   inline rule_trait trait() { return _trait; }
 
+  /** Return \c true if there are no more pending inflectional rules
+   *  for this item.
+   */
   inline bool inflrs_complete_p() { return _inflrs_todo == 0; }
 
   /** Return \c true if this item has all of its arguments filled. */
@@ -347,7 +356,7 @@ public:
   /** Print the derivation of this item in incr[tsdb()] compatible form,
    *  according to \a protocolversion.
    */
-  virtual string tsdb_derivation(int protocolversion) = 0;
+  virtual std::string tsdb_derivation(int protocolversion) = 0;
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tItemPrinter class
@@ -355,13 +364,13 @@ public:
   virtual void print_gen(class tItemPrinter *ip) const = 0;
 
   /** Collect the IDs of all daughters into \a ids */
-  virtual void daughter_ids(list<int> &ids) = 0;
+  virtual void daughter_ids(std::list<int> &ids) = 0;
 
   /** \brief Collect all (transitive) children into \a result.
    * \attention Uses frosting mechanism \em outside the packing functionality
    * to avoid duplicates in \a result.
    */
-  virtual void collect_children(list<tItem *> &result) = 0;
+  virtual void collect_children(std::list<tItem *> &result) = 0;
 
   /** Return the root node type that licensed this item as result, or -1, if
    *  this item is not a result.
@@ -418,7 +427,7 @@ public:
   inline bool frosted() { return _blocked == 1; }
   inline bool frozen() { return _blocked == 2; }
 
-  list<tItem *> unpack(int limit);
+  std::list<tItem *> unpack(int limit);
   /*@}*/
 
   /** \brief Base selective unpacking function that unpacks \a n best
@@ -437,13 +446,13 @@ public:
    *
    *  \return the list of items represented by the list of \a roots
    */
-  static list<tItem *> selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit);
+  static std::list<tItem *> selectively_unpack(std::list<tItem*> roots, int n, int end, int upedgelimit);
 
   /** Return a meaningful external name. */
   inline const char *printname() const { return _printname.c_str(); }
 
   /** Return the list of daughters. */
-  inline const list<tItem *> &daughters() const { return _daughters; }
+  inline const std::list<tItem *> &daughters() const { return _daughters; }
 
   /** compare two items for linear precendece; used to sort YY tokens */
   struct precedes 
@@ -459,14 +468,14 @@ protected:
    *
    * \return the list of items represented by this item
    */
-  virtual list<tItem *> unpack1(int limit) = 0;
+  virtual std::list<tItem *> unpack1(int limit) = 0;
 
   /** \brief Base function called by selectively_unpack to generate
    *   the \a i th best hypothesys with specific head \a path .
    *
    *  \return the \a i th best hypothesis of the item
    */
-  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i) = 0;
+  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i) = 0;
 
   /** \brief Base function that instantiate the hypothesis (and
    *   recursively instantiate its sub-hypotheses) until \a upedgelimit
@@ -474,7 +483,7 @@ protected:
    *
    *  \return the instantiated item from the hypothesis
    */
-  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit) = 0;
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit) = 0;
 
 
 private:
@@ -516,21 +525,21 @@ private:
 
   double _score;
 
-  const string _printname;
+  const std::string _printname;
 
-  list<tItem *> _daughters;
+  std::list<tItem *> _daughters;
 
   int _blocked;
-  list<tItem *> *_unpack_cache;
+  std::list<tItem *> *_unpack_cache;
 
 public:
   /** The parents of this node */
-  list<tItem *> parents;
+  std::list<tItem *> parents;
 
   /** If this list is not empty, this item is a representative of a class of
    *  packed items.
    */
-  list<tItem *> packed;
+  std::list<tItem *> packed;
 
   friend class tInputItem;
   friend class tLexItem;
@@ -583,13 +592,13 @@ public:
    */
   //@{
   // constructor with start/end NODES specified
-  tInputItem(string id, int startnode, int endnode, int start, int end, string surface, string stem
+  tInputItem(std::string id, int startnode, int endnode, int start, int end, std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
 
   // constructor without start/end NODES specified  
-  tInputItem(string id, int start, int end, string surface, string stem
+  tInputItem(std::string id, int start, int end, std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
@@ -612,7 +621,8 @@ public:
    * \param fsmods A list of feature structure modifications (default: no
    *               modifications) .
    */
-  tInputItem(string id, const list< tInputItem * > &dtrs, string stem
+  tInputItem(std::string id, const std::list< tInputItem * > &dtrs
+             , std::string stem
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
   
@@ -633,7 +643,7 @@ public:
   /** Print a machine readable description of the derivation tree encoded in
    *  this item for use with the incr[tsdb] system.
    */
-  virtual string tsdb_derivation(int protocolversion);
+  virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tItemPrinter class
@@ -641,12 +651,12 @@ public:
   virtual void print_gen(class tItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
-  virtual void daughter_ids(list<int> &ids);
+  virtual void daughter_ids(std::list<int> &ids);
   /** \brief Collect all (transitive) children into \a result.
    * \attention Uses frosting mechanism \em outside the packing functionality
    * to avoid duplicates in \a result.
    */
-  virtual void collect_children(list<tItem *> &result);
+  virtual void collect_children(std::list<tItem *> &result);
 
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule );
@@ -662,10 +672,10 @@ public:
   /** I've got no clue.
    * \todo i will fix this when i know what "description" ought to do
    */
-  string description() { return _surface; }
+  std::string description() { return _surface; }
   
   /** Return the string(s) that is (are) the input to this item */
-  string orth() const;
+  std::string orth() const;
 
   /** @name External Positions
    * Return the external positions of this item
@@ -713,7 +723,7 @@ public:
   list_int *inflrs() { return _inflrs_todo; }
 
   /** Set the inflrs_todo (inflection rules <-> morphology) */
-  void set_inflrs(const list<int> &infl_rules) {
+  void set_inflrs(const std::list<int> &infl_rules) {
     free_list(_inflrs_todo);
     _inflrs_todo = copy_list(infl_rules);
   }
@@ -722,17 +732,17 @@ public:
    * If this input item represents a named entity, this string may be empty,
    * although the item represents a nonempty string.
    */
-  string form() const { return _surface; }
+  std::string form() const { return _surface; }
 
   /** The base (uninflected) form of this item (if available).
    */
-  string stem() const { return _stem; }
+  std::string stem() const { return _stem; }
 
   /** Return generic lexical entries for this input token. If \a onlyfor is 
    * non-empty, only those generic entries corresponding to one of those
    * POS tags are postulated. The correspondence is defined in posmapping.
    */
-  list<lex_stem *> generics(postags onlyfor = postags());
+  std::list<lex_stem *> generics(postags onlyfor = postags());
 
   /** @name Set Internal Positions
    * Set the start resp. end node number of this item
@@ -749,29 +759,29 @@ public:
    * have no other items packed into them, they need not be unpacked. Unpacking
    * does not proceed past tLexItem.
    */
-  virtual list<tItem *> unpack1(int limit);
+  virtual std::list<tItem *> unpack1(int limit);
 
   /** \brief tInputItem will not have items packed into them. They
       need not be unpacked. */
-  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
   //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
 
   /** Return the external id associated with this item */
-  const string &external_id() { return _input_id; }
+  const std::string &external_id() { return _input_id; }
   
 private:  
-  string _input_id; /// external ID
+  std::string _input_id; /// external ID
 
   int _class; /// token or NE-class (an HPSG type code), or one of tok_class
 
   /** The surface form, as delivered by the tokenizer. May possibly be put into
    *  tItem's printname 
    */
-  string _surface;
+  std::string _surface;
 
   /** for morphologized items, to be able to do lexicon access */
-  string _stem;
+  std::string _stem;
 
   /// Additional FS modifiers: (path . value)
   modlist _fsmods;
@@ -829,7 +839,7 @@ class tLexItem : public tItem
   /** Print the derivation of this item in incr[tsdb()] compatible form,
    *  according to \a protocolversion.
    */
-  virtual string tsdb_derivation(int protocolversion);
+  virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tItemPrinter class
@@ -837,12 +847,12 @@ class tLexItem : public tItem
   virtual void print_gen(class tItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
-  virtual void daughter_ids(list<int> &ids);
+  virtual void daughter_ids(std::list<int> &ids);
 
   /** \brief Collect all (transitive) children into \a result. Uses frosting
    * mechanism.
    */
-  virtual void collect_children(list<tItem *> &result);
+  virtual void collect_children(std::list<tItem *> &result);
 
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule);
@@ -861,9 +871,9 @@ class tLexItem : public tItem
   virtual void recreate_fs();
 
   /** \todo what is this function good for? */
-  string description();
+  std::string description();
   /** Return the surface string(s) this item originates from */
-  string orth();
+  std::string orth();
 
   /** Is this item passive or not? */
   bool passive() {
@@ -922,14 +932,14 @@ class tLexItem : public tItem
   /** \brief Return a list of items that is represented by this item. For this
    *  class of items, the list always contains only the item itself
    */
-  virtual list<tItem *> unpack1(int limit);
+  virtual std::list<tItem *> unpack1(int limit);
 
   /** \brief Return the \a i th best hypothesis. For tLexItem, there
    *   is always only one hypothesis, for a given \a path . 
    */
-  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit);
-  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  //  virtual std::list<tItem *> selectively_unpack(int n, int upedgelimit);
 
  private:
   void init();
@@ -947,7 +957,7 @@ class tLexItem : public tItem
    * Since different active items emerging from a tLexItem can only differ in
    * start resp. end position, we only need to register the new start/endpoint.
    */
-  list< int > _expanded;
+  std::list< int > _expanded;
 
   postags _supplied_pos;
 
@@ -977,16 +987,16 @@ class tPhrasalItem : public tItem {
    *  \a representative with the daughters \a dtrs and the new feature
    *  structure \a newfs.
    */
-  tPhrasalItem(tPhrasalItem *representative, vector<tItem *> &dtrs, fs &newfs);
+  tPhrasalItem(tPhrasalItem *representative, std::vector<tItem *> &dtrs, fs &newfs);
 
   virtual ~tPhrasalItem() {
     // clear the hypotheses cache 
-    for (vector<tHypothesis*>::iterator h = _hypotheses.begin();
+    for (std::vector<tHypothesis*>::iterator h = _hypotheses.begin();
          h != _hypotheses.end(); h ++)
       delete *h;
 
     // clear the decomposition cache
-    for (list<tDecomposition*>::iterator d = decompositions.begin();
+    for (std::list<tDecomposition*>::iterator d = decompositions.begin();
          d != decompositions.end(); d ++)
       delete *d;
   }
@@ -1006,7 +1016,7 @@ class tPhrasalItem : public tItem {
   /** Print the derivation of this item in incr[tsdb()] compatible form,
    *  according to \a protocolversion.
    */
-  virtual string tsdb_derivation(int protocolversion);
+  virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tItemPrinter class
@@ -1014,13 +1024,13 @@ class tPhrasalItem : public tItem {
   virtual void print_gen(class tItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
-  virtual void daughter_ids(list<int> &ids);
+  virtual void daughter_ids(std::list<int> &ids);
 
   /** \brief Collect all (transitive) children into \a result.
    * \attention Uses frosting mechanism \em outside the packing functionality
    * to avoid duplicates in \a result.
    */
-  virtual void collect_children(list<tItem *> &result);
+  virtual void collect_children(std::list<tItem *> &result);
 
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule);
@@ -1056,7 +1066,7 @@ class tPhrasalItem : public tItem {
    * This requires first the unpacking of all daughters, and then generate all
    * possible combinations to compute the unpacked items represented here.
    */
-  virtual list<tItem *> unpack1(int limit);
+  virtual std::list<tItem *> unpack1(int limit);
 
   /** Apply the rule that built this item to all combinations of the daughter
    *  items in \a dtrs and collect the results in \a res.
@@ -1070,25 +1080,25 @@ class tPhrasalItem : public tItem {
    *                \a dtrs
    *  \param res contains all successfully built items.
    */
-  void unpack_cross(vector<list<tItem *> > &dtrs,
-                    int index, vector<tItem *> &config,
-                    list<tItem *> &res);
+  void unpack_cross(std::vector<std::list<tItem *> > &dtrs,
+                    int index, std::vector<tItem *> &config,
+                    std::list<tItem *> &res);
 
   /** Try to fill the rule of this item with the arguments in \a config. */
-  tItem *unpack_combine(vector<tItem *> &config);
+  tItem *unpack_combine(std::vector<tItem *> &config);
   /*@}*/
 
   /** \brief Selectively unpack the n-best results of this item.
    *
    * \return The list of unpacked results (up to \a n items)
    */
-  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+  //  virtual std::list<tItem *> selectively_unpack(int n, int upedgelimit);
 
   /** Get the \i th best hypothesis of the item with \a path to root. */
-  virtual tHypothesis * hypothesize_edge(list<tItem*> path, unsigned int i);
+  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
 
   /** Instantiatve the hypothesis */
-  virtual tItem * instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
 
   /** Decompose edge and return the number of decompositions 
    * All the decompositions are recorded in this->decompositions . 
@@ -1096,7 +1106,7 @@ class tPhrasalItem : public tItem {
   virtual int decompose_edge();
 
   /** Generate a new hypothesis and add it onto the local agendas. */
-  virtual void new_hypothesis(tDecomposition* decomposition, list<tHypothesis*> dtrs, vector<int> indices);
+  virtual void new_hypothesis(tDecomposition* decomposition, std::list<tHypothesis*> dtrs, std::vector<int> indices);
 
 
  private:
@@ -1105,17 +1115,17 @@ class tPhrasalItem : public tItem {
   grammar_rule *_rule;
 
   /** A vector of hypotheses*/
-  vector<tHypothesis*> _hypotheses;
+  std::vector<tHypothesis*> _hypotheses;
   /** a map from path to corresponding cached hypotheses */
-  map<list<tItem*>,vector<tHypothesis*> > _hypotheses_path;
+  std::map<std::list<tItem*>,std::vector<tHypothesis*> > _hypotheses_path;
   /** a map from path to corresponding max number of hypothese */
-  map<list<tItem*>,unsigned int> _hypo_path_max;
+  std::map<std::list<tItem*>,unsigned int> _hypo_path_max;
 
   /** Hypothesis agenda*/
-  map<list<tItem*>,list<tHypothesis*> > _hypo_agendas;
+  std::map<std::list<tItem*>,std::list<tHypothesis*> > _hypo_agendas;
 
   /** A list of decompositions */
-  list<tDecomposition*> decompositions;
+  std::list<tDecomposition*> decompositions;
 
   friend class active_and_passive_task;
   friend class tItemPrinter;
@@ -1129,12 +1139,12 @@ void propagate_failure(tHypothesis *hypo);
 /** Advance the indices vector.
  * e.g. <0 2 1> -> {<1 2 1> <0 3 1> <0 2 2>}
  */
-list<vector<int> > advance_indices(vector<int> indices);
+std::list<std::vector<int> > advance_indices(std::vector<int> indices);
 
 /** Insert hypothesis into agenda. Agenda is sorted descendingly
  *
  */
-void hagenda_insert(list<tHypothesis*> &agenda, tHypothesis* hypo, list<tItem*> path);
+void hagenda_insert(std::list<tHypothesis*> &agenda, tHypothesis* hypo, std::list<tItem*> path);
 
 // _fix_me_
 #if 0
@@ -1162,7 +1172,7 @@ class item_owner
   item_owner() {}
   ~item_owner()
     {
-      for(list<tItem *>::iterator curr = _list.begin(); 
+      for(std::list<tItem *>::iterator curr = _list.begin(); 
           curr != _list.end(); 
           ++curr)
         delete *curr;
@@ -1170,7 +1180,7 @@ class item_owner
     }
   void add(tItem *it) { _list.push_back(it); }
   void print(FILE *stream) {
-    for(list<tItem *>::iterator item = _list.begin(); 
+    for(std::list<tItem *>::iterator item = _list.begin(); 
         item != _list.end(); 
         ++item)
       if(!(*item)->frozen()) {
@@ -1179,7 +1189,7 @@ class item_owner
       } // if
   } // print()
  private:
-  list<tItem *> _list;
+  std::list<tItem *> _list;
 };
 
 namespace HASH_SPACE {
@@ -1195,15 +1205,15 @@ namespace HASH_SPACE {
 }
 
 /** A list of chart items */
-typedef list< tItem * > item_list;
+typedef std::list< tItem * > item_list;
 /** Iterator for item_list */
-typedef list< tItem * >::iterator item_iter;
+typedef std::list< tItem * >::iterator item_iter;
 /** Iterator for const item list */
-typedef list< tItem * >::const_iterator item_citer;
+typedef std::list< tItem * >::const_iterator item_citer;
 /** A list of input items */
-typedef list< tInputItem * > inp_list;
+typedef std::list< tInputItem * > inp_list;
 /** Iterator for inp_list */
-typedef list< tInputItem * >::iterator inp_iterator;
+typedef std::list< tInputItem * >::iterator inp_iterator;
 
 /** A virtual base class for predicates on items */
 struct item_predicate : public std::unary_function<bool, tItem *> {

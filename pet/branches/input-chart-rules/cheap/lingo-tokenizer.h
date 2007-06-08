@@ -8,6 +8,9 @@
 
 #include "input-modules.h"
 
+#include <string>
+#include <list>
+
 /** Simple tokenizer, mainly for English.
  *
  *  Removes punctuation, translates german iso umlauts depending on the setting
@@ -19,14 +22,14 @@ public:
   tLingoTokenizer() : tTokenizer() {}
 
   /** Produce a set of tokens from the given string. */
-  virtual void tokenize(string s, inp_list &result);
+  virtual void tokenize(std::string s, inp_list &result);
 
-  virtual string description() { return "LinGO tokenization"; }
+  virtual std::string description() { return "LinGO tokenization"; }
 
   virtual position_map position_mapping() { return STANDOFF_POINTS; }
 
 private:
-  list<string> do_it(string s);
+  std::list<std::string> do_it(std::string s);
 };
 
 #endif

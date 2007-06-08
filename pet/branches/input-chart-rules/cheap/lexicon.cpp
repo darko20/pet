@@ -25,6 +25,10 @@
 #include "grammar.h"
 #include "morph.h"
 
+using std::string;
+using std::list;
+using std::vector;
+
 int lex_stem::next_id = 0;
 
 fs
