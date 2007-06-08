@@ -64,10 +64,10 @@ public:
 
   /** Perform tokenization, named entity recognition, POS tagging and skipping
    *  of unknown tokens.
-   *  \par input The input string, not necessarily a simple sentence.
+   *  \param input The input string, not necessarily a simple sentence.
+   *  \param[in,out] inp_tokens The set of input tokens we get from input processing.
    *  \return The rightmost position of the parsing chart that has to be
    *  created. 
-   *  \retval inp_tokens The set of input tokens we get from input processing.
    */
   int process_input(std::string input, inp_list &inp_tokens);
 
@@ -78,12 +78,12 @@ public:
    * possible. After that, prune the chart applying the specified chart
    * dependencies. 
    *
-   * \par inp_tokens The input tokens coming from process_input
-   * \par lex_exhaustive If true, do exhaustive lexical processing before
-   *      looking for gaps and chart dependencies. This allows to catch more
-   *      complex problems and properties.
-   * \par FSAS the allocation state for the whole parse
-   * \par errors a list of eventual errors ??? _fix_me_ if i'm sure
+   * \param inp_tokens The input tokens coming from process_input
+   * \param lex_exhaustive If true, do exhaustive lexical processing before
+   *        looking for gaps and chart dependencies. This allows to catch more
+   *        complex problems and properties.
+   * \param FSAS the allocation state for the whole parse
+   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
    */
   void lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
                           , fs_alloc_state &FSAS, std::list<tError> &errors);
