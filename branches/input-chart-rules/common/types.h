@@ -156,6 +156,19 @@ void free_type_tables();
 /** Check the validity of type code \a a. */
 inline bool is_type(type_t a) { return a >= 0 && a < last_dynamic; }
 
+/** Return \c true if type code \a a is a proper type (a non-dynamic type that
+ *  is not a leaf). */
+inline bool is_proper_type(type_t a) {
+  assert(is_type(a));
+  return a < first_leaftype;
+}
+
+/** Return \c true if type code \a a is a (non-dynamic) leaf type. */
+inline bool is_leaftype(type_t a) {
+  assert(is_type(a));
+  return a >= first_leaftype;
+}
+
 /** Return \c true if type code \a a is a type from the hierarchy and not a
  *  dynamic type.
  */

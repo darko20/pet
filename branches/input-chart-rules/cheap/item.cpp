@@ -213,9 +213,9 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   
 void tInputItem::print(FILE *f, bool compact)
 {
-  // [bmw] print also start/end nodes
-  fprintf(f, "[n%d - n%d] [%d - %d] (%s) \"%s\" \"%s\" "
-          , _start, _end, _startposition, _endposition , _input_id.c_str()
+  fprintf(f, "I ");
+  fprintf(f, "[id:%d %d-%d (extern:%d-%d) trait:%d input-id:%s stem:\"%s\" surface:\"%s\"] "
+          , _id, _start, _end, _startposition, _endposition, _trait, _input_id.c_str()
           , _stem.c_str(), _surface.c_str());
 
   list_int *li = _inflrs_todo;
@@ -229,7 +229,6 @@ void tInputItem::print(FILE *f, bool compact)
   fprintf(f, " {");
   _postags.print(f);
   fprintf(f, " }");
-  fprintf(f, "\n");
 }
 
 void
@@ -641,12 +640,12 @@ tPhrasalItem::set_result_root(type_t rule)
 void
 tItem::print(FILE *f, bool compact)
 {
-    fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
+    fprintf(f, "[id:%d %d-%d %s trait:%d ", _id, _start, _end, _fs.printname(),
             _trait);
 
-    fprintf(f, "%.4g", _score);
+    fprintf(f, "score:%.4g", _score);
 
-    fprintf(f, " {");
+    fprintf(f, " tofill:{");
 
     list_int *l = _tofill;
     while(l)
@@ -655,7 +654,7 @@ tItem::print(FILE *f, bool compact)
         l = rest(l);
     }
 
-    fprintf(f, "} {");
+    fprintf(f, "} inflrs_todo:{");
 
     l = _inflrs_todo;
     while(l)
@@ -664,7 +663,7 @@ tItem::print(FILE *f, bool compact)
         l = rest(l);
     }
 
-    fprintf(f, "} {");
+    fprintf(f, "} paths:{");
 
     list<int> paths = _paths.get();
     for(list<int>::iterator it = paths.begin(); it != paths.end(); ++it)

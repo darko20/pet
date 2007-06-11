@@ -274,12 +274,15 @@ class tGrammar
   /** \todo becomes obsolete when yy.cpp does */
   bool punctuationp(const std::string &s);
 
+/*
+// obsoleted by lexparser
 #if 0
   // obsolete
 #ifdef ONLINEMORPH
   class tMorphAnalyzer *morph() { return _morph; }
 #endif
 #endif
+*/
 
   /** Return the statistic maxent model of this grammar */
   inline tSM *sm() { return _sm; }
@@ -331,6 +334,8 @@ class tGrammar
  private:
   std::map<std::string, std::string> _properties;
 
+/*
+// seems to be obsolete
 #if 0
 #ifndef HAVE_ICU
   std::string _punctuation_characters;
@@ -338,6 +343,7 @@ class tGrammar
   UnicodeString _punctuation_characters;
 #endif
 #endif
+*/
 
   std::map<type_t, lex_stem *> _lexicon;
   std::multimap<std::string, lex_stem *> _stemlexicon;
@@ -348,6 +354,8 @@ class tGrammar
   int _extdict_discount;
 #endif
 
+/*
+// obsoleted by lexparser
 #if 0
   typedef std::multimap<std::string, full_form *> ffdict;
   ffdict _fullforms;
@@ -356,6 +364,7 @@ class tGrammar
 #ifdef ONLINEMORPH
   class tMorphAnalyzer *_morph;
 #endif
+*/
 
   /** The number of all rules (syntactic, lex, and infl) for rule filtering */
   int _nrules;

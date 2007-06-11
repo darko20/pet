@@ -471,20 +471,22 @@ tGrammar::tGrammar(const char * filename)
             _generics = cons(i, _generics);
             _lexicon[i] = new lex_stem(i);
         }
-        else if (predle_status(i)) {
+        else if (predle_status(i))
+        {
           _predicts = cons(i, _predicts);
           _lexicon[i] = new lex_stem(i);
         }
     }
 
-    /*
+#ifdef DEBUG
     // print the rule dictionary
+    fprintf(stderr, "rule dictionary:\n");
     for (map<type_t, grammar_rule*>::iterator it = _rule_dict.begin();
          it != _rule_dict.end(); it++) {
-      printf("%d %s %s\n", (*it).first, print_name((*it).first)
+      fprintf(stderr, "%d %s %s\n", (*it).first, print_name((*it).first)
              , type_name((*it).first));
     }
-    */
+#endif
 
     // Activate all rules for initialization etc.
     activate_all_rules();
@@ -494,6 +496,8 @@ tGrammar::tGrammar(const char * filename)
     if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules", nstems(), 
                               length(_generics), _nrules);
 
+/*
+// obsoleted by lexparser
 #if 0
     // full forms
     if(toc.goto_section(SEC_FULLFORMS))
@@ -594,10 +598,9 @@ tGrammar::tGrammar(const char * filename)
     }
 #else
     _morph = NULL;  // this should be there anyway
-#endif
-//endif to: if 0
-#endif
-    
+#endif // endif to: if ONLINEMORPH
+#endif // endif to: if 0
+*/
 
     if(opt_nqc_unif != 0)
     {
@@ -881,7 +884,7 @@ tGrammar::initialize_filter()
                     
                     _subsumption_filter[daughter->id() + _nrules * mother->id()] = forward;
                     
-#if 0
+#ifdef DEBUG
                     fprintf(stderr, "SF %s %s %c\n",
                             daughter->printname(), mother->printname(),
                             forward ? 't' : 'f');
@@ -907,11 +910,14 @@ tGrammar::~tGrammar()
         pos != _lexicon.end(); ++pos)
         delete pos->second;
 
+/*
+// obsoleted by lexparser
 #if 0
     for(ffdict::iterator pos = _fullforms.begin();
         pos != _fullforms.end(); ++pos)
         delete pos->second;
 #endif
+*/
 
     activate_all_rules();
     for(list<grammar_rule *>::iterator pos = _rules.begin();
@@ -1069,6 +1075,8 @@ tGrammar::clear_dynamic_stems()
 }
 #endif
 
+/*
+// obsoleted by lexparser
 #if 0
 list<full_form>
 tGrammar::lookup_form(const string form)
@@ -1100,3 +1108,4 @@ tGrammar::lookup_form(const string form)
     return result;
 }
 #endif
+*/

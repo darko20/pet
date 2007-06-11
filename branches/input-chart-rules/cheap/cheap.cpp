@@ -353,24 +353,50 @@ void interactive_morphology() {
 
 
 void dump_glbs(FILE *f) {
+  fprintf(f, "i j GLB(i,j)\n");
   int i, j;
   for(i = 0; i < ntypes; i++) {
     prune_glbcache();
     for(j = 0; j < i; j++)
       if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
   }
+  fprintf(f, "\n");
 }
 
 void print_symbol_tables(FILE *f) {
-  fprintf(f, "type names (print names)\n");
+  fprintf(f, "ID\tTYPE NAME (PRINT NAME)\n");
   for(int i = 0; i < ntypes; i++) {
     fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
   }
+  fprintf(f, "\n");
 
-  fprintf(f, "attribute names\n");
+  fprintf(f, "ID\tATTRIBUTE NAME\n");
   for(int i = 0; i < nattrs; i++) {
     fprintf(f, "%d\t%s\n", i, attrname[i]);
   }
+  fprintf(f, "\n");
+}
+
+void print_type_hierarchy(FILE* f)
+{
+  fprintf(f, "%-30s %-7s %s\n", "TYPE", "PROPER", "ALL SUPERTYPES (BUT *top*)");
+  for (int t = 1; t < ntypes; t++) {
+    char t_str[100] = "";
+    snprintf(t_str, 100, "%s(%d)", type_name(t), t);
+    char st_str[1000] = "";
+    std::list<type_t> sts = all_supertypes(t);
+    bool first = true;
+    for (std::list<type_t>::iterator it  = sts.begin(); it != sts.end(); it++) {
+      if ((*it) != t) {
+        char str[30] = "";
+        snprintf(str, 30, "%s%s(%d)", first ? "":",", type_name((*it)), (*it));
+        strncat(st_str, str, 30);
+        first = false;
+      }
+    }
+    fprintf(f, "%-30s %-7d %s\n", t_str, is_proper_type(t), st_str);
+  }
+  fprintf(f, "\n");
 }
 
 void print_grammar(FILE *f) {
@@ -378,8 +404,8 @@ void print_grammar(FILE *f) {
     dump_glbs(f);
 
   print_symbol_tables(f);
+  print_type_hierarchy(f);
 }
-
 
 void process(const char *s) {
   timer t_start;
@@ -513,6 +539,7 @@ void process(const char *s) {
           ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
   if(opt_pg) {
+    fflush(fstatus);
     print_grammar(stdout);
   }
   else {
