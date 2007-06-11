@@ -77,16 +77,6 @@ int nattrs;
 int *attrnamelen = 0;
 int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 
-inline bool is_leaftype(type_t s) {
-  assert(is_type(s));
-  return s >= first_leaftype;
-}
-
-inline bool is_proper_type(type_t s) {
-  assert(is_type(s));
-  return s < first_leaftype;
-}
-
 void initialize_codes(int n) {
   codesize = n;
   temp_bitcode = new bitcode(codesize);
@@ -552,7 +542,7 @@ const list< type_t > &all_supertypes(type_t type) {
   return all_supertypes_cache[type];
 }
 
-#endif
+#endif // not FLOP
 
 int core_glb(int a, int b)
 {
