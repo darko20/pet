@@ -1,0 +1,6 @@
+include "common".
+
+;; types to ignore for full expansion (specified by status values), typically
+;; the lexicon
+dont-expand := "lex-entry".
+
