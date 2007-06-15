@@ -186,9 +186,9 @@ prep-lxm := const-lxm &
 
 tok  := *top* &
   [ FORM  string, 
-    FROM  *top*,
-    TO    *top*,
-    INDEX *top*].
+    FROM  string,
+    TO    string,
+    INDEX string ].
 
 toklist := *list*.
 tokcons := toklist & *cons* &
