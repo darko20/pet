@@ -1,16 +1,35 @@
-dont-rule := tokmap-rule &
-  [ CONTEXT < [ FORM "do",
-                FROM #1,
-                TO   #2        ] > ,
-    INPUT   < [ FORM "n't",
-                FROM #2,
-                TO   #3        ] > ,
-    OUTPUT  < [ FORM "don't",
-                FROM #1,
-                TO   #3        ] > ].
+; fixing broken tokenization
+barks-rule := tokmap-rule &
+  [ CONTEXT < > ,
+    INPUT   < [ FORM  "bar",
+                INDEX "0"    ],
+              [ FORM  "ks",
+                INDEX "1"    ] > ,
+    OUTPUT  < [ FORM "barks" ] > ].
 
+; replacing in context
 dag-rule := tokmap-rule &
-  [ CONTEXT < [ FORM "the"] > ,
-    INPUT   < [ FORM "dag"] > ,
-    OUTPUT  < [ FORM "dog"] > ].
+  [ CONTEXT < [ FORM  "the",
+                INDEX "0"   ],
+              [ FORM  "barks",
+                INDEX "2"   ]> ,
+    INPUT   < [ FORM "dag",
+                INDEX "1"   ] > ,
+    OUTPUT  < [ FORM "dog"  ] > ].
+
+; introducing items
+switch-article-rule := tokmap-rule &
+  [ CONTEXT < [ FORM "this" ] > ,
+    INPUT   < >,
+    OUTPUT  < [ FORM "that" ] > ].
+
+; blocking in the same chart cell:
+block-sth-rule := tokmap-rule &
+  [ CONTEXT < [ FORM "that",
+                INDEX "0"   ],
+              [ FORM "dog",
+                INDEX "1"   ] >,
+    INPUT   < [ FORM "this",
+                INDEX "0"   ] >,
+    OUTPUT  < >  ].
 
