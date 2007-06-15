@@ -1,0 +1,18 @@
+include "common".
+
+start-symbols := $start.
+
+punctuation-characters := "?!.:;,()<>{}[]+*-`'_\"".
+
+;;
+;; suppress results of regular morphology rules if an irregular form exists.
+;;
+irregular-forms-only.
+
+lex-entries-can-fail.
+
+;;
+;; names of attributes not to pass from daughter to mother in parsing
+;;
+deleted-daughters := ARGS HEAD-DTR.
+

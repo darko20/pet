@@ -1,0 +1,6 @@
+Toy grammar for testing the new token mapping transfer rules.
+The grammar is based on the the example grammar of chapter 6
+in "Implementing Typed Feature Structure Grammars" (itfs/g6morph)
+by Ann Copestake.
+
+(Fri Jun 15 09:23:13 CEST 2007; Peter Adolphs)
