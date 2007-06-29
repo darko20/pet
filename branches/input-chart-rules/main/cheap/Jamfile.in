@@ -1,0 +1,132 @@
+UNIFIER = tomabechi ;
+YY = true ;
+
+TSDB = true ;
+ITSDBDIR = @ITSDBDIR@ ;
+
+ICU = true ;
+ICUDIR = @ICUDIR@ ; 
+
+PSQLLEX = false ;
+
+ECL = true ;
+
+ROBUST = true ;
+#ROBUST = false ;
+#PROFILE = -pg ;
+
+CC = @CC@ ;
+C++ = @CXX@ ;
+
+# -g -a -pg are for debugging and profiling
+C++FLAGS += -g $(PROFILE) -Wall ;
+CFLAGS += -g $(PROFILE) -Wall ;
+
+LINK = g++ ;
+OPTIM = -O3 ;
+
+SEARCH_SOURCE += ../common ;
+
+if $(UNIFIER) = tomabechi
+{
+  DAGSOURCES = dag-io.cpp dag-common.cpp dag-arced.cpp dag-alloc.cpp
+	       dag-tomabechi.cpp failure.cpp qc.cpp ;
+  DAGFLAGS = -DDAG_TOMABECHI -DQC_PATH_COMP ;
+}
+else if $(UNIFIER) = simple
+{
+  DAGSOURCES = dag-io.cpp dag-common.cpp dag-arced.cpp dag-alloc.cpp
+	       dag-simple.cpp ;
+  DAGFLAGS = -DDAG_SIMPLE -DWROBLEWSKI2 ;
+}
+
+if $(ROBUST) = true
+{
+  DAGFLAGS += -DROBUST -DMARK_PERMANENT ;
+  DAGSOURCES += rcu-types.cpp dag-chunk-alloc.cpp ;
+}
+
+COMMONSOURCES = bitcode.cpp chunk-alloc.cpp errors.cpp mfile.c
+        	lex-io.cpp lex-tdl.cpp settings.cpp fs.cpp dumper.cpp
+                grammar-dump.cpp grammar.cpp types.cpp tsdb++.cpp
+                utility.cpp hash.cpp ;
+
+PARSESOURCES = parse.cpp lexicon.cpp item.cpp task.cpp chart.cpp
+	       agenda.cpp tokenizer.cpp options.cpp postags.cpp
+               inputtoken.cpp inputchart.cpp paths.cpp mrs.cpp sm.cpp ;
+
+CHEAPSOURCES = cheap.cpp $(DAGSOURCES) $(COMMONSOURCES) $(PARSESOURCES) ;
+
+C++FLAGS += $(DAGFLAGS) ;
+
+if $(TSDB) = true
+{
+  C++FLAGS += -DTSDBAPI -DTSDBFILEAPI -DSOCKET_INTERFACE ;
+  HDRS += $(ITSDBDIR)/include ;
+}
+
+if $(ICU) = true
+{
+  C++FLAGS += -DICU -DONLINEMORPH ;
+  HDRS += $(ICUDIR)/include ;
+  CHEAPSOURCES += unicode.cpp morph.cpp ;
+}
+
+if $(YY) = true
+{
+  CHEAPSOURCES += k2y.cpp yy.cpp ;
+  C++FLAGS += -DYY ;
+}
+
+if $(PSQLLEX) = true
+{
+  CHEAPSOURCES += psqllex.cpp ;
+  C++FLAGS += -DPSQLLEX ;
+}
+
+if $(ECL) = true
+{
+  CHEAPSOURCES += petecl.c petmrs.c cppbridge.cpp ;
+  HDRS += /proj/contrib/lib/ecl/h ;
+  C++FLAGS += -DECL ;
+  CCFLAGS on petecl.o += -Dlinux -fstrict-aliasing ;
+  CCFLAGS on rmrs.o += -Dlinux -fstrict-aliasing ;
+}
+
+C++FLAGS += -DHASH_MAP_AVAIL -DUSEMMAP ;
+
+HDRS += . ;
+
+LINKLIBS on cheap = -lm -lstdc++ -liberty $(PROFILE) ;
+
+if $(TSDB) = true
+{
+  LINKFLAGS on cheap += -L$(ITSDBDIR)/lib/linux -Xlinker -rpath -Xlinker $(ITSDBDIR)/lib/linux ;
+  LINKLIBS on cheap += -litsdb -lpvm3 ;
+}
+
+if $(ICU) = true
+{
+  LINKFLAGS on cheap += -L$(ICUDIR)/lib -Xlinker -rpath -Xlinker $(ICUDIR)/lib ;
+  LINKLIBS on cheap += -licuuc -licui18n -licudata -lpthread -ldl ;
+}
+
+if $(LEXDB) = true
+{
+  LINKLIBS on cheap += -lpq ;
+}
+
+if $(ECL) = true
+{
+  LINKLIBS on cheap += -lecl -lclos -llsp -lgc -ldl -lgmp -lmrs ;
+  LINKFLAGS on cheap += -L/proj/contrib/lib/ecl -Wl,--export-dynamic ;
+}
+
+Main cheap : $(CHEAPSOURCES) ; 
+
+
+if $(TSDB) = false
+{
+  DUMPGRAMSOURCES = dumpgram.cpp errors.cpp grammar-dump.cpp dumper.cpp ;
+  Main dumpgram : $(DUMPGRAMSOURCES) ;
+}
