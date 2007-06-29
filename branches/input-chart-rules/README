@@ -38,27 +38,28 @@ install boost via packages, remember to install the boost-devel package, too
 header files. This is also true for most other packages that you also might
 want to install for compiling PET, for example for Unicode support (see below).
 
-The build system used for PET is gnu `configure'/`autoconf' and `make'.
+The build system used for PET is the GNU Build System (aka GNU Autotools).
 gcc/g++ version > 3.1.2 are known to work fine.
 
 If you installed a tarfile version, change into the directory containing the
 `configure' script and type:
 
- ./configure --help
+  ./configure --help
 
 Have a look at the available options, and configure your system as needed.
 
 If you checked out your first SVN snapshot, you first have to run a current
-autoconf (version >=2.59), aclocal and automake (both version 1.9.x) in
+autoconf and autoheader (both >=2.59), aclocal and automake (both >= 1.7) in
 order to create the build system. Change into the directory containing
 `configure.ac' and type:
 
-aclocal && automake -a && autoconf
+  autoheader && aclocal && automake -a && autoconf
 
-Note that on some systems (e.g. Ubuntu Linux), the specific version of aclocal
-and automake has to be called explicitly by executing aclocal-1.9 and
-automake-1.9. Having run these commands, proceed with configuration as
-described above.
+or simply
+
+  autoreconf -i
+
+Having run these commands, proceed with configuration as described above.
 
 Doxygen compatible documentation is included in most header files and some of 
 the source files. Call 'make' in the root directory to build the documentation.

@@ -1,13 +1,15 @@
 # -*- makefile -*-
 
+SUBDIRS = test
+
 MRSDIR = @MRSDIR@
 
 CHEAPCPPFLAGS = @CHEAPCPPFLAGS@
 CHEAPLDFLAGS = @CHEAPLDFLAGS@
 CHEAPLIBS = @CHEAPLIBS@
 
-DEFS = 
 # Development switches
+DEFS = 
 OPTIM=-O2
 #-O0 
 # profiling with gprof
@@ -26,6 +28,7 @@ bin_PROGRAMS = cheap #mtest
 #bin_PROGRAMS = dumpgram #mtest
 #endif
 
+# allow the user to add types to the type hierarchy at run-time
 DEFS += -DDYNAMIC_SYMBOLS
 
 # These should be tested appropriately and appear in config.h
@@ -43,47 +46,60 @@ AM_CFLAGS = -g -Wall $(OPTIM) $(DEFS)
 CXXFLAGS =
 CFLAGS =
 
-# In $(top_srcdir)/common
-nodist_cheap_SOURCES = bitcode.cpp 	\
-	chunk-alloc.cpp			\
-	dag-alloc.cpp			\
-	dag-arced.cpp			\
-	dag-common.cpp			\
-	dag-io.cpp			\
-	dumper.cpp			\
-	grammar-dump.cpp		\
-	hash.cpp			\
-	lex-io.cpp			\
-	lex-tdl.cpp			\
-	mfile.c				\
-	settings.cpp 			\
-	types.cpp			\
-	utility.cpp
+# The include-file dependencies are automatically computed by Automake
+# (`Automatic dependency tracking'). Thus, the headers do not need to be listed
+# for compilation, but they need to be found for making a distribution.
+# Note that the headers in $(top_srcdir)/common are always included
+# (cf. $(top_srcdir)/common/Makefile.am) and are therefore not listed here.
+cheap_SOURCES = agenda.h \
+	chart.cpp chart.h \
+	cheap.cpp cheap.h \
+	cheaptimer.h \
+	fs.cpp fs.h \
+	grammar.cpp grammar.h \
+	input-modules.h \
+	item-printer.cpp item-printer.h \
+	item.cpp item.h \
+	itsdb.h \
+	lexicon.cpp lexicon.h \
+	lexparser.cpp lexparser.h \
+	lingo-tokenizer.cpp lingo-tokenizer.h \
+	morph.cpp morph.h \
+	options.cpp options.h \
+	parse.cpp parse.h \
+	paths.cpp paths.h \
+	position-mapper.h \
+	postags.cpp postags.h \
+	restrictor.h \
+	sm.cpp sm.h \
+	task.cpp task.h \
+	tsdb++.h tsdb++.cpp \
+	yy-tokenizer.cpp yy-tokenizer.h \
+	$(top_srcdir)/common/bitcode.cpp \
+	$(top_srcdir)/common/chunk-alloc.cpp \
+	$(top_srcdir)/common/dag-alloc.cpp \
+	$(top_srcdir)/common/dag-arced.cpp \
+	$(top_srcdir)/common/dag-common.cpp \
+	$(top_srcdir)/common/dag-io.cpp \
+	$(top_srcdir)/common/dumper.cpp \
+	$(top_srcdir)/common/grammar-dump.cpp \
+	$(top_srcdir)/common/hash.cpp \
+	$(top_srcdir)/common/lex-io.cpp \
+	$(top_srcdir)/common/lex-tdl.cpp \
+	$(top_srcdir)/common/mfile.c \
+	$(top_srcdir)/common/settings.cpp \
+	$(top_srcdir)/common/types.cpp \
+	$(top_srcdir)/common/utility.cpp
 
-# The dependencies are computed by the compiler.  It may be the best
-# idea to switch tracking only on for maintainer-mode.
-# The headers do not need to be listed for compilation, but they need
-# to be found for making a distribution.
-
-cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h            \
-        fs.cpp fs.h grammar.cpp grammar.h                               \
-        input-modules.h item-printer.cpp item-printer.h item.cpp item.h \
-        lexicon.cpp lexicon.h lexparser.cpp lexparser.h                 \
-        lingo-tokenizer.cpp lingo-tokenizer.h                           \
-        morph.cpp morph.h options.cpp options.h parse.cpp parse.h       \
-        paths.cpp paths.h position-mapper.h postags.cpp postags.h       \
-        restrictor.h sm.cpp sm.h task.cpp task.h itsdb.h timer.h tsdb++.h \
-        tsdb++.cpp yy-tokenizer.cpp yy-tokenizer.h
-
-TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h      \
-        failure.cpp qc.h qc.cpp
+TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h \
+	failure.cpp qc.h qc.cpp
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI
 cheap_SOURCES += $(TOMABECHI_UNIF_FILES)
 else
 if SIMPLE_UNIFIER
 DEFS += -DDAG_SIMPLE -DWROBLEWSKI2
-nodist_cheap_SOURCES += dag-simple.cpp dag-simple.h
+cheap_SOURCES += $(top_srcdir)/common/dag-simple.cpp
 endif
 endif
 
@@ -150,12 +166,10 @@ cheap_SOURCES += $(YY_FILES)
 endif
 
 # source files that should be distributed in any case, even if not used.
-EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp			\
-	$(ECL_MRS_FILES) $(EXTDICT_FILES) $(ICU_FILES)			\
-	$(RCU_FILES) $(TOMABECHI_UNIF_FILES) $(YY_FILES) $(XML_FILES)	\
+EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp \
+	$(ECL_MRS_FILES) $(EXTDICT_FILES) $(ICU_FILES) \
+	$(RCU_FILES) $(TOMABECHI_UNIF_FILES) $(YY_FILES) $(XML_FILES) \
 	$(PSQL_FILES) psqltest.c
-
-EXTRA_DIST = Jamfile
 
 
 profclean:
