@@ -1,8 +1,10 @@
-SUBDIRS      = flop cheap
+# conditional directories are always automatically added to DIST_SUBDIRS
+# (but not if DIST_SUBDIRS is manually overwritten)
 if ECL
-SUBDIRS += fspp
+MAYBE_FSPP   = fspp
 endif
-DIST_SUBDIRS = $(SUBDIRS) common
+SUBDIRS      = common flop cheap $(MAYBE_FSPP)
+
 EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
                doxyconfig.cheap doxyconfig.flop
 

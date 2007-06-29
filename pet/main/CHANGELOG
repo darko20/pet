@@ -1,4 +1,6 @@
 v0.99.??
+  - adapted build files: made `make distcheck' work again, and listed
+    common C/C++ sources with full path as cheap_SOURCES and flop_SOURCES
   - changed init() of tLexItem, such that characterization during exhaustive
     unpacking works correctly
   - Moved functionality of fresh_constraint_p into cached_constraint_of
