@@ -1,0 +1,58 @@
+# -*- makefile -*-
+
+FLOPCPPFLAGS = @FLOPCPPFLAGS@
+
+include $(top_srcdir)/common/Makefile.common
+
+bin_PROGRAMS = flop # boost
+
+# -DNew=new removed
+DEFS = -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
+AM_CPPFLAGS = -Wall -I$(top_srcdir)/common $(FLOPCPPFLAGS)
+AM_CXXFLAGS = -O3
+
+#AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
+# Shared libraries are added to flop_LDADD via configure.ac
+
+# The include-file dependencies are automatically computed by Automake
+# (`Automatic dependency tracking'). Thus, the headers do not need to be listed
+# for compilation, but they need to be found for making a distribution.
+# Note that the headers in $(top_srcdir)/common are always included
+# (cf. $(top_srcdir)/common/Makefile.am) and are therefore not listed here.
+flop_SOURCES = corefs.cpp \
+	dag-tdl.cpp \
+	dump.cpp \
+	expand.cpp \
+	flop.cpp \
+	flop.h \
+	full-form.cpp \
+	hierarchy.cpp \
+	hierarchy.h \
+	options.cpp \
+	options.h \
+	parse-tdl.cpp \
+	partition.cpp \
+	partition.h \
+	print-chic.cpp \
+	print-tdl.cpp \
+	reduction.cpp \
+	symtab.h \
+	template.cpp \
+	terms.cpp \
+	util.cpp \
+	$(top_srcdir)/common/bitcode.cpp \
+	$(top_srcdir)/common/chunk-alloc.cpp \
+	$(top_srcdir)/common/dag-alloc.cpp \
+	$(top_srcdir)/common/dag-arced.cpp  \
+	$(top_srcdir)/common/dag-common.cpp \
+	$(top_srcdir)/common/dag-io.cpp \
+	$(top_srcdir)/common/dag-simple.cpp \
+	$(top_srcdir)/common/dumper.cpp  \
+	$(top_srcdir)/common/grammar-dump.cpp \
+	$(top_srcdir)/common/lex-io.cpp \
+	$(top_srcdir)/common/lex-tdl.cpp \
+	$(top_srcdir)/common/settings.cpp  \
+	$(top_srcdir)/common/types.cpp \
+	$(top_srcdir)/common/utility.cpp
+
+EXTRA_DIST = Jamfile
