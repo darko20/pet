@@ -1,4 +1,10 @@
 v0.99.??
+  - reactivated unit tests
+  - adapted build files: made `make distcheck' work again; listed
+    common C/C++ sources with full path as cheap_SOURCES and flop_SOURCES;
+    added m4 directory for local and 3rd party autoconf-macros;
+    removed all Makefile.base files;
+    removed Jamfiles (one build system suffices)
   - changed init() of tLexItem, such that characterization during exhaustive
     unpacking works correctly
   - Moved functionality of fresh_constraint_p into cached_constraint_of

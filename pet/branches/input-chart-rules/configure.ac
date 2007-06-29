@@ -1,12 +1,125 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.14svn], [kiefer@dfki.de])
+AC_INIT([PET], [0.99.14transfer], [Peter.Adolphs@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])
 
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([1.7 foreign])
 dnl dejagnu dist-bzip2 no-dependencies
+
+# --------------------------------------------------------------------
+# Checks for programs.
+# --------------------------------------------------------------------
+
+AC_PROG_CXX
+AC_PROG_CPP
+AC_PROG_CC
+AC_PROG_GCC_TRADITIONAL
+AC_PROG_INSTALL
+AC_PROG_AWK
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+
+# Check for doxygen to generate documentation
+AC_PATH_PROG([DOXYGEN],[doxygen],[])
+AM_CONDITIONAL([DOCBUILDERS], [ test "$DOXYGEN" != "" ])
+if test "$DOXYGEN" == "" ; then
+    AC_WARN([Cannot find doxygen. Disabling API doc targets.])
+fi
+
+
+
+# --------------------------------------------------------------------
+# Checks for libraries.
+# --------------------------------------------------------------------
+
+# search a lib that provides getopt_long_only (lib is added to LIBS if found)
+AC_SEARCH_LIBS([getopt_long_only], [iberty], [],
+               [AC_MSG_ERROR([No library containing getopt_long_only()], [1])])
+
+# the following are checked elsewhere
+#AC_CHECK_LIB([dl], [main])
+#AC_CHECK_LIB([iberty], [main])
+# AC_CHECK_LIB([itsdb], [main])
+#AC_CHECK_LIB([m], [main])
+#AC_CHECK_LIB([pvm3], [main])
+# AC_CHECK_LIB([gmp], [main])
+# AC_CHECK_LIB([mrs], [main])
+
+
+
+# --------------------------------------------------------------------
+# Checks for header files.
+# --------------------------------------------------------------------
+
+# enable assertions; introduces the `--disable-assert' option
+AC_HEADER_ASSERT
+
+# defines HAVE_STDBOOL_H and HAVE__BOOL (if there is the type _Bool)
+AC_HEADER_STDBOOL
+
+# defines STDC_HEADERS if there are C header files conforming to ANSI C89
+AC_HEADER_STDC
+
+# defines HAVE_SYS_WAIT_H if there is a Posix-compatible `sys/wait.h' 
+AC_HEADER_SYS_WAIT
+
+# defines TIME_WITH_SYS_TIME if three are `time.h' and `sys/time.h'
+AC_HEADER_TIME
+
+# check for the presence of certain headers and raise an error if not
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h],,
+                 [AC_MSG_ERROR("some system header file not found")])
+AC_CHECK_HEADERS([sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h],,
+                 [AC_MSG_ERROR("some system header file not found")])
+AC_CHECK_HEADERS([stddef.h stdlib.h string.h strings.h],,
+                 [AC_MSG_ERROR("some system header file not found")])
+AC_LANG_PUSH([C++])
+AC_CHECK_HEADERS([hash_map],,
+   [AC_CHECK_HEADERS([ext/hash_map],,[AC_MSG_ERROR("No hash_map header found")],)])
+AC_LANG_POP([C++])
+
+
+
+# --------------------------------------------------------------------
+# Checks for typedefs, structures, and compiler characteristics.
+# --------------------------------------------------------------------
+
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_PID_T
+AC_TYPE_SIGNAL
+AC_TYPE_SIZE_T
+AC_STRUCT_TM
+AC_CHECK_SIZEOF(int *)
+
+
+
+# --------------------------------------------------------------------
+# Checks for library functions.
+# --------------------------------------------------------------------
+
+AC_FUNC_ERROR_AT_LINE
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_SETPGRP
+AC_FUNC_SETVBUF_REVERSED
+AC_FUNC_STAT
+AC_FUNC_STRFTIME
+AC_FUNC_STRTOD
+AC_FUNC_VPRINTF
+# Is becoming obsolete
+AC_FUNC_WAIT3
+AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gettimeofday inet_ntoa setlocale socket])
+AC_CHECK_FUNCS([strcasecmp strchr strdup strerror strpbrk strrchr strtol])
+
+
+
+# --------------------------------------------------------------------
+# path settings
+# --------------------------------------------------------------------
 
 # Let's try putting stuff in delphin/
 # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
@@ -109,7 +222,6 @@ esac
 
 # We need to do this here to get a properly working configure with dependency 
 # tracking 
-# FIXME: Replace `main' with a function in `-lstdc++':
 # Check used and needed in linking?
 AC_CHECK_LIB([stdc++], [main])
 
@@ -130,6 +242,12 @@ saveLDFLAGS="$LDFLAGS"
 # related/dependent checks.
 # IF requested AND libraries and headers OK; THEN add to configuration
 # For libraries: it should be possible to choose for static ones
+
+
+
+# --------------------------------------------------------------------
+# icu library.
+# --------------------------------------------------------------------
 
 AC_ARG_WITH(icu,
 [AC_HELP_STRING([--with-icu@<:@=DIR@:>@], [use the ICU library (default=yes)])],
@@ -184,6 +302,10 @@ LDFLAGS="$saveLDFLAGS"
 
 
 
+# --------------------------------------------------------------------
+# boost library.
+# --------------------------------------------------------------------
+
 AC_ARG_WITH(boost,
 [AC_HELP_STRING([--with-boost=DIR], [use the BOOST library in DIR])],
 [
@@ -198,13 +320,14 @@ fi
 [ boost=true ])
 
 if test x$boost = xtrue ; then
-    AC_LANG_PUSH(C++)
     if test x${BOOSTDIR} != x ; then
        CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
     fi
+    AC_LANG_PUSH([C++])
     AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
     dnl Necessary only for test binary boost:
     dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
+    AC_LANG_POP([C++])
 fi
 AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
 if test x$boost = xtrue -a -n "${BOOSTDIR}" ; then
@@ -214,6 +337,10 @@ CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
 
+
+# --------------------------------------------------------------------
+# XML support, i.e. Xerces C++ library.
+# --------------------------------------------------------------------
 
 AC_ARG_WITH(xml,
 [AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the Xerces C++ library (enables XML input modes) (default=no)])],
@@ -254,6 +381,11 @@ AM_CONDITIONAL(XML, [test x$xml = xtrue])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
+
+
+# --------------------------------------------------------------------
+# TSDB library.
+# --------------------------------------------------------------------
 
 AC_ARG_WITH(tsdb,
 [AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default=yes)])],
@@ -313,6 +445,11 @@ AM_CONDITIONAL(TSDB, [test x$tsdb = xtrue])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
+
+
+# --------------------------------------------------------------------
+# Lisp code for MRS.
+# --------------------------------------------------------------------
 
 MRSDIR="$ITSDBDIR"
 dnl check for the Lisp code directory for MRS
@@ -375,6 +512,11 @@ else
 fi
 
 
+
+# --------------------------------------------------------------------
+# ECL (Embedded Common Lisp).
+# --------------------------------------------------------------------
+
 AC_ARG_WITH(ecl,
 [AC_HELP_STRING([--with-ecl@<:@=DIR@:>@], 
                 [use ECL for mrs or preprocessing or both (default=yes)])],
@@ -399,14 +541,14 @@ if test x$ecl = xtrue; then
        ECLDIR=`dirname $ECL`
        ECLDIR=${ECLDIR%%/bin}
     fi
-    if test -d ${ECLDIR}/h ; then
+    if test -f ${ECLDIR}/h/ecl.h ; then
       eclincl="-I${ECLDIR}/h"
     fi
-    if test -z "$eclincl" -a -d ${ECLDIR}/lib/ecl/h ; then
+    if test -z "$eclincl" -a -f ${ECLDIR}/lib/ecl/h/ecl.h ; then
       eclincl="-I${ECLDIR}/lib/ecl/h"
     fi
-    if test -z "$eclincl" -a -d ${ECLDIR}/lib/ecl/ecl ; then
-      eclincl="-I${ECLDIR}/lib/ecl -I${ECLDIR}/lib/ecl/ecl"
+    if test -z "$eclincl" -a -f ${ECLDIR}/lib/ecl/ecl/ecl.h ; then
+      eclincl="-I${ECLDIR}/lib/ecl -I${ECLDIR}/lib/ecl/ecl -I/usr/lib/ecl"
     fi
     if test -z "$eclincl" ; then
       AC_MSG_WARN([in ${ECLDIR}/lib, neither ./h nor ./ecl/h nor ./ecl/ecl found; ECL DISABLED])
@@ -422,7 +564,7 @@ if test x$ecl = xtrue; then
   fi
 fi
 if test "x$ecl" == xtrue ; then
-   LDFLAGS="$LDFLAGS -L${ECLDIR}/lib/ecl"
+   LDFLAGS="$LDFLAGS -L${ECLDIR}/lib/ecl -lpthread -ldl  -lm "
    export LDFLAGS
    # check ECL Libraries
    AC_CHECK_LIB([ecl], [cl_map], [ ecl=true ], 
@@ -465,11 +607,40 @@ LDFLAGS="$saveLDFLAGS"
 
 
 
+# --------------------------------------------------------------------
+# Unit testing with CppUnit
+# --------------------------------------------------------------------
+
+# do not build unit tests using cppunit by default:
+cppunit="no"
+# check whether user requests the use of cppunit:
+AC_ARG_WITH(cppunit,
+    [AC_HELP_STRING([--with-cppunit], 
+                     [use the CppUnit library (enables unit tests)])],
+    [AS_IF([test "$withval" = "yes" -o "$withval" = "no"],
+           [cppunit=$withval],
+           [AC_MSG_ERROR([Bad value for --with-cppunit
+                          (allowed values: yes or no).
+                          Set CppUnit paths with --with-cppunit-prefix and
+                          --with-cppunit-exec-prefix.])])])
+# if the user wants cppunit, look for a suitable installation:
+AS_IF([test "$cppunit" = "yes"],
+      [AM_PATH_CPPUNIT([1.12.0],
+            [AC_DEFINE(HAVE_CPPUNIT, [1], [define if CppUnit is available])],
+            [cppunit="no"
+             AC_MSG_WARN([--with-unitcpp given but test for CppUnit failed])])])
+# define an automake conditional whether cppunit is requested *and* present:
+AM_CONDITIONAL(CPPUNIT, [test "$cppunit" = "yes"])
+
+
+
+# --------------------------------------------------------------------
+# Choice of the unifier
+# --------------------------------------------------------------------
 
 # Not via defines in config.h because there is no choice for flop!
 AC_ARG_ENABLE(unifier,
-AC_HELP_STRING([--enable-unifier@<:@=ARG@:>@], [use the unifier (default=tomabec
-hi)
+AC_HELP_STRING([--enable-unifier@<:@=ARG@:>@], [use the unifier (default=tomabechi)
 Possible values are: tomabechi, simple]),
 [case "${enableval}" in
    tomabechi) unifier=tomabechi ;;
@@ -481,6 +652,11 @@ AM_CONDITIONAL(TOMABECHI_UNIFIER, [test x$unifier = xtomabechi])
 AM_CONDITIONAL(SIMPLE_UNIFIER, [test x$unifier = xsimple])
 
 
+
+# --------------------------------------------------------------------
+# Dynamic Symbols
+# --------------------------------------------------------------------
+
 # Not via defines in config.h because there is no choice for flop!
 #AC_ARG_ENABLE(dynamic-symbols,
 #AC_HELP_STRING([--enable-dynamic-symbols], [enable or disable dynamic symbols (default=enabled)]),
@@ -490,7 +666,10 @@ AM_CONDITIONAL(SIMPLE_UNIFIER, [test x$unifier = xsimple])
 #fi
 
 
-dnl external lexicon based on postgresql database
+
+# --------------------------------------------------------------------
+# external lexicon based on postgresql database
+# --------------------------------------------------------------------
 
 dnl AC_ARG_WITH(lexdb,
 dnl [AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
@@ -542,6 +721,11 @@ dnl CPPFLAGS="$saveCPPFLAGS"
 dnl LDFLAGS="$saveLDFLAGS"
 
 
+
+# --------------------------------------------------------------------
+# YY-specific modes
+# --------------------------------------------------------------------
+
 AC_ARG_ENABLE(yy,
 AC_HELP_STRING([--enable-yy@<:@=ARG@:>@], [use the YY extensions (default=yes)]),
 [case "${enableval}" in
@@ -555,6 +739,12 @@ if test x$yy = xtrue; then
     AC_DEFINE(YY, [1], [Include some YY specific code])
 fi
 AM_CONDITIONAL(YY, [test x$yy = xtrue])
+
+
+
+# --------------------------------------------------------------------
+# instantiation failure cache
+# --------------------------------------------------------------------
 
 AC_ARG_ENABLE(instfc,
 AC_HELP_STRING([--enable-instfc@<:@=ARG@:>@], [use the instantiation failure cache (default=yes)]),
@@ -570,6 +760,29 @@ if test x$instfc = xtrue; then
 fi
 AM_CONDITIONAL(INSTFC, [test x$instfc = xtrue])
 
+
+
+# --------------------------------------------------------------------
+# quick check feature
+# --------------------------------------------------------------------
+
+AC_ARG_ENABLE(qccomp,
+[AC_HELP_STRING([--enable-qccomp], [enable/disable recording of failures for quick check computation (default: no)])],
+[case "${enableval}" in
+   no)   qccomp=no;;
+   *)    qccomp=yes;;
+ esac
+], [qccomp=no])
+if test x$qccomp = xyes ; then
+    AC_DEFINE(QC_PATH_COMP, [1], [Enable code for QuickCheck computation])
+fi
+
+
+
+# --------------------------------------------------------------------
+# LUI
+# --------------------------------------------------------------------
+
 AC_ARG_ENABLE(lui,
 AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
 [case "${enableval}" in
@@ -582,9 +795,14 @@ AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
 if test x$lui = xtrue; then 
     AC_DEFINE(LUI, [1], [Enable grammar dumping in LUI format])
 fi
-
 # no extra files, don't need Makefile conditional
 # AM_CONDITIONAL(LUI, [test x$lui = xtrue])
+
+
+
+# --------------------------------------------------------------------
+# external dictionary (???)
+# --------------------------------------------------------------------
 
 dnl What the *&^@~! is that?
 dnl AC_ARG_ENABLE(external-dictionary,
@@ -600,6 +818,12 @@ dnl  fi
 dnl ], [extdict=false])
 dnl AM_CONDITIONAL(EXTDICT, [test x$extdict = xtrue])
 
+
+
+# --------------------------------------------------------------------
+# robust processing
+# --------------------------------------------------------------------
+
 dnl robust processing code by frederik fouvry, not supported at the moment
 dnl AC_ARG_ENABLE(rcu,
 dnl [AC_HELP_STRING([--enable-rcu@<:@=ARG@:>@], [use the RCU extensions (default=no)])],
@@ -610,123 +834,28 @@ dnl    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-rcu])
 dnl esac], [rcu=false])
 dnl AM_CONDITIONAL(RCU, [test x$rcu = xtrue])
 
-AC_LANG_PUSH(C++)
-AC_CHECK_HEADERS([hash_map],,
-   [AC_CHECK_HEADERS([ext/hash_map],,[AC_MSG_ERROR("No hash_map header found")],)])
 
 
-AC_SUBST(CHEAPLIBS)
-AC_SUBST(CHEAPLDFLAGS)
-AC_SUBST(CHEAPCPPFLAGS)
-
-AC_SUBST(FLOPCPPFLAGS)
-
-# The library checks could be made conditional on the selected options
-
-# Checks for programs.
-AC_PROG_CXX
-AC_PROG_CPP
-AC_PROG_CC
-AC_PROG_INSTALL
-AC_PROG_AWK
-AC_PROG_MAKE_SET
-AC_PROG_RANLIB
-
-dnl Check for doxygen to generate documentation
-AC_PATH_PROG(DOXYGEN,doxygen,,$PATH:/usr/local/bin:/usr/bin)
-
-# Checks for libraries.
-# FIXME: Replace `main' with a function in `-ldl':
-#AC_CHECK_LIB([dl], [main])
-# FIXME: Replace `main' with a function in `-liberty':
-#AC_CHECK_LIB([iberty], [main])
-# Removed because I want to link it statically
-# FIXME: Replace `main' with a function in `-litsdb':
-# AC_CHECK_LIB([itsdb], [main])
-# FIXME: Replace `main' with a function in `-lm':
-#AC_CHECK_LIB([m], [main])
-# FIXME: Replace `main' with a function in `-lpvm3':
-#AC_CHECK_LIB([pvm3], [main])
-
-# Apparently not needed (yet)
-# FIXME: Replace `main' with a function in `-lgmp':
-# AC_CHECK_LIB([gmp], [main])
-
-# Removed because I want to link it statically
-# FIXME: Replace `main' with a function in `-lmrs':
-# AC_CHECK_LIB([mrs], [main])
-
-# Checks for header files.
-AC_HEADER_STDC
-AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h],,
-    [AC_MSG_ERROR("some system header file not found")])
-AC_CHECK_HEADERS([stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h],,
-    [AC_MSG_ERROR("some system header file not found")])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
-AC_C_CONST
-AC_C_INLINE
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_HEADER_TIME
-AC_STRUCT_TM
-AC_CHECK_SIZEOF(int *)
-
-# Checks for library functions.
-AC_SEARCH_LIBS([getopt_long_only], [iberty], [],
-               [AC_MSG_ERROR([No library containing getopt_long_only()], [1])])
-
-AC_FUNC_ERROR_AT_LINE
-AC_FUNC_FORK
-AC_PROG_GCC_TRADITIONAL
-AC_FUNC_MALLOC
+# --------------------------------------------------------------------
+# mmap allocator
+# --------------------------------------------------------------------
 
 AC_ARG_ENABLE(mmapalloc,
-[AC_HELP_STRING([--enable-mmapalloc], [enable/disable use of mmap allocator (default=check for mmap)])],
+[AC_HELP_STRING([--enable-mmapalloc], [enable/disable use of mmap allocator (default=no for mmap)])],
 [case "${enableval}" in
    yes) mmapalloc=yes;;
    *)   mmapalloc=no;;
  esac
 ], [mmapalloc=no])
 if test "$mmapalloc" = "yes" ; then
-AC_FUNC_MMAP
-fi
-
-AC_ARG_ENABLE(qccomp,
-[AC_HELP_STRING([--enable-qccomp], [enable/disable recording of failures for quick check computation (default: no)])],
-[case "${enableval}" in
-   no)   qccomp=no;;
-   *)    qccomp=yes;;
- esac
-], [qccomp=no])
-if test x$qccomp = xyes ; then
-   AC_DEFINE(QC_PATH_COMP, [1], [Enable code for QuickCheck computation])
+    AC_FUNC_MMAP
 fi
 
 
-AC_FUNC_REALLOC
-AC_FUNC_SETPGRP
-AC_FUNC_SETVBUF_REVERSED
-AC_TYPE_SIGNAL
-AC_FUNC_STAT
-AC_FUNC_STRFTIME
-AC_FUNC_STRTOD
-AC_FUNC_VPRINTF
-# Is becoming obsolete
-AC_FUNC_WAIT3
-AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gettimeofday inet_ntoa setlocale socket strcasecmp strchr strdup strerror strpbrk strrchr strtol])
 
-# Excluded doc and goofy
-AC_CONFIG_FILES([Makefile
-		 fspp/Makefile
-		 fspp/Jamfile
-                 cheap/Makefile
-		 cheap/Jamfile
-                 common/Makefile
-                 flop/Makefile
-		 flop/Jamfile])
+# --------------------------------------------------------------------
+# Summary
+# --------------------------------------------------------------------
 
 feature_avail() {
 (
@@ -745,7 +874,28 @@ feature_avail x$xml xtrue "Xerces C++ (for XML input modes)"
 dnl feature_avail x$lexdb xtrue "External SQL dictionary"
 feature_avail x$mmapalloc xyes "Memory allocation with mmap"
 feature_avail x$qccomp xyes "Code for quick-check computation"
+feature_avail x$cppunit xyes "Unit testing with CppUnit"
 echo "=============================================================" ; echo
 
 
+
+# --------------------------------------------------------------------
+# Output
+# --------------------------------------------------------------------
+
+AC_SUBST(CHEAPLIBS)
+AC_SUBST(CHEAPLDFLAGS)
+AC_SUBST(CHEAPCPPFLAGS)
+
+AC_SUBST(FLOPCPPFLAGS)
+
+# Excluded doc and goofy
+AC_CONFIG_FILES([Makefile
+                 fspp/Makefile
+                 cheap/Makefile
+                 cheap/test/Makefile
+                 common/Makefile
+                 flop/Makefile])
+
 AC_OUTPUT
+
