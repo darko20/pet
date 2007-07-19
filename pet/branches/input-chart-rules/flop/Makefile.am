@@ -4,15 +4,10 @@ FLOPCPPFLAGS = @FLOPCPPFLAGS@
 
 include $(top_srcdir)/common/Makefile.common
 
-bin_PROGRAMS = flop # boost
+bin_PROGRAMS = flop
 
-# -DNew=new removed
 DEFS = -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
 AM_CPPFLAGS = -Wall -I$(top_srcdir)/common $(FLOPCPPFLAGS)
-AM_CXXFLAGS = -O3
-
-#AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
-# Shared libraries are added to flop_LDADD via configure.ac
 
 # The include-file dependencies are automatically computed by Automake
 # (`Automatic dependency tracking'). Thus, the headers do not need to be listed
