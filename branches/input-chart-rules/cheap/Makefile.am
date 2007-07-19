@@ -2,49 +2,30 @@
 
 SUBDIRS = test
 
-MRSDIR = @MRSDIR@
-
-CHEAPCPPFLAGS = @CHEAPCPPFLAGS@
-CHEAPLDFLAGS = @CHEAPLDFLAGS@
-CHEAPLIBS = @CHEAPLIBS@
-
-# Development switches
-DEFS = 
-OPTIM=-O2
-#-O0 
-# profiling with gprof
-# OPTIM += -pg
-# coverage testing with gprof
-# OPTIM += -fprofile-arcs -ftest-coverage
-# not in our gcc yet -fno-eliminate-unused-debug-types
-#DEFS += -UNDEBUG -D_GLIBCXX_DEBUG
-
 include $(top_srcdir)/common/Makefile.common
 
-# What is this?
-#if TSDB
-bin_PROGRAMS = cheap #mtest
-#else
-#bin_PROGRAMS = dumpgram #mtest
-#endif
+AM_CPPFLAGS = -I$(top_srcdir)/common @CHEAPCPPFLAGS@
+AM_CXXFLAGS = -Wall
+AM_CFLAGS = -Wall
+AM_LDFLAGS = @CHEAPLDFLAGS@
 
-# allow the user to add types to the type hierarchy at run-time
+# Development switches
+# profiling with gprof
+#AM_CXXFLAGS += -pg
+# coverage testing with gprof
+#AM_CXXFLAGS += -fprofile-arcs -ftest-coverage
+# not in our gcc yet -fno-eliminate-unused-debug-types
+#AM_CXXFLAGS += -UNDEBUG -D_GLIBCXX_DEBUG
+
+# Is needed in some cases (required by libpvm3.a)
+#AM_LDFLAGS += -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
+
+LIBS += @CHEAPLIBS@
+
+# types can be added to the type hierarchy at run-time ('dynamic types')
 DEFS += -DDYNAMIC_SYMBOLS
 
-# These should be tested appropriately and appear in config.h
-AM_CPPFLAGS = -I$(top_srcdir)/common $(CHEAPCPPFLAGS)
-# Is needed in some cases (required by libpvm3.a)
-# AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
-AM_LDFLAGS = $(CHEAPLDFLAGS)
-LIBS += $(CHEAPLIBS)
-
-# This is always used! <-> documentation
-AM_CXXFLAGS = -g -Wall $(OPTIM) $(DEFS)
-AM_CFLAGS = -g -Wall $(OPTIM) $(DEFS)
-
-# clear defaults, e.g., if i don't want optimisation to be switched on
-CXXFLAGS =
-CFLAGS =
+bin_PROGRAMS = cheap
 
 # The include-file dependencies are automatically computed by Automake
 # (`Automatic dependency tracking'). Thus, the headers do not need to be listed
@@ -136,7 +117,7 @@ MOSTLYCLEANFILES = libmrs.a
 libmrs.a:
 	( \
 	echo ";;(pushnew :debug *features*)"; \
-	echo "(load \"$(MRSDIR)/src/general/loadup\")"; \
+	echo "(load \"@MRSDIR@/src/general/loadup\")"; \
 	echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
 	echo "(mk::ecl-initialize-libbuild :module \"mrs\")"; \
 	echo "(compile-system \"mrs\" :force t)"; \

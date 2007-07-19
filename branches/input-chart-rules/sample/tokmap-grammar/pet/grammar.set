@@ -11,8 +11,3 @@ irregular-forms-only.
 
 lex-entries-can-fail.
 
-;;
-;; names of attributes not to pass from daughter to mother in parsing
-;;
-deleted-daughters := ARGS HEAD-DTR.
-

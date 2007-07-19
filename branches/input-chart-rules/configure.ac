@@ -895,7 +895,9 @@ AC_CONFIG_FILES([Makefile
                  cheap/Makefile
                  cheap/test/Makefile
                  common/Makefile
-                 flop/Makefile])
+                 flop/Makefile
+                 doxyconfig.cheap
+                 doxyconfig.flop])
 
 AC_OUTPUT
 

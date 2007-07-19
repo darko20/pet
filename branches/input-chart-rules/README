@@ -61,13 +61,6 @@ or simply
 
 Having run these commands, proceed with configuration as described above.
 
-Doxygen compatible documentation is included in most header files and some of 
-the source files. Call 'make' in the root directory to build the documentation.
-
-For unit tests and source code documentation you can optionally use
-cppunit. Note that so far only small parts of the system take advantage of
-this.
-
 External Components
 ===================
 
@@ -88,21 +81,19 @@ Embeddable Common Lisp (ECL for short). The version that is known to work at
 the moment is 0.9h, while 0.9i seems to have problems. You can get it at 
 http://ecls.sourceforge.net/
 
-cppunit:
+For unit tests you can optionally use cppunit. Note that so far only small
+parts of the system take advantage of this.
 http://cppunit.sourceforge.net/
 
-doxygen:
+Doxygen compatible documentation is included in most header files and some of
+the source files. Call 'make doc' in the root build directory to build the
+documentation.
 http://www.doxygen.org/
 
 When using (optional) XML input mode, you need the Apache xerces C++
 library. Again, pre-build packages are available for most Linux
 distributions. Remember do install the `...-devel' package too.
 http://xml.apache.org/xerces-c/
-
-Jam:
-http://www.perforce.com/jam/jam.html
-Also included in Boost (www.boost.org), and no longer needed because replaced
-by the gnu autoconf tools
 
 Layout of the sources
 =====================
