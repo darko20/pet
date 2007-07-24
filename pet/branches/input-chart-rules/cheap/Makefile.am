@@ -1,10 +1,12 @@
 # -*- makefile -*-
 
-SUBDIRS = test
+# build the current directory first, then the test directory since we
+# want to test the objects in this directory
+SUBDIRS = . test
 
 include $(top_srcdir)/common/Makefile.common
 
-AM_CPPFLAGS = -I$(top_srcdir)/common @CHEAPCPPFLAGS@
+AM_CPPFLAGS = -I$(top_srcdir)/common -I$(top_srcdir)/fspp @CHEAPCPPFLAGS@
 AM_CXXFLAGS = -Wall
 AM_CFLAGS = -Wall
 AM_LDFLAGS = @CHEAPLDFLAGS@
@@ -86,6 +88,7 @@ endif
 
 # Add "mrs.h" to MRS source files ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 # Is -Dlinux -fstrict-aliasing needed as compiler options?
+# Peter Adolphs, Jul 24 2007: a clean solution would be to query `ecl-config'...
 ECL_FILES = petecl.c petecl.h
 ECL_MRS_FILES = cppbridge.cpp cppbridge.h petmrs.h petmrs.c
 ECL_PREPROCESSOR_FILES = eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
@@ -94,6 +97,9 @@ cheap_LDADD =
 if ECL
 cheap_SOURCES += $(ECL_FILES) 
 if ECLPREPROC
+# does the following check of ICU mean that the preprocessor should not be
+# compiled if ICU is missing? shouldn't this be checked in configure, then?
+# (Peter Adolphs, Jul 24 2007)
 if ICU
 cheap_SOURCES += $(ECL_PREPROCESSOR_FILES)
 cheap_LDADD +=  ../fspp/libfspp.a -lpreprocessor ../fspp/libfspp.a #fix_me
@@ -189,10 +195,4 @@ profclean:
 # 	grammar-dump.h dumper.cpp dumper.h
 # dumpgram_SOURCES = dumpgram.cpp
 #endif
-
-# To make ECL:
-# ./configure ...
-# cd build
-# make
-# make install
 

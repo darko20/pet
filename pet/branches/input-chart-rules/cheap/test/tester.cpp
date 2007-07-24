@@ -5,6 +5,11 @@
 
 /* main module (unit test driver) */
 
+#include "pet-config.h"
+#include "grammar.h"
+#include "grammar-dump.h"
+#include "settings.h"
+
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/TestResult.h>
 #include <cppunit/TestResultCollector.h>
@@ -14,8 +19,7 @@
 
 #include <string>
 
-#include "grammar.h"
-#include "settings.h"
+using std::string;
 
 // required global settings from cheap.cpp 
 char * version_string = VERSION ;
@@ -29,11 +33,19 @@ settings *cheap_settings;
 int
 main(int argc, char **argv)
 {
-  // initialize grammar:
-  char* grmstr = "/home/peter/Eclipse/pet-icr/sample/tokmap-grammar/grammar.grm";
-  std::string base = raw_name(grmstr);
-  cheap_settings = new settings(base.c_str(), grmstr, "reading");
-  Grammar = new tGrammar(grmstr);
+  // retrieve path of the sample grammar:
+  if (argc != 2) {
+    printf("usage: %s <grammar-name>", argv[0]);
+    return 2;
+  }
+  string grampath = find_file(argv[1], GRAMMAR_EXT);
+  if(grampath.empty()) {
+    fprintf(ferr, "Grammar not found\n");
+    return 3;
+  }
+  string gramname = raw_name(grampath.c_str());
+  cheap_settings = new settings(gramname.c_str(), grampath.c_str(), "reading");
+  Grammar = new tGrammar(grampath.c_str());
   
   // create and setup unit testing objects:
   CppUnit::TestResultCollector result;
