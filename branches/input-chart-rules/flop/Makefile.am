@@ -1,13 +1,12 @@
 # -*- makefile -*-
 
-FLOPCPPFLAGS = @FLOPCPPFLAGS@
-
 include $(top_srcdir)/common/Makefile.common
 
 bin_PROGRAMS = flop
 
-DEFS = -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
-AM_CPPFLAGS = -Wall -I$(top_srcdir)/common $(FLOPCPPFLAGS)
+DEFS += -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
+AM_CPPFLAGS = -I$(top_srcdir)/common @FLOPCPPFLAGS@
+AM_CXXFLAGS = -Wall
 
 # The include-file dependencies are automatically computed by Automake
 # (`Automatic dependency tracking'). Thus, the headers do not need to be listed
@@ -18,16 +17,12 @@ flop_SOURCES = corefs.cpp \
 	dag-tdl.cpp \
 	dump.cpp \
 	expand.cpp \
-	flop.cpp \
-	flop.h \
+	flop.cpp flop.h \
 	full-form.cpp \
-	hierarchy.cpp \
-	hierarchy.h \
-	options.cpp \
-	options.h \
+	hierarchy.cpp hierarchy.h \
+	options.cpp options.h \
 	parse-tdl.cpp \
-	partition.cpp \
-	partition.h \
+	partition.cpp partition.h \
 	print-chic.cpp \
 	print-tdl.cpp \
 	reduction.cpp \

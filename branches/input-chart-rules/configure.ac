@@ -8,6 +8,8 @@ AC_CONFIG_HEADERS([pet-config.h])
 AM_INIT_AUTOMAKE([1.7 foreign])
 dnl dejagnu dist-bzip2 no-dependencies
 
+
+
 # --------------------------------------------------------------------
 # Checks for programs.
 # --------------------------------------------------------------------
@@ -18,11 +20,12 @@ AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_INSTALL
 AC_PROG_AWK
+AC_PROG_GREP
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 
 # Check for doxygen to generate documentation
-AC_PATH_PROG([DOXYGEN],[doxygen],[])
+AC_PATH_PROG([DOXYGEN],[doxygen])
 AM_CONDITIONAL([DOCBUILDERS], [ test "$DOXYGEN" != "" ])
 if test "$DOXYGEN" == "" ; then
     AC_WARN([Cannot find doxygen. Disabling API doc targets.])
@@ -250,43 +253,42 @@ saveLDFLAGS="$LDFLAGS"
 # --------------------------------------------------------------------
 
 AC_ARG_WITH(icu,
-[AC_HELP_STRING([--with-icu@<:@=DIR@:>@], [use the ICU library (default=yes)])],
-[
-case "${withval}" in
-    yes) icu=true ;;
-    no)  icu=false ;;
-    *)   icu=true
-         ICUDIR=${withval} ;;
-esac
-], [ icu=true ])
+  [AC_HELP_STRING([--with-icu@<:@=DIR@:>@], [use the ICU library (default:check)])],
+  [ case "${withval}" in
+      yes) icu=yes ;;
+      no)  icu=no ;;
+      *)   icu=yes
+           ICUDIR=${withval} ;;
+    esac],
+  [ icu=yes ])
 
 check_icu() {
-if test x$ICUDIR != x ; then
-    if test -d ${ICUDIR} && test -d $ICUDIR/include && test -d $ICUDIR/lib ; then 
-        LDFLAGS="$LDFLAGS -L${ICUDIR}/lib"
-        export LDFLAGS
-    else 
-        AC_MSG_WARN([directory ${ICUDIR}, ${ICUDIR}/lib or ${ICUDIR}/include not found for --with-icu; DISABLED])
-        return 1
-    fi
-fi
-# Not detected by autoheader, but required by ICU
-AC_CHECK_LIB([pthread], [pthread_exit], [ icu=true ],
-    [ AC_MSG_WARN([pthread library not found for --with-icu; DISABLED])
-        return 1 ])
-AC_CHECK_LIB([icudata], [main], [ icu=true ], 
-    [ AC_MSG_WARN([icudata library not found for --with-icu; DISABLED])
-        return 1 ])
-dnl AC_CHECK_LIB([icuuc], [main], [ icu=true ], 
-dnl     [ AC_MSG_WARN([icuuc library not found for --with-icu; DISABLED])
-dnl         return 1 ])
-dnl AC_CHECK_LIB([icui18n], [main], [ icu=true ], 
-dnl     [ AC_MSG_WARN([icui18n library not found for --with-icu; DISABLED])
-dnl           return 1 ])
-return 0
+  if test x$ICUDIR != x ; then
+      if test -d ${ICUDIR} && test -d $ICUDIR/include && test -d $ICUDIR/lib ; then 
+          LDFLAGS="$LDFLAGS -L${ICUDIR}/lib"
+          export LDFLAGS
+      else 
+          AC_MSG_WARN([directory ${ICUDIR}, ${ICUDIR}/lib or ${ICUDIR}/include not found for --with-icu; DISABLED])
+          return 1
+      fi
+  fi
+  # Not detected by autoheader, but required by ICU
+  AC_CHECK_LIB([pthread], [pthread_exit], [ icu=yes ],
+      [ AC_MSG_WARN([pthread library not found for --with-icu; DISABLED])
+          return 1 ])
+  AC_CHECK_LIB([icudata], [main], [ icu=yes ], 
+      [ AC_MSG_WARN([icudata library not found for --with-icu; DISABLED])
+          return 1 ])
+  dnl AC_CHECK_LIB([icuuc], [main], [ icu=yes ], 
+  dnl     [ AC_MSG_WARN([icuuc library not found for --with-icu; DISABLED])
+  dnl         return 1 ])
+  dnl AC_CHECK_LIB([icui18n], [main], [ icu=yes ], 
+  dnl     [ AC_MSG_WARN([icui18n library not found for --with-icu; DISABLED])
+  dnl           return 1 ])
+  return 0
 }
 
-if test x$icu = xtrue && check_icu ; then
+if test "$icu" = "yes" && check_icu ; then
     if test x$ICUDIR != x ; then
         CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ICUDIR}/include"
         CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ICUDIR}/lib"`
@@ -294,9 +296,9 @@ if test x$icu = xtrue && check_icu ; then
     CHEAPLIBS="-lpthread -licuuc -licui18n -licudata $CHEAPLIBS"
     AC_DEFINE(HAVE_ICU, [1], [use international character library from IBM]) 
 else
-    icu=false
+    icu=no
 fi
-AM_CONDITIONAL(ICU, [test X$icu = Xtrue])
+AM_CONDITIONAL(ICU, [test "$icu" = "yes"])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
@@ -306,35 +308,26 @@ LDFLAGS="$saveLDFLAGS"
 # boost library.
 # --------------------------------------------------------------------
 
-AC_ARG_WITH(boost,
-[AC_HELP_STRING([--with-boost=DIR], [use the BOOST library in DIR])],
-[
-if test -d "${withval}"; then 
-    boost=true
-    BOOSTDIR=${withval}
-else
-    boost=false
-    AC_MSG_ERROR(directory ${withval} not found for --with-boost)
+AX_BOOST_BASE([1.32], [boost=yes], [boost=no])
+if test "$boost" = "yes" ; then
+  CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
+  AC_LANG_PUSH([C++])
+  AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp \
+                    boost/graph/topological_sort.hpp \
+                    boost/lambda/lambda.hpp ],
+                   [],
+                   [ boost=no ; break ],
+                   [])
+  AC_LANG_POP([C++])
+  CPPFLAGS="$saveCPPFLAGS"
+  LDFLAGS="$saveLDFLAGS"
 fi
-],
-[ boost=true ])
-
-if test x$boost = xtrue ; then
-    if test x${BOOSTDIR} != x ; then
-       CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
-    fi
-    AC_LANG_PUSH([C++])
-    AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-    dnl Necessary only for test binary boost:
-    dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-    AC_LANG_POP([C++])
+if test "$boost" = "yes" ; then
+  if echo " ${FLOPCPPFLAGS} " | $GREP -q -v " ${BOOST_CPPFLAGS} " ; then
+    FLOPCPPFLAGS="${FLOPCPPFLAGS} ${BOOST_CPPFLAGS}"
+  fi
 fi
-AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
-if test x$boost = xtrue -a -n "${BOOSTDIR}" ; then
-    FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
-fi
-CPPFLAGS="$saveCPPFLAGS"
-LDFLAGS="$saveLDFLAGS"
+AM_CONDITIONAL(BOOST, [test "$boost" = "yes"])
 
 
 
@@ -343,41 +336,41 @@ LDFLAGS="$saveLDFLAGS"
 # --------------------------------------------------------------------
 
 AC_ARG_WITH(xml,
-[AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the Xerces C++ library (enables XML input modes) (default=no)])],
+[AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the Xerces C++ library (enables XML input modes) (default: no)])],
 [
 case "${withval}" in
-    yes) xml=true ;;
-    no)  xml=false ;;
-    *)   xml=true
+    yes) xml=yes ;;
+    no)  xml=no ;;
+    *)   xml=yes
             XERCESCDIR=${withval} ;;
 esac
 save_LD="$LDFLAGS"
-if test x$xml = xtrue -a -n "${XERCESCDIR}" ; then
+if test "$xml" = "yes" -a -n "${XERCESCDIR}" ; then
    if test -d "${XERCESCDIR}" ; then
       LDFLAGS="$LDFLAGS -L${XERCESCDIR}/lib -licuuc -licudata"
    else 
       AC_MSG_WARN([directory ${XERCESCDIR} not found for --with-xml; DISABLED])
-      xml=false
+      xml=no
    fi
 fi
-if test x$xml = xtrue ; then
-    AC_CHECK_LIB([xerces-c], [_init], [ xml=true ],
+if test "$xml" = "yes" ; then
+    AC_CHECK_LIB([xerces-c], [_init], [ xml=yes ],
         [
-        xml=false
+        xml=no
         AC_MSG_WARN([Xerces C++ library not found for --with-xml; DISABLED])
         ])
 else
-    xml=false
+    xml=no
 fi
 LDFLAGS="$save_LD"
-], [xml=false])
-if test x$xml = xtrue ; then
+], [xml=no])
+if test "$xml" = "yes" ; then
     CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${XERCESCDIR}/include"
     CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${XERCESCDIR}/lib"`
     CHEAPLIBS="-lxerces-c $CHEAPLIBS"
     AC_DEFINE(HAVE_XML, [1], [Enable XML input modes, using Xerces C++ library])
 fi
-AM_CONDITIONAL(XML, [test x$xml = xtrue])
+AM_CONDITIONAL(XML, [test "$xml" = "yes"])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
@@ -388,15 +381,15 @@ LDFLAGS="$saveLDFLAGS"
 # --------------------------------------------------------------------
 
 AC_ARG_WITH(tsdb,
-[AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default=yes)])],
+[AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default:check)])],
 [
 case "${withval}" in
-    yes) tsdb=true ;;
-    no)  tsdb=false ;;
-    *)   tsdb=true
+    yes) tsdb=yes ;;
+    no)  tsdb=no ;;
+    *)   tsdb=yes
          ITSDBDIR=${withval};;
 esac
-], [tsdb=true])
+], [tsdb=yes])
 
 check_tsdb() {
 if test -d ${ITSDBDIR}/include ; then
@@ -431,7 +424,7 @@ else
 fi
 }
 
-if test x$tsdb = xtrue && check_tsdb ; then 
+if test "$tsdb" = "yes" && check_tsdb ; then 
       AC_DEFINE(TSDBAPI, [1], ["incr[tsdb()] libraries available, supply API"])
       CHEAPLIBS="-litsdb $CHEAPLIBS"
       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ITSDBDIR}/include"
@@ -439,9 +432,9 @@ if test x$tsdb = xtrue && check_tsdb ; then
       # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
       CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ITSDBDIR}/lib/${OS}"`
 else
-    tsdb=false
+    tsdb=no
 fi
-AM_CONDITIONAL(TSDB, [test x$tsdb = xtrue])
+AM_CONDITIONAL(TSDB, [test "$tsdb" = "yes"])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
@@ -458,13 +451,13 @@ AC_ARG_WITH(mrs,
                 [specify the path to the MRS Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})])],
 [ dnl the command line switch was given, eventually check provided MRSDIR
 case "${withval}" in
-    yes) mrs=true ;;
-    no)  mrs=false ;;
-    *)   mrs=true
+    yes) mrs=yes ;;
+    no)  mrs=no ;;
+    *)   mrs=yes
          MRSDIR=${withval};;
 esac
-], [mrs=true])
-if test "x$mrs" = xtrue ; then
+], [mrs=yes])
+if test ""$mrs"" = "yes" ; then
   if test \! -f "${MRSDIR}/src/general/loadup.lisp" ; then
     if test -f "${withval}/general/loadup.lisp" ; then
        MRSDIR=${withval%%/}
@@ -474,9 +467,9 @@ if test "x$mrs" = xtrue ; then
   if test \! -f "${MRSDIR}/src/general/loadup.lisp" ; then
      AC_MSG_WARN([no MRS code found in ${MRSDIR}; DISABLED])
      MRSDIR=""
-     mrs=false
+     mrs=no
   else
-     mrs=true
+     mrs=yes
   fi
 else
   MRSDIR=""
@@ -485,18 +478,18 @@ fi
 PREPROCDIR="${ITSDBDIR}"
 dnl check the Lisp code directory for the preprocessor
 AC_ARG_WITH(preproc,
-[AC_HELP_STRING([--with-preproc@<:@=DIR@:>@], [specify the path to the x-preprocessor Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})\])],
+[AC_HELP_STRING([--with-preproc@<:@=DIR@:>@], [specify the path to the x-preprocessor Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})])],
 dnl (default=no)
 [
 dnl AC_MSG_WARN([PREPROC WITHVAL = ${withval}])
 case "${withval}" in
-    yes) preproc=true ;;
-    no)  preproc=false ; echo "Disabling preprocessor code" ;;
-    *)   preproc=true
+    yes) preproc=yes ;;
+    no)  preproc=no ; echo "Disabling preprocessor code" ;;
+    *)   preproc=yes
          PREPROCDIR=${withval};;
 esac
-], [ preproc=true ])
-if test x$preproc = xtrue ; then
+], [ preproc=yes ])
+if test "$preproc" = "yes" ; then
   if test \! -f "${PREPROCDIR}/src/general/loadup.lisp" ; then
      if test -f "${PREPROCDIR}/general/loadup.lisp" ; then
         PREPROCDIR=${PREPROCDIR%%/}
@@ -504,7 +497,7 @@ if test x$preproc = xtrue ; then
      else
         AC_MSG_WARN([no PREPROC code found in ${PREPROCDIR} for --with-preprocdir])
         PREPROCDIR=""
-        preproc=false
+        preproc=no
      fi
   fi
 else
@@ -514,28 +507,28 @@ fi
 
 
 # --------------------------------------------------------------------
-# ECL (Embedded Common Lisp).
+# ECL (Embeddable Common Lisp).
 # --------------------------------------------------------------------
 
 AC_ARG_WITH(ecl,
 [AC_HELP_STRING([--with-ecl@<:@=DIR@:>@], 
-                [use ECL for mrs or preprocessing or both (default=yes)])],
+                [use ECL for mrs or preprocessing or both (default:check)])],
 [
 case "${withval}" in
-    yes) ecl=true ;;
-    no)  ecl=false ;;
-    *)   ecl=true
+    yes) ecl=yes ;;
+    no)  ecl=no ;;
+    *)   ecl=yes
          ECLDIR=${withval} ;;
 esac
-], [ ecl=true ])
+], [ ecl=yes ])
 
 eclincldir=""
-if test x$ecl = xtrue; then
-  dnl check ECL: binary, include dir, libs
-  AC_PATH_PROG(ECL, ecl, no, [$PATH:${ECLDIR}/bin])
+if test "$ecl" = "yes"; then
+  # check ECL: binary, include dir, libs
+  AC_PATH_PROG(ECL, ecl, no, [${ECLDIR}/bin:$PATH])
   if test $ECL = no ; then 
     AC_MSG_WARN([no ecl binary found in ${ECLDIR}/bin; ECL DISABLED])
-    ecl=false
+    ecl=no
   else
     if test -z "${ECLDIR}" ; then
        ECLDIR=`dirname $ECL`
@@ -552,53 +545,68 @@ if test x$ecl = xtrue; then
     fi
     if test -z "$eclincl" ; then
       AC_MSG_WARN([in ${ECLDIR}/lib, neither ./h nor ./ecl/h nor ./ecl/ecl found; ECL DISABLED])
-      ecl=false
+      ecl=no
     else
-      CPPFLAGS="$CPPFLAGS ${eclincl}"
-      export CPPFLAGS
+      export CPPFLAGS="$CPPFLAGS ${eclincl}"
       AC_CHECK_HEADERS([ecl.h], [],
          [ AC_MSG_WARN([header files not found: ${eclincl}; ECL DISABLED])
-           ecl=false 
+           ecl=no 
          ],[])
     fi
   fi
 fi
-if test "x$ecl" == xtrue ; then
-   LDFLAGS="$LDFLAGS -L${ECLDIR}/lib/ecl -lpthread -ldl  -lm "
+if test "$ecl" == "yes" ; then
+   LDFLAGS="$LDFLAGS -L${ECLDIR}/lib/ecl -lpthread -ldl -lm "
    export LDFLAGS
    # check ECL Libraries
-   AC_CHECK_LIB([ecl], [cl_map], [ ecl=true ], 
+   AC_CHECK_LIB([ecl], [cl_map], [ ecl=yes ], 
         [ AC_MSG_WARN([libecl.so not found in ${ECLDIR}/lib/ecl; ECL DISABLED])
-          ecl=false
+          ecl=no
         ])
+fi
+# check whether ECL provides the necessary functions (functions have changed
+# between 0.9h and 0.9i):
+# TODO: a proper solution should check the older and newer functions in one
+#       step and should use the correct version depending on the HAVE_FUNCTIONs
+#       but since these functions are not the only problem with ecl 0.9i, I
+#       have not done this.... (Peter Adolphs, Jul 24, 2007)
+if test "$ecl" = "yes" ; then
+  LDFLAGS="$LDFLAGS -lecl"
+  AC_CHECK_FUNCS([make_string_copy make_simple_string aref1],[ecl=yes],[ecl=no])
+  AC_CHECK_FUNCS([make_base_string_copy make_simple_base_string ecl_aref1],
+                 [ecl=no; ecl09i=yes], [ecl09i=no])
+fi
+if test "$ecl" = "no" -a "$ecl09i" = "yes" ; then
+  AC_MSG_WARN([you seem to have ECL 0.9i, which is currently not supported;
+               please use ECL 0.9h or earlier; ECL DISABLED])
 fi
 
 dnl all tests for ECL components have been executed, draw conclusions
-if test x$ecl = xtrue ; then
+if test "$ecl" = "yes" ; then
   CHEAPLIBS="-lecl $CHEAPLIBS"
   CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ECLDIR}/lib/ecl"`
   CHEAPCPPFLAGS="$CHEAPCPPFLAGS ${eclincl}"
-  if test x$mrs == xtrue ; then
+  if test "$mrs" = "yes" ; then
      AC_DEFINE(HAVE_MRS, [1], [use ECL MRS library])
      ECLUSER="_mrs"
   fi
-  if test x$preproc == xtrue; then
+  if test "$preproc" = "yes"; then
      AC_DEFINE(HAVE_PREPROC, [1], [use ECL x-preprocessing library])
      ECLUSER=${ECLUSER}"_preproc"
   fi
   if test x$ECLUSER != x ; then
      AC_DEFINE(HAVE_ECL, [1], [Use ECL for MRS or preprocessing library])
   else
-     ecl=false
+     ecl=no
   fi
 else
-  preproc=false
-  mrs=false    
+  preproc=no
+  mrs=no    
 fi
-AM_CONDITIONAL(ECL, [test x$ECLUSER != x])
+AM_CONDITIONAL(ECL, [test -n "$ECLUSER"])
 dnl Substitute this to compile libmrs.a
-AM_CONDITIONAL(ECLMRS, [test x$mrs = xtrue])
-AM_CONDITIONAL(ECLPREPROC, [test x$preproc = xtrue])
+AM_CONDITIONAL(ECLMRS, [test "$mrs" = "yes"])
+AM_CONDITIONAL(ECLPREPROC, [test "$preproc" = "yes"])
 
 AC_SUBST(MRSDIR)
 AC_SUBST(PREPROCDIR)
@@ -640,8 +648,9 @@ AM_CONDITIONAL(CPPUNIT, [test "$cppunit" = "yes"])
 
 # Not via defines in config.h because there is no choice for flop!
 AC_ARG_ENABLE(unifier,
-AC_HELP_STRING([--enable-unifier@<:@=ARG@:>@], [use the unifier (default=tomabechi)
-Possible values are: tomabechi, simple]),
+AC_HELP_STRING([--enable-unifier=ARG],
+               [choice of the unifier @<:@ARG=tomabechi@:>@.
+                Possible values are: tomabechi, simple]),
 [case "${enableval}" in
    tomabechi) unifier=tomabechi ;;
    simple)    unifier=simple ;;
@@ -654,20 +663,6 @@ AM_CONDITIONAL(SIMPLE_UNIFIER, [test x$unifier = xsimple])
 
 
 # --------------------------------------------------------------------
-# Dynamic Symbols
-# --------------------------------------------------------------------
-
-# Not via defines in config.h because there is no choice for flop!
-#AC_ARG_ENABLE(dynamic-symbols,
-#AC_HELP_STRING([--enable-dynamic-symbols], [enable or disable dynamic symbols (default=enabled)]),
-#[dynsymbols=${enableval}], [dynsymbols=yes])
-#if test x$dynsymbols=xyes ; then
-#   AC_DEFINE([DYNAMIC_SYMBOLS],[1],[Enable the use of dynamic symbols/atoms])
-#fi
-
-
-
-# --------------------------------------------------------------------
 # external lexicon based on postgresql database
 # --------------------------------------------------------------------
 
@@ -675,12 +670,12 @@ dnl AC_ARG_WITH(lexdb,
 dnl [AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
 dnl [
 dnl case "${withval}" in
-dnl     yes) lexdb=true ;;
-dnl     no)  lexdb=false ;;
-dnl     *)   lexdb=true
+dnl     yes) lexdb=yes ;;
+dnl     no)  lexdb=no ;;
+dnl     *)   lexdb=yes
 dnl          PSQLDIR=${withval} ;;
 dnl esac
-dnl ], [ lexdb=true ])
+dnl ], [ lexdb=yes ])
 
 check_psql() {
 if test x$PSQLDIR != x ; then
@@ -706,7 +701,7 @@ AC_CHECK_LIB([pq], [main], [],
 return 0
 }
 
-dnl if test x$lexdb = xtrue && check_psql ; then
+dnl if test "$lexdb" = "yes" && check_psql ; then
 dnl    if test x$PSQLDIR != x ; then
 dnl       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
 dnl       CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${PSQLDIR}/lib"`
@@ -714,9 +709,9 @@ dnl    fi
 dnl    CHEAPLIBS="-lpq $CHEAPLIBS"
 dnl    AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database]) 
 dnl else
-dnl    lexdb=false
+dnl    lexdb=no
 dnl fi
-dnl AM_CONDITIONAL(LEXDB, [test x$lexdb = xtrue])
+dnl AM_CONDITIONAL(LEXDB, [test "$lexdb" = "yes"])
 dnl CPPFLAGS="$saveCPPFLAGS"
 dnl LDFLAGS="$saveLDFLAGS"
 
@@ -727,18 +722,18 @@ dnl LDFLAGS="$saveLDFLAGS"
 # --------------------------------------------------------------------
 
 AC_ARG_ENABLE(yy,
-AC_HELP_STRING([--enable-yy@<:@=ARG@:>@], [use the YY extensions (default=yes)]),
-[case "${enableval}" in
-   yes) yy=true ;;
-   no)  yy=false ;;
-   *)   yy=false
-        AC_MSG_ERROR(bad value ${enableval} for --enable-yy) ;;
- esac
-], [yy=true])
-if test x$yy = xtrue; then 
+  AC_HELP_STRING([--disable-yy], [disable the YY extensions]),
+  [case "${enableval}" in
+     yes) yy=yes ;;
+     no)  yy=no ;;
+     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-yy) ;;
+   esac
+  ],
+  [yy=yes])
+if test "$yy" = "yes"; then 
     AC_DEFINE(YY, [1], [Include some YY specific code])
 fi
-AM_CONDITIONAL(YY, [test x$yy = xtrue])
+AM_CONDITIONAL(YY, [test "$yy" = "yes"])
 
 
 
@@ -747,18 +742,17 @@ AM_CONDITIONAL(YY, [test x$yy = xtrue])
 # --------------------------------------------------------------------
 
 AC_ARG_ENABLE(instfc,
-AC_HELP_STRING([--enable-instfc@<:@=ARG@:>@], [use the instantiation failure cache (default=yes)]),
-[case "${enableval}" in
-   yes) instfc=true ;;
-   no)  instfc=false ;;
-   *)   instfc=false
-        AC_MSG_ERROR(bad value ${enableval} for --enable-instfc) ;;
- esac
-], [instfc=true])
-if test x$instfc = xtrue; then 
+  AC_HELP_STRING([--disable-instfc], [disable the instantiation failure cache]),
+  [case "${enableval}" in
+     yes) instfc=yes ;;
+     no)  instfc=no ;;
+     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-instfc) ;;
+   esac],
+  [instfc=yes])
+if test "$instfc" = "yes"; then 
     AC_DEFINE(INSTFC, [1], [Include instantiation failure cache code])
 fi
-AM_CONDITIONAL(INSTFC, [test x$instfc = xtrue])
+AM_CONDITIONAL(INSTFC, [test "$instfc" = "yes"])
 
 
 
@@ -767,12 +761,14 @@ AM_CONDITIONAL(INSTFC, [test x$instfc = xtrue])
 # --------------------------------------------------------------------
 
 AC_ARG_ENABLE(qccomp,
-[AC_HELP_STRING([--enable-qccomp], [enable/disable recording of failures for quick check computation (default: no)])],
-[case "${enableval}" in
-   no)   qccomp=no;;
-   *)    qccomp=yes;;
- esac
-], [qccomp=no])
+  [AC_HELP_STRING([--enable-qccomp], [enable recording of failures for quick check computation])],
+  [case "${enableval}" in
+     yes) qccomp="${enableval}" ;;
+     no)  qccomp="${enableval}" ;;
+     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-qccomp) ;;
+   esac
+  ],
+  [qccomp=no])
 if test x$qccomp = xyes ; then
     AC_DEFINE(QC_PATH_COMP, [1], [Enable code for QuickCheck computation])
 fi
@@ -784,19 +780,18 @@ fi
 # --------------------------------------------------------------------
 
 AC_ARG_ENABLE(lui,
-AC_HELP_STRING([--enable-lui@<:@=ARG@:>@], [enable LUI dumping (default=no)]),
-[case "${enableval}" in
-   yes) lui=true ;;
-   no)  lui=false ;;
-   *)   lui=false
-        AC_MSG_ERROR(bad value ${enableval} for --enable-lui) ;;
- esac
-], [lui=false])
-if test x$lui = xtrue; then 
+  AC_HELP_STRING([--enable-lui], [enable LUI dumping]),
+  [case "${enableval}" in
+     yes) lui=yes ;;
+     no)  lui=no ;;
+     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-lui) ;;
+   esac],
+  [lui=no])
+if test "$lui" = "yes"; then 
     AC_DEFINE(LUI, [1], [Enable grammar dumping in LUI format])
 fi
 # no extra files, don't need Makefile conditional
-# AM_CONDITIONAL(LUI, [test x$lui = xtrue])
+# AM_CONDITIONAL(LUI, [test "$lui" = "yes"])
 
 
 
@@ -808,15 +803,15 @@ dnl What the *&^@~! is that?
 dnl AC_ARG_ENABLE(external-dictionary,
 dnl [AC_HELP_STRING([--enable-external-dictionary@<:@=DIR@:>@], [use an external dictionary (default=no)])],
 dnl [case "${enableval}" in
-dnl    yes) extdict=true ;;
-dnl    no)  extdict=false ;;
+dnl    yes) extdict=yes ;;
+dnl    no)  extdict=no ;;
 dnl    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-external-dictionary])
 dnl  esac
-dnl  if test x$extdict = xtrue ; then
+dnl  if test "$extdict" = "yes" ; then
 dnl     AC_DEFINE(HAVE_EXTDICT, [1], [enable external dictionary])
 dnl  fi
-dnl ], [extdict=false])
-dnl AM_CONDITIONAL(EXTDICT, [test x$extdict = xtrue])
+dnl ], [extdict=no])
+dnl AM_CONDITIONAL(EXTDICT, [test "$extdict" = "yes"])
 
 
 
@@ -828,11 +823,11 @@ dnl robust processing code by frederik fouvry, not supported at the moment
 dnl AC_ARG_ENABLE(rcu,
 dnl [AC_HELP_STRING([--enable-rcu@<:@=ARG@:>@], [use the RCU extensions (default=no)])],
 dnl [case "${enableval}" in
-dnl    yes) rcu=true ;;
-dnl    no)  rcu=false ;;
+dnl    yes) rcu=yes ;;
+dnl    no)  rcu=no ;;
 dnl    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-rcu])
-dnl esac], [rcu=false])
-dnl AM_CONDITIONAL(RCU, [test x$rcu = xtrue])
+dnl esac], [rcu=no])
+dnl AM_CONDITIONAL(RCU, [test "$rcu" = "yes"])
 
 
 
@@ -841,12 +836,13 @@ dnl AM_CONDITIONAL(RCU, [test x$rcu = xtrue])
 # --------------------------------------------------------------------
 
 AC_ARG_ENABLE(mmapalloc,
-[AC_HELP_STRING([--enable-mmapalloc], [enable/disable use of mmap allocator (default=no for mmap)])],
-[case "${enableval}" in
-   yes) mmapalloc=yes;;
-   *)   mmapalloc=no;;
- esac
-], [mmapalloc=no])
+  [AC_HELP_STRING([--enable-mmapalloc], [enable mmap allocator])],
+  [case "${enableval}" in
+     yes) mmapalloc="${enableval}" ;;
+     no)  mmapalloc="${enableval}" ;;
+     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-lui) ;;
+   esac],
+  [mmapalloc=no])
 if test "$mmapalloc" = "yes" ; then
     AC_FUNC_MMAP
 fi
@@ -857,25 +853,21 @@ fi
 # Summary
 # --------------------------------------------------------------------
 
-feature_avail() {
-(
-  if test x$1 != x$2 ; then foo="NOT " ; fi
-  echo "$3 is ${foo}available"
-)
-}
-echo ; echo "============================================================="
-feature_avail x$boost xtrue "Boost (required for flop)"
-feature_avail x$tsdb xtrue "tsdb"
-feature_avail x$ecl xtrue "ecl lisp processor"
-feature_avail x$mrs xtrue "MRS code with ecl"
-feature_avail x$preproc xtrue "preprocessor code with ecl"
-feature_avail x$icu xtrue "ICU"
-feature_avail x$xml xtrue "Xerces C++ (for XML input modes)"
-dnl feature_avail x$lexdb xtrue "External SQL dictionary"
-feature_avail x$mmapalloc xyes "Memory allocation with mmap"
-feature_avail x$qccomp xyes "Code for quick-check computation"
-feature_avail x$cppunit xyes "Unit testing with CppUnit"
-echo "=============================================================" ; echo
+echo
+echo "============================================================="
+echo "Boost (required for flop)                       $boost"
+echo "tsdb (system benchmarking)                      $tsdb"
+echo "Embeddable Common-Lisp processor (ECL)          $ecl"
+echo "MRS code (requires ECL)                         $mrs"
+echo "preprocessor code (requires ECL)                $preproc"
+echo "ICU (Unicode support)                           $icu"
+echo "Xerces C++ (for XML input modes)                $xml"
+echo "CppUnit (for unit testing)                      $cppunit"
+#echo "External SQL dictionary                         $lexdb"
+echo "Memory allocation with mmap                     $mmapalloc"
+echo "Code for quick-check computation                $qccomp"
+echo "============================================================="
+echo
 
 
 

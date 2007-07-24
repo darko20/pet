@@ -1,6 +1,6 @@
 # conditional directories are always automatically added to DIST_SUBDIRS
 # (but not if DIST_SUBDIRS is manually overwritten)
-if ECL
+if ECLPREPROC
 MAYBE_FSPP   = fspp
 endif
 SUBDIRS      = common flop cheap $(MAYBE_FSPP)
