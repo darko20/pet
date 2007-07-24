@@ -22,7 +22,8 @@ bin_PROGRAMS = tester
 # because both files would be build in the same directory with the same
 # filename.
 tester_SOURCES = tester.cpp \
-	paths-test.cpp
+	paths-test.cpp \
+	types-test.cpp
 
 # test the object files compiled before:
 tester_LDADD = ../chart.o \
