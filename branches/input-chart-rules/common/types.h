@@ -50,12 +50,19 @@ extern char **statusnames;
 
 /** @name Types
  * 
- *  the universe of types \f$ [0 \ldots ntypes[ \f$ is split into two
+ * Types that are defined in the grammar (including automatically constructed
+ * glb-types) are called static types. Types that are added at run-time are
+ * called dynamic types. Types with exactly one parent and without any
+ * substructure are called leaf types. Dynamic types are sub-types of
+ * BI_STRING, and are therefore always leaf types.
+ * 
+ *  the universe of static types \f$ [0 \ldots ntypes[ \f$ is split into two
  *  consecutive, disjunct ranges:
  *   -# proper types  \f$ [ 0 \ldots first_leaftype [ \f$
  *   -# leaf types    \f$ [ first_leaftype \ldots ntypes [ \f$
  *  proper types have a full bitcode representation, for leaf types only the
  *  parent type is stored. a status value is stored for each type.
+ * 
  */
 /*@{*/
 
@@ -64,7 +71,7 @@ typedef int attr_t;
 
 #define T_BOTTOM ((type_t) -1)       /// failure of type unification
 
-/** The number of leaf types */
+/** The number of static leaf types */
 extern int nleaftypes;
 /** The number of all static types (defined in the grammar) */
 extern int ntypes;
@@ -156,14 +163,13 @@ void free_type_tables();
 /** Check the validity of type code \a a. */
 inline bool is_type(type_t a) { return a >= 0 && a < last_dynamic; }
 
-/** Return \c true if type code \a a is a proper type (a non-dynamic type that
- *  is not a leaf). */
+/** Return \c true if type \a a is a proper type (i.e., a static non-leaf). */
 inline bool is_proper_type(type_t a) {
   assert(is_type(a));
   return a < first_leaftype;
 }
 
-/** Return \c true if type code \a a is a (non-dynamic) leaf type. */
+/** Return \c true if type \a a is a leaf type. */
 inline bool is_leaftype(type_t a) {
   assert(is_type(a));
   return a >= first_leaftype;
@@ -172,7 +178,7 @@ inline bool is_leaftype(type_t a) {
 /** Return \c true if type code \a a is a type from the hierarchy and not a
  *  dynamic type.
  */
-inline bool is_resident_type(type_t a) {
+inline bool is_static_type(type_t a) {
   assert(a >= 0);  // save one test in production code
   return a < ntypes;
 }
@@ -217,12 +223,12 @@ void clear_dynamic_symbols () ;
 
 /** Get the type name of a type (static or dynamic) */
 inline const char *type_name(type_t type) {
-  return is_resident_type(type) 
+  return is_static_type(type) 
     ? typenames[type] : dyntypename[type - ntypes].c_str();
 }
 /** Get the print name of a type (static or dynamic) */
 inline const char *print_name(type_t type) {
-  return is_resident_type(type) 
+  return is_static_type(type) 
     ? printnames[type] : dyntypename[type - ntypes].c_str();
 }
 #else
@@ -250,7 +256,7 @@ void undump_printnames(class dumper *f);
 void
 undumpSupertypes(class dumper *f);
 
-/** Return the list of immediate supertypes of \a type.
+/** Return the list of immediate supertypes of proper type \a type.
  * \pre \a type must be a proper type.
  */
 const std::list<type_t> &immediate_supertypes(type_t type);
@@ -270,11 +276,16 @@ bool core_subtype(type_t a, type_t b);
  */
 bool subtype(type_t a, type_t b);
 #ifndef FLOP
-/** Compute the subtype relations for  \a A and \a B in parallel.
- *  \a a is set to \c true if \a A is subtype of \a B, \a b analogously.
+/** Compute the subtype relations for \a a and \a b in parallel.
+ * \a forward is set to \c true if \a a is subtype of \a b,
+ * \a backward analogously.
+ * 
+ * \pre  \a a != \a b, \a a >= 0, \a b >= 0
+ * \param[out] forward  value as returned by \a subtype(a, b)
+ * \param[out] backward value as returned by \a subtype(b, a)
  */
 void
-subtype_bidir(type_t A, type_t B, bool &a, bool &b);
+subtype_bidir(type_t a, type_t b, bool &forward, bool &backward);
 #endif
 
 /** \brief Compute the greatest lower bound in the type hierarchy of \a a and 

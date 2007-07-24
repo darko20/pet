@@ -1,4 +1,6 @@
 v0.99.??
+  - dynamic types are subtypes of BI_STRING
+  - renamed is_resident_type() to is_static_type()
   - reactivated unit tests
   - adapted build files:
     made `make distcheck' work again;

@@ -514,9 +514,6 @@ void get_all_supertypes(type_t type, hash_set< type_t > &result) {
   // information 
   if((type == BI_TOP) || (result.find(type) != result.end())) return;
   result.insert(type);
-#ifdef DYNAMIC_SYMBOLS
-  if (is_dynamic_type(type)) return;
-#endif
   if (is_leaftype(type)) {
     get_all_supertypes(leaftype_parent(type), result);
   } else {
@@ -588,9 +585,10 @@ bool subtype(int a, int b)
   if(b == -1) return false; // no other type is a subtype of bottom
 
 #ifdef DYNAMIC_SYMBOLS
-  if(is_dynamic_type(a)) return false; // dyntypes are only subtypes of BI_TOP
-    // return subtype(b, BI_STRING); // dyntypes are direct subtypes of STRING
-  if(is_dynamic_type(b)) return false; // and always leaf types
+  if(is_dynamic_type(a))
+    return b == BI_STRING;             // dyntypes are direct subtypes of STRING
+  if(is_dynamic_type(b))
+    return false;                      // and always leaf types
 #endif
 
 #ifdef FLOP
@@ -623,15 +621,8 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     // precondition: a != b, a >= 0, b >= 0
     // postcondition: forward == subtype(a, b) && backward == subtype(b, a)
     
-#ifdef SUBTYPE_PROFILING
-    fprintf(ferr, "ST %d %d - ", a, b);
-#endif
-
     if(a == BI_TOP)
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "1\n");
-#endif
         forward = false;
         backward = true;
         return;
@@ -639,21 +630,19 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
 
     if(b == BI_TOP)
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "2\n");
-#endif
         forward = true;
         backward = false;
         return;
     }
 #ifdef DYNAMIC_SYMBOLS
-  if(is_dynamic_type(a)) {
-    forward = backward = false;
-    return; // dyntypes are only subtypes of BI_TOP
+  if(is_dynamic_type(a)) {      // a is a string literal
+    forward = (b == BI_STRING); // b == BI_TOP checked earlier
+    backward = false;           // string literals are leaftypes
+    return;
   }
-  // return subtype(b, BI_STRING); // dyntypes are direct subtypes of STRING
-  if(is_dynamic_type(b)) {
-    forward = backward = false; // and always leaf types
+  if(is_dynamic_type(b)) {       // b is a string literal
+    forward = false;             // string literals are leaftypes
+    backward = (a == BI_STRING); // a == BI_TOP checked earlier
     return;
   }
 #endif
@@ -665,9 +654,6 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     // another leaftype.
     if(is_leaftype(a) && is_leaftype(b)) // both types are leaftypes
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "3");
-#endif
         // Follow the leaftype_parent chain of a up to the first
         // non-leaftype or b. If we encounter b, a is a subtype of b.
         // Otherwise do the same for b.
@@ -681,9 +667,6 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         {
             forward = true;
             backward = false;
-#ifdef SUBTYPE_PROFILING
-            fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
             return;
         }
         a = savedA;
@@ -695,48 +678,30 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         {
             backward = true;
             forward = false;
-#ifdef SUBTYPE_PROFILING
-            fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
             return;
         }
         forward = false;
         backward = false;
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
         return;
     }
     else if(is_leaftype(a)) // a is a leaftype, b not
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "4");
-#endif
         backward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
             a = leaftypeparent[a - first_leaftype]; 
         } while(is_leaftype(a));
         forward = core_subtype(a, b);
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
         return;
     }
     else if(is_leaftype(b)) // b is a leaftype, a not
     {
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "5");
-#endif
         forward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
             b = leaftypeparent[b - first_leaftype]; 
         } while(is_leaftype(b));
         backward = core_subtype(b, a);
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, " - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
         return;
     }
 #else
@@ -744,23 +709,21 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     {
         forward = subtype(a, b);
         backward = subtype(b, a);
-#ifdef SUBTYPE_PROFILING
-        fprintf(ferr, "456 - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
         return;
     }
 #endif
     
     subset_bidir(*typecode[a], *typecode[b], forward, backward);
-#ifdef SUBTYPE_PROFILING
-    fprintf(ferr, "6 - %c%c\n", forward ? 't' : 'f', backward ? 't' : 'f');
-#endif
 }
 #endif
 
 #ifndef FLOP
 int leaftype_parent(int t)
 {
+#ifdef DYNAMIC_SYMBOLS
+  if(is_dynamic_type(t))
+    return BI_STRING;
+#endif
   if(is_leaftype(t))
     return leaftypeparent[t - first_leaftype];
   else
@@ -779,7 +742,6 @@ int glb(int s1, int s2)
     }
 
   // now we know that s1 < s2
-
   if(s1 == BI_TOP) return s2;
   if(s1 < 0) return T_BOTTOM;
 
