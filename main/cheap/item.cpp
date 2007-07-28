@@ -611,6 +611,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
 
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size(); 
+    _result_root = sponsor->result_root();
 }
 
 void
@@ -887,7 +888,9 @@ string
 tPhrasalItem::tsdb_derivation(int protocolversion)
 {
     ostringstream result;
-    
+
+    if(_result_root > -1) result << "(" << print_name(_result_root) << " ";
+
     result << "(" << _id << " " << printname() << " " << _score
            << " " << _start << " " << _end;
 
@@ -901,8 +904,7 @@ tPhrasalItem::tsdb_derivation(int protocolversion)
             result << (*pos)->id();
     }
 
-    result << ")";
-
+    result << (_result_root > -1 ? "))" : ")");
     return result.str();
 }
 
