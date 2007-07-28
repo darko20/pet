@@ -36,6 +36,8 @@
 // _fix_me_ this should not be hardwired (need to make sure it exists)
 #define DUMMY_ATTR "ARGS"
 
+using namespace std;
+
 inline bool
 intersect_empty(set<int> &a, set<int> &b)
 {
