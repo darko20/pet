@@ -978,6 +978,23 @@ void tPhrasalItem::recreate_fs()
 #endif
 }
 
+bool
+tItem::contains_p(tItem *it)
+{
+  tItem *pit = this;
+  while (true) {
+    if (it->startposition() != pit->startposition() ||
+	it->endposition() != pit->endposition())
+      return false;
+    else if (it->id() == pit->id())
+      return true;
+    else if (pit->_daughters.size() != 1) 
+      return false;
+    else 
+      pit = pit->daughters().front();
+  }
+}
+
 //
 // Blocking (frosting and freezing) for packing
 //
