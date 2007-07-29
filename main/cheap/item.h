@@ -454,6 +454,9 @@ public:
   /** Return the list of daughters. */
   inline const std::list<tItem *> &daughters() const { return _daughters; }
 
+  /** Return true if the given edge is a descendent of current edge */
+  bool contains_p(tItem *);
+
   /** compare two items for linear precendece; used to sort YY tokens */
   struct precedes 
     : public std::binary_function<bool, tItem *, tItem *> {
