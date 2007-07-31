@@ -409,6 +409,20 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
         
         delete t;
     }
+    
+    if(resources_exhausted())
+    {
+        ostringstream s;
+
+        if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
+            s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
+              << " MB)";
+        else
+            s << "edge limit exhausted (" << pedgelimit 
+              << " pedges)";
+
+        errors.push_back(s.str());
+    }
 }
 
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit
@@ -494,9 +508,17 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
       if ((opt_packing & PACKING_SELUNPACK)
           && opt_nsolutions > 0
           && Grammar->sm()) {
-        nres = unpack_selectively(trees, upedgelimit, UnpackTime, readings);
+        try {
+          nres = unpack_selectively(trees, upedgelimit, UnpackTime, readings);
+        } catch(tError e) {
+          errors.push_back(e);
+        }
       } else { // unpack exhaustively
-        nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
+        try {
+          nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
+        } catch(tError e) {
+          errors.push_back(e);
+        }
       }
       
       if(upedgelimit > 0 && stats.p_upedges > upedgelimit) {
@@ -543,24 +565,10 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
 
     if(verbosity > 8)
         Chart->print(fstatus);
-  
-    if(resources_exhausted())
-    {
-        ostringstream s;
-
-        if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
-            s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
-              << " MB)";
-        else
-            s << "edge limit exhausted (" << pedgelimit 
-              << " pedges)";
-
-        errors.push_back(s.str());
-    }
-
+    
+    // is it ok to collect readings even if an error occured?? (pead01)
     Chart->readings() = collect_readings(FSAS, errors, Chart->trees());
     stats.readings = Chart->readings().size();
-
 }
 
 

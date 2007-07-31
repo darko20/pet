@@ -1010,6 +1010,10 @@ tItem::block(int mark)
 // for printing debugging output
 int unpacking_level;
 
+inline bool unpacking_resources_exhausted() { 
+  return memlimit > 0 && t_alloc.max_usage() >= memlimit;
+}
+
 list<tItem *>
 tItem::unpack(int upedgelimit)
 {
@@ -1163,7 +1167,7 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
 
   list_int *tofill = rule()->allargs();
     
-  while(res.valid() && tofill) {
+  while (res.valid() && tofill && !unpacking_resources_exhausted()) {
     fs arg = res.nth_arg(first(tofill));
     if(res.temp())
       unify_generation = res.temp();
@@ -1179,7 +1183,14 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
     }
     tofill = rest(tofill);
   }
-    
+  
+  if (unpacking_resources_exhausted()) {
+    ostringstream s;
+    s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
+      << " MB)";
+    throw tError(s.str());
+  }
+  
   if(!res.valid()) {
     FSAS.release();
     return 0;
@@ -1605,7 +1616,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   // Replay the unification.
   fs res = rule()->instantiate(true);
   list_int *tofill = rule()->allargs();
-  while (res.valid() && tofill) {
+  while (res.valid() && tofill && !unpacking_resources_exhausted()) {
     fs arg = res.nth_arg(first(tofill));
     if (res.temp())
       unify_generation = res.temp();
@@ -1618,6 +1629,14 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
     }
     tofill = rest(tofill);
   }
+  
+  if (unpacking_resources_exhausted()) {
+    ostringstream s;
+    s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
+      << " MB)";
+    throw tError(s.str());
+  }
+  
   if (!res.valid()) {
     //    FSAS.release();
     //hypo->inst_failed = true;//

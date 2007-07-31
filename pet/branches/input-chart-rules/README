@@ -65,7 +65,7 @@ Advanced issues:
   
   The following line should improve PET's performance:
   
-    ./configure --disable-assert "CXXFLAGS=-O3"
+    ./configure --disable-assert "CXXFLAGS=-g -O3"
 
 * PET's root build directory is the directory where `configure' is called.
   That is, PET can be built in any directory by changing into that

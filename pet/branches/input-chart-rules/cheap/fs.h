@@ -305,13 +305,21 @@ class fs_alloc_state
         dag_alloc_clear_stats();
     }
     
-    /** Return usage of dynamic memory in bytes. */
+    /**
+     * Reports how much memory (in bytes) is required for storing all permanent
+     * or temporary fs's that have been created so far (as if memory was not
+     * reused). The value can be reset by clear_stats().
+     */
     long dynamic_usage()
     {
         return dag_alloc_dynamic_mem();
     }
     
-    /** Return usage of static memory in bytes. */
+    /**
+     * Reports how much memory (in bytes) is currently allocated for storing
+     * temporary fs's. The value can be reset by clear_stats(), which
+     * has only a visible effect if allocated memory may shrink.
+     */
     long static_usage()
     {
         return dag_alloc_static_mem();

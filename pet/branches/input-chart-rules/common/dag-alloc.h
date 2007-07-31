@@ -36,20 +36,35 @@ struct dag_alloc_state
   struct chunk_alloc_state state;
 };
 
-/** The amount of dynamic memory in bytes used for dags */
+/** @name Memory usage statistics
+ * These functions are used to estimate PET's memory usage.
+ */
+/*@{*/
+/**
+ * Reports how much memory (in bytes) is required for storing all permanent
+ * or temporary dags that have been created so far (as if memory was not
+ * reused). The value can be reset by dag_alloc_clear_stats(). 
+ */
 long dag_alloc_dynamic_mem();
-/** The amount of static memory in bytes used for dags */
+/**
+ * Reports how much memory (in bytes) is currently allocated for storing
+ * temporary dags. The value can be reset by dag_alloc_clear_stats(), which
+ * has only a visible effect if allocated memory may shrink.
+ */
 long dag_alloc_static_mem();
 /** Reset the statistics of static and dynamic memory usage */
 void dag_alloc_clear_stats();
+/*@}*/
 
 /** Tell the allocator to release memory if it is convenient */
 void dag_alloc_may_shrink();
 /** Release all memory allocated for dags */
 void dag_alloc_reset();
 
-/** Statistics about allocated nodes and arcs */
-extern int allocated_nodes, allocated_arcs;
+/** Statistics about allocated nodes */
+extern int allocated_nodes;
+/** Statistics about allocated arcs */
+extern int allocated_arcs;
 
 /** @name Temporary dag storage
  * This is storage that is allocated for dags during parsing. At the beginning
@@ -95,23 +110,23 @@ inline void dag_alloc_release(struct dag_alloc_state &s)
  * grammar as a whole is released, which is typically at the end of the process
  */
 /*@{*/
-/** Allocate a dag node in temporary storage */
+/** Allocate a dag node in permanent storage */
 inline struct dag_node *dag_alloc_p_node()
 {
   allocated_nodes++;
   return (dag_node *) p_alloc.allocate(sizeof(dag_node));
 }
 
-/** Allocate a dag arc in temporary storage */
+/** Allocate a dag arc in permanent storage */
 inline struct dag_arc *dag_alloc_p_arc()
 {
   allocated_arcs++;
   return (dag_arc *) p_alloc.allocate(sizeof(dag_arc));
 }
 
-/** Allocate \a n dag nodes in temporary storage */
+/** Allocate \a n dag nodes in permanent storage */
 struct dag_node *dag_alloc_p_nodes(int n);
-/** Allocate \a n dag arcs in temporary storage */
+/** Allocate \a n dag arcs in permanent storage */
 struct dag_arc *dag_alloc_p_arcs(int n);
 /*@}*/
 
