@@ -22,9 +22,7 @@
 #include "smaf-tokenizer.h"
 #include "cheap.h"
 
-#include <iostream>
 #include <fstream>
-
 using namespace std;
 
 #include <xercesc/dom/DOM.hpp> 
@@ -159,8 +157,13 @@ tSMAFTokenizer::tSMAFTokenizer()
   _chartNodeMax = -1;
   // load saf conf
   char* safConfFilename = cheap_settings->value("smaf-conf");
-  if (safConfFilename==NULL) throw tError("no setting for 'smaf-conf'");
-  processSafConfFile(safConfFilename);
+  if (safConfFilename==NULL) 
+    {
+      cerr << endl << "WARNING: please set 'smaf-conf' in PET config file" << endl;
+      processSafConfDefault();
+    }
+  else
+    processSafConfFile(safConfFilename);
 }
 
 
@@ -1061,20 +1064,47 @@ bool tSMAFTokenizer::add2idMapping(const string &id, tInputItem &item)
 
 // in: filename
 // out: list of saf conf
-void tSMAFTokenizer::processSafConfFile(const string &filename)
+void tSMAFTokenizer::processSafConfFile(const char* filename)
   {
     // message to cerr
     cerr << endl << "reading SMAF conf '" << filename << "'..." << endl;
-
     // open file
-    ifstream ff(filename.c_str());
+    ifstream ff(filename);
+    // process istream
+    istream* istr =  &ff;
+    processSafConfIstream(istr);
+  }
 
+// out: list of saf conf (defaults)
+void tSMAFTokenizer::processSafConfDefault()
+  {
+    // default SMAF config text
+    string default_config = "define gMap.carg (synsem lkeys keyrel carg) STRING\n\
+token.[] -> edgeType='tok' tokenStr=content\n\
+wordForm.[] -> edgeType='morph' stem=content.stem partialTree=content.partial-tree\n\
+ersatz.[] -> edgeType='tok+morph' stem=content.name tokenStr=content.name gMap.carg=content.surface inject='t' analyseMorph='t'\n\
+pos.[] -> edgeType='morph' fallback='' pos=content.tag gMap.carg=deps.content";
+
+    // message to cerr
+    cerr << "WARNING: falling back to built-in default SMAF config: " << endl << endl;
+    cerr << default_config << endl << endl;
+
+    // process istream
+    std::stringstream s( default_config );
+    istream* istr =  &s;
+    processSafConfIstream(istr);
+  }
+
+// in: istream to SMAF config text
+void tSMAFTokenizer::processSafConfIstream(istream* istr)
+  {
     char ch;
     string line="";
     UnicodeString u_line;
 
     // walk thru chars
-    while (ff.get(ch))
+    //    while (ff.get(ch))
+    while (istr->get(ch))
       {
         if (ch=='\n')
           // end of line
