@@ -159,6 +159,7 @@ tSMAFTokenizer::tSMAFTokenizer()
   _chartNodeMax = -1;
   // load saf conf
   char* safConfFilename = cheap_settings->value("smaf-conf");
+  if (safConfFilename==NULL) throw tError("no setting for 'smaf-conf'");
   processSafConfFile(safConfFilename);
 }
 
