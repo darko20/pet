@@ -30,9 +30,6 @@ using namespace std;
 int basic_task::next_id = 0;
 
 tItem *
-build_combined_item(chart *C, tItem *active, tItem *passive);
-
-tItem *
 build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
 {
     fs_alloc_state FSAS(false);

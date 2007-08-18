@@ -247,6 +247,19 @@ dag_node *dag_unify_temp(dag_node *root, dag_node *dag1, dag_node *dag2);
 void dag_get_qc_vector_temp(struct qc_node *qc_paths, dag_node *dag,
                             type_t *qc_vector);
 
+/**
+ * Get the substructure under <attr>.REST*(n-1).FIRST if it exists, \c FAIL
+ * otherwise, where \a attr is the code for the attribute <attr> .
+ */
+dag_node *dag_nth_element_temp(dag_node *dag, attr_t attr, int n);
+
+/**
+ * Get the substructure under <path>.REST*(n-1).FIRST if it exists, \c FAIL
+ * otherwise, where \a path contains a list of the attribute's codes that
+ * form the path <path>.
+ */
+dag_node *dag_nth_element_temp(dag_node *dag, list_int *path, int n);
+
 /** Get the substructure under ARGS.REST*(n-1).FIRST , starting at the
  *  temporary dag node \a dag, if it exists, \c FAIL otherwise.
  */
