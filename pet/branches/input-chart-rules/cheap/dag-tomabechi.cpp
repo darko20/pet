@@ -1278,11 +1278,15 @@ dag_node *dag_get_attr_value_temp(dag_node *dag, attr_t attr) {
   return FAIL;
 }
 
-struct dag_node *dag_nth_arg_temp(struct dag_node *dag, int n) {
+// This is basically the prior dag_nth_arg_temp with the only difference
+// being that the attribute can be specified. Made inline so that there will
+// be no difference in performance.
+inline struct dag_node *
+dag_nth_element_temp(struct dag_node *dag, attr_t attr, int n) {
   int i;
   struct dag_node *arg;
 
-  if((arg = dag_get_attr_value_temp(dag_deref1(dag), BIA_ARGS)) == FAIL)
+  if((arg = dag_get_attr_value_temp(dag_deref1(dag), attr)) == FAIL)
     return FAIL;
 
   for(i = 1; (i < n
@@ -1298,6 +1302,25 @@ struct dag_node *dag_nth_arg_temp(struct dag_node *dag, int n) {
   arg = dag_get_attr_value_temp(dag_deref1(arg), BIA_FIRST);
 
   return arg;
+}
+
+struct dag_node *
+dag_nth_element_temp(struct dag_node *dag, list_int *path, int n)
+{
+  // follow the path:
+  if (dag == FAIL)
+    return FAIL;
+  int attr = first(path);
+  while (rest(path)) {
+    dag = dag_get_attr_value(dag, attr);
+    path = rest(path);
+    attr = first(path);
+  }
+  return dag_nth_element_temp(dag, attr, n); // inline call
+}
+
+struct dag_node *dag_nth_arg_temp(struct dag_node *dag, int n) {
+  return dag_nth_element_temp(dag, BIA_ARGS, n); // inline call
 }
 
 void dag_get_qc_vector_temp(qc_node *path, dag_node *dag, type_t *qc_vector)

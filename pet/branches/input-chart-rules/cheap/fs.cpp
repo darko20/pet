@@ -55,20 +55,22 @@ fs::fs(char *path, type_t type)
     if(! is_type(type))
         throw tError("construction of non-existent dag requested");
     
-    _dag = 0; // dag_create_path_value(path, type);
+    // TODO: as of rev 339, there are no checks whether the resulting dag
+    // is a valid type!
+    _dag = dag_create_path_value(path, type);
     
     _temp = 0;
 }
 
 
 fs
-fs::get_attr_value(int attr)
+fs::get_attr_value(int attr) const
 {
     return fs(dag_get_attr_value(_dag, attr));
 }
 
 fs
-fs::get_attr_value(char *attr)
+fs::get_attr_value(char *attr) const
 {
     int a = lookup_attr(attr);
     if(a == -1) return fs();
@@ -78,25 +80,45 @@ fs::get_attr_value(char *attr)
 }
 
 fs
-fs::get_path_value(const char *path)
+fs::get_path_value(list_int *path) const
 {
     return fs(dag_get_path_value(_dag, path));
 }
 
+fs
+fs::get_path_value(const char *path) const
+{
+    return fs(dag_get_path_value(_dag, path));
+}
+
+std::list<fs>
+fs::get_list() const
+{
+    list<fs> fs_list;
+    fs current = *this;
+    while (current.valid() && !subtype(current.type(), BI_NIL)) {
+        fs first = current.get_attr_value(BIA_FIRST);
+        if (first.valid())
+            fs_list.push_back(first);
+        current = current.get_attr_value(BIA_REST);
+    }
+    return fs_list;
+}
+
 const char *
-fs::name()
+fs::name() const
 {
     return type_name(dag_type(_dag));
 }
 
 const char *
-fs::printname()
+fs::printname() const
 {
   return print_name(dag_type(_dag));
 }
 
 void
-fs::print(FILE *f, int format)
+fs::print(FILE *f, int format) const
 {
     if(temp()) dag_print_safe(f, _dag, true, format);
     else dag_print_safe(f, _dag, false, format);
@@ -184,7 +206,7 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
   bool succeeded = false;
   dag_node *curr = _dag;
   // try to retrieve the characterization path
-  dag_node *p = dag_get_path_value_l(curr, path);
+  dag_node *p = dag_get_path_value(curr, path);
   if( p == FAIL ) {
     // if it does not exist, maybe due to unfilling, try to put it into the
     // current feature structure using unification
@@ -193,7 +215,7 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
     dag_node *newdag = dag_unify(curr, p, curr, 0);
     if (newdag == FAIL) return false;
     curr = newdag;
-    p = dag_get_path_value_l(curr, path);
+    p = dag_get_path_value(curr, path);
   }
   // Now p points to the subdag where the list search should begin
 

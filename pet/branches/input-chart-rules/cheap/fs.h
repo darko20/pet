@@ -42,7 +42,7 @@ class fs
   /** Construct fs from typedag of \a type */
   fs(type_t type);
   /** Construct minimal fs containing \a path ending in typedag for \a type.
-   *  \todo there is no implementation of this method.
+   *  \attention there are no checks whether the resulting fs is valid! 
    */
   fs(char *path, type_t type);
 
@@ -62,26 +62,29 @@ class fs
   { _dag = f._dag; _temp = f._temp; return *this; }
 
   /** return \c true if the underlying dag is valid (not empty or \c FAIL) */
-  inline bool valid() { return _dag != 0 && _dag != FAIL; }
+  inline bool valid() const { return _dag != 0 && _dag != FAIL; }
 
   /** return \c true if dags are eq */
-  inline bool operator==(const fs &f)
+  inline bool operator==(const fs &f) const
   { return _dag == f._dag; }
 
   /** return \c true if dags are not eq */
-  inline bool operator!=(const fs &f)
+  inline bool operator!=(const fs &f) const
   { return _dag != f._dag; }
 
   /** Return a new fs representing the subdag under \a attr, if this Attribute
       is in the root fs. */
-  fs get_attr_value(int attr);
+  fs get_attr_value(int attr) const;
   /** Return a new fs representing the subdag under \a attr, if this Attribute
       is in the root fs. */
-  fs get_attr_value(char *attr);
+  fs get_attr_value(char *attr) const;
 
   /** Return a new fs representing the subdag under \a path, if this Path
       exists in the fs. */  
-  fs get_path_value(const char *path);
+  fs get_path_value(list_int *path) const;
+  /** Return a new fs representing the subdag under \a path, if this Path
+      exists in the fs. */  
+  fs get_path_value(const char *path) const;
 
   /** Return the \a n th subdag in the \c ARGS list */
   inline fs nth_arg(int n) const {
@@ -90,10 +93,33 @@ class fs
     else
       return fs(dag_nth_arg(_dag, n)); }
 
+  /** Return the \a n th subdag in the list under attribute \a attr. */
+  inline fs nth_value(int attr, int n) const {
+    if(_temp)
+      return fs(dag_nth_element_temp(_dag, attr, n));
+    else
+      return fs(dag_nth_element(_dag, attr, n));
+  }
+
+  /** Return the \a n th subdag in the list under path \a path. */
+  inline fs nth_value(list_int *path, int n) const {
+    if(_temp)
+      return fs(dag_nth_element_temp(_dag, path, n));
+    else
+      return fs(dag_nth_element(_dag, path, n));
+  }
+
+  /**
+   * Converts the list that is represented by this feature structure 
+   * into an STL list of feature structures. If this fs does not
+   * represent a list, an empty STL list will be returned.
+   */
+  std::list<fs> get_list() const;
+
   /** Return internal type name of the root node */
-  const char *name();
+  const char *name() const;
   /** Return external type name of the root node */
-  const char *printname();
+  const char *printname() const;
 
   /** Return type of the root node */
   int type() const { return dag_type(_dag); }
@@ -101,7 +127,7 @@ class fs
   void set_type(type_t s) { dag_set_type(_dag, s); }
 
   /** Return size of this fs. _fix_me_ not implemented */
-  inline int size() { return 1; /* dag_size(_dag); */ }
+  inline int size() const { return 1; /* dag_size(_dag); */ }
   
   /** Return internal representation of fs */
   inline dag_node *dag() const { return _dag; }
@@ -152,7 +178,7 @@ class fs
   bool characterize(list_int *path, attr_t attr, type_t value);  
 
   /** Print readably for debugging purposes */
-  void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL);
+  void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL) const;
 
  private:
   
