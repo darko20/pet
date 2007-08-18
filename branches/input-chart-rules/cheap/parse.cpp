@@ -201,9 +201,14 @@ packed_edge(tItem *newitem) {
 
     if(!olditem->inflrs_complete_p() || (olditem->trait() == INPUT_TRAIT))
       continue;
+    
+    forward=backward = true;
 
-    forward = backward = true;
-     
+    // YZ 2007-07-25: avoid packing item with its offspring edges
+    // (both forward and backward)
+    if (newitem->contains_p(olditem))
+          continue;
+
     if(opt_filter)
       Grammar->subsumption_filter_compatible(olditem->rule(),
                                              newitem->rule(),
@@ -227,7 +232,7 @@ packed_edge(tItem *newitem) {
 #ifdef DEBUG_SUBSFAILS
       start_recording_failures();
 #endif
-            
+
       if(forward ==false && backward == false)
         stats.fsubs_qc++;
       else
@@ -271,7 +276,7 @@ packed_edge(tItem *newitem) {
         fprintf(ferr, "\n");
       }
 #endif
-    
+
     if(forward && !olditem->blocked()) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {

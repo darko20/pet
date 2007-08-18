@@ -17,6 +17,8 @@ bmw20@cl.cam.ac.uk
 
 #include <xercesc/dom/DOM.hpp> 
 
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <list>
 #include <map>
@@ -200,7 +202,9 @@ private:
   tGMap _gMap;
 
   // read file and set _safConfs
-  void processSafConfFile(const std::string &filename);
+  void processSafConfFile(const char *filename);
+  void processSafConfDefault();
+  void processSafConfIstream(std::istream *filename);
   // extract saf conf from line
   tSafConf* processSafConfLine(const std::string &line);
   // extract gMap setting from line

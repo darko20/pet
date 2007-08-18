@@ -35,8 +35,8 @@ extern bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
   opt_nbest, opt_partial, opt_compute_qc_unif, opt_compute_qc_subs;
 #ifdef YY
-extern bool opt_yy, opt_k2y_segregation;
-extern int opt_k2y, opt_nth_meaning;
+extern bool opt_yy;
+extern int opt_nth_meaning;
 #endif
 extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults, opt_predict_les;
 extern int opt_tsdb;

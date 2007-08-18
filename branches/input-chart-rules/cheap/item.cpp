@@ -610,6 +610,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
 
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size(); 
+    _result_root = sponsor->result_root();
 }
 
 void
@@ -886,7 +887,9 @@ string
 tPhrasalItem::tsdb_derivation(int protocolversion)
 {
     ostringstream result;
-    
+
+    if(_result_root > -1) result << "(" << print_name(_result_root) << " ";
+
     result << "(" << _id << " " << printname() << " " << _score
            << " " << _start << " " << _end;
 
@@ -900,8 +903,7 @@ tPhrasalItem::tsdb_derivation(int protocolversion)
             result << (*pos)->id();
     }
 
-    result << ")";
-
+    result << (_result_root > -1 ? "))" : ")");
     return result.str();
 }
 
@@ -973,6 +975,23 @@ void tPhrasalItem::recreate_fs()
         fprintf(ferr, "\n");
     }
 #endif
+}
+
+bool
+tItem::contains_p(tItem *it)
+{
+  tItem *pit = this;
+  while (true) {
+    if (it->startposition() != pit->startposition() ||
+	it->endposition() != pit->endposition())
+      return false;
+    else if (it->id() == pit->id())
+      return true;
+    else if (pit->_daughters.size() != 1) 
+      return false;
+    else 
+      pit = pit->daughters().front();
+  }
 }
 
 //
