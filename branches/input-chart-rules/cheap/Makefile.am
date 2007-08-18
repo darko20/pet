@@ -34,9 +34,14 @@ bin_PROGRAMS = cheap
 # for compilation, but they need to be found for making a distribution.
 # Note that the headers in $(top_srcdir)/common are always included
 # (cf. $(top_srcdir)/common/Makefile.am) and are therefore not listed here.
-cheap_SOURCES = agenda.h \
+cheap_SOURCES = cheap.cpp cheap.h
+cheap_LDADD   = libcheap.a
+
+# convenience library (makes building several executables easier):
+noinst_LIBRARIES = libcheap.a
+libcheap_a_SOURCES = \
+	agenda.h \
 	chart.cpp chart.h \
-	cheap.cpp cheap.h \
 	cheaptimer.h \
 	fs.cpp fs.h \
 	grammar.cpp grammar.h \
@@ -58,31 +63,32 @@ cheap_SOURCES = agenda.h \
 	task.cpp task.h \
 	tsdb++.h tsdb++.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
-	$(top_srcdir)/common/bitcode.cpp \
-	$(top_srcdir)/common/chunk-alloc.cpp \
-	$(top_srcdir)/common/dag-alloc.cpp \
-	$(top_srcdir)/common/dag-arced.cpp \
-	$(top_srcdir)/common/dag-common.cpp \
+	$(top_srcdir)/common/bitcode.cpp $(top_srcdir)/common/bitcode.h \
+	$(top_srcdir)/common/chunk-alloc.cpp $(top_srcdir)/common/chunk-alloc.h \
+	$(top_srcdir)/common/dag-alloc.cpp $(top_srcdir)/common/dag-alloc.h \
+	$(top_srcdir)/common/dag-arced.cpp $(top_srcdir)/common/dag-arced.h \
+	$(top_srcdir)/common/dag-common.cpp $(top_srcdir)/common/dag-common.h \
 	$(top_srcdir)/common/dag-io.cpp \
-	$(top_srcdir)/common/dumper.cpp \
-	$(top_srcdir)/common/grammar-dump.cpp \
-	$(top_srcdir)/common/hash.cpp \
-	$(top_srcdir)/common/lex-io.cpp \
-	$(top_srcdir)/common/lex-tdl.cpp \
-	$(top_srcdir)/common/mfile.c \
-	$(top_srcdir)/common/settings.cpp \
-	$(top_srcdir)/common/types.cpp \
-	$(top_srcdir)/common/utility.cpp
+	$(top_srcdir)/common/dumper.cpp $(top_srcdir)/common/dumper.h \
+	$(top_srcdir)/common/grammar-dump.cpp $(top_srcdir)/common/grammar-dump.h \
+	$(top_srcdir)/common/hash.cpp $(top_srcdir)/common/hash.h \
+	$(top_srcdir)/common/hashing.h \
+	$(top_srcdir)/common/lex-io.cpp $(top_srcdir)/common/lex-io.h \
+	$(top_srcdir)/common/lex-tdl.cpp $(top_srcdir)/common/lex-tdl.h \
+	$(top_srcdir)/common/mfile.c $(top_srcdir)/common/mfile.h \
+	$(top_srcdir)/common/settings.cpp $(top_srcdir)/common/settings.h \
+	$(top_srcdir)/common/types.cpp $(top_srcdir)/common/types.h \
+	$(top_srcdir)/common/utility.cpp $(top_srcdir)/common/utility.h
 
 TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h \
 	failure.cpp qc.h qc.cpp
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI
-cheap_SOURCES += $(TOMABECHI_UNIF_FILES)
+libcheap_a_SOURCES += $(TOMABECHI_UNIF_FILES)
 else
 if SIMPLE_UNIFIER
 DEFS += -DDAG_SIMPLE -DWROBLEWSKI2
-cheap_SOURCES += $(top_srcdir)/common/dag-simple.cpp
+libcheap_a_SOURCES += $(top_srcdir)/common/dag-simple.cpp
 endif
 endif
 
@@ -93,9 +99,8 @@ ECL_FILES = petecl.c petecl.h
 ECL_MRS_FILES = cppbridge.cpp cppbridge.h petmrs.h petmrs.c
 ECL_PREPROCESSOR_FILES = eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
 
-cheap_LDADD =
 if ECL
-cheap_SOURCES += $(ECL_FILES) 
+libcheap_a_SOURCES += $(ECL_FILES) 
 if ECLPREPROC
 # does the following check of ICU mean that the preprocessor should not be
 # compiled if ICU is missing? shouldn't this be checked in configure, then?
@@ -108,8 +113,8 @@ AM_CPPFLAGS +=  -I../fspp
 endif
 endif
 if ECLMRS
-cheap_SOURCES += $(ECL_MRS_FILES)
-cheap_LDADD += libmrs.a
+libcheap_a_SOURCES += $(ECL_MRS_FILES)
+cheap_LDADD += libmrs.a   # this should actually be part of libcheap.a
 endif
 endif
 
@@ -130,30 +135,33 @@ libmrs.a:
 	echo "(mk::ecl-finalize-libbuild :module \"mrs\")"; \
 	) | $(ECL)
 
-XML_FILES = pic-handler.cpp pic-handler.h pic-states.h pic-tokenizer.h pic-tokenizer.cpp xmlparser.cpp xmlparser.h smaf-tokenizer.h smaf-tokenizer.cpp
+XML_FILES = pic-handler.cpp pic-handler.h pic-states.h \
+	pic-tokenizer.h pic-tokenizer.cpp xmlparser.cpp xmlparser.h \
+	smaf-tokenizer.h smaf-tokenizer.cpp
+
 if XML
-cheap_SOURCES += $(XML_FILES)
+libcheap_a_SOURCES += $(XML_FILES)
 endif
 
 ICU_FILES = unicode.h unicode.cpp
 if ICU
-cheap_SOURCES += $(ICU_FILES)
+libcheap_a_SOURCES += $(ICU_FILES)
 endif
 
 # PSQL_FILES = psqllex.h psqllex.cpp
 # if LEXDB
-# cheap_SOURCES += $(PSQL_FILES)
+# libcheap_a_SOURCES += $(PSQL_FILES)
 # endif
 
 YY_FILES = yy.h yy.cpp
 if YY
 # Should force appropriate recompilation
 #DEFS += -DYY
-cheap_SOURCES += $(YY_FILES)
+libcheap_a_SOURCES += $(YY_FILES)
 endif
 
 # source files that should be distributed in any case, even if not used.
-EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp \
+EXTRA_libcheap_a_SOURCES = dumpgram.cpp mtest.cpp pet.cpp \
 	$(ECL_MRS_FILES) $(EXTDICT_FILES) $(ICU_FILES) \
 	$(RCU_FILES) $(TOMABECHI_UNIF_FILES) $(YY_FILES) $(XML_FILES) \
 	$(PSQL_FILES) psqltest.c

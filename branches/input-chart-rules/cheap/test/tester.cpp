@@ -33,7 +33,7 @@ settings *cheap_settings;
 int
 main(int argc, char **argv)
 {
-  // retrieve path of the sample grammar:
+  // load grammar:
   if (argc != 2) {
     printf("usage: %s <grammar-name>", argv[0]);
     return 2;
@@ -46,6 +46,7 @@ main(int argc, char **argv)
   string gramname = raw_name(grampath.c_str());
   cheap_settings = new settings(gramname.c_str(), grampath.c_str(), "reading");
   Grammar = new tGrammar(grampath.c_str());
+  fprintf(stderr, "\n");
   
   // create and setup unit testing objects:
   CppUnit::TestResultCollector result;

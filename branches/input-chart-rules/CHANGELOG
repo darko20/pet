@@ -1,4 +1,6 @@
 v0.99.??
+  - memory limit is respected during unpacking
+  - error message if resources are exhausted during parsing
   - dynamic types are subtypes of BI_STRING
   - renamed is_resident_type() to is_static_type()
   - reactivated unit tests
