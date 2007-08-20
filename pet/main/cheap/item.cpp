@@ -413,6 +413,8 @@ void tLexItem::init() {
     // compute _score score for lexical items
     if(Grammar->sm())
       score(Grammar->sm()->scoreLeaf(this));
+
+    characterize(_fs, _startposition, _endposition);
   }
 
 #ifdef DEBUG
