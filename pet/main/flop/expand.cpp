@@ -212,8 +212,6 @@ bool delta_expand_types()
   int i, e;
   list<int> l;
 
-  fprintf(fstatus, "- delta expansion for types\n");
-  
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
@@ -345,8 +343,6 @@ bool fully_expand_types()
 
   tHierarchy G;
   
-  fprintf(fstatus, "- full type expansion\n");
-
   bool fail = false;
   
   for(i = 0; i < types.number(); ++i)
