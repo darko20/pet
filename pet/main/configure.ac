@@ -694,18 +694,6 @@ if test "$mmapalloc" = "yes" ; then
 AC_FUNC_MMAP
 fi
 
-AC_ARG_ENABLE(qccomp,
-[AC_HELP_STRING([--enable-qccomp], [enable/disable recording of failures for quick check computation (default: no)])],
-[case "${enableval}" in
-   no)   qccomp=no;;
-   *)    qccomp=yes;;
- esac
-], [qccomp=no])
-if test x$qccomp = xyes ; then
-   AC_DEFINE(QC_PATH_COMP, [1], [Enable code for QuickCheck computation])
-fi
-
-
 AC_FUNC_REALLOC
 AC_FUNC_SETPGRP
 AC_FUNC_SETVBUF_REVERSED
@@ -744,7 +732,6 @@ feature_avail x$icu xtrue "ICU"
 feature_avail x$xml xtrue "Xerces C++ (for XML input modes)"
 dnl feature_avail x$lexdb xtrue "External SQL dictionary"
 feature_avail x$mmapalloc xyes "Memory allocation with mmap"
-feature_avail x$qccomp xyes "Code for quick-check computation"
 echo "=============================================================" ; echo
 
 

@@ -33,7 +33,7 @@ print_path(FILE *f, list_int *path);
 
 /** this class represents one failure point in unification/subsumption */
 
-class unification_failure
+class failure
 {
  public:
   /** The possible reasons for failure
@@ -48,9 +48,9 @@ class unification_failure
                         COREF };
   
     /** Default constructor */
-    unification_failure();
+    failure();
     /** Copy constructor (deep copy). */
-    unification_failure(const unification_failure &f);
+    failure(const failure &f);
     /** Mostly used custom constructor.
      * \param t The type of failure.
      * \param rev_path The reverse feature path were the failure occured
@@ -66,13 +66,13 @@ class unification_failure
      * When used to register subsumption failures, \a s1 is the type that
      * failed to subsume (be the supertype of) \a s2 in a \c CLASH.
      */
-    unification_failure(failure_type t, list_int *rev_path, int cost,
+    failure(failure_type t, list_int *rev_path, int cost,
                         int s1 = -1, int s2 = -1,
                         dag_node *cycle = 0, dag_node *root = 0);
-    ~unification_failure();
+    ~failure();
   
     /** Assignment operator */
-    unification_failure &operator=(const unification_failure &f);
+    failure &operator=(const failure &f);
   
     /** Print contents of object readably. */
     void print(FILE *f) const;
@@ -95,7 +95,7 @@ class unification_failure
     inline std::list<list_int *> cyclic_paths() const { return _cyclic_paths; }
 
     friend bool 
-      operator<(const unification_failure &a, const unification_failure &b);
+      operator<(const failure &a, const failure &b);
 
  private:
     list_int *_path;
@@ -104,19 +104,19 @@ class unification_failure
     int _cost;
     std::list<list_int *> _cyclic_paths;
 
-    int less_than(const unification_failure &) const;
+    int less_than(const failure &) const;
 };
 
 /** Return the common prefix of two unification failures paths */
 inline bool
-prefix(unification_failure &a, unification_failure &b)
+prefix(failure &a, failure &b)
 {
     return prefix(a.path(), b.path());
 }
 
 /** partial order on unification failures */
 inline bool
-operator<(const unification_failure &a, const unification_failure &b)
+operator<(const failure &a, const failure &b)
 {
     return a.less_than(b) == -1;
 }
