@@ -37,9 +37,7 @@
 #include "item-printer.h"
 #include "version.h"
 
-#ifdef QC_PATH_COMP
 #include "qc.h"
-#endif
 
 #ifdef YY
 #include "yy.h"
@@ -269,13 +267,11 @@ void interactive() {
     id++;
   } /* while */
 
-#ifdef QC_PATH_COMP
   if(opt_compute_qc) {
     FILE *qc = fopen(opt_compute_qc, "w");
     compute_qc_paths(qc);
     fclose(qc);
   }
-#endif
 }
 
 void nbest() {
@@ -378,6 +374,11 @@ void print_grammar(FILE *f) {
     dump_glbs(f);
 
   print_symbol_tables(f);
+
+  for(int i = 0; i < ntypes; i++) {
+    fprintf(f, "\n%d\t%s:\n", i, print_name(i));
+    dag_print_safe(f, type_dag(i), false, 0);
+  }
 }
 
 

@@ -334,8 +334,6 @@ class fs_alloc_state
     bool _auto;
 };
 
-#ifdef QC_PATH_COMP
-
 //
 // computing of failure paths for the quickcheck
 // only supported with tomabechi unifier
@@ -344,13 +342,11 @@ class fs_alloc_state
 #include "failure.h"
 #include <map>
 
-extern std::map<unification_failure, int> failure_id;
-extern std::map<int, unification_failure> id_failure;
+extern std::map<failure, int> failure_id;
+extern std::map<int, failure> id_failure;
 extern std::map<int, double> failing_paths_unif;
 extern std::map<list_int *, int, list_int_compare> failing_sets_unif;
 extern std::map<int, double> failing_paths_subs;
 extern std::map<list_int *, int, list_int_compare> failing_sets_subs;
-
-#endif
 
 #endif

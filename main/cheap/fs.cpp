@@ -254,13 +254,11 @@ get_unifier_stats()
     total_cost_fail = 0;
 }
 
-#ifdef QC_PATH_COMP
-
 // recording of failures for qc path computation
 
 int next_failure_id = 0;
-map<unification_failure, int> failure_id;
-map<int, unification_failure> id_failure;
+map<failure, int> failure_id;
+map<int, failure> id_failure;
 
 map<int, double> failing_paths_unif;
 map<list_int *, int, list_int_compare> failing_sets_unif;
@@ -269,10 +267,10 @@ map<int, double> failing_paths_subs;
 map<list_int *, int, list_int_compare> failing_sets_subs;
 
 void
-record_failures(list<unification_failure *> fails, bool unification,
+record_failures(list<failure *> fails, bool unification,
                 dag_node *a = 0, dag_node *b = 0)
 {
-    unification_failure *f;
+    failure *f;
     list_int *sf = 0;
     
     if(opt_compute_qc)
@@ -282,12 +280,12 @@ record_failures(list<unification_failure *> fails, bool unification,
         int i = 0;
         int id;
         
-        for(list<unification_failure *>::iterator iter = fails.begin();
+        for(list<failure *>::iterator iter = fails.begin();
             iter != fails.end(); ++iter)
         {
             f = *iter;
             value[i] = 0;
-            if(f->type() == unification_failure::CLASH)
+            if(f->type() == failure::CLASH)
             {
                 bool good = true;
                 // let's see if the quickcheck could have filtered this
@@ -376,7 +374,7 @@ record_failures(list<unification_failure *> fails, bool unification,
         }
 
         i = 0;
-        for(list<unification_failure *>::iterator iter = fails.begin();
+        for(list<failure *>::iterator iter = fails.begin();
             iter != fails.end(); ++iter)
         {
             f = *iter;
@@ -400,7 +398,7 @@ record_failures(list<unification_failure *> fails, bool unification,
     if(opt_print_failure)
     {
         fprintf(ferr, "failure (%s) at\n", unification ? "unif" : "subs");
-        for(list<unification_failure *>::iterator iter = fails.begin();
+        for(list<failure *>::iterator iter = fails.begin();
             iter != fails.end(); ++iter)
         {
             fprintf(ferr, "  ");
@@ -411,7 +409,6 @@ record_failures(list<unification_failure *> fails, bool unification,
     }
 }
 
-#endif
 
 fs
 unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
@@ -427,15 +424,13 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
       stats.unifications_fail++;
     }
         
-#ifdef QC_PATH_COMP
     if(opt_compute_qc_unif || opt_print_failure) {
-      list<unification_failure *> fails =
+      list<failure *> fails =
         dag_unify_get_failures(a._dag, b._dag, true);
             
       if (opt_compute_qc_unif) 
         record_failures(fails, true, a._dag, b._dag);
     }
-#endif
         
     dag_alloc_release(s);
   }
@@ -475,13 +470,11 @@ unify_np(fs &root, const fs &a, fs &b)
         total_cost_fail += unification_cost;
         stats.unifications_fail++;
         
-#ifdef QC_PATH_COMP
         if(opt_print_failure)
         {   
             fprintf(ferr, "unification failure: unexpected failure in non"
                     " permanent unification\n");
         }
-#endif
     }
     else
     {
@@ -498,10 +491,9 @@ unify_np(fs &root, const fs &a, fs &b)
 void
 subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 {
-#ifdef QC_PATH_COMP
     if(opt_compute_qc_subs || opt_print_failure)
     {
-        list<unification_failure *> failures =
+        list<failure *> failures =
             dag_subsumes_get_failures(a._dag, b._dag, forward, backward,
                                       true); 
 
@@ -509,12 +501,12 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
         // (prefix) path. Assumes path with shortest failure path comes
         // before longer ones with shared prefix.
 
-        list<unification_failure *> filtered;
-        for(list<unification_failure *>::iterator f = failures.begin();
+        list<failure *> filtered;
+        for(list<failure *>::iterator f = failures.begin();
             f != failures.end(); ++f)
         {
             bool good = true;
-            for(list<unification_failure *>::iterator g = filtered.begin(); 
+            for(list<failure *>::iterator g = filtered.begin(); 
                 g != filtered.end(); ++g)
             {
                 if(prefix(**g, **f))
@@ -534,8 +526,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
           record_failures(filtered, false, a._dag, b._dag);
     }
     else
-#endif
-    dag_subsumes(a._dag, b._dag, forward, backward);
+      dag_subsumes(a._dag, b._dag, forward, backward);
 
     if(forward || backward)
         stats.subsumptions_succ++;
