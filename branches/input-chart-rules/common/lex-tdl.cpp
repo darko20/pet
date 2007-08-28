@@ -278,6 +278,11 @@ struct lex_token *get_next_token()
           t = make_token(T_ISEQ, ":=", 2);
           LConsume(2);
         }
+      else if(LLA(1) == '+')
+        {
+          t = make_token(T_ISPLUS, ":+", 2);
+          LConsume(2);
+        }
       else
         {
           t = make_token(T_COLON, ":", 1);
@@ -541,7 +546,7 @@ void recover(enum TOKEN_TAG tag)
   last_t = LA(0);
 }
 
-char *match(enum TOKEN_TAG tag, char *s, bool readonly)
+char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
 {
   char *text;
   

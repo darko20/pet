@@ -757,25 +757,6 @@ AM_CONDITIONAL(INSTFC, [test "$instfc" = "yes"])
 
 
 # --------------------------------------------------------------------
-# quick check feature
-# --------------------------------------------------------------------
-
-AC_ARG_ENABLE(qccomp,
-  [AC_HELP_STRING([--enable-qccomp], [enable recording of failures for quick check computation])],
-  [case "${enableval}" in
-     yes) qccomp="${enableval}" ;;
-     no)  qccomp="${enableval}" ;;
-     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-qccomp) ;;
-   esac
-  ],
-  [qccomp=no])
-if test x$qccomp = xyes ; then
-    AC_DEFINE(QC_PATH_COMP, [1], [Enable code for QuickCheck computation])
-fi
-
-
-
-# --------------------------------------------------------------------
 # LUI
 # --------------------------------------------------------------------
 
@@ -865,7 +846,6 @@ echo "Xerces C++ (for XML input modes)                $xml"
 echo "CppUnit (for unit testing)                      $cppunit"
 #echo "External SQL dictionary                         $lexdb"
 echo "Memory allocation with mmap                     $mmapalloc"
-echo "Code for quick-check computation                $qccomp"
 echo "============================================================="
 echo
 
@@ -879,8 +859,6 @@ AC_SUBST(CHEAPLIBS)
 AC_SUBST(CHEAPLDFLAGS)
 AC_SUBST(CHEAPCPPFLAGS)
 
-AC_SUBST(FLOPCPPFLAGS)
-
 # Excluded doc and goofy
 AC_CONFIG_FILES([Makefile
                  fspp/Makefile
@@ -892,4 +870,3 @@ AC_CONFIG_FILES([Makefile
                  doxyconfig.flop])
 
 AC_OUTPUT
-

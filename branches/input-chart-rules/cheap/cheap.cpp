@@ -37,9 +37,7 @@
 #include "item-printer.h"
 #include "version.h"
 
-#ifdef QC_PATH_COMP
 #include "qc.h"
-#endif
 
 #ifdef YY
 #include "yy.h"
@@ -269,13 +267,11 @@ void interactive() {
     id++;
   } /* while */
 
-#ifdef QC_PATH_COMP
   if(opt_compute_qc) {
     FILE *qc = fopen(opt_compute_qc, "w");
     compute_qc_paths(qc);
     fclose(qc);
   }
-#endif
 }
 
 void nbest() {

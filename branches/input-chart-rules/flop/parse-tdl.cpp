@@ -265,6 +265,8 @@ char *tdl_attribute(struct coref_table *co, bool readonly)
 }
 
 struct conjunction *tdl_conjunction(struct coref_table *, bool readonly);
+struct conjunction *tdl_add_conjunction(struct coref_table *,
+                                        struct conjunction *, bool readonly);
 
 struct attr_val *tdl_attr_val(struct coref_table *co, bool readonly)
 {
@@ -710,13 +712,19 @@ struct term *tdl_term(struct coref_table *co, bool readonly)
   return t;
 }
 
-struct conjunction *tdl_conjunction(struct coref_table *co, bool readonly)
-{
-  struct conjunction *con = NULL;
 
+struct conjunction *tdl_conjunction(struct coref_table *co, bool readonly) {
+  return tdl_add_conjunction(co, NULL, readonly);
+}
+
+struct conjunction *
+tdl_add_conjunction(struct coref_table *co, struct conjunction *con,
+                    bool readonly)
+{
   if(!readonly)
     {
-      con = new_conjunction();
+      if (con == NULL)
+        con = new_conjunction();
       add_term(con, tdl_term(co, readonly));
     }
   else
@@ -765,47 +773,12 @@ void tdl_opt_inflr(struct type *t)
 }
 
 
-void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
-{
+void tdl_avm_constraints(type *t, bool is_instance, bool readonly) {
   int status = NO_STATUS;
-  int t_id;
-  struct type *t = NULL;
 
   if(!readonly)
     {
-      t_id = types.id(name);
-      
-      if(t_id != -1)
-        {
-          t = types[t_id];
-          
-          if(t->implicit == false)
-            {
-              if(!allow_redefinitions)
-                fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
-                        name, LA(0)->loc->fname, LA(0)->loc->linenr);
-              
-              undo_subtype_constraints(t->id);
-            }
-        }
-      else
-        {
-          t = new_type(name, is_instance);
-        }
-
-      t->def = LA(0)->loc; LA(0)->loc = NULL;
-      t->implicit = false;
-      t->printname = printname; printname = 0;
-    }
-  
-  match(T_ISEQ, "avm definition starting with `:='", true);
-
-  tdl_opt_inflr(t);
-
-  if(!readonly)
-    {
-      t->coref = new_coref_table();
-      t->constraint = tdl_conjunction(t->coref, readonly);
+      t->constraint = tdl_add_conjunction(t->coref, t->constraint, readonly);
     }
   else
     tdl_conjunction(NULL, readonly);
@@ -852,70 +825,142 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
     }
 }
 
-void tdl_type_def()
+
+void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
 {
-  char *name , *printname;
-  
-  if(LA(0)->tag == T_STRING)
-  {
-      name = match(T_STRING, "type name", false);
-      string s = "\"" + string(name) + "\"";
-      printname = name;
-      name = strdup(s.c_str());
-  }
-  else
-  {
-      name = match(T_ID, "type name", false);
-      printname = strdup(name);
-      strtolower(name);
-  }
-  
-  if(LA(0)->tag == T_ISEQ)
+  int t_id;
+  struct type *t = NULL;
+
+  match(T_ISEQ, "avm definition starting with `:='", true);
+
+  if(!readonly)
     {
-      tdl_avm_def(name, printname, false, false);
+      t_id = types.id(name);
+      
+      if(t_id != -1)
+        {
+          t = types[t_id];
+          
+          if(t->implicit == false)
+            {
+              if(!allow_redefinitions)
+                fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
+                        name, LA(0)->loc->fname, LA(0)->loc->linenr);
+              
+              undo_subtype_constraints(t->id);
+
+            }
+        }
+      else
+        {
+          t = new_type(name, is_instance);
+        }
+
+      t->def = LA(0)->loc; LA(0)->loc = NULL;
+      t->implicit = false;
+      t->printname = printname; printname = 0;
+
+      t->coref = new_coref_table();
+      t->constraint = NULL;
     }
-  else if(LA(0)->tag == T_ISA)
+  
+  tdl_opt_inflr(t);
+
+  tdl_avm_constraints(t, is_instance, readonly);
+}
+
+
+/*
+ definition questions:
+ 1. can this be done for instances?
+    i assume no: this is assured in tdl_type_def
+ 2. must the type exist, or is it simply created if it is not there?
+    i define it and issue a warning
+ 3. can it be used with infl rules
+    i assume not
+ 4. can rule syntax be used?
+    i assume yes
+ The location of the addition is lost, might affect grammar debugging
+*/
+void tdl_avm_add(char *name, char *printname, bool is_instance, bool readonly)
+{
+  int t_id;
+  struct type *t = NULL;
+
+  match(T_ISPLUS, "avm definition starting with `:+'", true);
+
+  if(!readonly)
     {
+      t_id = types.id(name);
+      
+      if(t_id != -1)
+        {
+          t = types[t_id];
+        }
+      else
+        {
+          fprintf(ferr, "warning: defining type `%s' with `:+' at %s:%d\n",
+                        name, LA(0)->loc->fname, LA(0)->loc->linenr);
+              
+          t = new_type(name, is_instance);
+
+          t->def = LA(0)->loc; LA(0)->loc = NULL;
+          t->implicit = false;
+          t->printname = printname; printname = 0;
+
+          t->coref = new_coref_table();
+        }
+    }
+  
+  //  tdl_opt_inflr(t);
+
+  tdl_avm_constraints(t, is_instance, readonly);
+}
+
+void tdl_type_def(bool instance) {
+  char *name , *printname;
+  bool readonly = false;
+  const char *what = (instance ? "instance name" : "type name");
+
+  if(LA(0)->tag == T_STRING) {
+    name = match(T_STRING, what, false);
+    string s = "\"" + string(name) + "\"";
+    printname = name;
+    name = strdup(s.c_str());
+  } else {
+    name = match(T_ID, what, false);
+    printname = strdup(name);
+    strtolower(name);
+  }
+  
+  if (! instance) {
+    if(LA(0)->tag == T_ISEQ) {
+      tdl_avm_def(name, printname, false, readonly);
+    }
+    else if(LA(0)->tag == T_ISPLUS) {
+      tdl_avm_add(name, printname, false, readonly);
+    }
+    else if(LA(0)->tag == T_ISA) {
       tdl_subtype_def(name, printname);
     }
-  else
-    {
+    else {
       free(printname);
       syntax_error("avm or subtype definition expected", LA(0));
       recover(T_DOT);
     }
-
-  match(T_DOT, "`.' at end of type definition", true);
-}
-
-void tdl_instance_def()
-{
-  char *name = 0, *printname = 0;
-  bool readonly = false;
-  
-  if(LA(0)->tag == T_STRING)
-  {  
-      name = match(T_STRING, "instance name", false);
-      string s = "\"" + string(name) + "\"";
-      printname = name;
-      name = strdup(s.c_str());
-  }
-  else
-  {
-      name = match(T_ID, "instance name", false);
-      printname = strdup(name);
-      strtolower(name);
+  } else {
+    char *iname = (char *) salloc(strlen(name) + 2);
+    sprintf(iname, "$%s", name);
+    tdl_avm_def(iname, printname, true, readonly);
+    free(iname);
   }
 
-  char *iname = (char *) salloc(strlen(name) + 2);
-  sprintf(iname, "$%s", name);
-
-  tdl_avm_def(iname, printname, true, readonly);
-  
-  free(iname);
-
-  match(T_DOT, "`.' at end of instance definition", true);
+  match(T_DOT, (instance 
+                ? "`.' at end of instance definition"
+                : "`.' at end of type definition")
+        , true);
 }
+
 
 void tdl_template_def(char *name)
 {
@@ -1048,7 +1093,7 @@ void tdl_block()
       do
         if(LA(0)->tag == T_ID || LA(0)->tag == T_STRING)
           {
-            tdl_instance_def();
+            tdl_type_def(true);
           }
         else if(is_keyword(LA(0), "end") ||
                 (LA(0)->tag == T_COLON && is_keyword(LA(1), "end")))
@@ -1159,7 +1204,7 @@ void tdl_block()
       do
         if(LA(0)->tag == T_ID || LA(0)->tag == T_STRING)
           {
-            tdl_type_def();
+            tdl_type_def(false);
           }
         else if(is_keyword(LA(0), "end") ||
                 (LA(0)->tag == T_COLON && is_keyword(LA(1), "end")))

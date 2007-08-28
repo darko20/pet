@@ -20,7 +20,6 @@
 /* computing quick check paths */
 
 #include "pet-config.h"
-#ifdef QC_PATH_COMP
 
 #include "qc.h"
 #include "parse.h"
@@ -342,7 +341,7 @@ compute_qc_sets(FILE *f, const char *tname,
         pq_item<int, int> top = top_paths.top();
         top_paths.pop();
         
-        unification_failure fail = id_failure[top.inf];
+        failure fail = id_failure[top.inf];
         
         if(n != 0) fprintf(f, ",\n  ");
         if(!fail.empty_path())
@@ -385,7 +384,7 @@ compute_qc_traditional(FILE *f, const char *tname,
         pq_item<double, int> top = top_failures.top(); 
         top_failures.pop();
         
-        unification_failure fail = id_failure[top.inf];
+        failure fail = id_failure[top.inf];
         
         if(n != 0) fprintf(f, ",\n  ");
         if(!fail.empty_path())
@@ -437,6 +436,3 @@ compute_qc_paths(FILE *f)
         compute_qc_sets(f, "qc_subs_set_pack", failing_sets_subs, 90.0);
     }
 }
-
-
-#endif

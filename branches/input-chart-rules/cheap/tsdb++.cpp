@@ -324,7 +324,6 @@ cheap_complete_test_run(int run_id, char *custom)
             nprocessed,
             (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
 
-#ifdef QC_PATH_COMP
     if(opt_compute_qc)
     {
         fprintf(ferr, "computing quick check paths\n");
@@ -332,7 +331,6 @@ cheap_complete_test_run(int run_id, char *custom)
         compute_qc_paths(qc);
         fclose(qc);
     }
-#endif
 
     return 0;
 }
