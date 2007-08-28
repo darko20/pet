@@ -249,7 +249,7 @@ saveLDFLAGS="$LDFLAGS"
 
 
 # --------------------------------------------------------------------
-# icu library.
+# IBM ICU library.
 # --------------------------------------------------------------------
 
 AC_ARG_WITH(icu,
@@ -323,9 +323,10 @@ if test "$boost" = "yes" ; then
   LDFLAGS="$saveLDFLAGS"
 fi
 if test "$boost" = "yes" ; then
-  if echo " ${FLOPCPPFLAGS} " | $GREP -q -v " ${BOOST_CPPFLAGS} " ; then
-    FLOPCPPFLAGS="${FLOPCPPFLAGS} ${BOOST_CPPFLAGS}"
-  fi
+  FLOPLDFLAGS="${FLOPLDFLAGS} ${BOOST_LDFLAGS}"
+  FLOPCPPFLAGS="${FLOPCPPFLAGS} ${BOOST_CPPFLAGS}"
+  CHEAPLDFLAGS="${CHEAPLDFLAGS} ${BOOST_LDFLAGS}"
+  CHEAPCPPFLAGS="${CHEAPCPPFLAGS} ${BOOST_CPPFLAGS}"
 fi
 AM_CONDITIONAL(BOOST, [test "$boost" = "yes"])
 
@@ -475,20 +476,28 @@ else
   MRSDIR=""
 fi
 
+
+
+# --------------------------------------------------------------------
+# Lisp code for preprocessor
+# --------------------------------------------------------------------
+
 PREPROCDIR="${ITSDBDIR}"
-dnl check the Lisp code directory for the preprocessor
 AC_ARG_WITH(preproc,
-[AC_HELP_STRING([--with-preproc@<:@=DIR@:>@], [specify the path to the x-preprocessor Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})])],
-dnl (default=no)
-[
-dnl AC_MSG_WARN([PREPROC WITHVAL = ${withval}])
-case "${withval}" in
-    yes) preproc=yes ;;
-    no)  preproc=no ; echo "Disabling preprocessor code" ;;
-    *)   preproc=yes
-         PREPROCDIR=${withval};;
-esac
-], [ preproc=yes ])
+  [AC_HELP_STRING([--with-preproc@<:@=DIR@:>@],
+                  [specify the path to the x-preprocessor Lisp sources (usually
+                   the LKB top level directory) (default=${ITSDBDIR})])
+  ], [
+    case "${withval}" in
+        yes) preproc=yes ;;
+        no)  preproc=no ; echo "Disabling preprocessor code" ;;
+        *)   preproc=yes
+             PREPROCDIR=${withval};;
+    esac
+  ], [ preproc=yes ])
+if test "$preproc" = "yes" -a "$icu" = "no" ; then
+  preproc=no
+fi
 if test "$preproc" = "yes" ; then
   if test \! -f "${PREPROCDIR}/src/general/loadup.lisp" ; then
      if test -f "${PREPROCDIR}/general/loadup.lisp" ; then
@@ -604,7 +613,6 @@ else
   mrs=no    
 fi
 AM_CONDITIONAL(ECL, [test -n "$ECLUSER"])
-dnl Substitute this to compile libmrs.a
 AM_CONDITIONAL(ECLMRS, [test "$mrs" = "yes"])
 AM_CONDITIONAL(ECLPREPROC, [test "$preproc" = "yes"])
 
@@ -836,7 +844,7 @@ fi
 
 echo
 echo "============================================================="
-echo "Boost (required for flop)                       $boost"
+echo "Boost                                           $boost"
 echo "tsdb (system benchmarking)                      $tsdb"
 echo "Embeddable Common-Lisp processor (ECL)          $ecl"
 echo "MRS code (requires ECL)                         $mrs"
@@ -855,11 +863,13 @@ echo
 # Output
 # --------------------------------------------------------------------
 
-AC_SUBST(CHEAPLIBS)
-AC_SUBST(CHEAPLDFLAGS)
-AC_SUBST(CHEAPCPPFLAGS)
+AC_SUBST(FLOPCPPFLAGS)
+AC_SUBST(FLOPLDFLAGS)
 
-# Excluded doc and goofy
+AC_SUBST(CHEAPCPPFLAGS)
+AC_SUBST(CHEAPLDFLAGS)
+AC_SUBST(CHEAPLIBS)
+
 AC_CONFIG_FILES([Makefile
                  fspp/Makefile
                  cheap/Makefile

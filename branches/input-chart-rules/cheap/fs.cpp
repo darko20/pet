@@ -314,8 +314,8 @@ record_failures(list<failure *> fails, bool unification,
                 
                 dag_node *d1, *d2;
                 
-                d1 = dag_get_path_value_l(a, f->path());
-                d2 = dag_get_path_value_l(b, f->path());
+                d1 = dag_get_path_value(a, f->path());
+                d2 = dag_get_path_value(b, f->path());
                 
                 int s1 = BI_TOP, s2 = BI_TOP;
                 

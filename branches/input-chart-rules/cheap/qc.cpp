@@ -31,6 +31,10 @@
 #include "failure.h"
 
 #include <queue>
+#include <set>
+#include <vector>
+
+using namespace std;
 
 // _fix_me_ this should not be hardwired (need to make sure it exists)
 #define DUMMY_ATTR "ARGS"
