@@ -188,7 +188,7 @@ fundamental_for_active(tPhrasalItem *active) {
 }
 
 extern void start_recording_failures();
-extern class unification_failure * stop_recording_failures();
+extern class failure * stop_recording_failures();
 
 bool
 packed_edge(tItem *newitem) {
@@ -215,7 +215,7 @@ packed_edge(tItem *newitem) {
                                              forward, backward);
 
 #ifdef DEBUG_SUBSFAILS
-    unification_failure *uf = NULL;
+    failure *uf = NULL;
 #endif
 
     if(forward ==false && backward == false) {

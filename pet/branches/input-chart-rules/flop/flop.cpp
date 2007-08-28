@@ -272,12 +272,15 @@ void process_types()
       exit(1);
     }
 
+  fprintf(fstatus, "- delta");
   if(!delta_expand_types())
     exit(1);
 
+  fprintf(fstatus, " / full");
   if(!fully_expand_types())
     exit(1);
 
+  fprintf(fstatus, " expansion for types\n");
   compute_maxapp();
   
   if(opt_unfill)
