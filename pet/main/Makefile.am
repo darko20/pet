@@ -3,7 +3,7 @@
 if ECL
 MAYBE_FSPP   = fspp
 endif
-SUBDIRS      = common flop cheap $(MAYBE_FSPP)
+SUBDIRS      = common flop $(MAYBE_FSPP) cheap
 
 EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
                doxyconfig.cheap doxyconfig.flop

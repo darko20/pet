@@ -47,9 +47,6 @@
 
 - 64bit version does not work properly
 
-- extension of TDL syntax to type extension and comments (ticket #1 by Emily
-  Bender)
-
 - remove all uses of negative values as `marker'-values, especially where casts
   from integers to pointers and back are involved. 
 

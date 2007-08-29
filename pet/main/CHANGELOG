@@ -1,4 +1,7 @@
 v0.99.??
+  - rmrs-list output is activated correctly again when -mrs=rmrx is used
+  - changed order in SUBDIRS so that libpreprocessor is build before cheap, if 
+    enabled
   - Remove the need for the QCCOMP #ifdefs and the corresponding switch in the
     configuration using code unfolding a la C++
   - Adding `:+' type addendum TDL syntax to flop (closing ticket #1) and doing
