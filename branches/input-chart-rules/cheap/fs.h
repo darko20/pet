@@ -108,6 +108,14 @@ class fs
     else
       return fs(dag_nth_element(_dag, path, n));
   }
+  
+  /**
+   * Find all paths that end in a type that is a subtype of \a maxapp.
+   * The paths must be freed by the caller.
+   */
+  inline std::list<list_int*> find_paths(type_t maxapp = BI_TOP) {
+    return dag_find_paths(dag(), maxapp);
+  }
 
   /**
    * Converts the list that is represented by this feature structure 

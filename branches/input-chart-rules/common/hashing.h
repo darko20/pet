@@ -40,4 +40,12 @@ using namespace HASH_SPACE;
 #define hash_set set
 #endif
 
+/* function object: hash function for pointers */
+struct pointer_hash {
+  size_t operator() (void* p) const
+  {
+    return reinterpret_cast<size_t>(p);
+  }
+};
+
 #endif

@@ -1,7 +1,9 @@
 v0.99.??
   - added dag_nth_element(), dag_nth_element_temp(), fs::nth_value(),
-    fs::get_path_value(list_int*), fs::get_list()
-    renamed dag_get_path_value_l() to dag_get_path_value() for consistency
+    fs::get_path_value(list_int*), fs::get_list(),
+    dag_find_paths(), fs::find_paths(), pop_last()
+  - renamed dag_get_path_value_l() to dag_get_path_value(),
+    pop_rest() to pop_first()
   - memory limit is respected during unpacking
   - error message if resources are exhausted during parsing
   - dynamic types are subtypes of BI_STRING
