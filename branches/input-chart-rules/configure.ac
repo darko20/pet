@@ -449,7 +449,8 @@ MRSDIR="$ITSDBDIR"
 dnl check for the Lisp code directory for MRS
 AC_ARG_WITH(mrs,
 [AC_HELP_STRING([--with-mrs@<:@=DIR@:>@], 
-                [specify the path to the MRS Lisp sources (usually the LKB top level directory) (default=${ITSDBDIR})])],
+                [specify the path to the LKB MRS Lisp sources
+                 (usually the LKB top level directory) (default=${ITSDBDIR})])],
 [ dnl the command line switch was given, eventually check provided MRSDIR
 case "${withval}" in
     yes) mrs=yes ;;
@@ -485,17 +486,19 @@ fi
 PREPROCDIR="${ITSDBDIR}"
 AC_ARG_WITH(preproc,
   [AC_HELP_STRING([--with-preproc@<:@=DIR@:>@],
-                  [specify the path to the x-preprocessor Lisp sources (usually
-                   the LKB top level directory) (default=${ITSDBDIR})])
+                  [specify the path to the LKB preprocessor Lisp sources
+                   (usually the LKB top level directory) (default=${ITSDBDIR})])
   ], [
     case "${withval}" in
         yes) preproc=yes ;;
-        no)  preproc=no ; echo "Disabling preprocessor code" ;;
+        no)  preproc=no ;;
         *)   preproc=yes
              PREPROCDIR=${withval};;
     esac
   ], [ preproc=yes ])
 if test "$preproc" = "yes" -a "$icu" = "no" ; then
+  AC_MSG_WARN([unmet dependencies: LKB preprocessor requested but required ICU
+               library is not available; LKB preprocessor DISABLED])
   preproc=no
 fi
 if test "$preproc" = "yes" ; then
@@ -596,11 +599,11 @@ if test "$ecl" = "yes" ; then
   CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ECLDIR}/lib/ecl"`
   CHEAPCPPFLAGS="$CHEAPCPPFLAGS ${eclincl}"
   if test "$mrs" = "yes" ; then
-     AC_DEFINE(HAVE_MRS, [1], [use ECL MRS library])
+     AC_DEFINE(HAVE_MRS, [1], [use LKB MRS library])
      ECLUSER="_mrs"
   fi
   if test "$preproc" = "yes"; then
-     AC_DEFINE(HAVE_PREPROC, [1], [use ECL x-preprocessing library])
+     AC_DEFINE(HAVE_PREPROC, [1], [use LKB preprocessor library])
      ECLUSER=${ECLUSER}"_preproc"
   fi
   if test x$ECLUSER != x ; then
@@ -779,8 +782,6 @@ AC_ARG_ENABLE(lui,
 if test "$lui" = "yes"; then 
     AC_DEFINE(LUI, [1], [Enable grammar dumping in LUI format])
 fi
-# no extra files, don't need Makefile conditional
-# AM_CONDITIONAL(LUI, [test "$lui" = "yes"])
 
 
 
@@ -847,12 +848,13 @@ echo "============================================================="
 echo "Boost                                           $boost"
 echo "tsdb (system benchmarking)                      $tsdb"
 echo "Embeddable Common-Lisp processor (ECL)          $ecl"
-echo "MRS code (requires ECL)                         $mrs"
-echo "preprocessor code (requires ECL)                $preproc"
+echo "LKB MRS code (requires ECL)                     $mrs"
+echo "LKB preprocessor code (requires ECL)            $preproc"
 echo "ICU (Unicode support)                           $icu"
 echo "Xerces C++ (for XML input modes)                $xml"
 echo "CppUnit (for unit testing)                      $cppunit"
 #echo "External SQL dictionary                         $lexdb"
+echo "grammar dumping in LUI format                   $lui"
 echo "Memory allocation with mmap                     $mmapalloc"
 echo "============================================================="
 echo
