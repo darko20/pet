@@ -227,7 +227,7 @@ void interactive() {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(opt_mrs, "xml") == 0);
+          bool rmrs_xml = (strcmp(opt_mrs, "rmrx") == 0);
           if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
           for(list<tItem *>::iterator it = partials.begin()
                 ; it != partials.end(); ++it) {
