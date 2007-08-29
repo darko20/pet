@@ -504,14 +504,14 @@ unify_arcs1(dag_arc *arcs, dag_arc *arcs1,
         path_reverse = cons(arcs->attr, path_reverse);
       if(recfail<record_failure>::dag_unify1(n, arcs->val) == FAIL) {
         if(record_failure) {
-          path_reverse = pop_rest(path_reverse);
+          path_reverse = pop_first(path_reverse);
           if(!all_failures) return false;
         }
         else
           return false;
       }
       if(record_failure)
-        path_reverse = pop_rest(path_reverse);
+        path_reverse = pop_first(path_reverse);
     }
     else {
       *new_arcs1 = dag_cons_arc(arcs->attr, arcs->val, *new_arcs1);
@@ -780,11 +780,11 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
           // since we never return false. So we can always return
           // from here, unconditionally.
           if(record_failure)
-            path_reverse = pop_rest(path_reverse);
+            path_reverse = pop_first(path_reverse);
           return false;
         }
         if(record_failure)
-          path_reverse = pop_rest(path_reverse);
+          path_reverse = pop_first(path_reverse);
       }
             
       arc1 = arc1->next;
@@ -812,7 +812,7 @@ void dag_paths_rec(dag_node *dag, dag_node *search) {
     while(arc != 0) {
       path_reverse = cons(arc->attr, path_reverse);
       dag_paths_rec(arc->val, search);
-      path_reverse = pop_rest(path_reverse);
+      path_reverse = pop_first(path_reverse);
       arc = arc->next;
     }
   }
@@ -1468,7 +1468,7 @@ dag_cyclic_arcs(dag_arc *arc) {
       return v;
 
     if(record_failure)
-      path_reverse = pop_rest(path_reverse);
+      path_reverse = pop_first(path_reverse);
 
     arc = arc->next;
   }

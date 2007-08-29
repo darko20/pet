@@ -60,10 +60,33 @@ inline list_int *rest(const list_int *l)
   return l->next;
 }
 
-/** \brief Return the successor of the cons cell \a *l and delete the cell
- *  itself. If the list is empty, NULL is returned.
+/**
+ * Deletes the last cell of the list \a l and returns \a l itself or NULL
+ * if the last cell was the only cell in \a l.
+ * If the list is empty, NULL is returned.
  */
-inline list_int *pop_rest(list_int *l)
+inline list_int * pop_last(list_int *l)
+{
+  if (!l)
+    return NULL;
+  list_int *curr = l, *prec = NULL;
+  while (rest(curr)) {
+    prec = curr;
+    curr = rest(curr);
+  }
+  delete curr;
+  if (prec)
+    prec->next = NULL;
+  else
+    l = NULL;
+  return l;
+}
+
+/**
+ * Deletes the first cell of the list \a l and returns the rest of the list.
+ * If the list is empty, NULL is returned.
+ */
+inline list_int *pop_first(list_int *l)
 {
   list_int *res;
 
@@ -78,7 +101,7 @@ inline list_int *pop_rest(list_int *l)
 inline void free_list(list_int *l)
 {
   while(l)
-    l = pop_rest(l);
+    l = pop_first(l);
 }
 
 /** Search \a l for a cons cell whose content is \a e.
