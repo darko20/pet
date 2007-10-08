@@ -26,6 +26,16 @@ using std::list;
 
 XERCES_CPP_NAMESPACE_USE
 
+bool tPICTokenizer::next_input(std::istream &in, std::string &input) {
+  input.clear();
+  string nextline;
+  do {
+    std::getline(in, nextline);
+    input += nextline;
+  } while (! nextline.empty());
+  return input.empty();
+}
+
 /** Produce a set of tokens from the given XML input. */
 void tPICTokenizer::tokenize(string input, inp_list &result) {
 

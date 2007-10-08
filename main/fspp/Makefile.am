@@ -18,7 +18,7 @@ bin_PROGRAMS = fspp
 
 fspp_SOURCES = main.cpp petecl.c petecl.h unicode.cpp unicode.h errors.h
 fspp_LDADD =  libfspp.a libpreprocessor.a libfspp.a # fix_me
-fspp_LDFLAGS =  -L.
+fspp_LDFLAGS =  -L. $(CHEAPLDFLAGS)
 ######
 
 noinst_LIBRARIES = libfspp.a

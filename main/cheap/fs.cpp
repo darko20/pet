@@ -22,9 +22,9 @@
 
 #include "cheap.h"
 #include "fs.h"
-#include "types.h"
 #include "tsdb++.h"
 #include "restrictor.h"
+#include "dag-tomabechi.h"
 
 #include <iostream>
 
@@ -37,8 +37,6 @@ qc_node *qc_paths_unif;
 int qc_len_subs;
 qc_node *qc_paths_subs;
 
-/** The type that indicates pruning in a dag restrictor */
-type_t dag_restrictor::dag_rest_state::DEL_TYPE;
 
 fs::fs(type_t type)
 {

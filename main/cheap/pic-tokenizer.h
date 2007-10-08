@@ -42,6 +42,9 @@ public:
   void set_position_mapping(position_map position_mapping) { 
     _position_mapping = position_mapping ; }
 
+  /** Get the next input string from the given stream */
+  virtual bool next_input(std::istream &in, std::string &result);
+
 private:
   /** Produce a set of tInputItem tokens from the given XML input on stdin. */
   void tokenize_from_stream(std::string input, inp_list &result);

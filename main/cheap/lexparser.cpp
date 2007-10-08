@@ -48,35 +48,6 @@ void lex_parser::init() {
   _carg_path = cheap_settings->value("mrs-carg-path");
 }
 
-string get_xml_input(string input) {
-  string buffer = input;
-  const int bufsize = 2048;
-  char *inbuf = new char[bufsize];
-  inbuf[bufsize - 1] = '\0';
-  int onelinecount;
-  bool partialread;
-  
-  do {
-    onelinecount = 0;
-    // Now read one line, maybe in several pieces if it is longer than the
-    // buffer
-    do {
-      partialread = false;
-      cin.getline(inbuf, bufsize - 1, '\n');
-      onelinecount += cin.gcount() - 1;
-      buffer += inbuf ;
-      if (cin.fail()) {
-        cin.clear(cin.rdstate() & ~ios::failbit);
-        partialread = true;
-      } else {
-        buffer += '\n';
-      }
-    } while (partialread);  // line too long, only read partially?
-    // exit if we read an empty line or we got an end_of_file
-  } while ((onelinecount > 0) && cin) ;
-  return buffer;
-}
-
 /** Use the registered tokenizer(s) to tokenize the input string and put the
  *  result into \a tokens.
  *
@@ -87,10 +58,6 @@ string get_xml_input(string input) {
 void lex_parser::tokenize(string input, inp_list &tokens) {
   if (_tokenizers.empty())
     throw tError("No tokenizer registered");
-
-  // if input mode is XML, consume all the XML input
-  if (_tokenizers.front()->description() == "XML input chart reader")
-    input=get_xml_input(input);
 
   // trace output
   if(verbosity > 4) {
@@ -689,6 +656,14 @@ lex_parser::reset() {
   _maxpos = -1;
 }
 
+
+bool lex_parser::next_input(std::istream &in, std::string &result) {
+  if (_tokenizers.empty())
+    throw tError("No tokenizer registered");
+  
+  return _tokenizers.front()->next_input(in, result);
+}
+
 int
 lex_parser::process_input(string input, inp_list &inp_tokens) {
   // Tokenize the input
@@ -707,10 +682,9 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
   return _maxpos;
 }
 
-
 void
-lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
-                               , fs_alloc_state &FSAS, list<tError> &errors) {
+lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
+                            fs_alloc_state &FSAS, list<tError> &errors){
   // if lex_exhaustive, process inflectional and lexical rules first and
   // exhaustively before applying syntactic rules
   // This allows more elaborate checking of gaps and chart dependencies
@@ -738,6 +712,13 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   if (lex_exhaustive) {
     parse_loop(FSAS, errors);
   }
+}
+
+
+void
+lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
+                               , fs_alloc_state &FSAS, list<tError> &errors) {
+  lexical_parsing(inp_tokens, lex_exhaustive, FSAS, errors);
 
   // dependency filtering is done on the chart itself
   dependency_filter(cheap_settings->lookup("chart-dependencies"),
@@ -840,3 +821,4 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   }
 
 }
+

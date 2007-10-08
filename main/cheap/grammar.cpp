@@ -826,6 +826,10 @@ tGrammar::init_parameters()
       if ((restname != NULL) && is_type(lookup_type(restname))) {
         _packing_restrictor = 
           new dag_restrictor(type_dag(lookup_type(restname)));
+        dag_restrictor::DEL_TYPE
+          = lookup_type(cheap_settings->value("restrictor-delete"));
+        dag_restrictor::ONLY_TYPE
+          = lookup_type(cheap_settings->value("restrictor-only"));
       }
     }
     if(opt_packing && (_packing_restrictor == NULL)) {

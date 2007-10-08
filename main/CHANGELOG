@@ -1,4 +1,9 @@
 v0.99.??
+  - finish extended restrictor functionality
+  - bind reading of new input to the registered tokenizer to get a clean 
+    interface that works for PIC and tsdb, too
+  - allow dumping of cyclic dags in flop
+  - fix problem of fspp/Makefile.am
   - rmrs-list output is activated correctly again when -mrs=rmrx is used
   - changed order in SUBDIRS so that libpreprocessor is build before cheap, if 
     enabled
