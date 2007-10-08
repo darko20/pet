@@ -33,6 +33,10 @@ using std::list;
 
 extern settings *cheap_settings;
 
+/*----------------------------------------------------------------------------
+   tTokenizer functions
+ ----------------------------------------------------------------------------*/
+
 tTokenizer::tTokenizer() {
   char *s = cheap_settings->value("punctuation-characters");
   string pcs;
@@ -124,6 +128,25 @@ void tTokenizer::translate_iso(string &s) {
       }
   }
 }
+
+bool tTokenizer::next_input(std::istream &in, string &result) {
+  bool done;
+  do {
+    done = true;
+    std::getline(in, result);
+    if(_comment_passthrough && ((result[0] == '/' && result[1] == '/')
+                                || result[0] == '#')) {
+      if(_comment_passthrough > 0) fprintf(fstatus, "%s\n", result.c_str());
+      done = false;
+    } // if
+  } while (! done);
+  return result.empty();
+}
+
+
+/*----------------------------------------------------------------------------
+   tLingoTokenizer functions
+ ----------------------------------------------------------------------------*/
 
 
 /** Produce a set of tokens from the given string. */

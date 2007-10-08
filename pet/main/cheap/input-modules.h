@@ -75,10 +75,22 @@ public:
   /** Produce a set of tokens from the given string. */
   virtual void tokenize(myString s, inp_list &result) = 0;
 
-  /** Return \c STANDOFF_COUNTS if the position in the returned tokens are counts
-   *  , \c STANDOFF_POINTS if they are points
+  /** Return \c STANDOFF_COUNTS if the position in the returned tokens are
+   *  counts, \c STANDOFF_POINTS if they are points
    */
   virtual position_map position_mapping() = 0;
+  
+  /** Get the next input string from the given stream */
+  virtual bool next_input(std::istream &in, std::string &result);
+
+  /** set the treatment of line comments in the input
+   *  If not zero, pay attention to lines starting either with '#' or '//' and
+   *  treat them as comment lines. If greater that zero, echo them to the 
+   *  status stream, otherwise just strip them.
+   */
+  void set_comment_passthrough(int passthrough) {
+    _comment_passthrough = passthrough;
+  }
 
 protected:
   tTokenizer();
@@ -101,10 +113,16 @@ protected:
   std::string _punctuation_characters;
 #endif
 
-  /** If \c true, Translate the german ISO umlaut and sz characters in stem and
+  /** If \c true, translate the german ISO umlaut and sz characters in stem and
    *  surface forms.
    */
   bool _translate_iso_chars;
+
+  /** If not zero, pay attention to lines starting either with '#' or '//' and
+   * treat them as comment lines. If greater that zero, echo them to the 
+   * status stream, otherwise just strip them.
+   */
+  int _comment_passthrough;
 };
 
 /** Call a Named Entity Recognizer.
