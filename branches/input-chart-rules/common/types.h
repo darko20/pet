@@ -220,6 +220,7 @@ type_t lookup_symbol(const char *s);
 type_t lookup_unsigned_symbol(unsigned int i);
 /** Clear all dynamic symbols (might be called for each new parse) */
 void clear_dynamic_symbols () ;
+/*@}*/
 
 /** Get the type name of a type (static or dynamic) */
 inline const char *type_name(type_t type) {
