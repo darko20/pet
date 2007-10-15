@@ -746,6 +746,18 @@ int glb(int s1, int s2)
   if(s1 < 0) return T_BOTTOM;
 
 #ifndef FLOP
+  
+  // glbcache is not suitable for dynamic types
+#ifdef DYNAMIC_SYMBOLS
+  // since s1 < s2, it can't be that is_dynamic_type(s1) & !is_dynamic_type(s2)
+  if (is_dynamic_type(s2)) {  
+    if (s1 == BI_STRING)
+      return s2;
+    else // since s1 != s2 & s1 != BI_TOP, s1 must be a different dynamic type
+      return T_BOTTOM;
+  }
+#endif
+  
   // result is a _reference_ to the cache entry -> automatic writeback
   int &result = glbcache[ (typecachekey_t) s1*ntypes + s2 ];
   if(result) return result;
