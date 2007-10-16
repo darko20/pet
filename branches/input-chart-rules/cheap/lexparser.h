@@ -62,6 +62,13 @@ public:
    */
   void reset();
 
+  /** Read the next input chunk from \a in into \a result and return \c true if
+   *  the end of input/file has been reached, false otherwise.
+   *
+   *  The functionality is delegated to the registered tokenizer.
+   */
+  bool next_input(std::istream &in, std::string &result);
+
   /** Perform tokenization, named entity recognition, POS tagging and skipping
    *  of unknown tokens.
    *  \param input The input string, not necessarily a simple sentence.
@@ -70,6 +77,21 @@ public:
    *  created. 
    */
   int process_input(std::string input, inp_list &inp_tokens);
+
+  /** The first stage of lexical processing, without chart dependencies and
+   * unknown lex entries processing.
+   *
+   * Do lexicon access and morphology, complete active multi word lexemes
+   *
+   * \param inp_tokens The input tokens coming from process_input
+   * \param lex_exhaustive If true, do exhaustive lexical processing before
+   *        looking for gaps and chart dependencies. This allows to catch more
+   *        complex problems and properties.
+   * \param FSAS the allocation state for the whole parse
+   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   */
+  void lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
+                       fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** \brief Perform lexical processing. 
    *

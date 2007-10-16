@@ -27,8 +27,6 @@
 
 using namespace std;
 
-static dag_node * const INSIDE = (dag_node *) -2;
-
 int unify_generation = 0;
 int unify_generation_max = 0;
 
@@ -56,8 +54,8 @@ int unify_nr_newtype, unify_nr_comparc, unify_nr_forward, unify_nr_copy;
 
 template<bool record_failure> class recfail {
 public:
-  static bool
-  dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
+  static bool dag_subsumes1(dag_node *dag1, dag_node *dag2,
+                            bool &forward, bool &backward);
 
   static dag_node *dag_unify1(dag_node *dag1, dag_node *dag2);
 
@@ -73,22 +71,8 @@ public:
   static dag_node * dag_cyclic_rec(dag_node *dag);
 };
 
-inline dag_node *
-dag_deref1(dag_node *dag) {
-  dag_node* res = dag_get_forward(dag);
-    
-  while(res) {
-    dag = res;
-    res = dag_get_forward(dag);
-  }
-    
-  return dag;
-}
-
 dag_node *dag_get_attr_value(dag_node *dag, attr_t attr) {
-  dag_arc *arc;
-  
-  arc = dag_find_attr(dag->arcs, attr);
+  dag_arc *arc = dag_find_attr(dag->arcs, attr);
   if(arc == 0) return FAIL;
   
   return arc->val;
@@ -462,30 +446,6 @@ dag_make_wellformed(type_t new_type, dag_node *dag1, type_t s1, dag_node *dag2,
   return res;
 }
 
-inline dag_arc *dag_cons_arc(attr_t attr, dag_node *val, dag_arc *next) {
-  dag_arc *arc;
-
-  arc = new_arc(attr, val);
-  arc -> next = next;
-  
-  return arc;
-}
-
-/** Look for an arc with feature \a attr first in the arc list \a a, then in
- * the arg list \a b and return the first arc you find, or \c NULL, in case
- * there is no such arc 
- */
-inline dag_node *find_attr2(attr_t attr, dag_arc *a, dag_arc *b) {
-  dag_arc *res;
-  
-  if((res = dag_find_attr(a, attr)) != 0)
-    return res -> val;
-  if((res = dag_find_attr(b, attr)) != 0)
-    return res -> val;
-  
-  return 0;
-}
-
 /** Unify all arcs in \a arcs against the arcs in \a arcs1 and \a comp_arcs1.
  * Unification with an arc in \a comp_arcs1 is only performed when no
  * corresponding arc exists in \a arcs1.
@@ -495,14 +455,15 @@ inline dag_node *find_attr2(attr_t attr, dag_arc *a, dag_arc *b) {
 template<bool record_failure> inline bool recfail<record_failure>::
 unify_arcs1(dag_arc *arcs, dag_arc *arcs1, 
             dag_arc *comp_arcs1, dag_arc **new_arcs1) {
-  dag_node *n;
-  
+  dag_node *node;
+  dag_arc *arc;
   while(arcs != 0) {
-    n = find_attr2(arcs->attr, arcs1, comp_arcs1);
-    if(n != 0) {
+    if(((arc = dag_find_attr(arcs1, arcs->attr)) != NULL) ||
+       ((arc = dag_find_attr(comp_arcs1, arcs->attr)) != NULL)) {
+      node = arc->val;
       if(record_failure)
         path_reverse = cons(arcs->attr, path_reverse);
-      if(recfail<record_failure>::dag_unify1(n, arcs->val) == FAIL) {
+      if(recfail<record_failure>::dag_unify1(node, arcs->val) == FAIL) {
         if(record_failure) {
           path_reverse = pop_first(path_reverse);
           if(!all_failures) return false;
@@ -513,7 +474,7 @@ unify_arcs1(dag_arc *arcs, dag_arc *arcs1,
       if(record_failure)
         path_reverse = pop_first(path_reverse);
     }
-    else {
+    else { // not in the arcs of the first dag
       *new_arcs1 = dag_cons_arc(arcs->attr, arcs->val, *new_arcs1);
     }
 
@@ -522,6 +483,13 @@ unify_arcs1(dag_arc *arcs, dag_arc *arcs1,
   return true;
 }
 
+/** Iterate over the \c arcs and \c comp_arcs of \c dag2 and unify them with
+ * the \c arcs and \c comp_arcs of \c dag1
+ *
+ * As far as i see, arcs and comp_arcs should always be disjoint. That is the
+ * reason why this method and the copying work OK without doing a) too much
+ * work and b) producing duplicate arcs with equal labels.
+ */
 template<bool record_failure> inline bool recfail<record_failure>::
 dag_unify_arcs(dag_node *dag1, dag_node *dag2) {
   dag_arc *arcs1, *comp_arcs1, *new_arcs1;
@@ -529,15 +497,12 @@ dag_unify_arcs(dag_node *dag1, dag_node *dag2) {
   arcs1 = dag1->arcs;
   new_arcs1 = comp_arcs1 = dag_get_comp_arcs(dag1);
 
-  // What is the reason that an arc can not appear in the arcs and in the
-  // comp_arcs of a dag? If that would be the case, two arcs with the same
-  // feature could be in new_arcs1
-  if(! recfail<record_failure>::unify_arcs1(dag2->arcs, arcs1,
-                                            comp_arcs1, &new_arcs1))
+  if(! recfail<record_failure>::
+     unify_arcs1(dag2->arcs, arcs1, comp_arcs1, &new_arcs1))
     return false;
   
-  if(! recfail<record_failure>::unify_arcs1(dag_get_comp_arcs(dag2), arcs1,
-                                            comp_arcs1, &new_arcs1))
+  if(! recfail<record_failure>::
+     unify_arcs1(dag_get_comp_arcs(dag2), arcs1, comp_arcs1, &new_arcs1))
     return false;
   
   if(new_arcs1 != 0) {
@@ -632,22 +597,17 @@ dag_unify2(dag_node *dag1, dag_node *dag2) {
 }
 
 dag_node *dag_full_copy(dag_node *dag) {
-  dag_node *copy;
-
-  copy = dag_get_copy(dag);
+  dag_node *copy = dag_get_copy(dag);
   
   if(copy == 0) {
-    dag_arc *arc;
-
     copy = new_dag(dag->type);
-
     dag_set_copy(dag, copy);
 
-    arc = dag->arcs;
+    dag_arc *arc = dag->arcs;
     while(arc != 0) {
-        dag_add_arc(copy, new_arc(arc->attr, dag_full_copy(arc->val)));
-        arc = arc->next;
-      }
+      dag_add_arc(copy, new_arc(arc->attr, dag_full_copy(arc->val)));
+      arc = arc->next;
+    }
   }
 
   return copy;
@@ -658,9 +618,7 @@ dag_node *dag_full_copy(dag_node *dag) {
  * This function is called when the restrictor cuts at node \a dag. 
  */
 struct dag_node *dag_partial_copy1(dag_node *dag, type_t new_type) {
-  dag_node *copy;
-    
-  copy = dag_get_copy(dag);
+  dag_node *copy = dag_get_copy(dag);
     
   if(copy == 0) {
     copy = new_dag(new_type);
@@ -676,9 +634,9 @@ struct dag_node *dag_partial_copy1(dag_node *dag, type_t new_type) {
 
 void
 dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
-    unification_cost = 0;
-    recfail<false>::dag_subsumes1(dag1, dag2, forward, backward);
-    dag_invalidate_changes();
+  unification_cost = 0;
+  recfail<false>::dag_subsumes1(dag1, dag2, forward, backward);
+  dag_invalidate_changes();
 }
 
 
@@ -877,276 +835,91 @@ dag_node *dag_cyclic_copy(dag_node *src, list_int *del) {
   return copy;
 }
 
-#undef CYCLE_PARANOIA
 #ifdef SMART_COPYING
 
 /* (almost) non-redundant copying (Tomabechi/Malouf/Caroll) from the LKB */
 
-#if 0
-
-dag_node *dag_copy(dag_node *src, list_int *del) {
-  dag_node *copy;
-  int type;
-
-  unification_cost++;
-
-  src = dag_deref1(src);
-  copy = dag_get_copy(src);
-
-  if(copy == INSIDE) {
-    stats.cycles++;
-    return FAIL;
-  }
-  else if(copy == FAIL) {
-    copy = 0;
-    //      fprintf(ferr, "reset copy @ 0x%x\n", (ptr2int_t) src);
-  }
-  
-  if(copy != 0)
-    return copy;
-
-#ifdef CYCLE_PARANOIA
-  if(del) {
-    if(dag_cyclic_rec(src))
-      return FAIL;
-  }
-#endif
-
-  type = dag_get_new_type(src);
-
-  dag_arc *new_arcs = dag_get_comp_arcs(src);
-
-  // `atomic' node
-  if(src->arcs == 0 && new_arcs == 0) {
-    if(dag_permanent(src) || type != src->type)
-      copy = new_dag(type);
-    else
-      copy = src;
-
-    dag_set_copy(src, copy);
-
-    return copy;
-  }
-
-  dag_set_copy(src, INSIDE);
-  
-  bool copy_p = dag_permanent(src) || type != src->type || new_arcs != 0;
-
-  dag_arc *arc;
-
-  // copy comp-arcs - top level arcs can be reused
-
-  arc = new_arcs;
-  while(arc) {
-    if(!contains(del, arc->attr)) {
-      if((arc->val = dag_copy(arc->val, 0)) == FAIL)
-        return FAIL;
-    }
-    else
-      arc->val = 0; // mark for deletion
-
-    arc = arc->next;
-  }
-  
-  // really remove `deleted' arcs
-  
-  // handle special case of first element
-  while(new_arcs && new_arcs->val == 0)
-    new_arcs = new_arcs->next;
-
-  // non-first elements
-  arc = new_arcs;
-  while(arc) {
-    if(arc->next && arc->next->val == 0)
-      arc->next = arc->next->next;
-    else
-      arc = arc->next;
-  }
-
-#ifndef NAIVE_MEMORY
-  dag_alloc_state old_arcs;
-  dag_alloc_mark(old_arcs);
-#endif  
-
-  dag_node *v;
-
-  // copy arcs - could reuse unchanged tail here - too hairy for now
-
-  arc = src->arcs;
-  while(arc) {
-    if(!contains(del, arc->attr))
-      {
-        if((v = dag_copy(arc->val, 0)) == FAIL)
-          return FAIL;
-        
-        if(arc->val != v) 
-          copy_p = true;
-        
-        new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
-      }
-    arc = arc->next;
-  }
-
-  if(copy_p) {
-    copy = new_dag(type);
-    copy->arcs = new_arcs;
-  }
-  else {
-    copy = src;
-#ifndef NAIVE_MEMORY
-    dag_alloc_release(old_arcs);
-#endif
-  }
-
-  dag_set_copy(src, copy);
-
-  return copy;
-}
-
-#endif
-
 /** Return \c true if the arc list starting at \a arc contains an arc with
  *  feature \a attr.
- */
+ *
 inline bool arcs_contain(dag_arc *arc, attr_t attr) {
-  while(arc) {
-      if(arc->attr == attr) return true;
-      arc = arc->next;
-    }
-  return false;
+  while(arc && (arc->attr != attr)) arc = arc->next; return (arc != NULL);
 }
-
-/** Clone the list of arcs in \a src by prepending all cloned arcs to the arcs
- *  list in \a dst except for arcs that have a feature that occurs also in \a
- *  del (as feature of an arc)
- *  \return The new arcs list (that contains at least \a dst)
- */
-inline dag_arc *clone_arcs_del(dag_arc *src, dag_arc *dst, dag_arc *del) {
-  while(src) {
-      if(!arcs_contain(del, src->attr))
-        dst = dag_cons_arc(src->attr, src->val, dst);
-      src = src->next;
-    }
-
-  return dst;
-}
-
-/** Clone the list of arcs in \a src by prepending all cloned arcs to the arcs
- *  list in \a dst except for arcs that have a feature that occurs also in \a
- *  del_arcs (as feature of an arc) or in \a del_attrs features)
- *  \return The new arcs list (that contains at least \a dst)
- */
-inline dag_arc *
-clone_arcs_del_del(dag_arc *src, dag_arc *dst,
-                   dag_arc *del_arcs, list_int *del_attrs) {
-  while(src) {
-      if(!contains(del_attrs,src->attr) && !arcs_contain(del_arcs, src->attr))
-        dst = dag_cons_arc(src->attr, src->val, dst);
-      src = src->next;
-    }
-
-  return dst;
-}
+*/
 
 dag_node *dag_copy(dag_node *src, list_int *del) {
-  dag_node *copy;
-  type_t type;
-
   unification_cost++;
 
   src = dag_deref1(src);
-  copy = dag_get_copy(src);
+  dag_node *copy = dag_get_copy(src);
 
-  if(copy == INSIDE) {
-    stats.cycles++;
-    return FAIL;
-  }
-  else if(copy == FAIL) {
-    copy = 0;
-  }
-  
-  if(copy != 0)
-    return copy;
+  if(copy == FAIL)
+    copy = NULL;
+  else 
+    if(copy == INSIDE) {
+      stats.cycles++;
+      return FAIL;
+    } else
+      if (copy != NULL) return copy;
 
-  type = dag_get_new_type(src);
-
+  type_t type = dag_get_new_type(src);
   dag_arc *new_arcs = dag_get_comp_arcs(src);
-
-  // `atomic' node
-  if(src->arcs == 0 && new_arcs == 0) {
-    if(dag_permanent(src) || type != src->type)
+  if(src->arcs == 0 && new_arcs == 0) {     // `atomic' node
+    if (dag_permanent(src) || type != src->type)
       copy = new_dag(type);
     else
       copy = src;
-
     dag_set_copy(src, copy);
-
     return copy;
   }
 
   dag_set_copy(src, INSIDE);
-  
-  bool copy_p = dag_permanent(src) || type != src->type || new_arcs != 0;
-
-  dag_arc *arc;
-
-  // copy comp-arcs - top level arcs can be reused
-
-  arc = new_arcs;
-  while(arc) {
-    if(!contains(del, arc->attr)) {
-      if((arc->val = dag_copy(arc->val, 0)) == FAIL)
-        return FAIL;
-    }
-    else
-      arc->val = 0; // mark for deletion
-    
-    arc = arc->next;
-  }
-  
-  // really remove `deleted' arcs
-  
-  // handle special case of first element
-  while(new_arcs && new_arcs->val == 0)
-    new_arcs = new_arcs->next;
-
-  // non-first elements
-  arc = new_arcs;
-  while(arc) {
-    if(arc->next && arc->next->val == 0)
-      arc->next = arc->next->next;
-    else
-      arc = arc->next;
-  }
+  bool copy_p = dag_permanent(src) || type != src->type || new_arcs != NULL;
 
   dag_node *v;
-
+  dag_arc *arc = src->arcs, *next, *result_arcs = NULL;
   // copy arcs - could reuse unchanged tail here - too hairy for now
-
-  arc = src->arcs;
   while(arc) {
+    //assert(!arcs_contain(new_arcs, arc->attr));
     if(!contains(del, arc->attr)) {
-      if((v = dag_copy(arc->val, 0)) == FAIL)
-        return FAIL;
+      if((v = dag_copy(arc->val, NULL)) == FAIL) return FAIL;
       
       if(arc->val != v) {
-        copy_p = true;
-        new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
+        if (! copy_p) {
+          // clone all arcs before arc
+          dag_arc *old = src->arcs;
+          while(old != arc) {
+            if(!contains(del, old->attr))
+              result_arcs = dag_cons_arc(old->attr, old->val, result_arcs);
+            old = old->next;
+          }
+          copy_p = true;
+        }
+        result_arcs = dag_cons_arc(arc->attr, v, result_arcs);
+      } else {
+        if (copy_p) // clone arc
+          result_arcs = dag_cons_arc(arc->attr, arc->val, result_arcs);
       }
     }
     arc = arc->next;
   }
 
+  // copy comp-arcs - top level arcs can be reused
+  arc = new_arcs;
+  while(arc) {
+    next = arc->next;
+    if(!contains(del, arc->attr)) {
+      if((arc->val = dag_copy(arc->val, NULL)) == FAIL) return FAIL;
+      arc->next = result_arcs;
+      result_arcs = arc;
+    }
+    arc = next;
+  }
+
   if(copy_p) {
     copy = new_dag(type);
-    // clone all original arcs which are not yet in new_arcs (and not in the
-    // deleted features list, if this list is not empty)
-    if(del)
-      copy->arcs = clone_arcs_del_del(src->arcs, new_arcs, new_arcs, del);
-    else
-      copy->arcs = clone_arcs_del(src->arcs, new_arcs, new_arcs);
-  }
-  else {
+    copy->arcs = result_arcs;
+  } else {
     copy = src;
   }
 
@@ -1160,12 +933,10 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
 /* plain vanilla copying (as in the paper) */
 
 dag_node *dag_copy(dag_node *src, list_int *del) {
-  dag_node *copy;
-
   unification_cost++;
 
   src = dag_deref1(src);
-  copy = dag_get_copy(src);
+  dag_node *copy = dag_get_copy(src);
 
   if(copy == INSIDE) {
     stats.cycles++;
@@ -1178,10 +949,9 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
   dag_set_copy(src, INSIDE);
   
   dag_arc *new_arcs = 0;
-  dag_arc *arc;
   dag_node *v;
   
-  arc = src->arcs;
+  dag_arc *arc = src->arcs;
   while(arc) {
     if(!contains(del, arc->attr)) {
       if((v = dag_copy(arc->val, 0)) == FAIL)
@@ -1217,10 +987,8 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
 // temporary dags
 //
 
-dag_node *dag_get_attr_value_temp(dag_node *dag, attr_t attr) {
-  dag_arc *arc;
-
-  arc = dag_find_attr(dag_get_comp_arcs(dag), attr);
+inline dag_node *dag_get_attr_value_temp(dag_node *dag, attr_t attr) {
+  dag_arc *arc = dag_find_attr(dag_get_comp_arcs(dag), attr);
   if(arc) return arc->val;
 
   arc = dag_find_attr(dag->arcs, attr);
@@ -1489,7 +1257,8 @@ dag_cyclic_rec(dag_node *dag) {
       
     dag_set_copy(dag, INSIDE);
 
-    if((v = dag_cyclic_arcs(dag->arcs)) != 0 || (v = dag_cyclic_arcs(dag_get_comp_arcs(dag))) != 0)
+    if((v = dag_cyclic_arcs(dag->arcs)) != 0
+       || (v = dag_cyclic_arcs(dag_get_comp_arcs(dag))) != 0)
       return v;
       
     dag_set_copy(dag, FAIL);
@@ -1765,46 +1534,3 @@ void dag_print_fed_safe(FILE *f, struct dag_node *dag) {
   dag_print_rec_fed_safe(f, dag);
   dags_visited.clear();
 }
-
-#if 0
-struct dag_node *
-dag_partial_copy1(dag_node *dag, attr_t attr, const restrictor &del)
-{
-    dag_node *copy;
-    
-    copy = dag_get_copy(dag);
-    
-    if(copy == 0)
-    {
-        dag_arc *arc;
-        
-        copy = new_dag(dag->type);
-        
-        dag_set_copy(dag, copy);
-        
-        if(!contains(del, attr))
-        {
-            arc = dag->arcs;
-            while(arc != 0)
-            {
-                dag_add_arc(copy,
-                            new_arc(arc->attr,dag_partial_copy1(arc->val,
-                                                                arc->attr,
-                                                                del)));
-                arc = arc->next;
-            }
-        }
-        else if(attr != -1)
-        {
-            copy->type = maxapp[attr];
-        }
-    }
-    
-    return copy;
-}
-
-struct dag_node *dag_partial_copy(dag_node *dag, list_int *del)
-{
-  return dag_partial_copy1(dag, -1, del);
-}
-#endif

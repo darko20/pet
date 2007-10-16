@@ -19,6 +19,8 @@
 
 /* main module (standalone parser) */
 
+#include <iostream> 
+
 #include "pet-config.h"
 #include "cheap.h"
 #include "parse.h"
@@ -143,7 +145,7 @@ void interactive() {
               , opt_tsdb_dir.c_str());
   }
 
-  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+  while(!Lexparser.next_input(std::cin, input)) {
     chart *Chart = 0;
 
     tsdb_dump.start();
@@ -455,9 +457,12 @@ void process(const char *s) {
       {
         char *classchar = cheap_settings->value("class-name-char");
         if (classchar != NULL)
-          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
+          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS 
+                                  ? STANDOFF_COUNTS : STANDOFF_POINTS),
+                                 classchar[0]);
         else
-          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS));
+          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS
+                                  ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
     case TOKENIZER_STRING: 
@@ -469,7 +474,8 @@ void process(const char *s) {
 #ifdef HAVE_XML
       xml_initialize();
       XMLServices = true;
-      tok = new tPICTokenizer((opt_tok == TOKENIZER_PIC_COUNTS ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
+      tok = new tPICTokenizer((opt_tok == TOKENIZER_PIC_COUNTS
+                               ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
 #else
       fprintf(ferr, "No XML input mode compiled into this cheap\n");
       exit(1);
@@ -504,6 +510,7 @@ void process(const char *s) {
     default:
       tok = new tLingoTokenizer(); break;
     }
+    tok->set_comment_passthrough(opt_comment_passthrough);
     Lexparser.register_tokenizer(tok);
   }
     
