@@ -61,14 +61,15 @@ public:
  * structure. So, almost no internal state and no virtual functions.
  *
  * This special restrictor gets paths as input specification and deletes the
- * nodes that are at the end of the paths. 
+ * nodes that are at the end of the paths. The paths don't have to start at the
+ * root of the dag but can be arbitrary sub-paths in a feature structure.
  */
 class path_restrictor : public restrictor {
   class tree_node {
     typedef std::pair<attr_t, tree_node> tree_arc;
     typedef std::list< tree_arc > dtrs_list;
 
-    std::list< tree_arc > _dtrs;
+    dtrs_list _dtrs;
 
     tree_node *walk_arc_internal(attr_t a) {
       for(dtrs_list::iterator it=_dtrs.begin(); it != _dtrs.end(); it++){
@@ -77,7 +78,8 @@ class path_restrictor : public restrictor {
       return NULL;
     }
 
-    void add_path_internal(const std::list<int> &l, std::list<int>::const_iterator it) {
+    void add_path_internal(const std::list<int> &l,
+                           std::list<int>::const_iterator it) {
       if (it != l.end()) {
         tree_node *sub = walk_arc_internal(l.front());
         if (sub == NULL) {
@@ -114,19 +116,20 @@ class path_restrictor : public restrictor {
     inline bool leaf_p() const { return _dtrs.empty(); }
   };
 
-  class path_restrictor_state {
-    typedef std::list< const tree_node * > state_list;
+public:
+  class state { 
+    typedef std::list< const tree_node * > node_list;
 
     const tree_node *_root;
-    state_list _states;
+    node_list _nodes;
 
-    void add_state(const tree_node *state) { _states.push_front(state); }
-    void dead() { _states.clear(); }
+    void add_node(const tree_node *node) { _nodes.push_front(node); }
+    void dead() { _nodes.clear(); }
 
   public:
-    path_restrictor_state(const tree_node *root) {
+    state(const tree_node *root) {
       _root = root;
-      add_state(root);
+      add_node(root);
     }
 
     /** Return \c true if from now on all nodes should be copied */
@@ -135,20 +138,20 @@ class path_restrictor : public restrictor {
     /** Return \c true if from now on nothing should be copied 
      * Don't call this function if \c full() did return \c true.
      */
-    inline bool empty() const { return _states.empty(); }
+    inline bool empty() const { return _nodes.empty(); }
     
     /** Return a new restrictor state corresponding to a transition via
      *  \a attr.
      *  Don't call this function if \c full() did return \c true.
      */
-    inline path_restrictor_state walk_arc(attr_t attr) const {
-      // You can always start at the root state in a living restrictor state,
-      // therefore, the root state is added in the constructor
-      path_restrictor_state result(_root);
-      for(state_list::const_iterator it = _states.begin()
-            ; it != _states.end();it++){
+    inline state walk_arc(attr_t attr) const {
+      // You can always start at the root node in a living restrictor state,
+      // therefore, the root node is added in the constructor
+      state result(_root);
+      for(node_list::const_iterator it = _nodes.begin()
+            ; it != _nodes.end();it++){
         const tree_node *sub = (*it)->walk_arc(attr);
-        // Did we find a subpath from that state for attr?
+        // Did we find a subpath from that node for attr?
         if (sub != NULL) {
           // if *sub is a leaf, the returned restrictor shoule encode the
           // information that this node should be deleted
@@ -156,8 +159,8 @@ class path_restrictor : public restrictor {
             result.dead();
             return result; // smash it
           } else {
-            // This is a possible sub-state for the result restrictor state
-            result.add_state(sub);
+            // This is a possible sub-node for the result restrictor state
+            result.add_node(sub);
           }
         }
       }
@@ -165,14 +168,16 @@ class path_restrictor : public restrictor {
     }
   };
 
+private:
   tree_node _paths_to_delete;
-  path_restrictor_state _root_state;
+  state _root_state;
 
 public:
   /** Create a restrictor object that is encoded in the list of paths given by
    *  \a paths
    */
-  path_restrictor(std::list< std::list<int> > paths) : _root_state(&_paths_to_delete) {
+  path_restrictor(std::list< std::list<int> > paths)
+    : _root_state(&_paths_to_delete) {
     for(std::list< std::list<int> >::iterator it = paths.begin()
           ; it != paths.end(); it++) {
       _paths_to_delete.add_path(*it);
@@ -182,7 +187,8 @@ public:
   /** Create a restrictor object that is encoded in the list of paths given by
    *  \a paths
    */
-  path_restrictor(std::list< list_int * > paths) : _root_state(&_paths_to_delete) {
+  path_restrictor(std::list< list_int * > paths)
+    : _root_state(&_paths_to_delete) {
     for(std::list< list_int * >::iterator it = paths.begin()
           ; it != paths.end(); it++) {
       _paths_to_delete.add_path(*it);
@@ -196,106 +202,66 @@ public:
   }
 };
 
+template< typename R_STATE > bool copy_full(const R_STATE& state);
+template< typename R_STATE > bool empty(const R_STATE &state);
+template< typename R_STATE > R_STATE walk_arc(const R_STATE &state, attr_t attr);
+
+template<> inline bool
+copy_full(const path_restrictor::state &state) { return false; }
+
+template<> inline bool
+empty(const path_restrictor::state &state) { return state.empty(); }
+
+template<> inline path_restrictor::state
+walk_arc(const path_restrictor::state &state, attr_t attr) {
+  return state.walk_arc(attr);
+}
+
 
 /** A restrictor that prunes part of a feature structure on the basis of a
  *  dag-like structure.
  *
- *  At every node in the graph that contains a certain type (which is the same
- *  type as the type at the root of the restrictor dag), the dag will be
- *  pruned. This is a prototype of a restrictor using restrictor states.
+ *  Every node in the graph may have one of two marker types: del or only
+ *  del means:  delete the edges pointing to that node
+ *  only means: keep only the edges that are mentionend in the restrictor dag
+ *              and delete the others. Can also be used to strip a node down to
+ *              its type
+ *  This is a prototype of a restrictor using restrictor states.
+ *  If this restrictor representation were to be used in multiple threads, one
+ *  restrictor per thread would be necessary and sufficient because of the 
+ *  stack, which has to be unique to one pass of the copy routine.
  */
 class dag_restrictor : public restrictor {
+public:
+  static type_t DEL_TYPE, ONLY_TYPE;
 
-  /**  Restrictor_state:
-   *  A \c restrictor_state has to be a lightweight object because lots of them
-   *  are created and destroyed during copy/restriction of a feature
-   *  structure. So, almost no internal state and no virtual functions.
-   *  To save space, all dag restrictors have to use the same type for
-   *  deletion which is stored in a static variable.
-   */
-  class dag_rest_state {
-    class dag_node *_state;
-    static type_t DEL_TYPE;
-    
-  public:
-    dag_rest_state(dag_node *root) : _state(root) {
-      DEL_TYPE = root->type;
-    }
-    
-    /** Return \c true if from now on all nodes should be copied */
-    inline bool full() const { return _state == NULL; }
-    
-    /** Return \c true if from now on nothing should be copied 
-     * Don't call this function if \c full() did return \c true.
-     */
-    inline bool empty() const {
-      assert (_state != NULL); 
-      return (_state->type == DEL_TYPE);
-    }
-    
-    /** Return a new restrictor state corresponding to a transition
-     *  via \a attr.
-     * Don't call this function if \c full() did return \c true.
-     */
-    inline dag_rest_state walk_arc(attr_t attr) const {
-      assert (_state != NULL); 
-      dag_arc *new_arc = dag_find_attr(_state->arcs, attr);
-      if (new_arc != NULL) 
-        return dag_rest_state(new_arc->val);
-      else
-        return dag_rest_state(NULL);
-    }
-  };
+  static const dag_node *_copyall;
+  static const dag_node *_deletearc;
 
-  dag_rest_state _root_state;
+  const dag_node *_root;
 
 public:
   /** Create a restrictor object that is encoded in the dag \a del */
-  dag_restrictor(class dag_node *del) : _root_state(del) { }
+  dag_restrictor(class dag_node *del){ _root = del; }
 
   virtual ~dag_restrictor() { }
 
   virtual class dag_node *dag_partial_copy (class dag_node *dag) const {
-    return dag_partial_copy_state(dag, _root_state);
+    return dag_partial_copy_state(dag, _root); 
   }
 };
 
-#if 0
-// I built this to test the restrictor functionality. The stateless list
-// restrictor surely is more efficient.
-/** Restrictor: an object implementing a functor that deletes parts of a
- *  feature structure.
- *  Restrictor_state:
- *  A \c restrictor_state has to be a lightweight object because lots of them
- *  are created and destroyed during copy/restriction of a feature
- *  structure. So, almost no internal state and no virtual functions.
- */
-class li_rest_state {
-  list_int *_del_arcs;
-  static list_int EMPTY;
+template<> inline bool
+copy_full(const dag_node * const &dag) {
+  return dag == dag_restrictor::_copyall;
+}
 
-public:
-  restrictor(list_int *del) : _del_arcs(del) {}
- 
-  /** Return \c true if from now on all nodes should be copied */
-  inline bool full() const { return false; }
+template<> inline bool
+empty(const dag_node * const &dag) {
+  return dag == dag_restrictor::_deletearc;
+}
 
-  /** Return \c true if from now on nothing should be copied 
-   * Don't call this function if \c full() did return \c true.
-   */
-  inline bool empty() const { return (_del_arcs == &EMPTY); }
-
-  /** Return a new restrictor state corresponding to a transition via \a attr.
-   * Don't call this function if \c full() did return \c true.
-   */
-  inline restrictor walk_arc(attr_t attr) const {
-    if(contains(_del_arcs, attr))
-      return restrictor(&EMPTY);
-    else
-      return restrictor(_del_arcs);
-  }
-};
-#endif
-
+template<> const dag_node *
+walk_arc(const dag_node * const &dag, attr_t attr);
 
 #endif

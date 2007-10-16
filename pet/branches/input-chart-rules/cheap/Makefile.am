@@ -57,7 +57,7 @@ libcheap_a_SOURCES = \
 	paths.cpp paths.h \
 	position-mapper.h \
 	postags.cpp postags.h \
-	restrictor.h \
+	restrictor.cpp restrictor.h \
 	sm.cpp sm.h \
 	task.cpp task.h \
 	tsdb++.h tsdb++.cpp \

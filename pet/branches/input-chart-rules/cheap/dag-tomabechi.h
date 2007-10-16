@@ -112,6 +112,8 @@ extern int unify_generation;
 extern int unify_generation_max;
 /*@}*/
 
+static dag_node * const INSIDE = (dag_node *) -2;
+
 /** Initialize the constraint cache.
  * The constraint cache keeps type dags that have been used for welltypedness
  * unifications in an unsuccessful (top level) unification.
@@ -182,6 +184,11 @@ dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
  */
 dag_node *
 dag_full_p_copy(dag_node *dag);
+
+/** copy the temporary (unified but not copied) or non-temporary \a dag,
+ *  deleting all features from the top-level that occur in \a del
+ */
+dag_node *dag_copy(dag_node *dag, list_int *del);
 
 /** Recursively check if dag is valid for debugging */
 bool dag_valid(dag_node *dag);
@@ -353,6 +360,14 @@ inline void dag_set_copy(dag_node *dag, dag_node *c)
 }
 /*@}*/
 
+/** Add a new arc with feature \a attr and node \a val in front of \a next */
+inline dag_arc *dag_cons_arc(attr_t attr, dag_node *val, dag_arc *next) {
+  dag_arc *arc = new_arc(attr, val);
+  arc->next = next;
+  
+  return arc;
+}
+
 /** Invalidate all generation protected slots */
 inline void dag_invalidate_changes()
 {
@@ -385,6 +400,16 @@ inline void dag_invalidate_visited()
   dag_invalidate_changes();
 }
 
+inline dag_node *
+dag_deref1(dag_node *dag) {
+  dag_node* res = dag_get_forward(dag);
+  while(res) {
+    dag = res;
+    res = dag_get_forward(dag);
+  }
+  return dag;
+}
+
 /** A class to save the current global generation counter in a local
  * environment. The generation counter will be reset on destruction of an
  * object of this class.
@@ -414,39 +439,52 @@ dag_node *dag_partial_copy1(dag_node *dag, type_t new_type);
  */
 template< typename STATELESS_RESTRICTOR >
 dag_node *
-dag_partial_copy_stateless(dag_node *dag, const STATELESS_RESTRICTOR &del)
-{
-    dag_node *copy;
-    
-    copy = dag_get_copy(dag);
-    
-    if(copy == 0)
-    {
-        dag_arc *arc;
+dag_partial_copy_stateless(dag_node *dag, const STATELESS_RESTRICTOR &del) {
+  dag_node *copy = dag_get_copy(dag);
+  if(copy == 0) {
+    copy = new_dag(dag->type);        
+    dag_set_copy(dag, copy);
         
-        copy = new_dag(dag->type);
-        
-        dag_set_copy(dag, copy);
-        
-        arc = dag->arcs;
-        while(arc != 0)
-        { 
-            dag_add_arc(copy,
-                        new_arc(arc->attr, 
-                                (del.prune_arc(arc->attr) ?
-                                 dag_partial_copy1(arc->val
-                                                   , maxapp[arc->attr])
-                                 : dag_partial_copy_stateless(arc->val, del))));
-                                
-            arc = arc->next;
-        }
+    dag_arc *arc = dag->arcs;
+    while(arc != 0) {
+      dag_add_arc(copy,
+                  new_arc(arc->attr, 
+                          (del.prune_arc(arc->attr) ?
+                           dag_partial_copy1(arc->val, maxapp[arc->attr])
+                           : dag_partial_copy_stateless(arc->val, del))));
+      arc = arc->next;
     }
-    
-    return copy;
+  }
+
+  return copy;
 }
 
 
 
+
+/** Helper function to \see dag_partial_copy_state */
+template< typename R_STATE >
+dag_arc *dag_copy_arcs(dag_arc *arc, R_STATE rst, dag_arc *new_arcs = NULL) {
+  if (new_arcs == (dag_arc *) FAIL) return new_arcs;
+  dag_node *new_node;
+  while(arc != 0) {
+    R_STATE new_state = walk_arc(rst, arc->attr);
+    
+    if (empty(new_state)) {
+      // \todo Do we want to strip the arc up to its appropriate type or do
+      // we want to delete it completely??
+      new_node = dag_partial_copy1(arc->val, maxapp[arc->attr]);
+    } else {
+      new_node = dag_partial_copy_state(arc->val, new_state);
+    }
+    if (new_node == FAIL) return (dag_arc *) FAIL;
+    
+    new_arcs = dag_cons_arc(arc->attr, new_node, new_arcs);
+    
+    arc = arc->next;
+  }
+  return new_arcs;
+}
 
 /** Clone \a dag using the restrictor \a rst.
  *
@@ -456,41 +494,40 @@ dag_partial_copy_stateless(dag_node *dag, const STATELESS_RESTRICTOR &del)
  * creation of a new restrictor state on every recursion level. The restrictor
  * states should be lightweight objects as to produce minimal creation and
  * destruction overhead.
+ * This function does not do supersmart copy avoidance but is modelled after
+ * the plain vanilla copying and adapted to the use of an restrictor
+ *
+ * \todo Get a grip on this:
+ * What if copy is not NULL because we have a reentrancy but the restrictor is
+ * different on the different paths to the node? Which is the correct result?
+ * To get at least a deterministic result, we'd have to check the whole
+ * already copied structure and prune additional paths, so that all
+ * restrictions are obeyed.
+ * For the moment, we'll assume that the restrictor is defined such that this
+ * won't happen.
  */
 template< typename R_STATE >
-dag_node *dag_partial_copy_state(dag_node *dag, const R_STATE &rst)
-{
-  dag_node *copy;
-    
-  copy = dag_get_copy(dag);
-    
-  if(copy == 0)
-    {
-      if (rst.full())
-        return dag_full_copy(dag);
+dag_node *dag_partial_copy_state(dag_node *dag, R_STATE rst) {
+  dag = dag_deref1(dag);
+  dag_node *copy = dag_get_copy(dag);
 
-      dag_arc *arc;
-      dag_node *new_node;
-        
-      copy = new_dag(dag->type);
-        
-      dag_set_copy(dag, copy);
+  if(copy == INSIDE) {
+    return FAIL;
+  }
+  
+  if(copy == NULL) {
+    if (copy_full(rst)) return dag_copy(dag, NULL);
 
-      arc = dag->arcs;
-      while(arc != 0) {
-        R_STATE new_state = rst.walk_arc(arc->attr);
+    dag_set_copy(dag, INSIDE);
+    dag_arc *new_arcs = dag_copy_arcs(dag_get_comp_arcs(dag), rst, 
+                                      dag_copy_arcs(dag->arcs, rst));
+    if (new_arcs == (dag_arc *) FAIL)
+      return FAIL;
 
-        if (new_state.empty()) {
-          new_node = dag_partial_copy1(arc->val, maxapp[arc->attr]);
-        } else {
-          new_node = dag_partial_copy_state(arc->val, new_state);
-        }
-
-        dag_add_arc(copy, new_arc(arc->attr, new_node));
-          
-        arc = arc->next;
-        }
-    }
+    dag_node *copy = new_dag(dag_get_new_type(dag));
+    copy->arcs = new_arcs;
+    dag_set_copy(dag, copy);
+  }
       
   return copy;
 }
