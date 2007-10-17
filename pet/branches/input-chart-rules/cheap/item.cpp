@@ -165,30 +165,31 @@ void tItem::lui_dump(const char *path) {
  INPUT ITEM
  *****************************************************************************/
 
-// constructor with start/end NODES specified
-tInputItem::tInputItem(string id, int startnode, int endnode, int start, int end, string surface
-                       , string stem, const tPaths &paths, int token_class
-                       , modlist fsmods)
-  : tItem(startnode, endnode, paths, surface.c_str())
+// constructor with start/end nodes and external start/end positions
+tInputItem::tInputItem(string id
+                       , int start, int end, int startposition, int endposition
+                       , string surface, string stem
+                       , const tPaths &paths, int token_class, modlist fsmods)
+  : tItem(start, end, paths, surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods)
 {
-  _startposition = start;
-  _endposition = end;
+  _startposition = startposition;
+  _endposition = endposition;
   _trait = INPUT_TRAIT;
 }
 
 
-// constructor without start/end NODES specified
-tInputItem::tInputItem(string id, int start, int end, string surface
-                       , string stem, const tPaths &paths, int token_class
-                       , modlist fsmods)
+// constructor with external start/end positions only
+tInputItem::tInputItem(string id, int startposition, int endposition
+                       , string surface, string stem
+                       , const tPaths &paths, int token_class, modlist fsmods)
   : tItem(-1, -1, paths, surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods)
 {
-  _startposition = start;
-  _endposition = end;
+  _startposition = startposition;
+  _endposition = endposition;
   _trait = INPUT_TRAIT;
 }
 

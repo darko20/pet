@@ -122,8 +122,8 @@ public:
 class tItem {
 public:
   /** Base constructor with feature structure
-   * \param start start position in the chart
-   * \param end start position in the chart
+   * \param start start position in the chart (node number)
+   * \param end end position in the chart (node number)
    * \param paths the set of word graph paths this item belongs to
    * \param f the items feature structure
    * \param printname a readable representation of this item
@@ -131,8 +131,8 @@ public:
   tItem(int start, int end, const tPaths &paths, const fs &f,
         const char *printname);
   /** Base constructor
-   * \param start start position in the chart
-   * \param end start position in the chart
+   * \param start start position in the chart (node number)
+   * \param end end position in the chart (node number)
    * \param paths the set of word graph paths this item belongs to
    * \param printname a readable representation of this item
    */
@@ -171,9 +171,9 @@ public:
 
   /** Return \c true if this item has all of its arguments filled. */
   inline bool passive() const { return _tofill == 0; }
-  /** Start position in the chart */
+  /** Start position (node number) in the chart */
   inline int start() const { return _start; }
-  /** End position in the chart */
+  /** End position (node number) in the chart */
   inline int end() const { return _end; }
   /** return end() - start() */
   inline int span() const { return (_end - _start); }
@@ -582,8 +582,10 @@ public:
    * - \c STEM_TOKEN_CLASS, \a stem is used as the stem of this input item
    * - an HPSG type, the lexicon entry is accessed directly using this type.
    * \param id A unique external id
-   * \param start The external start position
-   * \param end The external end position
+   * \param start The start position (node number)
+   * \param end The end position (node number)
+   * \param startposition The external start position
+   * \param endposition The external end position
    * \param surface The surface form for this entry.
    * \param stem The base form for this entry (only used if \a token_class is
    *             \c STEM_TOKEN_CLASS)
@@ -594,14 +596,17 @@ public:
    *               modifications).
    */
   //@{
-  // constructor with start/end NODES specified
-  tInputItem(std::string id, int startnode, int endnode, int start, int end, std::string surface, std::string stem
+  // constructor with start/end nodes and external start/end positions
+  tInputItem(std::string id
+             , int start, int end, int startposition, int endposition
+             , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
 
-  // constructor without start/end NODES specified  
-  tInputItem(std::string id, int start, int end, std::string surface, std::string stem
+  // constructor with external start/end positions only
+  tInputItem(std::string id, int startposition, int endposition
+             , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
