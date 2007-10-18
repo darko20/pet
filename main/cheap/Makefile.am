@@ -72,6 +72,8 @@ cheap_SOURCES = agenda.h \
 	sm.cpp sm.h \
 	task.cpp task.h \
 	tsdb++.h tsdb++.cpp \
+	mrs.h mrs.cpp \
+	vpm.h vpm.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
@@ -141,7 +143,7 @@ libmrs.a:
 	echo "(mk::ecl-finalize-libbuild :module \"mrs\")"; \
 	) | $(ECL)
 
-XML_FILES = pic-handler.cpp pic-handler.h pic-states.h pic-tokenizer.h pic-tokenizer.cpp xmlparser.cpp xmlparser.h smaf-tokenizer.h smaf-tokenizer.cpp
+XML_FILES = pic-handler.cpp pic-handler.h pic-states.h pic-tokenizer.h pic-tokenizer.cpp xmlparser.cpp xmlparser.h smaf-tokenizer.h smaf-tokenizer.cpp mrs-handler.h mrs-handler.cpp mrs-states.h mrs-states.cpp
 if XML
 cheap_SOURCES += $(XML_FILES)
 endif

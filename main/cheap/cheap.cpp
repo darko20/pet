@@ -38,7 +38,8 @@
 #endif
 #include "item-printer.h"
 #include "version.h"
-
+#include "mrs.h"
+#include "vpm.h"
 #include "qc.h"
 
 #ifdef YY
@@ -66,7 +67,7 @@ FILE *ferr, *fstatus, *flog;
 tGrammar *Grammar = 0;
 settings *cheap_settings = 0;
 bool XMLServices = false;
-
+tVPM *vpm = 0;
 
 struct passive_weights : public unary_function< tItem *, unsigned int > {
   unsigned int operator()(tItem * i) {
@@ -208,7 +209,7 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(opt_mrs) {
+          if (opt_mrs && (strcmp(opt_mrs, "new") != 0)) {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
@@ -222,7 +223,20 @@ void interactive() {
             }
           }
 #endif
-        }
+	  if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
+	    mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
+	    if (mrs->valid()) {
+	      mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
+	      if (mapped_mrs->valid()) {
+		fprintf(fstatus, "\n");
+		mapped_mrs->print(fstatus);
+		fprintf(fstatus, "\n");
+	      }
+	      delete mapped_mrs;
+	    }
+	    delete mrs;
+	  }
+	}
 
 #ifdef HAVE_MRS
         if(opt_partial && (Chart->readings().empty())) {
@@ -512,6 +526,14 @@ void process(const char *s) {
   } else mrs_initialize(s, NULL);
 
 #endif
+
+  vpm = new tVPM();
+  char *name2 = cheap_settings->value("vpm");
+  if (name2) {
+    string file = find_file(name, ".vpm", s);
+    vpm->read_vpm(file);
+  }
+
 #ifdef HAVE_ECL
   // reset the error stream so warnings show up again
   ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");

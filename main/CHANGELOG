@@ -1,4 +1,5 @@
 v0.99.??
+  - added native MRS implementation in C++ (preliminary)
   - finish extended restrictor functionality
   - bind reading of new input to the registered tokenizer to get a clean 
     interface that works for PIC and tsdb, too
