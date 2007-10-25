@@ -35,7 +35,7 @@ main(int argc, char **argv)
 {
   // load grammar:
   if (argc != 2) {
-    printf("usage: %s <grammar-name>", argv[0]);
+    printf("usage: %s <grammar-name>\n", argv[0]);
     return 2;
   }
   string grampath = find_file(argv[1], GRAMMAR_EXT);

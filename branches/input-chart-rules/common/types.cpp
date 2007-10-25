@@ -99,11 +99,6 @@ void register_typecode(int i, bitcode *b) {
 }
 
 #ifdef DYNAMIC_SYMBOLS
-/** Register a dynamic type.
- * \pre a type with typename \a name has not been registered
- * \pre typename \a name denotes a string
- * \see retrieve_type()
- */
 type_t register_dynamic_type(const std::string &name) {
   int len = name.length();
   // Dynamic types are subtypes of BI_STRING. Thus, their typenames have to be

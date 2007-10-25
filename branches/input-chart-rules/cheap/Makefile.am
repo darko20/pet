@@ -74,6 +74,7 @@ libcheap_a_SOURCES = \
 	$(top_srcdir)/common/hashing.h \
 	$(top_srcdir)/common/lex-io.cpp $(top_srcdir)/common/lex-io.h \
 	$(top_srcdir)/common/lex-tdl.cpp $(top_srcdir)/common/lex-tdl.h \
+	$(top_srcdir)/common/list-int.h \
 	$(top_srcdir)/common/mfile.c $(top_srcdir)/common/mfile.h \
 	$(top_srcdir)/common/settings.cpp $(top_srcdir)/common/settings.h \
 	$(top_srcdir)/common/types.cpp $(top_srcdir)/common/types.h \

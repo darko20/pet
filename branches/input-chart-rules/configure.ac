@@ -314,7 +314,8 @@ if test "$boost" = "yes" ; then
   AC_LANG_PUSH([C++])
   AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp \
                     boost/graph/topological_sort.hpp \
-                    boost/lambda/lambda.hpp ],
+                    boost/lambda/lambda.hpp \
+                    boost/lexical_cast.hpp ],
                    [],
                    [ boost=no ; break ],
                    [])
@@ -378,64 +379,64 @@ LDFLAGS="$saveLDFLAGS"
 
 
 # --------------------------------------------------------------------
-# TSDB library.
+# [incr tsdb()] library.
 # --------------------------------------------------------------------
 
 AC_ARG_WITH(tsdb,
-[AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@], [use the TSDB library (default:check)])],
-[
-case "${withval}" in
-    yes) tsdb=yes ;;
-    no)  tsdb=no ;;
-    *)   tsdb=yes
-         ITSDBDIR=${withval};;
-esac
-], [tsdb=yes])
+  [AC_HELP_STRING([--with-tsdb@<:@=DIR@:>@],
+                  [use the @<:@incr tsdb()@:>@ library (default:check)])],
+  [
+    case "${withval}" in
+        yes) tsdb=yes ;;
+        no)  tsdb=no ;;
+        *)   tsdb=yes
+             ITSDBDIR=${withval};;
+    esac
+  ],
+  [tsdb=yes])
 
 check_tsdb() {
-if test -d ${ITSDBDIR}/include ; then
-    CPPFLAGS="$CPPFLAGS -I${ITSDBDIR}/include"
-    AC_CHECK_HEADERS([itsdb.h], [],
-        [
-        AC_MSG_WARN([itsdb header not found for --with-tsdb; DISABLED])
+    AC_MSG_CHECKING([directory ${ITSDBDIR}/include])
+    if test -d ${ITSDBDIR}/include ; then
+        AC_MSG_RESULT([yes])
+        CPPFLAGS="$CPPFLAGS -I${ITSDBDIR}/include"
+        AC_CHECK_HEADERS([itsdb.h], [],
+          [
+            AC_MSG_WARN([itsdb.h not found for --with-tsdb; DISABLED])
+            return 1
+          ], [])
+    else 
+        AC_MSG_RESULT([no])
+        AC_MSG_WARN([directory ${ITSDBDIR}/include for --with-tsdb not found; DISABLED])
         return 1
-        ], [])
-else 
-    AC_MSG_WARN([directory ${ITSDBDIR}/include for --with-tsdb not found; DISABLED])
-    return 1
-fi 
-
-# Use OS variable to point to correct linux library
-# ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-#if test -d ${ITSDBDIR}/lib/linux ; then
-if test -d ${ITSDBDIR}/lib/${OS} ; then
-    # Use OS variable to point to correct linux library ...
-    # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-    #LDFLAGS="$LDFLAGS -L${ITSDBDIR}/lib/linux"
-    LDFLAGS="$LDFLAGS -L${ITSDBDIR}/lib/${OS}"
-    export LDFLAGS
-    AC_CHECK_LIB([itsdb], [capi_register], [ return 0 ], 
-        [
-        AC_MSG_WARN([itsdb library not found for --with-tsdb; DISABLED])
+    fi
+    
+    # Use OS variable to point to correct linux library
+    # ... Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
+    #if test -d ${ITSDBDIR}/lib/linux ; then
+    if test -d ${ITSDBDIR}/lib/${OS} ; then
+        LDFLAGS="$LDFLAGS -L${ITSDBDIR}/lib/${OS}"
+        export LDFLAGS
+        AC_CHECK_LIB([itsdb], [capi_register], [ return 0 ], 
+            [
+            AC_MSG_WARN([@<:@incr tsdb()@:>@ library not found for --with-tsdb;
+                         DISABLED])
+            return 1
+            ])
+    else 
+        AC_MSG_WARN([directory ${ITSDBDIR}/lib/${OS} for --with-tsdb not found; DISABLED])
         return 1
-        ])
-else 
-    AC_MSG_WARN([directory ${ITSDBDIR}/lib/linux for --with-tsdb not found; DISABLED])
-    return 1
-fi
+    fi
 }
 
 if test "$tsdb" = "yes" && check_tsdb ; then 
-      AC_DEFINE(TSDBAPI, [1], ["incr[tsdb()] libraries available, supply API"])
-      CHEAPLIBS="-litsdb $CHEAPLIBS"
-      CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ITSDBDIR}/include"
-      # Use OS variable to point to correct linux library ...
-      # Eric Nichols <eric-n@is.naist.jp> -- Jun. 18th, 2005
-      CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ITSDBDIR}/lib/${OS}"`
+    AC_DEFINE(TSDBAPI, [1], ["Define to 1 for @<:@incr tsdb()@:>@ support"])
+    CHEAPLIBS="-litsdb $CHEAPLIBS"
+    CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${ITSDBDIR}/include"
+    CHEAPLDFLAGS=`addlibdir "$CHEAPLDFLAGS" "${ITSDBDIR}/lib/${OS}"`
 else
     tsdb=no
 fi
-AM_CONDITIONAL(TSDB, [test "$tsdb" = "yes"])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
 
@@ -846,7 +847,7 @@ fi
 echo
 echo "============================================================="
 echo "Boost                                           $boost"
-echo "tsdb (system benchmarking)                      $tsdb"
+echo "@<:@incr tsdb()@:>@ support                           $tsdb"
 echo "Embeddable Common-Lisp processor (ECL)          $ecl"
 echo "LKB MRS code (requires ECL)                     $mrs"
 echo "LKB preprocessor code (requires ECL)            $preproc"
