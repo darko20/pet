@@ -6,7 +6,8 @@ endif
 SUBDIRS      = common flop cheap $(MAYBE_FSPP)
 
 EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
-               doxyconfig.cheap doxyconfig.flop
+               doxyconfig.cheap doxyconfig.flop \
+               sample
 
 # tell aclocal where to find local and third-party M4 macros (aclocal >= 1.6)
 # if configure.ac uses a macro not yet present in the project's m4 directory
@@ -18,6 +19,10 @@ BROWSE:
 	echo `find $(topsrc_dir) -name '*.h' -print ` \
 	     `find $(topsrc_dir) \( -name '*.c' -o -name '*.cpp' \) -print` | \
 	tr ' ' '\n'| ebrowse
+
+# remove meta files in distribution:
+dist-hook:
+	rm -rf `find -type d -name .svn`
 
 sign: dist
 	gpg --detach-sign --armor $(distdir).tar.gz
