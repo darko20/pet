@@ -42,10 +42,20 @@ using namespace HASH_SPACE;
 
 /* function object: hash function for pointers */
 struct pointer_hash {
-  size_t operator() (void* p) const
-  {
+  inline size_t operator() (void* p) const {
     return reinterpret_cast<size_t>(p);
   }
 };
+
+/* function object: simple hash function for std::string */
+struct simple_string_hash {
+  inline size_t operator()(const std::string &key) const {
+    size_t v = 0;
+    for(unsigned int i = 0; i < key.length(); i++)
+      v += key[i];
+    return v;
+  }
+};
+
 
 #endif

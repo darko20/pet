@@ -1,4 +1,18 @@
 v0.99.??
+  - better integration of static and dynamic types:
+    * dynamic types are subtypes of BI_STRING. As such, their type names have
+      to be enclosed by double quotes, which are left out in their print names.
+    * dynamic and static types now use the same data structures for their
+      print and type names, namely std::vector<std::string>
+    * added std::string get_printname() and std::string get_typename()
+      (making char* print_name() and char* type_name() deprecated)
+    * renamed is_resident_type() to is_static_type(), ntypes to nstatictypes,
+      nleaftypes to nstaticleaftypes, last_dynamic to ntypes
+    * new naming scheme for a lookup without vs a lookup with registering of
+      new dynamic types (the latter is called "retrieve"):
+      renamed lookup_symbol() to retrieve_type(),
+      renamed lookup_unsigned_symbol() to retrieve_int_type(),
+      added retrieve_string_type()
   - added dag_nth_element(), dag_nth_element_temp(), fs::nth_value(),
     fs::get_path_value(list_int*), fs::get_list(),
     dag_find_paths(), fs::find_paths(), pop_last()
@@ -6,8 +20,6 @@ v0.99.??
     pop_rest() to pop_first()
   - memory limit is respected during unpacking
   - error message if resources are exhausted during parsing
-  - dynamic types are subtypes of BI_STRING
-  - renamed is_resident_type() to is_static_type()
   - reactivated unit tests
   - finish extended restrictor functionality
   - bind reading of new input to the registered tokenizer to get a clean 

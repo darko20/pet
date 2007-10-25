@@ -163,13 +163,13 @@ void reorder_leaftypes()
 {
   int i;
 
-  leaftype_order = (int *) malloc(ntypes * sizeof(int));
-  for(i = 0; i < ntypes; i++)
+  leaftype_order = (int *) malloc(nstatictypes * sizeof(int));
+  for(i = 0; i < nstatictypes; i++)
     leaftype_order[i] = i;
 
-  int curr = ntypes - 1;
+  int curr = nstatictypes - 1;
 
-  for(i = 0; i < ntypes && i < curr; i++)
+  for(i = 0; i < nstatictypes && i < curr; i++)
     {
       // look for next non-leaftype starting downwards from curr
       while(leaftypeparent[curr] != -1 && curr > i) curr--;
@@ -182,12 +182,12 @@ void reorder_leaftypes()
         }
     }
 
-  rleaftype_order = (int *) malloc(ntypes * sizeof(int));
-  for(i = 0; i < ntypes; i++) rleaftype_order[i] = -1;
+  rleaftype_order = (int *) malloc(nstatictypes * sizeof(int));
+  for(i = 0; i < nstatictypes; i++) rleaftype_order[i] = -1;
 
-  for(i = 0; i < ntypes; i++) rleaftype_order[leaftype_order[i]] = i;
+  for(i = 0; i < nstatictypes; i++) rleaftype_order[leaftype_order[i]] = i;
 
-  for(i = 0; i < ntypes; i++)
+  for(i = 0; i < nstatictypes; i++)
     {
       if(rleaftype_order[i] == -1)
         {
@@ -224,7 +224,7 @@ void log_types(char *title)
   fprintf(stderr, "------ %s\n", title);
   for(int i = 0; i < types.number(); i++)
     {
-      fprintf(stderr, "\n--- %s[%d]:\n", typenames[i], i);
+      fprintf(stderr, "\n--- %s[%d]:\n", type_name(i), i);
       dag_print(stderr, types[i]->thedag);
     }
 }
@@ -317,11 +317,11 @@ void print_infls() {
   FILE *f = stdout;
   fprintf(f, ";; Morphological information\n");
   // find all infl rules 
-  for(int i = 0; i < ntypes; i++) {
+  for(int i = 0; i < nstatictypes; i++) {
     if(types[i]->inflr != NULL) {
       //if(flop_settings->statusmember("infl-rule-status-values",
       //                                typestatus[i])) {
-      fprintf(f, "%s:%d\n", typenames[rleaftype_order[i]]
+      fprintf(f, "%s:%d\n", type_name(rleaftype_order[i])
               , typestatus[rleaftype_order[i]]);
     }
   }
@@ -334,12 +334,12 @@ print_morph_info(FILE *f)
     char *path = flop_settings->value("morph-path");
     fprintf(f, ";; Morphological information\n");
     // find all infl rules 
-    for(int i = 0; i < ntypes; i++)
+    for(int i = 0; i < nstatictypes; i++)
     {
         if(flop_settings->statusmember("infl-rule-status-values",
                                         typestatus[i]))
         {
-            fprintf(f, "%s:\n", typenames[i]);
+            fprintf(f, "%s:\n", type_name(i));
             dag_node *dag = dag_copy(types[i]->thedag);
             
             if(dag != FAIL)
