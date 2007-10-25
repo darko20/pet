@@ -122,13 +122,10 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
  *  only done for generic entries and input items whose HPSG class is
  *  pre-determined (which are presumably externally computed named entities).
  */
-// _fix_me_
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
   if (_carg_path != NULL) {
-    // _fix_me_ are these double quotes necessary?
-    string s = '"' + carg + '"';
-    mods.push_back(pair<string, int>(_carg_path, lookup_symbol(s.c_str())));
+    mods.push_back(pair<string, int>(_carg_path, retrieve_string_type(carg)));
   }
 #endif
 }

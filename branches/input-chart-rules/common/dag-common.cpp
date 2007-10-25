@@ -34,7 +34,7 @@ int *featset;
 int nfeatsets;
 featsetdescriptor *featsetdesc;
 
-struct dag_node **typedag = 0; // for [ 0 .. ntypes [
+struct dag_node **typedag = 0; // for [ 0 .. nstatictypes [
 
 //
 // external representation

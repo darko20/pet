@@ -29,6 +29,7 @@
 #include <cassert>
 #include <vector>
 #include <string> 
+#include <boost/lexical_cast.hpp>
 
 // types, attributes, and status are represented by (small) integers
 
@@ -56,12 +57,12 @@ extern char **statusnames;
  * substructure are called leaf types. Dynamic types are sub-types of
  * BI_STRING, and are therefore always leaf types.
  * 
- *  the universe of static types \f$ [0 \ldots ntypes[ \f$ is split into two
- *  consecutive, disjunct ranges:
- *   -# proper types  \f$ [ 0 \ldots first_leaftype [ \f$
- *   -# leaf types    \f$ [ first_leaftype \ldots ntypes [ \f$
- *  proper types have a full bitcode representation, for leaf types only the
- *  parent type is stored. a status value is stored for each type.
+ * The universe of static types \f$ [0 \ldots nstatictypes[ \f$ is split into two
+ * consecutive, disjunct ranges:
+ *   -# proper types        \f$ [ 0 \ldots first_leaftype [ \f$
+ *   -# (static) leaf types \f$ [ first_leaftype \ldots nstatictypes [ \f$
+ * Proper types have a full bitcode representation; for leaf types only the
+ * parent type is stored. A status value is stored for each static type.
  * 
  */
 /*@{*/
@@ -72,30 +73,28 @@ typedef int attr_t;
 #define T_BOTTOM ((type_t) -1)       /// failure of type unification
 
 /** The number of static leaf types */
-extern int nleaftypes;
-/** The number of all static types (defined in the grammar) */
-extern int ntypes;
+extern int nstaticleaftypes;
+/** The number of all static types */
+extern int nstatictypes;
 /** The id of the first leaf type */
 extern type_t first_leaftype;
+/** The number of all known types. All type id's have to be smaller than
+ *  this. If dynamic types are not used, this is equal to nstatictypes. */
+extern type_t ntypes;
 
-/** A vector of status values (for each type) */
+/** A vector of status values (for each static type) */
 extern int *typestatus;
 
 /** An internal name, differing from the name given in the grammar e.g. for
- *  instances, which are preprended with a '$' character.
+ *  instances, which are prepended with a '$' character, and strings, which
+ *  are enclosed in double quotes.
+ *  \see type_name()
  */
-extern char **typenames;
-/** preferred way to print a type name */
-extern char **printnames;
-
-/** All types id's have to be smaller that last_dynamic.
- *  If dynamic types are not used, this variables value is equal to ntypes
+extern std::vector<std::string> typenames;
+/** preferred way to print a type name
+ *  \see print_name()
  */
-extern type_t last_dynamic;
-#ifdef DYNAMIC_SYMBOLS
-/** An extensible vector of dynamic type names */
-extern std::vector<std::string> dyntypename;
-#endif
+extern std::vector<std::string> printnames;
 /*@}*/
 
 /** @name Attributes */
@@ -161,7 +160,7 @@ void initialize_maxapp();
 void free_type_tables();
 
 /** Check the validity of type code \a a. */
-inline bool is_type(type_t a) { return a >= 0 && a < last_dynamic; }
+inline bool is_type(type_t a) { return a >= 0 && a < ntypes; }
 
 /** Return \c true if type \a a is a proper type (i.e., a static non-leaf). */
 inline bool is_proper_type(type_t a) {
@@ -169,7 +168,7 @@ inline bool is_proper_type(type_t a) {
   return a < first_leaftype;
 }
 
-/** Return \c true if type \a a is a leaf type. */
+/** Return \c true if type \a a is a (static or dynamic) leaf type. */
 inline bool is_leaftype(type_t a) {
   assert(is_type(a));
   return a >= first_leaftype;
@@ -180,16 +179,14 @@ inline bool is_leaftype(type_t a) {
  */
 inline bool is_static_type(type_t a) {
   assert(a >= 0);  // save one test in production code
-  return a < ntypes;
+  return a < nstatictypes;
 }
 
-#ifdef DYNAMIC_SYMBOLS
 /** Return \c true if type code \a a is a dynamic type. */
 inline bool is_dynamic_type(type_t a) {
   assert(is_type(a));  // save two tests in production code
-  return a >= ntypes;
+  return a >= nstatictypes;
 }
-#endif
 
 /** check the validity of the attribute \a attr */
 inline bool is_attr(attr_t attr) {
@@ -197,47 +194,67 @@ inline bool is_attr(attr_t attr) {
   return (attr <= nattrs);
 }
 
-/** \brief Check, if the given status name \a s is mentioned in the grammar. If
- *  so, return its code.
- */
 int lookup_status(const char *s);
 /** Get the attribute id for attribute name \a s, or -1, if it does not
     exist */
 attr_t lookup_attr(const char *s);
-/** Get the type id for type name \a s, or -1, if it does not exist */
-type_t lookup_type(const char *s);
+
+/** Get the type id for type name \a s or return -1 if it does not exist. */
+type_t lookup_type(const std::string &name);
+/** Get the type id for type name \a s, registering a new type for unknown
+ *  string types (if dynamic types are enabled, i.e. DYNAMIC_TYPES is defined),
+ *  or return -1 if it does not exist.
+ */
+type_t retrieve_type(const std::string &name);
+/** Get the type id for a string literal \a s.
+ *  The corresponding type name for \a s is embedded in double quotes.
+ *  If dynamic types are enabled (i.e. DYNAMIC_TYPES is defined) and there is
+ *  no type for string \a s, register it as a new dynamic type. 
+ */
+inline type_t retrieve_string_type(const std::string &s) {
+  return retrieve_type('"' + s + '"');
+}
+/** Get the type id for the string representation of int \a i
+ *  (all ints are stored as subtypes of BI_STRING).
+ *  If dynamic types are enabled (i.e. DYNAMIC_TYPES is defined) and there is
+ *  no type for int \a i, register it as a new dynamic type. 
+ */
+inline type_t retrieve_int_type(int i) {
+  return retrieve_type('"' + boost::lexical_cast<std::string>(i) + '"');
+}
 
 #ifdef DYNAMIC_SYMBOLS
-/** @name Dynamic Types Code */
-/*@{*/
-/** Get the type id for type name \a s, and register it as new dynamic type, if
- *  it does not exist.
+/** Register a dynamic type.
+ * \pre a type with typename \a name has not been registered
+ * \pre typename \a name denotes a string
+ * \see retrieve_type()
  */
-type_t lookup_symbol(const char *s);
-/** Get the type id for the string representation of \a i, and register it as
- *  new dynamic type, if it does not exist.
- */
-type_t lookup_unsigned_symbol(unsigned int i);
-/** Clear all dynamic symbols (might be called for each new parse) */
-void clear_dynamic_symbols () ;
-/*@}*/
+type_t register_dynamic_type(const std::string &name);
 
-/** Get the type name of a type (static or dynamic) */
-inline const char *type_name(type_t type) {
-  return is_static_type(type) 
-    ? typenames[type] : dyntypename[type - ntypes].c_str();
-}
-/** Get the print name of a type (static or dynamic) */
-inline const char *print_name(type_t type) {
-  return is_static_type(type) 
-    ? printnames[type] : dyntypename[type - ntypes].c_str();
-}
-#else
-/** Get the type name of a type (static or dynamic) */
-inline const char *type_name(type_t type) { return typenames[type]; }
-/** Get the print name of a type (static or dynamic) */
-inline const char *print_name(type_t type) { return printnames[type]; }
+/** Clear all dynamic types (might be called for each new parse) */
+void clear_dynamic_types();
 #endif
+
+/** Get the type name of a type */
+inline std::string get_typename(type_t type) {
+  return typenames[type];
+}
+/** Get the print name of a type */
+inline std::string get_printname(type_t type) {
+  return printnames[type];
+}
+/** Get the type name of a type
+ *  \deprecated use get_typename()
+ */
+inline const char *type_name(type_t type) {
+  return typenames[type].c_str();
+}
+/** Get the print name of a type
+ *  \deprecated use get_printname()
+ */
+inline const char *print_name(type_t type) {
+  return printnames[type].c_str();
+}
 
 /** Dump information about the number of status values, leaftypes, types, and
  *  attributes as well as the tables of status value names, type names and

@@ -24,6 +24,7 @@
 #include "dag.h"
 #include "dumper.h"
 #include "hashing.h"
+#include "utility.h"
 
 #ifdef FLOP
 #include "flop.h"
@@ -34,7 +35,7 @@
 
 using namespace std;
 
-int nleaftypes;
+int nstaticleaftypes;
 int *leaftypeparent = 0;
 
 static vector<bitcode *> typecode;
@@ -51,21 +52,22 @@ int nstatus;
 char **statusnames = 0;
 
 // types
-type_t ntypes;
+type_t nstatictypes;
 type_t first_leaftype;
-char **typenames = 0;
-char **printnames = 0;
+type_t ntypes;
+std::vector<std::string> typenames;
+std::vector<std::string> printnames;
 int *typestatus = 0;
 
-type_t last_dynamic;
-#ifdef DYNAMIC_SYMBOLS
-// dyntypename contains all dynamically needed type names for a parse.
-map<string, type_t> dyntypememo ;
-vector<string> dyntypename;
-vector<int> integer_type_map;
+#ifdef HASH_SPACE
+typedef HASH_SPACE::hash_map<string, type_t, simple_string_hash, string_eq>
+        string_map;
+#else
+typedef std::map<string, type_t> string_map;
 #endif
+string_map typename_memo;
 
-int BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
+type_t BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
 
 #ifndef FLOP
 vector<list<int> > immediateSupertype;
@@ -96,89 +98,58 @@ void register_typecode(int i, bitcode *b) {
   typecode[i] = b;
 }
 
-#ifdef HASH_SPACE
-namespace HASH_SPACE {
-  template<> struct hash<string> {
-    inline size_t operator()(const string &key) const {
-      int v = 0;
-      for(unsigned int i = 0; i < key.length(); i++)
-        v += key[i];
-
-      return v;
-    }
-  };
+#ifdef DYNAMIC_SYMBOLS
+/** Register a dynamic type.
+ * \pre a type with typename \a name has not been registered
+ * \pre typename \a name denotes a string
+ * \see retrieve_type()
+ */
+type_t register_dynamic_type(const std::string &name) {
+  int len = name.length();
+  // Dynamic types are subtypes of BI_STRING. Thus, their typenames have to be
+  // enclosed in double quotes.
+  assert((len >= 2) && (name[0] == '"') && (name[len-1] == '"'));
+  // Only register if the typename is unknown.
+  assert(typename_memo.find(name) == typename_memo.end());
+  typenames.push_back(name);
+  printnames.push_back(name.substr(1, len-2));
+  typename_memo[name] = ntypes;
+  return ntypes++;
 }
 
-struct string_equal : public binary_function<string, string, bool> {
-  inline bool operator()(const string &s1, const string &s2) {
-    return s1 == s2;
-  }
-};
+void clear_dynamic_types() {
+  for (type_t t = nstatictypes; t < ntypes; t++)
+    typename_memo.erase(typenames[t]);
+  typenames.resize(nstatictypes);
+  printnames.resize(nstatictypes);
+  ntypes = nstatictypes;
+}
+#endif // DYNAMIC_SYMBOLS
 
-typedef hash_map<string, int, hash< string >, string_equal> string_map;
-#else
-typedef map<string, int> string_map;
-#endif
-
-string_map _typename_memo;
-
-int lookup_type(const char *s) {
+int lookup_type(const std::string &name) {
+  // lazy initialization of typename cache:
   static bool initialized_cache = false;
-
   if(!initialized_cache) {
-    for(int i = 0; i < ntypes; i++)
-      _typename_memo[typenames[i]] = i;
+    for(int i = 0; i < nstatictypes; i++)
+      typename_memo[typenames[i]] = i;
     initialized_cache = true;
   }
-  
-  string_map::iterator pos = _typename_memo.find(s);
-  return (pos != _typename_memo.end()) ? (*pos).second : T_BOTTOM;
+  // lookup in the cache:
+  string_map::iterator pos = typename_memo.find(name);
+  return (pos != typename_memo.end()) ? (*pos).second : T_BOTTOM;
 }
 
+int retrieve_type(const std::string &name) {
+  int type = lookup_type(name);
 #ifdef DYNAMIC_SYMBOLS
-int lookup_symbol(const char *s) {
-  int type = lookup_type(s);
-
   if (type == T_BOTTOM) {
-    // is it registered as dynamic type?
-    string str = s;
-    map<string, int>::iterator pos = dyntypememo.find(str);
-    if(pos != dyntypememo.end())
-      return (*pos).second;
-
-    // None of the above: register it as new dynamic type
-    dyntypememo[str] = last_dynamic ;
-    dyntypename.push_back(str);
-
-    last_dynamic++ ;
-    return last_dynamic - 1 ;
+    size_t len = name.length();
+    if ((len>= 2) && (name[0] == '"') && (name[len-1] == '"'))
+      type = register_dynamic_type(name);
   }
-  else return type;
-}
-
-int lookup_unsigned_symbol(unsigned int i) {
-  if(integer_type_map.size() <= i) {
-    integer_type_map.resize(i + 1, T_BOTTOM);
-  }
-  if(integer_type_map[i] == T_BOTTOM) {
-    char intstring[40];
-    sprintf(intstring, "\"%d\"", i);
-    integer_type_map[i] = lookup_symbol(intstring);
-  }
-  return integer_type_map[i];
-}
-
-void clear_dynamic_symbols() {
-  last_dynamic = ntypes ;
-  for(unsigned int i = 0; i < integer_type_map.size(); i++) {
-    if(integer_type_map[i] >= last_dynamic) {
-      integer_type_map[i] = T_BOTTOM;
-    }
-  }
-  dyntypename.erase(dyntypename.begin(), dyntypename.end()) ;
-  dyntypememo.erase(dyntypememo.begin(), dyntypememo.end()) ;
-}
 #endif
+  return type;
+}
 
 map<string, attr_t> _attrname_memo; 
 
@@ -278,10 +249,10 @@ void undump_symbol_tables(dumper *f)
   // npropertypes
   first_leaftype = f->undump_int();
 
-  // nleaftypes
-  nleaftypes = f->undump_int();
-  ntypes = first_leaftype + nleaftypes;
-  last_dynamic = ntypes;
+  // nstaticleaftypes
+  nstaticleaftypes = f->undump_int();
+  nstatictypes = first_leaftype + nstaticleaftypes;
+  ntypes = nstatictypes;
 
   // nattrs
   nattrs = f->undump_int();
@@ -291,43 +262,38 @@ void undump_symbol_tables(dumper *f)
   for(int i = 0; i < nstatus; i++)
     statusnames[i] = f->undump_string();
 
-  typenames = (char **) malloc(sizeof(char *) * ntypes);
-  typestatus = (int *) malloc(sizeof(int) * ntypes);
+  typenames = std::vector<std::string>(nstatictypes);
+  typenames.reserve(2 * nstatictypes); // increase capacity for dynamic types
+  typestatus = (int *) malloc(sizeof(int) * nstatictypes);
 
-  for(int i = 0; i < ntypes; i++)
-    {
-      typenames[i] = f->undump_string();
-      typestatus[i] = f->undump_int();
-    }
+  for(int i = 0; i < nstatictypes; i++) {
+    typenames[i] = f->undump_string();
+    typestatus[i] = f->undump_int();
+  }
 
   attrname = (char **) malloc(sizeof(char *) * nattrs);
   attrnamelen = (int *) malloc(sizeof(int) * nattrs);
 
-  for(int i = 0; i < nattrs; i++)
-    {
-      attrname[i] = f->undump_string();
-      attrnamelen[i] = strlen(attrname[i]);
-    }
+  for(int i = 0; i < nattrs; i++) {
+    attrname[i] = f->undump_string();
+    attrnamelen[i] = strlen(attrname[i]);
+  }
 
   initialize_specials(cheap_settings);
 }
 
 void undump_printnames(dumper *f)
 {
-  if(f == 0) // we have no printnames
-    {
-      printnames = typenames;
-      return;
-    }
-
-  printnames = (char **) malloc(sizeof(char *) * ntypes);
-
-  for(int i = 0; i < ntypes; i++)
-    {
-      printnames[i] = f->undump_string();
-      if(printnames[i] == 0)
-        printnames[i] = typenames[i];
-    }
+  if(f == 0) { // we have no printnames
+    printnames = typenames; // copy typenames
+    return;
+  }
+  printnames = std::vector<std::string>(nstatictypes);
+  printnames.reserve(2 * nstatictypes); // increase capacity for dynamic types
+  for(int i = 0; i < nstatictypes; i++) {
+    char *s = f->undump_string();
+    printnames[i] = std::string(s ? s : typenames[i]);
+  }
 }
 
 void free_type_tables()
@@ -337,11 +303,8 @@ void free_type_tables()
     free(statusnames);
     statusnames = 0;
   }
-  if(typenames != 0)
-  {
-    free(typenames);
-    typenames = 0;
-  }
+  typenames.clear();
+  printnames.clear();
   if(typestatus != 0)
   {
     free(typestatus);
@@ -356,11 +319,6 @@ void free_type_tables()
   {
     free(attrnamelen);
     attrnamelen = 0;
-  }
-  if(printnames != 0)
-  {
-    free(printnames);
-    printnames = 0;
   }
 
   delete temp_bitcode;
@@ -395,7 +353,7 @@ void dump_hierarchy(dumper *f)
               type_name(rleaftype_order[i]), i, rleaftype_order[i]);
 
   // parents for all leaf types
-  for(i = first_leaftype; i < ntypes; i++)
+  for(i = first_leaftype; i < nstatictypes; i++)
     if(leaftypeparent[rleaftype_order[i]] != -1)
       {
         f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
@@ -421,8 +379,8 @@ void undump_hierarchy(dumper *f)
       temp_bitcode = new bitcode(codesize);
     }
 
-  leaftypeparent = new int[nleaftypes];
-  for(int i = 0; i < nleaftypes; i++)
+  leaftypeparent = new int[nstaticleaftypes];
+  for(int i = 0; i < nstaticleaftypes; i++)
     leaftypeparent[i] = f->undump_int();
 }
 
@@ -604,7 +562,7 @@ bool subtype(int a, int b)
 
 #ifdef SUBTYPECACHE
   // result is a _reference_ to the cache entry -> automatic writeback
-  int &result = subtypecache[ (typecachekey_t) a*ntypes + b ];
+  int &result = subtypecache[ (typecachekey_t) a*nstatictypes + b ];
   if(result != -1) return result;
   return (result = core_subtype(a, b));
 #endif
@@ -759,7 +717,7 @@ int glb(int s1, int s2)
 #endif
   
   // result is a _reference_ to the cache entry -> automatic writeback
-  int &result = glbcache[ (typecachekey_t) s1*ntypes + s2 ];
+  int &result = glbcache[ (typecachekey_t) s1*nstatictypes + s2 ];
   if(result) return result;
 
   if(is_leaftype(s1))

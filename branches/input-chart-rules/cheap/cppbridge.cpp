@@ -52,17 +52,13 @@ ecl_cpp_load_files(const char *setting, const char *basename) {
 
 int
 pet_cpp_ntypes() {
-  // _fix_me_ sure this should not be last_dynamic??
-  return ntypes;
+  // _fix_me_ sure this should not be ntypes??
+  return nstatictypes;
 }
 
 int
 pet_cpp_lookup_type_code(const char *s) {
-#ifdef DYNAMIC_SYMBOLS
-  return lookup_symbol(s);
-#else
-  return lookup_type(s);
-#endif
+  return retrieve_type(s);
 }
 
 char * pet_cpp_lookup_type_name(int t) { return (char *) type_name(t); }

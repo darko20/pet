@@ -353,7 +353,7 @@ void interactive_morphology() {
 void dump_glbs(FILE *f) {
   fprintf(f, "i j GLB(i,j)\n");
   int i, j;
-  for(i = 0; i < ntypes; i++) {
+  for(i = 0; i < nstatictypes; i++) {
     prune_glbcache();
     for(j = 0; j < i; j++)
       if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
@@ -363,7 +363,7 @@ void dump_glbs(FILE *f) {
 
 void print_symbol_tables(FILE *f) {
   fprintf(f, "ID\tTYPE NAME (PRINT NAME)\n");
-  for(int i = 0; i < ntypes; i++) {
+  for(int i = 0; i < nstatictypes; i++) {
     fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
   }
   fprintf(f, "\n");
@@ -378,7 +378,7 @@ void print_symbol_tables(FILE *f) {
 void print_type_hierarchy(FILE* f)
 {
   fprintf(f, "%-30s %-7s %s\n", "TYPE", "PROPER", "ALL SUPERTYPES (BUT *top*)");
-  for (int t = 1; t < ntypes; t++) {
+  for (int t = 1; t < nstatictypes; t++) {
     char t_str[100] = "";
     snprintf(t_str, 100, "%s(%d)", type_name(t), t);
     char st_str[1000] = "";
@@ -539,7 +539,7 @@ void process(const char *s) {
 #endif // HAVE_ECL
 
   fprintf(fstatus, "\n%d types in %0.2g s\n",
-          ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+          nstatictypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
   if(opt_pg) {
     fflush(fstatus);

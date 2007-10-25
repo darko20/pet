@@ -259,7 +259,7 @@ tYYTokenizer::read_token()
   } else {
     if (stem[0] == _class_name_char && stem.length() > 1) {
       // The stem is already a grammar type name
-      token_class = lookup_type(stem.c_str());
+      token_class = lookup_type(stem);
       if (token_class == -1) {
         token_class = lookup_type(stem.c_str() + 1);
       }
@@ -282,11 +282,12 @@ tYYTokenizer::read_token()
   modlist fsmods = modlist() ;
   char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
 
-  if ((ersatz_carg_path != NULL) and (stem.substr(max(0,stem.length()-ersatz_suffix.length())) == ersatz_suffix))
-    {    
-      string val = '"' + surface + '"'; // ensure val will become a string (surely there is a better way to do this???)
-      fsmods.push_back(pair<string, type_t>(ersatz_carg_path, lookup_symbol(val.c_str())));
-    }
+  if ((ersatz_carg_path != NULL) and
+    (stem.substr(max(0,stem.length()-ersatz_suffix.length())) == ersatz_suffix))
+  {
+    fsmods.push_back(pair<string, type_t>(ersatz_carg_path,
+                                          retrieve_string_type(surface)));
+  }
 
   if(!read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected , after stem)");
@@ -314,7 +315,7 @@ tYYTokenizer::read_token()
         throw tError("yy_tokenizer: illegal \"null\" spec");
     }
     
-    type_t infl_rule = lookup_type(inflr.c_str());
+    type_t infl_rule = lookup_type(inflr);
     if((infl_rule >= 0) 
        // XXX _fix_me_ the next test seems to be desirable
        // && (Grammar->find_rule(infl_rule)->trait() == INFL_TRAIT)

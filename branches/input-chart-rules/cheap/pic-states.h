@@ -270,7 +270,7 @@ public:
     int tokenclass = STEM_TOKEN_CLASS;
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
-      if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
+      if ((tokenclass = lookup_type(stem)) == T_BOTTOM)
         throw Error((std::string) "unknown type in w tag '" + stem + "'");
     }
     tInputItem *new_item 
@@ -354,7 +354,7 @@ public:
     int tokenclass = STEM_TOKEN_CLASS;
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
-      if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
+      if ((tokenclass = lookup_type(stem)) == T_BOTTOM)
         throw Error((std::string) "unknown type in ne tag '" + stem + "'");
     }
 
@@ -442,7 +442,7 @@ public:
 
   /** Append the inflection rule \a name to the current list. */
   void append_infl(std::string name){
-    type_t infl_rule_type = lookup_type(name.c_str());
+    type_t infl_rule_type = lookup_type(name);
     if(infl_rule_type == T_BOTTOM)
       throw Error((std::string) "unknown infl type '" + name + "'");
     _infls.push_back(infl_rule_type);
@@ -452,7 +452,7 @@ public:
    *  current list.
    */
   void add_fsmod(std::string path, std::string val) {
-    _mods.push_back(std::pair<std::string, type_t>(path, lookup_symbol(val.c_str())));
+    _mods.push_back(std::pair<std::string, type_t>(path, retrieve_type(val)));
   }
 
 private:

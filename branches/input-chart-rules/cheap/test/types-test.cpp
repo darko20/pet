@@ -56,14 +56,12 @@ public:
   
   void test_dyntypes()
   {
-    const char *s1 = "\"supercalifragilistic\"";
-    const char *s2 = "\"expialidocious\"";
-    CPPUNIT_ASSERT(lookup_type(s1) == -1);
-    type_t t1 = lookup_symbol(s1);
-    type_t t2 = lookup_symbol(s2);
-    // TODO: for a registered dynamic type t, is_type(t) == true but 
-    // lookup_type(t) == -1. bug or feature??
-    //CPPUNIT_ASSERT(lookup_type(s1) == t1);
+    std::string s1 = "\"supercalifragilistic\"";
+    std::string s2 = "\"expialidocious\"";
+    CPPUNIT_ASSERT(lookup_type(s1) == T_BOTTOM);
+    CPPUNIT_ASSERT(lookup_type(s2) == T_BOTTOM);
+    type_t t1 = retrieve_type(s1);
+    type_t t2 = retrieve_type(s2);
     
     CPPUNIT_ASSERT(t1 > 0);
     CPPUNIT_ASSERT(is_type(t1));
@@ -72,8 +70,10 @@ public:
     CPPUNIT_ASSERT(!is_static_type(t1));
     CPPUNIT_ASSERT(is_leaftype(t1));
     
-    CPPUNIT_ASSERT(strcmp(type_name(t1), s1) == 0);
-    CPPUNIT_ASSERT(strcmp(print_name(t1), s1) == 0);
+    CPPUNIT_ASSERT(get_typename(t1) == "\"supercalifragilistic\"");
+    CPPUNIT_ASSERT(get_printname(t1) == "supercalifragilistic");
+    CPPUNIT_ASSERT(get_typename(t2) == "\"expialidocious\"");
+    CPPUNIT_ASSERT(get_printname(t2) == "expialidocious");
     
     std::list<type_t> supertypes = all_supertypes(t1);
     std::list<type_t> expected_supertypes;
@@ -103,6 +103,18 @@ public:
     CPPUNIT_ASSERT(glb(BI_STRING, t1) == t1);
     
     CPPUNIT_ASSERT(leaftype_parent(t1) == BI_STRING);
+    
+    CPPUNIT_ASSERT(retrieve_string_type("supercalifragilistic") == t1);
+    CPPUNIT_ASSERT(retrieve_string_type("expialidocious") == t2);
+    
+    clear_dynamic_types();
+    CPPUNIT_ASSERT(lookup_type(s1) == T_BOTTOM);
+    CPPUNIT_ASSERT(lookup_type(s2) == T_BOTTOM);
+    
+    int i = 42;
+    CPPUNIT_ASSERT(lookup_type("\"42\"") == T_BOTTOM);
+    type_t t3 = retrieve_int_type(i);
+    CPPUNIT_ASSERT(lookup_type("\"42\"") == t3);
   }
     
 };
