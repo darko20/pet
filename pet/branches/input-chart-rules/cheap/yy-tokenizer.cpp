@@ -33,6 +33,7 @@ inflrs: - "null" = do internal morph analysis
 
 using std::string;
 using std::list;
+using namespace HASH_SPACE;
 
 tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
   : tTokenizer()

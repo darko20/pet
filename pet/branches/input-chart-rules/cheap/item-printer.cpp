@@ -3,6 +3,7 @@
 #include <sstream>
 
 using namespace std;
+using namespace HASH_SPACE;
 
 const char tcl_chars_to_escape[] = { '\\', '"', '\0' };
 

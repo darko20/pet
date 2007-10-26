@@ -1,4 +1,7 @@
 v0.99.??
+  - hashing:
+    * HASH_SPACE is now always defined and never imported in the header files
+    * moved some hash string functions to hashing.h
   - better integration of static and dynamic types:
     * dynamic types are subtypes of BI_STRING. As such, their type names have
       to be enclosed by double quotes, which are left out in their print names.

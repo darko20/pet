@@ -29,6 +29,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace HASH_SPACE;
 
 lex_parser global_lexparser;
 lex_parser &Lexparser = global_lexparser;

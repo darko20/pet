@@ -34,6 +34,7 @@
 #endif
 
 using namespace std;
+using namespace HASH_SPACE;
 
 int nstaticleaftypes;
 int *leaftypeparent = 0;

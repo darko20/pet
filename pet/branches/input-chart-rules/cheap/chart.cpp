@@ -25,6 +25,7 @@
 #include "item-printer.h"
 
 using namespace std;
+using namespace HASH_SPACE;
 
 //#define DEBUG
 

@@ -604,8 +604,8 @@ class pic_state_factory {
     }
   };
 
-  typedef hash_map< const XMLCh *, pic_base_state *, struct hash_xmlstring
-                    , struct xmlstring_equal > xs_hash_map;
+  typedef HASH_SPACE::hash_map< const XMLCh *, pic_base_state *
+                 , struct hash_xmlstring, struct xmlstring_equal > xs_hash_map;
 
   xs_hash_map _state_table;
 
