@@ -47,7 +47,7 @@ public:
   void add(tItem *);
 
   /** Remove the item in the set from the chart */
-  void remove(hash_set<tItem *> &to_delete);
+  void remove(HASH_SPACE::hash_set<tItem *> &to_delete);
 
   /** Print all chart items */
   void print(FILE *f);

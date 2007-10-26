@@ -32,6 +32,7 @@
 
 using std::string;
 using std::list;
+using namespace HASH_SPACE;
 
 int
 tSMFeature::hash() const

@@ -136,15 +136,8 @@ private:
    */
   bool _translate_iso_chars;
 
-  struct string_hash
-  {
-    inline size_t operator()(const std::string &key) const
-    {
-      return ::bjhash((const ub1 *) key.data(), key.size(), 0);
-    }
-  };
-  
-  typedef hash_map< std::string, class tInputItem *, string_hash > tItemMap;
+  typedef HASH_SPACE::hash_map< std::string, class tInputItem *,
+                                bj_string_hash > tItemMap;
   tItemMap _item_table;
   std::list<class tInputItem *> _items;
 };
