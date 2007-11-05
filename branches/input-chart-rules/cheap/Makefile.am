@@ -44,7 +44,7 @@ libcheap_a_SOURCES = \
 	cheaptimer.h \
 	fs.cpp fs.h \
 	grammar.cpp grammar.h \
-	input-modules.h \
+	input-modules.cpp input-modules.h \
 	item-printer.cpp item-printer.h \
 	item.cpp item.h \
 	itsdb.h \

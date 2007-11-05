@@ -98,6 +98,18 @@ protected:
   /** Determine if a string only consists of punctuation characters */
   bool punctuationp(const std::string &s);
 
+#ifdef HAVE_ICU
+  inline bool 
+  punctuation_char(const UChar32 c, const UnicodeString &punctuation_chars) {
+    return (punctuation_chars.indexOf(c) != -1);
+  }
+#else
+  inline bool
+  punctuation_char(const char c, const string &punctuation_chars) {
+    return (punctuation_chars.find(c) != STRING_NPOS);
+  }
+#endif
+
   /** \brief Translate the german ISO umlaut and sz characters in \a s by their
    *  isomorphix (ae, ue, ss, etc.) counterparts, if \c _translate_iso_chars
    *  is true, leave it unchanged otherwise.

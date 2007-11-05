@@ -145,7 +145,7 @@ void interactive() {
               , opt_tsdb_dir.c_str());
   }
 
-  while(!Lexparser.next_input(std::cin, input)) {
+  while(Lexparser.next_input(std::cin, input)) {
     chart *Chart = 0;
 
     tsdb_dump.start();
