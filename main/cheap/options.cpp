@@ -27,6 +27,7 @@
 #include "utility.h"
 #include "version.h"
 #include <string>
+#include <unistd.h>
 
 bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
@@ -39,7 +40,7 @@ bool opt_yy;
 int opt_nth_meaning;
 #endif
 
-int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les;
+int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
 int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
@@ -73,6 +74,7 @@ void usage(FILE *f)
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
+  fprintf(f, "  `-timeout=n' --- maximum time (in seconds) spent on analyzing a sentence\n");
   fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n"); 
   fprintf(f, "  `-no-filter' --- disable rule filter\n"); 
   fprintf(f, "  `-qc-unif=n' --- use only top n quickcheck paths (unification)\n");
@@ -160,6 +162,7 @@ void usage(FILE *f)
 #define OPTION_JXCHG_DUMP 35
 #define OPTION_COMMENT_PASSTHROUGH 36
 #define OPTION_PREDICT_LES 37
+#define OPTION_TIMEOUT 38
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -205,6 +208,7 @@ void init_options()
   opt_jxchg_dir = "";
   opt_comment_passthrough = 0;
   opt_predict_les = 0;
+  opt_timeout = 0;
 
 #ifdef YY
   opt_yy = false;
@@ -225,6 +229,7 @@ bool parse_options(int argc, char* argv[])
     {"verbose", optional_argument, 0, OPTION_VERBOSE},
     {"limit", required_argument, 0, OPTION_LIMIT},
     {"memlimit", required_argument, 0, OPTION_MEMLIMIT},
+    {"timeout", required_argument, 0, OPTION_TIMEOUT},
     {"no-shrink-mem", no_argument, 0, OPTION_NO_SHRINK_MEM},
     {"no-filter", no_argument, 0, OPTION_NO_FILTER},
     {"qc-unif", required_argument, 0, OPTION_NQC_UNIF},
@@ -383,6 +388,10 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
               memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
           break;
+      case OPTION_TIMEOUT:
+	  if(optarg != NULL)
+	      opt_timeout = sysconf(_SC_CLK_TCK) * strtoint(optarg, "as argument to -timeout");
+	  break;
       case OPTION_LOG:
           if(optarg != NULL)
               if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
@@ -524,6 +533,7 @@ void options_from_settings(settings *set)
   verbosity = int_setting(set, "verbose");
   pedgelimit = int_setting(set, "limit");
   memlimit = 1024 * 1024 * int_setting(set, "memlimit");
+  opt_timeout = sysconf(_SC_CLK_TCK) * int_setting(set, "timeout");
   opt_hyper = bool_setting(set, "hyper");
   opt_default_les = bool_setting(set, "default-les");
   opt_predict_les = int_setting(set, "predict-les");

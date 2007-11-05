@@ -31,6 +31,8 @@
 #include "tsdb++.h"
 
 #include <sstream>
+#include <sys/times.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -51,6 +53,13 @@ tAgenda *Agenda;
 timer ParseTime;
 timer TotalParseTime(false);
 
+// timeout control for parsing 
+// timer class is not suitable because: 
+//  i) we do not need microsecond-level accuracy
+//  ii) timer based on CLOCK(3) can wrap around after 36 minutes
+// therefore it is more suitable to use TIMES(2)
+clock_t timeout;
+clock_t timestamp;
 //
 // filtering
 //
@@ -380,7 +389,9 @@ inline bool
 resources_exhausted()
 {
     return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) || 
-        (memlimit > 0 && t_alloc.max_usage() >= memlimit);
+        (memlimit > 0 && t_alloc.max_usage() >= memlimit) ||
+      (opt_timeout > 0 && timestamp >= timeout );
+    
 }
 
 
@@ -413,12 +424,17 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
             add_item(it);
         
         delete t;
+	if (opt_timeout > 0)
+	  timestamp = times(NULL);
     }
 }
 
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit
                        ,timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
+  if (opt_timeout > 0)
+    timestamp = times(NULL);
+
   // selectively unpacking
   list<tItem*> uroots;
   for (vector<tItem*>::iterator tree = trees.begin();
@@ -453,11 +469,15 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
                         , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
+  if (opt_timeout > 0) 
+    timestamp = times(NULL);
   for(vector<tItem *>::iterator tree = trees.begin();
       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
         && tree != trees.end(); ++tree) {
+    if (opt_timeout > 0 && timestamp >= timeout)
+      break;
     if(! (*tree)->blocked()) {
-
+      
       stats.trees++;
       
       list<tItem *> results;
@@ -510,7 +530,14 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
           << " pedges)";
         errors.push_back(s.str());
       }
-      
+
+      if (opt_timeout > 0 && timestamp >= timeout) {
+	ostringstream s;
+	s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+	  << " s)";
+	errors.push_back(s.str());
+      }
+
       stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
       stats.p_dyn_bytes = FSAS.dynamic_usage();
       stats.p_stat_bytes = FSAS.static_usage();
@@ -553,13 +580,15 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
     {
         ostringstream s;
 
-        if(pedgelimit == 0 || Chart->pedges() < pedgelimit)
+        if (memlimit > 0 && t_alloc.max_usage() >= memlimit)
             s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
               << " MB)";
-        else
+        else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit)
             s << "edge limit exhausted (" << pedgelimit 
               << " pedges)";
-
+	else 
+	  s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+	    << " s)";
         errors.push_back(s.str());
     }
 
@@ -597,6 +626,10 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
     TotalParseTime.start();
     ParseTime.reset(); ParseTime.start();
+    if (opt_timeout > 0) {
+      timestamp = times(NULL);
+      timeout = timestamp + (clock_t)opt_timeout;
+    }
 
     Lexparser.lexical_processing(input_items
                                  , cheap_settings->lookup("lex-exhaustive")
