@@ -38,7 +38,7 @@ extern bool opt_shrink_mem, opt_shaping, opt_default_les,
 extern bool opt_yy;
 extern int opt_nth_meaning;
 #endif
-extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults, opt_predict_les;
+extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
 extern int opt_tsdb;
 
 extern long int memlimit;
