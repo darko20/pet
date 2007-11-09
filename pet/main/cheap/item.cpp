@@ -50,6 +50,10 @@ struct charz_t {
     attribute = 0;
   }
 
+  ~charz_t() {
+    free_list(path);
+  }
+
   void set(const char *string_path) {
     free_list(path);
     list_int *lpath = path_to_lpath(string_path);
@@ -82,6 +86,10 @@ void init_characterization() {
   char *carg_path_string = cheap_settings->value("mrs-carg-path");
   if (NULL != carg_path_string)
     carg_path = path_to_lpath(carg_path_string);
+}
+
+void finalize_characterization() {
+  free_list(carg_path);
 }
 
 inline bool characterize(fs &thefs, int from, int to) {

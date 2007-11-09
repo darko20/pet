@@ -33,7 +33,7 @@ bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_nbest, opt_online_morph, opt_fullform_morph, opt_partial,
+  opt_online_morph, opt_fullform_morph, opt_partial,
   opt_compute_qc_unif, opt_compute_qc_subs;
 #ifdef YY
 bool opt_yy;
@@ -102,12 +102,8 @@ void usage(FILE *f)
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
-#ifdef ONLINEMORPH
-  fprintf(f, "  `-no-online-morph' --- disable online morphology\n");
-#endif
   fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
-  fprintf(f, "  `-nbest' --- n-best parsing mode\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
   fprintf(f, "  `-log=[+]file' --- "
@@ -196,7 +192,6 @@ void init_options()
   opt_chart_man = true;
   opt_interactive_morph = false;
   opt_lattice = false;
-  opt_nbest = false;
   opt_online_morph = true;
   opt_fullform_morph = true;
   opt_packing = 0;
@@ -252,7 +247,6 @@ bool parse_options(int argc, char* argv[])
     {"pg", no_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
     {"lattice", no_argument, 0, OPTION_LATTICE},
-    {"nbest", no_argument, 0, OPTION_NBEST},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
@@ -396,9 +390,6 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
               if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
               else flog = fopen(optarg, "w");
-          break;
-      case OPTION_NBEST:
-          opt_nbest = true;
           break;
       case OPTION_NO_ONLINE_MORPH:
           opt_online_morph = false;

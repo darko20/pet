@@ -42,12 +42,6 @@ class postags
    */
   postags(const std::vector<std::string> &tagslist,
           const std::vector<double> &probslist);
-#if 0
-  /** Create a set of POS tags specified for the stem of \a ff by the setting
-   * \c type-to-pos.
-   */
-  postags(const class full_form ff);
-#endif
   /** Create a set of POS tags specified for the stem of \a le by the setting
    * \c type-to-pos.
    */

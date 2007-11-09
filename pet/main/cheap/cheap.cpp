@@ -146,7 +146,7 @@ void interactive() {
               , opt_tsdb_dir.c_str());
   }
 
-  while(!Lexparser.next_input(std::cin, input)) {
+  while(Lexparser.next_input(std::cin, input)) {
     chart *Chart = 0;
 
     tsdb_dump.start();
@@ -290,62 +290,10 @@ void interactive() {
   }
 }
 
-void nbest() {
-  string input;
-
-  while(!feof(stdin)) {
-    int id = 0;
-    int selected = -1;
-    int time = 0;
-        
-    while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
-      if(selected != -1)
-        continue;
-
-      chart *Chart = 0;
-      try {
-        fs_alloc_state FSAS;
-                
-        list<tError> errors;
-        analyze(input, Chart, FSAS, errors, id);
-        if(!errors.empty())
-          throw errors.front();
-                
-        if(stats.readings > 0) {
-          selected = id;
-          fprintf(stdout, "[%d] %s\n", selected, input.c_str());
-        }
-                
-        stats.print(fstatus);
-        fflush(fstatus);
-      } /* try */
-            
-      catch(tError e) {
-        fprintf(ferr, "%s\n", e.getMessage().c_str());
-        stats.print(fstatus);
-        fflush(fstatus);
-        stats.readings = -1;
-      }
-            
-      if(Chart != 0) delete Chart;
-            
-      time += stats.tcpu;
-            
-      id++;
-    }
-    if(selected == -1)
-      fprintf(stdout, "[]\n");
-
-    fflush(stdout);
-
-    fprintf(fstatus, "ttcpu: %d\n", time);
-  }
-}
-
 void interactive_morphology() {
-
   string input;
-  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+
+  while(Lexparser.next_input(std::cin, input)) {
     timer clock;
     list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
     
@@ -397,6 +345,14 @@ void print_grammar(FILE *f) {
   }
 }
 
+void cleanup() {
+#ifdef HAVE_XML
+  if (XMLServices) xml_finalize();
+#endif
+  delete Grammar;
+  delete cheap_settings;
+  delete vpm;
+}
 
 void process(const char *s) {
   timer t_start;
@@ -407,22 +363,15 @@ void process(const char *s) {
     fprintf(fstatus, "\n");
     fprintf(fstatus, "loading `%s' ", s);
     Grammar = new tGrammar(s); 
-  }
-  catch(tError &e) {
-    fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
-    delete cheap_settings;
-    return;
-  }
 
 #ifdef HAVE_ECL
-  char *cl_argv[] = {"cheap", 0};
-  ecl_initialize(1, cl_argv);
-  // make the redefinition warnings go away
-  ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
-                       "cl-user::*error-output* nil)");
+    char *cl_argv[] = {"cheap", 0};
+    ecl_initialize(1, cl_argv);
+    // make the redefinition warnings go away
+    ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
+                   "cl-user::*error-output* nil)");
 #endif  // HAVE_ECL
 
-  try {
 #ifdef DYNAMIC_SYMBOLS
     init_characterization();
 #endif
@@ -509,8 +458,7 @@ void process(const char *s) {
     
   catch(tError &e) {
     fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
-    delete Grammar;
-    delete cheap_settings;
+    cleanup();
     return;
   }
 
@@ -530,7 +478,7 @@ void process(const char *s) {
   vpm = new tVPM();
   char *name2 = cheap_settings->value("vpm");
   if (name2) {
-    string file = find_file(name, ".vpm", s);
+    string file = find_file(name2, ".vpm", s);
     vpm->read_vpm(file);
   }
 
@@ -561,18 +509,11 @@ void process(const char *s) {
         {
           if(opt_interactive_morph)
             interactive_morphology();
-          else if(opt_nbest)
-            nbest();
           else
             interactive();
         }
   }
-
-#ifdef HAVE_XML
-  if (XMLServices) xml_finalize();
-#endif
-  delete Grammar;
-  delete cheap_settings;
+  cleanup();
 }
 
 #ifdef __BORLANDC__

@@ -89,7 +89,8 @@ read_vpm(const string &filename, string id) {
   if (pm != NULL)
     pms.push_back(pm);
 
-  delete line;
+  fclose(f);
+  delete[] line;
   return true;
 
 }
