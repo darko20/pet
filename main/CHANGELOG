@@ -1,4 +1,15 @@
 v0.99.??
+  - removed obsolete `nbest' mode and other obsolete code
+  - Lexparser.next_input now returns true if there's still input
+  - fixed lots of unclean allocations which where not or not properly free'd
+  - changed handling of lexical rules (affix and non-affix). Now closer to LKB.
+    No more infl-rule-status, only lex-rule. Affixation rules MUST have
+    lex-rule status.
+  - created new rulefilter class to encapsulate this functionality
+  - major restructuring of morph.cpp, inner classes now in new morph-inner.h
+  - replacement of orthographemics-cohesive-chains (kludge) by enhanced filter
+    for morphological processing a la LKB. Uses boost graph library, so this
+    is now required for cheap, too. (closes ticket #10)
   - added native MRS implementation in C++ (preliminary)
   - finish extended restrictor functionality
   - bind reading of new input to the registered tokenizer to get a clean 

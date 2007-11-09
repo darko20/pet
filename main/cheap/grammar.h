@@ -1,3 +1,4 @@
+/* -*- Mode: C++ -*- */
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
@@ -36,6 +37,7 @@
 #include <string>
 #include <list>
 #include <map>
+#include <ostream>
 
 /** @name global variables for quick check */
 /*@{*/
@@ -72,8 +74,11 @@ class grammar_rule
    */
   static grammar_rule* make_grammar_rule(type_t t);
 
+  /** destructor */
+  ~grammar_rule();
+
   /** Get the arity (length of right hand side) of the rule */
-  inline int arity() { return _arity; }
+  inline int arity() const { return _arity; }
   /** Get the next arg that should be filled */
   inline int nextarg() const { return first(_tofill); }
   /** Does the rule extend to the left or to the right?
@@ -82,13 +87,13 @@ class grammar_rule
   inline bool left_extending() { return first(_tofill) == 1; }
 
   /** Get the type of this rule (instance) */
-  inline int type() { return _type; }
+  inline int type() const { return _type; }
   /** Get the external name */
-  inline const char *printname() { return print_name(_type); }
+  inline const char *printname() const { return print_name(_type); }
   /** Get the unique rule id, also used in the rule filter. */
-  inline int id() { return _id; }
+  inline int id() const { return _id; }
   /** Get the trait of this rule: INFL_TRAIT, LEX_TRAIT, SYNTAX_TRAIT */
-  inline rule_trait trait() { return _trait; }
+  inline rule_trait trait() const { return _trait; }
   /** Set the trait of this rule: INFL_TRAIT, LEX_TRAIT, SYNTAX_TRAIT */
   inline void trait(rule_trait t) { _trait = t; }
 
@@ -143,8 +148,6 @@ class grammar_rule
   grammar_rule(type_t t);
   grammar_rule() { }
 
-  static int next_id;
-
   int _id;
   int _type;        // type index
   rule_trait _trait;
@@ -163,10 +166,73 @@ class grammar_rule
   friend class tGrammar;
 };
 
+typedef std::list<grammar_rule *> rulelist;
+typedef std::list<grammar_rule *>::const_iterator ruleiter;
+
+class rulefilter {
+private:
+  int _nrules;
+  char * _filtermatrix;
+    
+  inline char * access(grammar_rule *mother, grammar_rule *daughter) {
+    return _filtermatrix + daughter->id() + _nrules * mother->id();
+  }
+    
+public:
+  /** create a rulefilter */
+  rulefilter() : _nrules(0), _filtermatrix(0) { }
+    
+  void resize(int n) {
+    _nrules = n;
+    delete _filtermatrix;
+    _filtermatrix = new char[n * n];
+    memset(_filtermatrix, 0, n * n);
+  }
+
+  ~rulefilter() { delete[] _filtermatrix; }
+
+  /** is \a daughter compatible with \a mother in the \a arg'th (1..8)
+   *  argument position
+   */
+  inline bool get(grammar_rule * mother, grammar_rule * daughter, int arg) {
+    return *access(mother, daughter) & (1 << (arg - 1)) ;
+  }
+
+  /** is \a daughter compatible with \a mother */
+  inline bool get(grammar_rule * mother, grammar_rule * daughter) {
+    return *access(mother, daughter)  ;
+  }
+
+  /** specify that \a daughter is compatible with \a mother in the \a arg'th
+   *  (1..8) argument position
+   */
+  inline void set(grammar_rule * mother, grammar_rule * daughter, int arg) {
+    char *byte = access(mother, daughter);
+    *byte = *byte | (char) (1 << (arg - 1));
+  }
+
+  /** specify that \a daughter is compatible with \a mother */
+  inline void set(grammar_rule * mother, grammar_rule * daughter) {
+    char *byte = access(mother, daughter);
+    *byte = (char) 1;
+  }
+
+  std::ostream &print(std::ostream &out) {
+    out << std::endl;
+    for (int i = 0; i < _nrules; ++i) {
+      for (int j = 0; j < _nrules; ++j) {
+        out << " " << (char)('0' + _filtermatrix[j + _nrules * i]);
+      }
+      out << std::endl;
+    }
+    return out;
+  }
+};
+
 /** Class containing all the infos from the HPSG grammar */
-class tGrammar
-{
- public:
+class tGrammar {
+public:
+
   /** Initalize this grammar by reading it from the file \a filename */
   tGrammar(const char *filename);
   ~tGrammar();
@@ -203,27 +269,8 @@ class tGrammar
    * which can be rapidly looked up to avoid failing unifications.
    */
   inline bool filter_compatible(grammar_rule *mother, int arg,
-                                grammar_rule *daughter)
-  {
-    if(daughter == NULL) return true;
-    return _filter[daughter->id() + _nrules * mother->id()] &
-      (1 << (arg - 1));
-  }
-
-  /** Is successful unification of \a daughter as \a arg th argument of \a
-   *  mother possible? 
-   * This is a precomputed table containing all the possible rule combinations,
-   * which can be rapidly looked up to avoid failing unifications.
-   * This version is used in the morphological analyzer.
-   */
-  inline bool filter_compatible(type_t mother, int arg,
-                                type_t daughter)
-  {
-    grammar_rule *mother_r = _rule_dict[mother];
-    grammar_rule *daughter_r = _rule_dict[daughter];
-    if(mother_r == 0 || daughter_r == 0)
-      throw tError("Unknown rule passed to filter_compatible");
-    return filter_compatible(mother_r, arg, daughter_r);
+                                grammar_rule *daughter) {
+    return ((daughter == NULL) || _filter.get(mother, daughter, arg));
   }
 
   /** Is rule \a a more general than \a b or vice versa?
@@ -232,19 +279,20 @@ class tGrammar
    * approach to the unification rule filter.
    */
   inline void subsumption_filter_compatible(grammar_rule *a, grammar_rule *b,
-                                            bool &forward, bool &backward)
-  {
-      if(a == 0 || b == 0)
-      {
+                                            bool &forward, bool &backward) {
+      if(a == 0 || b == 0) {
           forward = backward = true;
-          return;
+      } else {
+        forward = _subsumption_filter.get(b, a);
+        backward = _subsumption_filter.get(a, b);
       }
-      forward = _subsumption_filter[a->id() + _nrules * b->id()];
-      backward = _subsumption_filter[b->id() + _nrules * a->id()];
   }
 
   /** Return the number of rules in this grammar */
-  inline int nrules() { return _rules.size(); }
+  inline const rulelist &rules() { return _rules; }
+  /** Return list of lexical rules in this grammar */
+  inline const rulelist &lexrules() { return _lex_rules; }
+
   /** Return the number of hyperactive rules in this grammar */
   int nhyperrules();
   
@@ -274,13 +322,6 @@ class tGrammar
   /** \todo becomes obsolete when yy.cpp does */
   bool punctuationp(const std::string &s);
 
-#if 0
-  // obsolete
-#ifdef ONLINEMORPH
-  class tMorphAnalyzer *morph() { return _morph; }
-#endif
-#endif
-
   /** Return the statistic maxent model of this grammar */
   inline tSM *sm() { return _sm; }
 
@@ -292,22 +333,16 @@ class tGrammar
     _rules.clear();
   }
   
-  /** activate all (and only) inflection rules */
-  void activate_infl_rules() {
-    deactivate_all_rules();
-    _rules = _infl_rules; 
-  }
-
   /** activate all (and only) lexical and inflection rules */
   void activate_lex_rules() {
-    activate_infl_rules();
+    deactivate_all_rules();
     _rules.insert(_rules.end(), _lex_rules.begin(), _lex_rules.end());
   }
 
   /** activate syntactic rules only */
   void activate_syn_rules() {
     deactivate_all_rules();
-    _rules = _syn_rules; 
+    _rules.insert(_rules.end(), _syn_rules.begin(), _syn_rules.end());
   }
 
   /** activate all available rules */
@@ -331,14 +366,6 @@ class tGrammar
  private:
   std::map<std::string, std::string> _properties;
 
-#if 0
-#ifndef HAVE_ICU
-  std::string _punctuation_characters;
-#else
-  UnicodeString _punctuation_characters;
-#endif
-#endif
-
   std::map<type_t, lex_stem *> _lexicon;
   std::multimap<std::string, lex_stem *> _stemlexicon;
 
@@ -348,30 +375,18 @@ class tGrammar
   int _extdict_discount;
 #endif
 
-#if 0
-  typedef std::multimap<std::string, full_form *> ffdict;
-  ffdict _fullforms;
-#endif
-
-#ifdef ONLINEMORPH
-  class tMorphAnalyzer *_morph;
-#endif
-
-  /** The number of all rules (syntactic, lex, and infl) for rule filtering */
-  int _nrules;
   /** The list of currently active rules.
    * If the parser is used to complete lexical processing first, only infl and
    * lex rules will be active in the first phase. Only syn rules will then be
    * active in the second phase.
    */
-  std::list<grammar_rule *> _rules;
+  rulelist _rules;
 
   /** The set of syntactic rules */
-  std::list<grammar_rule *> _syn_rules;
+  rulelist _syn_rules;
   /** The set of lexical rules */
-  std::list<grammar_rule *> _lex_rules;
-  /** The set of inflectional rules */
-  std::list<grammar_rule *> _infl_rules;
+  rulelist _lex_rules;
+
   /** Map the rule type back to the rule structure */
   std::map<type_t, grammar_rule *> _rule_dict;
 
@@ -387,8 +402,8 @@ class tGrammar
    */
   list_int *_predicts;
 
-  char *_filter;
-  char *_subsumption_filter;
+  rulefilter _filter;
+  rulefilter _subsumption_filter;
   void initialize_filter();
 
   void init_rule_qc_unif();
@@ -407,41 +422,6 @@ class tGrammar
   void undump_properties(dumper *f);
   void init_parameters();
 
-  // friend class le_iter;
-  friend class rule_iter;
-};
-
-/** An iterator to map through all rules of a grammar */
-class rule_iter
-{
- public:
-  /** Initialize the iterator to the first rule of the grammar \a G */
-  rule_iter(tGrammar *G)
-    {
-      _G = G; _curr = _G->_rules.begin();
-    }
-
-  /** Are there still rules? */
-  inline bool valid()
-    {
-      return _curr != _G->_rules.end();
-    }
-
-  /** Return the pointer to the current rule */
-  inline grammar_rule *current()
-    {
-      if(valid()) return *_curr; else return 0;
-    }
-
-  /** Go to next rule */
-  rule_iter &operator++(int)
-    {
-      ++_curr; return *this;
-    }
-
- private:
-  std::list<grammar_rule *>::iterator _curr;
-  tGrammar *_G;
 };
 
 #endif

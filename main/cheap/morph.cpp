@@ -21,70 +21,20 @@
 
 #include "pet-config.h"
 #include "morph.h"
-#ifdef HAVE_ICU
-#include "unicode.h"
-typedef UChar32 MChar;
-typedef UnicodeString MString;
-#else
-typedef char MChar;
-// typedef string MString;
-
-class MString {
-  friend class StringCharacterIterator;
-  string _str;
-public:
-  MString() {}
-  MString(const string &s) : _str(s) {} 
-  void remove(unsigned int start = 0, unsigned int len = string::npos) {
-    _str.erase(start, len);
-  }
-  string str() { return _str; }
-  MChar char32At(int index) { return _str[index]; }
-  int getChar32Start(int offset) { return offset; }
-  void reverse() { std::reverse(_str.begin(), _str.end()); }
-  void reverse(int start, int length) {
-    std::reverse(_str.begin() + start, _str.begin() + start + length); 
-  }
-  int indexOf(MChar c, int offset) { return _str.find(c, offset); }
-  int indexOf(const MString s) { return _str.find(s._str); }
-  void append(MChar c) { _str += c ; }
-  void append(const MString s) { _str += s._str; }
-  const char *c_str() { return _str.c_str(); }
-  int length() { return _str.length(); }
-};
-
-class StringCharacterIterator {
-  string &_str;
-  string::iterator _it;
-public:
-  StringCharacterIterator(MString str) : _str(str._str) {
-    _it = _str.begin();
-  }
-  bool hasNext() { return (_it != _str.end()) ; }
-  MChar next32PostInc() { return *_it++; }
-};
-
-class Converter {
-public:
-  Converter() {} 
-  string convert(MString s) { return s.str() ; }
-  MString convert(string s) { return s ; }
-  MString convert(MChar c) { return string() + c ; }
-};
-
-Converter Convert;
-Converter *Conv = &Convert;
-
-#endif
 
 #include "cheap.h"
 #include "grammar-dump.h"
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/transitive_closure.hpp>
+//#include <boost/graph/graph_utility.hpp>
+
 
 #define LETTERSET_CHAR ((MChar) '\x8')
 
 bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b) {
   if (a.base() != b.base()) return false;
-  list<type_t>::const_iterator ar, ae, br, be;
+  ruleiter ar, ae, br, be;
   ar = a._rules.begin();
   ae = a._rules.end();
   br = b._rules.begin();
@@ -275,130 +225,8 @@ void print_analyses(FILE *f, list<tMorphAnalysis> res)
 }
 
 //
-// internal classes: interface
+// internal classes: interface: see morph-inner.h
 //
-
-/// represents one letterset, primary purpose is keeping track of bindings
-class morph_letterset
-{
-public:
-  morph_letterset() :
-    _bound(0) {};
-
-  morph_letterset(string name, string elems);
-
-  const set<MChar> &elems() { return _elems; }
-
-  void bind(MChar c) { _bound = c; }
-  MChar bound() { return _bound; }
-
-  const string &name() const { return _name; }
-  
-  void print(FILE *f);
-
-private:
-  string _name;
-  set<MChar> _elems;
-  MChar _bound;
-};
-
-// collection of morph_letterset's
-class morph_lettersets
-{
-public:
-  morph_lettersets() {};
-
-  void add(string s);
-  morph_letterset *get(string name);
-
-  void undo_bindings();
-
-  void print(FILE *f);
-
-private:
-
-  map<string, morph_letterset*> _m;
-};
-
-/** This implements one element of a morphological rule specification, the
- * so-called sub-rule. 
- *
- * It consists of the left part (the part to be substitued) and right part (the
- * substitution). During analysis, the roles are switched: the right part has
- * to be found in the string and is then replaced by the left part to come
- * closer to the base form.
- */
-class morph_subrule
-{
-public:
-  morph_subrule(tMorphAnalyzer *a, type_t rule,
-                MString left, MString right)
-    : _analyzer(a), _rule(rule), _left(left), _right(right) {}
-  
-  /** The AVM rule of this sub-rule */
-  type_t rule() { return _rule; }
-
-  /** Can the string \a matched + \a rest be reduced to a base form with this
-   *  sub-rule?
-   *  If this is the case, return the reduced form in \a result.
-   */
-  bool base_form(MString matched, MString rest,
-                 MString &result);
-
-  void print(FILE *f);
-
-private:
-  tMorphAnalyzer *_analyzer;
-
-  type_t _rule;
-  
-  MString _left, _right;
-
-  bool establish_and_check_bindings(MString matched);
-};
-
-class trie_node
-{
-public:
-  trie_node(tMorphAnalyzer *a) :
-    _analyzer(a)
-  {};
-
-  trie_node *get_node(MChar c, bool add = false);
-
-  void add_path(MString path, morph_subrule *rule);
-
-  bool has_rules() { return _rules.size() > 0; }
-  vector<morph_subrule *> &rules() { return _rules; }
-
-  void print(FILE *f, int depth = 0);
-  
-private:
-  tMorphAnalyzer *_analyzer;
-
-  map<MChar, trie_node *> _s;
-
-  vector<morph_subrule *> _rules;
-};
-
-class morph_trie
-{
-public:
-  morph_trie(tMorphAnalyzer *a, bool suffix) :
-    _analyzer(a), _suffix(suffix), _root(_analyzer)
-  {};
-
-  void add_subrule(type_t rule, string subrule);
-
-  list<tMorphAnalysis> analyze(tMorphAnalysis a);
-
-  void print(FILE *f);
-
-private:
-  tMorphAnalyzer *_analyzer;
-  bool _suffix;
-  trie_node _root;
-};
 
 //
 // Internal classes: implementation
@@ -408,11 +236,10 @@ private:
 // Letterset
 //
 
-morph_letterset::morph_letterset(string name, string elems_u8) :
-  _name(name), _bound(0)
-{
+void morph_letterset::set(string name, string elems_u8) {
+  _name = name;
   MString elems = Conv->convert(elems_u8);
-
+  
   StringCharacterIterator it(elems);
 
   MChar c;
@@ -428,11 +255,12 @@ morph_letterset::morph_letterset(string name, string elems_u8) :
   } // while
 }
 
-void morph_letterset::print(FILE *f)
+void morph_letterset::print(FILE *f) const
 {
   fprintf(f, "!%s -> ", _name.c_str());
 
-  for(set<MChar>::iterator it = _elems.begin(); it != _elems.end(); ++it)
+  for(std::set<MChar>::const_iterator it = _elems.begin();
+      it != _elems.end(); ++it)
     fprintf(f, "%s", Conv->convert(*it).c_str());
 
   fprintf(f, " [%s]", Conv->convert(_bound).c_str());
@@ -463,8 +291,8 @@ void morph_lettersets::add(string s)
       if(verbosity > 14)
         fprintf(fstatus, " -> <%s> <%s>\n", name.c_str(), elems.c_str());
       
-      morph_letterset *ls = new morph_letterset(name, elems);
-      _m[name] = ls;
+      //morph_letterset ls = morph_letterset(name, elems);
+      _m[name].set(name, elems);
     }
     else
     {
@@ -479,31 +307,27 @@ void morph_lettersets::add(string s)
   }
 }
 
-morph_letterset *morph_lettersets::get(string name)
+morph_letterset * morph_lettersets::get(string name) const
 {
-  map<string, morph_letterset*>::iterator pos = _m.find(name);
+  ml_const_iterator pos = _m.find(name);
 
   if(pos == _m.end())
     return 0;
   
-  return pos->second;
+  return const_cast<morph_letterset *>(&pos->second);
 }
 
-void morph_lettersets::undo_bindings()
-{
-  for(map<string, morph_letterset*>::iterator it = _m.begin();
-      it != _m.end(); ++it)
-    it->second->bind(0);
+void morph_lettersets::undo_bindings() {
+  for(ml_iterator it = _m.begin(); it != _m.end(); ++it)
+    (it->second).bind(0);
 }
 
-void morph_lettersets::print(FILE *f)
+void morph_lettersets::print(FILE *f) const
 {
   fprintf(f, "--- morph_lettersets[%x]:\n", (size_t) this);
-  for(map<string, morph_letterset*>::iterator it = _m.begin();
-      it != _m.end(); ++it)
-  {
+  for(ml_const_iterator it = _m.begin(); it != _m.end(); ++it) {
     fprintf(f, "  ");
-    it->second->print(f);
+    (it->second).print(f);
     fprintf(f, "\n");
   }
 }
@@ -595,7 +419,7 @@ bool morph_subrule::base_form(MString matched,
 void morph_subrule::print(FILE *f)
 {
   fprintf(f, "morph_subrule[%x] %s: %s->%s",
-          (size_t) this, print_name(_rule),
+          (size_t) this, _rule->printname(),
           Conv->convert(_left).c_str(), Conv->convert(_right).c_str());
 }
 
@@ -603,26 +427,13 @@ void morph_subrule::print(FILE *f)
 // trie node
 //
 
-trie_node *trie_node::get_node(MChar c, bool add)
-{
-  map<MChar, trie_node *>::iterator it = _s.find(c);
-
-  if(it == _s.end())
-  {
-    if(add) 
-    {
-      trie_node *n = new trie_node(_analyzer);
-      _s[c] = n;
-      return n;
-    }
-    else
-      return 0;
-  }
-  else
-    return it->second;
+trie_node::~trie_node() {
+  for(tn_const_iterator it = _s.begin(); it != _s.end(); ++it)
+    delete it->second;
 }
 
-void trie_node::add_path(MString path, morph_subrule *rule)
+void trie_node::add_path(MString path, morph_subrule *rule,
+                         const morph_lettersets &lettersets)
 {
   if(path.length() == 0)
   {
@@ -638,9 +449,8 @@ void trie_node::add_path(MString path, morph_subrule *rule)
       MChar c = path.char32At(0);
       MString rest(path);
       rest.remove(0, 1);
-
-      trie_node *n = get_node(c, true);
-      n->add_path(rest, rule);
+      
+      request_node(c)->add_path(rest, rule, lettersets);
     }
     else
     {
@@ -650,29 +460,27 @@ void trie_node::add_path(MString path, morph_subrule *rule)
       rest.remove(0, 2);
 
       string lsname = string(1, (char) c);
-      morph_letterset *ls = _analyzer->letterset(lsname);
+      morph_letterset *ls = lettersets.get(lsname);
 
       if(ls == 0)
         throw tError("Referencing undefined letterset !" + lsname);
 
       const set<MChar> &elems = ls->elems();
       for(set<MChar>::const_iterator it = elems.begin();
-          it != elems.end(); ++it)
-      {
-        trie_node *n = get_node(*it, true);
-        n->add_path(rest, rule);
+          it != elems.end(); ++it) {
+        request_node(*it)->add_path(rest, rule, lettersets);
       }
     }
   }
 }
 
-void trie_node::print(FILE *f, int depth)
+void trie_node::print(FILE *f, int depth) const
 {
   fprintf(f, "%*s", depth, "");
 
   fprintf(f, "trie[%x] (", (size_t) this);
   
-  for(vector<morph_subrule *>::iterator it = _rules.begin();
+  for(vector<morph_subrule *>::const_iterator it = _rules.begin();
       it != _rules.end(); ++it)
   {
     (*it)->print(f);
@@ -680,8 +488,7 @@ void trie_node::print(FILE *f, int depth)
   }
   fprintf(f, ")\n");
 
-  for(map<MChar, trie_node *>::iterator it = _s.begin();
-      it != _s.end(); ++it)
+  for(tn_const_iterator it = _s.begin(); it != _s.end(); ++it)
   {
     fprintf(f, "%*s", depth, "");
 
@@ -705,7 +512,7 @@ void reverse_subrule(MString &s)
     s.reverse(s.getChar32Start(off-1), 2);
 }
 
-void morph_trie::add_subrule(type_t rule, string subrule)
+void morph_trie::add_subrule(grammar_rule *rule, string subrule)
 {
   string left_u8, right_u8;
 
@@ -713,7 +520,8 @@ void morph_trie::add_subrule(type_t rule, string subrule)
   while(curr < subrule.length() && !isspace(subrule[curr])) ++curr;
 
   if(curr == subrule.length())
-    throw tError("Invalid subrule `" + subrule + "' in rule " + print_name(rule));
+    throw tError("Invalid subrule `" + subrule + "' in rule " 
+                 + rule->printname());
 
   left_u8 = subrule.substr(0, curr);
   if(left_u8 == "*")
@@ -727,7 +535,8 @@ void morph_trie::add_subrule(type_t rule, string subrule)
   while(rule_end >= curr && isspace(subrule[rule_end])) --rule_end;
 
   if(curr > rule_end)
-    throw tError("Invalid subrule `" + subrule + "' in rule " + print_name(rule));
+    throw tError("Invalid subrule `" + subrule + "' in rule " 
+                 + rule->printname());
 
   right_u8 = subrule.substr(curr, rule_end - curr + 1);
 
@@ -742,28 +551,27 @@ void morph_trie::add_subrule(type_t rule, string subrule)
 
   if(verbosity > 14)
     fprintf(fstatus, "INFLSUBRULE<%s>: %s (`%s' -> `%s')\n",
-            print_name(rule), subrule.c_str(),
+            rule->printname(), subrule.c_str(),
             Conv->convert(left).c_str(), Conv->convert(right).c_str());
 
   morph_subrule *sr = new morph_subrule(_analyzer, rule, left, right);
   _analyzer->add_subrule(sr);
-  _root.add_path(right, sr);
+  _root.add_path(right, sr, _analyzer->_lettersets);
 
 }
 
 /** Remove all possible prefixes (or suffixes) encoded in this trie from the
  *  base string in \a a and return the list of newly created analyses.
  */
-list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
-{
+list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis analysis) {
   list<tMorphAnalysis> res;
 
-  MString s = Conv->convert(a.base());
+  MString s = Conv->convert(analysis.base());
   if(_suffix) s.reverse();
 
   MString matched;
 
-  trie_node *n = &_root;
+  const trie_node *node = &_root;
 
   while(s.length() > 0)
   {
@@ -773,26 +581,30 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
 
     // is there a branch at this trie node labeled with character c?
     // If not so, we are done
-    n = n->get_node(c);
-    if(n == 0) return res;
+    if (! node->has_subnode(c)) return res;
+    node = node->get_node(c);
 
     // Iterate through all subrules that have been matched completedly when
     // arriving at the current trie node.
-    for(vector<morph_subrule *>::iterator r = n->rules().begin();
-        r != n->rules().end(); ++r)
+    for(vector<morph_subrule *>::const_iterator r = node->rules().begin();
+        r != node->rules().end(); ++r)
     {
       MString base;
       // Can the rule reduce the string "matched + s" to a valid base form ?
       if((*r)->base_form(matched, s, base) == false)
         continue;
 
-      type_t candidate = (*r)->rule();
-      list<type_t> rules = a.rules();
-
+      grammar_rule *candidate = (*r)->rule();
+      list<grammar_rule *> rules = analysis.rules();
+ 
+      // ATTENTION! CHECK THIS!
+      // \todo does this depend on the trie being suffix or prefix ???
       // Check the rule filter (if activated) with candidate as daughter rule
-      // and the first rule in the 'rules' list as mother.
-      if (_analyzer->_rule_filter && ! rules.empty()
-          && ! Grammar->filter_compatible(rules.front(), 1, candidate))
+      // and the first rule in the 'rules' list as mother, because the
+      // morphological analysis works itself from the bottom up but is applied
+      // in reverse direction (aargh)
+      if (! rules.empty()
+          && ! _analyzer->lexfilter_compatible(rules.front(), candidate))
         continue;
 
       if(_suffix) base.reverse();
@@ -811,8 +623,8 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
          && st.size() < _analyzer->_minimal_stem_length) 
         continue;
 
-      list<string> forms = a.forms();
-      list<type_t>::iterator rule;
+      list<string> forms = analysis.forms();
+      ruleiter rule;
       list<string>::iterator form;
 
       //
@@ -847,8 +659,7 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis a)
 
 void morph_trie::print(FILE *f)
 {
-  fprintf(f, "--- morph_trie[%x] (%s)\n", (size_t) this,
-          _suffix ? "suffix" : "prefix");
+  fprintf(f, "--- morph_trie (%s)\n", _suffix ? "suffix" : "prefix");
   _root.print(f);
 }
 
@@ -864,9 +675,8 @@ void tMorphAnalysis::print(FILE *f) const
 {
     fprintf(f, "%s = %s", complex().c_str(), base().c_str());
 
-    for(list<type_t>::const_iterator it = _rules.begin()
-          ; it != _rules.end(); ++it)
-        fprintf(f, " + %s", print_name(*it));
+    for(ruleiter it = _rules.begin(); it != _rules.end(); ++it)
+      fprintf(f, " + %s", (*it)->printname());
 }
 
 void tMorphAnalysis::print_lkb(FILE *f)
@@ -876,11 +686,11 @@ void tMorphAnalysis::print_lkb(FILE *f)
   fprintf(f, "(%s", form->c_str());
   ++form;
 
-  list<type_t>::iterator rule = _rules.begin(); 
+  ruleiter rule = _rules.begin(); 
 
   while(form != _forms.end() && rule != _rules.end())
   {
-    fprintf(f, " (%s %s)", print_name(*rule), form->c_str());
+    fprintf(f, " (%s %s)", (*rule)->printname(), form->c_str());
     ++form; ++rule;
   }
 
@@ -892,13 +702,11 @@ void tMorphAnalysis::print_lkb(FILE *f)
 //
 
 tMorphAnalyzer::tMorphAnalyzer()
-  : _lettersets(new morph_lettersets),
-    _suffixrules(new morph_trie(this, true)),
-    _prefixrules(new morph_trie(this, false)),
+  : _lettersets(),
+    _suffixrules(this, true),
+    _prefixrules(this, false),
     _irregs_only(false),
-    _duplicate_filter_p(false), _maximal_depth(0), _minimal_stem_length(0),
-    _rule_filter(false)
-{
+    _duplicate_filter_p(false), _maximal_depth(0), _minimal_stem_length(0) {
   char *foo;
   if((foo = cheap_settings->value("orthographemics-maximum-chain-depth")) != 0)
     _maximal_depth 
@@ -908,8 +716,6 @@ tMorphAnalyzer::tMorphAnalyzer()
       = strtoint(foo, "as value of orthographemics-minimum-stem-length");
   if(cheap_settings->lookup("orthographemics-duplicate-filter"))
     _duplicate_filter_p = true;
-  if(cheap_settings->lookup("orthographemics-cohesive-chains") != NULL)
-    _rule_filter = true;
 }
 
 tMorphAnalyzer::~tMorphAnalyzer()
@@ -921,10 +727,6 @@ tMorphAnalyzer::~tMorphAnalyzer()
   for(multimap<string, tMorphAnalysis *>::iterator it =
         _irregs_by_stem.begin(); it != _irregs_by_stem.end(); ++it)
     delete it->second;
-
-  delete _prefixrules;
-  delete _suffixrules;
-  delete _lettersets;
 }
 
 void tMorphAnalyzer::add_global(string rule) {
@@ -938,7 +740,7 @@ void tMorphAnalyzer::add_global(string rule) {
 
     string ls = get_next_letter_set(rule, start, stop);
     if(start != stop) {
-      _lettersets->add(ls);
+      _lettersets.add(ls);
       start = stop; stop = 1;
     } // if
     else {
@@ -957,7 +759,7 @@ void tMorphAnalyzer::add_global(string rule) {
 } // tMorphAnalyzer::add_global()
 
 
-void tMorphAnalyzer::parse_rule(type_t t, string rule, bool suffix)
+void tMorphAnalyzer::parse_rule(grammar_rule *fsrule, string rule, bool suffix)
 {
   string::size_type start, stop;
   
@@ -969,9 +771,9 @@ void tMorphAnalyzer::parse_rule(type_t t, string rule, bool suffix)
     {
       subrule = morph_unescape_string(subrule);
       if(suffix)
-        _suffixrules->add_subrule(t, subrule);
+        _suffixrules.add_subrule(fsrule, subrule);
       else
-        _prefixrules->add_subrule(t, subrule);
+        _prefixrules.add_subrule(fsrule, subrule);
 
       start = stop;
       stop = start + 1;
@@ -979,17 +781,17 @@ void tMorphAnalyzer::parse_rule(type_t t, string rule, bool suffix)
   }
 }
 
-void tMorphAnalyzer::add_rule(type_t t, string rule)
-{
+void tMorphAnalyzer::add_rule(grammar_rule *fsrule, string rule) {
   if(verbosity > 9)
-    fprintf(fstatus, "INFLR<%s>: %s\n", print_name(t), rule.c_str());
+    fprintf(fstatus, "INFLR<%s>: %s\n", fsrule->printname(), rule.c_str());
 
   if(rule.compare(0, 6, "suffix") == 0)
-    parse_rule(t, rule.substr(6, rule.length() - 6), true);
+    parse_rule(fsrule, rule.substr(6, rule.length() - 6), true);
   else if(rule.compare(0, 6, "prefix") == 0)
-    parse_rule(t, rule.substr(6, rule.length() - 6), false);
+    parse_rule(fsrule, rule.substr(6, rule.length() - 6), false);
   else
-    throw tError(string("unknown type of morphological rule [") + print_name(t) + "]: " + rule);
+    throw tError(string("unknown type of morphological rule [") 
+                 + fsrule->printname() + "]: " + rule);
 }
 
 void tMorphAnalyzer::add_irreg(string stem, type_t t, string form)
@@ -998,8 +800,15 @@ void tMorphAnalyzer::add_irreg(string stem, type_t t, string form)
     fprintf(fstatus, "IRREG: %s + %s = %s\n",
             stem.c_str(), print_name(t), form.c_str());
 
-  list<type_t> rules;
-  rules.push_front(t);
+  grammar_rule *rule = Grammar->find_rule(t);
+  if (rule == NULL) {
+    fprintf(ferr, "warning: rule `%s' in irregs definition"
+            "`%s':`%s' doesn't correspond to any of the parser's "
+            "rules\n", print_name(t), stem.c_str(), form.c_str());
+    return;
+  }
+  rulelist rules;
+  rules.push_front(rule);
   
   list<string> forms;
   forms.push_front(form);
@@ -1011,6 +820,100 @@ void tMorphAnalyzer::add_irreg(string stem, type_t t, string form)
   _irregs_by_form.insert(make_pair(form, a));
 }
 
+
+void tMorphAnalyzer::initialize_lexrule_filter() {
+  using namespace boost;
+  typedef adjacency_list<> graph_t;
+
+  int nr_lexrules = Grammar->lexrules().size();
+  std::vector<grammar_rule *> lexrules(nr_lexrules);
+  int inflindex = 0;
+  int lexindex = nr_lexrules - 1;
+  // split the lexical rules into affixation and non-affixation rules
+  for(ruleiter it = Grammar->lexrules().begin();
+      it != Grammar->lexrules().end(); ++it) {
+    assert((*it)->id() < nr_lexrules);
+    lexrules[((*it)->trait() == INFL_TRAIT) ? inflindex++ : lexindex --] = *it;
+  }
+  // now let lexindex point to the first lexical rule
+  lexindex++;
+  assert(inflindex == lexindex);
+
+  // we use two nodes per affixation rule to split the incoming and outgoing
+  // edges appropriately
+  // vertices 0 .. lexindex - 1 : inflrules for ingoing edges
+  //          lexindex .. nr_lexrules - 1 : lexrules
+  //          nr_lexrules .. verts.size() - 1 : inflrules for outgoing edges
+  graph_t infl_reach(inflindex + nr_lexrules);
+
+  // j is a non-affixation rule
+  for (int j = lexindex; j < nr_lexrules; ++j) {
+    // i is an affixation rule
+    for (int i = 0; i < lexindex; ++i) {
+      if (Grammar->filter_compatible(lexrules[i], 1, lexrules[j]))
+        add_edge(i, j, infl_reach);
+      if (Grammar->filter_compatible(lexrules[j], 1, lexrules[i]))
+        add_edge(j, i + nr_lexrules, infl_reach);
+    }
+    if (Grammar->filter_compatible(lexrules[j], 1, lexrules[j]))
+      add_edge(j, j, infl_reach);
+    // k is a non-affixation rule
+    for (int k = j + 1; k < nr_lexrules; ++k) {
+      if (Grammar->filter_compatible(lexrules[k], 1, lexrules[j]))
+        add_edge(k, j, infl_reach);
+      if (Grammar->filter_compatible(lexrules[j], 1, lexrules[k]))
+        add_edge(j, k, infl_reach);
+    }
+  }
+  //std::cout << std::endl << "Graph infl_reach:" << std::endl;
+  //print_graph(infl_reach);
+
+  graph_t infl_trans;
+  transitive_closure(infl_reach, infl_trans);
+
+  //std::cout << std::endl << "Graph infl_trans:" << std::endl;
+  //print_graph(infl_trans); std::cout << std::endl;
+
+  // since we require to have all lexrules to not have SYNTAX_TRAIT and force
+  // an exit in the case where this is violated, we can use a smaller filter
+  // here
+  // it would suffice if i would run only up to lexindex - 1 and only
+  // those adjacent edges beyond nr_lexrules would be added since this filter
+  // will only be applied to inflectional rules. We complete it since the costs
+  // are negligible and it's easier for debugging
+  _rulefilter.resize(nr_lexrules);
+  graph_traits < graph_t >::adjacency_iterator ai, a_end;
+  for (int i = 0; i < nr_lexrules; ++i) {
+    // for the direct feeding of inflectional rules, we have to copy the old
+    // filter since the graph only gives us the dependencies with at least one
+    // non-affixation rule in between
+    for (int j = 0; j < lexindex; ++j)
+      if (Grammar->filter_compatible(lexrules[i], 1, lexrules[j]))
+        _rulefilter.set(lexrules[i], lexrules[j]);
+
+    tie(ai, a_end) = adjacent_vertices(i, infl_trans);
+    for (; ai != a_end; ++ai) {
+      std::size_t j = *ai;
+      if (j >= (std::size_t) nr_lexrules) j -= nr_lexrules;
+      _rulefilter.set(lexrules[i], lexrules[j]);
+    }
+  }
+  /*
+  printf("\n");
+  char ticks[] = ".!*O";
+  for (int i = 0; i < nr_lexrules; ++i)
+    printf("%s\n", lexrules[i]->printname());
+  for (int i = 0; i < nr_lexrules; ++i) {
+    for (int j = 0; j < nr_lexrules; ++j) {
+      int k = (_rulefilter.get(lexrules[i], lexrules[j]) ? 2 : 0)
+        + (Grammar->filter_compatible(lexrules[i], 1, lexrules[j]) ? 1 : 0);
+      printf("%c", ticks[k]);
+    }
+    printf("\n"); fflush(stdout);
+  }
+  */
+}
+
 bool tMorphAnalyzer::empty()
 {
     return _irregs_by_stem.size() == 0 && _subrules.size() == 0;
@@ -1019,29 +922,29 @@ bool tMorphAnalyzer::empty()
 void tMorphAnalyzer::print(FILE *f)
 {
   fprintf(stderr, "tMorphAnalyzer[%x]:\n", (size_t) this);
-  _lettersets->print(f);
-  _prefixrules->print(f);
-  _suffixrules->print(f);
+  _lettersets.print(f);
+  _prefixrules.print(f);
+  _suffixrules.print(f);
 }
 
-morph_letterset *tMorphAnalyzer::letterset(string name)
+morph_letterset * tMorphAnalyzer::letterset(string name) const
 {
-  return _lettersets->get(name);
+  return _lettersets.get(name);
 }
 
 void tMorphAnalyzer::undo_letterset_bindings()
 {
-  _lettersets->undo_bindings();
+  _lettersets.undo_bindings();
 }
 
-list<tMorphAnalysis> tMorphAnalyzer::analyze1(tMorphAnalysis form)
+void tMorphAnalyzer::analyze1(tMorphAnalysis form, list<tMorphAnalysis> &result)
 {
   list<tMorphAnalysis> pre, suf;
 
   /* Apply prefix and suffix rules in parallel to form and append the result
      lists efficiently to one result */
-  pre = _prefixrules->analyze(form);
-  suf = _suffixrules->analyze(form);
+  pre = _prefixrules.analyze(form);
+  suf = _suffixrules.analyze(form);
 
   pre.splice(pre.begin(), suf);
 
@@ -1076,10 +979,10 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze1(tMorphAnalysis form)
     // a cycle (as triggered, for example, by rules like `bet past_verb bet).
     // 
     //
-    type_t candidate = it->second->rules().front();
-    list<type_t> rules = form.rules();
+    grammar_rule *candidate = it->second->rules().front();
+    rulelist rules = form.rules();
     list<string> forms = form.forms();
-    list<type_t>::iterator rule;
+    ruleiter rule;
     list<string>::iterator form;
     bool cyclep = false;
     for(rule = rules.begin(), form = forms.begin();
@@ -1101,22 +1004,22 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze1(tMorphAnalysis form)
 
   } // for
 
-  return pre;
+  result.splice(result.end(), pre);
 }
 
 /** Check if there is an irregular entry with the same base form and first
  *  inflection rule as \a a.
  */
-bool tMorphAnalyzer::matching_irreg_form(tMorphAnalysis a)
+bool tMorphAnalyzer::matching_irreg_form(tMorphAnalysis analysis)
 {
   pair<multimap<string, tMorphAnalysis *>::iterator,
     multimap<string, tMorphAnalysis *>::iterator> eq =
-    _irregs_by_stem.equal_range(a.base());
+    _irregs_by_stem.equal_range(analysis.base());
 
-  if(a.rules().size() == 0)
+  if(analysis.rules().size() == 0)
     return false;
 
-  type_t first = a.rules().front();
+  grammar_rule *first = analysis.rules().front();
 
   for(multimap<string, tMorphAnalysis *>::iterator it = eq.first;
       it != eq.second; ++it)
@@ -1126,7 +1029,7 @@ bool tMorphAnalyzer::matching_irreg_form(tMorphAnalysis a)
       if(verbosity > 4)
       {
         fprintf(fstatus, "filtering ");
-        a.print(fstatus);
+        analysis.print(fstatus);
         fprintf(fstatus, " [irreg ");
         it->second->print(fstatus);
         fprintf(fstatus, "]\n");
@@ -1156,7 +1059,7 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
   list<string> forms;
   forms.push_front(form);
 
-  prev_results.push_back(tMorphAnalysis(forms, list<type_t>()));
+  prev_results.push_back(tMorphAnalysis(forms, list<grammar_rule *>()));
   
   unsigned int i = 0;
   while(prev_results.size() > 0 
@@ -1173,8 +1076,7 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
     for(list<tMorphAnalysis>::iterator it = prev_results.begin();
         it != prev_results.end(); ++it)
     {
-      list<tMorphAnalysis> r = analyze1(*it);
-      current_results.splice(current_results.end(), r);
+      analyze1(*it, current_results);
       final_results.push_back(*it);
     }
 
@@ -1196,37 +1098,39 @@ string tMorphAnalyzer::generate(tMorphAnalysis m)
 void
 tLKBMorphology::undump_inflrs(dumper &dmp) {
   int ninflrs = dmp.undump_int();
-  for(int i = 0; i < ninflrs; i++)
-    {
-      int t = dmp.undump_int();
-      char *r = dmp.undump_string();
+  for(int i = 0; i < ninflrs; i++) {
+    int t = dmp.undump_int();
+    char *r = dmp.undump_string();
 
-      if(r == 0)
-        continue;
+    if(r == 0)
+      continue;
       
-      if(t == -1)
-        _morph.add_global(string(r));
-      else
-        {
-          _morph.add_rule(t, string(r));
-
-          grammar_rule *rule = Grammar->find_rule(t);
-          if (rule != NULL) {
-            if(rule->trait() == SYNTAX_TRAIT)
-              fprintf(ferr, "warning: found syntax `%s' rule "
-                      "with attached infl rule `%s'\n",
-                      print_name(t), r);
-                
-            rule->trait(INFL_TRAIT);
-          } else {
-            fprintf(ferr, "warning: rule `%s' with infl annotation "
-                    "`%s' doesn't correspond to any of the parser's "
-                    "rules\n", print_name(t), r);
-          }
-        }
-
-      delete[] r;
+    if(t == -1)
+      _morph.add_global(string(r));
+    else {
+      grammar_rule *rule = Grammar->find_rule(t);
+      if (rule == NULL) {
+        throw tError( ((string) "Error: type `") + print_name(t) + 
+                      "' with infl annotation `" + r +
+                      "' doesn't correspond to any of the parser's rules.\n" +
+                      "Check the type status, it has to be one of the " +
+                      "lexrule-status-values."
+                      );
+      }
+      if(rule->trait() == SYNTAX_TRAIT) {
+        throw tError( ((string) "error: found syntax rule `") + print_name(t)
+                      + "' with infl annotation `" + r + "'\n" +
+                      "Check the type status, it has to be one of the " +
+                      "lexrule-status-values instead.");
+      }
+      _morph.add_rule(rule, string(r));
+      rule->trait(INFL_TRAIT);
     }
+    delete[] r;
+  }                      
+
+
+  _morph.initialize_lexrule_filter();
 
   if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
   if(verbosity >14) _morph.print(fstatus);
@@ -1263,11 +1167,13 @@ tLKBMorphology *
 tLKBMorphology::create(dumper &dmp) {
   tLKBMorphology *result = new tLKBMorphology();
 
-  // XXX _fix_me_ this should go into grammar-dump
+  // \todo vvvv this should go into grammar-dump
   dmp.seek(0);
   int version;
   undump_header(&dmp, version);
   dump_toc toc(&dmp);
+  //  ^^^^^^^^^
+
   if(cheap_settings->lookup("irregular-forms-only"))
     result->_morph.set_irregular_only(true);
 
@@ -1326,9 +1232,17 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
       // valid 
       if ((lstem = Grammar->find_stem(preterminal)) != NULL) {
         
-        list<type_t> affixes;
+        rulelist affixes;
         if (affix != -1) {
-          affixes.push_front(affix);
+          grammar_rule *rule = Grammar->find_rule(affix);
+          if (rule == NULL) {
+            fprintf(ferr, "warning: rule `%s' in fullform definition"
+                    "`%s':`%s' doesn't correspond to any of the parser's "
+                    "rules\n", print_name(affix), s, print_name(preterminal));
+            continue;
+          } else {
+            affixes.push_front(rule);
+          }
         }
           
         // XXX _fix_me_ I'm not sure about what that offset really means.
@@ -1358,11 +1272,10 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
         if(verbosity > 14)
           {
             fprintf(fstatus, "(");
-            for(list<type_t>::iterator affix = affixes.begin()
-                  ; affix != affixes.end(); affix++)
-              {
-                fprintf(fstatus, "%s@%d ", print_name(*affix), offset);
-              }
+            for(ruleiter affix = affixes.begin()
+                  ; affix != affixes.end(); affix++) {
+              fprintf(fstatus, "%s@%d ", (*affix)->printname(), offset);
+            }
               
             fprintf(fstatus, "(");
             lstem->print(fstatus);
@@ -1395,7 +1308,7 @@ void tFullformMorphology::print(FILE *out) {
       for(list<lex_stem *>::iterator kt = stems.begin()
             ; kt != stems.end(); kt++) {
         fprintf(out, "%s\t%s\t0\t%s\t%s\n", ff.c_str()
-                , print_name(jt->rules().front())
+                , jt->rules().front()->printname()
                 , (*kt)->orth((*kt)->inflpos()), (*kt)->printname());
       }
     }

@@ -312,8 +312,8 @@ public:
     return get_fs().type();
   }
   
-  /** Return the number of next argument to fill, ranging from zero to
-   *  arity() - 1.
+  /** Return the number of next argument to fill, ranging from one to
+   *  arity().
    */
   inline int nextarg() { return first(_tofill); }
   /** Return the substructure of this item's feature structure that represents

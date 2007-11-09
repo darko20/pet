@@ -17,7 +17,6 @@
  */
 
 #include "mrs.h"
-#include "xmlparser.h"
 #include "types.h"
 #include "settings.h"
 #include "utility.h"

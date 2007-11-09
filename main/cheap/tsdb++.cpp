@@ -83,11 +83,11 @@ statistics::reset()
   p_stat_bytes = 0;
 
   // rule stuff
-  for(rule_iter rule(Grammar); rule.valid(); rule++)
-    {
-      grammar_rule *R = rule.current();
-      R->actives = R->passives = 0;
-    }
+  for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
+      rule++) {
+    grammar_rule *R = *rule;
+    R->actives = R->passives = 0;
+  }
 }
 
 void
@@ -232,7 +232,7 @@ cheap_tsdb_summarize_run(void)
     capi_printf("(:avms . %d) ", ntypes);
     capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
-    capi_printf("(:rules . %d) ", Grammar->nrules());
+    capi_printf("(:rules . %d) ", Grammar->rules().size());
     if(!Grammar->property("ntemplates").empty())
       capi_printf("(:templates . %s) ", 
                   Grammar->property("ntemplates").c_str());
@@ -616,10 +616,12 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
 
     if(opt_rulestatistics)
     {
-        for(rule_iter rule(Grammar); rule.valid(); rule++)
+      for(ruleiter rule = Grammar->rules().begin();
+          rule != Grammar->rules().end(); rule++)
         {
             tsdb_rule_stat S;
-            grammar_rule *R = rule.current();
+            grammar_rule *R = *rule;
+
             
             S.rule = R->printname();
             S.actives = R->actives;

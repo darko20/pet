@@ -154,18 +154,16 @@ filter_combine_task(tItem *active, tItem *passive)
  *  item with a suitable rule.
  */
 void
-postulate(tItem *passive)
-{
-    // iterate over all the rules in the grammar
-    for(rule_iter rule(Grammar); rule.valid(); rule++)
-    {
-        grammar_rule *R = rule.current();
-
-        if(passive->compatible(R, Chart->rightmost()))
-            if(filter_rule_task(R, passive))
-                Agenda->push(new rule_and_passive_task(Chart, Agenda, R,
-                                                       passive));
-    }
+postulate(tItem *passive) {
+  // iterate over all the rules in the grammar
+  for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
+      rule++) {
+    grammar_rule *R = *rule;
+    
+    if(passive->compatible(R, Chart->rightmost()))
+      if(filter_rule_task(R, passive))
+        Agenda->push(new rule_and_passive_task(Chart, Agenda, R, passive));
+  }
 }
 
 void
