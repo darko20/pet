@@ -256,6 +256,14 @@ inline const char *print_name(type_t type) {
   return printnames[type].c_str();
 }
 
+/** Get the int represented by a type \a t.
+ * \pre \a t represents an int
+ * \see retrieve_int_type
+ */
+inline int convert_int_type(type_t t) {
+  return boost::lexical_cast<int>(print_name(t));
+}
+
 /** Dump information about the number of status values, leaftypes, types, and
  *  attributes as well as the tables of status value names, type names and
  *  their status, and attribute names.
