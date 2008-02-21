@@ -43,17 +43,17 @@ void dag_remove_arcs(struct dag_node *dag, list_int *del)
   while(arc1 != 0)
     {
       if(!contains(del, arc1->attr)) // keep this one
-	{
-	  arc2 = arc1;
-	  arc1 = arc1->next;
+        {
+          arc2 = arc1;
+          arc1 = arc1->next;
 
-	  arc2->next = dag->arcs;
-	  dag->arcs = arc2;
-	}
+          arc2->next = dag->arcs;
+          dag->arcs = arc2;
+        }
       else // ignore this one
-	{
-	  arc1 = arc1->next;
-	}
+        {
+          arc1 = arc1->next;
+        }
     }
 }
 
@@ -109,7 +109,7 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len) {
 
     for(int j = 0; j < dump_n.nattrs; j++) {
       undump_arc(f, &dump_a);
-	  
+
       dag_qc_undumped_nodes[i].type
         = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
 
@@ -151,9 +151,9 @@ bool dag_prune_qc_paths(dag_node *qc_paths)
   while(arc != 0)
     {
       if(dag_prune_qc_paths(arc->val) == false)
-	useful = true;
+        useful = true;
       else
-	arc->val = 0; // mark for deletion
+        arc->val = 0; // mark for deletion
       arc = arc->next;
     }
 
@@ -206,10 +206,10 @@ void dag_size_rec(struct dag_node *dag, int &nodes)
       struct dag_arc *arc;
       arc = dag->arcs;
       while(arc)
-	{
+        {
           dag_size_rec(arc->val, nodes);
-	  arc = arc->next;
-	}
+          arc = arc->next;
+        }
     }
 }
 

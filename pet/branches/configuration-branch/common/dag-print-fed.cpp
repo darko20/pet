@@ -56,10 +56,10 @@ void dag_mark_coreferences(struct dag_node *dag, coref_map &table)
     { // not yet visited
       dag_arc *arc = dag->arcs;
       while(arc != 0)
-	{
-	  dag_mark_coreferences(arc->val, table);
-	  arc = arc->next;
-	}
+        {
+          dag_mark_coreferences(arc->val, table);
+          arc = arc->next;
+        }
     }
 }
 

@@ -1,14 +1,90 @@
-#ifndef _CONFIGURATION_INTERNAL_H
-#define _CONFIGURATION_INTERNAL_H
+/* -*- Mode: C++ -*- */
+#ifndef _CONFIG_INTERNAL_H
+#define _CONFIG_INTERNAL_H
 
 #include "logging.h"
 
-/** @file ConfigurationInternal.h
+/** @file ConfigInternal.h
  * @brief Internal header for configuration subsystem - do not read ;)
  * 
  * We need this file because we use templates and do not want to put everything
  * in the file with interface of subsystem.
  */
+
+
+/**
+ * @brief Converts values to/from string.
+ *
+ * It uses C++ stream operators << and >> to convert the argument.
+ *
+ * @todo Add error handling.
+ */
+template<class T>
+class GenericConverter : public AbstractConverter<T> {
+public:
+  virtual ~GenericConverter() {}
+
+  virtual std::string toString(const T& t) {
+    std::ostringstream os;
+    os << t;
+    return os.str();
+  }
+  virtual T fromString(const std::string& s) {
+    std::istringstream is(s);
+    T t;
+    is >> t;
+    return t;
+  }
+
+  /**
+   * Get the only instance of class. Implements singleton.
+   * @return the only instance of the class.
+   */
+  static AbstractConverter<T>* getInstance() {
+    if(_instance == NULL)
+      _instance = new GenericConverter();
+    
+    return _instance;
+  }
+  
+private:
+  GenericConverter() {};
+  static GenericConverter* _instance;
+};
+
+/**
+ * @brief Converts boolean values to/from string.
+ * @todo Add error handling.
+ */
+template<> class GenericConverter<bool> : public AbstractConverter<bool> {
+public:
+  virtual ~GenericConverter() {}
+
+  virtual std::string toString(const bool& val) {
+    return val ? "true" : "false";
+  }
+  virtual bool fromString(const std::string& s) {
+    return (s == "true" || s =="yes");
+  }
+
+  /**
+   * Get the only instance of class. Implements singleton.
+   * @return the only instance of the class.
+   */
+  static AbstractConverter<bool>* getInstance() {
+    if(_instance == NULL)
+      _instance = new GenericConverter();
+    
+    return _instance;
+  }
+  
+private:
+  GenericConverter() {};
+  static GenericConverter* _instance;
+};
+
+template<class T> GenericConverter<T>* GenericConverter<T>::_instance = NULL;
+
 
 /** @brief Root class for managing one option. */
 class IOption {
@@ -17,13 +93,15 @@ public:
    * @param description a description of this option
    */
   IOption(const std::string& description)
-    : greatestPriority_(0), description_(description) {}
+    : _greatestPriority(0), _description(description) {}
 
   virtual ~IOption() {}
   
-  const std::string& getDescription() {
-    return description_;
-  }
+  const std::string& getDescription() { return _description; }
+
+  virtual void setString(const std::string &value, int priority) = 0;
+
+  virtual std::string getString() = 0;
 
 protected:
   /**
@@ -35,22 +113,18 @@ protected:
    *              priority that has already been used
    */
   inline bool checkAndSetPriority(int priority) {
-    if (priority >= greatestPriority_) {
-      greatestPriority_ = priority;
+    if (priority >= _greatestPriority) {
+      _greatestPriority = priority;
       return true;
     }
     return false;
   }
 
 private:   
-  int greatestPriority_; //greatest value used in set()
-  const std::string& description_;
+  int _greatestPriority; //greatest value used in set()
+  const std::string _description;
 };
 
-template<class T>
-class IConverter;
-
-class NoConverterException;
 
 /**
  * @brief Abstract class for managing one option of given type.
@@ -61,12 +135,16 @@ public:
    * @param description a description of this option
    */
   Option(const std::string& description)
-    : IOption(description), converter_(0) {}
+    : IOption(description)
+    , _converter(GenericConverter<T>::getInstance()) { }
 
+  /**
+   * @param description a description of this option
+   */
+  Option(const std::string& description, AbstractConverter<T> *converter)
+    : IOption(description), _converter(converter) { }
+  
   virtual ~Option() {}
-
-  /** Returns value of the option. */
-  virtual T& get() = 0;
 
   /**
    * Set value of the option.
@@ -79,44 +157,38 @@ public:
    */
   virtual void set(const T& value, int priority = 1) = 0;
 
-  /**
-   * Set converter used for conversion from/to std::string  of this option.
-   * @param converter converter to be used.
-   */
-  virtual void setConverter(IConverter<T> *converter) {
-    converter_ = converter;
-  }
-  
-  /**
-   * Get a value of the option as string.
-   * Uses converter.
-   * @return a value of the option as std:string
-   * @exception NoConverterException no converter defined for this option,
-   *                                 use #Option<T>::setConverter prior
-   *                                 this method.
-   */
-  virtual std::string getString() {
-    if(converter_ == 0)
-      throw NoConverterException("no converter");
-    
-    return converter_->toString( this->get() );
-  }
+  /** Returns value of the option. */
+  virtual T& get() = 0;
 
   /**
    * Set a value of this option using string argument.
-   * Uses converter.
+   * Uses custom converter, if one is specified.
    * @param s string containing new value of the option.
    * @param priority see #Option<T>::set
    */
   virtual void setString(const std::string& s, int priority = 1) {
-    if(converter_ == 0)
-      throw NoConverterException("no converter");
-    
-    this->set(converter_->fromString(s) , priority);
+    if (_converter == NULL) {
+      LOG(logger, log4cxx::Level::WARN, 
+          "no string converter for option %s", description().c_str());
+    }
+    this->set(_converter->fromString(s), priority);
+  }
+
+  /**
+   * Get a value of the option as string.
+   * Uses custom converter, if one is specified.
+   * @return the value of the option as std::string
+   */
+  virtual std::string getString() {
+    if (_converter == NULL) {
+      LOG(logger, log4cxx::Level::WARN, 
+          "no string converter for option %s", description().c_str());
+    }
+    return _converter->toString(this->get());
   }
 
 private:
-  IConverter<T> *converter_;
+  AbstractConverter<T> *_converter;
 };
 
 /**
@@ -127,10 +199,21 @@ private:
 template<class T>
 class HandledOption : public Option<T> {
 public:
-  /**
+  /** Create a new option managed completely by the Config system
    * @param description a description of this option
+   * @param initial the initial value of this option
    */
-  HandledOption(const std::string& description) : Option<T>(description) {}
+  HandledOption(const std::string& description, const T& initial)
+    : Option<T>(description), value_(initial) {}
+  
+  /** Create a new option managed completely by the Config system
+   * @param description a description of this option
+   * @param initial the initial value of this option
+   * @param converter a custom string converter for this option
+   */
+  HandledOption(const std::string& description, const T& initial,
+                AbstractConverter<T>* converter)
+    : Option<T>(description, converter), value_(initial) {}
   
   virtual ~HandledOption() {}
 
@@ -163,18 +246,29 @@ template<class T>
 class ReferenceOption : public Option<T> {
 public:
   /**
-   * If object is created with this constructor, then it uses external (via
-   * reference) variable for value of the option.
-   * @param valueRef Reference to variable which stores value of the option.
+   * If object is created with this constructor, the value is stored in an
+   * external place and only a reference is stored here.
    * @param description a description of this option
+   * @param valueRef Reference to the variable that stores the value
+   * @param converter a custom string converter for this option
    */
-  ReferenceOption(T* valueRef, const std::string& description)
+  ReferenceOption(const std::string& description, T& valueRef,
+                  AbstractConverter<T>* converter)
+    : Option<T>(description, converter), value_(valueRef) {}
+
+  /**
+   * If object is created with this constructor, the value is stored in an
+   * external place and only a reference is stored here.
+   * @param description a description of this option
+   * @param valueRef Reference to the variable that stores the value
+   */
+  ReferenceOption(const std::string& description, T& valueRef)
     : Option<T>(description), value_(valueRef) {}
 
   virtual ~ReferenceOption() {}
 
   /** Returns value of the option. */
-  virtual T& get() { return *value_; }
+  virtual T& get() { return value_; }
 
   /**
    * Set value of the option.
@@ -184,7 +278,7 @@ public:
    */
   virtual void set(const T& value, int priority = 1) {
     if (IOption::checkAndSetPriority(priority))
-      *value_ = value;
+      value_ = value;
   }
 
 private:
@@ -192,7 +286,7 @@ private:
 
   //we always acccess data using value_, but it can point to a object whose
   //memory is handled by the \c Option
-  T* value_;
+  T& value_;
 };
 
 template<class T> class Callback;
@@ -212,7 +306,7 @@ public:
    *                 is changed
    * @param description a description of this option
    */
-  CallbackOption(Callback<T>* callback, const std::string& description)
+  CallbackOption(const std::string& description, Callback<T>* callback)
     : Option<T>(description), callback_(*callback) {}
 
   virtual ~CallbackOption() {}
@@ -237,4 +331,4 @@ private:
   Callback<T>& callback_;
 };
 
-#endif // _CONFIGURATION_INTERNAL_H
+#endif // _CONFIG_INTERNAL_H

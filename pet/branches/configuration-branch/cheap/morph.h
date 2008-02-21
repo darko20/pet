@@ -24,8 +24,14 @@
 #ifndef _MORPH_H_
 #define _MORPH_H_
 
+#include "hashing.h"
 #include "types.h"
 #include "input-modules.h"
+
+#include <string>
+#include <list>
+#include <map>
+#include <vector>
 
 /** An object representing the result of a morpological analysis extending over
  *  multiple stages.
@@ -36,22 +42,22 @@ class tMorphAnalysis
   tMorphAnalysis() {}
 
   /** Build a tMorphAnalysis from available data */
-  tMorphAnalysis(list<string> forms, list<type_t> rules)
+  tMorphAnalysis(std::list<std::string> forms, std::list<type_t> rules)
     : _forms(forms), _rules(rules)
     {}
 
   /** A list of strings, from the most analyzed to the surface form */
-  list<string> &forms() { return _forms; }
+  std::list<std::string> &forms() { return _forms; }
 
   /** The base form of the string, without inflection */
-  string base() const { return _forms.front(); }
+  std::string base() const { return _forms.front(); }
   /** The surface form (the input of the analysis) */
-  string complex() const { return _forms.back(); }
+  std::string complex() const { return _forms.back(); }
 
   /** Return the inflection rules that have to be applied to perform this
    *  morphological analysis.
    */
-  list<type_t> &rules() { return _rules; }
+  std::list<type_t> &rules() { return _rules; }
 
   /** Print readably for debugging purposes */
   void print(FILE *f) const;
@@ -64,7 +70,7 @@ class tMorphAnalysis
   friend bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b);
 
   /** Destructively erase duplicate entries from a list of tMorphAnalyses */
-  friend void erase_duplicates(list<tMorphAnalysis> &li) ;
+  friend void erase_duplicates(std::list<tMorphAnalysis> &li) ;
 
  private:
   /** Two analyses are equal if the base form and the inflection derivation are
@@ -77,8 +83,8 @@ class tMorphAnalysis
     }
   };
 
-  list<string> _forms;
-  list<type_t> _rules;
+  std::list<std::string> _forms;
+  std::list<type_t> _rules;
 
   struct less_than 
     : public std::binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
@@ -86,7 +92,7 @@ class tMorphAnalysis
       if (a.base() < b.base()) return true;
       if (a.base() == b.base()) {
         // "lexicographic" ordering on infl-rules
-        list<type_t>::const_iterator ar, ae, br, be;
+        std::list<type_t>::const_iterator ar, ae, br, be;
         ar = a._rules.begin();
         ae = a._rules.end();
         br = b._rules.begin();
@@ -115,7 +121,7 @@ class tMorphAnalysis
 
 bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b);
 
-void erase_duplicates(list<tMorphAnalysis> &li) ;
+void erase_duplicates(std::list<tMorphAnalysis> &li) ;
 
 /** Morphological analyzer LKB style. Implements transformation rules similar
  *  to regular expressions.
@@ -130,20 +136,23 @@ class tMorphAnalyzer
    *  counterpart.
    * \todo Check the documentation of this function.
    */
-  void add_global(string rule);
+  void add_global(std::string rule);
   /** Add a morpological rule with its corresponding HPSG rule, encoded in the
    *  typedag of \a t.
    */
-  void add_rule(type_t t, string rule);
+  void add_rule(type_t t, std::string rule);
   /** Add an irregular form entry.
    *
    * These entries map the surface form to the base form directly, additionally
-   * specifying the HPSG inflection rule to apply.
+   * specifying the HPSG inflection rule to apply. Actually, they are very
+   * similar to morphological rules, in that they are applied in the same way,
+   * with the restriction that the remaining string in the analysis must matcht
+   * the complete surface form.
    * \param stem the base form
    * \param t the type id of the HPSG inflection rule.
    * \param form the surface form.
    */
-  void add_irreg(string stem, type_t t, string form);
+  void add_irreg(std::string stem, type_t t, std::string form);
 
   /** Return \c true if no rules or irregular forms are in this analyzer. */
   bool empty();  
@@ -155,24 +164,24 @@ class tMorphAnalyzer
   void set_irregular_only(bool b) { _irregs_only = b; }
 
   /** Return the letterset named \a name (an alias for a character class). */
-  class morph_letterset *letterset(string name);
+  class morph_letterset *letterset(std::string name);
   /** \brief Lettersets can imply co-occurence restrictions that are enforced
    *  via bindings. Reset the bindings of all lettersets.
    */
   void undo_letterset_bindings();
 
   /** Take a surface form and return a list of morphological analyses */
-  list<tMorphAnalysis> analyze(string form);
+  std::list<tMorphAnalysis> analyze(std::string form);
   /** Generate a surface form from a morphological analysis */
-  string generate(tMorphAnalysis);
+  std::string generate(tMorphAnalysis);
 
   /** Print the contents of this analyzer for debugging purposes */
   void print(FILE *f);
 
  private:
-  void parse_rule(type_t t, string rule, bool suffix);
+  void parse_rule(type_t t, std::string rule, bool suffix);
 
-  list<tMorphAnalysis> analyze1(tMorphAnalysis form);
+  std::list<tMorphAnalysis> analyze1(tMorphAnalysis form);
   bool matching_irreg_form(tMorphAnalysis a);
 
   void add_subrule(class morph_subrule *sr) 
@@ -182,7 +191,7 @@ class tMorphAnalyzer
   class morph_trie *_suffixrules;
   class morph_trie *_prefixrules;
 
-  vector<class morph_subrule *> _subrules;
+  std::vector<class morph_subrule *> _subrules;
 
   bool _irregs_only;
 
@@ -205,8 +214,8 @@ class tMorphAnalyzer
    */
   bool _rule_filter;
 
-  std::multimap<string, tMorphAnalysis *> _irregs_by_stem;
-  std::multimap<string, tMorphAnalysis *> _irregs_by_form;
+  std::multimap<std::string, tMorphAnalysis *> _irregs_by_stem;
+  std::multimap<std::string, tMorphAnalysis *> _irregs_by_form;
 
   
   friend class morph_trie;
@@ -222,11 +231,11 @@ public:
   virtual ~tLKBMorphology() {}
 
   /** Compute morphological results for \a form. */
-  virtual list<tMorphAnalysis> operator()(const myString &form) {
+  virtual std::list<tMorphAnalysis> operator()(const myString &form) {
     return _morph.analyze(form);
   }
 
-  virtual string description() { return "LKB style morphology"; }
+  virtual std::string description() { return "LKB style morphology"; }
 
 private:
   tLKBMorphology() {}
@@ -238,10 +247,10 @@ private:
 
 namespace HASH_SPACE {
   /** hash function for pointer that just looks at the pointer content */
-  template<> struct hash< string >
+  template<> struct hash< std::string >
   {
     /** \return A hash code for a pointer */
-    inline size_t operator()(const string &s) const
+    inline size_t operator()(const std::string &s) const
     {
       hash< const char *> h;
       return h(s.c_str()) ;
@@ -256,7 +265,7 @@ namespace HASH_SPACE {
 class tFullformMorphology : public tMorphology {
 private:
   
-  typedef hash_map<string, list<tMorphAnalysis> > ffdict ;
+  typedef HASH_SPACE::hash_map<std::string, std::list<tMorphAnalysis> > ffdict ;
 
   /** Prerequisite: The dumper must be set to the beginning of the (existing)
    *  fullform section
@@ -272,15 +281,15 @@ public:
   virtual ~tFullformMorphology() {}
   
   /** Compute morphological results for \c token. */
-  virtual list<tMorphAnalysis> operator()(const myString &form);
+  virtual std::list<tMorphAnalysis> operator()(const myString &form);
 
-  virtual string description() { return "full form table morphology"; }
+  virtual std::string description() { return "full form table morphology"; }
 
   /** Print the table in .voc format for debugging */
   void print(FILE *);
 private:
   ffdict _fullforms;
-  list< tMorphAnalysis > _emptyresult;
+  std::list< tMorphAnalysis > _emptyresult;
 };
 
 #endif

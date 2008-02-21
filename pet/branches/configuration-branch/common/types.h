@@ -147,6 +147,8 @@ void undump_hierarchy(class dumper *f);
 void undump_tables(class dumper *f);
 /** Initialize the table for the maximal appropriate type under a feature by
  *  consulting the type dag of the appropriate type.
+ * \todo this has got nothing to do with the `pure' type hierarchy and should
+ * go to where the dag(s) hierarchy is initialized/undumped
  */
 void initialize_maxapp();
 
@@ -240,7 +242,7 @@ undumpSupertypes(class dumper *f);
 /** Return the list of immediate supertypes of \a type.
  * \pre \a type must be a proper type.
  */
-const std::list<type_t> &immedate_supertypes(type_t type);
+const std::list<type_t> &immediate_supertypes(type_t type);
 
 /** Return the list of all supertypes of \a type including the type itself but
  * excluding \c *top*.

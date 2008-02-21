@@ -25,8 +25,10 @@
 #define _POSTAG_H_
 
 #include "types.h"
-#include <vector>
 #include <string>
+#include <set>
+#include <vector>
+#include <ios>
 
 /** Implements a list of POS tags with probabilities. All string handling is
  *  case insensitive.
@@ -54,7 +56,7 @@ class postags
   /** Create a set of POS tags by merging the supplied POS tags of the lexical
    *  items in \a les.
    */
-  postags(const list<class tItem *> &les);
+  postags(const std::list<class tItem *> &les);
   /** Copy constructor: copies only the tags, not the probabilities. */
   postags(const postags &t) : _tags(t._tags) {} ;
 
@@ -74,19 +76,19 @@ class postags
   bool operator==(const postags &b) const;
 
   /** Add a single POS tag \a s to the set */
-  void add(string s);
+  void add(std::string s);
   /** Add a single POS tag \a s with probability \a prob to the set */
-  void add(string s, double prob);
+  void add(std::string s, double prob);
   /** Add all tags of \a s to the set (without probabilities). */
   void add(const postags &s);
 
   /** Remove POS tag \a s from the set */
-  void remove(string s);
+  void remove(std::string s);
   /** Remove all tags of \a s from the set. */
   void remove(const postags &s);
 
   /** Does the tag set contain a tag with name \a s (case insensitive) */
-  bool contains(const string &s) const;
+  bool contains(const std::string &s) const;
   /** Return \c true if \a t is a subtype of some type mentioned in the \c
    *  posmapping setting and the POS tag associated with the type in the
    *  setting is contained in this set of tags.  If there is no valid setting,
@@ -100,23 +102,23 @@ class postags
   bool license(type_t t) const;
 
   /** Print the contents of this set for debugging purposes */
-  void print(IPrintfHandler &iph) const;
+  void print(std::ostream &out) const;
 
   /** serialise as string (for debugging purposes) **/
-  string getPrintString() const;
+  std::string getPrintString() const;
 
  private:
   bool contains(type_t t, const class setting *set) const;
 
   struct ltstr {
-    bool operator()(const string &s1, const string &s2) const {
+    bool operator()(const std::string &s1, const std::string &s2) const {
       return strcasecmp(s1.c_str(), s2.c_str()) < 0;
     }
   };
 
   /** String set with case insensitive comparison */
-  set<string, ltstr> _tags;
-  map<string, double, ltstr> _probs;
+  std::set<std::string, ltstr> _tags;
+  std::map<std::string, double, ltstr> _probs;
 };
 
 #endif

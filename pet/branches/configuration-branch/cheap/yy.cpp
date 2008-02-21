@@ -60,6 +60,7 @@
 #define massagetoUTF8(str) str
 #endif
 
+bool opt_yy, opt_nth_meaning;
 
 //
 // library based interface to language server
@@ -75,7 +76,7 @@
 // initialize parser with specified grammar
 
 void l2_parser_init(const string& grammar_path, const string& log_file_path,
-		      int k2y_segregation_p)
+                      int k2y_segregation_p)
 {
   fstatus = fopen(log_file_path.c_str(), "w");
   if(fstatus == 0)
@@ -89,7 +90,7 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
         k2y_segregation_p);
 
     cheap_settings = new settings(settings::basename(grammar_path.c_str()),
-				  grammar_path.c_str(), "reading");
+                                  grammar_path.c_str(), "reading");
 
     options_from_settings(cheap_settings);
 
@@ -100,25 +101,25 @@ void l2_parser_init(const string& grammar_path, const string& log_file_path,
         opt_yy = true;
       }
 
-    if(!Configuration::get<bool>("opt_default_les"))
+    if(!Config:get<bool>("opt_default_les"))
       {
         LOG(loggerUncategorized, Level::INFO,
             "you want default lexical entries  - turning on opt_default_les");
         Configuration::set("opt_default_les", true);
       }
 
-    if(pedgelimit == 0)
+    if(Config::get<int>("pedgelimit") == 0)
       {
         LOG(loggerUncategorized, Level::INFO,
             "you don't want to parse forever - setting edge limit");
-        pedgelimit = 10000;
+        Config::set("pedgelimit", (int) 10000);
       }
 
-    if(memlimit == 0)
+    if(Config::get<int>("memlimit") == 0)
       {
         LOG(loggerUncategorized, Level::INFO,
             "you don't want to use up all memory - setting mem limit");
-        memlimit = 50 * 1024 * 1024;
+        Config::set("memlimit", (int) 50);
       }
 #endif
 
@@ -194,7 +195,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
 
         LOG(loggerUncategorized, Level::INFO,
             "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK) [%.1fs]",
-            stats.id, pedgelimit, stats.readings,
+            stats.id, Config::get<int>("pedgelimit"), stats.readings,
             stats.first / 1000., stats.tcpu / 1000.,
             stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
             TotalParseTime.elapsed_ts() / 10.);
@@ -213,7 +214,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
         int nres = 1, skipped = 0;
         for(vector<item *>::iterator iter = Chart->readings().begin();
             iter != Chart->readings().end(); ++iter)
-        {	
+        {
             mflush(mstream);
             int n = construct_k2y(nres++, *iter, false, mstream);
             if(n >= 0)
@@ -244,7 +245,7 @@ string l2_parser_parse(const string &inputUTF8, int nskip)
     {
         LOG(loggerUncategorized, Level::INFO,
             "(%d) [%d] --- L2 error `%s'",
-            stats.id, pedgelimit, e.getMessage().c_str());
+            stats.id, Config::get<int>("pedgelimit"), e.getMessage().c_str());
         LOG(loggerUncategorized, Level::INFO,
             " (%.1f|%.1fs) <%d:%d> (%.1fK)",
             stats.first / 1000., stats.tcpu / 1000.,
@@ -296,19 +297,19 @@ vector<l2_tMorphAnalysis> l2_morph_analyse(const string& formUTF8)
     list<tMorphAnalysis> res = Grammar->morph()->analyze(form, false);
     for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
       {
-	l2_tMorphAnalysis a;
+        l2_tMorphAnalysis a;
 
-	for(list<string>::iterator f = it->forms().begin();
+        for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();
             ++f)
-	  a.forms.push_back(massagetoUTF8(*f));
+          a.forms.push_back(massagetoUTF8(*f));
 
-	for(list<type_t>::iterator r = it->rules().begin();
+        for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r)
-	  a.rules.push_back(massagetoUTF8(string(type_name(*r))));
+          a.rules.push_back(massagetoUTF8(string(type_name(*r))));
 
-	results.push_back(a);
+        results.push_back(a);
       }
   }
 
@@ -336,14 +337,14 @@ string l2_morph_analyse_imp(const string& formUTF8)
     list<tMorphAnalysis> res = Grammar->morph()->analyze(form, false);
     for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
       {
-	for(list<string>::iterator f = it->forms().begin();
+        for(list<string>::iterator f = it->forms().begin();
             f != it->forms().end();
             ++f) {
           results += massagetoUTF8(*f);
           results += "\f+\nF";
         }
 
-	for(list<type_t>::iterator r = it->rules().begin();
+        for(list<type_t>::iterator r = it->rules().begin();
             r != it->rules().end();
             ++r) {
           results += massagetoUTF8(string(type_name(*r)));
@@ -764,19 +765,19 @@ int cheap_server_child(int socket) {
                 
       gettimeofday(&tend, NULL);
       treal = (tend.tv_sec - tstart.tv_sec) * 1000 
-	+ (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);
+        + (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);
       
       for(list<FILE *>::iterator log = _log_channels.begin();
-	  log != _log_channels.end();
-	  log++) {
-	fprintf(*log,
-		"[%d] server_child(): "
-		"(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
-		getpid(),
-		stats.id, pedgelimit, stats.readings, 
-		stats.first / 1000., stats.tcpu / 1000.,
-		stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
-	fflush(*log);
+          log != _log_channels.end();
+          log++) {
+        fprintf(*log,
+                "[%d] server_child(): "
+                "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
+                getpid(),
+                stats.id, Config::get<int>("pedgelimit"), stats.readings, 
+                stats.first / 1000., stats.tcpu / 1000.,
+                stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
+        fflush(*log);
       } /* for */
 
 #if 0
@@ -786,22 +787,22 @@ int cheap_server_child(int socket) {
       for(vector<item *>::iterator iter = Chart->readings().begin();
           iter != Chart->readings().end(); 
           ++iter)
-	{
-	  mflush(mstream);
-	  int n = construct_k2y(nres++, *iter, false, mstream);
-	  if(n >= 0)
-	    {
-	      if(skipped >= (opt_nth_meaning-1))
-		{
-		  socket_write(socket, mstring(mstream));
-		  if((opt_nth_meaning-1) != 0 &&
-		     skipped == (opt_nth_meaning-1))
-		    break;
-		}
-	      else
-		skipped++;
-	    }
-	}
+        {
+          mflush(mstream);
+          int n = construct_k2y(nres++, *iter, false, mstream);
+          if(n >= 0)
+            {
+              if(skipped >= (opt_nth_meaning-1))
+                {
+                  socket_write(socket, mstring(mstream));
+                  if((opt_nth_meaning-1) != 0 &&
+                     skipped == (opt_nth_meaning-1))
+                    break;
+                }
+              else
+                skipped++;
+            }
+        }
       mclose(mstream);
 #endif
     } /* try */
@@ -812,7 +813,8 @@ int cheap_server_child(int socket) {
           log != _log_channels.end();
           log++) {
           fprintf(*log, "[%d] server_child(): (%d) [%d] --- error `%s'",
-                  stats.id, pedgelimit, getpid(), e.getMessage().c_str());
+                  stats.id, Config::get<int>("pedgelimit"),
+                  getpid(), e.getMessage().c_str());
           fprintf(*log, " (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                   stats.first / 1000., stats.tcpu / 1000.,
                   stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
@@ -820,7 +822,7 @@ int cheap_server_child(int socket) {
       } /* for */
 
 #ifdef TSDBAPI
-      if(opt_tsdb) 
+      if(Config::get<int>("opt_tsdb")) 
         yy_tsdb_summarize_error(input, Chart->rightmost(), e);
 #endif
     } /* catch */
@@ -871,7 +873,7 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 #ifdef TSDBAPI
-      if(!errorp && opt_tsdb && Chart != NULL) {
+      if(!errorp && Config::get<int>("opt_tsdb") && Chart != NULL) {
         yy_tsdb_summarize_item(*Chart, tsdbitem, Chart->rightmost(), 
                                treal, foo.c_str());
       } /* if */
@@ -986,7 +988,7 @@ static void _sigchld(int foo) {
 
 #ifdef TSDBAPI
 int yy_tsdb_summarize_item(chart &Chart, const char *item,
-			   int length, int treal, const char *rt) {
+                           int length, int treal, const char *rt) {
 
   if(!client_open_item_summary()) {
     capi_printf("(:run . (");

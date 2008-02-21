@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
-/*	The entire contents of this file, in printed or electronic form, are
-	(c) Copyright YY Technologies, Mountain View, CA 1999,2000,2001
-	Unpublished work -- all rights reserved -- proprietary, trade secret
+/*  The entire contents of this file, in printed or electronic form, are
+    (c) Copyright YY Technologies, Mountain View, CA 1999,2000,2001
+    Unpublished work -- all rights reserved -- proprietary, trade secret
 */
 
 /*
@@ -17,7 +17,7 @@
 */
 
 /* Revision History:
-   01/10/05	UC	created
+   01/10/05  UC  created
 */
 
 // Error conditions are communicated to the caller by throwing an exception

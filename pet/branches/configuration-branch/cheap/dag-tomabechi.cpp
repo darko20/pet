@@ -25,6 +25,8 @@
 #include "options.h"
 #include <fstream>
 
+using namespace std;
+
 static dag_node * const INSIDE = (dag_node *) -2;
 
 int unify_generation = 0;
@@ -54,6 +56,7 @@ int unify_nr_newtype, unify_nr_comparc, unify_nr_forward, unify_nr_copy;
 
 dag_node *dag_cyclic_rec(dag_node *dag);
 
+/*
 inline dag_node *
 dag_deref1(dag_node *dag) {
     dag_node *res;
@@ -68,6 +71,8 @@ dag_deref1(dag_node *dag) {
     
     return dag;
 }
+*/
+#define dag_deref1 dag_deref
 
 dag_node *dag_get_attr_value(dag_node *dag, attr_t attr) {
   dag_arc *arc;
@@ -905,7 +910,7 @@ dag_node *dag_cyclic_copy(dag_node *src, list_int *del) {
     if(!contains(del, arc->attr)) {
       if((v = dag_cyclic_copy(arc->val, 0)) == FAIL)
         return FAIL;
-	  
+      
       new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
     }
     arc = arc->next;
@@ -1028,10 +1033,10 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
       {
         if((v = dag_copy(arc->val, 0)) == FAIL)
           return FAIL;
-	  
+        
         if(arc->val != v) 
           copy_p = true;
-	  
+        
         new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
       }
     arc = arc->next;
@@ -1074,7 +1079,7 @@ inline bool arcs_contain(dag_arc *arc, attr_t attr) {
 inline dag_arc *clone_arcs_del(dag_arc *src, dag_arc *dst, dag_arc *del) {
   while(src) {
       if(!arcs_contain(del, src->attr))
-	dst = dag_cons_arc(src->attr, src->val, dst);
+        dst = dag_cons_arc(src->attr, src->val, dst);
       src = src->next;
     }
 
@@ -1091,7 +1096,7 @@ clone_arcs_del_del(dag_arc *src, dag_arc *dst,
                    dag_arc *del_arcs, list_int *del_attrs) {
   while(src) {
       if(!contains(del_attrs,src->attr) && !arcs_contain(del_arcs, src->attr))
-	dst = dag_cons_arc(src->attr, src->val, dst);
+        dst = dag_cons_arc(src->attr, src->val, dst);
       src = src->next;
     }
 
@@ -1178,7 +1183,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
     if(!contains(del, arc->attr)) {
       if((v = dag_copy(arc->val, 0)) == FAIL)
         return FAIL;
-	  
+      
       if(arc->val != v) {
         copy_p = true;
         new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
@@ -1236,7 +1241,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
     if(!contains(del, arc->attr)) {
       if((v = dag_copy(arc->val, 0)) == FAIL)
         return FAIL;
-	  
+      
       new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
     }
     arc = arc->next;
@@ -1316,11 +1321,11 @@ void dag_get_qc_vector_temp(qc_node *path, dag_node *dag, type_t *qc_vector)
 
   for(qc_arc *arc = path->arcs; arc != 0; arc = arc->next)
     dag_get_qc_vector_temp(arc->val,
-			 dag_get_attr_value_temp(dag, arc->attr),
-			 qc_vector);
+                           dag_get_attr_value_temp(dag, arc->attr),
+                           qc_vector);
 }
 
-
+#ifdef USE_DEPRECATED
 /* safe printing of dags - this doesn't modify the dags, and can print
    temporary structures */
 
@@ -1361,6 +1366,7 @@ void dag_mark_coreferences_safe(struct dag_node *dag, bool temporary) {
     }
   }
 }
+
 
 void dag_print_rec_safe(IPrintfHandler &iph, dag_node *dag, int indent
                         , bool temporary, int format);
@@ -1466,8 +1472,7 @@ void dag_print_rec_safe(IPrintfHandler &iph, dag_node *dag, int indent
   if(arcsp && format == DAG_FORMAT_LUI) pbprintf(iph, "]");
 }
 
-void dag_print_safe(IPrintfHandler &iph, struct dag_node *dag,
-                    bool temporary, int format)
+void dag_print_safe(DagPrinter &out, struct dag_node *dag, bool temporary)
 {
   if(dag == 0) {
     pbprintf(iph, "%s", type_name(0));
@@ -1484,6 +1489,7 @@ void dag_print_safe(IPrintfHandler &iph, struct dag_node *dag,
   dag_print_rec_safe(iph, dag, 0, temporary, format);
   dags_visited.clear();
 }
+#endif
 
 dag_node *dag_cyclic_arcs(dag_arc *arc) {
   dag_node *v;
@@ -1492,7 +1498,7 @@ dag_node *dag_cyclic_arcs(dag_arc *arc) {
 #ifdef QC_PATH_COMP
     if(unify_record_failure)
       unify_path_rev = cons(arc->attr, unify_path_rev);
-#endif	  
+#endif  
 
     if((v = dag_cyclic_rec(arc->val)) != 0)
       return v;
@@ -1672,6 +1678,7 @@ void dag_initialize()
   // nothing to do
 }
 
+#ifdef USE_DEPRECATED
 void dag_print_rec_fed_safe(FILE *f, struct dag_node *dag) {
 // recursively print dag. requires `visit' field to be set up by
 // mark_coreferences. negative value in `visit' field means that node
@@ -1697,6 +1704,25 @@ void dag_print_rec_fed_safe(FILE *f, struct dag_node *dag) {
     arc=arc->next;
   }
 }
+
+
+void dag_print_fed_safe(FILE *f, struct dag_node *dag) {
+  if(dag == 0) {
+    fprintf(f, "NIL") ;
+    return;
+  }
+  if(dag == FAIL) {
+    fprintf(f, "FAIL") ;
+    return;
+  }
+
+  dag_mark_coreferences_safe(dag, 0);
+  
+  coref_nr = 1;
+  dag_print_rec_fed_safe(f, dag);
+  dags_visited.clear();
+}
+
 
 
 int
@@ -1746,7 +1772,6 @@ void dag_print_jxchg(ostream &f, struct dag_node *dag) {
 }
 
 
-
 int dag_collect_symbols_rec_safe(struct dag_node *dag, int coref_nr
                                  , list<pair<const char *, type_t> > &res){
   dag_arc *arc = dag->arcs ;
@@ -1781,24 +1806,8 @@ dag_collect_symbols(struct dag_node *dag
   res.clear();
   dag_collect_symbols_rec_safe(dag, 1, res);
 }
+#endif
 
-
-void dag_print_fed_safe(FILE *f, struct dag_node *dag) {
-  if(dag == 0) {
-    fprintf(f, "NIL") ;
-    return;
-  }
-  if(dag == FAIL) {
-    fprintf(f, "FAIL") ;
-    return;
-  }
-
-  dag_mark_coreferences_safe(dag, 0);
-  
-  coref_nr = 1;
-  dag_print_rec_fed_safe(f, dag);
-  dags_visited.clear();
-}
 
 #if 0
 struct dag_node *
@@ -1820,14 +1829,14 @@ dag_partial_copy1(dag_node *dag, attr_t attr, const restrictor &del)
         {
             arc = dag->arcs;
             while(arc != 0)
-	    {
+            {
                 dag_add_arc(copy,
                             new_arc(arc->attr,dag_partial_copy1(arc->val,
                                                                 arc->attr,
                                                                 del)));
                 arc = arc->next;
-	    }
-	}
+            }
+        }
         else if(attr != -1)
         {
             copy->type = maxapp[attr];

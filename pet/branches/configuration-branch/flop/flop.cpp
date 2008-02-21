@@ -95,17 +95,17 @@ check_undefined_types()
   for(int i = 0; i < types.number(); i++)
     {
       if(types[i]->implicit)
-	{
-	  lex_location *loc = types[i]->def;
+        {
+          lex_location *loc = types[i]->def;
 
-	  if(loc == 0)
-	    loc = new_location("unknown", 0, 0);
+          if(loc == 0)
+            loc = new_location("unknown", 0, 0);
 
           LOG(loggerUncategorized, Level::WARN,
               "warning: type `%s' (introduced at %s:%d) has no definition",
               types.name(i).c_str(),
               loc->fname, loc->linenr);
-	}
+        }
     }
 }
 
@@ -118,12 +118,12 @@ void process_conjunctive_subtype_constraints()
   for(i = 0; i<types.number(); i++)
     if((c = (t = types[i])->constraint) != 0)
       for(j = 0; j < c->n; j++)
-	if( c->term[j]->tag == TYPE)
-	  {
-	    t->parents = cons(c->term[j]->type, t->parents);
-	    subtype_constraint(t->id, c->term[j]->type);
-	    c->term[j--] = c->term[--c->n];
-	  }
+        if( c->term[j]->tag == TYPE)
+          {
+            t->parents = cons(c->term[j]->type, t->parents);
+            subtype_constraint(t->id, c->term[j]->type);
+            c->term[j--] = c->term[--c->n];
+          }
 }
 
 char *synth_type_name(int offset = 0)
@@ -154,27 +154,27 @@ void process_multi_instances()
                    pbprintf(pb, " %s", types.name(first(l)).c_str()));
         LOG(loggerUncategorized, Level::DEBUG, pb.getContents());
 
-	if(ptype[t->parents] == 0)
-	  {
-	    char *name = synth_type_name();
-	    struct type *p = new_type(name, false);
-	    p->def = new_location("synthesized", 0, 0);
-	    p->parents = t->parents;
-	    
-	    for(list_int *l = t->parents; l != 0; l = rest(l))
-	      subtype_constraint(p->id, first(l));
+        if(ptype[t->parents] == 0)
+          {
+            char *name = synth_type_name();
+            struct type *p = new_type(name, false);
+            p->def = new_location("synthesized", 0, 0);
+            p->parents = t->parents;
+            
+            for(list_int *l = t->parents; l != 0; l = rest(l))
+              subtype_constraint(p->id, first(l));
 
-	    ptype[t->parents] = p->id;
+            ptype[t->parents] = p->id;
 
 
             LOG(loggerUncategorized, Level::INFO,
                 "Synthesizing new parent type `%d'", p->id); 
-	  }
+          }
 
-	undo_subtype_constraints(t->id);
-	subtype_constraint(t->id, ptype[t->parents]);
-	
-	t->parents = cons(ptype[t->parents], 0);
+        undo_subtype_constraints(t->id);
+        subtype_constraint(t->id, ptype[t->parents]);
+        
+        t->parents = cons(ptype[t->parents], 0);
       }
 }
 
@@ -213,12 +213,12 @@ void reorder_leaftypes()
   for(i = 0; i < ntypes; i++)
     {
       if(rleaftype_order[i] == -1)
-	{
-	  fprintf(stderr, "conception error in leaftype reordering\n");
-	  exit(1);
-	}
+        {
+          fprintf(stderr, "conception error in leaftype reordering\n");
+          exit(1);
+        }
       if(rleaftype_order[i] != leaftype_order[i])
-	fprintf(stderr, "gotcha: %d: %d <-> %d", i, leaftype_order[i], rleaftype_order[i]);
+        fprintf(stderr, "gotcha: %d: %d <-> %d", i, leaftype_order[i], rleaftype_order[i]);
     }
 }
 
@@ -237,7 +237,7 @@ void preprocess_types()
   process_conjunctive_subtype_constraints();
   process_multi_instances();
 
-  process_hierarchy(Configuration::get<bool>("opt_propagate_status"));
+  process_hierarchy(Config::get<bool>("opt_propagate_status"));
 
   assign_printnames();
 }
@@ -258,17 +258,17 @@ void demote_instances()
   for(int i = 0; i < types.number(); i++)
     {
       if(types[i]->tdl_instance)
-	{
-	  // all instances should be leaftypes
-	  if(leaftypeparent[i] == -1)
-	    {
-	      fprintf(stderr, "warning: tdl instance `%s' is not a leaftype\n",
-		      types.name(i).c_str());
-	      // assert(leaftypeparent[i] != -1);
-	    }
-	  else
-	    dag_set_type(types[i]->thedag, leaftypeparent[i]);
-	}
+        {
+          // all instances should be leaftypes
+          if(leaftypeparent[i] == -1)
+            {
+              fprintf(stderr, "warning: tdl instance `%s' is not a leaftype\n",
+                      types.name(i).c_str());
+              // assert(leaftypeparent[i] != -1);
+            }
+          else
+            dag_set_type(types[i]->thedag, leaftypeparent[i]);
+        }
     }
 }
 
@@ -300,12 +300,12 @@ void process_types()
   if(!delta_expand_types())
     exit(1);
 
-  if(!fully_expand_types(Configuration::get<bool>("opt_full_expansion")))
+  if(!fully_expand_types(Config::get<bool>("opt_full_expansion")))
     exit(1);
 
   compute_maxapp();
   
-  if(Configuration::get<bool>("opt_unfill"))
+  if(Config::get<bool>("opt_unfill"))
     unfill_types();
 
   demote_instances();
@@ -313,7 +313,7 @@ void process_types()
   if(verbosity > 9)
     log_types("before dumping");
 
-  compute_feat_sets(Configuration::get<bool>("opt_minimal"));
+  compute_feat_sets(Config::get<bool>("opt_minimal"));
 }
 
 void
@@ -327,10 +327,10 @@ fill_grammar_properties() {
   grammar_properties["ntemplates"] = ss.str();
 
   grammar_properties["unfilling"] =
-    Configuration::get<bool>("opt_unfill") ? "true" : "false";
+    Config::get<bool>("opt_unfill") ? "true" : "false";
 
   grammar_properties["full-expansion"] =
-    Configuration::get<bool>("opt_full_expansion") ? "true" : "false";
+    Config::get<bool>("opt_full_expansion") ? "true" : "false";
 }
 
 /*
@@ -358,25 +358,25 @@ print_morph_info(FILE *f)
     for(int i = 0; i < ntypes; i++)
     {
         if(flop_settings->statusmember("infl-rule-status-values",
-					typestatus[i]))
-	{
-  	    fprintf(f, "%s:\n", typenames[i]);
-	    dag_node *dag = dag_copy(types[i]->thedag);
+                                        typestatus[i]))
+        {
+            fprintf(f, "%s:\n", typenames[i]);
+            dag_node *dag = dag_copy(types[i]->thedag);
             
             if(dag != FAIL)
             {
                 fully_expand(dag, true);
                 dag_invalidate_visited(); 
-	    } 
+            } 
             if(dag != FAIL)
                 dag = dag_get_path_value(dag, path);
 
-	    if(dag != FAIL) 
-	      dag_print(f, dag);
-	    else
-	      fprintf(f, "(no structure under %s)\n", path);
-	    fprintf(f, "\n");
-	}
+            if(dag != FAIL) 
+              dag_print(f, dag);
+            else
+              fprintf(f, "(no structure under %s)\n", path);
+            fprintf(f, "\n");
+        }
     }
     //    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
 }
@@ -449,15 +449,16 @@ int process(char *ofname) {
 
   flop_settings = new settings("flop", fname.c_str());
 
+  Config::addOption<bool>("opt_linebreaks", "", false);
   if(flop_settings->member("output-style", "stefan")) {
-    Configuration::set("opt_linebreaks", true);
+    Config::set("opt_linebreaks", true);
   }
 
   grammar_version = parse_version();
   if(grammar_version == 0) grammar_version = "unknown";
 
   string outfname = output_name(fname, TDL_EXT,
-           Configuration::get<bool>("opt_pre") ? PRE_EXT : GRAMMAR_EXT);
+           Config::get<bool>("opt_pre") ? PRE_EXT : GRAMMAR_EXT);
   FILE *outf = fopen(outfname.c_str(), "wb");
   
   if(outf) {
@@ -508,7 +509,7 @@ int process(char *ofname) {
         read_irregs(irregfnamestr.c_str());
     }
 
-    if(!Configuration::get<bool>("opt_pre"))
+    if(!Config::get<bool>("opt_pre"))
       check_undefined_types();
 
     LOG(loggerUncategorized, Level::INFO,
@@ -532,14 +533,14 @@ int process(char *ofname) {
     preprocess_types();
     mem_checkpoint("after preprocessing types");
 
-    if(!Configuration::get<bool>("opt_pre"))
+    if(!Config::get<bool>("opt_pre"))
       process_types();
 
     mem_checkpoint("after processing types");
 
     fill_grammar_properties();        
 
-    if(Configuration::get<bool>("opt_pre")) {
+    if(Config::get<bool>("opt_pre")) {
       write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version);
       write_pre(outf);
     } else {
@@ -561,14 +562,14 @@ int process(char *ofname) {
         "finished conversion - output generated in %0.3g s",
         (clock() - t_start) / (float) CLOCKS_PER_SEC);
 
-    if(Configuration::get<int>("opt_cmi") > 0) {
+    if(Config::get<int>("opt_cmi") > 0) {
       string moifile = output_name(fname, TDL_EXT, ".moi");
       FILE *moif = fopen(moifile.c_str(), "wb");
       LOG(loggerUncategorized, Level::INFO,
           "Extracting morphological information into `%s'...",
           moifile.c_str());
       print_morph_info(moif);
-      if(Configuration::get<int>("opt_cmi") > 1) {
+      if(Config::get<int>("opt_cmi") > 1) {
         fprintf(fstatus, " type hierarchy...");
         fprintf(moif, "\n");
         print_hierarchy(moif);
@@ -608,24 +609,24 @@ void setup_io()
     {
       val = fcntl(errors_to, F_GETFL, 0);
       if(val < 0 && errno == EBADF)
-	{
-	  ferr = stderr;
-	}
+        {
+          ferr = stderr;
+        }
       else
-	{
-	  if(val < 0)
-	    {
-	      perror("setup_io() [status of fd errors_to]");
-	      exit(1);
-	    }
-	  if((val & O_ACCMODE) == O_RDONLY)
-	    {
+        {
+          if(val < 0)
+            {
+              perror("setup_io() [status of fd errors_to]");
+              exit(1);
+            }
+          if((val & O_ACCMODE) == O_RDONLY)
+            {
               LOG_FATAL(loggerUncategorized,
                         "setup_io(): fd errors_to is read only");
-	      exit(1);
-	    }
-	  ferr = fdopen(errors_to, "w");
-	}
+              exit(1);
+            }
+          ferr = fdopen(errors_to, "w");
+        }
     }
   else
     ferr = stderr;

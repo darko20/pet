@@ -56,6 +56,9 @@
 #include "eclpreprocessor.h"
 #endif
 
+#include <fstream>
+#include <iostream>
+
 #include "logging.h"
 
 #ifdef HAVE_LIBLOG4CXX
@@ -137,10 +140,10 @@ string get_surface_string(chart *ch) {
 
 
 void dump_jxchg(string surface, chart *current) {
-  if (! Configuration::get<std::string>("opt_jxchg_dir").empty()) {
+  if (! Config::get<std::string>("opt_jxchg_dir").empty()) {
     string yieldname = surface;
     replace(yieldname.begin(), yieldname.end(), ' ', '_');
-    yieldname = Configuration::get<std::string>("opt_jxchg_dir") + yieldname;
+    yieldname = Config::get<std::string>("opt_jxchg_dir") + yieldname;
     ofstream out(yieldname.c_str());
     if (! out) {
       LOG(loggerUncategorized, Level::WARN,
@@ -162,18 +165,18 @@ void interactive() {
   //chp.print(type_dag(lookup_type("quant-rel")));
   //exit(1);
 
-  tTsdbDump tsdb_dump(Configuration::get<std::string>("opt_tsdb_dir"));
+  tTsdbDump tsdb_dump(Config::get<std::string>("opt_tsdb_dir"));
   if (tsdb_dump.active()) {
-    opt_tsdb = 1;
+    Config::set("opt_tsdb", 1);
   } else {
-    if (! Configuration::get<std::string>("opt_tsdb_dir").empty())
+    if (! Config::get<std::string>("opt_tsdb_dir").empty())
       LOG_ERROR(loggerUncategorized,
                 "Could not open TSDB dump files in directory %s\n",
-                Configuration::get<std::string>("opt_tsdb_dir").c_str());
+                Config::get<std::string>("opt_tsdb_dir").c_str());
   }
 
   while(!(input = read_line(stdin,
-      Configuration::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
+      Config::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
     chart *Chart = 0;
 
     tsdb_dump.start();
@@ -194,7 +197,7 @@ void interactive() {
 
       printf("(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
              stats.id, surface.c_str(), 
-             pedgelimit, stats.readings, 
+             Config::get<int>("pedgelimit"), stats.readings, 
              stats.first/1000., stats.tcpu / 1000.,
              stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
              TotalParseTime.elapsed_ts() / 10.);
@@ -209,7 +212,7 @@ void interactive() {
 
       //dump_jxchg(surface, Chart);
 
-      if(verbosity > 1 || Configuration::get<char*>("opt_mrs")) {
+      if(verbosity > 1 || Config::get<char*>("opt_mrs")) {
         int nres = 0;
                 
         list< tItem * > results(Chart->readings().begin()
@@ -218,31 +221,30 @@ void interactive() {
         // results.sort(item_greater_than_score());
         for(list<tItem *>::iterator iter = results.begin()
               ; (iter != results.end())
-              && ((Configuration::get<int>("opt_nresults") == 0)
-                   || (Configuration::get<int>("opt_nresults") > nres))
+              && ((Config::get<int>("opt_nresults") == 0)
+                   || (Config::get<int>("opt_nresults") > nres))
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
-          tCompactDerivationPrinter deriv(fstatus);
+          tCompactDerivationPrinter deriv(std::cerr);
           tItem *it = *iter;
                     
           nres++;
           fprintf(fstatus, "derivation[%d]", nres);
           fprintf(fstatus, " (%.4g)", it->score());
-          fprintf(fstatus, ":");
-          it->print_yield(fstatus);
+          fprintf(fstatus, ":%s", it->get_yield().c_str());
           fprintf(fstatus, "\n");
           if(verbosity > 2) {
             deriv.print(it);
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(Configuration::get<char*>("opt_mrs")) {
+          if(Config::get<char*>("opt_mrs")) {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(),
-                                      Configuration::get<char*>("opt_mrs"));
+                                      Config::get<char*>("opt_mrs"));
             if (mrs.empty()) {
-              if (strcmp(Configuration::get<char*>("opt_mrs"), "xml") == 0)
+              if (strcmp(Config::get<char*>("opt_mrs"), "xml") == 0)
                 LOG(loggerUncategorized, Level::INFO,
                     "<rmrs cfrom='-2' cto='-2'>\n</rmrs>");
               else
@@ -255,24 +257,24 @@ void interactive() {
         }
 
 #ifdef HAVE_MRS
-        if(Configuration::get<bool>("opt_partial")
+        if(Config::get<bool>("opt_partial")
            && (Chart->readings().empty()))
         {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(Configuration::get<char*>("opt_mrs"), "xml")
+          bool rmrs_xml = (strcmp(Config::get<char*>("opt_mrs"), "xml")
                            == 0);
           if (rmrs_xml)
             LOG(loggerUncategorized, Level::INFO, "<rmrs-list>");
           for(list<tItem *>::iterator it = partials.begin()
                 ; it != partials.end(); ++it) {
-            if(Configuration::get<char*>("opt_mrs")) {
+            if(Config::get<char*>("opt_mrs")) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
                 string mrs;
                 mrs = ecl_cpp_extract_mrs(item->get_fs().dag(),
-                                          Configuration::get<char*>("opt_mrs"));
+                                          Config::get<char*>("opt_mrs"));
                 if (! mrs.empty()) {
                   LOG(loggerUncategorized, Level::INFO,
                       "%s", mrs.c_str());
@@ -307,8 +309,8 @@ void interactive() {
   } /* while */
 
 #ifdef QC_PATH_COMP
-  if(Configuration::get<char *>("opt_compute_qc")) {
-    FILE *qc = fopen(Configuration::get<char *>("opt_compute_qc"), "w");
+  if(Config::get<char *>("opt_compute_qc")) {
+    FILE *qc = fopen(Config::get<char *>("opt_compute_qc"), "w");
     compute_qc_paths(qc);
     fclose(qc);
   }
@@ -324,7 +326,7 @@ void nbest() {
     int time = 0;
         
     while(!(input = read_line(stdin,
-        Configuration::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
+        Config::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
       if(selected != -1)
         continue;
 
@@ -371,7 +373,9 @@ void nbest() {
 void interactive_morphology() {
 
   string input;
-  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+  bool comment_passthrough;
+  Config::get("opt_comment_passthrough", comment_passthrough);
+  while(!(input = read_line(stdin, comment_passthrough)).empty()) {
     timer clock;
     list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
     
@@ -456,28 +460,30 @@ void process(const char *s) {
       Lexparser.register_morphology(ff);
       // ff->print(fstatus);
     }
-    if(Configuration::get<bool>("opt_online_morph")) {
+    if(Config::get<bool>("opt_online_morph")) {
       tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
       if (lkbm != NULL)
         Lexparser.register_morphology(lkbm);
       else
-        Configuration::set("opt_online_morph", false);
+        Config::set("opt_online_morph", false);
     }
     Lexparser.register_lexicon(new tInternalLexicon());
 
+    
+    // TODO: this yells for a separate tokenizer factory
     tTokenizer *tok;
-    switch (Configuration::get<tokenizer_id>("opt_tok")) {
+    switch (Config::get<tokenizer_id>("opt_tok")) {
     case TOKENIZER_YY: 
     case TOKENIZER_YY_COUNTS: 
       {
         char *classchar = cheap_settings->value("class-name-char");
         if (classchar != NULL)
           tok = new tYYTokenizer(
-            (Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
+            (Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
                ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
         else
           tok = new tYYTokenizer((
-            Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
+            Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
               ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
@@ -491,7 +497,7 @@ void process(const char *s) {
       xml_initialize();
       XMLServices = true;
       tok = new tPICTokenizer((
-        Configuration::get<tokenizer_id>("opt_tok") == TOKENIZER_PIC_COUNTS
+        Config::get<tokenizer_id>("opt_tok") == TOKENIZER_PIC_COUNTS
         ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
 #else
       LOG_FATAL(loggerUncategorized,
@@ -561,26 +567,28 @@ void process(const char *s) {
   LOG(loggerUncategorized, Level::INFO, "%d types in %0.2g s",
           ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
 
-  if(Configuration::get<bool>("opt_pg")) {
+  if(Config::get<bool>("opt_pg")) {
     print_grammar(stdout);
   }
   else {
     initialize_version();
         
 #if defined(YY) && defined(SOCKET_INTERFACE)
-    if(opt_server)
-      cheap_server(opt_server);
+    int server_mode;
+    Config::get("opt_server", server_mode);
+    if(server_mode != 0)
+      cheap_server(server_mode);
     else 
 #endif
 #ifdef TSDBAPI
-      if(opt_tsdb)
+      if(Config::get<int>("opt_tsdb"))
         tsdb_mode();
       else
 #endif
         {
-          if(Configuration::get<bool>("opt_interactive_morph"))
+          if(Config::get<bool>("opt_interactive_morph"))
             interactive_morphology();
-          else if(Configuration::get<bool>("opt_nbest"))
+          else if(Config::get<bool>("opt_nbest"))
             nbest();
           else
             interactive();
@@ -592,6 +600,23 @@ void process(const char *s) {
 #endif
   delete Grammar;
   delete cheap_settings;
+}
+
+
+void main_init() {
+  //2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
+  Config::addOption("opt_comment_passthrough",
+    "Ignore/repeat input classified as comment: starts with '#' or '//'",
+    false);
+  Config::addOption("opt_tsdb",
+    "enable [incr tsdb()] slave mode (protocol version = n)",
+    0);
+  Config::addOption("opt_tsdb_dir",
+     "write [incr tsdb()] item, result and parse files to this directory",
+     ((std::string) ""));
+  Config::addOption("opt_server",
+    "go into server mode, bind to port `n' (default: 4711)",
+    0);
 }
 
 #ifdef __BORLANDC__
@@ -612,6 +637,9 @@ int main(int argc, char* argv[])
   PropertyConfigurator::configure(std::string("logging.conf"));
 #endif // HAVE_LIBLOG4CXX
 
+  // Initialize global options
+  main_init();
+
 #ifndef __BORLANDC__
   if(!parse_options(argc, argv)) {
     usage(ferr);
@@ -625,8 +653,10 @@ int main(int argc, char* argv[])
 #endif
 
 #if defined(YY) && defined(SOCKET_INTERFACE)
-  if(opt_server) {
-    if(cheap_server_initialize(opt_server))
+  int server_mode;
+  Config::get("opt_server", server_mode);
+  if(server_mode != 0) {
+    if(cheap_server_initialize(server_mode))
       exit(1);
   }
 #endif

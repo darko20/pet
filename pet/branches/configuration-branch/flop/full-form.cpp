@@ -147,7 +147,7 @@ void ff_entry::dump(dumper *f)
     {
       LOG(loggerUncategorized, Level::INFO,
           "unknown affix `%s' for `%s'", _affix.c_str(),
-	      _preterminal.c_str());
+              _preterminal.c_str());
     }
 
   inflpos = _inflpos == 0 ? 0 : _inflpos - 1;

@@ -30,8 +30,8 @@
 #include <sstream>
 #include <float.h>
 
-// defined in item.cpp
-extern unsigned int opt_gplevel;
+using std::string;
+using std::list;
 
 int
 tSMFeature::hash() const
@@ -210,14 +210,14 @@ tSM::findFile(const char *fileName, const char *basePath)
         char *prefix = (char *) malloc(strlen(basePath) + 1
                                        + strlen(SET_SUBDIRECTORY) + 1);
         if(slash)
-	{
+        {
             strncpy(prefix, basePath, slash - basePath + 1);
             prefix[slash - basePath + 1] = '\0';
-	}
+        }
         else
-	{
+        {
             strcpy(prefix, "");
-	}
+        }
 
         char *fname = (char *) malloc(strlen(prefix) + 1
                                       + strlen(fileName) + 1);
@@ -284,7 +284,7 @@ tSM::scoreLocalTree(grammar_rule *R, list<tItem *> dtrs)
       v1.push_back((*dtr)->identity());
       total = combineScores(total, (*dtr)->score());
       if (i == R->nextarg())
-	v2.push_back((*dtr)->identity());
+        v2.push_back((*dtr)->identity());
     }
 
   total = combineScores(total, score(tSMFeature(v1)));
@@ -507,7 +507,7 @@ tMEM::parseOptions()
         if (LA(0)->tag == T_COLON) consume(1);
         pvalue = match(T_ID, "parameter value", false);
         match(T_DOT, "dot after parameter value", true);
-	opt_gplevel = atoi(pvalue);
+        Config::set("opt_gplevel", (unsigned int) atoi(pvalue));
         free(pvalue);
       }
       else {
@@ -515,7 +515,7 @@ tMEM::parseOptions()
         consume(1);
       }
       free(pname);
-    }	 
+    }
     else 
       consume(1);
   }
@@ -535,17 +535,17 @@ tMEM::parseFeatures(int nFeatures)
            is_keyword(LA(1), "end"))
             break;
 
-	switch (_format) {
-	case 0:  // old format
-	  parseFeature(n++);
-	  break;
-	case 1:  // new format (as of sep-2006)
-	  parseFeature2(n++);
-	  break;
-	case 2:  // lexical type prediction model
-	  parseFeature_lexpred(n++);
-	  break;
-	}
+        switch (_format) {
+        case 0:  // old format
+          parseFeature(n++);
+          break;
+        case 1:  // new format (as of sep-2006)
+          parseFeature2(n++);
+          break;
+        case 2:  // lexical type prediction model
+          parseFeature_lexpred(n++);
+          break;
+        }
     }
 }
 
@@ -599,9 +599,9 @@ tMEM::parseFeature(int n)
             {
                 // This is an integer.
                 v.push_back(map()->intToSubfeature(t));
-		// Set the level of grand-parenting to 0 to be compatible with 
-		// the new format
-		v.push_back(map()->intToSubfeature(0));
+                // Set the level of grand-parenting to 0 to be compatible with 
+                // the new format
+                v.push_back(map()->intToSubfeature(0));
             }
             free(tmp);
         }
@@ -613,9 +613,9 @@ tMEM::parseFeature(int n)
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
-	else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
-	  consume(1);
-	}
+        else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
+          consume(1);
+        }
         else
         {
             syntax_error("expecting subfeature", LA(0));
@@ -705,18 +705,18 @@ tMEM::parseFeature2(int n)
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
-	else if (LA(0)->tag == T_CAP) {
-	  // This is a special 
-	  consume(1);
-	  v.push_back(INT_MAX);
-	}
-	else if (LA(0)->tag == T_DOLLAR) {
-	  consume(1);
-	  v.push_back(INT_MAX);
-	}
-	else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
-	  consume(1);
-	}
+        else if (LA(0)->tag == T_CAP) {
+          // This is a special 
+          consume(1);
+          v.push_back(INT_MAX);
+        }
+        else if (LA(0)->tag == T_DOLLAR) {
+          consume(1);
+          v.push_back(INT_MAX);
+        }
+        else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
+          consume(1);
+        }
         else
         {
             syntax_error("expecting subfeature", LA(0));
@@ -820,14 +820,14 @@ tMEM::parseFeature_lexpred(int n)
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
-	else if (LA(0)->tag == T_CAP) {
-	  // This is a special 
-	  consume(1);
-	  v.push_back(INT_MAX);
-	}
-	else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
-	  consume(1);
-	}
+        else if (LA(0)->tag == T_CAP) {
+          // This is a special 
+          consume(1);
+          v.push_back(INT_MAX);
+        }
+        else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
+          consume(1);
+        }
         else
         {
             syntax_error("expecting subfeature", LA(0));
@@ -861,8 +861,8 @@ string normstr(string str) {
   string newstr;
   for (unsigned int i = 0; i < str.length(); i ++) {
     if (islower(str[i]) || isdigit(str[i]) ||
-	str[i] == '-' || str[i] == '_' ||
-	str[i] == ' ' || str[i] == '\'')
+        str[i] == '-' || str[i] == '_' ||
+        str[i] == ' ' || str[i] == '\'')
       newstr += str[i];
     else if (isupper(str[i]))
       newstr += tolower(str[i]);
@@ -895,8 +895,8 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     int dc = 0;
     for (unsigned int p = 0; p < words[4].length(); p ++)
       if (isdigit(words[4][p])) {
-	dc = 1;
-	break;
+        dc = 1;
+        break;
       }
     v.push_back(map()->intToSubfeature(dc));
     total = combineScores(total, score(tSMFeature(v)));
@@ -908,8 +908,8 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     int uc = 0;
     for (unsigned int p = 0; p < words[4].length(); p ++)
       if (isupper(words[4][p])) {
-	uc = 1;
-	break;
+        uc = 1;
+        break;
       }
     v.push_back(map()->intToSubfeature(uc));
     total = combineScores(total, score(tSMFeature(v)));
@@ -919,7 +919,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     v.push_back(map()->typeToSubfeature(output));
     v.push_back(map()->intToSubfeature(2));
     if (words[4].find(' ') != string::npos || 
-	words[4].find('-') != string::npos)
+        words[4].find('-') != string::npos)
       v.push_back(map()->intToSubfeature(1));
     else 
       v.push_back(map()->intToSubfeature(0));
@@ -932,9 +932,9 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
       v.push_back(map()->intToSubfeature(3));
       v.push_back(map()->intToSubfeature(i));
       if (lword.length() >= i) {
-	v.push_back(map()->stringToSubfeature(lword.substr(0,i)));
+        v.push_back(map()->stringToSubfeature(lword.substr(0,i)));
       } else {
-	v.push_back(map()->stringToSubfeature(string("_")));
+        v.push_back(map()->stringToSubfeature(string("_")));
       }
       total = combineScores(total, score(tSMFeature(v)));
       v.clear();
@@ -946,9 +946,9 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
       v.push_back(map()->intToSubfeature(4));
       v.push_back(map()->intToSubfeature(i));
       if (lword.length() >= i) {
-	v.push_back(map()->stringToSubfeature(lword.substr(lword.length()-i,i)));
+        v.push_back(map()->stringToSubfeature(lword.substr(lword.length()-i,i)));
       } else {
-	v.push_back(map()->stringToSubfeature(string("_")));
+        v.push_back(map()->stringToSubfeature(string("_")));
       }
       total = combineScores(total, score(tSMFeature(v)));
       v.clear();
@@ -958,9 +958,9 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     for (int i = 0; i < 4; i ++) {
       string word;
       if (words[i].empty())
-	word = "_";
+        word = "_";
       else
-	word = normstr(words[i]);
+        word = normstr(words[i]);
       // _fix_me: transform(words[i].begin(),words[i].end(),word.begin(), tolower);
       v.push_back(map()->typeToSubfeature(output));
       v.push_back(map()->intToSubfeature(5));
@@ -972,33 +972,33 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     //6: context type features
     for (int i = 0; i < 4; i ++) {
       if (letypes[i].empty()) {
-	v.push_back(map()->typeToSubfeature(output));
-	v.push_back(map()->intToSubfeature(6));
-	v.push_back(map()->intToSubfeature(i));
-	v.push_back(INT_MAX);
-	total = combineScores(total, score(tSMFeature(v)));
-	v.clear();
+        v.push_back(map()->typeToSubfeature(output));
+        v.push_back(map()->intToSubfeature(6));
+        v.push_back(map()->intToSubfeature(i));
+        v.push_back(INT_MAX);
+        total = combineScores(total, score(tSMFeature(v)));
+        v.clear();
       } else {
-	for (vector<type_t>::iterator it = letypes[i].begin();
-	     it != letypes[i].end(); it ++) {
-	  v.push_back(map()->typeToSubfeature(output));
-	  v.push_back(map()->intToSubfeature(6));
-	  v.push_back(map()->intToSubfeature(i));	
-	  v.push_back(map()->typeToSubfeature(*it));
-	  total = combineScores(total, score(tSMFeature(v)));
-	  v.clear();
-	}
+        for (vector<type_t>::iterator it = letypes[i].begin();
+             it != letypes[i].end(); it ++) {
+          v.push_back(map()->typeToSubfeature(output));
+          v.push_back(map()->intToSubfeature(6));
+          v.push_back(map()->intToSubfeature(i));
+          v.push_back(map()->typeToSubfeature(*it));
+          total = combineScores(total, score(tSMFeature(v)));
+          v.clear();
+        }
       }
     }
     list<type_t>::iterator tit = types.begin();
     for (list<double>::iterator sit = scores.begin();
-	 sit != scores.end() && tit != types.end(); sit ++, tit ++ ) {
+         sit != scores.end() && tit != types.end(); sit ++, tit ++ ) {
       if (total > *sit) {
-	scores.insert(sit, 1, total);
-	types.insert(tit, 1, output);
-	scores.resize(n);
-	types.resize(n);
-	break;
+        scores.insert(sit, 1, total);
+        types.insert(tit, 1, output);
+        scores.resize(n);
+        types.resize(n);
+        break;
       }
     }
     //    if (total > max) {

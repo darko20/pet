@@ -12,15 +12,15 @@
 #define _INPUT_MODULES_H
 
 #include "pet-config.h"
-
-#include <list>
-#include <string>
 #include "item.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
 
-typedef string myString;
+#include <list>
+#include <string>
+
+typedef std::string myString;
 
 /** The pure virtual base class for preprocessing modules */
 class tInputModule {
@@ -31,7 +31,7 @@ public:
   virtual void clear() {};
 
   /** A string to describe the module */
-  virtual string description() = 0; 
+  virtual std::string description() = 0; 
   
   /** All modules which are on the same level are tried in parallel and
    *  all their results are considered. Modules on a lower level are only
@@ -73,7 +73,7 @@ public:
   virtual ~tTokenizer() { }
 
   /** Produce a set of tokens from the given string. */
-  virtual void tokenize(myString s, inp_list &result) = 0;
+  virtual void tokenize(myString s, inpitemlist &result) = 0;
 
   /** Return \c STANDOFF_COUNTS if the position in the returned tokens are counts
    *  , \c STANDOFF_POINTS if they are points
@@ -84,13 +84,13 @@ protected:
   tTokenizer();
   
   /** Determine if a string only consists of punctuation characters */
-  bool punctuationp(const string &s);
+  bool punctuationp(const std::string &s);
 
   /** \brief Translate the german ISO umlaut and sz characters in \a s by their
    *  isomorphix (ae, ue, ss, etc.) counterparts, if \c _translate_iso_chars
    *  is true, leave it unchanged otherwise.
    */
-  void translate_iso(string &s);
+  void translate_iso(std::string &s);
 
   /** A string with all characters considered as punctuation.
    * May be set by the global setting \c punctuation-characters.
@@ -98,7 +98,7 @@ protected:
 #ifdef HAVE_ICU
   UnicodeString _punctuation_characters;
 #else
-  string _punctuation_characters;
+  std::string _punctuation_characters;
 #endif
 
   /** If \c true, Translate the german ISO umlaut and sz characters in stem and
@@ -118,7 +118,7 @@ public:
   virtual ~tNE_recognizer() {}
 
   /** Add Named Entities to the list of tokens. */
-  virtual void compute_ne(myString s, inp_list &tokens_result) = 0;
+  virtual void compute_ne(myString s, inpitemlist &tokens_result) = 0;
 };
 
 /** Add POS information (destructively) to the tokens in \a tokens_result.
@@ -128,7 +128,7 @@ public:
   virtual ~tPOSTagger() {}
 
   /** Add POS tags to the tokens in tokens_result */
-  virtual void compute_tags(myString s, inp_list &tokens_result) = 0;
+  virtual void compute_tags(myString s, inpitemlist &tokens_result) = 0;
 };
 
 /** Take an input token and compute a list of morphological analyses, 
@@ -139,7 +139,7 @@ public:
   virtual ~tMorphology() {}
   
   /** Compute morphological results for \a form. */
-  virtual list<class tMorphAnalysis> operator()(const myString &form) = 0;
+  virtual std::list<class tMorphAnalysis> operator()(const myString &form) = 0;
 };
 
 /** Get \c lex_stem entries for a given stem (normalized form).
@@ -151,7 +151,7 @@ public:
   virtual ~tLexicon() {}
 
   /** Get lexicon entries for \a stem  */
-  virtual list<lex_stem *> operator()(const myString &stem) = 0;
+  virtual std::list<lex_stem *> operator()(const myString &stem) = 0;
 };
 
 /** \todo fix this declaration */
@@ -163,12 +163,12 @@ public:
   virtual ~tInternalLexicon() {}
 
   /** Get lexicon entries for \c stem in \c result */
-  virtual list<lex_stem *> operator()(const myString &stem) {
+  virtual std::list<lex_stem *> operator()(const myString &stem) {
     return Grammar->lookup_stem(stem);
   };
 
   /** A string to describe the module */
-  virtual string description() { return "Internal stem lexicon"; }
+  virtual std::string description() { return "Internal stem lexicon"; }
 };
 
 #endif

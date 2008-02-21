@@ -10,8 +10,6 @@
 #include "item.h"
 #include <map>
 
-using namespace std;
-
 /** This class provides a mapping of input to chart positions.
  *
  * Besides reducing chart size by mapping, e.g., character counts to chart
@@ -29,18 +27,18 @@ private:
   class poschartnode {
   private:
   public:
-    inp_list in_edges, out_edges;
+    inpitemlist in_edges, out_edges;
     int chartpos;
     void add_in_edge(tInputItem *item) { in_edges.push_back(item); }
     void add_out_edge(tInputItem *item) { out_edges.push_back(item); }
 
     void set_chartpositions() {
-      for (inp_list::iterator item_iterator = this->in_edges.begin()
+      for (inpitemlist::iterator item_iterator = this->in_edges.begin()
              ; item_iterator != this->in_edges.end()
              ; item_iterator++) {
         (*item_iterator)->set_end(chartpos);
       }
-      for (inp_list::iterator item_iterator = this->out_edges.begin()
+      for (inpitemlist::iterator item_iterator = this->out_edges.begin()
              ; item_iterator != this->out_edges.end()
              ; item_iterator++) {
         (*item_iterator)->set_start(chartpos);
@@ -48,7 +46,7 @@ private:
     }
   };
 
-  typedef map<int, poschartnode *> posmap;
+  typedef std::map<int, poschartnode *> posmap;
 
   unsigned int _counts_to_positions;
 
@@ -62,7 +60,7 @@ private:
     posmap::iterator it = _chart.find(pos);
     if (it == _chart.end()) {
       chartnode = new poschartnode();
-      _chart.insert(pair<int, poschartnode *>(pos, chartnode));
+      _chart.insert(std::pair<int, poschartnode *>(pos, chartnode));
     } else {
       chartnode = it->second;
     }
@@ -103,7 +101,7 @@ public:
    */
   int map_to_chart_positions() {
     posmap::iterator it;
-    list<poschartnode *> pending_nodes;
+    std::list<poschartnode *> pending_nodes;
     int currentpos = 0;
     for (it = _chart.begin(); it != _chart.end(); it++) {
       poschartnode *current_node = it->second;

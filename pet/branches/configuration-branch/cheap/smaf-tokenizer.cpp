@@ -44,10 +44,10 @@ void downcase(string &s) {
 
   for (i=0; i!=s.length(); i++)
     {
-       if ((unsigned char)s[i] < 127)
-	{
-	  s[i]=tolower(s[i]);
-	}
+      if ((unsigned char)s[i] < 127)
+        {
+          s[i]=tolower(s[i]);
+        }
     }
 
   return;
@@ -58,10 +58,10 @@ void upcase(string &s) {
 
   for (i=0; i!=s.length(); i++)
     {
-       if ((unsigned char)s[i] < 127)
-	{
-	  s[i]=toupper(s[i]);
-	}
+      if ((unsigned char)s[i] < 127)
+        {
+          s[i]=toupper(s[i]);
+        }
     }
 
   return;
@@ -75,15 +75,15 @@ list<string> splitOnSpc(string str)
   for (string::iterator it=str.begin(); it != str.end(); it++)
     {
       if (*it==' ')
-	{
-	  if (str2!="")
-	    out.push_back(str2);
-	  str2="";
-	}
+        {
+          if (str2!="")
+            out.push_back(str2);
+          str2="";
+        }
       else
-	{
-	  str2+=*it;
-	}
+        {
+          str2+=*it;
+        }
     }
   if (str2!="")
     out.push_back(str2);
@@ -110,7 +110,7 @@ bool whitespace(const string &str)
     for (string::const_iterator it = str.begin(); it != str.end(); it++)
     {
       if (not(whitespace(*it)))
-	return false;
+        return false;
     }
     return true;
   }
@@ -121,7 +121,7 @@ int skipWhitespace(const string &str, unsigned int i)
   for (; i<str.size(); i++)
     {
       if (!whitespace(str[i]))
-	return i;
+        return i;
     }
   return string::npos;
 }
@@ -132,7 +132,7 @@ int findWhitespace(const string &str, unsigned int i)
   for (; i<str.size(); i++)
     {
       if (whitespace(str[i]))
-	return i;
+        return i;
     }
   return string::npos;
 }
@@ -188,7 +188,7 @@ DOMDocument* tSMAFTokenizer::xml2dom (const string &input) {
   catch (const XMLException& toCatch) {
     char* message = XMLString::transcode(toCatch.getMessage());
     cerr << "ERROR: problem during XMLPlatformUtils::Initialize() :\n"
-	 << message << "\n";
+         << message << "\n";
     XMLString::release(&message);
     return NULL;
   }
@@ -208,21 +208,21 @@ DOMDocument* tSMAFTokenizer::xml2dom (const string &input) {
   catch (const XMLException& toCatch) {
     char* message = XMLString::transcode(toCatch.getMessage());
     cerr << "ERROR: [XMLException] Exception message is: \n"
-	 << message << "\n";
+         << message << "\n";
     XMLString::release(&message);
     return NULL;
   }
   catch (const DOMException& toCatch) {
     char* message = XMLString::transcode(toCatch.msg);
     cerr << "ERROR: [DOMException] Exception message is: \n"
-	 << message << "\n";
+         << message << "\n";
     XMLString::release(&message);
     return NULL;
   }
   catch (const SAXParseException& toCatch) {
     char* message = XMLString::transcode(toCatch.getMessage());
     cerr << "ERROR: [SAXParseException] Exception message is: \n"
-	 << message << "\n";
+         << message << "\n";
     XMLString::release(&message);
     return NULL;
   }
@@ -269,14 +269,14 @@ int tSMAFTokenizer::serializeDOM(const DOMNode &node) {
   catch (const XMLException& toCatch) {
     char* message = XMLString::transcode(toCatch.getMessage());
     cerr << "ERROR: [XMLException] Exception message is: \n"
-	 << message << "\n";
+         << message << "\n";
     XMLString::release(&message);
     return -1;
   }
   catch (const DOMException& toCatch) {
     char* message = XMLString::transcode(toCatch.msg);
     cerr << "ERROR: [DOMException] Exception message is: \n"
-	 << message << "\n";
+         << message << "\n";
     XMLString::release(&message);
     return -1;
   }
@@ -312,7 +312,7 @@ string tSMAFTokenizer::getTextContent_string(const DOMElement &element)
       //      if (!node->getNodeType()==TEXT_NODE)
       //serializeDOM(node); 
       if (!(node->getNodeType()==3))
-	return "";
+        return "";
     }
 
   // finally, get the text content
@@ -330,12 +330,12 @@ string dottedString(const list<string> &s)
     // construct dotted list
     {
       if (flag)
-	{
-	  out += *it;
-	  flag=false;
-	}
+        {
+          out += *it;
+          flag=false;
+        }
       else
-	out += "." + *it;
+        out += "." + *it;
     }
   // upcase result
   upcase(out);
@@ -385,7 +385,7 @@ bool tSMAFTokenizer::processAllGMapContent(const tSaf &saf, modlist &fsmods)
     // process each gMapName
     {
       if (processGMapContent(*it,saf,fsmods)==false)
-	flag=false;
+        flag=false;
     }
   return flag;
 }
@@ -456,8 +456,8 @@ tInputItem* tSMAFTokenizer::getInputItemFromSaf(const tSaf &saf){
 
   // create tInputItem
   tInputItem* item = new tInputItem(*id, source, target, start, end, surface, ""
-				    , tPaths()
-				    , WORD_TOKEN_CLASS, fsmods);
+                                    , tPaths()
+                                    , WORD_TOKEN_CLASS, fsmods);
 
   // POS
   string pos = getContentVal(saf.lContent,"pos");
@@ -476,19 +476,19 @@ tInputItem* tSMAFTokenizer::getInputItemFromSaf(const tSaf &saf){
 }
 
 // return item matching (external) id
-tInputItem* tSMAFTokenizer::getItemById(const string &id, const inp_list &items)
+tInputItem* tSMAFTokenizer::getItemById(const string &id, const inpitemlist &items)
 {
   for(list<tInputItem *>::const_iterator it = items.begin()
         ; it != items.end(); it++) {
       if (((*it)->external_id())==id)
-	{
-	  return *it;
-	}
+        {
+          return *it;
+        }
     }
   return NULL;
 }
 
-void tSMAFTokenizer::processSafMorphEdge(tSaf &saf, inp_list &items){
+void tSMAFTokenizer::processSafMorphEdge(tSaf &saf, inpitemlist &items){
 
   // EDGETYPE
   string edgeType = saf.lContent["edgeType"];
@@ -535,12 +535,12 @@ void tSMAFTokenizer::processSafMorphEdge(tSaf &saf, inp_list &items){
       // add CARG to item
       {
 
-	// get fsmods
-	modlist fsmods = modlist() ;
-	processAllGMapContent(saf,fsmods);
+        // get fsmods
+        modlist fsmods = modlist() ;
+        processAllGMapContent(saf,fsmods);
 
-	// set CARG
-	item->set_mods(fsmods);
+        // set CARG
+        item->set_mods(fsmods);
       }
     }
 
@@ -617,19 +617,19 @@ void tSMAFTokenizer::processEdges(const DOMDocument &dom, list<tSaf*> &tEdges, l
 
       tSaf* saf=getSaf(*element);
       if (saf!=NULL and saf->type!=NULL)
-	{
-	  // store
-	  //cerr << "ADD MYSAFS" << endl;
-	  _mySafs.push_back(saf);
+        {
+          // store
+          //cerr << "ADD MYSAFS" << endl;
+          _mySafs.push_back(saf);
 
-	}
+        }
       else
-	{
-	  // skip malformed edge
-	  cerr << "WARNING: XML edge is malformed:" << endl;
-	  serializeDOM(*wNode);
-	  cerr << endl;
-	}
+        {
+          // skip malformed edge
+          cerr << "WARNING: XML edge is malformed:" << endl;
+          serializeDOM(*wNode);
+          cerr << endl;
+        }
     }
 
   // LOCAL CONTENT
@@ -648,10 +648,10 @@ void tSMAFTokenizer::processEdges(const DOMDocument &dom, list<tSaf*> &tEdges, l
       string edgeType = getContentVal(saf->lContent,"edgeType");
       // morph edge
       if (edgeType=="morph" or edgeType=="tok+morph")
-	mEdges.push_back(saf);
+        mEdges.push_back(saf);
       // tok edge
       if (edgeType=="tok" or edgeType=="tok+morph")
-	tEdges.push_back(saf);
+        tEdges.push_back(saf);
     }
 }
 
@@ -668,22 +668,22 @@ void tSMAFTokenizer::clearMySafs()
   _mySafs.clear();
 }
 
-void tSMAFTokenizer::renumberNodes(inp_list &result)
+void tSMAFTokenizer::renumberNodes(inpitemlist &result)
 {
   // rename nodes in forward seq to avoid seg fault later (!)
   map<int,int> nodePoint;
   // construct node point map
-  for(inp_iterator it = result.begin(); it != result.end(); it++) 
+  for(inpitemlist_iter it = result.begin(); it != result.end(); it++) 
     {
       int from=(*it)->start(), to=(*it)->end();
       int cfrom=(*it)->startposition(), cto=(*it)->endposition();
 
       // process 'from' node
       if (nodePoint[from]<cfrom)
-	nodePoint[from]=cfrom;
+        nodePoint[from]=cfrom;
       // process 'to' node
       if (nodePoint[to]<cto)
-	nodePoint[to]=cto;
+        nodePoint[to]=cto;
     }
   // construct sorted point node map
   map<int,int> pointNode;
@@ -706,7 +706,7 @@ void tSMAFTokenizer::renumberNodes(inp_list &result)
     }
 
   // finally, rename the nodes
-  for(inp_iterator it = result.begin(); it != result.end(); it++) 
+  for(inpitemlist_iter it = result.begin(); it != result.end(); it++) 
     {
       // retrieve new values
       int from=(*it)->start(), to=(*it)->end();
@@ -718,7 +718,7 @@ void tSMAFTokenizer::renumberNodes(inp_list &result)
 }
 
 // map SMAF XML to set of tokens=input items
-void tSMAFTokenizer::tokenize(string input, inp_list &result) {
+void tSMAFTokenizer::tokenize(string input, inpitemlist &result) {
 
   // initialise mappings
   clearIdMapping();
@@ -741,37 +741,37 @@ void tSMAFTokenizer::tokenize(string input, inp_list &result) {
 
       // tokEdges
       for (list<tSaf*>::iterator it=tokEdges.begin(); it!=tokEdges.end(); it++)
-	{
-	  tSaf *saf = *it;
-	  // get new tInputItem
-	  tInputItem* item = getInputItemFromSaf(*saf);
+        {
+          tSaf *saf = *it;
+          // get new tInputItem
+          tInputItem* item = getInputItemFromSaf(*saf);
 
-	  if (item==NULL)
-	    {
-	      cerr << "WARNING: unable to construct chart edge from" << endl;
-	      saf->print();
-	    }
-	  else
-	    result.push_back(item);
+          if (item==NULL)
+            {
+              cerr << "WARNING: unable to construct chart edge from" << endl;
+              saf->print();
+            }
+          else
+            result.push_back(item);
 
-	}
+        }
 
       // morphEdges
       for (list<tSaf*>::iterator it=morphEdges.begin(); it!=morphEdges.end(); it++)
-	{
-	  tSaf *saf = *it;
-	  // update tInputItems
-	  processSafMorphEdge(*saf,result);
-	}
+        {
+          tSaf *saf = *it;
+          // update tInputItems
+          processSafMorphEdge(*saf,result);
+        }
     }
   
   // sanity check
   // to avoid seg fault later (why??) there must be an edge with start=0
   bool flag=false;
-  for(inp_iterator it = result.begin(); it != result.end(); it++) 
+  for(inpitemlist_iter it = result.begin(); it != result.end(); it++) 
     {
       if ((*it)->start()==0)
-	flag=true;
+        flag=true;
     }
   if (!flag)
     {
@@ -824,9 +824,9 @@ tSaf* tSMAFTokenizer::getSaf(const DOMElement &element)
       string val = getTextContent_string(*slot);
       // add to saf content
       if (name!="")
-	saf->content[name]=val;
+        saf->content[name]=val;
       else
-	cerr << "WARNING: ignoring slot with name=\"\"" << endl;
+        cerr << "WARNING: ignoring slot with name=\"\"" << endl;
     }
   // get simple content if no slots
   if (nodeCount==0)
@@ -859,22 +859,22 @@ bool tSMAFTokenizer::updateLocalContent(map<string,string> &localContent, const 
     {
       //safConf.print();
       for (list<tSafConfNvpair>::const_iterator it=safConf.nvPairs.begin(); 
-	   it!=safConf.nvPairs.end(); 
-	   it++)
-	// walk thru nvPairs of saf conf
-	{
-	  if (it->val!=NULL)
-	    // constant
-	    {
-	      localContent[it->name]=*(it->val);
-	    }
-	  else
-	    // resolve variable
-	    {
-	      string var=*(it->var);
-	      localContent[it->name]=resolve(var ,saf);
-	    }
-	}
+           it!=safConf.nvPairs.end(); 
+           it++)
+        // walk thru nvPairs of saf conf
+        {
+          if (it->val!=NULL)
+            // constant
+            {
+              localContent[it->name]=*(it->val);
+            }
+          else
+            // resolve variable
+            {
+              string var=*(it->var);
+              localContent[it->name]=resolve(var ,saf);
+            }
+        }
       return true;
     }
   else
@@ -901,7 +901,7 @@ tSaf* tSMAFTokenizer::getSafById(const string &dep) const
       //cerr << "checking ID=" << id << " DEP=" << dep << endl;
 
       if (id==dep)
-	return *it;
+        return *it;
     }
   return NULL;
 }
@@ -921,14 +921,14 @@ string tSMAFTokenizer::resolveDeps(const string &var, const tSaf &saf)
       // look up DEP item
       tSaf *depSaf = getSafById(dep);
       if (depSaf==NULL)
-	{
-	  cerr << "WARNING: unable to resolve saf id=\"" << dep << "\"" << endl;
-	  return "";
-	}
+        {
+          cerr << "WARNING: unable to resolve saf id=\"" << dep << "\"" << endl;
+          return "";
+        }
       if (flag)
-	flag=false;
+        flag=false;
       else
-	out += ' ';
+        out += ' ';
       out += resolve(var,*depSaf);
     }
   
@@ -971,16 +971,16 @@ bool tSMAFTokenizer::match(tSafConfMatch match, tSaf saf)
     // check each RESTRICTION
     {
       if (it->val==NULL)
-	// corrupt struct
-	{
-	  cerr << "WARNING: corrupted 'val' in tSafConfNvpair" << endl;
-	  it->print();
-	  return false;
-	}
+        // corrupt struct
+        {
+          cerr << "WARNING: corrupted 'val' in tSafConfNvpair" << endl;
+          it->print();
+          return false;
+        }
       string val=*(it->val);
       if (getContentVal(saf.content,it->name)!=val)
-	// failed match
-	return false;
+        // failed match
+        return false;
     }
 
   return true;
@@ -1075,22 +1075,22 @@ void tSMAFTokenizer::processSafConfFile(const string &filename)
     // walk thru chars
     while (ff.get(ch))
       {
-	if (ch=='\n')
-	  // end of line
-	  {
-	    // extract safConf from line
-	    tSafConf* safConf=processSafConfLine(line);
-	    if (safConf!=NULL)
-	      // store it
-	      _safConfs.push_back(*safConf);
-	    
-	    u_line = Conv->convert(line); // do Unicode later
-	    // reset line
-	    line="";
-	  }
-	else
-	  // collect char
-	  line += ch;
+        if (ch=='\n')
+          // end of line
+          {
+            // extract safConf from line
+            tSafConf* safConf=processSafConfLine(line);
+            if (safConf!=NULL)
+              // store it
+              _safConfs.push_back(*safConf);
+            
+            u_line = Conv->convert(line); // do Unicode later
+            // reset line
+            line="";
+          }
+        else
+          // collect char
+          line += ch;
       }
     // extract safConf from line
     tSafConf* safConf=processSafConfLine(line);
@@ -1109,63 +1109,63 @@ tSafConf* tSMAFTokenizer::processSafConfLine(const string &line)
   {
     if (line[0]==';')
       {
-	// COMMENT
-	return NULL;
+        // COMMENT
+        return NULL;
       }
     else if (whitespace(line))
       {
-	// EMPTY
-	return NULL;
+        // EMPTY
+        return NULL;
       }
     else if (line.substr(0,7)=="define ")
       {
-	// DEFINE
-	if (!processSafConfDefine(line))
-	  cerr << "WARNING: malformed SAF conf line: " << line << endl;
-	return NULL; // coz no saf conf item
+        // DEFINE
+        if (!processSafConfDefine(line))
+          cerr << "WARNING: malformed SAF conf line: " << line << endl;
+        return NULL; // coz no saf conf item
       }
     else
       {
-	tSafConf* safConf = new tSafConf(); 
-	
-	// get strings before and after " -> "
-	unsigned int i;
-	i=line.find(" -> ");
-	if (i==string::npos)
-	  // not found
-	  {
-	    cerr << "WARNING: missing \" -> \" "<< endl;
-	    cerr << "WARNING: malformed SAF conf line: " << line << endl;
-	    return NULL;
-	  }
+        tSafConf* safConf = new tSafConf(); 
+        
+        // get strings before and after " -> "
+        unsigned int i;
+        i=line.find(" -> ");
+        if (i==string::npos)
+          // not found
+          {
+            cerr << "WARNING: missing \" -> \" "<< endl;
+            cerr << "WARNING: malformed SAF conf line: " << line << endl;
+            return NULL;
+          }
 
-	string pre=line.substr(0,i);
-	string post=line.substr(i+4);
+        string pre=line.substr(0,i);
+        string post=line.substr(i+4);
 
-	// PRE: safConfMatch
-	tSafConfMatch* match=processSafConfLinePre(pre);
-	if (match!=NULL)
-	  safConf->match=*match;
-	else
-	  {
-	    cerr << "WARNING: malformed SAF conf line: " << line << endl;
-	    return NULL;
-	  }
+        // PRE: safConfMatch
+        tSafConfMatch* match=processSafConfLinePre(pre);
+        if (match!=NULL)
+          safConf->match=*match;
+        else
+          {
+            cerr << "WARNING: malformed SAF conf line: " << line << endl;
+            return NULL;
+          }
 
-	// POST: nvPairs
-	list<string> nvPairs = splitOnSpc(post);
-	for (list<string>::iterator it=nvPairs.begin(); it!=nvPairs.end(); it++)
-	  {
-	    tSafConfNvpair* nvPair = extractNvpair(*it);
-	    if (nvPair!=NULL)
-	      safConf->nvPairs.push_back(*nvPair);
-	    else
-	      {
-		cerr << "WARNING: malformed SAF conf line: " << line << endl;
-		return NULL;
-	      }
-	  }
-	return safConf;
+        // POST: nvPairs
+        list<string> nvPairs = splitOnSpc(post);
+        for (list<string>::iterator it=nvPairs.begin(); it!=nvPairs.end(); it++)
+          {
+            tSafConfNvpair* nvPair = extractNvpair(*it);
+            if (nvPair!=NULL)
+              safConf->nvPairs.push_back(*nvPair);
+            else
+              {
+                cerr << "WARNING: malformed SAF conf line: " << line << endl;
+                return NULL;
+              }
+          }
+        return safConf;
       }
 
   }
@@ -1267,14 +1267,14 @@ tSafConfMatch* tSMAFTokenizer::processSafConfLinePre(const string &pre)
     {
       tSafConfNvpair* nvPair = extractNvpair(*it);
       if (nvPair!=NULL)
-	restrs.push_back(*nvPair);
+        restrs.push_back(*nvPair);
       else
-	{
-	  // abort if problem
-	  delete match;
-	  cerr << "WARNING: malformed SAF conf match: " << pre << endl ;
-	  return NULL;
-	}
+        {
+          // abort if problem
+          delete match;
+          cerr << "WARNING: malformed SAF conf match: " << pre << endl ;
+          return NULL;
+        }
     }
   match->restrictions=restrs;
 
@@ -1469,14 +1469,14 @@ bool tSMAFTokenizer::processSafConfDefine(const string &line)
       string typeStr=*typeListTmp.begin();
       downcase(typeStr);
       if (typeStr=="string")
-	type=str;
+        type=str;
       else if (typeStr=="symbol")
-	type=sym;
+        type=sym;
       else
-	{
-	  cerr << "WARNING: unknown type: " << typeStr << endl; 
-	  return false;
-	}
+        {
+          cerr << "WARNING: unknown type: " << typeStr << endl; 
+          return false;
+        }
     }
 
   _gMap.add(name,path,type);
@@ -1546,7 +1546,7 @@ list<string> tSMAFTokenizer::getGMapNames (const map<string,string> &lContent)
     {
       string name=it->first;
       if (name.substr(0,5)=="gMap.")
-	out.push_back(name);
+        out.push_back(name);
     }
   return out;
 } 

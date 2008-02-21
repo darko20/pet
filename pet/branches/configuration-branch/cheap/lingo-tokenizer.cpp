@@ -28,6 +28,9 @@
 #include "unicode.h"
 #endif
 
+using std::string;
+using std::list;
+
 extern settings *cheap_settings;
 
 tTokenizer::tTokenizer() {
@@ -125,7 +128,7 @@ void tTokenizer::translate_iso(string &s) {
 
 /** Produce a set of tokens from the given string. */
 void 
-tLingoTokenizer::tokenize(string s, inp_list &result) {
+tLingoTokenizer::tokenize(string s, inpitemlist &result) {
   list<string> tokens = do_it(s);
   if(verbosity > 4)
     LOG(loggerUncategorized, Level::INFO,
@@ -229,7 +232,7 @@ tLingoTokenizer::do_it(string s) {
       {
           if(s.find('\'', apo+1) != std::string::npos)
               throw tError("tokenizer: more than one apostroph in word");
-	  
+          
           if(apo == 0 || apo == s.length() - 1)
           {
               words2.push_back(s);

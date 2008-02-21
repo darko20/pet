@@ -47,23 +47,23 @@ int main(int argc, char **argv) {
 
     for (;;)
     {
-	string input;
-	UnicodeString u_input;
-	for (;;)
-	{
-	    char ch;
-	    cin.get(ch);
+        string input;
+        UnicodeString u_input;
+        for (;;)
+        {
+            char ch;
+            cin.get(ch);
 
-	    //cout << "C" << (int) ch << endl;
+            //cout << "C" << (int) ch << endl;
 
-	    if (ch == '\x16') break; // CONTROL-V
-	    if (ch == '\x11') break; // CONTROL-Q
-	    input += ch;
-	}
-	cin.ignore( INT_MAX, '\n' ); // skip remainder of line
-	if (input.empty()) break; // empty input is signal to exit
-	u_input = Conv->convert(input);
-	cout << Conv->convert(preprocess(u_input, format)) << '\x11' << endl;
+            if (ch == '\x16') break; // CONTROL-V
+            if (ch == '\x11') break; // CONTROL-Q
+            input += ch;
+        }
+        cin.ignore( INT_MAX, '\n' ); // skip remainder of line
+        if (input.empty()) break; // empty input is signal to exit
+        u_input = Conv->convert(input);
+        cout << Conv->convert(preprocess(u_input, format)) << '\x11' << endl;
     }
     return 0;
 }

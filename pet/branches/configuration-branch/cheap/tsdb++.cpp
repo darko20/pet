@@ -33,11 +33,9 @@
 #include<sys/time.h>
 #include<sstream>
 
-statistics stats;
+using namespace std;
 
-//defined in parse.cpp
-extern bool opt_filter;
-extern int  opt_packing;
+statistics stats;
 
 void
 statistics::reset()
@@ -96,39 +94,39 @@ void
 statistics::print(FILE *f)
 {
   fprintf (f,
-	   "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
+           "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
            "mtcpu: %d\nfirst: %d\ntcpu: %d\nutcpu: %d\n"
-	   "ftasks_fi: %d\nftasks_qc: %d\n"
-	   "fsubs_fi: %d\nfsubs_qc: %d\n"
+           "ftasks_fi: %d\nftasks_qc: %d\n"
+           "fsubs_fi: %d\nfsubs_qc: %d\n"
            "etasks: %d\nstasks: %d\n"
-	   "aedges: %d\npedges: %d\nupedges: %d\n"
+           "aedges: %d\npedges: %d\nupedges: %d\n"
            "raedges: %d\nrpedges: %d\n"
-	   "medges: %d\n"
-	   "unifications_succ: %d\nunifications_fail: %d\n"
-	   "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
-	   "dyn_bytes: %ld\nstat_bytes: %ld\n"
-	   "p_dyn_bytes: %ld\np_nstat_bytes: %ld\n"
-	   "cycles: %d\nfssize: %d\n"
-	   "unify_cost_succ: %d\nunify_cost_fail: %d\n"
+           "medges: %d\n"
+           "unifications_succ: %d\nunifications_fail: %d\n"
+           "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
+           "dyn_bytes: %ld\nstat_bytes: %ld\n"
+           "p_dyn_bytes: %ld\np_nstat_bytes: %ld\n"
+           "cycles: %d\nfssize: %d\n"
+           "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\nhypotheses: %d\n",
-	   id, trees, readings, words, words_pruned,
+           id, trees, readings, words, words_pruned,
            mtcpu, first, tcpu, p_utcpu,
-	   ftasks_fi, ftasks_qc,
+           ftasks_fi, ftasks_qc,
            fsubs_fi, fsubs_qc,
            etasks, stasks,
-	   aedges, pedges, p_upedges, 
+           aedges, pedges, p_upedges, 
            raedges, rpedges,
-	   medges,
-	   unifications_succ, unifications_fail,
-	   subsumptions_succ, subsumptions_fail, copies,
-	   dyn_bytes, stat_bytes,
-	   p_dyn_bytes, p_stat_bytes,
-	   cycles, fssize,
-	   unify_cost_succ, unify_cost_fail,
+           medges,
+           unifications_succ, unifications_fail,
+           subsumptions_succ, subsumptions_fail, copies,
+           dyn_bytes, stat_bytes,
+           p_dyn_bytes, p_stat_bytes,
+           cycles, fssize,
+           unify_cost_succ, unify_cost_fail,
            p_equivalent, p_proactive, p_retroactive,
            p_frozen, p_failures, p_hypotheses
-	   );
+           );
 }
 
 #define ABSBS 80 /* arbitrary small buffer size */
@@ -175,31 +173,33 @@ initialize_version()
         }                 
     }
     
+    int packing;
+    Config::get("opt_packing", packing);
     sprintf(CHEAP_VERSION,
             "PET(%s cheap v%s) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s "
             "%s[%d(%s)] %s[%d(%s)]"
             " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
             da,
             version_string,
-            pedgelimit,
-            opt_packing ? "+" : "-",
-            opt_packing,
+            Config::get<int>("pedgelimit"),
+            packing ? "+" : "-",
+            packing,
             Grammar->sm() ? "+" : "-",
             Grammar->sm() ? Grammar->sm()->description().c_str() : "",
-            Configuration::get<int>("opt_key") == 0 ?
-              "key" : (Configuration::get<int>("opt_key") == 1 ?
-                "l-r" : (Configuration::get<int>("opt_key") == 2 ?
-                  "r-l" : (Configuration::get<int>("opt_key") == 3 ?
+            Config::get<int>("opt_key") == 0 ?
+              "key" : (Config::get<int>("opt_key") == 1 ?
+                "l-r" : (Config::get<int>("opt_key") == 2 ?
+                  "r-l" : (Config::get<int>("opt_key") == 3 ?
                     "head" : "unknown"))),
-            Configuration::get<bool>("opt_hyper") ? "+HA" : "-HA",
+            Config::get<bool>("opt_hyper") ? "+HA" : "-HA",
             Grammar->nhyperrules(),
-            opt_filter ? "+FI" : "-FI",
+            Config::get<bool>("opt_filter") ? "+FI" : "-FI",
             opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
             opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
-            ((Configuration::get<int>("opt_nsolutions") != 0) ? "+OS" : "-OS"),
-            Configuration::get<int>("opt_nsolutions"), 
-            opt_shrink_mem ? "+SM" : "-SM", 
-            opt_shaping ? "+SH" : "-SH",
+            ((Config::get<int>("opt_nsolutions") != 0) ? "+OS" : "-OS"),
+            Config::get<int>("opt_nsolutions"), 
+            Config::get<bool>("opt_shrink_mem") ? "+SM" : "-SM", 
+            Config::get<bool>("opt_shaping") ? "+SH" : "-SH",
             sizeof(dag_node),
             __DATE__, __TIME__,
             sts.c_str());
@@ -222,7 +222,7 @@ cheap_create_test_run(char *data, int run_id, char *comment,
                       char *custom)
 {
     if(protocol_version > 0 && protocol_version <= 2)
-        opt_tsdb = protocol_version;
+      Config::set("opt_tsdb", protocol_version);
 
     cheap_tsdb_summarize_run();
     return 0;
@@ -267,8 +267,8 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        pedgelimit = edges;
-        Configuration::set("opt_nsolutions", nanalyses);
+        Config::set("pedgelimit", edges);
+        Config::set("opt_nsolutions", nanalyses);
         
         gettimeofday(&tA, NULL);
 
@@ -331,11 +331,11 @@ cheap_complete_test_run(int run_id, char *custom)
       (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
 
 #ifdef QC_PATH_COMP
-    if(Configuration::get<char *>("opt_compute_qc") != NULL)
+    if(Config::get<char *>("opt_compute_qc") != NULL)
     {
       LOG(loggerTsdb, Level::INFO,
           "computing quick check paths");
-        FILE *qc = fopen(Configuration::get<char *>("opt_compute_qc"), "w");
+        FILE *qc = fopen(Config::get<char *>("opt_compute_qc"), "w");
         compute_qc_paths(qc);
         fclose(qc);
     }
@@ -371,7 +371,7 @@ tsdb_result::capi_print()
     if(scored)
         capi_printf("(:score . %.g) ", score);
 
-    if(opt_tsdb == 1)
+    if(Config::get<int>("opt_tsdb") == 1)
     {
         capi_printf("(:derivation . \"%s\") ", 
                     escape_string(derivation).c_str());
@@ -512,7 +512,7 @@ tsdb_parse::capi_print()
                 "(:utcpu . %d) " 
                 "(:upedges . %d) " 
                 "(:failures . %d) "
-		"(:hypotheses . %d) "
+                "(:hypotheses . %d) "
                 "\")",
                 nmeanings, 
                 mtcpu,
@@ -527,7 +527,7 @@ tsdb_parse::capi_print()
                 p_utcpu,
                 p_upedges,
                 p_failures,
-		p_hypotheses);
+                p_hypotheses);
 }
 
 #endif
@@ -567,7 +567,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                           int treal, int nderivations, 
                           tsdb_parse &T)
 {
-    if(Configuration::get<bool>("opt_derivation"))
+    int tsdb_mode;
+    Config::get<int>("opt_tsdb", tsdb_mode);
+    if(Config::get<bool>("opt_derivation"))
     {
         int nres = 0;
         if(nderivations >= 0) // default case, report results
@@ -586,8 +588,8 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     R.scored = true;
                     R.score = (*iter)->score();
                 }
-                if(opt_tsdb == 1)
-                    R.derivation = (*iter)->tsdb_derivation(opt_tsdb);
+                if(tsdb_mode == 1)
+                    R.derivation = (*iter)->tsdb_derivation(tsdb_mode);
                 else
                 {
                     R.edge_id = (*iter)->id();
@@ -595,10 +597,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 }
                 
 #ifdef HAVE_MRS
-                if(Configuration::get<char*>("opt_mrs"))
+                if(Config::get<char*>("opt_mrs"))
                 {
                   R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-                            Configuration::get<char*>("opt_mrs"));
+                            Config::get<char*>("opt_mrs"));
                 }
 #endif
                 T.push_result(R);
@@ -614,7 +616,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_result R;
                     
                     R.result_id = nres;
-                    R.derivation = it.current()->tsdb_derivation(opt_tsdb);
+                    R.derivation = it.current()->tsdb_derivation(tsdb_mode);
                     
                     T.push_result(R);
                     nres++;
@@ -623,7 +625,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         }
     }
 
-    if(Configuration::get<bool>("opt_rulestatistics"))
+    if(Config::get<bool>("opt_rulestatistics"))
     {
         for(rule_iter rule(Grammar); rule.valid(); rule++)
         {

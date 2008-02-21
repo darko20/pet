@@ -778,7 +778,8 @@ AC_CONFIG_FILES([Makefile
 		 cheap/Jamfile
                  common/Makefile
                  flop/Makefile
-		 flop/Jamfile])
+		 flop/Jamfile
+                 tests/Makefile])
 
 feature_avail() {
 (

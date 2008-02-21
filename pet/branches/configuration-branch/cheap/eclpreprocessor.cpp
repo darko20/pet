@@ -48,7 +48,7 @@ tFSRTokenizer::tFSRTokenizer(const char *grammar_path) {
   _format = ":yy";
 }
 
-void tFSRTokenizer::tokenize(myString s, inp_list &result) {
+void tFSRTokenizer::tokenize(myString s, inpitemlist &result) {
 #ifdef HAVE_ICU
   // send input to FSPP
   UnicodeString u_yyresult = preprocess(s.c_str(), _format);

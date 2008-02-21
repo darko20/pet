@@ -37,14 +37,15 @@
 #endif
 
 #include "item-printer.h"
+#include "dagprinter.h"
+#include <fstream>
 
-int grammar_rule::next_id = 0;
+int grammar_rule::next_id = tGrammar::init_globals();
 
 // defined in fs.cpp
 extern bool opt_compute_qc_unif, opt_compute_qc_subs;
 
 // defined in parse.cpp
-extern bool opt_filter;
 extern int  opt_packing;
 
 bool
@@ -65,7 +66,7 @@ bool
 predle_status(type_t t)
 {
   return cheap_settings->statusmember("predict-lexentry-status-values",
-				      typestatus[t]);
+                                      typestatus[t]);
 }
 
 bool
@@ -130,7 +131,7 @@ grammar_rule::grammar_rule(type_t t)
         throw tError("Feature structure of rule " + string(type_name(t))
                     + " does not contain "
                     + string(cheap_settings->req_value("rule-args-path")));
-    }	    
+    }
 
     argslist = dag_get_list(dag);
     
@@ -192,12 +193,14 @@ grammar_rule::grammar_rule(type_t t)
     // this is wrong for more than binary branching rules, 
     // since adjacency is not guarantueed.
     
-    if(Configuration::get<int>("opt_key") == 0)
+    int key_choice;
+    Config::get<int>("opt_key", key_choice);
+    if(key_choice == 0) // take key arg specified in fs
     {
         if(keyarg != -1) 
             _tofill = append(_tofill, keyarg);
     }
-    else if(Configuration::get<int>("opt_key") == 3)
+    else if(key_choice == 3) // take head daughter
     {
         if(head != -1) 
             _tofill = append(_tofill, head);
@@ -205,7 +208,7 @@ grammar_rule::grammar_rule(type_t t)
             _tofill = append(_tofill, keyarg);
     }
     
-    if(Configuration::get<int>("opt_key") != 2)
+    if(key_choice != 2) // right to left, 2 is left to right
     {
         for(int i = 1; i <= _arity; i++)
             if(!contains(_tofill, i)) _tofill = append(_tofill, i);
@@ -278,21 +281,26 @@ grammar_rule::lui_dump(const char *path) {
   } // if
   char name[MAXPATHLEN + 1];
   sprintf(name, "rule.%d.lui", _id);
-  FILE *stream;
-  if((stream = fopen(name, "w")) == NULL) {
+  ofstream stream(name);
+  if(! stream) { //(stream = fopen(name, "w")) == NULL) {
     LOG_ERROR(loggerGrammar,
               "grammar_rule::lui_dump(): unable to open `%s' (in `%s').",
               name, path);
     return;
   } // if
+  /*
   fprintf(stream, "avm -%d ", _id);
   fs foo = instantiate(true);
-  PrintfBuffer pb;
   foo.print(pb, DAG_FORMAT_LUI);
   fprintf(stream, "%s", pb.getContents());
   fprintf(stream, " \"Rule # %d (%s)\"\f\n", _id, printname());
   fclose(stream);
-
+  */
+  stream << "avm -" << _id << " ";
+  LUIDagPrinter ldp;
+  instantiate(true).print(stream, ldp);
+  stream << " \"Rule # " << _id << " (" << printname() << ")\"\f\n";
+  stream.close();
 } // grammar_rule::lui_dump()
 
 
@@ -354,6 +362,14 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
     qc_paths_subs = qc_paths_unif;
     qc_len_subs = qc_len_unif;
   }
+}
+
+
+int tGrammar::init_globals() {
+  Config::addOption<int>("opt_key",
+    "What is the key daughter used in parsing?"
+    "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", 0);
+  return 0;
 }
 
 // Construct a grammar object from binary representation in a file
@@ -444,7 +460,7 @@ tGrammar::tGrammar(const char * filename)
             _lexicon[i] = st;
             _stemlexicon.insert(make_pair(st->orth(st->inflpos()), st));
 #if defined(YY)
-            if(opt_yy && st->length() > 1) 
+            if(Config::get<bool>("opt_yy") && st->length() > 1) 
                 // for multiwords, insert additional index entry
             {
                 string full = st->orth(0);
@@ -483,10 +499,10 @@ tGrammar::tGrammar(const char * filename)
             _generics = cons(i, _generics);
             _lexicon[i] = new lex_stem(i);
         }
-	else if (predle_status(i)) {
-	  _predicts = cons(i, _predicts);
-	  _lexicon[i] = new lex_stem(i);
-	}
+        else if (predle_status(i)) {
+          _predicts = cons(i, _predicts);
+          _lexicon[i] = new lex_stem(i);
+        }
     }
 
     /*
@@ -544,7 +560,7 @@ tGrammar::tGrammar(const char * filename)
 
             if(r == 0)
                 continue;
-	  
+            
             if(t == -1)
                 _morph->add_global(string(r));
             else
@@ -561,12 +577,12 @@ tGrammar::tGrammar(const char * filename)
                               "warning: found syntax `%s' rule "
                               "with attached infl rule `%s'",
                               print_name(t), r);
-		      
+                        
                         iter.current()->trait(INFL_TRAIT);
                         found = true;
                     }
                 }
-	      
+                
                 if(!found)
                   LOG(loggerGrammar, Level::WARN,
                       "warning: rule `%s' with infl annotation "
@@ -578,7 +594,7 @@ tGrammar::tGrammar(const char * filename)
         }
 
         if(_morph->empty())
-            Configuration::set("opt_online_morph", false);
+            Config::set("opt_online_morph", false);
         
         LOG(loggerGrammar, Level::DEBUG, ", %d infl rules", ninflrs);
         if(verbosity >14) _morph->print(fstatus);
@@ -603,7 +619,7 @@ tGrammar::tGrammar(const char * filename)
                 delete[] form; delete[] infl; delete[] stem;
                 continue;
             }
-	  
+            
             _morph->add_irreg(string(stem), inflr, string(form));
             delete[] form; delete[] infl; delete[] stem;
         }
@@ -629,7 +645,7 @@ tGrammar::tGrammar(const char * filename)
             qc_len_subs = opt_nqc_subs;
     }
 
-    if(opt_filter)
+    if(Config::get<bool>("opt_filter"))
     {
       //char *save = opt_compute_qc;
       bool qc_subs = opt_compute_qc_subs;
@@ -659,8 +675,8 @@ tGrammar::tGrammar(const char * filename)
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
       catch(tError &e) {
-	fprintf(ferr, "\n%s", e.getMessage().c_str());
-	_lexsm = 0;
+        fprintf(ferr, "\n%s", e.getMessage().c_str());
+        _lexsm = 0;
       }
     }
 
@@ -979,7 +995,7 @@ tGrammar::nhyperrules()
 }
 
 bool
-tGrammar::root(fs &candidate, type_t &rule)
+tGrammar::root(const fs &candidate, type_t &rule) const
 {
     list_int *r;
     for(r = _root_insts, rule = -1; r != 0; r = rest(r))
@@ -1095,7 +1111,7 @@ tGrammar::lookup_form(const string form)
     list<full_form> result;
   
 #ifdef ONLINEMORPH
-    if(Configuration::get<bool>("opt_online_morph"))
+    if(Config::get<bool>("opt_online_morph"))
     {
         list<tMorphAnalysis> m = _morph->analyze(form);
         for(list<tMorphAnalysis>::iterator it = m.begin(); it != m.end(); ++it)

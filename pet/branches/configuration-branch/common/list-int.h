@@ -89,7 +89,7 @@ inline bool contains(const list_int *l, int e)
   while(l)
     {
       if(first(l) == e)
-	return true;
+        return true;
       
       l = rest(l);
     }
@@ -231,9 +231,9 @@ inline int compare(const list_int *a, const list_int *b)
   while(a && b)
     {
       if(first(a) < first(b))
-	return -1;
+        return -1;
       if(first(b) < first(a))
-	return 1;
+        return 1;
       
       a = rest(a); b = rest(b);
     }

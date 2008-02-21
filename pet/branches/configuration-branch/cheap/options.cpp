@@ -26,9 +26,9 @@
 #include "cheap.h"
 #include "utility.h"
 #include "version.h"
+#include "logging.h"
 #include <string>
 
-bool opt_shrink_mem, opt_shaping;
 
 // opt_fullform_morph is obsolete
 // bool opt_fullform_morph;
@@ -36,29 +36,9 @@ bool opt_shrink_mem, opt_shaping;
 //defined in fs.cpp
 extern bool opt_compute_qc_unif, opt_compute_qc_subs, opt_print_failure;
 
-//defined in parse.cpp
-extern bool opt_filter, opt_hyper;
-extern int  opt_nsolutions;
+int opt_nqc_unif, opt_nqc_subs, verbosity;
 
-// defined in item.cpp
-extern bool opt_lattice;
-
-#ifdef YY
-bool opt_yy, opt_nth_meaning;
-#endif
-
-int opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_server;
-int opt_tsdb;
-long int memlimit;
 char *grammar_file_name = 0;
-
-// 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting
-// level in MEM-based parse selection
-// defined in item.cpp
-extern unsigned int opt_gplevel;
-
-// defined in parse.cpp
-extern int opt_packing;
 
 void usage(FILE *f)
 {
@@ -91,8 +71,8 @@ void usage(FILE *f)
   fprintf(f, "  `-default-les' --- enable use of default lexical entries\n");
   fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
-  fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
 #ifdef YY
+  fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
   fprintf(f, "  `-k2y[=n]' --- "
           "output K2Y, filter at `n' %% of raw atoms (default: 50)\n");
   fprintf(f, "  `-k2y-segregation' --- "
@@ -171,106 +151,89 @@ void usage(FILE *f)
 #endif
 
 
+class FooConverter : public AbstractConverter<tokenizer_id> {
+  virtual ~FooConverter() {}
+  virtual std::string toString(const tokenizer_id& t) {
+    std::ostringstream out;
+    out << (int) t;
+    return out.str();
+  }
+  virtual tokenizer_id fromString(const std::string& s) {
+    if (s == "pic_counts") return TOKENIZER_PIC_COUNTS;
+    return TOKENIZER_INVALID;
+  }
+};
+
 void init_options()
-{
-  opt_tsdb = 0;
-  
+{  
   verbosity = 0;
-  pedgelimit = 0;
-  memlimit = 0;
-  opt_shrink_mem = true;
-  opt_shaping = true;
   
   opt_nqc_unif = -1;
   opt_nqc_subs = -1;
   
-  Configuration::addOption<char*>("opt_compute_qc",
+  Config::addOption<char*> ("opt_compute_qc",
     "Activate code that collects unification/subsumption failures "
     "for quick check computation, contains filename to write results to", 0);
   
-  Configuration::addReference<bool>("opt_compute_qc_unif", &opt_compute_qc_unif,
-    "Activate failure registration for unification", false);
+  Config::addReference<bool>("opt_compute_qc_unif",
+     "Activate failure registration for unification",
+     opt_compute_qc_unif, false);
   
-  Configuration::addReference<bool>("opt_compute_qc_subs", &opt_compute_qc_subs,
-    "Activate failure registration for subsumption", false);
+  Config::addReference<bool>
+    ("opt_compute_qc_subs", "Activate failure registration for subsumption",
+     opt_compute_qc_subs, false);
   
-  Configuration::addReference<bool>("opt_print_failure", &opt_print_failure,
-    "Log unification/subsumption failures "
-    "(should be replaced by logging or new/different API functionality)",
-    false);
+  Config::addReference<bool>
+    ("opt_print_failure", 
+     "Log unification/subsumption failures "
+     "(should be replaced by logging or new/different API functionality)",
+     opt_print_failure, false);
   
-  Configuration::addOption<int>("opt_key",
-    "What is the key daughter used in parsing?"
-    "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", 0);
-  
-  Configuration::addOption<bool>("opt_derivation",
+  Config::addOption<bool>("opt_derivation",
     "Store derivations in tsdb profile", true);
   
-  Configuration::addOption<bool>("opt_rulestatistics",
+  Config::addOption<bool>("opt_rulestatistics",
     "dump the per-rule statistics to the tsdb database", false);
   
-  Configuration::addOption<bool>("opt_default_les",
+  Config::addOption<bool>("opt_default_les",
     "Try to use default lexical entries if no regular entries could be found. "
     "Uses POS annotation, if available.", false);
   
-  opt_server = 0;
+  Config::addOption<bool>("opt_pg", "", false);
   
-  Configuration::addOption<bool>("opt_pg", "", false);
-  
-  Configuration::addOption<bool>("opt_chart_man",
+  Config::addOption<bool>("opt_chart_man",
     "Allow lexical dependency filtering", true);
   
-  Configuration::addReference<bool>("opt_lattice", &opt_lattice, 
-    "is the lattice structure specified in the input "
-    "used to restrict the search space in parsing", false);
+  Config::addOption<bool>("opt_nbest", "", false);
   
-  Configuration::addOption<bool>("opt_nbest", "", false);
-  
-  Configuration::addOption<bool>("opt_online_morph", 
+  Config::addOption<bool>("opt_online_morph", 
     "use the internal morphology (the regular expression style one)", true);
   
   // opt_fullform_morph is obsolete
   // opt_fullform_morph = true;
     
-  Configuration::addReference<int>("opt_packing", &opt_packing,
-    "a bit vector of flags: 1:equivalence 2:proactive 4:retroactive packing "
-    "8:selective 128:no unpacking", 0);
-  opt_predict_les = 0;
+  Config::addOption("opt_predict_les", 
+                    "if not zero predict lexical entries for uncovered input",
+                    (int) 0);
 
-  Configuration::addOption<char*>("opt_mrs",
+  Config::addOption<char*>("opt_mrs",
     "determines if and which kind of MRS output is generated", 0 );
   
-  Configuration::addOption<std::string>("opt_tsdb_dir", "", "");
-
-  Configuration::addOption<bool>("opt_partial",
+  Config::addOption<bool>("opt_partial",
     "in case of parse failure, find a set of chart edges "
     "that covers the chart in a good manner", false);
   
-  Configuration::addOption<int>("opt_nresults",
-    "The number of results to print "
-    "(should be an argument of an API function)", 0);
+  Config::addOption<int>("opt_nresults",
+                         "The number of results to print "
+                         "(should be an argument of an API function)", 0);
   
-  Configuration::addOption<tokenizer_id>("opt_tok", "", TOKENIZER_STRING);
+  Config::addOption<tokenizer_id>("opt_tok", "", TOKENIZER_STRING,
+                                  new FooConverter());
 
-  Configuration::addOption<std::string>("opt_jxchg_dir",
-    "the directory to write parse charts in jxchg format to",
-    "");
-  
-  // 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
-  Configuration::addOption<bool>("opt_comment_passthrough",
-    "Ignore/repeat input classified as comment: starts with '#' or '//'",
-    false);
-  
-  Configuration::addOption<bool>("opt_linebreaks", "", false);
-  
-  Configuration::addReference<unsigned int>("opt_gplevel", &opt_gplevel,
-    "determine the level of grandparenting "
-    "used in the models for selective unpacking", 0);
+  Config::addOption("opt_jxchg_dir",
+                    "the directory to write parse charts in jxchg format to",
+                    ((std::string) ""));
 
-#ifdef YY
-  opt_yy = false;
-  opt_nth_meaning = 0;
-#endif
 }
 
 #ifndef __BORLANDC__
@@ -334,7 +297,8 @@ bool parse_options(int argc, char* argv[])
       {
       case '?':
           return false;
-      case OPTION_TSDB:
+      case OPTION_TSDB: {
+          int opt_tsdb;
           if(optarg != NULL)
           {
               opt_tsdb = strtoint(optarg, "as argument to -tsdb");
@@ -350,71 +314,75 @@ bool parse_options(int argc, char* argv[])
           {
               opt_tsdb = 1;
           }
+          Config::set("opt_tsdb", opt_tsdb);
+          }
           break;
       case OPTION_NSOLUTIONS:
           if(optarg != NULL)
-              Configuration::set("opt_nsolutions",
+              Config::set("opt_nsolutions",
                 strtoint(optarg, "as argument to -nsolutions"));
           else
-              Configuration::set("opt_nsolutions", 1);
+              Config::set("opt_nsolutions", 1);
           break;
       case OPTION_DEFAULT_LES:
-          Configuration::set("opt_default_les", true);
+          Config::set("opt_default_les", true);
           break;
       case OPTION_NO_CHART_MAN:
-          Configuration::set("opt_chart_man", false); 
+          Config::set("opt_chart_man", false); 
           break;
       case OPTION_SERVER:
           if(optarg != NULL)
-              opt_server = strtoint(optarg, "as argument to `-server'");
+            Config::setString("opt_server", optarg);
           else
-              opt_server = CHEAP_SERVER_PORT;
+            Config::set("opt_server", CHEAP_SERVER_PORT);
           break;
       case OPTION_NO_SHRINK_MEM:
-          opt_shrink_mem = false;
+          Config::set("opt_shrink_mem", false);
           break;
       case OPTION_NO_FILTER:
-          Configuration::set("opt_filter", false);
+          Config::set("opt_filter", false);
           break;
       case OPTION_NO_HYPER:
-          Configuration::set("opt_hyper", false);
+          Config::set("opt_hyper", false);
           break;
       case OPTION_NO_DERIVATION:
-          Configuration::set("opt_derivation", false);
+          Config::set("opt_derivation", false);
           break;
       case OPTION_RULE_STATISTICS:
-          Configuration::set("opt_rulestatistics", true);
+          Config::set("opt_rulestatistics", true);
           break;
       case OPTION_COMPUTE_QC:
+        // TODO: this is maybe the first application for a callback option to
+        // handle the three cases
           if(optarg != NULL)
-              Configuration::set("opt_compute_qc", strdup(optarg));
+              Config::set("opt_compute_qc", strdup(optarg));
           else
-              Configuration::set("opt_compute_qc", "/tmp/qc.tdl");
-          Configuration::set("opt_compute_qc_unif", true);
-          Configuration::set("opt_compute_qc_subs", true);
+              Config::set("opt_compute_qc", "/tmp/qc.tdl");
+          Config::set("opt_compute_qc_unif", true);
+          Config::set("opt_compute_qc_subs", true);
           break;
       case OPTION_COMPUTE_QC_UNIF:
           if(optarg != NULL)
-              Configuration::set("opt_compute_qc", strdup(optarg));
+              Config::set("opt_compute_qc", strdup(optarg));
           else
-              Configuration::set("opt_compute_qc", "/tmp/qc.tdl");
-          Configuration::set("opt_compute_qc_unif", true);
+              Config::set("opt_compute_qc", "/tmp/qc.tdl");
+          Config::set("opt_compute_qc_unif", true);
           break;
       case OPTION_COMPUTE_QC_SUBS:
           if(optarg != NULL)
-              Configuration::set("opt_compute_qc", strdup(optarg));
+              Config::set("opt_compute_qc", strdup(optarg));
           else
-              Configuration::set("opt_compute_qc", "/tmp/qc.tdl");
-          Configuration::set("opt_compute_qc_subs", true);
+              Config::set("opt_compute_qc", "/tmp/qc.tdl");
+          Config::set("opt_compute_qc_subs", true);
           break;
       case OPTION_PRINT_FAILURE:
-          Configuration::set("opt_print_failure", true);
+          Config::set("opt_print_failure", true);
           break;
       case OPTION_PG:
-          Configuration::set("opt_pg", true);
+          Config::set("opt_pg", true);
           break;
       case OPTION_LATTICE:
-          Configuration::set("opt_lattice", true);
+          Config::set("opt_lattice", true);
           break;
       case OPTION_VERBOSE:
           if(optarg != NULL)
@@ -432,16 +400,16 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_KEY:
           if(optarg != NULL)
-              Configuration::set("opt_key",
+              Config::set("opt_key",
                 strtoint(optarg, "as argument to `-key'"));
           break;
       case OPTION_LIMIT:
           if(optarg != NULL)
-              pedgelimit = strtoint(optarg, "as argument to -limit");
+            Config::setString("pedgelimit", optarg);
           break;
       case OPTION_MEMLIMIT:
           if(optarg != NULL)
-              memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
+            Config::setString("memlimit", optarg);
           break;
       case OPTION_LOG:
           if(optarg != NULL)
@@ -449,38 +417,38 @@ bool parse_options(int argc, char* argv[])
               else flog = fopen(optarg, "w");
           break;
       case OPTION_NBEST:
-          Configuration::set("opt_nbest", true);
+          Config::set("opt_nbest", true);
           break;
       case OPTION_NO_ONLINE_MORPH:
-          Configuration::set("opt_online_morph", false);
+          Config::set("opt_online_morph", false);
           break;
       case OPTION_NO_FULLFORM_MORPH:
           // opt_fullform_morph is obsolete
           // opt_fullform_morph = false;
           break;
       case OPTION_PACKING:
-          if(optarg != NULL)
-            Configuration::set("opt_packing",
-              strtoint(optarg, "as argument to `-packing'"));
-          else
-            Configuration::set("opt_packing",
-              PACKING_EQUI|PACKING_PRO|PACKING_RETRO|PACKING_SELUNPACK);
-          break;
+        if(optarg != NULL)
+          Config::setString("opt_packing", optarg);
+        else
+          Config::set("opt_packing", 
+                      (int)(PACKING_EQUI | PACKING_PRO |
+                            PACKING_RETRO | PACKING_SELUNPACK));
+        break;
       case OPTION_MRS:
           if(optarg != NULL)
-            Configuration::set("opt_mrs", strdup(optarg));
+            Config::set("opt_mrs", strdup(optarg));
           else
-            Configuration::set("opt_mrs", "simple");
+            Config::set("opt_mrs", "simple");
           break;
       case OPTION_TSDB_DUMP:
-          Configuration::set<std::string>("opt_tsdb_dir", optarg);
+        Config::set<std::string>("opt_tsdb_dir", ((std::string) optarg));
           break;
       case OPTION_PARTIAL:
-          Configuration::set("opt_partial", true);
+          Config::set("opt_partial", true);
           break;
       case OPTION_NRESULTS:
           if(optarg != NULL)
-              Configuration::set("opt_nresults",
+              Config::set("opt_nresults",
                 strtoint(optarg, "as argument to -results"));
           break;
       case OPTION_TOK: 
@@ -494,12 +462,12 @@ bool parse_options(int argc, char* argv[])
             else if (strcasecmp(optarg, "yy_counts") == 0)
               opt_tok = TOKENIZER_YY_COUNTS;
             else if (strcasecmp(optarg, "xml") == 0) {
-              LOG_WARN(loggerUncategorized, "WARNING: deprecated command-line option "
+              LOG(loggerUncategorized, WARN, "WARNING: deprecated command-line option "
                        " -tok=xml, use -tok=pic instead\n");
               opt_tok = TOKENIZER_PIC; // deprecated command-line option
             }
             else if (strcasecmp(optarg, "xml_counts") == 0) {
-              LOG_WARN(loggerUncategorized, "WARNING: deprecated command-line option "
+              LOG(loggerUncategorized, WARN, "WARNING: deprecated command-line option "
                        " -tok=xml_counts, use -tok=pic_counts instead\n");
               opt_tok = TOKENIZER_PIC_COUNTS; // deprecated command-line option
             }
@@ -516,41 +484,40 @@ bool parse_options(int argc, char* argv[])
                         "WARNING: unknown tokenizer mode "
                         "\"%s\": using 'tok=string'", optarg);
           }
-          Configuration::set("opt_tok", opt_tok);
+          Config::set("opt_tok", opt_tok);
         }
         break;
       case OPTION_JXCHG_DUMP:
-          Configuration::set<std::string>("opt_jxchg_dir", optarg);
-          if (*(Configuration::get<std::string>("opt_jxchg_dir").end()--)
+          Config::set<std::string>("opt_jxchg_dir", optarg);
+          if (*(Config::get<std::string>("opt_jxchg_dir").end()--)
               != '/') 
-            Configuration::get<std::string>("opt_jxchg_dir") += '/';
+            Config::get<std::string>("opt_jxchg_dir") += '/';
           break;
 
       case OPTION_COMMENT_PASSTHROUGH:
           if(optarg != NULL)
-            Configuration::set("opt_comment_passthrough", 
-              strtoint(optarg, "as argument to -comment-passthrough") == 1);
+            Config::setString("opt_comment_passthrough", optarg);
           else
-              Configuration::set("opt_comment_passthrough", true);
-	  break;
+            Config::set("opt_comment_passthrough", true);
+          break;
 
       case OPTION_PREDICT_LES:
-	  if (optarg != NULL)
-	    opt_predict_les = strtoint(optarg, "as argument to -predict-les");
-	  else 
-	    opt_predict_les = 1;
-	  break;
+        if (optarg != NULL)
+          Config::setString("opt_predict_les", optarg);
+        else 
+          Config::set("opt_predict_les", (int) 1);
+        break;
 
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
-              opt_nth_meaning = strtoint(optarg, "as argument to -one-meaning");
+            Config::setString("opt_nth_meaning", optarg);
           else
-              opt_nth_meaning = 1;
+            Config::set("opt_nth_meaning", 1);
           break;
       case OPTION_YY:
-          opt_yy = true;
-          Configuration::set("opt_tok", TOKENIZER_YY);
+          Config::set("opt_yy", true);
+          Config::set("opt_tok", TOKENIZER_YY);
           break;
 #endif
         }
@@ -564,12 +531,13 @@ bool parse_options(int argc, char* argv[])
     }
   grammar_file_name = argv[optind];
 
-  if(opt_hyper && Configuration::get<char*>("opt_compute_qc") != 0)
+  if( Config::get<bool>("opt_hyper") &&
+      Config::get<char*>("opt_compute_qc") != NULL)
   {
     LOG_ERROR(loggerUncategorized, 
               "quickcheck computation doesn't work "
               "in hyperactive mode, disabling hyperactive mode.");
-      Configuration::set("opt_hyper", false);
+      Config::set("opt_hyper", false);
   }
 
   return true;
@@ -599,19 +567,16 @@ void options_from_settings(settings *set)
 {
   init_options();
   if(bool_setting(set, "one-solution"))
-      Configuration::set("opt_nsolutions", 1);
+      Config::set("opt_nsolutions", 1);
   else
-      Configuration::set("opt_nsolutions", 0);
+      Config::set("opt_nsolutions", 0);
   verbosity = int_setting(set, "verbose");
-  pedgelimit = int_setting(set, "limit");
-  memlimit = 1024 * 1024 * int_setting(set, "memlimit");
-  Configuration::set("opt_hyper", bool_setting(set, "hyper"));
-  Configuration::set("opt_default_les", bool_setting(set, "default-les"));
-  opt_predict_les = int_setting(set, "predict-les");
+  Config::set("pedgelimit", int_setting(set, "limit"));
+  Config::set("memlimit", int_setting(set, "memlimit"));
+  Config::set("opt_hyper", bool_setting(set, "hyper"));
+  Config::set("opt_default_les", bool_setting(set, "default-les"));
+  Config::set("opt_predict_les", int_setting(set, "predict-les"));
 #ifdef YY
-  if(bool_setting(set, "one-meaning"))
-    opt_nth_meaning = 1;
-  else
-    opt_nth_meaning = 0;
+  Config::set("opt_nth_meaning", (bool_setting(set, "one-meaning")) ? 1 : 0);
 #endif
 }
