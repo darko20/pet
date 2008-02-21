@@ -36,10 +36,6 @@
 
 #include <map>
 
-using std::string;
-using std::map;
-using std::list;
-
 /** @name global variables for quick check */
 /*@{*/
 /** Number of the unification quick check paths to consider */
@@ -99,6 +95,7 @@ class grammar_rule
   void print(IPrintfHandler &iph);
 
   /** Dump grammar in a format feasible for LUI (?) into \a directory */
+  // \todo should go in favor of the print method above
   void lui_dump(const char* directory = "/tmp");
 
   /** Return the feature structure associated with this rule.
@@ -170,6 +167,9 @@ class grammar_rule
 class tGrammar
 {
  public:
+  /** initialize global options */
+  static int init_globals();
+
   /** Initalize this grammar by reading it from the file \a filename */
   tGrammar(const char *filename);
   ~tGrammar();
@@ -177,10 +177,10 @@ class tGrammar
   /** \brief Look up a grammar property with name \a key. If it does not exist,
    *  the returned string will be empty.
    */
-  string property(string key);
+  std::string property(std::string key);
   
   /** Return the map containing the grammar properties */
-  inline map<string, string> &properties()
+  inline std::map<std::string, std::string> &properties()
     { return _properties; }
 
   /** Check if \a fs is compatible with one of the root nodes.
@@ -188,7 +188,7 @@ class tGrammar
    * \return \c true if \a f is compatible with one of the root FS nodes and
    * return the type of this root node in \a rule.
    */
-  bool root(fs &f, type_t &rule);
+  bool root(const fs &f, type_t &rule) const;
 
   /** Return the list of attributes that should be deleted in the root dags of
    *  passive items.
@@ -200,7 +200,7 @@ class tGrammar
     return *_packing_restrictor;
   }
 
-  /** Is successful unification of \a daugther as \a arg th argument of \a
+  /** Is successful unification of \a daughter as \a arg th argument of \a
    *  mother possible?
    * This is a precomputed table containing all the possible rule combinations,
    * which can be rapidly looked up to avoid failing unifications.
@@ -213,7 +213,7 @@ class tGrammar
       (1 << (arg - 1));
   }
 
-  /** Is successful unification of \a daugther as \a arg th argument of \a
+  /** Is successful unification of \a daughter as \a arg th argument of \a
    *  mother possible? 
    * This is a precomputed table containing all the possible rule combinations,
    * which can be rapidly looked up to avoid failing unifications.
@@ -258,7 +258,7 @@ class tGrammar
    */
   lex_stem *find_stem(type_t inst_key);
   /** return all lex_stem pointers for the base form \a s. */
-  list<lex_stem *> lookup_stem(string s);
+  std::list<lex_stem *> lookup_stem(std::string s);
 
 #ifdef EXTDICT
   extDictionary *extDict() { return _extDict; }
@@ -266,7 +266,7 @@ class tGrammar
 #endif
   
   // _fix_me_ becomes obsolete when yy.cpp does
-  //list<full_form> lookup_form(const string form);
+  //std::list<full_form> lookup_form(const std::string form);
 
   /** Return the list of generic lexicon entries in this grammar */
   list_int *generics() { return _generics; }
@@ -275,7 +275,7 @@ class tGrammar
   list_int *predicts() { return _predicts; }
 
   /** \todo becomes obsolete when yy.cpp does */
-  bool punctuationp(const string &s);
+  bool punctuationp(const std::string &s);
 
 #if 0
   // obsolete
@@ -323,7 +323,7 @@ class tGrammar
    *  available.
    */
   grammar_rule * find_rule(type_t type) {
-    map<type_t, grammar_rule *>::iterator it = _rule_dict.find(type);
+    std::map<type_t, grammar_rule *>::iterator it = _rule_dict.find(type);
     if(it != _rule_dict.end()) {
       return it->second;
     } else {
@@ -332,27 +332,27 @@ class tGrammar
   }
 
  private:
-  map<string, string> _properties;
+  std::map<std::string, std::string> _properties;
 
 #if 0
 #ifndef HAVE_ICU
-  string _punctuation_characters;
+  std::string _punctuation_characters;
 #else
   UnicodeString _punctuation_characters;
 #endif
 #endif
 
-  map<type_t, lex_stem *> _lexicon;
+  std::map<type_t, lex_stem *> _lexicon;
   std::multimap<std::string, lex_stem *> _stemlexicon;
 
 #ifdef EXTDICT
   extDictionary *_extDict;
-  list<lex_stem *> _dynamicstems;
+  std::list<lex_stem *> _dynamicstems;
   int _extdict_discount;
 #endif
 
 #if 0
-  typedef multimap<string, full_form *> ffdict;
+  typedef std::multimap<std::string, full_form *> ffdict;
   ffdict _fullforms;
 #endif
 
@@ -367,16 +367,16 @@ class tGrammar
    * lex rules will be active in the first phase. Only syn rules will then be
    * active in the second phase.
    */
-  list<grammar_rule *> _rules;
+  std::list<grammar_rule *> _rules;
 
   /** The set of syntactic rules */
-  list<grammar_rule *> _syn_rules;
+  std::list<grammar_rule *> _syn_rules;
   /** The set of lexical rules */
-  list<grammar_rule *> _lex_rules;
+  std::list<grammar_rule *> _lex_rules;
   /** The set of inflectional rules */
-  list<grammar_rule *> _infl_rules;
+  std::list<grammar_rule *> _infl_rules;
   /** Map the rule type back to the rule structure */
-  map<type_t, grammar_rule *> _rule_dict;
+  std::map<type_t, grammar_rule *> _rule_dict;
 
   list_int *_root_insts;
 
@@ -443,7 +443,7 @@ class rule_iter
     }
 
  private:
-  list<grammar_rule *>::iterator _curr;
+  std::list<grammar_rule *>::iterator _curr;
   tGrammar *_G;
 };
 

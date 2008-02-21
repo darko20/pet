@@ -114,10 +114,10 @@ struct dag_node *dagify_avm(struct avm *A)
       // type computation.
       if(opt_no_sem 
          && attr == attributes.id(flop_settings->req_value("sem-attr")))
-	continue;
+        continue;
 
       if((val = dagify_conjunction(A->av[i]->val, BI_TOP)) == FAIL)
-	return FAIL;
+        return FAIL;
  
       if((arc = dag_find_attr(result->arcs, attr)))
         {
@@ -147,7 +147,7 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
       else
         {
           result = new_dag( (L->openlist || L->difflist) ? BI_TOP : BI_NIL );
-	  // crucially not nil for diff_lists - leads to expansion failure
+          // crucially not nil for diff_lists - leads to expansion failure
           if(last)
             {
               if(dag_unify1(last, result) == FAIL)
@@ -202,18 +202,18 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
 
   for(i = 0; C && i < C->n; i++)
     if( C->term[i]->tag == TYPE || C->term[i]->tag == ATOM ||
-	C->term[i]->tag == STRING )
+        C->term[i]->tag == STRING )
       {
-	int newtype;
+        int newtype;
 
-	if( C->term[i]->tag == ATOM)
-	  {
-	    C->term[i]->type = types.id(string("'") + C->term[i]->value);
-	  }
-	else if( C->term[i]->tag == STRING )
-	  {
-	    C->term[i]->type = types.id(string("\"") + C->term[i]->value + string("\""));
-	  }
+        if( C->term[i]->tag == ATOM)
+          {
+            C->term[i]->type = types.id(string("'") + C->term[i]->value);
+          }
+        else if( C->term[i]->tag == STRING )
+          {
+            C->term[i]->type = types.id(string("\"") + C->term[i]->value + string("\""));
+          }
 
         newtype = glb(type, C->term[i]->type);
         if(newtype == -1)
@@ -225,22 +225,22 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
                 typenames[type],
                 typenames[C->term[i]->type]);
             return FAIL;
-	  }
-	type = newtype;
+          }
+        type = newtype;
       }
     else if(C->term[i]->tag == COREF)
       {
-	if(cref != -1 && cref != C->term[i]->coidx)
-	  {
+        if(cref != -1 && cref != C->term[i]->coidx)
+          {
             LOG(loggerUncategorized, Level::INFO,
                 "type `%s': term specifies two coreference indices:"
                 " %d & %d...",
                 typenames[current_toplevel_type],
                 cref, C->term[i]->coidx);
-	    return FAIL;
-	  }
-	else
-	  cref = C->term[i]->coidx;
+            return FAIL;
+          }
+        else
+          cref = C->term[i]->coidx;
       }
 
   struct dag_node *result;
@@ -302,7 +302,7 @@ void dagify_types()
   for(int i = 0; i < types.number(); i++)
     {
       types[i]->thedag = dagify_tdl_term(types[i]->constraint, i,
-					 types[i]->coref ?
-					 types[i]->coref->n : 0);
+                                         types[i]->coref ?
+                                         types[i]->coref->n : 0);
     }
 }

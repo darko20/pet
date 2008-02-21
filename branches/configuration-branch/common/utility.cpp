@@ -88,7 +88,7 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   if(quotedp)
     {
       if(!*s == '"' || (foo = strrchr(s, '"')) == NULL)
-	throw tError(string("invalid quoted integer `") + string(s) +
+        throw tError(string("invalid quoted integer `") + string(s) +
                      string("' ") + string(errloc));
       s++;
     }
@@ -107,52 +107,52 @@ string convert_escapes(const string &s)
   for(string::size_type i = 0; i < s.length(); i++)
     {
       if(s[i] != '\\')
-	res += s[i];
+        res += s[i];
       else
-	{
-	  i++;
-	  if(i >= s.length())
-	    return res;
-	  switch(s[i])
-	    {
-	    case '\"':
-	      res += "\"";
-	      break;
-	    case '\'':
-	      res += "\'";
-	      break;
-	    case '?':
-	      res += "\?";
-	      break;
-	    case '\\':
-	      res += "\\";
-	      break;
-	    case 'a':
-	      res += "\a";
-	      break;
-	    case 'b':
-	      res += "\b";
-	      break;
-	    case 'f':
-	      res += "\f";
-	      break;
-	    case 'n':
-	      res += "\n";
-	      break;
-	    case 'r':
-	      res += "\r";
-	      break;
-	    case 't':
-	      res += "\t";
-	      break;
-	    case 'v':
-	      res += "\v";
-	      break;
-	    default:
-	      res += s[i];
-	      break;
-	    }
-	}
+        {
+          i++;
+          if(i >= s.length())
+            return res;
+          switch(s[i])
+            {
+            case '\"':
+              res += "\"";
+              break;
+            case '\'':
+              res += "\'";
+              break;
+            case '?':
+              res += "\?";
+              break;
+            case '\\':
+              res += "\\";
+              break;
+            case 'a':
+              res += "\a";
+              break;
+            case 'b':
+              res += "\b";
+              break;
+            case 'f':
+              res += "\f";
+              break;
+            case 'n':
+              res += "\n";
+              break;
+            case 'r':
+              res += "\r";
+              break;
+            case 't':
+              res += "\t";
+              break;
+            case 'v':
+              res += "\v";
+              break;
+            default:
+              res += s[i];
+              break;
+            }
+        }
     }
   return res;
 }

@@ -12,6 +12,9 @@
 #include "xercesc/framework/LocalFileInputSource.hpp"
 #include "xercesc/util/XMLString.hpp"
 
+#include <string>
+#include <list>
+
 /** Tokenizer similar to the yy mode tokenizer, using a custom XML DTD giving
  *  more flexibility for the input stage, and also maybe more clarity.
  */
@@ -27,10 +30,10 @@ public:
   virtual ~tPICTokenizer() {}
 
   /** Produce a set of tokens from the given XML input. */
-  virtual void tokenize(string input, inp_list &result);
+  virtual void tokenize(std::string input, inpitemlist &result);
   
   /** A string to describe the module */
-  virtual string description() { return "XML input chart reader"; }
+  virtual std::string description() { return "XML input chart reader"; }
 
   /** Return \c true if the position in the returned tokens are counts instead
    *  of positions.
@@ -41,10 +44,10 @@ public:
 
 private:
   /** Produce a set of tInputItem tokens from the given XML input on stdin. */
-  void tokenize_from_stream(string input, inp_list &result);
+  void tokenize_from_stream(std::string input, inpitemlist &result);
 
   /** Produce a set of tokens from the given XML file. */
-  void tokenize_from_file(string filename, inp_list &result);
+  void tokenize_from_file(std::string filename, inpitemlist &result);
 
   position_map _position_mapping;
 };

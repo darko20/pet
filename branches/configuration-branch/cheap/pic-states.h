@@ -22,7 +22,6 @@
 namespace pic {
 
   //XERCES_CPP_NAMESPACE_USE
-using namespace std;
 
 /**
  * The base class to parse PetInputChart XML files.
@@ -140,8 +139,8 @@ int req_int_attr(AttributeList& attr, char *aname);
 int opt_int_attr(AttributeList& attr, char *aname, int def);
 double req_double_attr(AttributeList& attr, char *aname);
 double opt_double_attr(AttributeList& attr, char *aname, double def);
-string req_string_attr(AttributeList &attr, char *aname);
-string opt_string_attr(AttributeList &attr, char *aname);
+std::string req_string_attr(AttributeList &attr, char *aname);
+std::string opt_string_attr(AttributeList &attr, char *aname);
 /*@}*/
 
 protected:
@@ -259,20 +258,20 @@ public:
   void add_path(int pathnum) { _paths.push_back(pathnum); }
 
   /** Add POS \a tag with weight \a prio to the current list */
-  void add_pos(string tag, double prio) {
+  void add_pos(std::string tag, double prio) {
     _pos.add(tag, prio);
   }
 
   /** Create a new unstructured tInputItem */
-  void add_item(string id, bool base, double prio, string stem
-                , list<int> &infls, ::modlist &mods) {
+  void add_item(std::string id, bool base, double prio, std::string stem
+                , std::list<int> &infls, ::modlist &mods) {
     // in principle, we had to check that this w node is not "constant". Those
     // nodes should not contain typeinfos
     int tokenclass = STEM_TOKEN_CLASS;
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
       if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
-        throw Error((string) "unknown type in w tag '" + stem + "'");
+        throw Error((std::string) "unknown type in w tag '" + stem + "'");
     }
     tInputItem *new_item 
       = new tInputItem(id, _cstart, _cend, _surface, stem
@@ -286,19 +285,19 @@ public:
   }
 
   /** Store the surface string */
-  void set_surface(string &s) { _surface = s; }
+  void set_surface(std::string &s) { _surface = s; }
 
 private:
-  list<int> _paths;
+  std::list<int> _paths;
 
-  string _id, _surface;
+  std::string _id, _surface;
   int _cstart, _cend;
   double _prio;
   bool _constant;
   postags _pos;
 
   int _items;
-  // list< tInputItem * > _items;
+  // std::list< tInputItem * > _items;
 };
 
 /** pic state representing the ne token: a named entity (consisting of w
@@ -332,21 +331,21 @@ public:
   }
 
   /** Add POS \a tag with weight \a prio to the current list */
-  void add_pos(string tag, double prio) {
+  void add_pos(std::string tag, double prio) {
     _pos.add(tag, prio);
   }
   
   /** Append the next given daughter to the daughters list */
-  void append_dtr(const string &id) { 
+  void append_dtr(const std::string &id) { 
     //tInputItem *item = _pic_state->get_item(id);
     tInputItem *item = _reader->get_item(id);
-    if (item == NULL) throw Error((string) "unknown item '" + id + "'");
+    if (item == NULL) throw Error((std::string) "unknown item '" + id + "'");
     _dtrs.push_back(item);
   }
 
   /** Add a structured input item to the list of input items */
-  void add_item(string id, bool base, double prio, string stem
-                , list<int> &infls, ::modlist &mods) {
+  void add_item(std::string id, bool base, double prio, std::string stem
+                , std::list<int> &infls, ::modlist &mods) {
     // OK we have to have a new tInputItem constructor here that allows to
     // create structured items. This constructor must take care of start and
     // end position.
@@ -356,7 +355,7 @@ public:
     if (! base) {
       // The "stem" is not a stem but a type name. Look up its code.
       if ((tokenclass = lookup_type(stem.c_str())) == T_BOTTOM)
-        throw Error((string) "unknown type in ne tag '" + stem + "'");
+        throw Error((std::string) "unknown type in ne tag '" + stem + "'");
     }
 
     tInputItem *new_item = new tInputItem(id, _dtrs, stem, tokenclass, mods);
@@ -369,14 +368,14 @@ public:
   }
 
 private:
-  string _id;
+  std::string _id;
   double _prio;
   postags _pos;
   tPaths _paths;
 
   int _items;
   //pet_input_chart* _pic_state;
-  list< tInputItem * > _dtrs; // , _items;
+  std::list< tInputItem * > _dtrs; // , _items;
 };
 
 /** pic state representing the path token */
@@ -437,29 +436,29 @@ public:
   /*@}*/
 
   /** set the stem for this typeinfo */
-  void set_stem(string str){
+  void set_stem(std::string str){
     _stem = str;
   }
 
   /** Append the inflection rule \a name to the current list. */
-  void append_infl(string name){
+  void append_infl(std::string name){
     type_t infl_rule_type = lookup_type(name.c_str());
     if(infl_rule_type == T_BOTTOM)
-      throw Error((string) "unknown infl type '" + name + "'");
+      throw Error((std::string) "unknown infl type '" + name + "'");
     _infls.push_back(infl_rule_type);
   }
 
   /** Add the feature structure modification with \a path and \a val to the
    *  current list.
    */
-  void add_fsmod(string path, string val) {
-    _mods.push_back(pair<string, type_t>(path, lookup_symbol(val.c_str())));
+  void add_fsmod(std::string path, std::string val) {
+    _mods.push_back(std::pair<std::string, type_t>(path, lookup_symbol(val.c_str())));
   }
 
 private:
 
-  string _id, _stem;
-  list<int> _infls;
+  std::string _id, _stem;
+  std::list<int> _infls;
   ::modlist _mods;
   bool _base;
   double _prio;
@@ -525,7 +524,7 @@ public:
 class surface : public pic_base_state {
   STATE_COMMON_CODE(surface)
 private:
-  string _surface;
+  std::string _surface;
 
 public:
   surface(PICHandler *picreader) : pic_base_state(picreader) {} ;
@@ -553,7 +552,7 @@ public:
 class stem : public pic_base_state {
   STATE_COMMON_CODE(stem)
 private:
-  string _surface;
+  std::string _surface;
 
 public:
   stem(PICHandler *picreader) : pic_base_state(picreader) {} ;

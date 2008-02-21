@@ -117,7 +117,7 @@ void chart::print(std::ostream &out)
     }
 }
 
-void chart::print(tItemPrinter *f, bool passives, bool actives)
+void chart::print(tAbstractItemPrinter *f, bool passives, bool actives)
 {
     int i = 0;
     for(chart_iter pos(this); pos.valid(); pos++, i++)
@@ -140,18 +140,18 @@ void chart::get_statistics()
         tItem *it = iter.current();
         
         if(it->trait() == INFL_TRAIT)
-	{
+        {
             stats.medges++;
-	}
+        }
         else if(it -> passive())
-	{
+        {
             stats.pedges++;
             if(it -> result_contrib())
                 stats.rpedges++;
             
             fs f = it -> get_fs();
             totalsize += f.size();
-	}
+        }
         else
         {
             stats.aedges++;

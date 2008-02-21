@@ -32,12 +32,15 @@
 #include "failure.h"
 
 #include <queue>
+#include <sstream>
 
 // _fix_me_ this should not be hardwired (need to make sure it exists)
 #define DUMMY_ATTR "ARGS"
 
-// defined in parse.cpp
-extern int opt_packing;
+using std::set;
+using std::vector;
+using std::list;
+using std::map;
 
 inline bool
 intersect_empty(set<int> &a, set<int> &b)
@@ -142,7 +145,7 @@ choose_paths(FILE *f,
 
         for(set<int>::iterator iter = fail_sets[d].begin();
             iter != fail_sets[d].end(); ++iter)
-	{
+        {
             int value = 0;
             for(list<int>::iterator it = path_covers[*iter].begin();
                 it != path_covers[*iter].end(); ++it)
@@ -195,6 +198,13 @@ choose_paths(FILE *f,
 
 extern int next_failure_id;
 
+void print_failure_path(FILE *f, unification_failure &fail) {
+  std::ostringstream out;
+  fail.print(out);
+  fprintf(f, "%s", out.str().c_str());
+}
+  
+
 void
 compute_qc_sets(FILE *f, const char *tname,
                 map<list_int *, int, list_int_compare> &sets,
@@ -209,7 +219,7 @@ compute_qc_sets(FILE *f, const char *tname,
     // Get failure sets sorted by frequency.
     //
     
-    priority_queue<pq_item<int, list_int *> > sets_by_frequency;
+    std::priority_queue<pq_item<int, list_int *> > sets_by_frequency;
     
     double total_count = 0;
     for(map<list_int *, int, list_int_compare>::iterator iter =
@@ -309,7 +319,7 @@ compute_qc_sets(FILE *f, const char *tname,
 
     // compute optimal order for selected paths
     
-    priority_queue< pq_item<int, int> > top_paths;
+    std::priority_queue< pq_item<int, int> > top_paths;
 
     for(set<int>::iterator iter = min_sol.begin();
         iter != min_sol.end(); ++iter)
@@ -342,7 +352,7 @@ compute_qc_sets(FILE *f, const char *tname,
         if(!fail.empty_path())
         {
             fprintf(f, DUMMY_ATTR ".");
-            fail.print_path(f);
+            print_failure_path(f, fail);
         }
         else
             fprintf(f, DUMMY_ATTR);
@@ -385,7 +395,7 @@ compute_qc_traditional(FILE *f, const char *tname,
         if(!fail.empty_path())
         {
             fprintf(f, DUMMY_ATTR ".");
-            fail.print_path(f);
+            print_failure_path(f, fail);
         }
         else
             fprintf(f, DUMMY_ATTR);
@@ -397,39 +407,38 @@ compute_qc_traditional(FILE *f, const char *tname,
 }
 
 void
-compute_qc_paths(FILE *f)
-{
-    time_t t = time(NULL);
-    fprintf(f, ";;;\n;;; Quickcheck paths for %s, generated"
-            " on %d items on %s;;; %s\n;;;\n\n",
-            Grammar->property("version").c_str(), stats.id, ctime(&t),
-            CHEAP_VERSION);
+compute_qc_paths(FILE *f) {
+  int packing_type;
+  Config::get("opt_packing", packing_type);
+  time_t t = time(NULL);
+  fprintf(f, ";;;\n;;; Quickcheck paths for %s, generated"
+          " on %d items on %s;;; %s\n;;;\n\n",
+          Grammar->property("version").c_str(), stats.id, ctime(&t),
+          CHEAP_VERSION);
 
-    fprintf(f, ";; %d total failing paths:\n;;\n", next_failure_id);
-    for(int i = 0; i < next_failure_id; i++)
-    {
-        fprintf(f, ";; #%d ", i);
-        id_failure[i].print_path(f);
-        fprintf(f, "\n");
-    }
+  fprintf(f, ";; %d total failing paths:\n;;\n", next_failure_id);
+  for(int i = 0; i < next_failure_id; i++) {
+    fprintf(f, ";; #%d ", i);
+    print_failure_path(f, id_failure[i]);
     fprintf(f, "\n");
+  }
+  fprintf(f, "\n");
 
-    fprintf(f, ";;\n;; quickcheck paths (unification)\n;;\n\n");
-    compute_qc_traditional(f, opt_packing ? "qc_unif_trad_pack"
-                                          : "qc_unif_trad",
-                           failing_paths_unif, 10000);
+  fprintf(f, ";;\n;; quickcheck paths (unification)\n;;\n\n");
+  compute_qc_traditional(f, packing_type ? "qc_unif_trad_pack"
+                         : "qc_unif_trad",
+                         failing_paths_unif, 10000);
+  fflush(f);
+  compute_qc_sets(f, packing_type ? "qc_unif_set_pack" : "qc_unif_set",
+                  failing_sets_unif, 99.0);
+
+  if(packing_type) {
+    fprintf(f, ";;\n;; quickcheck paths (subsumption)\n;;\n\n");
+    compute_qc_traditional(f, "qc_subs_trad_pack", failing_paths_subs,
+                           10000);
     fflush(f);
-    compute_qc_sets(f, opt_packing ? "qc_unif_set_pack" : "qc_unif_set",
-                    failing_sets_unif, 99.0);
-
-    if(opt_packing)
-    {
-        fprintf(f, ";;\n;; quickcheck paths (subsumption)\n;;\n\n");
-        compute_qc_traditional(f, "qc_subs_trad_pack", failing_paths_subs,
-                               10000);
-        fflush(f);
-        compute_qc_sets(f, "qc_subs_set_pack", failing_sets_subs, 90.0);
-    }
+    compute_qc_sets(f, "qc_subs_set_pack", failing_sets_subs, 90.0);
+  }
 }
 
 

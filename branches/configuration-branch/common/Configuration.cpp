@@ -1,88 +1,80 @@
 #include "Configuration.h"
 
-Configuration* Configuration::instance_ = new Configuration();
+Config* Config::_instance = new Config();
+
+GenericConverter<bool>* GenericConverter<bool>::_instance = NULL;
 
 #if HAVE_LIBLOG4CXX
-  log4cxx::LoggerPtr Configuration::logger(
-                       log4cxx::Logger::getLogger("Configuration"));
+log4cxx::LoggerPtr Config::logger(log4cxx::Logger::getLogger("Config"));
 #endif // HAVE_LIBLOG4CXX
 
-ConfigurationException::ConfigurationException(std::string message)
+ConfigException::ConfigException(std::string message)
   : tError(message) {}
 
-
-NoSuchEntryException::NoSuchEntryException(std::string message)
-  : ConfigurationException(message) {}
-
-WrongTypeException::WrongTypeException(std::string message)
-  : ConfigurationException(message) {}
-
-WrongEntryNameException::WrongEntryNameException(std::string message)
-  : ConfigurationException(message) {}
-
-EntryAlreadyExistsException::EntryAlreadyExistsException(std::string message)
-  : ConfigurationException(message) {}
-
-ConvertionException::ConvertionException(std::string message)
-  : ConfigurationException(message) {}
-
-NoConverterException::NoConverterException(std::string message)
-  : ConfigurationException(message) {}
-
-bool Configuration::hasOption(const std::string& entry) {
-  return (instance_->keyValue_.find(entry) != instance_->keyValue_.end());
+bool Config::hasOption(const std::string& entry) {
+  return (_instance->keyValue_.find(entry) != _instance->keyValue_.end());
 }
 
-bool Configuration::isValidName(const std::string& entry) const {
-    return !entry.empty();
+bool Config::isValidName(const std::string& entry) const {
+  return !entry.empty();
 }
 
-void Configuration::check(const std::string &entry) {
-  if(!isValidName(entry)) {
+void Config::check(const std::string &name) {
+  if(!isValidName(name)) {
     LOG(logger, log4cxx::Level::WARN,
-        "isValidName(%s) == false", entry.c_str());
-    throw WrongEntryNameException(entry + " is not a valid entry name");
+        "isValidName(%s) == false", name.c_str());
+    throw ConfigException(name + " is not a valid option name");
   }
   
-  if(hasOption(entry)) {
+  if(hasOption(name)) {
     LOG(logger, log4cxx::Level::WARN,
-        "entry \"%s\" already exists", entry.c_str());
-    throw EntryAlreadyExistsException("entry " + entry + " already exists");
+        "option \"%s\" already exists", name.c_str());
+    throw ConfigException("option " + name + " already exists");
   }
 }
 
-void Configuration::add(const std::string &entry, IOption* option) {
-  keyValue_[entry] = option;
+void Config::add(const std::string &name, IOption* option) {
+  check(name);
+  keyValue_[name] = option;
 }
 
-const std::string& Configuration::getDescription(const std::string& entry) {
-  if(!instance_->isValidName(entry))
-    throw WrongEntryNameException(entry + " is not a valid entry name");
-    
-  KeyValueMap::iterator i = instance_->keyValue_.find(entry);
-
-  if(i == instance_->keyValue_.end())
-    throw NoSuchEntryException("entry " + entry + " does not exist");
-    
-  return (*(i->second)).getDescription();
-}
-
-IOption& Configuration::getIOption(const std::string& entry) {
-if(!instance_->isValidName(entry))
-    throw WrongEntryNameException(entry + " is not a valid entry name");
-    
-  KeyValueMap::iterator i = instance_->keyValue_.find(entry);
-
-  if(i == instance_->keyValue_.end())
-    throw NoSuchEntryException("entry " + entry + " does not exist");
+IOption& Config::getIOption(const std::string& name) {
+  KeyValueMap::iterator i = keyValue_.find(name);
+  if(i == keyValue_.end())
+    throw ConfigException("option " + name + " does not exist");
     
   return *(i->second);
 }
 
-Configuration::~Configuration() {
+const std::string& Config::getDescription(const std::string& name) {
+  return _instance->getIOption(name).getDescription();
+}
+
+Config::~Config() {
   for(KeyValueMap::iterator i = keyValue_.begin(); i != keyValue_.end(); i++) {
     delete i->second;
   }
 }
 
-Configuration::Configuration() {}
+Config::Config() {}
+
+void Config::setString(const std::string& entry, const std::string& value,
+                       int prio) {
+  try {
+    IOption &o = _instance->getIOption(entry);
+    o.setString(value, prio);
+  }
+  catch(std::bad_cast) {
+    throw ConfigException("wrong type was used for option " + entry);
+  }
+}
+
+std::string Config::getString(const std::string& entry) {
+  try {
+    IOption &o = _instance->getIOption(entry);
+    return o.getString();
+  }
+  catch(std::bad_cast) {
+    throw ConfigException("wrong type was used for option " + entry);
+  }
+}

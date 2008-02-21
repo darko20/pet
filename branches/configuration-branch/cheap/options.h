@@ -35,16 +35,8 @@
 
 #define CHEAP_SERVER_PORT 4711
 
-extern bool opt_shrink_mem, opt_shaping;
+extern int verbosity, opt_nqc_unif, opt_nqc_subs;
 
-#ifdef YY
-extern bool opt_yy, opt_nth_meaning;
-#endif
-extern int verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_server;
-extern int opt_tsdb;
-
-extern long int memlimit;
-extern bool opt_linebreaks;
 // extern bool opt_fullform_morph;
 extern char *grammar_file_name;
 

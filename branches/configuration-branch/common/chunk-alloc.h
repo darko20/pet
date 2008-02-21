@@ -26,11 +26,6 @@
 
 #include <sys/types.h>
 
-/** The maximum number of chunks to allocate */
-#define MAX_CHUNKS 16000
-/** The desired chunk size */
-#define CHUNK_SIZE (1024 * 1024)
-
 /** Define a type for (nasty) pointer to int conversions */
 #if SIZEOF_INT_P == 4
 typedef int32_t ptr2int_t;
@@ -41,6 +36,12 @@ typedef int64_t ptr2int_t;
 typedef u_int64_t ptr2uint_t;
 #endif
 #endif
+
+/** The maximum number of chunks to allocate */
+#define MAX_CHUNKS 16000
+/** The desired chunk size */
+#define CHUNK_SIZE (1024 * 1024)
+
 
 /** Class to support stack-like allocation/deallocation by keeping a pointer
  *  into a growing allocated heap of memory.

@@ -77,15 +77,15 @@ void undo_subtype_constraints(int t)
 }
 
 bool is_simple(tHierarchy g) {
-  tHierarchy::vertex_iterator i, iend;
-  tHierarchy::adjacency_iterator a, aend;
-  tHierarchy::out_edge_iterator e, eend;
-  for(boost::tie(i, iend) = boost::vertices(g); i != iend; ++i) {
-    boost::tie(a, aend) = boost::adjacent_vertices(*i, g);
-    boost::tie(e, eend) = boost::out_edges(*i, g);
-    if ((aend - a) != (eend - e)) return false;
-  }
-  return true;
+    tHierarchy::vertex_iterator i, iend;
+    tHierarchy::adjacency_iterator a, aend;
+    tHierarchy::out_edge_iterator e, eend;
+    for(boost::tie(i, iend) = boost::vertices(g); i != iend; ++i) {
+      boost::tie(a, aend) = boost::adjacent_vertices(*i, g);
+      boost::tie(e, eend) = boost::out_edges(*i, g);
+      if ((aend - a) != (eend - e)) return false;
+    }
+    return true;
 }
 
 /**
@@ -171,7 +171,7 @@ void compute_code_topo()
                 LOG_ERROR(loggerHierarchy,
                           "conception error: %s already visited...",
                           types.name(current_type).c_str());
-	  
+            
             // create a new bitcode, it's initialized to all zeroes
             types[current_type]->bcode = new bitcode(codesize);
 
@@ -276,7 +276,8 @@ void make_semilattice()
   // scratch bitcode
   bitcode *temp = new bitcode(codesize);
 
-  bool glbdebug = Configuration::get<bool>("opt_glbdebug");
+  bool glbdebug;
+  Config::get("opt_glbdebug", glbdebug);
   LOG(loggerHierarchy, Level::INFO, "glbs ");
 
   low = 0; high = types.number();
@@ -289,28 +290,28 @@ void make_semilattice()
     // range low ... high
     for(i = low; i < high; i++) if(leaftypeparent[i] == -1)
       for(j = i + 1; j < high; j++) if(leaftypeparent[j] == -1)
-	{
-	  // combine i's and j's bitcodes by binary and, and check
-	  // if result is all zeroes
-	  bool empty = intersect_empty(*types[i]->bcode,
-				       *types[j]->bcode, temp);
-	  
-	  // if we have a non empty intersection, and it does not
-	  // correspond to a type, we have to introduce a glb type
-	  if(!empty && lookup_code(*temp) == -1)
-	    {
-	      struct type *glbtype;
-	      char *name;
-	      
-	      // make up a name
-	      name = (char *) salloc(20);
-	      sprintf(name, "glbtype%d", glbtypes++);
-	      
-	      // create new type using this name and the result of the
-	      // intersection as its bitcode
-	      glbtype = new_type(name, false);
-	      glbtype->def = new_location("synthesized", 0, 0);
-	      glbtype->bcode = temp;
+        {
+          // combine i's and j's bitcodes by binary and, and check
+          // if result is all zeroes
+          bool empty = intersect_empty(*types[i]->bcode,
+                                       *types[j]->bcode, temp);
+          
+          // if we have a non empty intersection, and it does not
+          // correspond to a type, we have to introduce a glb type
+          if(!empty && lookup_code(*temp) == -1)
+            {
+              struct type *glbtype;
+              char *name;
+              
+              // make up a name
+              name = (char *) salloc(20);
+              sprintf(name, "glbtype%d", glbtypes++);
+              
+              // create new type using this name and the result of the
+              // intersection as its bitcode
+              glbtype = new_type(name, false);
+              glbtype->def = new_location("synthesized", 0, 0);
+              glbtype->bcode = temp;
 
            if(glbdebug)
            {
@@ -326,15 +327,15 @@ void make_semilattice()
              debug_print_subtypes(temp);
            }
 
-	      // register the new type's bitcode in the hash table
-	      register_codetype(*temp, glbtype->id);
+              // register the new type's bitcode in the hash table
+              register_codetype(*temp, glbtype->id);
 
-	      // create a new scratch code
-	      temp = new bitcode(codesize);
+              // create a new scratch code
+              temp = new bitcode(codesize);
 
-	      changed = true;
-	    }
-	}
+              changed = true;
+            }
+        }
     // we only have to consider the new types in the next iteration
     low = high; high = types.number();
 
@@ -351,9 +352,9 @@ void make_semilattice()
   for(i = 0; i < types.number(); i++)
     {
       if(leaftypeparent[i] == -1)
-	register_typecode(i, types[i]->bcode);
+        register_typecode(i, types[i]->bcode);
       else
-	register_typecode(i, NULL);
+        register_typecode(i, NULL);
     }
 
   // now we have to recompute the graph representation of the
@@ -391,17 +392,17 @@ void make_semilattice()
     {
       l = subtypes = types[i]->bcode->get_elements();
       while(l)
-	{
-	  if(i != idbit_type[first(l)])
-	    subtype_constraint(idbit_type[first(l)], i);
+        {
+          if(i != idbit_type[first(l)])
+            subtype_constraint(idbit_type[first(l)], i);
 
-	  l = rest(l);
-	}
+          l = rest(l);
+        }
       free_list(subtypes);
       
       for(j = 1; j < types.number(); j++) if(leaftypeparent[j] == -1)
-	if(i != j && core_subtype(i, j))
-	  subtype_constraint(i, j);
+        if(i != j && core_subtype(i, j))
+          subtype_constraint(i, j);
     }
 
 #endif

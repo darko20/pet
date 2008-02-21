@@ -175,7 +175,8 @@ int LConsume(int n)
 
   if(CURR->info)
     {
-      if(Configuration::get<bool>("opt_linebreaks"))
+      // TODO: is this still necessary ??
+      if(Config::get<bool>("opt_linebreaks"))
         {
           LOG(loggerUncategorized, Level::INFO,
               "%s `%s' ", CURR->info, CURR->fname);
@@ -203,11 +204,11 @@ int LConsume(int n)
       CURR->colnr++;
 
       if(CURR->buff[CURR->pos + i] == '\n')
-	{
-	  CURR->colnr = 1;
-	  CURR->linenr++;
-	  total_lexed_lines ++;
-	}
+        {
+          CURR->colnr = 1;
+          CURR->linenr++;
+          total_lexed_lines ++;
+        }
     }
 
   CURR->pos += n;

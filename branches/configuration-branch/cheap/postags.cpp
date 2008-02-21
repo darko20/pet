@@ -24,93 +24,78 @@
 #include "grammar.h"
 #include "utility.h"
 #include "postags.h"
+#include <iomanip>
 
-postags::postags(const vector<string> &tags, const vector<double> &probs)
-{
-    assert(tags.size() == probs.size());
-    for(vector<string>::const_iterator it = tags.begin(); it != tags.end();
-        ++it)
-    {
-        _tags.insert(*it);
-        _probs[*it] = probs[it - tags.begin()];
-    }
+using std::string;
+using std::list;
+using std::map;
+using std::set;
+using std::vector;
+
+postags::postags(const vector<string> &tags, const vector<double> &probs) {
+  assert(tags.size() == probs.size());        
+  for(vector<string>::const_iterator it = tags.begin(); it != tags.end();
+      ++it) {
+    _tags.insert(*it);
+    _probs[*it] = probs[it - tags.begin()];
+  }
 }
 
-postags::postags(const class lex_stem * ls)
-{
+postags::postags(const class lex_stem * ls) {
   if(ls != NULL) {
     set<string> tags = cheap_settings->smap("type-to-pos", ls->type());
     
-    for(set<string>::iterator it = tags.begin(); it != tags.end(); ++it)
-    {
-        add(*it);
+    for(set<string>::iterator it = tags.begin(); it != tags.end(); ++it) {
+      add(*it);
     }
   }
 }
 
 #if 0
-postags::postags(const class full_form ff)
-{
-    if(!ff.valid())
-        return;
+postags::postags(const class full_form ff) {
+  if(!ff.valid())
+    return;
     
-    set<string> tags = cheap_settings->smap("type-to-pos", ff.stem()->type());
-    
-    for(set<string>::iterator it = tags.begin(); it != tags.end(); ++it)
-    {
-        add(*it);
-    }
+  set<string> tags = cheap_settings->smap("type-to-pos", ff.stem()->type());
+  
+  for(set<string>::iterator it = tags.begin(); it != tags.end(); ++it) {
+    add(*it);
+  }
 }
 #endif
 
-postags::postags(const list< class tItem *> &les)
-{
-    for(list<tItem *>::const_iterator it = les.begin(); it != les.end();
-        ++it)
-    {
-        tLexItem *le = dynamic_cast<tLexItem *>(*it);
-        if (le != NULL) 
-          add(le->get_supplied_postags());
-    }
+postags::postags(const list< class tItem *> &les) {
+  for(list<tItem *>::const_iterator it = les.begin(); it != les.end(); ++it) {
+    tLexItem *le = dynamic_cast<tLexItem *>(*it);
+    if (le != NULL) 
+      add(le->get_supplied_postags());
+  }
 }
 
-void
-postags::add(string s) 
-{
-    _tags.insert(s);
+void postags::add(string s) {
+  _tags.insert(s);
 }
 
-void
-postags::add(string s, double prob) 
-{
-    _tags.insert(s);
-    _probs[s] = prob;
+void postags::add(string s, double prob) {
+  _tags.insert(s);
+  _probs[s] = prob;
 }
 
-void
-postags::add(const postags &s)
-{
-    for(set<string>::const_iterator iter = s._tags.begin();
-        iter != s._tags.end(); ++iter)
-    {
-        add(*iter);
-    }
+void postags::add(const postags &s) {
+  for(set<string>::const_iterator iter = s._tags.begin();
+      iter != s._tags.end(); ++iter) {
+    add(*iter);
+  }
 }
 
-
-bool
-postags::operator==(const postags &b) const
-{
-    return _tags == b._tags;
+bool postags::operator==(const postags &b) const {
+  return _tags == b._tags;
 }
-
 
 /** \todo Test the new implementation of this method for case insensitive
  *  search.
  */
-bool
-postags::contains(const string &s) const
-{
+bool postags::contains(const string &s) const {
   /*
    for(set<string>::const_iterator iter = _tags.begin();
         iter != _tags.end(); ++iter)
@@ -123,98 +108,74 @@ postags::contains(const string &s) const
   return (_tags.find(s) != _tags.end());
 }
 
-void
-postags::remove(string s) 
-{
-    _tags.erase(s);
+void postags::remove(string s) {
+  _tags.erase(s);
 }
 
-void
-postags::remove(const postags &s)
-{
-    for(set<string>::const_iterator iter = s._tags.begin();
-        iter != s._tags.end(); ++iter)
-    {        
-        remove(*iter);
-    }
+void postags::remove(const postags &s) {
+  for(set<string>::const_iterator iter = s._tags.begin();
+      iter != s._tags.end(); ++iter) {        
+    remove(*iter);
+  }
 }
 
-void
-postags::print(IPrintfHandler &iph) const
-{
-    for(set<string>::const_iterator iter = _tags.begin(); iter != _tags.end();
-        ++iter)
-    {
-        pbprintf(iph, " %s", iter->c_str());
-        map<string, double>::const_iterator p = _probs.find(*iter);
-        if(p != _probs.end())
-            pbprintf(iph, " %.2g", p->second);
-    }
+void postags::print(std::ostream &out) const {
+  set<string>::const_iterator iter = _tags.begin();
+  if (iter != _tags.end()) {
+    out << *iter;
+    map<string, double>::const_iterator p = _probs.find(*iter);
+    if(p != _probs.end())
+      out << " " << std::setprecision(2) << p->second;
+    iter ++;
+  }
+  for(; iter != _tags.end(); ++iter) {
+    out << " " << *iter;
+    map<string, double>::const_iterator p = _probs.find(*iter);
+    if(p != _probs.end())
+      out << " " << std::setprecision(2) << p->second;
+  }
 }
 
 // similar to print(FIle *f) above, but returns a string
-string
-postags::getPrintString() const
-{
-  string out = "";
-  bool start=true;
-  for(set<string>::const_iterator iter = _tags.begin(); iter != _tags.end();
-      ++iter)
-    {
-      if (start) 
-	start=false;
-      else
-	out += " ";
-      out += iter->c_str();
-    }
-  return out;
+string postags::getPrintString() const {
+  std::ostringstream out;
+  print(out);
+  return out.str();
 }
 
 // Determine if given type is licensed under posmapping
 // Find first matching tuple in mapping.
-bool
-postags::contains(type_t t, const class setting *set) const
-{
+bool postags::contains(type_t t, const class setting *set) const {
   if(_tags.empty())
     return false;
   
-  for(int i = 0; i < set->n; i+=2)
-    {
-      if(i+2 > set->n)
-        {
-          LOG(loggerUncategorized, Level::WARN,
-              "warning: incomplete last entry "
-              "in POS mapping - ignored");
-          break;
-        }
-            
-      char *lhs = set->values[i], *rhs = set->values[i+1];
-            
-      int type = lookup_type(rhs);
-      if(type == -1)
-        {
-          LOG(loggerUncategorized, Level::WARN,
-              "warning: unknown type `%s' in POS mapping", rhs);
-        }
-      else
-        {
-          if(subtype(t, type) && contains(lhs))
-              return true;
-        }
+  for(int i = 0; i < set->n; i+=2) {
+    if(i+2 > set->n) {
+      LOG(loggerUncategorized, Level::WARN,
+          "warning: incomplete last entry in POS mapping - ignored");
+      break;
     }
+            
+    char *lhs = set->values[i], *rhs = set->values[i+1];
+            
+    int type = lookup_type(rhs);
+    if(type == -1) {
+      LOG(loggerUncategorized, Level::WARN,
+          "warning: unknown type `%s' in POS mapping", rhs);
+    } else {
+      if(subtype(t, type) && contains(lhs))
+        return true;
+    }
+  }
   return false;
 }
 
-bool
-postags::contains(type_t t) const
-{
+bool postags::contains(type_t t) const {
   setting *set = cheap_settings->lookup("posmapping");
   return ((set != NULL) && contains(t, set));
-}  
+}
   
-bool
-postags::license(type_t t) const
-{
+bool postags::license(type_t t) const {
   setting *set = cheap_settings->lookup("posmapping");
   return ((set == 0) || contains(t, set));
 }

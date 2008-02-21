@@ -149,9 +149,9 @@ class TFSViewItem : public QObject, public QListViewItem
   Q_OBJECT
  public:
   TFSViewItem(QListView *parent, TFSViewItem *after, dag_node *, dag_node *root,
-	      int tag = -1, int sort = -1);
+              int tag = -1, int sort = -1);
   TFSViewItem(TFSViewItem *parent, TFSViewItem *after, dag_node *, dag_node *root,
-	      int attr, int tag = -1, int sort = -1);
+              int attr, int tag = -1, int sort = -1);
   TFSViewItem::~TFSViewItem();
 
   QString text( int column ) const;

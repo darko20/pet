@@ -143,10 +143,6 @@ inline void dag_init(dag_node *dag, type_t s)
 #endif
 }
 
-/** I've got no clue
- *  \todo would someone please explain this?
- */
-inline dag_node *dag_deref(dag_node *dag) { return dag; }
 /** Get the type of the dag */
 inline type_t dag_type(dag_node *dag) { return dag->type; }
 /** Set the type of the dag */
@@ -257,39 +253,38 @@ dag_node *dag_nth_arg_temp(dag_node *dag, int n);
  *  treated as such, and the generation protected members will be considered
  *  too, to print its complete state.
  */
-void dag_print_safe(IPrintfHandler &iph, dag_node *dag, bool temporary, 
-                    int format = DAG_FORMAT_TRADITIONAL);
+//void dag_print_safe(class DagPrinter &dp, dag_node *dag, bool temporary);
 /*@}*/
 
 /** Print \a dag to \a f in \em fegramed syntax. */
-void dag_print_fed_safe(FILE *f, dag_node *dag);
+//void dag_print_fed_safe(FILE *f, dag_node *dag);
 
 /** Print \a dag to \a f in a special, compact syntax, originally intended for
  *  exchange with Java servers/clients.
  */
-void dag_print_jxchg(std::ostream &f, dag_node *dag);
+//void dag_print_jxchg(std::ostream &f, dag_node *dag);
 
 /** @name Generation Protected Slots
  * Accessor functions for the generation protected slots -- inlined for
  * efficiency.
  */
 /*@{*/
-inline type_t dag_get_new_type(dag_node *dag)
+inline type_t dag_get_new_type(const dag_node *dag)
 {
   return (dag->generation == unify_generation) ? dag->new_type : dag->type ;
 }
 
-inline struct dag_arc *dag_get_comp_arcs(dag_node *dag)
+inline struct dag_arc *dag_get_comp_arcs(const dag_node *dag)
 {
   if(dag->generation == unify_generation) return dag->comp_arcs; else return 0;
 }
 
-inline dag_node *dag_get_forward(dag_node *dag)
+inline dag_node *dag_get_forward(const dag_node *dag)
 {
   if(dag->generation == unify_generation) return dag->forward; else return 0;
 }
 
-inline dag_node *dag_get_copy(dag_node *dag)
+inline dag_node *dag_get_copy(const dag_node *dag)
 {
   if(dag->generation == unify_generation) return dag->copy; else return 0;
 }
@@ -373,6 +368,26 @@ inline ptr2int_t dag_set_visit(dag_node *dag, ptr2int_t visit)
 inline void dag_invalidate_visited()
 {
   dag_invalidate_changes();
+}
+
+/** I've got no clue
+ *  \todo would someone please explain this?
+ */
+//inline dag_node *dag_deref(dag_node *dag) { return dag; }
+inline dag_node *dag_deref(dag_node *dag) {
+  dag_node *res;
+  while((res = dag_get_forward(dag)) != NULL) {
+    dag = res;
+  }
+  return dag;
+}
+
+inline const dag_node *dag_deref(const dag_node *dag) {
+  const dag_node *res;
+  while((res = dag_get_forward(dag)) != NULL) {
+    dag = res;
+  }
+  return dag;
 }
 
 /** A class to save the current global generation counter in a local

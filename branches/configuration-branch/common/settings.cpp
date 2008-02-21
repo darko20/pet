@@ -160,7 +160,7 @@ char *settings::assoc(const char *name, const char *key, int arity, int nth)
     {
       if(i+nth >= set->n) return 0;
       if(strcasecmp(set->values[i], key) == 0)
-	return set->values[i+nth];
+        return set->values[i+nth];
     }
 
   return 0;
@@ -189,10 +189,10 @@ std::set<std::string> settings::smap(const char *name, int key_type)
       char *lhs = set->values[i], *rhs = set->values[i+1];
       int id = lookup_type(lhs);
       if(id != -1)
-	{
-	  if(subtype(key_type, id))
-	    res.insert(rhs);
-	}
+        {
+          if(subtype(key_type, id))
+            res.insert(rhs);
+        }
       else
         LOG(loggerUncategorized, Level::WARN,
             "warning: unknown type `%s' in `%s' mapping - ignored", name, lhs);
@@ -264,27 +264,27 @@ void settings::parse_one()
       match(T_ISEQ, "option setting", true);
       
       while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
-	{
-	  if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
-	     LA(0)->tag == T_STRING)
-	    {
-	      if(set->n >= set->allocated)
-		{
-		  set->allocated += SET_TABLE_SIZE;
-		  set->values = (char **) realloc(set->values, set->allocated * sizeof(char *));
+        {
+          if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
+             LA(0)->tag == T_STRING)
+            {
+              if(set->n >= set->allocated)
+                {
+                  set->allocated += SET_TABLE_SIZE;
+                  set->values = (char **) realloc(set->values, set->allocated * sizeof(char *));
 
-		}
-	      set->values[set->n++] = LA(0)->text; LA(0)->text=NULL;
-	    }
-	  else
+                }
+              set->values[set->n++] = LA(0)->text; LA(0)->text=NULL;
+            }
+          else
             {
               LOG(loggerUncategorized, Level::WARN,
                   "ignoring `%s' at %s:%d...", LA(0)->text,
                   LA(0)->loc->fname, LA(0)->loc->linenr);
             }
-	  
-	  consume(1);
-	}
+          
+          consume(1);
+        }
     }
 
   match(T_DOT, "end of option setting", true);

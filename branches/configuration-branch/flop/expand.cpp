@@ -198,7 +198,7 @@ bool delta_expand_types() {
   int i, e;
   list<int> l;
   bool opt_expand_all_instances =
-    Configuration::get<bool>("opt_expand_all_instances");
+    Config::get<bool>("opt_expand_all_instances");
 
   LOG(loggerExpand, Level::INFO,
       "- delta expansion for types");

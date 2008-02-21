@@ -78,7 +78,7 @@ cheap_SOURCES = agenda.h chart.cpp chart.h cheap.cpp cheap.h 		\
   tsdb++.cpp yy-tokenizer.cpp yy-tokenizer.h
 
 TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h	\
-	failure.cpp qc.h qc.cpp
+	failure.cpp qc.h qc.cpp dagprinter.cpp dagprinter.h
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI
 cheap_SOURCES += $(TOMABECHI_UNIF_FILES)

@@ -105,13 +105,13 @@ class typecache
     _overflows(0)
     {
       _buckets = (typecachebucket *)
-	_cache_alloc.allocate(sizeof(typecachebucket) * _nbuckets);
+        _cache_alloc.allocate(sizeof(typecachebucket) * _nbuckets);
 
       _cache_alloc.mark(_initial_alloc);
       // _cache_alloc.print_check();
 
       for(int i = 0; i < _nbuckets; i++)
-	init_bucket(_buckets + i);
+        init_bucket(_buckets + i);
 #ifdef CACHESTATS
       _totalcl = _totalsearches = _totalfp = _maxcl = 0;
 #endif
@@ -144,40 +144,40 @@ class typecache
 
       // fast path for standard case
       if(b->key == key)
-	{
+        {
 #ifdef CACHESTATS
           _totalfp++;
-	  b->refs++;
+          b->refs++;
 #endif
-	  return b->value;
-	}
+          return b->value;
+        }
 
       // is the bucket empty? then insert here
       if(b->key == _no_key)
-	{
-	  _size++;
-	  b->key = key;
-	  b->value = _no_value;
-	  return b->value;
-	}
+        {
+          _size++;
+          b->key = key;
+          b->value = _no_value;
+          return b->value;
+        }
 
       // search in bucket chain, return if found
       while(b->next != 0)
-	{
+        {
 #ifdef CACHESTATS
-	  cl++;
+          cl++;
 #endif
-	  b = b->next;
-	  if(b->key == key)
-	    {
+          b = b->next;
+          if(b->key == key)
+            {
 #ifdef CACHESTATS
-	      _totalcl += cl;
-	      if(cl > _maxcl) _maxcl = cl;
-	      b->refs++;
+              _totalcl += cl;
+              if(cl > _maxcl) _maxcl = cl;
+              b->refs++;
 #endif
-	      return b->value;
-	    }
-	}
+              return b->value;
+            }
+        }
 #ifdef CACHESTATS
       if(cl > _maxcl) _maxcl = cl;
       _totalcl += cl;
@@ -205,7 +205,7 @@ class typecache
       _cache_alloc.may_shrink();
 
       for(int i = 0; i < _nbuckets; i++)
-	init_bucket(_buckets + i);
+        init_bucket(_buckets + i);
 
       _size = 0;
     }
@@ -224,37 +224,37 @@ class typecache
       int _prune_poss = 0, _prune_done = 0;
 
       for(int i = 0; i < _nbuckets; i++)
-	{
-	  if(_buckets[i].key != _no_key && _buckets[i].refs == 0)
-	    {
-	      _prune_poss++;
-	      if(_buckets[i].next == 0)
-		{
-		  _prune_done++;
-		  _size--;
-		  _buckets[i].key = _no_key; 
-		}
-	    }
-	}
+        {
+          if(_buckets[i].key != _no_key && _buckets[i].refs == 0)
+            {
+              _prune_poss++;
+              if(_buckets[i].next == 0)
+                {
+                  _prune_done++;
+                  _size--;
+                  _buckets[i].key = _no_key; 
+                }
+            }
+        }
       LOG(loggerUncategorized, Level::INFO,
           "pruning: poss %d, done %d", _prune_poss, _prune_done);
 #endif
 
       map<int, int> distr;
       for(int i = 0; i < _nbuckets; i++)
-	for(typecachebucket *b = _buckets + i; b != 0; b = b->next)
-	  if(b->key != _no_key)
-	    distr[b->refs]++;
+        for(typecachebucket *b = _buckets + i; b != 0; b = b->next)
+          if(b->key != _no_key)
+            distr[b->refs]++;
 
 
       int sum = 0;
       for(map<int,int>::iterator iter = distr.begin(); iter != distr.end(); ++iter)
-	{
-	  sum += iter->second;
-	  if(iter->second > 50)
-	    LOG(loggerUncategorized, Level::INFO,
+        {
+          sum += iter->second;
+          if(iter->second > 50)
+            LOG(loggerUncategorized, Level::INFO,
                 "  %d : %d", iter->first, iter->second);
-	}
+        }
       LOG(loggerUncategorized, Level::INFO,
           "  total : %d", sum);
 #endif

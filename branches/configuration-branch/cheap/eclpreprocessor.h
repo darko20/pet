@@ -24,7 +24,7 @@ class tFSRTokenizer : public tTokenizer {
 public:
   tFSRTokenizer(const char *grammar_path);
 
-  virtual void tokenize(myString s, inp_list &result);
+  virtual void tokenize(myString s, inpitemlist &result);
 
   virtual position_map position_mapping(){
     return _position_mapping;

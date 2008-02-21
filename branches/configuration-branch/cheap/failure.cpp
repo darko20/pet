@@ -20,9 +20,13 @@
 /* class representing a unification/subsumption failure */
 
 #include "failure.h"
-#include "types.h"
+#include <iostream>
 
 using std::list;
+
+const char * const unification_failure::failure_names[] = {
+  "success", "type clash", "cycle", "constraint clash", "coreference clash"
+};
 
 unification_failure::unification_failure()
   : _cyclic_paths()
@@ -94,20 +98,70 @@ unification_failure::operator=(const unification_failure &f)
     return *this;
 }
 
-void
-print_path(FILE *f, list_int *path)
-{
-    bool dot = false;
+void print_path(FILE *f, list_int *path) {
+  bool dot = false;
 
-    if(!path) fprintf(f, "<empty path>");
+  if(!path) fprintf(f, "<empty path>");
   
-    while(path)
-    {
-        fprintf(f, "%s%s", dot ? "." : "", attrname[first(path)]), dot = true;
-        path = rest(path);
-    }
+  while(path) {
+    fprintf(f, "%s%s", dot ? "." : "", attrname[first(path)]), dot = true;
+    path = rest(path);
+  }
 }
 
+void print_path(std::ostream &out, list_int *path) {
+  if(path == NULL) {
+    out << "<empty path>" ;
+    return;
+  }
+
+  out << attrname[first(path)];
+  path = rest(path);
+  while(path) {
+    out << '.' << attrname[first(path)];
+    path = rest(path);
+  }
+}
+
+void
+unification_failure::print(std::ostream &out) const {
+  if ((_type >= SUCCESS) && (_type <= COREF)) {
+    out << failure_names[_type];
+  } else {
+    out << "unknown failure";
+  }
+
+  if(_path == 0) {
+    out << " at root level";
+  } else {
+    out << " under ";
+    print_path(out);
+  }
+
+  switch(_type) {
+  case CLASH:
+    out << ": `" << type_name(_s1) << "' & `" << type_name(_s2) << "'";
+    break;
+  case CONSTRAINT: {
+    int meet = glb(_s1, _s2);
+    
+    out << ": constraint `" << (meet == -1 ? "bottom" : type_name(meet))
+        << "' introduced by `" 
+        << type_name(_s1) << "' & `" << type_name(_s2) << "'";
+    break;
+  }
+  case CYCLE:
+    out << ":";
+    for(list<list_int *>::const_iterator iter = _cyclic_paths.begin();
+        iter != _cyclic_paths.end(); ++iter) {
+      out << std::endl << "  ";
+      ::print_path(out, *iter);
+    }
+    break;
+  default: break;
+  }
+}
+#ifdef USE_DEPRECATED
 void
 unification_failure::print(FILE *f) const
 {
@@ -152,7 +206,7 @@ unification_failure::print(FILE *f) const
         int meet = glb(_s1, _s2);
         
         fprintf(f, ": constraint `%s' introduced by `%s' & `%s'",
-                meet == -1 ? "bottom" : type_name(meet),
+                meet == T_BOTTOM ? "bottom" : type_name(meet),
                 type_name(_s1), type_name(_s2));
     }
     else if(_type == CYCLE)
@@ -160,13 +214,13 @@ unification_failure::print(FILE *f) const
         fprintf(f, ":");
         for(list<list_int *>::const_iterator iter = _cyclic_paths.begin();
             iter != _cyclic_paths.end(); ++iter)
-	{
+        {
             fprintf(f, "\n  ");
             ::print_path(f, *iter);
-	}
+        }
     }
 }
-
+#endif
 int
 unification_failure::less_than(const unification_failure &b) const
 {

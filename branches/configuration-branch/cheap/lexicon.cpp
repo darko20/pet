@@ -25,6 +25,10 @@
 #include "grammar.h"
 #include "morph.h"
 
+using std::string;
+using std::list;
+using std::vector;
+
 int lex_stem::next_id = 0;
 
 fs
@@ -36,13 +40,13 @@ lex_stem::instantiate()
 
     if(!expanded.valid())
     {
-	string msg = string("invalid lex_stem `") + printname()
-		     + "' (cannot expand)";
+        string msg = string("invalid lex_stem `") + printname()
+                     + "' (cannot expand)";
 
         if(!cheap_settings->lookup("lex-entries-can-fail"))
             throw tError(msg);
-	else if(verbosity > 4)
-	    fprintf(stderr, "%s\n", msg.c_str());
+        else if(verbosity > 4)
+            fprintf(stderr, "%s\n", msg.c_str());
         return expanded;
     }
 

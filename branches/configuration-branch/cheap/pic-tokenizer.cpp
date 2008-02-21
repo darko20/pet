@@ -21,10 +21,13 @@
 #include "pic-tokenizer.h"
 #include "cheap.h"
 
+using std::string;
+using std::list;
+
 XERCES_CPP_NAMESPACE_USE
 
 /** Produce a set of tokens from the given XML input. */
-void tPICTokenizer::tokenize(string input, inp_list &result) {
+void tPICTokenizer::tokenize(string input, inpitemlist &result) {
 
   if (input.compare(0, 2, "<?") == 0)
     tokenize_from_stream(input, result);
@@ -42,7 +45,7 @@ void tPICTokenizer::tokenize(string input, inp_list &result) {
 }
 
 /** Produce a set of tInputItem tokens from the given XML input on stdin. */
-void tPICTokenizer::tokenize_from_stream(string input, inp_list &result) {
+void tPICTokenizer::tokenize_from_stream(string input, inpitemlist &result) {
   string buffer = input;
   if(verbosity > 4)
     {
@@ -61,7 +64,7 @@ void tPICTokenizer::tokenize_from_stream(string input, inp_list &result) {
 }
 
 /** Produce a set of tokens from the given XML file. */
-void tPICTokenizer::tokenize_from_file(string filename, inp_list &result) {
+void tPICTokenizer::tokenize_from_file(string filename, inpitemlist &result) {
   PICHandler picreader(true, _translate_iso_chars);
   XMLCh * XMLFilename = XMLString::transcode(filename.c_str());
   LocalFileInputSource inputfile(XMLFilename);

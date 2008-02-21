@@ -25,6 +25,7 @@
 #include "types.h"
 #include "tsdb++.h"
 #include "restrictor.h"
+#include "dagprinter.h"
 
 #include <iostream>
 
@@ -38,9 +39,6 @@ qc_node *qc_paths_subs;
 //options managed by configuration subsystem
 bool opt_compute_qc_unif, opt_compute_qc_subs,
      opt_print_failure;
-
-// defined in parse.cpp
-extern bool opt_hyper;
 
 /** The type that indicates pruning in a dag restrictor */
 type_t dag_restrictor::dag_rest_state::DEL_TYPE;
@@ -67,13 +65,13 @@ fs::fs(char *path, type_t type)
 
 
 fs
-fs::get_attr_value(int attr)
+fs::get_attr_value(int attr) const
 {
     return fs(dag_get_attr_value(_dag, attr));
 }
 
 fs
-fs::get_attr_value(char *attr)
+fs::get_attr_value(char *attr) const
 {
     int a = lookup_attr(attr);
     if(a == -1) return fs();
@@ -83,28 +81,34 @@ fs::get_attr_value(char *attr)
 }
 
 fs
-fs::get_path_value(const char *path)
+fs::get_path_value(const char *path) const
 {
     return fs(dag_get_path_value(_dag, path));
 }
 
 const char *
-fs::name()
+fs::name() const
 {
     return type_name(dag_type(_dag));
 }
 
 const char *
-fs::printname()
+fs::printname() const
 {
   return print_name(dag_type(_dag));
 }
 
+/*
 void
 fs::print(IPrintfHandler &iph, int format)
 {
-    if(temp()) dag_print_safe(iph, _dag, true, format);
-    else dag_print_safe(iph, _dag, false, format);
+  dag_print_safe(iph, _dag, temp(), format);
+}
+*/
+
+void fs::print(std::ostream &out, AbstractDagPrinter &dp) const
+{
+  dp.print(out, _dag, temp());
 }
 
 void
@@ -351,15 +355,14 @@ record_failures(list<unification_failure *> fails, bool unification,
       }
     }
     i++;
-  }
-        
+  } // end for
+
   // If this is not a new failure set, free it.
   if(sf) {
     if(unification) {
       if(failing_sets_unif[sf]++ > 0)
         free_list(sf);
-    }
-    else {
+    } else {
       if(failing_sets_subs[sf]++ > 0)
         free_list(sf);
     }
@@ -385,20 +388,14 @@ record_failures(list<unification_failure *> fails, bool unification,
 }
 
 void
-print_failures(list<unification_failure *> fails, bool unification,
-               dag_node *a = 0, dag_node *b = 0) {
-  LOG(loggerFs, Level::INFO,
-      "failure (%s) at\n", unification ? "unif" : "subs");
-  PrintfBuffer pb;
-  
+print_failures(std::ostream &out, list<unification_failure *> fails,
+               bool unification, dag_node *a = 0, dag_node *b = 0) {
+  out << "failure (" << (unification ? "unif" : "subs") << ") at"
+      << std::endl ;
   for(list<unification_failure *>::iterator iter = fails.begin();
       iter != fails.end(); ++iter) {
-      pbprintf(pb, "  ");
-      (*iter)->print(pb);
-      pbprintf(pb, "\n");
+    out << "  " << *iter << std::endl;
   }
-
-  LOG(loggerFs, Level::DEBUG, "%s", pb.getContents());
 }
 
 #endif
@@ -421,11 +418,13 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
     if(opt_compute_qc_unif || opt_print_failure) {
       list<unification_failure *> fails =
         dag_unify_get_failures(a._dag, b._dag, true);
-            
+
       if (opt_compute_qc_unif)
         record_failures(fails, true, a._dag, b._dag);
+      // \todo replace cerr by a stream that is dedicated to the printing of
+      // unification failures
       if (opt_print_failure)
-        print_failures(fails, true, a._dag, b._dag);
+        print_failures(cerr, fails, true, a._dag, b._dag);
     }
 #endif
         
@@ -518,7 +517,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
             }
             if(good)
                 filtered.push_back(*f);
-	    else
+            else
                 delete *f;
 
         }
@@ -526,7 +525,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
         if (opt_compute_qc_subs)
           record_failures(filtered, false, a._dag, b._dag);
         if (opt_print_failure)
-          print_failures(filtered, false, a._dag, b._dag);
+          print_failures(cerr, filtered, false, a._dag, b._dag);
     }
     else
 #endif
@@ -602,7 +601,8 @@ get_qc_vector(qc_node *qc_paths, int qc_len, const fs &f)
     vector = new type_t [qc_len];
     for(int i = 0; i < qc_len; i++) vector[i] = 0;
     
-    if(opt_hyper && f.temp())
+    if(//opt_hyper &&  // temporary dags only during hyperactive parsing
+       f.temp())
     { 
         dag_get_qc_vector_temp(qc_paths, f._dag, vector);
     }

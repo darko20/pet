@@ -26,6 +26,9 @@
 #define _CHART_H_
 
 #include "item.h"
+#include "hashing.h"
+#include <string>
+#include <list>
 #include <queue>
 
 /** Chart data structure for parsing, aka dynamic programming */
@@ -52,7 +55,8 @@ public:
   /** Print chart items using \a f, select active and passive items with \a
    *  passives and \a actives.
    */
-  void print(tItemPrinter *f, bool passives = true, bool actives = false);
+  void 
+  print(tAbstractItemPrinter *f, bool passives = true, bool actives = false);
 
   /** Get statistics from the chart, like nr. of active/passive edges, average
    *  feature structure size, items contributing to a reading etc.
@@ -68,9 +72,9 @@ public:
   unsigned int rightmost() { return length() - 1; }
 
   /** Return the trees stored in the chart after unpacking */
-  vector<tItem *> &trees() { return _trees; }
+  std::vector<tItem *> &trees() { return _trees; }
   /** Return the readings found during parsing */
-  vector<tItem *> &readings() { return _readings; }
+  std::vector<tItem *> &readings() { return _readings; }
 
   /** Compute a shortest path through the chart based on the \a weight_fn
    *  function that returns a weight for every chart item.
@@ -87,7 +91,7 @@ public:
    *        one of the optimal paths (the default)
    */
   template < typename weight_t, typename weight_fn_t >
-  void shortest_path(list <tItem *> &result, weight_fn_t weight_fn
+  void shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
                      , bool all = false);
   
   /** Return \c true if the chart is connected using only edges considered \a
@@ -98,15 +102,15 @@ public:
 private:
   static int _next_stamp;
 
-  vector<tItem *> _Chart;
-  vector<tItem *> _trees;
-  vector<tItem *> _readings;
+  std::vector<tItem *> _Chart;
+  std::vector<tItem *> _trees;
+  std::vector<tItem *> _readings;
 
   int _pedges;
 
-  vector< list<tItem *> > _Cp_start, _Cp_end;
-  vector< list<tItem *> > _Ca_start, _Ca_end;
-  vector< vector < list<tItem*> > > _Cp_span;
+  std::vector< std::list<tItem *> > _Cp_start, _Cp_end;
+  std::vector< std::list<tItem *> > _Ca_start, _Ca_end;
+  std::vector< std::vector < std::list<tItem*> > > _Cp_span;
 
   std::auto_ptr<item_owner> _item_owner;
 
@@ -156,8 +160,8 @@ public:
 private:
   friend class chart;
 
-  vector<class tItem *> &_LI;
-  vector<class tItem *>::iterator _curr;
+  std::vector<class tItem *> &_LI;
+  std::vector<class tItem *>::iterator _curr;
 };
 
 /** Return all passive items having a specified span.
@@ -202,8 +206,8 @@ public:
   }
 
 private:
-  list<tItem *> &_LI;
-  list<tItem *>::iterator _curr;
+  std::list<tItem *> &_LI;
+  std::list<tItem *>::iterator _curr;
 };
 
 
@@ -254,8 +258,8 @@ private:
   friend class chart;
 
   int _max, _currindex;
-  vector< list< class tItem * > > &_LI;
-  list<class tItem *>::iterator _curr;
+  std::vector< std::list< class tItem * > > &_LI;
+  std::list<class tItem *>::iterator _curr;
 };
 
 /** Return all passive items adjacent to a given active item
@@ -291,8 +295,8 @@ public:
   }
 
 private:
-  list<tItem *> &_LI;
-  list<tItem *>::iterator _curr;
+  std::list<tItem *> &_LI;
+  std::list<tItem *>::iterator _curr;
 };
 
 /** Return all active items adjacent to a given passive item
@@ -337,11 +341,11 @@ public:
   }
 
 private:
-  list<tItem *> &_LI_start, &_LI_end;
+  std::list<tItem *> &_LI_start, &_LI_end;
     
   bool _at_start;
     
-  list<tItem *>::iterator _curr;
+  std::list<tItem *>::iterator _curr;
 };
 
 
@@ -352,18 +356,18 @@ private:
 
 /** Implemenation of shortest path function template */
 template< typename weight_t, typename weight_fn_t > 
-void chart::shortest_path(list <tItem *> &result, weight_fn_t weight_fn
+void chart::shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
                           , bool all) {
   // unary_function< tItem *, weight_t >
-  vector<tItem *>::size_type size = _Cp_start.size() ;
-  vector<tItem *>::size_type u, v ;
+  std::vector<tItem *>::size_type size = _Cp_start.size() ;
+  std::vector<tItem *>::size_type u, v ;
 
-  vector < list < weight_t > > pred(size) ;
+  std::vector < std::list < weight_t > > pred(size) ;
 
   weight_t *distance = new weight_t[size + 1] ;
   weight_t new_dist ;
 
-  list <tItem *>::iterator curr ;
+  std::list <tItem *>::iterator curr ;
   tItem *passive ;
 
   // compute the minimal distance and minimal distance predecessor nodes for
