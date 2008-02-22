@@ -146,6 +146,12 @@ tItem::~tItem()
     delete _unpack_cache;
 }
 
+void
+tItem::set_result_root(type_t rule) {
+  set_result_contrib();
+  _result_root = rule;
+}
+
 
 void tItem::lui_dump(const char *path) {
 
@@ -192,9 +198,12 @@ tInputItem::tInputItem(string id, int startnode, int endnode, int start, int end
 tInputItem::tInputItem(string id, int start, int end, string surface
                        , string stem, const tPaths &paths, int token_class
                        , modlist fsmods)
-  : tItem(-1, -1, paths, surface.c_str())
-    , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
-    , _fsmods(fsmods)
+  : tItem(-1, -1, paths, surface.c_str()),
+    _input_id(id),
+    _class(token_class),
+    _surface(surface),
+    _stem(stem),
+    _fsmods(fsmods)
 {
   _startposition = start;
   _endposition = end;
@@ -283,13 +292,6 @@ void
 tInputItem::collect_children(list<tItem *> &result)
 {
   return;
-}
-
-void
-tInputItem::set_result_root(type_t rule)
-{
-    set_result_contrib();
-    _result_root = rule;
 }
 
 grammar_rule *
@@ -414,10 +416,10 @@ void tLexItem::init() {
     // stats.words++;
 
     if(opt_nqc_unif != 0)
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, _fs_full);
+      _qc_vector_unif = _fs_full.get_unif_qc_vector();
 
     if(opt_nqc_subs != 0)
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, _fs_full);
+      _qc_vector_subs = _fs_full.get_subs_qc_vector();
 
     // compute _score score for lexical items
     if(Grammar->sm())
@@ -522,15 +524,14 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   
   if(opt_nqc_unif != 0) {
     if(passive())
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+      _qc_vector_unif = f.get_unif_qc_vector();
     else
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                      nextarg(f));
+      _qc_vector_unif = nextarg(f).get_unif_qc_vector();
   }
   
   if(opt_nqc_subs != 0)
     if(passive())
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+      _qc_vector_subs = f.get_subs_qc_vector();
   
   // rule stuff + characterization
   if(passive()) {
@@ -585,14 +586,13 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     if(opt_nqc_unif != 0)
     {
         if(passive())
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+          _qc_vector_unif = f.get_unif_qc_vector();
         else
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                            nextarg(f));
+          _qc_vector_unif = nextarg(f).get_unif_qc_vector();
     }
     
     if((opt_nqc_subs != 0) && passive())
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+      _qc_vector_subs = f.get_subs_qc_vector();
 
     // rule stuff
     if(passive()) {
@@ -623,13 +623,6 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size(); 
     _result_root = sponsor->result_root();
-}
-
-void
-tLexItem::set_result_root(type_t rule)
-{
-    set_result_contrib();
-    _result_root = rule;
 }
 
 void
