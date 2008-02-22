@@ -189,6 +189,20 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
 }
 
 
+
+/** Return the inflection rules that have to be applied to perform this
+ *  morphological analysis.
+ */
+static list_int *get_rules(tMorphAnalysis &analysis) {
+  const std::list<grammar_rule *> &rules = analysis.rules();
+  list_int *res = NULL;
+  for(std::list<grammar_rule *>::const_reverse_iterator it = rules.rbegin()
+        ; it != rules.rend(); ++it) {
+    res = cons((*it)->type(), res);
+  }
+  return res;
+}
+
 /** Add the input item to the global chart and combine it with the
  * appropriate lexical units, eventually applying morphological processing
  * beforehand.
@@ -216,7 +230,7 @@ lex_parser::add(tInputItem *inp) {
       list<lex_stem *> stems = get_lex_entries(mrph->base());      
       for(list<lex_stem *>::iterator it = stems.begin()
             ; it != stems.end(); it++) {
-        list_int *rules = copy_list(mrph->rules());
+        list_int *rules = get_rules(*mrph);
         combine(*it, inp, rules, inp->mods());
         free_list(rules);
       }
@@ -556,7 +570,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
         } else {
           for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
                 ; mrph != morphs.end(); mrph++) {
-            list_int *rules = copy_list(mrph->rules());
+            list_int *rules = get_rules(*mrph);
             combine(*ls, *it, rules, in_mods);
             free_list(rules);
           }
@@ -634,7 +648,7 @@ lex_parser::add_predicts(list<tInputItem *> &unexpanded, inp_list &inp_tokens) {
       } else {
         for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
                ; mrph != morphs.end(); mrph++) {
-          list_int *rules = copy_list(mrph->rules());
+          list_int *rules = get_rules(*mrph);
           combine(*ls, *it, rules, in_mods);
           free_list(rules);
         }

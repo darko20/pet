@@ -288,53 +288,6 @@ struct dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
 }
 
 
-#if 0
-struct dag_node *
-dag_find_attr_value(dag_node *dag, attr_t attr, type_t intype, type_t type) {
-  if (dag == NULL) return FAIL;
-  dag_node *res = NULL;
-  dag_arc *arc = dag->arcs;
-  while (arc != NULL && res == NULL) {
-    if((arc->attr == attr) && (arc->val->type == intype)) {
-      res = dag_full_copy(type_dag(type));
-      dag_invalidate_changes();
-    } else {
-      res = dag_find_attr_value(arc->val, attr, intype, type);
-    }
-    if (res != NULL) return dag_create_attr_value(arc->attr, res);
-    arc = arc->next;
-  }
-  return NULL;
-}
-
-struct dag_node *
-dag_find_all_attr_value(dag_node *dag, attr_t attr, type_t in, type_t type) {
-  if (dag == NULL) return FAIL;
-  dag_node *res = NULL;
-  dag_arc *arc = dag->arcs;
-  while (arc != NULL) {
-    dag_node *curr = NULL;
-    if((arc->attr == attr) && (arc->val->type == in)) {
-      curr = dag_full_copy(type_dag(type));
-      dag_invalidate_changes();
-    } else {
-      curr = dag_find_all_attr_value(arc->val, attr, in, type);
-    }
-    if (curr != NULL) {
-      if (res != NULL) {
-        res = dag_unify(res, res, dag_create_attr_value(arc->attr, curr)
-                        , NULL);
-      } else {
-        res = dag_create_attr_value(arc->attr, curr);
-      }
-    }
-    if (res == FAIL) return NULL;
-    arc = arc->next;
-  }
-  return res;
-}
-#endif
-
 struct dag_node *dag_create_path_value(list_int *path, type_t type)
 {
   if(! is_type(type) || type_dag(type) == NULL) return FAIL;

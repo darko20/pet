@@ -296,6 +296,8 @@ void free_type_tables()
 {
   if(statusnames != 0)
   {
+    for(int i = 0; i < nstatus; i++)
+      delete[] statusnames[i];
     free(statusnames);
     statusnames = 0;
   }

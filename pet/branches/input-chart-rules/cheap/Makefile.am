@@ -51,7 +51,7 @@ libcheap_a_SOURCES = \
 	lexicon.cpp lexicon.h \
 	lexparser.cpp lexparser.h \
 	lingo-tokenizer.cpp lingo-tokenizer.h \
-	morph.cpp morph.h \
+	morph.cpp morph.h morph-inner.h \
 	options.cpp options.h \
 	parse.cpp parse.h \
 	paths.cpp paths.h \
@@ -61,6 +61,8 @@ libcheap_a_SOURCES = \
 	sm.cpp sm.h \
 	task.cpp task.h \
 	tsdb++.h tsdb++.cpp \
+	mrs.h mrs.cpp \
+	vpm.h vpm.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	$(top_srcdir)/common/bitcode.cpp $(top_srcdir)/common/bitcode.h \
 	$(top_srcdir)/common/chunk-alloc.cpp $(top_srcdir)/common/chunk-alloc.h \

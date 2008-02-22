@@ -32,6 +32,7 @@
 #include "sm.h"
 
 #include <sstream>
+#include <sys/times.h>
 
 using namespace std;
 
@@ -47,6 +48,10 @@ struct charz_t {
   charz_t() { 
     path = NULL;
     attribute = 0;
+  }
+
+  ~charz_t() {
+    free_list(path);
   }
 
   void set(const char *string_path) {
@@ -81,6 +86,10 @@ void init_characterization() {
   char *carg_path_string = cheap_settings->value("mrs-carg-path");
   if (NULL != carg_path_string)
     carg_path = path_to_lpath(carg_path_string);
+}
+
+void finalize_characterization() {
+  free_list(carg_path);
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
@@ -1062,6 +1071,14 @@ tItem::unpack(int upedgelimit)
     if(upedgelimit > 0 && stats.p_upedges >= upedgelimit)
         return res;
 
+    // Check if we reached timeout. Caller is responsible for checking
+    // this to verify completeness of results.
+    if (opt_timeout > 0) {
+      timestamp = times(NULL);
+      if (timestamp >= timeout)
+	return res;
+    }
+
     // Recursively unpack items that are packed into this item.
     for(list<tItem *>::iterator p = packed.begin();
         p != packed.end(); ++p)
@@ -1250,6 +1267,14 @@ tHypothesis *
 tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
 {
   tHypothesis *hypo = NULL;
+
+  // check whether timeout has passed.
+  if (opt_timeout > 0) {
+    timestamp = times(NULL);
+    if (timestamp >= timeout)
+      return hypo;
+  }
+  
   // Only check the path length no longer than the opt_gplevel
   while (path.size() > opt_gplevel)
     path.pop_front();

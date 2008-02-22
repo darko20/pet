@@ -33,7 +33,7 @@ bool tPICTokenizer::next_input(std::istream &in, std::string &input) {
     std::getline(in, nextline);
     input += nextline;
   } while (! nextline.empty());
-  return !input.empty();
+  return ! input.empty();
 }
 
 /** Produce a set of tokens from the given XML input. */
