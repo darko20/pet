@@ -267,14 +267,11 @@ inline bool operator>(const bitcode& a, const bitcode &b)
 
 #ifdef HASH_SPACE
 namespace HASH_SPACE {
-template<> struct hash<bitcode>
-{
-  inline size_t operator()(const bitcode &key) const
-  {
-    return Hash(key);
-  }
-};
-
+  template<> struct hash<bitcode> {
+    inline size_t operator()(const bitcode &key) const {
+      return Hash(key);
+    }
+  };
 }
 #endif
 

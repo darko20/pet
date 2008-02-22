@@ -257,10 +257,10 @@ class typecache
 
 #endif
 
-#if 0
+/*
 (2362) `if you, can live with a short meeting then maybe we can do it then, otherwise , I think we are going to have to wind up doing it in the morning or, early morning like eight o'clock some day or, in the early evening.' [20000] --- 0 (-0.0|2.5s) <163:5548> (13629.0K) [-1514.1s]
 typecache: 33696 entries, 22135 overflows, 12289 buckets, 1348587441 searches, avg chain 0.0797327, max chain 10
 
 (2362) `if you, can live with a short meeting then maybe we can do it then, otherwise , I think we are going to have to wind up doing it in the morning or, early morning like eight o'clock some day or, in the early evening.' [20000] --- 0 (-0.0|2.5s) <163:5548> (13629.0K) [-1507.1s]
 typecache: 33696 entries, 9069 overflows, 49157 buckets, 1348587441 searches, avg chain 0.0223881, max chain 5
-#endif
+*/

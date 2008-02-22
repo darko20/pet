@@ -75,6 +75,11 @@ settings::~settings() {
   }
 
   delete[] _set;
+
+  for(std::map<std::string, struct list_int *>::iterator it = _li_cache.begin();
+      it != _li_cache.end(); ++it) {
+    free_list(it->second);
+  }
 }
 
 /** Do a linear search for \a name in the settings and return the first 

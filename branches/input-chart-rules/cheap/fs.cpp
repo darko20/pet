@@ -240,16 +240,7 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
   return succeeded;
 }
 
-#if 0
-// _fix_me_ 
-// code for treating CARG differently
-bool fs::modify_foo(list_int *path, fs &arg) {
-  dag_node *newdag = dag_unify(this->_dag, arg._dag, path);
-  if (newdag == FAIL) return false;
-  _dag = newdag;
-  return true;
-}
-#endif
+
 // statistics
 
 static long int total_cost_fail = 0;

@@ -36,6 +36,13 @@ call_resp_chain (MOD_ITER begin, MOD_ITER end
 }
 
 
+template < typename IM > 
+void free_modules(std::list< IM * > &modules) {
+  for(typename std::list< IM * >::iterator it = modules.begin();
+      it != modules.end(); it++)
+    delete *it;
+}
+
 /** This object takes complete control and responsibility of input processing
  *  prior to syntactic processing.
  *
@@ -51,6 +58,14 @@ class lex_parser {
 
 public:
   lex_parser() : _maxpos(-1), _carg_path(NULL) { }
+  
+  ~lex_parser() {
+    free_modules(_tokenizers);
+    free_modules(_taggers);
+    free_modules(_ne_recogs);
+    free_modules(_morphs);
+    free_modules(_lexica);
+  }
   
   /** Perform lexparser initializations.
    *  - Set carg modification (surface string) path

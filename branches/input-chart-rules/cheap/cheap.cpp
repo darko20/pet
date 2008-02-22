@@ -38,7 +38,8 @@
 #endif
 #include "item-printer.h"
 #include "version.h"
-
+#include "mrs.h"
+#include "vpm.h"
 #include "qc.h"
 
 #ifdef YY
@@ -66,7 +67,7 @@ FILE *ferr, *fstatus, *flog;
 tGrammar *Grammar = 0;
 settings *cheap_settings = 0;
 bool XMLServices = false;
-
+tVPM *vpm = 0;
 
 struct passive_weights : public unary_function< tItem *, unsigned int > {
   unsigned int operator()(tItem * i) {
@@ -208,7 +209,7 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(opt_mrs) {
+          if (opt_mrs && (strcmp(opt_mrs, "new") != 0)) {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
@@ -222,7 +223,20 @@ void interactive() {
             }
           }
 #endif
-        }
+	  if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
+	    mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
+	    if (mrs->valid()) {
+	      mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
+	      if (mapped_mrs->valid()) {
+	        fprintf(fstatus, "\n");
+	        mapped_mrs->print(fstatus);
+	        fprintf(fstatus, "\n");
+	      }
+	      delete mapped_mrs;
+	    }
+	    delete mrs;
+	  }
+	}
 
 #ifdef HAVE_MRS
         if(opt_partial && (Chart->readings().empty())) {
@@ -276,62 +290,10 @@ void interactive() {
   }
 }
 
-void nbest() {
-  string input;
-
-  while(!feof(stdin)) {
-    int id = 0;
-    int selected = -1;
-    int time = 0;
-        
-    while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
-      if(selected != -1)
-        continue;
-
-      chart *Chart = 0;
-      try {
-        fs_alloc_state FSAS;
-                
-        list<tError> errors;
-        analyze(input, Chart, FSAS, errors, id);
-        if(!errors.empty())
-          throw errors.front();
-                
-        if(stats.readings > 0) {
-          selected = id;
-          fprintf(stdout, "[%d] %s\n", selected, input.c_str());
-        }
-                
-        stats.print(fstatus);
-        fflush(fstatus);
-      } /* try */
-            
-      catch(tError e) {
-        fprintf(ferr, "%s\n", e.getMessage().c_str());
-        stats.print(fstatus);
-        fflush(fstatus);
-        stats.readings = -1;
-      }
-            
-      if(Chart != 0) delete Chart;
-            
-      time += stats.tcpu;
-            
-      id++;
-    }
-    if(selected == -1)
-      fprintf(stdout, "[]\n");
-
-    fflush(stdout);
-
-    fprintf(fstatus, "ttcpu: %d\n", time);
-  }
-}
-
 void interactive_morphology() {
-
   string input;
-  while(!(input = read_line(stdin, opt_comment_passthrough)).empty()) {
+
+  while(Lexparser.next_input(std::cin, input)) {
     timer clock;
     list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
     
@@ -405,6 +367,15 @@ void print_grammar(FILE *f) {
   print_type_hierarchy(f);
 }
 
+void cleanup() {
+#ifdef HAVE_XML
+  if (XMLServices) xml_finalize();
+#endif
+  delete Grammar;
+  delete cheap_settings;
+  delete vpm;
+}
+
 void process(const char *s) {
   timer t_start;
   
@@ -414,22 +385,15 @@ void process(const char *s) {
     fprintf(fstatus, "\n");
     fprintf(fstatus, "loading `%s' ", s);
     Grammar = new tGrammar(s); 
-  }
-  catch(tError &e) {
-    fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
-    delete cheap_settings;
-    return;
-  }
 
 #ifdef HAVE_ECL
-  char *cl_argv[] = {"cheap", 0};
-  ecl_initialize(1, cl_argv);
-  // make the redefinition warnings go away
-  ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
-                       "cl-user::*error-output* nil)");
+    char *cl_argv[] = {"cheap", 0};
+    ecl_initialize(1, cl_argv);
+    // make the redefinition warnings go away
+    ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
+                   "cl-user::*error-output* nil)");
 #endif  // HAVE_ECL
 
-  try {
 #ifdef DYNAMIC_SYMBOLS
     init_characterization();
 #endif
@@ -516,8 +480,7 @@ void process(const char *s) {
     
   catch(tError &e) {
     fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
-    delete Grammar;
-    delete cheap_settings;
+    cleanup();
     return;
   }
 
@@ -533,6 +496,14 @@ void process(const char *s) {
   } else mrs_initialize(s, NULL);
 
 #endif
+
+  vpm = new tVPM();
+  char *name2 = cheap_settings->value("vpm");
+  if (name2) {
+    string file = find_file(name2, ".vpm", s);
+    vpm->read_vpm(file);
+  }
+
 #ifdef HAVE_ECL
   // reset the error stream so warnings show up again
   ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
@@ -561,18 +532,11 @@ void process(const char *s) {
         {
           if(opt_interactive_morph)
             interactive_morphology();
-          else if(opt_nbest)
-            nbest();
           else
             interactive();
         }
   }
-
-#ifdef HAVE_XML
-  if (XMLServices) xml_finalize();
-#endif
-  delete Grammar;
-  delete cheap_settings;
+  cleanup();
 }
 
 #ifdef __BORLANDC__

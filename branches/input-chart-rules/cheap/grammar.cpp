@@ -38,8 +38,6 @@
 
 #include "item-printer.h"
 
-int grammar_rule::next_id = 0;
-
 bool
 lexentry_status(type_t t)
 {
@@ -73,22 +71,12 @@ lex_rule_status(type_t t)
   return cheap_settings->statusmember("lexrule-status-values", typestatus[t]);
 }
 
-bool 
-infl_rule_status(type_t t)
-{
-  return 
-    cheap_settings->statusmember("infl-rule-status-values", typestatus[t]);
-}
-
 grammar_rule::grammar_rule(type_t t)
     : _tofill(0), _hyper(true), _spanningonly(false)
 {
-    _id = next_id++;
     _type = t;
     
-    if(cheap_settings->statusmember("infl-rule-status-values", typestatus[t]))
-        _trait = INFL_TRAIT;
-    else if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
+    if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
         _trait = LEX_TRAIT;
     else
         _trait = SYNTAX_TRAIT;
@@ -233,6 +221,12 @@ grammar_rule::grammar_rule(type_t t)
     }
 }
 
+grammar_rule::~grammar_rule() {
+  free_list(_tofill);
+  for (int i = 0; i < _arity; ++i) delete[] _qc_vector_unif[i];
+  delete[] _qc_vector_unif;
+}
+
 grammar_rule *
 grammar_rule::make_grammar_rule(type_t t) {
   try {
@@ -349,8 +343,8 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
 
 // Construct a grammar object from binary representation in a file
 tGrammar::tGrammar(const char * filename)
-    : _properties(), _nrules(0), _root_insts(0), _generics(0),
-      _filter(0), _subsumption_filter(0), _qc_inst_unif(0), _qc_inst_subs(0),
+    : _properties(), _root_insts(0), _generics(0),
+      _qc_inst_unif(0), _qc_inst_subs(0),
       _deleted_daughters(0), _packing_restrictor(0),
       _sm(0), _lexsm(0)
 {
@@ -370,6 +364,7 @@ tGrammar::tGrammar(const char * filename)
     int version;
     char *s = undump_header(&dmp, version);
     if(s) fprintf(fstatus, "(%s) ", s);
+    delete[] s;
     
     dump_toc toc(&dmp);
     
@@ -458,14 +453,6 @@ tGrammar::tGrammar(const char * filename)
               _rule_dict[i] = R;
             }
         }
-        else if(infl_rule_status(i))
-        {
-            grammar_rule *R = grammar_rule::make_grammar_rule(i);
-            if (R != NULL) {
-              _infl_rules.push_front(R);
-              _rule_dict[i] = R;
-            }
-        }
         else if(genle_status(i))
         {
             _generics = cons(i, _generics);
@@ -476,6 +463,15 @@ tGrammar::tGrammar(const char * filename)
           _predicts = cons(i, _predicts);
           _lexicon[i] = new lex_stem(i);
         }
+    }
+
+    int id = 0;
+    // number the rules such that the lexical rules have the lower IDs
+    for(ruleiter ru = _lex_rules.begin(); ru != _lex_rules.end(); ++ru) {
+      (*ru)->_id = id++;
+    }
+    for(ruleiter ru = _syn_rules.begin(); ru != _syn_rules.end(); ++ru) {
+      (*ru)->_id = id++;
     }
 
 #ifdef DEBUG
@@ -492,115 +488,8 @@ tGrammar::tGrammar(const char * filename)
     activate_all_rules();
     // The number of all rules for the unification and subsumption rule
     // filtering
-    _nrules = _rules.size();
     if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules", nstems(), 
-                              length(_generics), _nrules);
-
-/*
-// obsoleted by lexparser
-#if 0
-    // full forms
-    if(toc.goto_section(SEC_FULLFORMS))
-    {
-        int nffs = dmp.undump_int();
-        for(int i = 0; i < nffs; i++)
-        {
-            full_form *ff = new full_form(&dmp, this);
-            if(ff->valid())
-                _fullforms.insert(make_pair(ff->key(), ff));
-            else
-                delete ff;
-        }
-
-        if(verbosity > 4) fprintf(fstatus, ", %d full form entries", nffs);
-    }
-
-    if(_fullforms.size() == 0)
-        opt_fullform_morph = false;
-
-#ifdef ONLINEMORPH
-    // inflectional rules
-    _morph = new tMorphAnalyzer();
-
-    if(cheap_settings->lookup("irregular-forms-only"))
-        _morph->set_irregular_only(true);
-
-    if(toc.goto_section(SEC_INFLR))
-    {
-        int ninflrs = dmp.undump_int();
-        for(int i = 0; i < ninflrs; i++)
-        {
-            int t = dmp.undump_int();
-            char *r = dmp.undump_string();
-
-            if(r == 0)
-                continue;
-            
-            if(t == -1)
-                _morph->add_global(string(r));
-            else
-            {
-                _morph->add_rule(t, string(r));
-
-                bool found = false;
-                for(rule_iter iter(this); iter.valid(); iter++)
-                {
-                    if(iter.current()->type() == t)
-                    {
-                        if(iter.current()->trait() == SYNTAX_TRAIT)
-                            fprintf(ferr, "warning: found syntax `%s' rule "
-                                    "with attached infl rule `%s'\n",
-                                    print_name(t), r);
-                        
-                        iter.current()->trait(INFL_TRAIT);
-                        found = true;
-                    }
-                }
-                
-                if(!found)
-                    fprintf(ferr, "warning: rule `%s' with infl annotation "
-                            "`%s' doesn't correspond to any of the parser's "
-                            "rules\n", print_name(t), r);
-            }
-
-            delete[] r;
-        }
-
-        if(_morph->empty())
-            opt_online_morph = false;
-        
-        if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
-        if(verbosity >14) _morph->print(fstatus);
-    }
-    // irregular forms
-    if(toc.goto_section(SEC_IRREGS))
-    {
-        int nirregs = dmp.undump_int();
-        for(int i = 0; i < nirregs; i++)
-        {
-            char *form = dmp.undump_string();
-            char *infl = dmp.undump_string();
-            char *stem = dmp.undump_string();
-
-            strtolower(infl);
-            type_t inflr = lookup_type(infl);
-            if(inflr == -1)
-            {
-                fprintf(ferr, "Ignoring entry with unknown rule `%s' "
-                        "in irregular forms\n", infl);
-                delete[] form; delete[] infl; delete[] stem;
-                continue;
-            }
-            
-            _morph->add_irreg(string(stem), inflr, string(form));
-            delete[] form; delete[] infl; delete[] stem;
-        }
-    }
-#else
-    _morph = NULL;  // this should be there anyway
-#endif // endif to: if ONLINEMORPH
-#endif // endif to: if 0
-*/
+                              length(_generics), _rules.size());
 
     if(opt_nqc_unif != 0)
     {
@@ -843,103 +732,87 @@ tGrammar::init_parameters()
 }
 
 void
-tGrammar::init_rule_qc_unif()
-{
-    for(rule_iter iter(this); iter.valid(); iter++)
-    {
-        grammar_rule *rule = iter.current();
-
-        rule->init_qc_vector_unif();
-    }
+tGrammar::init_rule_qc_unif() {
+  for(ruleiter iter = _rules.begin(); iter != _rules.end(); iter++) {
+    (*iter)->init_qc_vector_unif();
+  }
 }
 
 void
-tGrammar::initialize_filter()
-{
-    fs_alloc_state S0;
-    _filter = new char[_nrules * _nrules];
-    _subsumption_filter = new char[_nrules * _nrules];
+tGrammar::initialize_filter() {
+  fs_alloc_state S0;
+  int nrules = _rules.size();
+  _filter.resize(nrules);
+  _subsumption_filter.resize(nrules);
 
-    for(rule_iter daughters(this); daughters.valid(); daughters++)
-    {
-        fs_alloc_state S1;
-        grammar_rule *daughter = daughters.current();
-        fs daughter_fs = copy(daughter->instantiate());
+  for(ruleiter daughters = _rules.begin(); daughters != _rules.end();
+      ++daughters) {
+    fs_alloc_state S1;
+    grammar_rule *daughter = *daughters;
+    fs daughter_fs = copy(daughter->instantiate());
       
-        for(rule_iter mothers(this); mothers.valid(); mothers++)
-        {
-            grammar_rule *mother = mothers.current();
+    for(ruleiter mothers = _rules.begin(); mothers != _rules.end();
+        ++mothers) {
+      grammar_rule *mother = *mothers;
 
-            _filter[daughter->id() + _nrules * mother->id()] = 0;
-
-            for(int arg = 1; arg <= mother->arity(); arg++)
-            {
-                fs_alloc_state S2;
-                fs mother_fs = mother->instantiate();
-                list_int_restrictor restr(Grammar->deleted_daughters());
+      for(int arg = 1; arg <= mother->arity(); arg++) {
+        fs_alloc_state S2;
+        fs mother_fs = mother->instantiate();
+        list_int_restrictor restr(Grammar->deleted_daughters());
                 
-                if(arg == 1)
-                {
-                    bool forward = true, backward = false;
-                    fs a = packing_partial_copy(daughter_fs, restr, false);
-                    fs b = packing_partial_copy(mother_fs, restr, false);
+        if(arg == 1) {
+          bool forward = true, backward = false;
+          fs a = packing_partial_copy(daughter_fs, restr, false);
+          fs b = packing_partial_copy(mother_fs, restr, false);
                     
-                    subsumes(a, b, forward, backward);
+          subsumes(a, b, forward, backward);
                     
-                    _subsumption_filter[daughter->id() + _nrules * mother->id()] = forward;
+          if(forward) 
+            _subsumption_filter.set(mother, daughter);
                     
 #ifdef DEBUG
-                    fprintf(stderr, "SF %s %s %c\n",
-                            daughter->printname(), mother->printname(),
-                            forward ? 't' : 'f');
+          fprintf(stderr, "SF %s %s %c\n",
+                          daughter->printname(), mother->printname(),
+                          forward ? 't' : 'f');
 #endif
-                }
-                
-                fs arg_fs = mother_fs.nth_arg(arg);
-
-                if(unify(mother_fs, daughter_fs, arg_fs).valid())
-                {
-                    _filter[daughter->id() + _nrules * mother->id()] |= (1 << (arg - 1));
-                }
-            }
         }
+        
+        fs arg_fs = mother_fs.nth_arg(arg);
+        
+        if(unify(mother_fs, daughter_fs, arg_fs).valid()) {
+          _filter.set(mother, daughter, arg);
+        }
+      }
     }
+  }
 
-    S0.clear_stats();
+  S0.clear_stats();
 }
+
 
 tGrammar::~tGrammar()
 {
+#ifdef HAVE_ICU
+    finalize_encoding_converter();
+#endif
     for(map<type_t, lex_stem *>::iterator pos = _lexicon.begin();
         pos != _lexicon.end(); ++pos)
         delete pos->second;
 
-/*
-// obsoleted by lexparser
-#if 0
-    for(ffdict::iterator pos = _fullforms.begin();
-        pos != _fullforms.end(); ++pos)
-        delete pos->second;
-#endif
-*/
+    for(ruleiter pos = _syn_rules.begin(); pos != _syn_rules.end(); ++pos) {
+      grammar_rule *r = *pos;
+      delete r;
+    }
 
-    activate_all_rules();
-    for(list<grammar_rule *>::iterator pos = _rules.begin();
-        pos != _rules.end(); ++pos)
-        delete *pos;
-
-    if(_filter)
-        delete[] _filter;
-
-    if(_subsumption_filter)
-        delete[] _subsumption_filter;
-
-#ifdef ONLINEMORPH
-    if(_morph)
-        delete _morph;
-#endif
+    for(ruleiter pos = _lex_rules.begin(); pos != _lex_rules.end(); ++pos) {
+      grammar_rule *r = *pos;
+      delete r;
+    }
 
     dag_qc_free();
+
+    delete _sm;
+    delete _lexsm;
 
 #ifdef CONSTRAINT_CACHE
     free_constraint_cache(nstatictypes);
@@ -958,13 +831,12 @@ tGrammar::~tGrammar()
 }
 
 int
-tGrammar::nhyperrules()
-{
-    int n = 0;
-    for(rule_iter iter(this); iter.valid(); iter++)
-        if(iter.current()->hyperactive()) n++;
-
-    return n;
+tGrammar::nhyperrules() {
+  int n = 0;
+  for(ruleiter iter = _rules.begin(); iter != _rules.end(); iter++)
+    if((*iter)->hyperactive()) n++;
+  
+  return n;
 }
 
 bool
@@ -1079,37 +951,3 @@ tGrammar::clear_dynamic_stems()
 }
 #endif
 
-/*
-// obsoleted by lexparser
-#if 0
-list<full_form>
-tGrammar::lookup_form(const string form)
-{
-    list<full_form> result;
-  
-#ifdef ONLINEMORPH
-    if(opt_online_morph)
-    {
-        list<tMorphAnalysis> m = _morph->analyze(form);
-        for(list<tMorphAnalysis>::iterator it = m.begin(); it != m.end(); ++it)
-        {
-            list<lex_stem *> stems = lookup_stem(it->base());
-            for(list<lex_stem *>::iterator st_it = stems.begin();
-                st_it != stems.end(); ++st_it)
-                result.push_back(full_form(*st_it, *it));
-        }
-    }
-#endif
-    if(opt_fullform_morph)
-    {
-        pair<ffdict::iterator,ffdict::iterator> p = _fullforms.equal_range(form);
-        for(ffdict::iterator it = p.first; it != p.second; ++it)
-        {
-            result.push_back(*it->second);
-        }
-    }
-  
-    return result;
-}
-#endif
-*/

@@ -54,21 +54,6 @@ postags::postags(const class lex_stem * ls)
   }
 }
 
-#if 0
-postags::postags(const class full_form ff)
-{
-    if(!ff.valid())
-        return;
-    
-    set<string> tags = cheap_settings->smap("type-to-pos", ff.stem()->type());
-    
-    for(set<string>::iterator it = tags.begin(); it != tags.end(); ++it)
-    {
-        add(*it);
-    }
-}
-#endif
-
 postags::postags(const list< class tItem *> &les)
 {
     for(list<tItem *>::const_iterator it = les.begin(); it != les.end();
