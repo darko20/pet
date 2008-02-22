@@ -87,8 +87,8 @@ filter_rule_task(grammar_rule *R, tItem *passive)
     }
 
     if(opt_nqc_unif != 0
-       && !qc_compatible_unif(qc_len_unif, R->qc_vector_unif(R->nextarg()),
-                              passive->qc_vector_unif()))
+       && !fs::qc_compatible_unif(R->qc_vector_unif(R->nextarg()),
+                                  passive->qc_vector_unif()))
     {
         stats.ftasks_qc++;
 
@@ -128,8 +128,8 @@ filter_combine_task(tItem *active, tItem *passive)
     }
 
     if(opt_nqc_unif != 0
-       && !qc_compatible_unif(qc_len_unif, active->qc_vector_unif(),
-                              passive->qc_vector_unif()))
+       && !fs::qc_compatible_unif(active->qc_vector_unif(),
+                                  passive->qc_vector_unif()))
     {
 #ifdef DEBUG
         fprintf(ferr, "filtered (qc)\n");
@@ -231,10 +231,9 @@ packed_edge(tItem *newitem) {
     else {
       bool f1 = true, b1 = true;
       if(opt_nqc_subs != 0)
-        qc_compatible_subs(qc_len_subs,
-                           olditem->qc_vector_subs(),
-                           newitem->qc_vector_subs(),
-                           f1, b1);
+        fs::qc_compatible_subs(olditem->qc_vector_subs(),
+                               newitem->qc_vector_subs(),
+                               f1, b1);
 
 #ifdef DEBUG_SUBSFAILS
       start_recording_failures();

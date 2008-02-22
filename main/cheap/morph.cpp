@@ -366,11 +366,8 @@ bool morph_subrule::establish_and_check_bindings(MString matched)
       else
         return false;
     }
-    else
-    {
-      if(c1 != c2)
-        throw tError("Conception error in morphology");
-    }
+    else // This would be a conception error in morphology
+      assert(c1 == c2);
   }
   return true;
 }

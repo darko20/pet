@@ -39,21 +39,6 @@
 #include <map>
 #include <ostream>
 
-/** @name global variables for quick check */
-/*@{*/
-/** Number of the unification quick check paths to consider */
-extern int qc_len_unif;
-/** Compact representation of unification quick check paths as tree of qc_node
-    nodes */
-extern qc_node *qc_paths_unif;
-
-/** Number of the sumsumption quick check paths to consider */
-extern int qc_len_subs;
-/** Compact representation of subsumption quick check paths as tree of qc_node
-    nodes */
-extern qc_node *qc_paths_subs;
-/*@}*/
-
 /** The different traits of rules and items:
     -- INPUT_TRAIT an input item, still without feature structure
     -- INFL_TRAIT an incomplete lexical item that needs application of
@@ -122,7 +107,9 @@ class grammar_rule
   inline list_int *allargs() { return _tofill; }
 
   /** Return the quick check vector for argument \a arg */
-  inline type_t *qc_vector_unif(int arg) { return _qc_vector_unif[arg - 1]; }
+  inline const qc_vec &qc_vector_unif(int arg) {
+    return _qc_vector_unif[arg - 1];
+  }
 
   /** Should this rule be treated special when using hyperactive parsing?
    *  Rules whose active items are seldom reused should be made hyperactive
@@ -157,7 +144,7 @@ class grammar_rule
   fs _f_restriced;  // The feature structure corresponding to this rule
                     // with the packing restrictor applied.
   
-  type_t **_qc_vector_unif;
+  qc_vec *_qc_vector_unif;
   void init_qc_vector_unif();
 
   bool _hyper;
@@ -405,10 +392,6 @@ public:
   rulefilter _filter;
   rulefilter _subsumption_filter;
   void initialize_filter();
-
-  void init_rule_qc_unif();
-  int _qc_inst_unif;
-  int _qc_inst_subs;
 
   list_int *_deleted_daughters;
   class restrictor *_packing_restrictor;
