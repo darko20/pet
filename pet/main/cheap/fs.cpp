@@ -30,12 +30,8 @@
 
 using namespace std;
 
-// global variables for quick check
-
-int qc_len_unif;
-qc_node *qc_paths_unif;
-int qc_len_subs;
-qc_node *qc_paths_subs;
+qc_node *fs::_qc_paths_unif = NULL, *fs::_qc_paths_subs = NULL;
+int fs::_qc_len_unif = 0, fs::_qc_len_subs = 0;
 
 
 fs::fs(type_t type)
@@ -577,50 +573,40 @@ compare(const fs &a, const fs &b)
     return a._dag - b._dag;
 }
 
-/* \todo why isn't this a method of fs?
- */
-type_t *
-get_qc_vector(qc_node *qc_paths, int qc_len, const fs &f)
-{
-    type_t *vector;
+qc_vec fs::get_qc_vector(qc_node *qc_paths, int qc_len) const {
+  qc_vec vector = new type_t [qc_len];
+  memset(vector, 0, qc_len * sizeof(type_t));
     
-    vector = new type_t [qc_len];
-    for(int i = 0; i < qc_len; i++) vector[i] = 0;
-    
-    if(opt_hyper && f.temp())
-    { 
-        dag_get_qc_vector_temp(qc_paths, f._dag, vector);
-    }
-    else
-        dag_get_qc_vector(qc_paths, f._dag, vector);
-    
-    return vector;
+  if(opt_hyper && temp())
+    dag_get_qc_vector_temp(qc_paths, _dag, vector);
+  else
+    dag_get_qc_vector(qc_paths, _dag, vector);
+  
+  return vector;
 }
 
 bool
-qc_compatible_unif(int qc_len, type_t *a, type_t *b)
+fs::qc_compatible_unif(const qc_vec &a, const qc_vec &b)
 {
-    for(int i = 0; i < qc_len; i++)
-    {
-        if(glb(a[i], b[i]) < 0)
-        {
+  for(int i = 0; i < _qc_len_unif; i++) {
+    if(glb(a[i], b[i]) == T_BOTTOM) {
 #ifdef DEBUG
-            fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
-                    i, print_name(a[i]), print_name(b[i]));
+      fprintf(ferr, "quickcheck fails for path %d with `%s' vs. `%s'\n",
+              i, print_name(a[i]), print_name(b[i]));
 #endif
-            return false;
-        }
+      return false;
     }
+  }
     
-    return true;
+  return true;
 }
 
 void
-qc_compatible_subs(int qc_len, type_t *a, type_t *b,
-                   bool &forward, bool &backward)
+fs::qc_compatible_subs(const qc_vec &a, const qc_vec &b,
+                       bool &forward, bool &backward)
 {
     bool st_a_b, st_b_a;
-    for(int i = 0; i < qc_len; i++)
+    for(int i = 0; i < _qc_len_subs; i++)
     {
         if(a[i] == b[i])
             continue;

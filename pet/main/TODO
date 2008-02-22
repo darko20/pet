@@ -1,3 +1,5 @@
+- check if the dumping of cyclic structures works correctly in flop
+
 - proper handling of upcase/lowercase handling in a) tokenizers and b) lexicon
   access (have to use ICU?). Is it enough to have two modes: strict (no
   conversion) and robust (all to lower)? At least the lexicon that comes from
@@ -6,12 +8,7 @@
   now converted correctly to lowercase in lingo-tokenizer, but not in
   yy-tokenizer. This should be done in a common way and an option should be
   introduced that controls if conversion to lower case is done at all.
-  (ticket #5) (The Ueber- bzw. Aegypten bug)
-
-- implement a less efficient form of unfilling that might allow simple but
-  correct subsumption tests for packing: Either a structure is completely
-  represented by its type and no features, or all appropriate features are
-  present.
+  (ticket #5) (The Ueber- bzw. Aegypten bug)  
 
 - reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 
@@ -37,8 +34,6 @@
 - finish modlist class, rather, make it obsolete by moving to modification fs
   and moving the relevant code "into" the creation of tLexItem, but there is 
   the problem of <failing constructor>.
-
-- mmap disabling makes segfaults (Francis tries to pin this down)
 
 - mmap problems seem to come up again and again!
   Idea: Make sure that permanent dags avoid using one of the slots that are 
@@ -192,4 +187,14 @@ refactoring:
 + inconsistencies between LKB and PET (ticket #2 by Francis Bond) fixed
 + characterization bug during exhaustive unpacking because of restricted fs
   in tLexItem
++ new correct rule filter for inflectional analysis makes 
+  orthographemics-cohesive-chains obsolete
++ some unclean allocations resolved, still some to fix.
++ mmap disabling makes segfaults (Francis tries to pin this down), fixed,
+  mmap now OFF by default
++- implement a less efficient form of unfilling that might allow simple but
+  correct subsumption tests for packing: Either a structure is completely
+  represented by its type and no features, or all appropriate features are
+  present. THOUGHT ABOUT THIS AND I DON'T THINK IT WILL WORK. Would require 
+  quite complicated refilling using appropriate type fs's
 

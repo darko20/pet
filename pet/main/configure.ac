@@ -125,6 +125,32 @@ export CPPFLAGS
 saveCPPFLAGS="$CPPFLAGS"
 saveLDFLAGS="$LDFLAGS"
 
+AC_LANG_PUSH(C++)
+
+AC_ARG_WITH(boost,
+[AC_HELP_STRING([--with-boost=DIR], [use the BOOST library in DIR])],
+[
+if test -d "${withval}"; then 
+    BOOSTDIR=${withval}
+else
+    AC_MSG_ERROR(directory ${withval} not found for --with-boost)
+fi
+], [])
+if test x${BOOSTDIR} != x ; then
+    CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
+fi
+AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [] ,
+[ AC_MSG_ERROR([boost graph library required to build flop and cheap]) ], [])
+dnl Necessary only for test binary boost:
+dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,
+dnl [ AC_MSG_ERROR([boost binary library required to build testBoost]) ], [])
+if test -n "${BOOSTDIR}" ; then
+    FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
+    CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${BOOSTDIR}/include"
+fi
+CPPFLAGS="$saveCPPFLAGS"
+LDFLAGS="$saveLDFLAGS"
+
 # Features/packages header files and libraries need to be done with
 # dependencies: only check if asked, and if not found switch off all
 # related/dependent checks.
@@ -181,39 +207,6 @@ fi
 AM_CONDITIONAL(ICU, [test X$icu = Xtrue])
 CPPFLAGS="$saveCPPFLAGS"
 LDFLAGS="$saveLDFLAGS"
-
-
-
-AC_ARG_WITH(boost,
-[AC_HELP_STRING([--with-boost=DIR], [use the BOOST library in DIR])],
-[
-if test -d "${withval}"; then 
-    boost=true
-    BOOSTDIR=${withval}
-else
-    boost=false
-    AC_MSG_ERROR(directory ${withval} not found for --with-boost)
-fi
-],
-[ boost=true ])
-
-if test x$boost = xtrue ; then
-    AC_LANG_PUSH(C++)
-    if test x${BOOSTDIR} != x ; then
-       CPPFLAGS="$CPPFLAGS -I${BOOSTDIR}/include"
-    fi
-    AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/topological_sort.hpp boost/lambda/lambda.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-    dnl Necessary only for test binary boost:
-    dnl AC_CHECK_HEADERS([boost/graph/graph_utility.hpp boost/graph/graphviz.hpp boost/graph/reverse_graph.hpp], [ boost=true ] ,[ boost=false ; break ], [])
-fi
-AM_CONDITIONAL(BOOST, [test x$boost = xtrue])
-if test x$boost = xtrue -a -n "${BOOSTDIR}" ; then
-    FLOPCPPFLAGS="$FLOPCPPFLAGS -I${BOOSTDIR}/include"
-fi
-CPPFLAGS="$saveCPPFLAGS"
-LDFLAGS="$saveLDFLAGS"
-
-
 
 AC_ARG_WITH(xml,
 [AC_HELP_STRING([--with-xml@<:@=DIR@:>@], [use the Xerces C++ library (enables XML input modes) (default=no)])],
@@ -610,7 +603,6 @@ dnl    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-rcu])
 dnl esac], [rcu=false])
 dnl AM_CONDITIONAL(RCU, [test x$rcu = xtrue])
 
-AC_LANG_PUSH(C++)
 AC_CHECK_HEADERS([hash_map],,
    [AC_CHECK_HEADERS([ext/hash_map],,[AC_MSG_ERROR("No hash_map header found")],)])
 
@@ -723,7 +715,7 @@ feature_avail() {
 )
 }
 echo ; echo "============================================================="
-feature_avail x$boost xtrue "Boost (required for flop)"
+dnl feature_avail x$boost xtrue "Boost (required for flop)"
 feature_avail x$tsdb xtrue "tsdb"
 feature_avail x$ecl xtrue "ecl lisp processor"
 feature_avail x$mrs xtrue "MRS code with ecl"
