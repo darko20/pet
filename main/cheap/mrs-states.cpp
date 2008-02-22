@@ -81,7 +81,7 @@ req_char_attr(AttributeList& attr, char *aname) {
   const char *str = XMLCh2UTF8(val);
   if (strlen(str) != 1)
     throw Error((string) "wrong char value '" + str + "' for attribute '"
-		+ aname + "'");
+                + aname + "'");
   return str[0];
 }
 
@@ -92,7 +92,7 @@ opt_char_attr(AttributeList& attr, char *aname, char def) {
   const char *str = XMLCh2UTF8(val);
   if (strlen(str) != 1)
     throw Error((string) "wrong char value '" + str + "' for attribute '"
-		+ aname + "'");
+                + aname + "'");
   return str[0];
 }
 

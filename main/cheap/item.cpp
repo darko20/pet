@@ -995,7 +995,7 @@ tItem::contains_p(tItem *it)
   tItem *pit = this;
   while (true) {
     if (it->startposition() != pit->startposition() ||
-	it->endposition() != pit->endposition())
+        it->endposition() != pit->endposition())
       return false;
     else if (it->id() == pit->id())
       return true;
@@ -1076,7 +1076,7 @@ tItem::unpack(int upedgelimit)
     if (opt_timeout > 0) {
       timestamp = times(NULL);
       if (timestamp >= timeout)
-	return res;
+        return res;
     }
 
     // Recursively unpack items that are packed into this item.

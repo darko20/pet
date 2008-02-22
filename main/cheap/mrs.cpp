@@ -273,19 +273,19 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
   for (attribute = dag->arcs; attribute != NULL; attribute = attribute->next) {
     char* feature = attrname[attribute->attr];
     if (strcmp(feature,
-	       cheap_settings->req_value("mrs-rel-handel-path")) != 0 &&
-	strcmp(feature,
-	       cheap_settings->req_value("mrs-rel-name-path")) != 0 &&
-	!cheap_settings->member("mrs-ignored-sem-features", feature)) {
+               cheap_settings->req_value("mrs-rel-handel-path")) != 0 &&
+        strcmp(feature,
+               cheap_settings->req_value("mrs-rel-name-path")) != 0 &&
+        !cheap_settings->member("mrs-ignored-sem-features", feature)) {
       tValue* value;
       if (cheap_settings->member("mrs-value-feats", feature)) {
-	value = new tConstant(type_name(attribute->val->type));
+        value = new tConstant(type_name(attribute->val->type));
       } else {
-	if (indexing) {// ??? what's _mrs in indexing?
-	  value = new tVar(_mrs->_vid_generator++, attribute->val, indexing);
-	} else {
-	  value = _mrs->request_var(attribute->val);
-	}
+        if (indexing) {// ??? what's _mrs in indexing?
+          value = new tVar(_mrs->_vid_generator++, attribute->val, indexing);
+        } else {
+          value = _mrs->request_var(attribute->val);
+        }
       }
       flist[feature] = value;
     }
@@ -424,7 +424,7 @@ print_full(FILE* f) {
     char* upvalue = new char[extra[*feat].length()+1];
     strtoupper(upvalue, extra[*feat].c_str());
     fprintf(f, "\n<extrapair><path>%s</path><value>%s</value></extrapair>", 
-	    (*feat).c_str(), upvalue);
+            (*feat).c_str(), upvalue);
     delete upvalue;
   }
 
@@ -437,13 +437,13 @@ create_index_property_list(dag_node* dag, std::string path, std::map<std::string
   std::string currpath = path == "" ? path : path+"."; 
   for (attribute = dag->arcs; attribute != NULL; attribute = attribute->next) { // for each attribute under current dag root node
     if (cheap_settings->member("mrs-ignored-extra-features", 
-			       attrname[attribute->attr]))
+                               attrname[attribute->attr]))
       continue;
     if (attribute->val->arcs == NULL) { // value of the attribute is atomic
       extra[currpath+attrname[attribute->attr]] = type_name(attribute->val->type);
     } else { // collect property recursively
       create_index_property_list(attribute->val, 
-				 currpath+attrname[attribute->attr], extra);
+                                 currpath+attrname[attribute->attr], extra);
     }
   }
 }
@@ -474,9 +474,9 @@ operator()(const std::string feat1, const std::string feat2) const {
     setting* plist = cheap_settings->lookup("mrs-feat-priority-list");
     for (int i = 0; i < plist->n; i ++) 
       if (strcasecmp(plist->values[i], feat1.c_str()) == 0)
-	return true;
+        return true;
       else if (strcasecmp(plist->values[i], feat2.c_str()) == 0)
-	return false;
+        return false;
   }
   return feat1 < feat2;
 }
@@ -493,9 +493,9 @@ operator()(const std::string feat1, const std::string feat2) const {
     setting* plist = cheap_settings->lookup("mrs-extra-priority-list");
     for (int i = 0; i < plist->n; i ++) 
       if (strcasecmp(plist->values[i], feat1.c_str()) == 0)
-	return true;
+        return true;
       else if (strcasecmp(plist->values[i], feat2.c_str()) == 0)
-	return false;
+        return false;
   }
   return feat1 < feat2;
 }
