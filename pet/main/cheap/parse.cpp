@@ -422,8 +422,8 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors)
             add_item(it);
         
         delete t;
-	if (opt_timeout > 0)
-	  timestamp = times(NULL);
+        if (opt_timeout > 0)
+          timestamp = times(NULL);
     }
 }
 
@@ -530,10 +530,10 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
       }
 
       if (opt_timeout > 0 && timestamp >= timeout) {
-	ostringstream s;
-	s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
-	  << " s)";
-	errors.push_back(s.str());
+        ostringstream s;
+        s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+          << " s)";
+        errors.push_back(s.str());
       }
 
       stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
@@ -584,9 +584,9 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
         else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit)
             s << "edge limit exhausted (" << pedgelimit 
               << " pedges)";
-	else 
-	  s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
-	    << " s)";
+        else 
+          s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+            << " s)";
         errors.push_back(s.str());
     }
 

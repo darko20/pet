@@ -383,9 +383,9 @@ bool parse_options(int argc, char* argv[])
               memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
           break;
       case OPTION_TIMEOUT:
-	  if(optarg != NULL)
-	      opt_timeout = sysconf(_SC_CLK_TCK) * strtoint(optarg, "as argument to -timeout");
-	  break;
+          if(optarg != NULL)
+              opt_timeout = sysconf(_SC_CLK_TCK) * strtoint(optarg, "as argument to -timeout");
+          break;
       case OPTION_LOG:
           if(optarg != NULL)
               if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
