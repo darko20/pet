@@ -62,7 +62,7 @@ punctuation_char(const UChar32 c, const UnicodeString &punctuation_chars) {
 #else
 inline bool
 punctuation_char(const char c, const string &punctuation_chars) {
-  return (punctuation_chars.find(c) != STRING_NPOS);
+  return (punctuation_chars.find(c) != string::npos);
 }
 #endif
 
