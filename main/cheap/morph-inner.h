@@ -58,9 +58,6 @@ public:
   MString convert(MChar c) { return std::string() + c ; }
 };
 
-Converter Convert;
-Converter *Conv = &Convert;
-
 #endif
 
 /// represents one letterset, primary purpose is keeping track of bindings

@@ -30,6 +30,15 @@
 //#include <boost/graph/graph_utility.hpp>
 
 
+
+#ifndef HAVE_ICU
+
+Converter Convert;
+Converter *Conv = &Convert;
+
+#endif
+
+
 #define LETTERSET_CHAR ((MChar) '\x8')
 
 bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b) {
