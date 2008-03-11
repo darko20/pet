@@ -1,4 +1,5 @@
 v0.99.??
+  - resolve escaped characters in TDL strings
   - removed obsolete `nbest' mode and other obsolete code
   - Lexparser.next_input now returns true if there's still input
   - fixed lots of unclean allocations which where not or not properly free'd
