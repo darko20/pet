@@ -1,68 +1,73 @@
 # -*- makefile -*-
 
-MRSDIR = @MRSDIR@
-
-CHEAPCPPFLAGS = @CHEAPCPPFLAGS@
-CHEAPLDFLAGS = @CHEAPLDFLAGS@
-CHEAPLIBS = @CHEAPLIBS@
-
-DEFS = 
-# Development switches
-OPTIM=-O2
-#-O0 
-# profiling with gprof
-# OPTIM += -pg
-# coverage testing with gprof
-# OPTIM += -fprofile-arcs -ftest-coverage
-# not in our gcc yet -fno-eliminate-unused-debug-types
-#DEFS += -UNDEBUG -D_GLIBCXX_DEBUG
+# build the current directory first, then the test directory since we
+# want to test the objects in this directory
+if CPPUNIT
+SUBDIRS = . test
+endif
 
 include $(top_srcdir)/common/Makefile.common
 
-# What is this?
-#if TSDB
-bin_PROGRAMS = cheap #mtest
-#else
-#bin_PROGRAMS = dumpgram #mtest
-#endif
-
-# allow the user to add types to the type hierarchy at run-time
+# Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
+CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp @CHEAPCPPFLAGS@
+CXXFLAGS += @CHEAPCXXFLAGS@
+LDFLAGS += @CHEAPLDFLAGS@
+LIBS += @CHEAPLIBS@
 DEFS += -DDYNAMIC_SYMBOLS
 
-# These should be tested appropriately and appear in config.h
-AM_CPPFLAGS = -I$(top_srcdir)/common $(CHEAPCPPFLAGS)
-# Is needed in some cases (required by libpvm3.a)
-# AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
-AM_LDFLAGS = $(CHEAPLDFLAGS)
-LIBS += $(CHEAPLIBS)
+# Further CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS should be determined by configure.ac
+# if they are system-specific or passed as a command-line option to configure
+# if they are requested by the user (this is the whole point of configure).
+# So, pass the following flags to configure or adapt configure.ac:
+# - superoptimized code and all warnings: "CXXFLAGS=-Wall -O3"
+# - profiling with gprof: "CXXFLAGS=-pg"
+# - coverage testing with gprof: "CXXFLAGS=-fprofile-arcs -ftest-coverage"
+# - not in our gcc yet -fno-eliminate-unused-debug-types:
+#   "CXXFLAGS=-UNDEBUG -D_GLIBCXX_DEBUG"
+# - Is needed in some cases (required by libpvm3.a):
+#   "LDFLAGS=-Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0"
+# See README.
 
 # This is always used! <-> documentation
-AM_CXXFLAGS = -g -Wall $(OPTIM) $(DEFS)
-AM_CFLAGS = -g -Wall $(OPTIM) $(DEFS)
+AM_CXXFLAGS = -Wall
 
-# clear defaults, e.g., if i don't want optimisation to be switched on
-CXXFLAGS =
-CFLAGS =
+bin_PROGRAMS = cheap
+#bin_PROGRAMS += dumpgram
+#bin_PROGRAMS += mtest
+
+cheap_SOURCES = cheap.cpp cheap.h
+cheap_LDADD   = libcheap.a
+
+#dumpgram_SOURCES = dumpgram.cpp \
+#                   $(top_srcdir)/common/errors.h \
+#                   $(top_srcdir)/common/grammar-dump.cpp \
+#                   $(top_srcdir)/common/grammar-dump.h \
+#                   $(top_srcdir)/common/dumper.cpp \
+#                   $(top_srcdir)/common/dumper.h
+
+# Convenience library (makes building several executables easier and is
+# a tiny step towards a general pet library):
+noinst_LIBRARIES = libcheap.a
 
 # The include-file dependencies are automatically computed by Automake
 # (`Automatic dependency tracking'). Thus, the headers do not need to be listed
 # for compilation, but they need to be found for making a distribution.
 # Note that the headers in $(top_srcdir)/common are always included
 # (cf. $(top_srcdir)/common/Makefile.am) and are therefore not listed here.
-cheap_SOURCES = agenda.h \
+libcheap_a_SOURCES = \
+	agenda.h \
 	chart.cpp chart.h \
-	cheap.cpp cheap.h \
 	cheaptimer.h \
 	fs.cpp fs.h \
 	grammar.cpp grammar.h \
-	input-modules.h \
+	input-modules.cpp input-modules.h \
 	item-printer.cpp item-printer.h \
 	item.cpp item.h \
 	itsdb.h \
 	lexicon.cpp lexicon.h \
 	lexparser.cpp lexparser.h \
 	lingo-tokenizer.cpp lingo-tokenizer.h \
-	morph.cpp morph.h \
+	morph.cpp morph.h morph-inner.h \
 	options.cpp options.h \
 	parse.cpp parse.h \
 	paths.cpp paths.h \
@@ -91,39 +96,33 @@ cheap_SOURCES = agenda.h \
 	$(top_srcdir)/common/types.cpp \
 	$(top_srcdir)/common/utility.cpp
 
-TOMABECHI_UNIF_FILES = dag-tomabechi.cpp dag-tomabechi.h failure.h      \
-        failure.cpp qc.h qc.cpp
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI
-cheap_SOURCES += $(TOMABECHI_UNIF_FILES)
-else
+libcheap_a_SOURCES += dag-tomabechi.cpp dag-tomabechi.h failure.cpp failure.h \
+                      qc.h qc.cpp
+endif
 if SIMPLE_UNIFIER
 DEFS += -DDAG_SIMPLE -DWROBLEWSKI2
-cheap_SOURCES += $(top_srcdir)/common/dag-simple.cpp
-endif
+libcheap_a_SOURCES += $(top_srcdir)/common/dag-simple.cpp
 endif
 
-# Add "mrs.h" to MRS source files ... Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
-# Is -Dlinux -fstrict-aliasing needed as compiler options?
-ECL_FILES = petecl.c petecl.h
-ECL_MRS_FILES = cppbridge.cpp cppbridge.h petmrs.h petmrs.c
-ECL_PREPROCESSOR_FILES = eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
-
-cheap_LDADD =
 if ECL
-cheap_SOURCES += $(ECL_FILES) 
+libcheap_a_SOURCES += petecl.c petecl.h
+endif
 if ECLPREPROC
 if ICU
-cheap_SOURCES += $(ECL_PREPROCESSOR_FILES)
-cheap_LDADD +=  ../fspp/libfspp.a -lpreprocessor ../fspp/libfspp.a #fix_me
-AM_LDFLAGS += -L../fspp
-AM_CPPFLAGS +=  -I../fspp
+libcheap_a_SOURCES += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
+cheap_LDADD += ../fspp/libfspp.a -lpreprocessor ../fspp/libfspp.a #fix_me
+LDFLAGS += -L../fspp
+CPPFLAGS += -I../fspp
+else
+# This looks strange. If ICU is a dependency, it should be ensured by
+# configure that ECLPREPROC is only set if all dependencies are met.
 endif
 endif
 if ECLMRS
-cheap_SOURCES += $(ECL_MRS_FILES)
+libcheap_a_SOURCES += cppbridge.cpp cppbridge.h petmrs.h petmrs.c
 cheap_LDADD += libmrs.a
-endif
 endif
 
 # Add ecl libraries to be deleted on "make clean" ... 
@@ -136,84 +135,52 @@ MOSTLYCLEANFILES = libmrs.a
 libmrs.a:
 	( \
 	echo ";;(pushnew :debug *features*)"; \
-	echo "(load \"$(MRSDIR)/src/general/loadup\")"; \
+	echo "(load \"@MRSDIR@/src/general/loadup\")"; \
 	echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
 	echo "(mk::ecl-initialize-libbuild :module \"mrs\")"; \
 	echo "(compile-system \"mrs\" :force t)"; \
 	echo "(mk::ecl-finalize-libbuild :module \"mrs\")"; \
 	) | $(ECL)
 
-XML_FILES = pic-handler.cpp pic-handler.h pic-states.h pic-tokenizer.h pic-tokenizer.cpp xmlparser.cpp xmlparser.h smaf-tokenizer.h smaf-tokenizer.cpp mrs-handler.h mrs-handler.cpp mrs-states.h mrs-states.cpp
 if XML
-cheap_SOURCES += $(XML_FILES)
+libcheap_a_SOURCES += pic-handler.cpp pic-handler.h pic-states.h \
+                      pic-tokenizer.h pic-tokenizer.cpp \
+                      xmlparser.cpp xmlparser.h \
+                      smaf-tokenizer.h smaf-tokenizer.cpp
 endif
 
-ICU_FILES = unicode.h unicode.cpp
 if ICU
-cheap_SOURCES += $(ICU_FILES)
+libcheap_a_SOURCES += unicode.h unicode.cpp
 endif
 
-# PSQL_FILES = psqllex.h psqllex.cpp
 # if LEXDB
-# cheap_SOURCES += $(PSQL_FILES)
+# libcheap_a_SOURCES += psqllex.h psqllex.cpp
 # endif
 
-YY_FILES = yy.h yy.cpp
 if YY
-# Should force appropriate recompilation
-#DEFS += -DYY
-cheap_SOURCES += $(YY_FILES)
+libcheap_a_SOURCES += yy.h yy.cpp
 endif
 
-# source files that should be distributed in any case, even if not used.
-EXTRA_cheap_SOURCES = dumpgram.cpp mtest.cpp pet.cpp			\
-	$(ECL_MRS_FILES) $(EXTDICT_FILES) $(ICU_FILES)			\
-	$(RCU_FILES) $(TOMABECHI_UNIF_FILES) $(YY_FILES) $(XML_FILES)	\
-	$(PSQL_FILES) psqltest.c
-
-EXTRA_DIST = Jamfile
-
-
-profclean:
-	rm -f *.gcov gmon.out *.bb *.bbg *.da
-
-#EXTDICT_FILES = extdict.cpp extdict.h
 #if EXTDICT
-#cheap_SOURCES += $(EXTDICT_FILES)
+#libcheap_a_SOURCES += extdict.cpp extdict.h
 #endif
 
-#RCU_FILES = rcu-types.h rcu-types.cpp rcu-dag-node.h
 #if RCU
 # QC_PATH_COMP could be done robustly, ie with weights.  The aim would be
 # to find the paths that most quickly find out the biggest losses.
 #DEFS += -DROBUST
-#cheap_SOURCES += $(RCU_FILES)
-# nodist_cheap_SOURCES += dag-chunk-alloc.h dag-chunk-alloc.cpp	\
-#                         type-chunk-alloc.cpp type-chunk-alloc.h	\
-# 	                type-alloc.h type-alloc.cpp
-#endif
-
+#libcheap_a_SOURCES += rcu-types.h rcu-types.cpp rcu-dag-node.h
+#nodist_libcheap_a_SOURCES += dag-chunk-alloc.h dag-chunk-alloc.cpp \
+#                             type-chunk-alloc.cpp type-chunk-alloc.h \
+#                             type-alloc.h type-alloc.cpp
 # Not done for fair comparison
-# if RCU
-# DEFS += -UQC_PATH_COMP
-# endif
-
-# tsdb sources are always needed for cheap. Does somebody really need dumpgram?
-# Confusion with LKB itsdb.h possible?  Not really: it should be the same file, but local one is always taken first
-#TSDB_FILES = itsdb.h tsdb++.h tsdb++.cpp
-#if TSDB
-#using dynamic library
-#cheap_LDADD += $(ITSDBDIR)/lib/linux/libitsdb.a
-#cheap_SOURCES += $(TSDB_FILES)
-# else
-# nodist_dumpgram_SOURCES = errors.h grammar-dump.cpp	\
-# 	grammar-dump.h dumper.cpp dumper.h
-# dumpgram_SOURCES = dumpgram.cpp
+#DEFS += -UQC_PATH_COMP
 #endif
 
-# To make ECL:
-# ./configure ...
-# cd build
-# make
-# make install
+# Distribute the following files in any case:
+# (N.B.: all conditional SOURCES are also distributed in any case)
+EXTRA_DIST = dumpgram.cpp mtest.cpp pet.cpp psqltest.c
+
+profclean:
+	rm -f *.gcov gmon.out *.bb *.bbg *.da
 

@@ -1,4 +1,7 @@
 v0.99.??
+  - revamped build system (please run autoreconf -i after svn checkout/update)
+  - now compiles with ecl-0.9j
+  - moved tTokenizer definition from lingo-tokenizer.cpp to input-modules.cpp
   - resolve escaped characters in TDL strings
   - removed obsolete `nbest' mode and other obsolete code
   - Lexparser.next_input now returns true if there's still input

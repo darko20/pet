@@ -54,5 +54,3 @@ libpreprocessor.a:
 libfspp.a: fspp.o libpreprocessor.a
 	ar rcs libfspp.a fspp.o # libpreprocessor.a
 
-EXTRA_DIST = Jamfile
-
