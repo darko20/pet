@@ -1,18 +1,17 @@
 # -*- makefile -*-
 
-FLOPCPPFLAGS = @FLOPCPPFLAGS@
-
 include $(top_srcdir)/common/Makefile.common
 
-bin_PROGRAMS = flop # boost
+# Add flop-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
+CPPFLAGS += -I$(top_srcdir)/common @FLOPCPPFLAGS@
+LDFLAGS += @FLOPLDFLAGS@
+LIBS += @FLOPLIBS@
+DEFS += -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
 
-# -DNew=new removed
-DEFS = -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
-AM_CPPFLAGS = -Wall -I$(top_srcdir)/common $(FLOPCPPFLAGS)
-AM_CXXFLAGS = -O3
+# This is always used! <-> documentation
+AM_CXXFLAGS = -Wall
 
-#AM_LDFLAGS = -Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0
-# Shared libraries are added to flop_LDADD via configure.ac
+bin_PROGRAMS = flop
 
 # The include-file dependencies are automatically computed by Automake
 # (`Automatic dependency tracking'). Thus, the headers do not need to be listed
@@ -55,4 +54,3 @@ flop_SOURCES = corefs.cpp \
 	$(top_srcdir)/common/types.cpp \
 	$(top_srcdir)/common/utility.cpp
 
-EXTRA_DIST = Jamfile

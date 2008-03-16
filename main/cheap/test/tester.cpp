@@ -5,17 +5,31 @@
 
 /* main module (unit test driver) */
 
+#include "pet-config.h"
+
 #include <cppunit/extensions/TestFactoryRegistry.h>
-#include <cppunit/ui/text/TestRunner.h>
+#include <cppunit/TestResult.h>
+#include <cppunit/TestResultCollector.h>
+#include <cppunit/TestRunner.h>
+#include <cppunit/BriefTestProgressListener.h>
+#include <cppunit/CompilerOutputter.h>
 
 int
 main(int argc, char **argv)
 {
-    CppUnit::TextUi::TestRunner runner;
-    CppUnit::TestFactoryRegistry &registry =
-        CppUnit::TestFactoryRegistry::getRegistry();
-    
-    runner.addTest(registry.makeTest());
-    bool wasSucessful = runner.run("", false);
-    return wasSucessful;
+  // create and setup unit testing objects:
+  CppUnit::TestResultCollector result;
+  CppUnit::CompilerOutputter outputter(&result, std::cerr);
+  CppUnit::BriefTestProgressListener progress;
+  CppUnit::TestResult controller;
+  CppUnit::TestRunner runner;
+  controller.addListener(&result);
+  controller.addListener(&progress);      
+  runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
+  
+  // run tests:
+  runner.run(controller);
+  outputter.write();    
+  
+  return result.wasSuccessful() ? 0 : 1;
 }
