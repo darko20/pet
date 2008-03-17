@@ -140,10 +140,12 @@ AC_CHECK_HEADERS([sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h],,
 AC_CHECK_HEADERS([stddef.h stdlib.h string.h strings.h],,
                  [AC_MSG_ERROR("some system header file not found")])
 
-# hash_map (C++)
+# hash_map and hash_set (C++)
 AC_LANG_PUSH([C++])
 AC_CHECK_HEADERS([hash_map],,
    [AC_CHECK_HEADERS([ext/hash_map],,[AC_MSG_ERROR("No hash_map header found")],)])
+AC_CHECK_HEADERS([hash_set],,
+   [AC_CHECK_HEADERS([ext/hash_set],,[AC_MSG_ERROR("No hash_set header found")],)])
 AC_LANG_POP([C++])
 
 

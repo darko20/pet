@@ -47,6 +47,9 @@
 /* Define to 1 if you have the <ext/hash_map> header file. */
 #undef HAVE_EXT_HASH_MAP
 
+/* Define to 1 if you have the <ext/hash_set> header file. */
+#undef HAVE_EXT_HASH_SET
+
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
@@ -64,6 +67,9 @@
 
 /* Define to 1 if you have the <hash_map> header file. */
 #undef HAVE_HASH_MAP
+
+/* Define to 1 if you have the <hash_set> header file. */
+#undef HAVE_HASH_SET
 
 /* define to 1 if ICU library is available */
 #undef HAVE_ICU
