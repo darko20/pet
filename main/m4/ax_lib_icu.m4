@@ -100,12 +100,17 @@ AC_DEFUN([AX_LIB_ICU], [
     ICU_LIBS="$ICU_LIBS $($ax_lib_icu_config --ldflags-libsonly)"
   fi
   
+  ax_lib_icu_saved_CPPFLAGS=$CPPFLAGS
+  ax_lib_icu_saved_CXXFLAGS=$CXXFLAGS
+  ax_lib_icu_saved_LDFLAGS=$LDFLAGS
+  ax_lib_icu_saved_LIBS=$LIBS
+  CPPFLAGS="$ICU_CPPFLAGS $CPPFLAGS"
+  CXXFLAGS="$ICU_CXXFLAGS $CXXFLAGS"
+  LDFLAGS="$ICU_LDFLAGS $LDFLAGS"
+  LIBS="$ICU_LIBS $LIBS"
+  
   # checking library functionality
   if test "x$ax_lib_icu" = "xyes" ; then
-    ax_lib_icu_saved_LDFLAGS=$LDFLAGS
-    ax_lib_icu_saved_LIBS=$LIBS
-    export LDFLAGS="$ICU_LDFLAGS $LDFLAGS"
-    export LIBS="$ICU_LIBS $LIBS"
     AC_REQUIRE([AC_PROG_CXX])
     AC_LANG_PUSH([C++])
     AC_MSG_CHECKING([ICU library usability])
@@ -116,9 +121,12 @@ AC_DEFUN([AX_LIB_ICU], [
       [AC_MSG_RESULT([yes])],
       [AC_MSG_RESULT([no]) ; ax_lib_icu="no"])
     AC_LANG_POP([C++])
-    export LDFLAGS=$ax_lib_icu_saved_LDFLAGS
-    export LIBS=$ax_lib_icu_saved_LIBS
   fi
+  
+  CPPFLAGS=$ax_lib_icu_saved_CPPFLAGS
+  CXXFLAGS=$ax_lib_icu_saved_CXXFLAGS
+  LDFLAGS=$ax_lib_icu_saved_LDFLAGS
+  LIBS=$ax_lib_icu_saved_LIBS
   
   # final actions
   AC_SUBST([ICU_CPPFLAGS])

@@ -102,11 +102,13 @@ AC_DEFUN([AX_LIB_ECL], [
   fi
   
   ax_lib_ecl_saved_CPPFLAGS=$CPPFLAGS
+  ax_lib_ecl_saved_CFLAGS=$CFLAGS
   ax_lib_ecl_saved_LDFLAGS=$LDFLAGS
   ax_lib_ecl_saved_LIBS=$LIBS
-  export CPPFLAGS="$ECL_CPPFLAGS $CPPFLAGS"
-  export LDFLAGS="$ECL_LDFLAGS $LDFLAGS"
-  export LIBS="$ECL_LIBS $LIBS"
+  CPPFLAGS="$ECL_CPPFLAGS $CPPFLAGS"
+  CFLAGS="$ECL_CFLAGS $CFLAGS"
+  LDFLAGS="$ECL_LDFLAGS $LDFLAGS"
+  LIBS="$ECL_LIBS $LIBS"
   
   # checking headers
   if test "x$ax_lib_ecl" = "xyes" ; then
@@ -144,9 +146,10 @@ AC_DEFUN([AX_LIB_ECL], [
     AC_LANG_POP([C])
   fi
   
-  export CPPFLAGS=$ax_lib_ecl_saved_CPPFLAGS
-  export LDFLAGS=$ax_lib_ecl_saved_LDFLAGS
-  export LIBS=$ax_lib_ecl_saved_LIBS
+  CPPFLAGS=$ax_lib_ecl_saved_CPPFLAGS
+  CFLAGS=$ax_lib_ecl_saved_CFLAGS
+  LDFLAGS=$ax_lib_ecl_saved_LDFLAGS
+  LIBS=$ax_lib_ecl_saved_LIBS
   
   # final actions
   AC_SUBST([ECL_CPPFLAGS])
