@@ -81,7 +81,7 @@ public:
   virtual void real_print(const tPhrasalItem *item) ;
   
 private:
-  typedef hash_map<long int, unsigned int> item_map;
+  typedef HASH_SPACE::hash_map<long int, unsigned int> item_map;
 
   void print_it(const tItem *item, bool passive, bool left_ext);
 

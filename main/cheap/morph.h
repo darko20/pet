@@ -25,20 +25,6 @@
 #define _MORPH_H_
 
 #include "hashing.h"
-
-namespace HASH_SPACE {
-  /** hash function for pointer that just looks at the pointer content */
-  template<> struct hash< std::string >
-  {
-    /** \return A hash code for a pointer */
-    inline size_t operator()(const std::string &s) const
-    {
-      hash< const char *> h;
-      return h(s.c_str()) ;
-    }
-  };
-}
-
 #include "types.h"
 #include "input-modules.h"
 #include "morph-inner.h"

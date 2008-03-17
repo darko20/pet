@@ -33,6 +33,7 @@
 #endif
 
 using namespace std;
+using namespace HASH_SPACE;
 
 int nleaftypes;
 int *leaftypeparent = 0;
@@ -107,25 +108,12 @@ void register_typecode(int i, bitcode *b) {
 }
 
 #ifdef HASH_SPACE
-namespace HASH_SPACE {
-  template<> struct hash<string> {
-    inline size_t operator()(const string &key) const {
-      int v = 0;
-      for(unsigned int i = 0; i < key.length(); i++)
-        v += key[i];
-
-      return v;
-    }
-  };
-}
-
 struct string_equal : public binary_function<string, string, bool> {
   inline bool operator()(const string &s1, const string &s2) {
     return s1 == s2;
   }
 };
-
-typedef hash_map<string, int, hash< string >, string_equal> string_map;
+typedef hash_map<string, int, simple_string_hash, string_equal> string_map;
 #else
 typedef map<string, int> string_map;
 #endif

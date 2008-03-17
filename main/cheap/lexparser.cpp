@@ -19,16 +19,18 @@
 
 #include "pet-config.h"
 #include "lexparser.h"
-#include "position-mapper.h" 
+#include "position-mapper.h"
 #include "chart.h"
 #include "task.h"
 #include "tsdb++.h"
 #include "item-printer.h"
 #include "cheap.h"
+#include "hashing.h"
 
 #include <iostream>
 
 using namespace std;
+using namespace HASH_SPACE;
 
 lex_parser global_lexparser;
 lex_parser &Lexparser = global_lexparser;

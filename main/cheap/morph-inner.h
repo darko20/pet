@@ -98,11 +98,12 @@ public:
   void print(FILE *f) const;
 
 private:
-  typedef hash_map<std::string, morph_letterset>::iterator ml_iterator;
-  typedef hash_map<std::string, 
-                   morph_letterset>::const_iterator ml_const_iterator;
+  typedef HASH_SPACE::hash_map<std::string, morph_letterset>::iterator
+    ml_iterator;
+  typedef HASH_SPACE::hash_map<std::string, morph_letterset>::const_iterator
+    ml_const_iterator;
 
-  hash_map<std::string, morph_letterset> _m;
+  HASH_SPACE::hash_map<std::string, morph_letterset> _m;
 };
 
 /** This implements one element of a morphological rule specification, the
@@ -163,7 +164,7 @@ public:
   void add_path(MString path, morph_subrule *rule, const morph_lettersets &ls);
 
   bool has_rules() const { return ! _rules.empty(); }
-  const vector<morph_subrule *> &rules() const { return _rules; }
+  const std::vector<morph_subrule *> &rules() const { return _rules; }
 
   void print(FILE *f, int depth = 0) const;
   
@@ -176,7 +177,7 @@ private:
 
   tn_map _s;
 
-  vector<morph_subrule *> _rules;
+  std::vector<morph_subrule *> _rules;
 };
 
 class morph_trie
