@@ -286,16 +286,16 @@ struct ltrel {
     
     // now ra and rb have the same number of parameters, compare fv-pairs
     for (std::map<std::string,tValue*>::iterator fvp = ra->parameter_strings.begin();
-	 fvp != ra->parameter_strings.end(); fvp ++) {
+         fvp != ra->parameter_strings.end(); fvp ++) {
       std::string feature = (*fvp).first;
       tValue* ra_value = (*fvp).second;
       if (rb->parameter_strings.find(feature) == rb->parameter_string.end())
-	return false; // a feature in ra is not in rb, short curcirt
+        return false; // a feature in ra is not in rb, short curcirt
       tValue* rb_value = rb[feature];
       if (dynamic_cast<tConstant*>(ra_value) != NULL && 
-	  dynamic_cast<tConstant*>(rb_value) != NULL) {
-	// both are constants
-	
+          dynamic_cast<tConstant*>(rb_value) != NULL) {
+        // both are constants
+        
       } else if (dynamic_cast<tVar/
     }
     

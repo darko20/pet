@@ -111,7 +111,7 @@ grammar_rule::grammar_rule(type_t t)
         throw tError("Feature structure of rule " + string(type_name(t))
                     + " does not contain "
                     + string(cheap_settings->req_value("rule-args-path")));
-    }	    
+    }       
 
     argslist = dag_get_list(dag);
     

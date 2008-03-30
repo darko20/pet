@@ -24,20 +24,20 @@ read_vpm(const string &filename, string id) {
     if (strchr(line, ':') != NULL) {
       // beginning line of a pm
       if (pm != NULL)
-	pms.push_back(pm);
+        pms.push_back(pm);
       pm = new tPM();
       char* tok = strtok(line, " \t\n");
       bool onleft = true;
       while (tok != NULL) {
-	if (strcmp(tok, ":") == 0)
-	  onleft = false;
-	else {
-	  if (onleft) 
-	    pm->lhs.push_back(tok);
-	  else 
-	    pm->rhs.push_back(tok);
-	}
-	tok = strtok(NULL, " \t\n");
+        if (strcmp(tok, ":") == 0)
+          onleft = false;
+        else {
+          if (onleft) 
+            pm->lhs.push_back(tok);
+          else 
+            pm->rhs.push_back(tok);
+        }
+        tok = strtok(NULL, " \t\n");
       }
     } else if (strpbrk(line, "<>=") != NULL) {
       // a line of pmr
@@ -45,43 +45,43 @@ read_vpm(const string &filename, string id) {
       char* tok = strtok(line, " \t\n");
       bool onleft = true;
       while (tok != NULL) {
-	if (strpbrk(tok, "<>=") != NULL) {
-	  int len = strlen(tok);
-	  if (len <2 || len >3) { 
-	    fprintf(ferr, "Invalid direction (must be 2 or 3 chars): `%s'\n", tok);
-	    return false;
-	  }
-	  if (strcmp(tok, "==") == 0) {
-	    pmr->forward = true;
-	    pmr->backward = true;
-	  }
-	  if (strchr(tok, '>') != NULL)
-	    pmr->forward = true;
-	  if (strchr(tok, '<') != NULL)
-	    pmr->backward = true;
-	  if (strchr(tok, '=') != NULL)
-	    pmr->eqtest = true;
-	  if (strspn(tok, "<>=") != strlen(tok)) {
-	    fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", tok);
-	    return false;
-	  }
-	  onleft = false;
-	} else {
-	  if (onleft) 
-	    pmr->left.push_back(tok);
-	  else 
-	    pmr->right.push_back(tok);
-	}
-	tok = strtok(NULL, " \t\n");
+        if (strpbrk(tok, "<>=") != NULL) {
+          int len = strlen(tok);
+          if (len <2 || len >3) { 
+            fprintf(ferr, "Invalid direction (must be 2 or 3 chars): `%s'\n", tok);
+            return false;
+          }
+          if (strcmp(tok, "==") == 0) {
+            pmr->forward = true;
+            pmr->backward = true;
+          }
+          if (strchr(tok, '>') != NULL)
+            pmr->forward = true;
+          if (strchr(tok, '<') != NULL)
+            pmr->backward = true;
+          if (strchr(tok, '=') != NULL)
+            pmr->eqtest = true;
+          if (strspn(tok, "<>=") != strlen(tok)) {
+            fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", tok);
+            return false;
+          }
+          onleft = false;
+        } else {
+          if (onleft) 
+            pmr->left.push_back(tok);
+          else 
+            pmr->right.push_back(tok);
+        }
+        tok = strtok(NULL, " \t\n");
       }
       if (pm == NULL) {
-	fprintf(ferr, "Invalid line while reading vpm.\n");
-	return false;
+        fprintf(ferr, "Invalid line while reading vpm.\n");
+        return false;
       }
       if (pmr->left.size() != pm->lhs.size() ||
-	  pmr->right.size() != pm->rhs.size()) {
-	fprintf(ferr, "The pm rule size does not match.\n");
-	return false;
+          pmr->right.size() != pm->rhs.size()) {
+        fprintf(ferr, "The pm rule size does not match.\n");
+        return false;
       }
       pm->pmrs.push_back(pmr);
     }
@@ -107,14 +107,14 @@ map_mrs(tPSOA* mrs_in, bool forwardp) {
     rel_new->handel = map_variable(rel_in->handel, mrs_new, forwardp);
     rel_new->pred = rel_in->pred;
     for (map<string,tValue*>::iterator pair = rel_in->flist.begin();
-	 pair != rel_in->flist.end(); pair ++) {
+         pair != rel_in->flist.end(); pair ++) {
       tVar* vval = dynamic_cast<tVar*>((*pair).second);
       if (vval == NULL) {
-	rel_new->flist[(*pair).first] = 
-	  mrs_new->request_constant((dynamic_cast<tConstant*>((*pair).second))->value);
+        rel_new->flist[(*pair).first] = 
+          mrs_new->request_constant((dynamic_cast<tConstant*>((*pair).second))->value);
       } else {
-	vval = map_variable(vval, mrs_new, forwardp);
-	rel_new->flist[(*pair).first] = vval;
+        vval = map_variable(vval, mrs_new, forwardp);
+        rel_new->flist[(*pair).first] = vval;
       }
     }
     rel_new->collect_param_strings();
@@ -149,28 +149,28 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
     list<string> rhs = forwardp ? (*pm)->rhs : (*pm)->lhs;
     list<string> values;
     for (list<string>::iterator property = lhs.begin();
-	 property != lhs.end(); property ++) { // for each property in the PM lhs
+         property != lhs.end(); property ++) { // for each property in the PM lhs
       if (var_in->extra.find(*property) == var_in->extra.end())
-	values.push_back("");
+        values.push_back("");
       else
-	values.push_back(var_in->extra[*property]);
+        values.push_back(var_in->extra[*property]);
     }
     for (list<tPMR*>::iterator pmr = (*pm)->pmrs.begin();
-	 pmr != (*pm)->pmrs.end(); pmr ++) { // for each PM-rule
+         pmr != (*pm)->pmrs.end(); pmr ++) { // for each PM-rule
       if ((*pmr)->test(var_new->type, values, forwardp)) {
-	list<string> right = forwardp ? (*pmr)->right : (*pmr)->left;
-	for (list<string>::iterator property = rhs.begin(), 
-	       newval = right.begin();
-	     property != rhs.end(), 
-	       newval != right.end();
-	     property ++, newval ++) {
-	  if (*newval == "!")
-	    continue;
-	  else { // "*" is illegal here!
-	    var_new->extra[*property] = *newval;
-	  }
-	}
-	break;
+        list<string> right = forwardp ? (*pmr)->right : (*pmr)->left;
+        for (list<string>::iterator property = rhs.begin(), 
+               newval = right.begin();
+             property != rhs.end(), 
+               newval != right.end();
+             property ++, newval ++) {
+          if (*newval == "!")
+            continue;
+          else { // "*" is illegal here!
+            var_new->extra[*property] = *newval;
+          }
+        }
+        break;
       }
     }
     
@@ -199,33 +199,33 @@ test(char type, list<string> values, bool forwardp) {
        match != matches.end() && value != values.end(); match ++, value ++) {
     if ((*match).c_str()[0] == '[' && (*match).c_str()[1] == type) {
       if (compatible_var_types(type, (*match).c_str()[1]))
-	continue;
+        continue;
       else 
-	return false;
+        return false;
     }
     if (*match == "*")
       if (*value == "")
-	return false;
+        return false;
       else
-	continue;
+        continue;
     if (*match == "!")
       if (*value == "") 
-	continue;
+        continue;
       else
-	return false;
+        return false;
     if (eqtest) {
       if (*match == *value)
-	continue;
+        continue;
       else
-	return false;
+        return false;
     } else {
       type_t t_value = lookup_type((*value).c_str());
       type_t t_match = lookup_type((*match).c_str());
       if (t_value != -1 && t_match != -1 &&
-	  subtype(t_value, t_match))
-	continue;
+          subtype(t_value, t_match))
+        continue;
       else
-	return false;
+        return false;
     }
   }
   return true;

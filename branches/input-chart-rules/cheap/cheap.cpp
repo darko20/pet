@@ -223,20 +223,20 @@ void interactive() {
             }
           }
 #endif
-	  if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
-	    mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
-	    if (mrs->valid()) {
-	      mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
-	      if (mapped_mrs->valid()) {
-	        fprintf(fstatus, "\n");
-	        mapped_mrs->print(fstatus);
-	        fprintf(fstatus, "\n");
-	      }
-	      delete mapped_mrs;
-	    }
-	    delete mrs;
-	  }
-	}
+          if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
+            mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
+            if (mrs->valid()) {
+              mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
+              if (mapped_mrs->valid()) {
+                fprintf(fstatus, "\n");
+                mapped_mrs->print(fstatus);
+                fprintf(fstatus, "\n");
+              }
+              delete mapped_mrs;
+            }
+            delete mrs;
+          }
+        }
 
 #ifdef HAVE_MRS
         if(opt_partial && (Chart->readings().empty())) {

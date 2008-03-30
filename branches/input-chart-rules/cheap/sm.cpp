@@ -517,7 +517,7 @@ tMEM::parseOptions()
         consume(1);
       }
       free(pname);
-    }	 
+    }    
     else 
       consume(1);
   }
@@ -992,7 +992,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
              it != letypes[i].end(); it ++) {
           v.push_back(map()->typeToSubfeature(output));
           v.push_back(map()->intToSubfeature(6));
-          v.push_back(map()->intToSubfeature(i));	
+          v.push_back(map()->intToSubfeature(i));       
           v.push_back(map()->typeToSubfeature(*it));
           total = combineScores(total, score(tSMFeature(v)));
           v.clear();

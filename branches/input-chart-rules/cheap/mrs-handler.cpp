@@ -55,13 +55,13 @@ startElement(const XMLCh* const tag, AttributeList& attrs) {
     mrs::mrs_base_state *newState = _state_factory->get_state(tag);
     if (newState != NULL) {
       try {
-	oldState->changeTo(newState, attrs);
-	_state_stack.push(newState);
+        oldState->changeTo(newState, attrs);
+        _state_stack.push(newState);
       } catch (const Error &e) {
-	delete newState;
-	_error_occurred = true;
-	_err ++;
-	throw SAXParseException(e.getMessage(), *_loc);
+        delete newState;
+        _error_occurred = true;
+        _err ++;
+        throw SAXParseException(e.getMessage(), *_loc);
       }
     } else {
       _error_occurred = true;

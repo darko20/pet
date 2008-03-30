@@ -1076,7 +1076,7 @@ tItem::unpack(int upedgelimit)
     if (opt_timeout > 0) {
       timestamp = times(NULL);
       if (timestamp >= timeout)
-	return res;
+        return res;
     }
 
     // Recursively unpack items that are packed into this item.

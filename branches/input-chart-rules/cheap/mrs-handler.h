@@ -70,7 +70,7 @@ private:
 
   /** Print a SAX exception in a convenient form */
   void print_sax_exception(const char * errtype, 
-			   const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e);
+                           const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e);
 
   /** The state factory that produces the appropriate state for each XML tag */
   class mrs::mrs_state_factory *_state_factory;
