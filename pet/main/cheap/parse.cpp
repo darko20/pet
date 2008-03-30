@@ -186,7 +186,7 @@ fundamental_for_active(tPhrasalItem *active) {
   // iterate over all passive items adjacent to active and try combination
 
   for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
-    if(opt_packing == 0 || !it.current()->blocked())
+    if(!it.current()->blocked())
       if(it.current()->compatible(active, Chart->rightmost()))
         if(filter_combine_task(active, it.current()))
           Agenda->push(new
@@ -352,7 +352,7 @@ add_root(tItem *it)
 
 void
 add_item(tItem *it) {
-  assert(!(opt_packing && it->blocked()));
+  assert(!it->blocked());
 
 #ifdef DEBUG
   fprintf(ferr, "add_item ");
