@@ -95,8 +95,10 @@ void finalize_characterization() {
 inline bool characterize(fs &thefs, int from, int to) {
   if((opt_mrs != 0) && charz_init) {
     assert(from >= 0 && to >= 0);
-    return thefs.characterize(cfrom.path, cfrom.attribute, retrieve_int_type(from))
-           && thefs.characterize(cto.path, cto.attribute, retrieve_int_type(to));
+    return thefs.characterize(cfrom.path, cfrom.attribute
+                              , retrieve_string_instance(from))
+           && thefs.characterize(cto.path, cto.attribute
+                              , retrieve_string_instance(to));
   } 
   return true;
 }
@@ -142,6 +144,12 @@ tItem::~tItem()
     delete[] _qc_vector_subs;
     // free_list(_inflrs_todo); // This is now only done in tLexItem
     delete _unpack_cache;
+}
+
+void
+tItem::set_result_root(type_t rule) {
+  set_result_contrib();
+  _result_root = rule;
 }
 
 
@@ -191,9 +199,12 @@ tInputItem::tInputItem(string id
 tInputItem::tInputItem(string id, int startposition, int endposition
                        , string surface, string stem
                        , const tPaths &paths, int token_class, modlist fsmods)
-  : tItem(-1, -1, paths, surface.c_str())
-    , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
-    , _fsmods(fsmods)
+  : tItem(-1, -1, paths, surface.c_str()),
+    _input_id(id),
+    _class(token_class),
+    _surface(surface),
+    _stem(stem),
+    _fsmods(fsmods)
 {
   _startposition = startposition;
   _endposition = endposition;
@@ -281,13 +292,6 @@ void
 tInputItem::collect_children(list<tItem *> &result)
 {
   return;
-}
-
-void
-tInputItem::set_result_root(type_t rule)
-{
-    set_result_contrib();
-    _result_root = rule;
 }
 
 grammar_rule *
@@ -388,7 +392,7 @@ void tLexItem::init() {
     if (_keydaughter->form().size() > 0) {
       _mod_form_fs
         = fs(dag_create_path_value(orth_path.c_str()
-                                   , retrieve_string_type(_keydaughter->form())));
+               , retrieve_string_instance(_keydaughter->form())));
     } else {
       _mod_form_fs = fs(FAIL);
     }
@@ -397,7 +401,7 @@ void tLexItem::init() {
     // (if there is one) into the right position of the orth list
     _mod_stem_fs 
       = fs(dag_create_path_value(orth_path.c_str()
-                            , retrieve_string_type(_stem->orth(_stem->inflpos()))));
+             , retrieve_string_instance(_stem->orth(_stem->inflpos()))));
 
     characterize(_fs_full, _startposition, _endposition);
     
@@ -412,14 +416,16 @@ void tLexItem::init() {
     // stats.words++;
 
     if(opt_nqc_unif != 0)
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, _fs_full);
+      _qc_vector_unif = _fs_full.get_unif_qc_vector();
 
     if(opt_nqc_subs != 0)
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, _fs_full);
+      _qc_vector_subs = _fs_full.get_subs_qc_vector();
 
     // compute _score score for lexical items
     if(Grammar->sm())
       score(Grammar->sm()->scoreLeaf(this));
+
+    characterize(_fs, _startposition, _endposition);
   }
 
 #ifdef DEBUG
@@ -518,15 +524,14 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   
   if(opt_nqc_unif != 0) {
     if(passive())
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+      _qc_vector_unif = f.get_unif_qc_vector();
     else
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                      nextarg(f));
+      _qc_vector_unif = nextarg(f).get_unif_qc_vector();
   }
   
   if(opt_nqc_subs != 0)
     if(passive())
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+      _qc_vector_subs = f.get_subs_qc_vector();
   
   // rule stuff + characterization
   if(passive()) {
@@ -581,14 +586,13 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     if(opt_nqc_unif != 0)
     {
         if(passive())
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
+          _qc_vector_unif = f.get_unif_qc_vector();
         else
-            _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, 
-                                            nextarg(f));
+          _qc_vector_unif = nextarg(f).get_unif_qc_vector();
     }
     
     if((opt_nqc_subs != 0) && passive())
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
+      _qc_vector_subs = f.get_subs_qc_vector();
 
     // rule stuff
     if(passive()) {
@@ -619,13 +623,6 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size(); 
     _result_root = sponsor->result_root();
-}
-
-void
-tLexItem::set_result_root(type_t rule)
-{
-    set_result_contrib();
-    _result_root = rule;
 }
 
 void

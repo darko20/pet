@@ -159,41 +159,6 @@ void initialize_maxapp();
 /** Free tables for names, status, codes etc. of types and attributes. */
 void free_type_tables();
 
-/** Check the validity of type code \a a. */
-inline bool is_type(type_t a) { return a >= 0 && a < ntypes; }
-
-/** Return \c true if type \a a is a proper type (i.e., a static non-leaf). */
-inline bool is_proper_type(type_t a) {
-  assert(is_type(a));
-  return a < first_leaftype;
-}
-
-/** Return \c true if type \a a is a (static or dynamic) leaf type. */
-inline bool is_leaftype(type_t a) {
-  assert(is_type(a));
-  return a >= first_leaftype;
-}
-
-/** Return \c true if type code \a a is a type from the hierarchy and not a
- *  dynamic type.
- */
-inline bool is_static_type(type_t a) {
-  assert(a >= 0);  // save one test in production code
-  return a < nstatictypes;
-}
-
-/** Return \c true if type code \a a is a dynamic type. */
-inline bool is_dynamic_type(type_t a) {
-  assert(is_type(a));  // save two tests in production code
-  return a >= nstatictypes;
-}
-
-/** check the validity of the attribute \a attr */
-inline bool is_attr(attr_t attr) {
-  assert(attr >= 0);  // save one test in production code
-  return (attr <= nattrs);
-}
-
 int lookup_status(const char *s);
 /** Get the attribute id for attribute name \a s, or -1, if it does not
     exist */
@@ -206,12 +171,12 @@ type_t lookup_type(const std::string &name);
  *  or return -1 if it does not exist.
  */
 type_t retrieve_type(const std::string &name);
-/** Get the type id for a string literal \a s.
+/** Get the type id for a string instance \a s.
  *  The corresponding type name for \a s is embedded in double quotes.
  *  If dynamic types are enabled (i.e. DYNAMIC_TYPES is defined) and there is
  *  no type for string \a s, register it as a new dynamic type. 
  */
-inline type_t retrieve_string_type(const std::string &s) {
+inline type_t retrieve_string_instance(const std::string &s) {
   return retrieve_type('"' + s + '"');
 }
 /** Get the type id for the string representation of int \a i
@@ -219,7 +184,7 @@ inline type_t retrieve_string_type(const std::string &s) {
  *  If dynamic types are enabled (i.e. DYNAMIC_TYPES is defined) and there is
  *  no type for int \a i, register it as a new dynamic type. 
  */
-inline type_t retrieve_int_type(int i) {
+inline type_t retrieve_string_instance(int i) {
   return retrieve_type('"' + boost::lexical_cast<std::string>(i) + '"');
 }
 
@@ -254,14 +219,6 @@ inline const char *type_name(type_t type) {
  */
 inline const char *print_name(type_t type) {
   return printnames[type].c_str();
-}
-
-/** Get the int represented by a type \a t.
- * \pre \a t represents an int
- * \see retrieve_int_type
- */
-inline int convert_int_type(type_t t) {
-  return boost::lexical_cast<int>(print_name(t));
 }
 
 /** Dump information about the number of status values, leaftypes, types, and
@@ -326,5 +283,48 @@ type_t leaftype_parent(type_t t);
 /** Empty the glb/subtype cache to save space. */
 void prune_glbcache();
 #endif
+
+/** Check the validity of type code \a a. */
+inline bool is_type(type_t a) {
+  return a >= 0 && a < ntypes;
+}
+
+/** Return \c true if type \a a is a proper type (i.e., a static non-leaf). */
+inline bool is_proper_type(type_t a) {
+  assert(is_type(a));
+  return a < first_leaftype;
+}
+
+/** Return \c true if type \a a is a (static or dynamic) leaf type. */
+inline bool is_leaftype(type_t a) {
+  assert(is_type(a));
+  return a >= first_leaftype;
+}
+
+/** Return \c true if type code \a a is a type from the hierarchy and not a
+ *  dynamic type.
+ */
+inline bool is_static_type(type_t a) {
+  assert(a >= 0);
+  return a < nstatictypes;
+}
+
+/** Return \c true if type code \a a is a dynamic type. */
+inline bool is_dynamic_type(type_t a) {
+  assert(is_type(a));
+  return a >= nstatictypes;
+}
+
+/** Return \c true if type code \a a is a string instance, i.e. a subtype of
+ * string but not string itself. */
+inline bool is_string_instance(type_t a) {
+  return subtype(a, BI_STRING) && a != BI_STRING;
+}
+
+/** check the validity of the attribute \a attr */
+inline bool is_attr(attr_t attr) {
+  assert(attr >= 0);
+  return (attr <= nattrs);
+}
 
 #endif

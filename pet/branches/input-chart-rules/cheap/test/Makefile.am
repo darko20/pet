@@ -1,8 +1,5 @@
 # -*- makefile -*-
 
-# only build unit tests if cppunit is available (run ./configure --with-cppunit)
-if CPPUNIT
-
 AM_CPPFLAGS = -I$(top_srcdir)/common -I$(top_srcdir)/cheap @CHEAPCPPFLAGS@
 AM_CXXFLAGS = -Wall
 AM_LDFLAGS  = @CHEAPLDFLAGS@
@@ -17,7 +14,5 @@ tester_SOURCES = tester.cpp \
 tester_LDADD = ../libcheap.a
 if ECLMRS
 tester_LDADD += ../libmrs.a
-endif
-
 endif
 

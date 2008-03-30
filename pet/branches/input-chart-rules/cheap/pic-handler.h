@@ -136,8 +136,8 @@ private:
    */
   bool _translate_iso_chars;
 
-  typedef HASH_SPACE::hash_map< std::string, class tInputItem *,
-                                bj_string_hash > tItemMap;
+  typedef HASH_SPACE::hash_map< std::string, class tInputItem *
+                                , bj_string_hash > tItemMap;
   tItemMap _item_table;
   std::list<class tInputItem *> _items;
 };

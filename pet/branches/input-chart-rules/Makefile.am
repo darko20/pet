@@ -3,16 +3,14 @@
 if ECLPREPROC
 MAYBE_FSPP   = fspp
 endif
-SUBDIRS      = common flop cheap $(MAYBE_FSPP)
+SUBDIRS      = common flop $(MAYBE_FSPP) cheap
 
 EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
-               doxyconfig.cheap doxyconfig.flop \
+               doxyconfig.cheap.in doxyconfig.flop.in \
                sample
 
-# tell aclocal where to find local and third-party M4 macros (aclocal >= 1.6)
-# if configure.ac uses a macro not yet present in the project's m4 directory
-# but finds one in the system directories, copy it to the project's m4 dir:
-ACLOCAL_AMFLAGS = -I m4 --install
+# Tell aclocal where to find local and third-party M4 macros (aclocal >= 1.6)
+ACLOCAL_AMFLAGS = -I m4
 
 # For ebrowse (Emacs)
 BROWSE: 
@@ -20,9 +18,10 @@ BROWSE:
 	     `find $(topsrc_dir) \( -name '*.c' -o -name '*.cpp' \) -print` | \
 	tr ' ' '\n'| ebrowse
 
-# remove meta files in distribution:
+# Remove meta files that might end up in the distribution via EXTRA_DIST:
 dist-hook:
-	rm -rf `find -type d -name .svn`
+	rm -rf $(find -type d -name .svn)
+	rm -f $(find -type d -name "*.grm")
 
 sign: dist
 	gpg --detach-sign --armor $(distdir).tar.gz
@@ -34,11 +33,11 @@ if DOCBUILDERS
 doc: flopdoc cheapdoc
 
 flopdoc:
-	$(MKDIR_P) doc/flop
+	mkdir -p doc/flop
 	$(DOXYGEN) doxyconfig.flop
 
 cheapdoc:
-	$(MKDIR_P) doc/cheap
+	mkdir -p doc/cheap
 	$(DOXYGEN) doxyconfig.cheap
 endif
 

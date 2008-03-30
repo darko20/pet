@@ -19,7 +19,7 @@
 
 /* main module (standalone parser) */
 
-#include <iostream> 
+#include <iostream>
 
 #include "pet-config.h"
 #include "cheap.h"
@@ -213,7 +213,7 @@ void interactive() {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
-              if (strcmp(opt_mrs, "xml") == 0)
+              if (strcmp(opt_mrs, "rmrx") == 0)
                 fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
                         "</rmrs>\n");
               else
@@ -243,7 +243,7 @@ void interactive() {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(opt_mrs, "xml") == 0);
+          bool rmrs_xml = (strcmp(opt_mrs, "rmrx") == 0);
           if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
           for(list<tItem *>::iterator it = partials.begin()
                 ; it != partials.end(); ++it) {
@@ -511,9 +511,9 @@ void process(const char *s) {
 
   fprintf(fstatus, "\n%d types in %0.2g s\n",
           nstatictypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+  fflush(fstatus);
 
   if(opt_pg) {
-    fflush(fstatus);
     print_grammar(stdout);
   }
   else {

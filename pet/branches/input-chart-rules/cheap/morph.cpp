@@ -30,6 +30,15 @@
 //#include <boost/graph/graph_utility.hpp>
 
 
+
+#ifndef HAVE_ICU
+
+Converter Convert;
+Converter *Conv = &Convert;
+
+#endif
+
+
 #define LETTERSET_CHAR ((MChar) '\x8')
 
 bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b) {
@@ -366,11 +375,8 @@ bool morph_subrule::establish_and_check_bindings(MString matched)
       else
         return false;
     }
-    else
-    {
-      if(c1 != c2)
-        throw tError("Conception error in morphology");
-    }
+    else // This would be a conception error in morphology
+      assert(c1 == c2);
   }
   return true;
 }

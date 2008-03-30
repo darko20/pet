@@ -59,13 +59,7 @@ type_t ntypes;
 std::vector<std::string> typenames;
 std::vector<std::string> printnames;
 int *typestatus = 0;
-
-#ifdef HASH_SPACE
-typedef HASH_SPACE::hash_map<string, type_t, simple_string_hash, string_eq>
-        string_map;
-#else
-typedef std::map<string, type_t> string_map;
-#endif
+typedef hash_map<string, type_t, simple_string_hash, string_eq> string_map;
 string_map typename_memo;
 
 type_t BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;

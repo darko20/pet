@@ -37,7 +37,30 @@
 #ifndef _PETECL_H_
 #define _PETECL_H_
 
+#include "pet-config.h"
+
+#ifdef HAVE_ECL_ECL_H
+#include <ecl/ecl.h>
+#endif
+#ifdef HAVE_ECL_H
 #include <ecl.h>
+#endif
+
+#ifndef HAVE_MAKE_STRING_COPY
+#ifdef HAVE_MAKE_BASE_STRING_COPY
+#define make_string_copy make_base_string_copy
+#endif
+#endif
+#ifndef HAVE_MAKE_SIMPLE_STRING
+#ifdef HAVE_MAKE_SIMPLE_BASE_STRING
+#define make_simple_string make_simple_base_string 
+#endif
+#endif
+#ifndef HAVE_AREF1
+#ifdef HAVE_ECL_AREF1
+#define aref1 ecl_aref1 
+#endif
+#endif
 
 #ifdef __cplusplus
 extern "C" {

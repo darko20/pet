@@ -19,12 +19,13 @@
 
 #include "pet-config.h"
 #include "lexparser.h"
-#include "position-mapper.h" 
+#include "position-mapper.h"
 #include "chart.h"
 #include "task.h"
 #include "tsdb++.h"
 #include "item-printer.h"
 #include "cheap.h"
+#include "hashing.h"
 
 #include <iostream>
 
@@ -123,10 +124,12 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
  *  only done for generic entries and input items whose HPSG class is
  *  pre-determined (which are presumably externally computed named entities).
  */
+// _fix_me_
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
   if (_carg_path != NULL) {
-    mods.push_back(pair<string, int>(_carg_path, retrieve_string_type(carg)));
+    mods.push_back(pair<string, int>(_carg_path
+                                     , retrieve_string_instance(carg)));
   }
 #endif
 }

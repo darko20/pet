@@ -1,8 +1,6 @@
 This directory contains the open source PET system. For license details 
 please refer to the LICENSE file.
 
-
-
 Overview
 ========
 
@@ -18,8 +16,6 @@ There are no binaries provided due to the vast amount of different
 distributions around. You have to first compile the package to be able to
 run it (see below).
 
-
-
 Grammars
 ========
 
@@ -30,8 +26,6 @@ http://www.dfki.de/~siegel/grammar-download/JACY-grammar.html).
 
 If you want to contribute a grammar, or if you are looking for more
 grammars please have a look at www.delph-in.net
-
-
 
 Compiling PET
 =============
@@ -54,20 +48,24 @@ software, and finally `make install' to install it (depending on the
 install paths, which can be influenced with `configure', this might
 require administrator privileges).
 
-
 Advanced issues:
 
-* Non-standard compiler flags (or non-standard include paths, etc.) can
-  be passed to configure as command line arguments (cf. ./configure --help).
-  For example, the following line configures PET for the use with a debugger:
-  
-    ./configure "CXXFLAGS=-g -O0" "CFLAGS=-g -O0"
-  
-  The following line should improve PET's performance:
+* Non-standard preprocessor, compiler or linker options can be passed to
+  configure as command line arguments (cf. ./configure --help).
+  For example, the following line configures PET for best performance:
   
     ./configure --disable-assert "CXXFLAGS=-g -O3"
 
-* PET's root build directory is the directory where `configure' is called.
+  The following line configures PET for the use with a debugger:
+  
+    ./configure "CXXFLAGS=-g -O0"
+  
+  The following line configures PET for profiling with gprof and gcov
+  (cf. gcc man page):
+  
+    ./configure "CXXFLAGS=-pg -fprofile-arcs -ftest-coverage"
+
+* The root build directory is the directory where `configure' is called.
   That is, PET can be built in any directory by changing into that
   directory and calling `configure' from there. For example:
   
@@ -84,28 +82,24 @@ Advanced issues:
   Use the DISTCHECK_CONFIGURE_FLAGS environment variable to pass any
   parameters to configure. Example:
   
-    export DISTCHECK_CONFIGURE_FLAGS="--with-xml --with-cppunit"
+    export DISTCHECK_CONFIGURE_FLAGS="--with-xml"
     make distcheck
-
-
 
 Bootstrapping PET from SVN
 ==========================
 
-If you checked out PET from SVN for the first time, you first have to run
-a current autoconf and autoheader (both >=2.59), aclocal and automake
-(both >= 1.7) in order to create the build system. Change into the directory
-containing `configure.ac' and type:
+If you checked out your first SVN snapshot, you first have to run a current
+autoconf and autoheader (both >=2.59), aclocal and automake (both >= 1.7) in
+order to create the build system. Change into the directory containing
+`configure.ac' and type:
 
-  autoheader && aclocal && automake -a && autoconf
+  autoheader && aclocal -I m4 && automake -a && autoconf
 
 or simply
 
   autoreconf -i
 
 Having run these commands, proceed with configuration as described above.
-
-
 
 Dependencies
 ============
@@ -116,7 +110,6 @@ privileges. Note that the header files are often distributed in separate
 packages, usually ending in `-dev' or `-devel' (e.g. `libboost-dev'). Make
 sure that these packages are installed, too.
 
-
 Required:
 
 Boost provides free portable C++ libraries for various applications.
@@ -124,7 +117,6 @@ flop uses the Boost Graph library.
 Current GNU/Linux distributions usually provide this library as a pre-built
 package. Make sure that the header files are installed, too (see above).
 http://www.boost.org/
-
 
 Optional:
 
@@ -134,7 +126,8 @@ Current GNU/Linux distributions usually provide this library as a pre-built
 package. Make sure that the header files are installed, too (see above).
 http://icu.sourceforge.net/download/
 
-Install itsdb for creating performance profiles of the grammar and system.
+Install [incr tsdb()] for creating performance profiles of the grammar and
+the system, and for parsing corpora.
 http://www.delph-in.net/itsdb/
 
 For the MRS output and FSPP preprocessor modules, you need a version of
@@ -143,9 +136,14 @@ ATTENTION: The version that is known to work at the moment is 0.9h, while
 0.9i seems to have problems. While some GNU/Linux distributions provide the
 library as a pre-built package, this might be a newer version or it might
 be compiled with the wrong options. In this case, you need to install it
-yourself, which might also be problematic (at least on Ubuntu Linux 7.04,
+yourself, which might also be problematic (e.g. on Ubuntu Linux 7.04,
 ecl 0.9h does not compile without some modifications).
 http://ecls.sourceforge.net/
+
+For the XML input modes you need the Apache Xerces C++ library.
+Current GNU/Linux distributions usually provide this library as a pre-built
+package. Make sure that the header files are installed, too (see above).
+http://xml.apache.org/xerces-c/
 
 For unit tests you can optionally use cppunit. Note that so far only small
 parts of the system take advantage of this.
@@ -153,19 +151,12 @@ Current GNU/Linux distributions usually provide this library as a pre-built
 package. Make sure that the header files are installed, too (see above).
 http://cppunit.sourceforge.net/
 
-For the (optional) XML input modes, you need the Apache Xerces C++ library.
-Current GNU/Linux distributions usually provide this library as a pre-built
-package. Make sure that the header files are installed, too (see above).
-http://xml.apache.org/xerces-c/
-
 Doxygen compatible documentation is included in most header files and some
 of the source files. Call 'make doc' in the root build directory to build
 the API documentation.
 Current GNU/Linux distributions usually provide this program as a pre-built
 package.
 http://www.doxygen.org/
-
-
 
 Layout of the sources
 =====================
@@ -180,8 +171,6 @@ fspp/  lisp-based input preprocessor module for cheap. Very slow.
 
 goofy/ contains the sources for an outdated GUI prototype. This hasn't been
 compiled for two years and probably won't work.
-
-
 
 Contact
 =======

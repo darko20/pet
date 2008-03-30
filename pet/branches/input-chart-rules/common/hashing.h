@@ -31,27 +31,31 @@
 #endif
 #endif 
 
-#if ! defined(HAVE_HASH_MAP) && ! defined(HAVE_EXT_HASH_MAP)
-// no hash_map available
-#define HASH_SPACE std
-#include <map>
-#include <set>
-#define hash_map map
-#define hash_set set
-
 namespace HASH_SPACE {
-  template<typename T>
-  size_t hash(T& arg) {
-    return &arg;
-  }
+  /**
+   * A standard hash implementation for strings.
+   */
+  template<> struct hash< std::string >
+  {
+    inline size_t operator()(const std::string &s) const
+    {
+      return HASH_SPACE::hash<const char* >()( s.c_str() );
+    }
+  };
 }
-
-#endif
 
 /* function object: hash function for pointers */
 struct pointer_hash {
   inline size_t operator() (void* p) const {
     return reinterpret_cast<size_t>(p);
+  }
+};
+
+/* function object: standard hash function for std::string */
+struct standard_string_hash {
+  inline size_t operator() (const std::string& s) const
+  {
+    return HASH_SPACE::hash<const char* >()( s.c_str() );
   }
 };
 
@@ -62,14 +66,6 @@ struct simple_string_hash {
     for(unsigned int i = 0; i < key.length(); i++)
       v += key[i];
     return v;
-  }
-};
-
-/* function object: standard hash function for std::string */
-struct standard_string_hash {
-  inline size_t operator() (const std::string& s) const
-  {
-    return HASH_SPACE::hash<const char* >()( s.c_str() );
   }
 };
 

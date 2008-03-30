@@ -436,7 +436,7 @@ extDictMapping::add_equiv(const list<string> &elems)
   
   for(list<string>::const_iterator it = elems.begin(); it != elems.end(); ++it)
   {
-    type_t t = lookup_type(it);
+    type_t t = lookup_type(*it);
     if(t != -1)
     {
       ts.push_back(t);

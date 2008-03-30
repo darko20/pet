@@ -58,9 +58,6 @@ public:
   MString convert(MChar c) { return std::string() + c ; }
 };
 
-Converter Convert;
-Converter *Conv = &Convert;
-
 #endif
 
 /// represents one letterset, primary purpose is keeping track of bindings
@@ -101,12 +98,12 @@ public:
   void print(FILE *f) const;
 
 private:
-  typedef HASH_SPACE::hash_map<std::string, morph_letterset,
-          standard_string_hash>::iterator ml_iterator;
-  typedef HASH_SPACE::hash_map<std::string, morph_letterset,
-          standard_string_hash>::const_iterator ml_const_iterator;
+  typedef HASH_SPACE::hash_map<std::string, morph_letterset>::iterator
+    ml_iterator;
+  typedef HASH_SPACE::hash_map<std::string, morph_letterset>::const_iterator
+    ml_const_iterator;
 
-  HASH_SPACE::hash_map<std::string, morph_letterset, standard_string_hash> _m;
+  HASH_SPACE::hash_map<std::string, morph_letterset> _m;
 };
 
 /** This implements one element of a morphological rule specification, the

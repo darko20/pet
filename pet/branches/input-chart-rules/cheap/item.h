@@ -162,12 +162,12 @@ public:
       -- \c LEX_TRAIT a lexical item with all inflection rules applied
       -- \c SYNTAX_TRAIT a phrasal item
   */
-  inline rule_trait trait() { return _trait; }
+  inline rule_trait trait() const { return _trait; }
 
   /** Return \c true if there are no more pending inflectional rules
    *  for this item.
    */
-  inline bool inflrs_complete_p() { return _inflrs_todo == 0; }
+  inline bool inflrs_complete_p() const { return _inflrs_todo == 0; }
 
   /** Return \c true if this item has all of its arguments filled. */
   inline bool passive() const { return _tofill == 0; }
@@ -181,7 +181,7 @@ public:
   /** Was this item produced by a rule that may only create items spanning the
    *  whole chart?
    */
-  bool spanningonly() { return _spanningonly; }
+  bool spanningonly() const { return _spanningonly; }
 
   /** Cheap compatibility tests of a passive item and a grammar rule.
    *
@@ -192,7 +192,7 @@ public:
    * -- passive items at the borders of the chart do not combine with rules
    *    that would try to extend them past the border
    */
-  inline bool compatible(class grammar_rule *R, int length) {
+  inline bool compatible(class grammar_rule *R, int length) const {
     if(R->trait() == INFL_TRAIT) {
       if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
         return false;
@@ -236,7 +236,7 @@ public:
    *    appropriate start and end positions
    * -- when doing lattice parsing, check the compatiblity of the path sets
    */
-  inline bool compatible(tItem *active, int length)
+  inline bool compatible(tItem *active, int length) const
   {
     if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
@@ -274,7 +274,7 @@ public:
    *  item.
    * \pre assumes \c this is an active item.
    */
-  inline bool adjacent(class tItem *passive)
+  inline bool adjacent(class tItem *passive) const
   {
     return (left_extending() ? (_start == passive->_end)
             : (_end == passive->_start));
@@ -315,19 +315,19 @@ public:
   /** Return the number of next argument to fill, ranging from one to
    *  arity().
    */
-  inline int nextarg() { return first(_tofill); }
+  inline int nextarg() const { return first(_tofill); }
   /** Return the substructure of this item's feature structure that represents
    *  the next argument to be filled.
    */
-  inline fs nextarg(fs &f) { return f.nth_arg(nextarg()); }
+  inline fs nextarg(fs &f) const { return f.nth_arg(nextarg()); }
   /** Return the yet to fill arguments of this item, except for the current
    *  one 
    */
-  inline list_int *restargs() { return rest(_tofill); }
+  inline list_int *restargs() const { return rest(_tofill); }
   /** The number of arguments yet to be filled */
-  inline int arity() { return length(_tofill); }
+  inline int arity() const { return length(_tofill); }
   /** The number of arguments that are already filled. */
-  inline int nfilled() { return _nfilled; }
+  inline int nfilled() const { return _nfilled; }
 
   /** The external start position of that item */
   virtual int startposition() const { return _startposition; }
@@ -372,28 +372,28 @@ public:
    */
   virtual void collect_children(std::list<tItem *> &result) = 0;
 
-  /** Return the root node type that licensed this item as result, or -1, if
-   *  this item is not a result.
-   */
-  inline type_t result_root() { return _result_root; }
   /** Return \c true if this item contributes to a result */
-  inline bool result_contrib() { return _result_contrib; }
-
-  /** Set the root node licensing this item as result */
-  virtual void set_result_root(type_t rule ) = 0;
+  inline bool result_contrib() const { return _result_contrib; }
   /** This item contributes to a result */
-  virtual void set_result_contrib() = 0;
+  inline void set_result_contrib() { _result_contrib = true; }
+
+  /** Return the root node type that licensed this item as result, or 
+   *  T_BOTTOM, if this item is not a result.
+   */
+  inline type_t result_root() const { return _result_root; }
+  /** Set the root node licensing this item as result */
+  virtual void set_result_root(type_t rule );
   
   /** Return the unification quick check vector of this item.
    * For active items, this is the quick check vector corresponding to the next
    * daughter that has to be filled, while for passive items, this is the qc
    * vector of the mother.
    */
-  inline type_t *qc_vector_unif() { return _qc_vector_unif; }
+  inline const qc_vec &qc_vector_unif() const { return _qc_vector_unif; }
   /** \brief Return the subsumption quick check vector of this item. Only
    *  passive items can have this qc vector.
    */
-  inline type_t *qc_vector_subs() { return _qc_vector_subs; }
+  inline const qc_vec &qc_vector_subs() const { return _qc_vector_subs; }
 
   /** \brief Return the rule this item was built from. This returns values
    *  different from \c NULL only for phrasal items.
@@ -523,8 +523,8 @@ private:
   type_t _result_root;
   bool _result_contrib;
 
-  type_t *_qc_vector_unif;
-  type_t *_qc_vector_subs;
+  qc_vec _qc_vector_unif;
+  qc_vec _qc_vector_subs;
 
   double _score;
 
@@ -665,11 +665,6 @@ public:
    * to avoid duplicates in \a result.
    */
   virtual void collect_children(std::list<tItem *> &result);
-
-  /** Set the root node licensing this item as result */
-  virtual void set_result_root(type_t rule );
-  /** This item contributes to a result */
-  virtual void set_result_contrib() { _result_contrib = true; }
 
   /** Always returns \c NULL */
   virtual grammar_rule *rule();
@@ -862,11 +857,6 @@ class tLexItem : public tItem
    */
   virtual void collect_children(std::list<tItem *> &result);
 
-  /** Set the root node licensing this item as result */
-  virtual void set_result_root(type_t rule);
-  /** This item contributes to a result */
-  virtual void set_result_contrib() { _result_contrib = true; }
-
   /** Always return NULL */
   virtual grammar_rule *rule();
 
@@ -1042,8 +1032,6 @@ class tPhrasalItem : public tItem {
 
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule);
-  /** This item contributes to a result */
-  virtual void set_result_contrib() { _result_contrib = true; }
 
   /** \brief Return the rule this item was built from. This returns values
    *  different from \c NULL only for phrasal items.
