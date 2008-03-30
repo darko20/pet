@@ -1,3 +1,4 @@
+/* -*- Mode: C++ -*- */
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
@@ -32,11 +33,20 @@
  * names are separated by dots ('.')
  */
 typedef std::list< std::pair<std::string, type_t> > modlist;
-
+typedef type_t *qc_vec;
 
 /** Adapter for different dag implementations */
 class fs
 {
+  /** @name global variables for quick check */
+  /*@{*/
+  /** Compact representation of unification/subsumption quick check paths as
+      tree of qc_node nodes */
+  static qc_node *_qc_paths_unif, *_qc_paths_subs;
+  /** Number of the unification/subsumption quick check paths to consider */
+  static int _qc_len_unif, _qc_len_subs;
+  /*@}*/
+
  public:
 
   /** Construct fs from typedag of \a type */
@@ -188,6 +198,43 @@ class fs
   /** Print readably for debugging purposes */
   void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL) const;
 
+
+  /** Initialize the static variables for quick check appropriately */
+  static void 
+  init_qc(qc_node *unif, int unif_len, qc_node *subs, int subs_len){
+    _qc_paths_unif = unif; _qc_len_unif = unif_len;
+    _qc_paths_subs = subs; _qc_len_subs = subs_len;
+  }    
+
+  static int get_unif_qc_length() { return _qc_len_unif; }
+  static int get_subs_qc_length() { return _qc_len_subs; }
+
+  /** Return the unification quick check vector of a feature structure. */
+  inline qc_vec get_unif_qc_vector() const {
+    return get_qc_vector(_qc_paths_unif, _qc_len_unif);
+  }
+
+  /** Return the subsumption quick check vector of a feature structure. */
+  inline qc_vec get_subs_qc_vector() const {
+    return get_qc_vector(_qc_paths_subs, _qc_len_subs);
+  }
+
+  /** \brief Check to quick check vectors \a a and \a b for compatibility with
+   *  respect to unification. \a qc_len is the length of the vectors.
+   */
+  static bool qc_compatible_unif(const qc_vec &a, const qc_vec &b);
+  
+  /** Check to quick check vectors \a a and \a b for compatibility with respect
+   *  to subsumption in both directions. \a qc_len is the length of the
+   *  vectors. If \a a subsumes \a b, \a forward is \c true on return,
+   *  analogously for \a backward.
+   *  \attention \a forward and \a backward must be \c true when calling this
+   *  function.
+   */
+  static void
+  qc_compatible_subs(const qc_vec &a, const qc_vec &b,
+                     bool &forward, bool &backward);
+
  private:
   
   struct dag_node *_dag;
@@ -196,7 +243,14 @@ class fs
   friend fs unify_restrict(fs &root, const fs &fs1, fs &fs2, list_int *del = 0, bool stat = true);
   friend fs copy(const fs &);
   friend bool compatible(const fs &, const fs &);
-  friend type_t *get_qc_vector(qc_node *qc_paths, int qc_len, const fs &arg);
+
+  /** Return the quick check vector of a feature structure.
+   *  \param qc_paths A path tree representing the previously determined quick
+   *         check paths in a compact way.
+   *  \param qc_len The maximal number of quick check paths to extract (the
+   *         length of the returned array).
+   */
+  qc_vec get_qc_vector(qc_node *qc_paths, int qc_len) const;
 
   friend fs unify_np(fs &root, const fs &, fs &);
   friend void subsumes(const fs &a, const fs &b, bool &forward, bool &backward);
@@ -269,31 +323,7 @@ extern bool compatible(const fs &a, const fs &b);
     statistics object. */
 extern void get_unifier_stats();
 
-/** Return the quick check vector of a feature structure.
- *  \param qc_paths A path tree representing the previously determined quick
- *         check paths in a compact way.
- *  \param qc_len The maximal number of quick check paths to extract (the
- *         length of the returned array).
- *  \param arg The feature structure to extract the quick check vector from.
- */
-extern type_t *get_qc_vector(qc_node *qc_paths, int qc_len, const fs & arg);
 
-/** \brief Check to quick check vectors \a a and \a b for compatibility with
- *  respect to unification. \a qc_len is the length of the vectors.
- */
-extern bool
-qc_compatible_unif(int qc_len, type_t *a, type_t *b);
-
-/** Check to quick check vectors \a a and \a b for compatibility with respect
- *  to subsumption in both directions. \a qc_len is the length of the
- *  vectors. If \a a subsumes \a b, \a forward is \c true on return,
- *  analogously for \a backward.
- *  \attention \a forward and \a backward must be \c true when calling this
- *  function.
- */
-extern void
-qc_compatible_subs(int qc_len, type_t *a, type_t *b,
-                   bool &forward, bool &backward);
 
 /** Feature Structure Memory Allocation.
  * Allocation state for feature structure allocation.

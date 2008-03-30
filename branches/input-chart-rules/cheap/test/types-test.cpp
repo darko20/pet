@@ -104,8 +104,8 @@ public:
     
     CPPUNIT_ASSERT(leaftype_parent(t1) == BI_STRING);
     
-    CPPUNIT_ASSERT(retrieve_string_type("supercalifragilistic") == t1);
-    CPPUNIT_ASSERT(retrieve_string_type("expialidocious") == t2);
+    CPPUNIT_ASSERT(retrieve_string_instance("supercalifragilistic") == t1);
+    CPPUNIT_ASSERT(retrieve_string_instance("expialidocious") == t2);
     
     clear_dynamic_types();
     CPPUNIT_ASSERT(lookup_type(s1) == T_BOTTOM);
@@ -113,7 +113,7 @@ public:
     
     int i = 42;
     CPPUNIT_ASSERT(lookup_type("\"42\"") == T_BOTTOM);
-    type_t t3 = retrieve_int_type(i);
+    type_t t3 = retrieve_string_instance(i);
     CPPUNIT_ASSERT(lookup_type("\"42\"") == t3);
   }
     

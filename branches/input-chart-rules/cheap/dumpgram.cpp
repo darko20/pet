@@ -109,12 +109,12 @@ int main(int argc, char* argv[])
     if(argc > 1)
       dump_gram(argv[1]);
     else
-      throw error("No grammar file specified");
+      throw tError("No grammar file specified");
   }
 
-  catch(error &e)
+  catch(tError &e)
   {
-    e.print(stderr);  printf("\n");
+    fprintf(stderr, "%s\n", e.getMessage().c_str());
     exit(1);
   }
 

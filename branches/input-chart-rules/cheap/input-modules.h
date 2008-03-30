@@ -105,8 +105,8 @@ protected:
   }
 #else
   inline bool
-  punctuation_char(const char c, const string &punctuation_chars) {
-    return (punctuation_chars.find(c) != STRING_NPOS);
+  punctuation_char(const char c, const std::string &punctuation_chars) {
+    return (punctuation_chars.find(c) != std::string::npos);
   }
 #endif
 

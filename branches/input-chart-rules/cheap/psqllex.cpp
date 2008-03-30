@@ -344,8 +344,8 @@ dag_node * dag_listify_internal(const char *typenamelist, dag_node **last) {
       stringptr--;
     if (stringptr[1] != '\0') {
       dag_node *new_cons = new_dag(BI_CONS);
-      dag_add_arc(new_cons, new_arc(BIA_FIRST,
-                                    new_dag(retrieve_string_type(stringptr + 1))));
+      dag_add_arc(new_cons
+        , new_arc(BIA_FIRST, new_dag(retrieve_string_instance(stringptr + 1))));
       dag_add_arc(new_cons, new_arc(BIA_REST, current));
       current = new_cons;
     }
@@ -381,12 +381,12 @@ dag_node *tPSQLLex::dagify_slot_value(string slot_value, field_t slot_type) {
     fstype = lookup_type(slot_value);
     return (fstype == -1) ? NULL : new_dag(fstype);
   case COL_STRING:
-    return new_dag(retrieve_string_type(slot_value));
+    return new_dag(retrieve_string_instance(slot_value));
   case COL_MIXED:
     if (slot_value[0] == '"') {
       // This is like a string slot, but remove the double quotes first
       string sub_value = string(slot_value, 1, slot_value.size() - 2);
-      return new_dag(retrieve_string_type(slot_value));
+      return new_dag(retrieve_string_instance(slot_value));
     } else {
       // This is like a symbol slot
       fstype = lookup_type(slot_value);

@@ -29,10 +29,10 @@ inflrs: - "null" = do internal morph analysis
 
 #include "yy-tokenizer.h"
 #include "cheap.h"
+#include "hashing.h"
 #include <iostream>
 
-using std::string;
-using std::list;
+using namespace std;
 using namespace HASH_SPACE;
 
 tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
@@ -262,7 +262,7 @@ tYYTokenizer::read_token()
       // The stem is already a grammar type name
       token_class = lookup_type(stem);
       if (token_class == -1) {
-        token_class = lookup_type(stem.c_str() + 1);
+        token_class = lookup_type(stem.substr(1));
       }
       if (token_class == -1)
         throw tError("yy_tokenizer: unknown HPSG type given");
@@ -287,7 +287,7 @@ tYYTokenizer::read_token()
     (stem.substr(max(0,stem.length()-ersatz_suffix.length())) == ersatz_suffix))
   {
     fsmods.push_back(pair<string, type_t>(ersatz_carg_path,
-                                          retrieve_string_type(surface)));
+                                          retrieve_string_instance(surface)));
   }
 
   if(!read_special(','))

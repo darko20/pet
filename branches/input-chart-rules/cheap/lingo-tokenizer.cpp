@@ -31,7 +31,6 @@ using std::list;
 
 extern settings *cheap_settings;
 
-
 /** Produce a set of tokens from the given string. */
 void 
 tLingoTokenizer::tokenize(string s, inp_list &result) {

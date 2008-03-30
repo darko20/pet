@@ -117,5 +117,5 @@ bool tTokenizer::next_input(std::istream &in, string &result) {
       done = false;
     } // if
   } while (! done);
-  return !result.empty();
+  return ! result.empty();
 }

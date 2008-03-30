@@ -44,7 +44,8 @@ int lisp_mode = 0; // shall lexer recognize lisp expressions
 
 void print_token(struct lex_token *t);
 
-struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len)
+struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
+    int rlen = -1)
 {
   struct lex_token *t;
 
@@ -67,9 +68,23 @@ struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len)
     }
   else
     {
-      t->text = (char *) malloc(len + 1);
-      strncpy(t->text, s, len);
-      t->text[len] = '\0';
+      if (rlen == -1)
+        rlen = len;
+      char *dest = t->text = (char *) malloc(rlen + 1);
+      if (rlen == len)
+        strncpy(dest, s, len);
+      else // s contains a string with escaped characters
+        {
+          int j = 0;
+          for (int i = 0; i < len; i++)
+            {
+              if (s[i] == '\\')
+                i++; // skip, copy following character
+              dest[j++] = s[i];
+            }
+          assert(j == rlen);
+        }
+      dest[rlen] = '\0';
     }
 
   return t;
@@ -166,12 +181,19 @@ struct lex_token *get_next_token()
     { // string
       char *start;
       int i;
+      int l; // length of the resolved string (without escape backslashes)
 
       start = LMark();
       i = 1;
+      l = 0;
 
-      while(LLA(i) != EOF && (LLA(i) != '"' || LLA(i-1) == '\\'))
-        i++;
+      while(LLA(i) != EOF && LLA(i) != '"')
+        {
+          if (LLA(i) == '\\')
+            i++; // skip
+          i++;
+          l++;
+        }
 
       if(LLA(i) == EOF)
         { // runaway string
@@ -181,7 +203,7 @@ struct lex_token *get_next_token()
         }
 
       i += 1;
-      t = make_token(T_STRING, start + 1, i - 2);
+      t = make_token(T_STRING, start + 1, i - 2, l);
       LConsume(i);
     }
   else if(c == '(' && lisp_mode)
