@@ -544,7 +544,7 @@ class mrs_state_factory {
   };
 
   typedef hash_map<const XMLCh *, mrs_base_state *, struct hash_xmlstring
-		   , struct xmlstring_equal > xs_hash_map;
+                   , struct xmlstring_equal > xs_hash_map;
   xs_hash_map _state_table;
   void register_state(mrs_base_state *state) {
     _state_table[state->tag()] = state;
