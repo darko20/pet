@@ -128,9 +128,8 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
   if (_carg_path != NULL) {
-    // _fix_me_ are these double quotes necessary?
-    string s = '"' + carg + '"';
-    mods.push_back(pair<string, int>(_carg_path, lookup_symbol(s.c_str())));
+    mods.push_back(pair<string, int>(_carg_path
+                                     , retrieve_string_instance(carg)));
   }
 #endif
 }

@@ -96,9 +96,9 @@ inline bool characterize(fs &thefs, int from, int to) {
   if((opt_mrs != 0) && charz_init) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
-                               , lookup_unsigned_symbol(from))
+                              , retrieve_string_instance(from))
            && thefs.characterize(cto.path, cto.attribute
-                                 ,lookup_unsigned_symbol(to));
+                              , retrieve_string_instance(to));
   } 
   return true;
 }
@@ -392,7 +392,7 @@ void tLexItem::init() {
     if (_keydaughter->form().size() > 0) {
       _mod_form_fs
         = fs(dag_create_path_value(orth_path.c_str()
-                              , lookup_symbol(_keydaughter->form().c_str())));
+               , retrieve_string_instance(_keydaughter->form())));
     } else {
       _mod_form_fs = fs(FAIL);
     }
@@ -401,7 +401,7 @@ void tLexItem::init() {
     // (if there is one) into the right position of the orth list
     _mod_stem_fs 
       = fs(dag_create_path_value(orth_path.c_str()
-                              , lookup_symbol(_stem->orth(_stem->inflpos()))));
+             , retrieve_string_instance(_stem->orth(_stem->inflpos()))));
 
     characterize(_fs_full, _startposition, _endposition);
     

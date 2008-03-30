@@ -90,8 +90,8 @@ bool compute_appropriateness()
                     {
                       fprintf(ferr, "error: feature `%s' introduced at"
                               " `%s' and `%s'.\n", attrname[attr],
-                              typenames[i],
-                              typenames[apptype[attr]]);
+                              type_name(i),
+                              type_name(apptype[attr]));
                       fail = true;
                     }
                 }
@@ -155,8 +155,9 @@ bool apply_appropriateness_rec(struct dag_node *dag)
             {
               fprintf(ferr, "feature `%s' on type `%s' (refined to `%s' from other features) not appropriate "
                       "(appropriate type is `%s')\n",
-                      attrname[arc->attr], typenames[dag->type], typenames[old_type],
-                      typenames[apptype[arc->attr]]);
+                      attrname[arc->attr], type_name(dag->type),
+                      type_name(old_type),
+                      type_name(apptype[arc->attr]));
               return false;
             }
 
@@ -226,7 +227,7 @@ bool delta_expand_types()
               if(dag_unify3(types[e]->thedag, types[i]->thedag) == FAIL)
                 {
                   fprintf(ferr, "`%s' incompatible with parent constraints"
-                          " (`%s')\n", typenames[i], typenames[e]);
+                          " (`%s')\n", type_name(i), type_name(e));
                   return false;
                 }
             }
@@ -291,7 +292,7 @@ list_int *fully_expand(struct dag_node *dag, bool full)
       if(depth > MAX_EXP_DEPTH)
         {
           fprintf(ferr, "expansion [cycle with `%s'] for",
-                  typenames[dag->type]);
+                  type_name(dag->type));
           depth--;
           return cons(T_BOTTOM, NULL);
         }
@@ -301,7 +302,7 @@ list_int *fully_expand(struct dag_node *dag, bool full)
           if(dag_unify3(types[dag->type]->thedag, dag) == FAIL)
             {
               fprintf(ferr, "full expansion with `%s' for",
-                      typenames[dag->type]);
+                      type_name(dag->type));
               depth--;
               return cons(T_BOTTOM, NULL);
             }
@@ -365,7 +366,7 @@ bool fully_expand_types()
         }
     }
 
-  initialize_dags(ntypes);
+  initialize_dags(nstatictypes);
 
   unify_reset_visited = true;
    
@@ -381,7 +382,7 @@ bool fully_expand_types()
 
           if(path != NULL)
             {
-              fprintf(ferr, " `%s' failed under path (", typenames[i]);
+              fprintf(ferr, " `%s' failed under path (", type_name(i));
               list_int *start = path;
               while (rest(start) != NULL) { // last element is invalid
                 fprintf(ferr, "%s", attrname[first(start)]);
@@ -397,7 +398,7 @@ bool fully_expand_types()
 
           if(!fail && dag_cyclic(types[i]->thedag))
             {
-              fprintf(ferr, " `%s' failed (cyclic structure)\n", typenames[i]);
+              fprintf(ferr, " `%s' failed (cyclic structure)\n", type_name(i));
               fail = true;
             }
         }
@@ -448,7 +449,7 @@ void compute_maxapp()
           fprintf(fstatus, "feature `%s': value: %s `%s', introduced by `%s'\n",
                   attributes.name(i).c_str(),
                   maxapp[i] > types.number() ? "symbol" : "type",
-                  typenames[maxapp[i]],
+                  type_name(maxapp[i]),
                   types.name(apptype[i]).c_str());
         }
     }
