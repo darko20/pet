@@ -450,7 +450,7 @@ inline void mark_leaftype(int i)
   //if(verbosity > 4)
   //  fprintf(stderr, "LT: %d [%d]\n", i, leaftypeparent[i]);
 
-  nleaftypes++;
+  nstaticleaftypes++;
 }
 
 void find_leaftypes()
@@ -625,12 +625,12 @@ bool process_hierarchy(bool propagate_status_p)
   
   find_leaftypes();
   
-  fprintf(fstatus, "[%d], ", nleaftypes); 
+  fprintf(fstatus, "[%d], ", nstaticleaftypes); 
   
   fprintf(fstatus, "bitcodes, ");
 
   // codesize is number of non-leaf types
-  codesize = types.number() - nleaftypes;
+  codesize = types.number() - nstaticleaftypes;
 
   initialize_codes(codesize);
   compute_code_topo();

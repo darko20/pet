@@ -229,8 +229,8 @@ cheap_tsdb_summarize_run(void)
     capi_printf("(:application . \"%s\") ", CHEAP_VERSION);
     capi_printf("(:platform . \"%s\") ", CHEAP_PLATFORM);
     capi_printf("(:grammar . \"%s\") ", Grammar->property("version").c_str());
-    capi_printf("(:avms . %d) ", ntypes);
-    capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
+    capi_printf("(:avms . %d) ", nstatictypes);
+    capi_printf("(:leafs . %d) ", nstatictypes - first_leaftype);
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
     capi_printf("(:rules . %d) ", Grammar->rules().size());
     if(!Grammar->property("ntemplates").empty())

@@ -309,18 +309,18 @@ grammar_rule::init_qc_vector_unif() {
 void
 undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
   struct dag_node *dag;
-  // allocate an array holding ntypes pointers to the typedags
-  initialize_dags(ntypes);
+  // allocate an array holding nstatictypes pointers to the typedags
+  initialize_dags(nstatictypes);
     
 #ifdef CONSTRAINT_CACHE
-  // allocate an array holding ntypes pointers to typedag caches
-  init_constraint_cache(ntypes);
+  // allocate an array holding nstatictypes pointers to typedag caches
+  init_constraint_cache(nstatictypes);
 #endif
 
   qc_node *qc_paths_unif = NULL, *qc_paths_subs = NULL;
   int qc_len_unif = 0, qc_len_subs = 0;
 
-  for(int i = 0; i < ntypes; i++) {
+  for(int i = 0; i < nstatictypes; i++) {
     if(i == qc_inst_unif) {
       if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
                                 print_name(qc_inst_unif));
@@ -438,7 +438,7 @@ tGrammar::tGrammar(const char * filename)
     stop_creating_permanent_dags();
 
     // find grammar rules and stems
-    for(type_t i = 0; i < ntypes; i++)
+    for(type_t i = 0; i < nstatictypes; i++)
     {
         if(lexentry_status(i))
         {
@@ -785,7 +785,7 @@ tGrammar::~tGrammar()
     delete _lexsm;
 
 #ifdef CONSTRAINT_CACHE
-    free_constraint_cache(ntypes);
+    free_constraint_cache(nstatictypes);
 #endif
 
     free_list(_deleted_daughters);

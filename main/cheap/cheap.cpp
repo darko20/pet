@@ -314,7 +314,7 @@ void interactive_morphology() {
 
 void dump_glbs(FILE *f) {
   int i, j;
-  for(i = 0; i < ntypes; i++) {
+  for(i = 0; i < nstatictypes; i++) {
     prune_glbcache();
     for(j = 0; j < i; j++)
       if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
@@ -323,7 +323,7 @@ void dump_glbs(FILE *f) {
 
 void print_symbol_tables(FILE *f) {
   fprintf(f, "type names (print names)\n");
-  for(int i = 0; i < ntypes; i++) {
+  for(int i = 0; i < nstatictypes; i++) {
     fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
   }
 
@@ -339,7 +339,7 @@ void print_grammar(FILE *f) {
 
   print_symbol_tables(f);
 
-  for(int i = 0; i < ntypes; i++) {
+  for(int i = 0; i < nstatictypes; i++) {
     fprintf(f, "\n%d\t%s:\n", i, print_name(i));
     dag_print_safe(f, type_dag(i), false, 0);
   }
@@ -488,7 +488,8 @@ void process(const char *s) {
 #endif // HAVE_ECL
 
   fprintf(fstatus, "\n%d types in %0.2g s\n",
-          ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+          nstatictypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+  fflush(fstatus);
 
   if(opt_pg) {
     print_grammar(stdout);

@@ -133,7 +133,7 @@ dag_node *new_dag(type_t s);
 #ifdef DYNAMIC_SYMBOLS
 /** For dynamic symbol, create a simple new typedag */
 inline dag_node *type_dag(type_t type) {
-  return is_resident_type(type) ? typedag[type] : new_dag(type) ;
+  return is_static_type(type) ? typedag[type] : new_dag(type) ;
 }
 #else
 /** Return the type dag for the static type */
