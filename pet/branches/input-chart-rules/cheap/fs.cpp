@@ -57,6 +57,17 @@ fs::fs(char *path, type_t type)
     _temp = 0;
 }
 
+fs::fs(const list_int *path, type_t type)
+{
+    if(! is_type(type))
+        throw tError("construction of non-existent dag requested");
+    
+    // TODO: as of rev 339, there are no checks whether the resulting dag
+    // is a valid type!
+    _dag = dag_create_path_value(const_cast<list_int*>(path), type);
+    
+    _temp = 0;
+}
 
 fs
 fs::get_attr_value(int attr) const
@@ -75,9 +86,9 @@ fs::get_attr_value(char *attr) const
 }
 
 fs
-fs::get_path_value(list_int *path) const
+fs::get_path_value(const list_int *path) const
 {
-    return fs(dag_get_path_value(_dag, path));
+    return fs(dag_get_path_value(_dag, const_cast<list_int*>(path)));
 }
 
 fs

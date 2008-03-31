@@ -47,6 +47,21 @@ chart::~chart()
 {
 }
 
+void chart::reset(int len)
+{
+    _pedges = 0;
+    _Chart.clear();
+    _Cp_start.clear(); _Cp_start.resize(len + 1);
+    _Cp_end.clear();   _Cp_end.resize(len + 1);
+    _Ca_start.clear(); _Ca_start.resize(len + 1);
+    _Ca_end.clear();   _Ca_end.resize(len + 1);
+    _Cp_span.clear();  _Cp_span.resize(len + 1);
+    for (int i = 0; i <= len; i++) {
+        _Cp_span[i].clear();
+        _Cp_span[i].resize(len + 1 - i);
+    }
+}
+
 void chart::add(tItem *it)
 {
 #ifdef DEBUG

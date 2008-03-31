@@ -2,7 +2,9 @@ include "common".
 
 start-symbols := $start.
 
-punctuation-characters := "?!.:;,()<>{}[]+*-`'_\"".
+punctuation-characters := "". ; don't let the tokenizer throw away punctuation
+case-sensitive.               ; be case sensitive in string and yy tokenizer
+trivial-tokenizer.            ; for Lingo-style tokenizer "string"
 
 ;;
 ;; suppress results of regular morphology rules if an irregular form exists.
@@ -10,4 +12,23 @@ punctuation-characters := "?!.:;,()<>{}[]+*-`'_\"".
 irregular-forms-only.
 
 lex-entries-can-fail.
+
+;; path settings for chart mapping rules
+chart-mapping-context-path := "+CONTEXT".
+chart-mapping-input-path   := "+INPUT".
+chart-mapping-output-path  := "+OUTPUT".
+chart-mapping-poscons-path := "+POSCONS".
+
+;; path settings for mapping tInputItem objects to input feature structures
+inpitem-form-path     := "+FORM".       ; required for input feature structures
+inpitem-stem-path     := "+STEM".       ; optional, for stem-based lookup
+inpitem-lexid-path    := "+LEXID".      ; optional, for lexid-based lookup
+inpitem-inflr-path    := "+INFLR".      ; optional, for inflectional rules
+inpitem-cfrom-path    := "+CFROM".      ; optional, for external start position
+inpitem-cto-path      := "+CTO".        ; optional, for external end position
+inpitem-ids-path      := "+IDS".        ; optional, a list of ids
+inpitem-postags-path  := "+TNT.+TAGS".  ; optional, list of pos tags
+inpitem-posprobs-path := "+TNT.+PRBS".  ; optional, list of pos probabilities
+
+lexitem-inpitem-path  := "TOKEN".  ; unify input fs into this path in lex items
 

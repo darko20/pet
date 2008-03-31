@@ -35,6 +35,7 @@
 #ifdef HAVE_XML
 #include "pic-tokenizer.h"
 #include "smaf-tokenizer.h"
+#include "fsc-tokenizer.h"
 #endif
 #include "item-printer.h"
 #include "version.h"
@@ -214,7 +215,7 @@ void interactive() {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
-              if (strcmp(opt_mrs, "rmrx") == 0)
+              if (strcmp(opt_mrs, "xml") == 0)
                 fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
                         "</rmrs>\n");
               else
@@ -278,6 +279,7 @@ void interactive() {
       tsdb_dump.error(Chart, surface, e);
     }
 
+    fprintf(fstatus, "-----\n"); // not in main branch
     fflush(fstatus);
 
     if(Chart != 0) delete Chart;
@@ -473,6 +475,16 @@ void process(const char *s) {
       exit(1);
 #endif
 
+    case TOKENIZER_FSC:
+#ifdef HAVE_XML
+      xml_initialize();
+      XMLServices = true;
+      tok = new tFSCTokenizer(); break;
+#else
+      fprintf(ferr, "No XML input mode compiled into this cheap\n");
+      exit(1);
+#endif
+      
     default:
       tok = new tLingoTokenizer(); break;
     }

@@ -58,8 +58,10 @@ public:
   {
     std::string s1 = "\"supercalifragilistic\"";
     std::string s2 = "\"expialidocious\"";
+    
     CPPUNIT_ASSERT(lookup_type(s1) == T_BOTTOM);
     CPPUNIT_ASSERT(lookup_type(s2) == T_BOTTOM);
+    
     type_t t1 = retrieve_type(s1);
     type_t t2 = retrieve_type(s2);
     
@@ -69,6 +71,7 @@ public:
     CPPUNIT_ASSERT(is_dynamic_type(t1));
     CPPUNIT_ASSERT(!is_static_type(t1));
     CPPUNIT_ASSERT(is_leaftype(t1));
+    CPPUNIT_ASSERT(is_string_instance(t1));
     
     CPPUNIT_ASSERT(get_typename(t1) == "\"supercalifragilistic\"");
     CPPUNIT_ASSERT(get_printname(t1) == "supercalifragilistic");

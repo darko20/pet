@@ -135,6 +135,12 @@ protected:
    * status stream, otherwise just strip them.
    */
   int _comment_passthrough;
+  
+  /**
+   * If \c true, always keep case as it is, otherwise convert every form to
+   * lower case.
+   */
+  bool _case_sensitive;
 };
 
 /** Call a Named Entity Recognizer.

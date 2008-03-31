@@ -350,6 +350,15 @@ public:
     }
   }
 
+  /** Return the list of all loaded input mapping rules. */
+  std::list<class tChartMappingRule*> inpmap_rules() {
+    return _inpmap_rules;
+  }
+  /** Return the list of all loaded lexical mapping rules. */
+  std::list<class tChartMappingRule*> lexmap_rules() {
+    return _lexmap_rules;
+  }
+
  private:
   std::map<std::string, std::string> _properties;
 
@@ -376,6 +385,11 @@ public:
 
   /** Map the rule type back to the rule structure */
   std::map<type_t, grammar_rule *> _rule_dict;
+
+  /** The set of input mapping rules */
+  std::list<class tChartMappingRule*> _inpmap_rules;
+  /** The set of lexical mapping rules */
+  std::list<class tChartMappingRule*> _lexmap_rules;
 
   list_int *_root_insts;
 

@@ -244,8 +244,7 @@ tYYTokenizer::read_token()
   if(paths.empty() || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected paths)");
   
-  bool downcasep = true;
-  if(!read_string(stem, true, downcasep))
+  if(!read_string(stem, true, !_case_sensitive))
     throw tError("yy_tokenizer: ill-formed token (expected stem)");
 
   // translate iso-8859-1 german umlaut and sz

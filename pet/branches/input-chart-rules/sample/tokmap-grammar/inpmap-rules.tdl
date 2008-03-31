@@ -1,0 +1,70 @@
+; split off 's (possessive 's vs contracted auxiliary):
+split-contracted-s-rule := inpmap-102-rule &
+  [ +CONTEXT < [ +FORM "/([A-Z][a-z]+)('s)/"  , +TNT #tnt ] > ,
+    +OUTPUT  < [ +FORM "${C1:+FORM:1}" , +TNT #tnt ],
+               [ +FORM "${C1:+FORM:2}" , +TNT <> ] > ].
+
+; split contracted compounds:
+split-compounds-rule := inpmap-x12-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM "/(cat)(dog)/" ] > ,
+    +OUTPUT  < [ +FORM "${I1:+FORM:1}" ], [ +FORM "${I1:+FORM:2}" ] > ].
+
+; replacing in context:
+dag-rule := inpmap-x11-rule &
+  [ +CONTEXT < [ +FORM "the" ], [ +FORM "barks" ]> ,
+    +INPUT   < [ +FORM "dag" ] > ,
+    +OUTPUT  < [ +FORM "dog" ] > ,
+    +POSCONS "C1<I1<C2" ].
+
+; introducing items:
+switch-determiner-rule := inpmap-101-rule &
+  [ +CONTEXT < [ +FORM  "this" ] > ,
+    +OUTPUT  < [ +FORM  "that"] > ].
+
+; blocking in the same chart cell:
+block-sth-rule := inpmap-rule &
+  [ +CONTEXT < [ +FORM "that" ], [ +FORM "dog"  ] >,
+    +INPUT   < [ +FORM "this" ] >,
+    +OUTPUT  < > ,
+    +POSCONS "I1=C1<C2" ].
+
+; map dates:
+dates-rule := inpmap-x11-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM "/[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4}/" , +TNT #tnt ] >,
+    +OUTPUT  < [ +FORM "DateErsatz" , +TNT #tnt ] > ].
+
+; replace HTML entities:
+xml-mdash-rule := inpmap-x11-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM "/([A-Za-z0-9]+)(&mdash;)([A-Za-z0-9]*)/" , +TNT #tnt ] >,
+    +OUTPUT  < [ +FORM "${I1:+FORM:1}-${I1:+FORM:3}" , +TNT #tnt ] > ].
+
+; fix broken tokenization
+tokenization-rule := inpmap-x21-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM  "/(.*)/" , +TNT #tnt ],
+               [ +FORM  "/([.,;?!])/"   ] > ,
+    +OUTPUT  < [ +FORM "${I1:+FORM:1}${I2:+FORM:1}" , +TNT #tnt ] > ,
+    +POSCONS "I1<I2" ].
+
+; make everything lower case:
+lower-case-rule := inpmap-x11-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM "/(.*[A-ZÄÜÖ].*)/" , +TNT #tnt ] > ,
+    +OUTPUT  < [ +FORM "${lc(I1:+FORM:1)}" , +TNT #tnt ] > ].
+
+; create input item for each TNT reading:
+explode-tnt-rule := inpmap-012-rule &
+  [ +INPUT   < [ +FORM #form ,
+                 +TNT.+TAGS [ FIRST #tag , REST #tagrest & *cons* ],
+                 +TNT.+PRBS [ FIRST #prb , REST #prbrest & *cons* ] ] > ,
+    +OUTPUT  < [ +FORM #form,
+                 +TNT.+TAGS < #tag >,
+                 +TNT.+PRBS < #prb > ] ,
+               [ +FORM #form,
+                 +TNT.+TAGS #tagrest,
+                 +TNT.+PRBS #prbrest ] > ,
+    +POSCONS "O1=O2" ].
+

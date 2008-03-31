@@ -237,18 +237,29 @@ unset CHEAPCPPFLAGS CHEAPCXXFLAGS CHEAPLDFLAGS CHEAPLIBS
 
 # Boost.Graph:
 AX_BOOST_BASE([], [boost="yes"], [boost="no"])
+AX_BOOST_REGEX([], [boost=no])
 if test "$boost" = "yes" ; then
   AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp \
                     boost/graph/topological_sort.hpp \
-                    boost/lambda/lambda.hpp ],
+                    boost/lambda/lambda.hpp \
+                    boost/lexical_cast.hpp \
+                    boost/regex.hpp \
+                    boost/tuple/tuple.hpp \
+                    boost/tuple/tuple_comparison.hpp ],
                    [],
                    [ boost="no" ])
+  AC_CHECK_HEADERS([boost/regex/icu.hpp],
+                   [],
+                   [AC_MSG_WARN([Boost::Regex is not configured for ICU.
+                                 No Unicode-support in regular expressions.])],
+                   [])
 fi
 if test "$boost" = "yes" ; then
   FLOPCPPFLAGS="${BOOST_CPPFLAGS} ${FLOPCPPFLAGS}"
   FLOPLDFLAGS="${BOOST_LDFLAGS} ${FLOPLDFLAGS}"
   CHEAPCPPFLAGS="${BOOST_CPPFLAGS} ${CHEAPCPPFLAGS}"
   CHEAPLDFLAGS="${BOOST_LDFLAGS} ${CHEAPLDFLAGS}"
+  CHEAPLIBS="${CHEAPLIBS} ${BOOST_REGEX_LIB}"
 else
   AC_MSG_ERROR([boost graph library required to build flop and cheap])
 fi

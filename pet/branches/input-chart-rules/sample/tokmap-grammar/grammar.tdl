@@ -4,9 +4,14 @@
 :include "types.tdl".
 :end :type.
 
-;; token mapping rules for manipulating the input chart
-:begin :instance :status tokmap-rule.
-:include "tokmap-rules.tdl".
+;; chart mapping rules for manipulating the input chart
+:begin :instance :status inpmap-rule.
+:include "inpmap-rules.tdl".
+:end :instance.
+
+;; chart mapping rules for manipulating the chart after lexical instantiation
+:begin :instance :status lexmap-rule.
+:include "lexmap-rules.tdl".
 :end :instance.
 
 ;; syntactic rules
@@ -23,6 +28,10 @@
 ;; lexicon
 :begin :instance :status lex-entry.
 :include "lexicon.tdl".
+:end :instance.
+
+:begin :instance :status generic-lex-entry.
+:include "gen-lex.tdl".
 :end :instance.
 
 ;; start symbols of the grammar (instances)

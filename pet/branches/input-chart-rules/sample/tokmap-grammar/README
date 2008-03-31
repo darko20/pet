@@ -1,4 +1,4 @@
-Toy grammar for testing the new token mapping transfer rules.
+Toy grammar for testing the new chart mapping rules.
 The grammar is based on the the example grammar of chapter 6
 in "Implementing Typed Feature Structure Grammars" (itfs/g6morph)
 by Ann Copestake.

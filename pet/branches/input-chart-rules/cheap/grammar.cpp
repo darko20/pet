@@ -25,6 +25,8 @@
 
 #include "cheap.h"
 #include "fs.h"
+#include "fs-chart-util.h"
+#include "chart-mapping.h"
 #include "parse.h"
 #include "utility.h"
 #include "dumper.h"
@@ -69,6 +71,20 @@ bool
 lex_rule_status(type_t t)
 {
   return cheap_settings->statusmember("lexrule-status-values", typestatus[t]);
+}
+
+bool
+inpmap_rule_status(type_t t)
+{
+  return cheap_settings->statusmember("input-mapping-rule-status-values",
+        typestatus[t]);
+}
+
+bool
+lexmap_rule_status(type_t t)
+{
+  return cheap_settings->statusmember("lexical-mapping-rule-status-values",
+        typestatus[t]);
 }
 
 grammar_rule::grammar_rule(type_t t)
@@ -472,6 +488,20 @@ tGrammar::tGrammar(const char * filename)
               _rule_dict[i] = R;
             }
         }
+        else if (inpmap_rule_status(i) && opt_chartmapping)
+        {
+            tChartMappingRule *R = tChartMappingRule::create(i, CM_INPUT_TRAIT);
+            if (R != NULL) {
+              _inpmap_rules.push_front(R);
+            }
+        }
+        else if (lexmap_rule_status(i) && opt_chartmapping)
+        {
+            tChartMappingRule *R = tChartMappingRule::create(i, CM_LEX_TRAIT);
+            if (R != NULL) {
+              _lexmap_rules.push_front(R);
+            }
+        }
         else if(genle_status(i))
         {
             _generics = cons(i, _generics);
@@ -577,6 +607,7 @@ tGrammar::tGrammar(const char * filename)
     for(ruleiter rule = _rules.begin(); rule != _rules.end(); ++rule)
       (*rule)->lui_dump();
 #endif
+
 }
 
 void
@@ -706,6 +737,9 @@ tGrammar::init_parameters()
               "packing disabled\n");
       opt_packing = 0;
     }
+    
+    // TODO better use Listener pattern to initialize grammar-dependent params?
+    tChartUtil::initialize();
 }
 
 void

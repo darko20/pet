@@ -51,7 +51,7 @@ class postags
    */
   postags(const std::list<class tItem *> &les);
   /** Copy constructor: copies only the tags, not the probabilities. */
-  postags(const postags &t) : _tags(t._tags) {} ;
+//  postags(const postags &t) : _tags(t._tags) {} ;
 
   ~postags() {} ;
 
@@ -60,10 +60,10 @@ class postags
     { return _tags.empty(); }
 
   /** Assignment operator: the tag set is set to the tag set of \a b */
-  void operator=(const postags &b) 
-  {
-    _tags = b._tags;
-  }
+//  void operator=(const postags &b) 
+//  {
+//    _tags = b._tags;
+//  }
 
   /** Return true, if the tag sets are equal */
   bool operator==(const postags &b) const;
@@ -88,7 +88,15 @@ class postags
    *  this function returns \c false.
    */
   bool contains(type_t t) const;
-
+  
+  /**
+   * Fills the specified containers \a tagslist and \a probslist with an
+   * aligned sequence of part-of-speech tags and probabilities, sorted
+   * in descending order by the probabilities.
+   */
+  void tagsnprobs(std::vector<std::string> &tagslist,
+                  std::vector<double> &probslist) const;
+  
   /** Like contains, but in case the setting is not available, return \c true.
    * \see contains
    */

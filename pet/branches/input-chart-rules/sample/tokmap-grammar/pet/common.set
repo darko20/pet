@@ -20,7 +20,9 @@ special-name-attr-args := "ARGS".
 lexrule-status-values := lex-rule.
 rule-status-values := grammar-rule.
 lexentry-status-values := lex-entry. 
-input-rule-status-values := input-rule.
+input-mapping-rule-status-values := inpmap-rule.
+lexical-mapping-rule-status-values := lexmap-rule.
+generic-lexentry-status-values := generic-lex-entry.
 
 ;; path to the list of arguments in a rule
 rule-args-path := ARGS.
@@ -34,12 +36,3 @@ orth-path := "ORTH.LIST".
 ;; type to mark boolean value `true'
 true-type := +.
 
-;; path settings for transfer rules
-transfer-rule-context-path := CONTEXT.
-transfer-rule-input-path   := INPUT.
-transfer-rule-output-path  := OUTPUT.
-
-;; path settings for mapping strings on token TFSs
-token-form-path := FORM.
-token-from-path := FROM.
-token-to-path   := TO.

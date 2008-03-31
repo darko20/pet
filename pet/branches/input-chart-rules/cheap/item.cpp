@@ -23,6 +23,7 @@
 #include <sys/param.h>
 
 #include "cheap.h"
+#include "fs-chart-util.h"
 #include "item.h"
 #include "item-printer.h"
 #include "parse.h"
@@ -119,7 +120,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _printname(printname),
-      _blocked(0), _unpack_cache(0), parents(), packed()
+      _blocked(0), _unpack_cache(0), parents(), packed(), _chart(0)
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -170,8 +171,9 @@ void tItem::lui_dump(const char *path) {
 tInputItem::tInputItem(string id
                        , int start, int end, int startposition, int endposition
                        , string surface, string stem
-                       , const tPaths &paths, int token_class, modlist fsmods)
-  : tItem(start, end, paths, fs(), surface.c_str())
+                       , const tPaths &paths, int token_class, modlist fsmods
+                       , const fs &input_fs)
+  : tItem(start, end, paths, input_fs, surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods)
 {
@@ -184,10 +186,11 @@ tInputItem::tInputItem(string id
 // constructor with external start/end positions only
 tInputItem::tInputItem(string id, int startposition, int endposition
                        , string surface, string stem
-                       , const tPaths &paths, int token_class, modlist fsmods)
-  : tItem(-1, -1, paths, fs(), surface.c_str()),
-    _input_id(id), _class(token_class), _surface(surface), _stem(stem),
-    _fsmods(fsmods)
+                       , const tPaths &paths, int token_class, modlist fsmods
+                       , const fs &input_fs)
+  : tItem(-1, -1, paths, input_fs, surface.c_str())
+    , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
+    , _fsmods(fsmods)
 {
   _startposition = startposition;
   _endposition = endposition;
@@ -196,8 +199,9 @@ tInputItem::tInputItem(string id, int startposition, int endposition
 
 
 tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
-                       , string stem, int token_class, modlist fsmods)
-  : tItem(-1, -1, tPaths(), fs(), "")
+                       , string stem, int token_class, modlist fsmods
+                       , const fs &input_fs)
+  : tItem(-1, -1, tPaths(), input_fs, "")
     , _input_id(id), _class(token_class), _stem(stem)
     , _fsmods(fsmods)
 {
@@ -216,9 +220,12 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
 void tInputItem::print(FILE *f, bool compact)
 {
   fprintf(f, "I ");
-  fprintf(f, "[id:%d %d-%d (extern:%d-%d) trait:%d input-id:%s stem:\"%s\" surface:\"%s\"] "
-          , _id, _start, _end, _startposition, _endposition, _trait, _input_id.c_str()
-          , _stem.c_str(), _surface.c_str());
+  fprintf(f, "[id:%d %d-%d (extern:%d-%d) "
+      "blocked:%s trait:%d input-id:%s stem:\"%s\" surface:\"%s\"] "
+      , _id, _start, _end, _startposition, _endposition
+      , blocked() ? "yes" : "no"
+      , _trait, _input_id.c_str()
+      , _stem.c_str(), _surface.c_str());
 
   list_int *li = _inflrs_todo;
   while(li != NULL) {
@@ -231,6 +238,7 @@ void tInputItem::print(FILE *f, bool compact)
   fprintf(f, " {");
   _postags.print(f);
   fprintf(f, " }");
+  fprintf(f, "\n");
 }
 
 void
@@ -286,7 +294,7 @@ tInputItem::rule()
 void
 tInputItem::recreate_fs()
 {
-    throw tError("cannot rebuild input item's feature structure");
+    _fs = tChartUtil::create_input_fs(this);
 }
 
 /** \brief Since tInputItems do not have a feature structure, they need not be
@@ -629,8 +637,8 @@ tPhrasalItem::set_result_root(type_t rule)
 void
 tItem::print(FILE *f, bool compact)
 {
-    fprintf(f, "[id:%d %d-%d %s trait:%d ", _id, _start, _end, _fs.printname(),
-            _trait);
+    fprintf(f, "[id:%d %d-%d %s blocked:%s trait:%d ", _id, _start, _end,
+          _fs.printname(), blocked() ? "yes" : "no", _trait);
 
     fprintf(f, "score:%.4g", _score);
 
