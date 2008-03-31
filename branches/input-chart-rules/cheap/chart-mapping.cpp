@@ -407,21 +407,25 @@ tChartMappingRule::tChartMappingRule(type_t type,
   list<fs> inps = _fs.get_path_value(tChartUtil::input_path()).get_list();
   
   // create argument representations for this rule:
-  int i;
-  std::list<fs>::iterator arg_it;
-  for (arg_it = cons.begin(), i = 1; arg_it != cons.end(); arg_it++, i++)
-  {
-    tPathRegexMap regexs;
-    modify_arg_fs(*arg_it, regexs);
-    string name = "C" + lexical_cast<std::string>(i);
-    _args.push_back(tChartMappingRuleArg::create(name, false, i, regexs));
-  }
-  for (arg_it = inps.begin(), i = 1; arg_it != inps.end(); arg_it++, i++)
-  {
-    tPathRegexMap regexs;
-    modify_arg_fs(*arg_it, regexs);
-    string name = "I" + lexical_cast<std::string>(i);
-    _args.push_back(tChartMappingRuleArg::create(name, true, i, regexs));
+  try {
+    int i;
+    std::list<fs>::iterator arg_it;
+    for (arg_it = cons.begin(), i = 1; arg_it != cons.end(); arg_it++, i++)
+    {
+      tPathRegexMap regexs;
+      modify_arg_fs(*arg_it, regexs);
+      string name = "C" + lexical_cast<std::string>(i);
+      _args.push_back(tChartMappingRuleArg::create(name, false, i, regexs));
+    }
+    for (arg_it = inps.begin(), i = 1; arg_it != inps.end(); arg_it++, i++)
+    {
+      tPathRegexMap regexs;
+      modify_arg_fs(*arg_it, regexs);
+      string name = "I" + lexical_cast<std::string>(i);
+      _args.push_back(tChartMappingRuleArg::create(name, true, i, regexs));
+    }
+  } catch (boost::regex_error e) {
+    throw tError("Could not compile regex for rule "+get_typename(type)+".");
   }
   
   // evaluate positional constraints:
