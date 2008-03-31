@@ -164,9 +164,9 @@ int lookup_status(const char *s);
     exist */
 attr_t lookup_attr(const char *s);
 
-/** Get the type id for type name \a s or return -1 if it does not exist. */
+/** Get the type id for type name \a name or return -1 if it does not exist. */
 type_t lookup_type(const std::string &name);
-/** Get the type id for type name \a s, registering a new type for unknown
+/** Get the type id for type name \a name, registering a new type for unknown
  *  string types (if dynamic types are enabled, i.e. DYNAMIC_TYPES is defined),
  *  or return -1 if it does not exist.
  */
