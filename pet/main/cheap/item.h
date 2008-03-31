@@ -117,26 +117,18 @@ public:
 
 
 /** Represent an item in a chart. Conceptually there are input items,
- *  morphological items, lexical items and phrasal items. 
+ *  lexical items and phrasal items. 
  */
 class tItem {
 public:
   /** Base constructor with feature structure
-   * \param start start position in the chart
-   * \param end start position in the chart
+   * \param start start position in the chart (node number)
+   * \param end end position in the chart (node number)
    * \param paths the set of word graph paths this item belongs to
    * \param f the items feature structure
    * \param printname a readable representation of this item
    */
   tItem(int start, int end, const tPaths &paths, const fs &f,
-        const char *printname);
-  /** Base constructor
-   * \param start start position in the chart
-   * \param end start position in the chart
-   * \param paths the set of word graph paths this item belongs to
-   * \param printname a readable representation of this item
-   */
-  tItem(int start, int end, const tPaths &paths, 
         const char *printname);
 
   virtual ~tItem();
@@ -171,12 +163,17 @@ public:
 
   /** Return \c true if this item has all of its arguments filled. */
   inline bool passive() const { return _tofill == 0; }
-  /** Start position in the chart */
+  /** Start position (node number) in the chart */
   inline int start() const { return _start; }
-  /** End position in the chart */
+  /** End position (node number) in the chart */
   inline int end() const { return _end; }
   /** return end() - start() */
   inline int span() const { return (_end - _start); }
+
+  /** Set the start node number of this item. */
+  void set_start(int pos) { _start = pos ; }
+  /** Set the end node number of this item. */
+  void set_end(int pos) { _end = pos ; }
 
   /** Was this item produced by a rule that may only create items spanning the
    *  whole chart?
@@ -306,7 +303,7 @@ public:
       recreate_fs();
     return _fs;
   }
-
+  
   /** Return the root type of this item's feature structure */
   type_t type() {
     return get_fs().type();
@@ -416,15 +413,19 @@ public:
   void score(double score) { _score = score; }
 
   /** @name Blocking Functions
-   * Functions used to block items for packing
-   * \todo needs a description of the packing functionality. oe, could you do
-   * this pleeaaazze :-)
+   * Functions used to block items for packing.
+   * See Oepen & Carroll 2000
    */
   /*@{*/
+  /** Mark an item as temporarily blocked and freeze all its parents. */
   inline void frost() { block(1); }
+  /** Mark an item as permanently blocked and freeze all its parents. */
   inline void freeze() { block(2); }
+  /** \c true if an item is marked as blocked. */
   inline bool blocked() { return _blocked != 0; }
+  /** \c true if an item is marked as temporarily blocked. */
   inline bool frosted() { return _blocked == 1; }
+  /** \c true if an item is marked as permanently blocked. */
   inline bool frozen() { return _blocked == 2; }
 
   std::list<tItem *> unpack(int limit);
@@ -574,60 +575,50 @@ enum tok_class { SKIP_TOKEN_CLASS = -3, WORD_TOKEN_CLASS, STEM_TOKEN_CLASS };
  */
 class tInputItem : public tItem {
 public:
-  /** Create a new input item.
-   * The \a stem argument is ignored if \a token_class is not \c
-   * STEM_TOKEN_CLASS. If \a token_class is
-   * - \c WORD_TOKEN_CLASS, the stem is produced by calling
-   *   morphological analysis
-   * - \c STEM_TOKEN_CLASS, \a stem is used as the stem of this input item
-   * - an HPSG type, the lexicon entry is accessed directly using this type.
+  /**
+   * \name Constructors
+   * Create a new input item.
    * \param id A unique external id
-   * \param start The external start position
-   * \param end The external end position
+   * \param start The start position (node number, -1 if not yet determined)
+   * \param end The end position (node number, -1 if not yet determined)
+   * \param startposition The external start position
+   * \param endposition The external end position
    * \param surface The surface form for this entry.
    * \param stem The base form for this entry (only used if \a token_class is
    *             \c STEM_TOKEN_CLASS)
    * \param paths The paths (ids) in the input graph this item belongs to.
-   * \param token_class One of \c SKIP_TOKEN_CLASS, \c WORD_TOKEN_CLASS (the
-   *                    default), \c STEM_TOKEN_CLASS or a valid HPSG type.
-   * \param fsmods A list of feature structure modifications (default: no
+   * \param token_class One of \c SKIP_TOKEN_CLASS, \c WORD_TOKEN_CLASS
+   *                    (perform morphological analysis and lexicon lookup;
+   *                    the default), \c STEM_TOKEN_CLASS (lookup lexical item
+   *                    by parameter \a stem) or a valid HPSG type (direct
+   *                    lexical lookup with \a token_class as the type).
+   * \param fsmods A list of feature structure modifications which are applied
+   *               to the feature structure of the lexical item (default: no
    *               modifications).
    */
   //@{
-  // constructor with start/end NODES specified
-  tInputItem(std::string id, int startnode, int endnode, int start, int end, std::string surface, std::string stem
+  /** Create a new input item with internal and external start/end positions. */
+  tInputItem(std::string id
+             , int start, int end, int startposition, int endposition
+             , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
-
-  // constructor without start/end NODES specified  
-  tInputItem(std::string id, int start, int end, std::string surface, std::string stem
+  /** Create a new input item with external start/end positions only. */
+  tInputItem(std::string id, int startposition, int endposition
+             , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
-  //@}
-  
-  /** Create a new complex input item (an input item with input item
-   *  daughters). 
-   * The \a stem argument is ignored if \a token_class is not \c
-   * STEM_TOKEN_CLASS. If \a token_class is
-   * - \c WORD_TOKEN_CLASS, the stem is produced by calling
-   *   morphological analysis
-   * - \c STEM_TOKEN_CLASS, \a stem is used as the stem of this input item
-   * - an HPSG type, the lexicon entry is accessed directly using this type.
-   * \param id A unique external id
-   * \param dtrs The daughters of this node.
-   * \param stem The base form for this entry (only used if \a token_class is
-   *             \c STEM_TOKEN_CLASS)
-   * \param token_class One of \c SKIP_TOKEN_CLASS, \c WORD_TOKEN_CLASS (the
-   *                    default), \c STEM_TOKEN_CLASS or a valid HPSG type.
-   * \param fsmods A list of feature structure modifications (default: no
-   *               modifications) .
+  /**
+   * Create a new complex input item (an input item with input item
+   * daughters as it can be defined in PIC).
    */
   tInputItem(std::string id, const std::list< tInputItem * > &dtrs
              , std::string stem
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
+  //@}
   
   ~tInputItem() {
     free_list(_inflrs_todo); 
@@ -741,14 +732,6 @@ public:
    * POS tags are postulated. The correspondence is defined in posmapping.
    */
   std::list<lex_stem *> generics(postags onlyfor = postags());
-
-  /** @name Set Internal Positions
-   * Set the start resp. end node number of this item
-   */
-  /*@{*/
-  void set_start(int pos) { _start = pos ; }
-  void set_end(int pos) { _end = pos ; }
-  /*@}*/
 
   /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const { return _class; }
