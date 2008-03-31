@@ -155,8 +155,13 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
     _orth = new char*[_nwords];
         
     for(int j = 0; j < _nwords; j++) {
+#ifdef HAVE_ICU
+      string lc_str = Conv->convert(Conv->convert(orth[j]).toLower());
+      _orth[j] = strdup(lc_str.c_str());
+#else
       _orth[j] = strdup(orth[j].c_str());
       strtolower(_orth[j]);
+#endif
     }
   } else {
     _nwords = orths.size();
@@ -164,8 +169,13 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
     int j = 0;
     for(list<string>::const_iterator it = orths.begin(); it != orths.end();
         ++it, ++j) {
+#ifdef HAVE_ICU
+      string lc_str = Conv->convert(Conv->convert(*it).toLower());
+      _orth[j] = strdup(lc_str.c_str());
+#else
       _orth[j] = strdup(it->c_str());
       strtolower(_orth[j]);
+#endif
     }
   }
 

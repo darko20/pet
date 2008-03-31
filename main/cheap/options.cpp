@@ -431,12 +431,14 @@ bool parse_options(int argc, char* argv[])
             else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_PIC_COUNTS;
             else if (strcasecmp(optarg, "smaf") == 0) opt_tok = TOKENIZER_SMAF;
             else if (strcasecmp(optarg, "xml") == 0) {
-              fprintf(ferr, "WARNING: deprecated command-line option -tok=xml, use -tok=pic instead\n");
-              opt_tok = TOKENIZER_PIC; //deprecated command-line option
+              fprintf(ferr, "WARNING: deprecated command-line option "
+                  "-tok=xml, use -tok=pic instead\n");
+              opt_tok = TOKENIZER_PIC;
             }
             else if (strcasecmp(optarg, "xml_counts") == 0) {
-              fprintf(ferr, "WARNING: deprecated command-line option -tok=xml_counts, use -tok=pic_counts instead\n");
-              opt_tok = TOKENIZER_PIC; //deprecated command-line option
+              fprintf(ferr, "WARNING: deprecated command-line option "
+                  "-tok=xml_counts, use -tok=pic_counts instead\n");
+              opt_tok = TOKENIZER_PIC;
             }
             else fprintf(ferr, "WARNING: unknown tokenizer mode \"%s\": using 'tok=string'\n", optarg);
           }
@@ -487,7 +489,7 @@ bool parse_options(int argc, char* argv[])
   if(opt_hyper && opt_compute_qc)
   {
       fprintf(ferr, "quickcheck computation doesn't work "
-              "in hyperactive mode, disabling hyperactive mode.");
+              "in hyperactive mode, disabling hyperactive mode.\n");
       opt_hyper = false;
   }
 

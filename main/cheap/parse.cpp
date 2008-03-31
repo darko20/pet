@@ -642,5 +642,6 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     parse_finish(FSAS, errors);
 
     Lexparser.reset();
+    clear_dynamic_types();
     delete Agenda;
 }
