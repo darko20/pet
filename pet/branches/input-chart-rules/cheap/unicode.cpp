@@ -64,6 +64,14 @@ string EncodingConverter::convert(const UnicodeString from)
   return to;
 };
 
+string EncodingConverter::convert(const UChar* from)
+{
+  int length = 0;
+  while (from[length] != 0)
+    length++;
+  return convert(from, length);
+};
+
 string EncodingConverter::convert(const UChar* from, int32_t length)
 {
   int32_t sz = length * ucnv_getMaxCharSize(_conv) + 1;
@@ -79,6 +87,26 @@ string EncodingConverter::convert(const UChar* from, int32_t length)
   delete[] s;
   
   return to;
+};
+
+string EncodingConverter::convert(const UChar32* from)
+{
+  // there is neither a UnicodeString constructor from a UChar32 array, nor
+  // a converter function working on UChar32
+  UnicodeString ucstr;
+  for (int32_t i = 0; from[i] != 0; i++)
+    ucstr.append(from[i]);
+  return convert(ucstr);
+};
+
+string EncodingConverter::convert(const UChar32* from, int32_t length)
+{
+  // there is neither a UnicodeString constructor from a UChar32 array, nor
+  // a converter function working on UChar32
+  UnicodeString ucstr;
+  for (int32_t i = 0; i < length; i++)
+    ucstr.append(from[i]);
+  return convert(ucstr);
 };
 
 UnicodeString EncodingConverter::convert(const string from)

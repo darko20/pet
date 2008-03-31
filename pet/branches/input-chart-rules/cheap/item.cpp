@@ -23,13 +23,13 @@
 #include <sys/param.h>
 
 #include "cheap.h"
-#include "utility.h"
-#include "types.h"
 #include "item.h"
 #include "item-printer.h"
 #include "parse.h"
-#include "tsdb++.h"
 #include "sm.h"
+#include "tsdb++.h"
+#include "types.h"
+#include "utility.h"
 
 #include <sstream>
 #include <sys/times.h>
@@ -124,20 +124,6 @@ tItem::tItem(int start, int end, const tPaths &paths,
     if(_default_owner) _default_owner->add(this);
 }
 
-
-tItem::tItem(int start, int end, const tPaths &paths,
-             const char *printname)
-    : _id(_next_id++),
-      _start(start), _end(end), _spanningonly(false), _paths(paths),
-      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
-      _result_root(-1), _result_contrib(false),
-      _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0), _printname(printname),
-      _blocked(0), _unpack_cache(0), parents(), packed()
-{
-    if(_default_owner) _default_owner->add(this);
-}
-
 tItem::~tItem()
 {
     delete[] _qc_vector_unif;
@@ -185,7 +171,7 @@ tInputItem::tInputItem(string id
                        , int start, int end, int startposition, int endposition
                        , string surface, string stem
                        , const tPaths &paths, int token_class, modlist fsmods)
-  : tItem(start, end, paths, surface.c_str())
+  : tItem(start, end, paths, fs(), surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods)
 {
@@ -199,11 +185,8 @@ tInputItem::tInputItem(string id
 tInputItem::tInputItem(string id, int startposition, int endposition
                        , string surface, string stem
                        , const tPaths &paths, int token_class, modlist fsmods)
-  : tItem(-1, -1, paths, surface.c_str()),
-    _input_id(id),
-    _class(token_class),
-    _surface(surface),
-    _stem(stem),
+  : tItem(-1, -1, paths, fs(), surface.c_str()),
+    _input_id(id), _class(token_class), _surface(surface), _stem(stem),
     _fsmods(fsmods)
 {
   _startposition = startposition;
@@ -214,7 +197,7 @@ tInputItem::tInputItem(string id, int startposition, int endposition
 
 tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
                        , string stem, int token_class, modlist fsmods)
-  : tItem(-1, -1, tPaths(), "")
+  : tItem(-1, -1, tPaths(), fs(), "")
     , _input_id(id), _class(token_class), _stem(stem)
     , _fsmods(fsmods)
 {
@@ -229,7 +212,7 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   }
   _trait = INPUT_TRAIT;
 }
-  
+
 void tInputItem::print(FILE *f, bool compact)
 {
   fprintf(f, "I ");

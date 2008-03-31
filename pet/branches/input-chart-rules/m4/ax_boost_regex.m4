@@ -61,7 +61,7 @@ AC_DEFUN([AX_BOOST_REGEX],
   )
   
   if test "x$want_boost" = "xyes"; then
-    AC_REQUIRE([AC_BOOST_BASE])
+    AC_REQUIRE([AX_BOOST_BASE])
     CPPFLAGS_SAVED="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
     export CPPFLAGS
