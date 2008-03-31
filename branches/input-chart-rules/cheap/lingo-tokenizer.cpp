@@ -66,8 +66,7 @@ tLingoTokenizer::do_it(string s) {
     if(punctuation_char(s[i], _punctuation_characters))
       s[i] = ' ';
     else 
-      //TODO: provide a flag that makes it possible to use the upcase chars
-      if (true) 
+      if (!_case_sensitive) 
         s[i] = tolower(s[i]);
   }
 #else
@@ -84,8 +83,7 @@ tLingoTokenizer::do_it(string s) {
       Res.append(c);
   }
   
-  //TODO: provide a flag that makes it possible to use the upcase chars
-  if(true)
+  if(!_case_sensitive)
     Res.toLower();
 
   s = Conv->convert(Res);

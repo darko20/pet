@@ -77,9 +77,10 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
 
 void
 tCompactDerivationPrinter::real_print(const tInputItem *item) {
-  fprintf (_out, "(%s\"%s%s\" %.4g %d %d)"
+  fprintf (_out, "(%s\"%s%s\" %.4g %d %d %d %d)"
            , _quoted ? "\\" : "", item->orth().c_str(), _quoted ? "\\" : ""
-           , item->score(), item->start(), item->end());
+           , item->score(), item->start(), item->end()
+           , item->startposition(), item->endposition());
 }
 
 void 

@@ -29,7 +29,7 @@
 #include <string>
 #include <unistd.h>
 
-bool opt_shrink_mem, opt_shaping, opt_default_les,
+bool opt_shrink_mem, opt_shaping,
   opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
@@ -39,8 +39,10 @@ bool opt_shrink_mem, opt_shaping, opt_default_les,
 bool opt_yy;
 int opt_nth_meaning;
 #endif
+bool opt_chartmapping;
 
 int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
+default_les_modes opt_default_les;
 int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
@@ -91,7 +93,9 @@ void usage(FILE *f)
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
   fprintf(f, "  `-rulestats' --- enable tsdb output of rule statistics\n");
   fprintf(f, "  `-no-chart-man' --- disable chart manipulation\n");
-  fprintf(f, "  `-default-les' --- enable use of default lexical entries\n");
+  fprintf(f, "  `-default-les[=all|traditional]' --- enable use of default lexical entries\n" 
+             "         * all: try to instantiate all default les for all input fs\n"
+             "         * traditional (default): determine default les by posmapping for all lexical gaps\n");
   fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
   fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
@@ -115,11 +119,12 @@ void usage(FILE *f)
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");  
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
-  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
+  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf|fsc' --- "
              "select input method (default `string')\n");  
-
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
+  fprintf(f, "  `-chartmapping' --- "
+          "enables chart mapping rules\n");
 }
 
 #define OPTION_TSDB 0
@@ -159,6 +164,7 @@ void usage(FILE *f)
 #define OPTION_COMMENT_PASSTHROUGH 36
 #define OPTION_PREDICT_LES 37
 #define OPTION_TIMEOUT 38
+#define OPTION_CHARTMAPPING 39
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -186,7 +192,7 @@ void init_options()
   opt_hyper = true;
   opt_derivation = true;
   opt_rulestatistics = false;
-  opt_default_les = false;
+  opt_default_les = NO_DEFAULT_LES;
   opt_server = 0;
   opt_pg = false;
   opt_chart_man = true;
@@ -204,7 +210,7 @@ void init_options()
   opt_comment_passthrough = 0;
   opt_predict_les = 0;
   opt_timeout = 0;
-
+  opt_chartmapping = false;
 #ifdef YY
   opt_yy = false;
   opt_nth_meaning = 0;
@@ -236,7 +242,7 @@ bool parse_options(int argc, char* argv[])
     {"no-derivation", no_argument, 0, OPTION_NO_DERIVATION},
     {"rulestats", no_argument, 0, OPTION_RULE_STATISTICS},
     {"no-chart-man", no_argument, 0, OPTION_NO_CHART_MAN},
-    {"default-les", no_argument, 0, OPTION_DEFAULT_LES},
+    {"default-les", optional_argument, 0, OPTION_DEFAULT_LES},
     {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
@@ -259,7 +265,7 @@ bool parse_options(int argc, char* argv[])
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
-
+    {"chartmapping", no_argument, 0, OPTION_CHARTMAPPING},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -296,7 +302,13 @@ bool parse_options(int argc, char* argv[])
               opt_nsolutions = 1;
           break;
       case OPTION_DEFAULT_LES:
-          opt_default_les = true;
+          if ((optarg == NULL) || (strcasecmp(optarg, "traditional") == 0))
+            opt_default_les = DEFAULT_LES_POSMAP_LEXGAPS;
+          else if (strcasecmp(optarg, "all") == 0)
+            opt_default_les = DEFAULT_LES_ALL;
+          else
+            fprintf(ferr, "WARNING: ignoring unknown default-les mode"
+                                "\"%s\".\n", optarg);
           break;
       case OPTION_NO_CHART_MAN:
           opt_chart_man = false;
@@ -430,6 +442,7 @@ bool parse_options(int argc, char* argv[])
             else if (strcasecmp(optarg, "pic") == 0) opt_tok = TOKENIZER_PIC;
             else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_PIC_COUNTS;
             else if (strcasecmp(optarg, "smaf") == 0) opt_tok = TOKENIZER_SMAF;
+            else if (strcasecmp(optarg, "fsc") == 0) opt_tok = TOKENIZER_FSC;
             else if (strcasecmp(optarg, "xml") == 0) {
               fprintf(ferr, "WARNING: deprecated command-line option "
                   "-tok=xml, use -tok=pic instead\n");
@@ -448,7 +461,6 @@ bool parse_options(int argc, char* argv[])
           if (*(opt_jxchg_dir.end()--) != '/') 
             opt_jxchg_dir += '/';
           break;
-
       case OPTION_COMMENT_PASSTHROUGH:
           if(optarg != NULL)
             opt_comment_passthrough = 
@@ -456,14 +468,15 @@ bool parse_options(int argc, char* argv[])
           else
               opt_comment_passthrough = 1;
           break;
-
       case OPTION_PREDICT_LES:
           if (optarg != NULL)
             opt_predict_les = strtoint(optarg, "as argument to -predict-les");
           else 
             opt_predict_les = 1;
           break;
-
+      case OPTION_CHARTMAPPING:
+          opt_chartmapping = true;
+          break;
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
@@ -528,7 +541,9 @@ void options_from_settings(settings *set)
   memlimit = 1024 * 1024 * int_setting(set, "memlimit");
   opt_timeout = sysconf(_SC_CLK_TCK) * int_setting(set, "timeout");
   opt_hyper = bool_setting(set, "hyper");
-  opt_default_les = bool_setting(set, "default-les");
+  // opt_default_les is not a bool setting anymore but since this function
+  // isn't called anywhere, I don't care to evaluate properly here (pead)
+  //opt_default_les = bool_setting(set, "default-les");
   opt_predict_les = int_setting(set, "predict-les");
 #ifdef YY
   opt_yy = bool_setting(set, "yy");

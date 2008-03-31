@@ -57,8 +57,12 @@ noinst_LIBRARIES = libcheap.a
 libcheap_a_SOURCES = \
 	agenda.h \
 	chart.cpp chart.h \
+	chart-mapping.cpp chart-mapping.h \
 	cheaptimer.h \
 	fs.cpp fs.h \
+	fs-chart.cpp fs-chart.h \
+	fs-chart-util.cpp fs-chart-util.h \
+	fsc-tokenizer.cpp fsc-tokenizer.h \
 	grammar.cpp grammar.h \
 	input-modules.cpp input-modules.h \
 	item-printer.cpp item-printer.h \

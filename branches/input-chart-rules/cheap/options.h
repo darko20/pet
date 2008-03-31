@@ -29,7 +29,7 @@
 
 #define CHEAP_SERVER_PORT 4711
 
-extern bool opt_shrink_mem, opt_shaping, opt_default_les,
+extern bool opt_shrink_mem, opt_shaping,
   opt_filter, opt_print_failure,
   opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
@@ -40,6 +40,11 @@ extern int opt_nth_meaning;
 #endif
 extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
 extern int opt_tsdb;
+
+enum default_les_modes { 
+  NO_DEFAULT_LES = 0, DEFAULT_LES_POSMAP_LEXGAPS, DEFAULT_LES_ALL
+};
+extern default_les_modes opt_default_les;
 
 extern long int memlimit;
 extern bool opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_online_morph, opt_fullform_morph;
@@ -56,6 +61,7 @@ enum tokenizer_id {
   , TOKENIZER_YY, TOKENIZER_YY_COUNTS
   , TOKENIZER_PIC, TOKENIZER_PIC_COUNTS
   , TOKENIZER_FSR, TOKENIZER_SMAF
+  , TOKENIZER_FSC
 } ;
 
 extern tokenizer_id opt_tok;
@@ -68,6 +74,12 @@ extern std::string opt_tsdb_dir, opt_jxchg_dir;
 #define PACKING_SELUNPACK (1 << 3)
 #define PACKING_NOUNPACK (1 << 7)
 extern int opt_packing;
+
+/**
+ * If set to \c true, turn on chart mapping engine on the input chart and
+ * on the lexical chart (`lexical filtering').
+ */
+extern bool opt_chartmapping;
 
 void usage(FILE *f);
 

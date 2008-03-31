@@ -1,4 +1,15 @@
 specific to input-chart-rules branch:
+  - added chart mapping engine:
+    * chart mapping rules are resource-sensntive rewrite rules
+    * chart mapping rules operate on a generalized chart
+    * two phases: input chart mapping and lexical chart mapping
+  - new generic instantiation mode `default-les=all': try to instantiate
+    all available generics for all available input items. selection should
+    then be accomplished by constraints on the input fs
+  - new tokenizer for the XML-based feature structure chart format (FSC)
+  - input fs can optionally be unified into a lexical item's fs
+  - input items can now be described by input feature structures
+  - case-sensitive string and YY tokenizer
   - added dag_nth_element(), dag_nth_element_temp(), fs::nth_value(),
     fs::get_path_value(list_int*), fs::get_list(),
     dag_find_paths(), fs::find_paths(), pop_last()

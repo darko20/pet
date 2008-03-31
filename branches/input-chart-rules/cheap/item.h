@@ -28,6 +28,7 @@
 #include <limits.h>
 #include "list-int.h"
 #include "fs.h"
+#include "fs-chart.h"
 #include "options.h"
 #include "grammar.h"
 #include "paths.h"
@@ -167,7 +168,7 @@ public:
   inline int start() const { return _start; }
   /** End position (node number) in the chart */
   inline int end() const { return _end; }
-  /** return end() - start() */
+  /** return end() - start() */ // TODO what if there are several paths?
   inline int span() const { return (_end - _start); }
 
   /** Set the start node number of this item. */
@@ -398,8 +399,9 @@ public:
   virtual grammar_rule *rule() = 0;
 
   /** Return the complete fs for this item. This may be more than a simple
-   *  access, e.g. in cases of hyperactive parsing and temporary dags.
-   *  This function may only be called for phrasal items.
+   *  access, e.g. in cases of hyperactive parsing, temporary dags, or input
+   *  feature structures.
+   *  This function may only be called for input or phrasal items.
    */
   virtual void recreate_fs() = 0;
 
@@ -550,6 +552,42 @@ public:
   friend class tPhrasalItem;
   
   friend class tItemPrinter;
+  
+  /**
+   * \name Generalized chart interface
+   * At the moment, tItem objects can be added to the old chart implementation
+   * or to the new generalised tChart. The start(), end(), startposition()
+   * and endposition() methods as well as the corresponding parameters in the
+   * constructors of tItem and its derived classes refer to the old chart
+   * implementation. If you want to use tItem objects with the new tChart,
+   * you have to use the following methods instead. The tChart implementation
+   * will eventually replace the old chart implementation.
+   * \see tChart::add_item()
+   */
+  //@{
+private:
+  /**
+   * Pointer to the tChart object to which this item has been added,
+   * otherwise 0.
+   */
+  tChart *_chart;
+  /**
+   * Informs this item that it has been added to or removed from the specified
+   * chart. This method is meant to be called by the chart itself.
+   */
+  void notify_chart_changed(tChart *chart);
+public:
+  /** Gets the vertex preceding this item. */
+  tChartVertex* prec_vertex();
+  /** Gets the vertex preceding this item. */
+  const tChartVertex* prec_vertex() const;
+  /** Gets the vertex succeeding this item. */
+  tChartVertex* succ_vertex();
+  /** Gets the vertex succeeding this item. */
+  const tChartVertex* succ_vertex() const;
+  //@}
+  friend class tChart; // Doxygen doesn't understand this in the member group
+  
 };
 
 /** Token classes of an input item.
@@ -595,6 +633,11 @@ public:
    * \param fsmods A list of feature structure modifications which are applied
    *               to the feature structure of the lexical item (default: no
    *               modifications).
+   * \param input_fs A feature structure describing the input item, as needed
+   *               for input chart mapping. (default: invalid feature structure)
+   *               If chart mapping is activated and an invalid feature
+   *               structure is provided, a new feature structure describing
+   *               the token will be created.
    */
   //@{
   /** Create a new input item with internal and external start/end positions. */
@@ -603,13 +646,15 @@ public:
              , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
-             , modlist fsmods = modlist());
+             , modlist fsmods = modlist()
+             , const fs &input_fs = fs());
   /** Create a new input item with external start/end positions only. */
   tInputItem(std::string id, int startposition, int endposition
              , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
-             , modlist fsmods = modlist());
+             , modlist fsmods = modlist()
+             , const fs &input_fs = fs());
   /**
    * Create a new complex input item (an input item with input item
    * daughters as it can be defined in PIC).
@@ -617,7 +662,9 @@ public:
   tInputItem(std::string id, const std::list< tInputItem * > &dtrs
              , std::string stem
              , int token_class = WORD_TOKEN_CLASS
-             , modlist fsmods = modlist());
+             , modlist fsmods = modlist()
+             , const fs &input_fs = fs());
+  //@}
   //@}
   
   ~tInputItem() {
@@ -655,7 +702,13 @@ public:
   /** Always returns \c NULL */
   virtual grammar_rule *rule();
 
-  /** This method always throws an error */
+  /**
+   * Recreates an input feature structure from the properties of this item.
+   * This is necessary if the tokenizer did not already provide an input fs.
+   * TODO A better place to initialize the input fs would be the tInputItem
+   *      constructor. However, since the inflrs and postags are not set in the
+   *      constructor, we cannot do the initialization there.
+   */
   virtual void recreate_fs();
 
   /** I've got no clue.
@@ -726,6 +779,17 @@ public:
   /** The base (uninflected) form of this item (if available).
    */
   std::string stem() const { return _stem; }
+
+  /** Return the feature structure of this item. If the item is not yet
+   * equipped with a valid input fs (because the tokenizer didn't provide any),
+   * construct an input fs from the item's properties.
+   * @see tInputItem::recreate_fs()
+   */
+  virtual fs get_fs(bool full = false) {
+    if (!_fs.valid())
+      recreate_fs();
+    return _fs;
+  }
 
   /** Return generic lexical entries for this input token. If \a onlyfor is 
    * non-empty, only those generic entries corresponding to one of those
@@ -1016,6 +1080,17 @@ class tPhrasalItem : public tItem {
    */
   virtual grammar_rule *rule();
 
+  /** Return the feature structure of this item.
+   * \todo This function is only needed because some items may have temporary
+   * dags, which have not been copied after unification. This functionality is
+   * rather messy and should be cleaned up.
+   */
+  virtual fs get_fs(bool full = false) {
+    if(_fs.temp() && _fs.temp() != unify_generation)
+      recreate_fs();
+    return _fs;
+  }
+
   /** Return the complete fs for this item. This may be more than a simple
    *  access, e.g. in cases of hyperactive parsing and temporary dags.
    *  This function may only be called for phrasal items.
@@ -1202,5 +1277,54 @@ struct item_greater_than_score :
     return a->score() > b->score();
   }
 };
+
+
+// ========================================================================
+// INLINE DEFINITIONS
+// ========================================================================
+
+// =====================================================
+// class tItem
+// =====================================================
+
+inline void
+tItem::notify_chart_changed(tChart *chart)
+{
+  _chart = chart;
+}
+  
+inline tChartVertex*
+tItem::prec_vertex()
+{
+  assert(_chart);
+  return (_chart->_item_to_prec_vertex.find(this))->second;
+}
+
+inline const tChartVertex*
+tItem::prec_vertex() const
+{
+  assert(_chart);
+  // "this" is const in const member functions, but since the keys in
+  // the map are not declared as const, we have to cast "this":
+  tItem* key = const_cast<tItem*>(this); 
+  return (_chart->_item_to_prec_vertex.find(key))->second;
+}
+
+inline tChartVertex*
+tItem::succ_vertex()
+{
+  assert(_chart);
+  return (_chart->_item_to_succ_vertex.find(this))->second;
+}
+
+inline const tChartVertex*
+tItem::succ_vertex() const
+{
+  assert(_chart);
+  // "this" is const in const member functions, but since the keys in
+  // the map are not declared as const, we have to cast "this":
+  tItem* key = const_cast<tItem*>(this); 
+  return (_chart->_item_to_succ_vertex.find(key))->second;
+}
 
 #endif

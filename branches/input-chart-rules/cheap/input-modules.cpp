@@ -42,6 +42,8 @@ tTokenizer::tTokenizer() {
 #endif
 
   _translate_iso_chars = cheap_settings->lookup("translate-iso-chars");
+  
+  _case_sensitive = cheap_settings->lookup("case-sensitive");
 }
 
 bool tTokenizer::punctuationp(const string &s)

@@ -55,6 +55,10 @@ class fs
    *  \attention there are no checks whether the resulting fs is valid! 
    */
   fs(char *path, type_t type);
+  /** Construct minimal fs containing \a path ending in typedag for \a type.
+   *  \attention there are no checks whether the resulting fs is valid! 
+   */
+  fs(const list_int *path, type_t type);
 
   /** Default constructor */
   inline fs(struct dag_node *dag = NULL, int temp = 0)
@@ -91,7 +95,7 @@ class fs
 
   /** Return a new fs representing the subdag under \a path, if this Path
       exists in the fs. */  
-  fs get_path_value(list_int *path) const;
+  fs get_path_value(const list_int *path) const;
   /** Return a new fs representing the subdag under \a path, if this Path
       exists in the fs. */  
   fs get_path_value(const char *path) const;
@@ -112,11 +116,11 @@ class fs
   }
 
   /** Return the \a n th subdag in the list under path \a path. */
-  inline fs nth_value(list_int *path, int n) const {
+  inline fs nth_value(const list_int *path, int n) const {
     if(_temp)
-      return fs(dag_nth_element_temp(_dag, path, n));
+      return fs(dag_nth_element_temp(_dag, const_cast<list_int*>(path), n));
     else
-      return fs(dag_nth_element(_dag, path, n));
+      return fs(dag_nth_element(_dag, const_cast<list_int*>(path), n));
   }
   
   /**

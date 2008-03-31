@@ -1,38 +1,50 @@
-the := det-lxm &
+the_d := det-lxm &
 [ ORTH <! "the" !> ].
 
-this := sg-det-lxm &
+this_d := sg-det-lxm &
 [ ORTH <! "this" !> ].
 
-that := sg-det-lxm &
+that_d := sg-det-lxm &
 [ ORTH <! "that" !> ].
 
-these := pl-det-lxm &
+these_d := pl-det-lxm &
 [ ORTH <! "these" !> ].
 
-those := pl-det-lxm &
+those_d := pl-det-lxm &
 [ ORTH <! "those" !> ].
 
-aardvark := noun-lxm &
+aardvark_n := noun-lxm &
 [ ORTH <! "aardvark" !> ].
 
-dog := noun-lxm &
-[ ORTH <! "dog" !> ].
-
-cat := noun-lxm &
-[ ORTH <! "cat" !> ].
-
-bark := intrans-verb &
+bark_n := noun-lxm &
 [ ORTH <! "bark" !> ].
 
-chase := trans-verb &
+bark_v := intrans-verb &
+[ ORTH <! "bark" !> ].
+
+cat_n := noun-lxm &
+[ ORTH <! "cat" !> ].
+
+uebercat_n := noun-lxm &
+[ ORTH <! "Übercat" !> ].
+
+obercat_n := noun-lxm &
+[ ORTH <! "Obercat" !> ].
+
+catdog_n := noun-lxm &
+[ ORTH <! "catdog" !> ].
+
+dog_n := noun-lxm &
+[ ORTH <! "dog" !> ].
+
+chase_v := trans-verb &
 [ ORTH <! "chase" !> ].
 
-to := prep-lxm &
+to_p := prep-lxm &
 [ ORTH <! "to" !> ].
 
-near := prep-lxm &
+near_p := prep-lxm &
 [ ORTH <! "near" !> ].
 
-give := ditransnp-verb &
+give_v := ditransnp-verb &
 [ ORTH <! "give" !> ].

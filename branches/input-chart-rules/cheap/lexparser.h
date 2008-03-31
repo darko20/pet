@@ -93,21 +93,6 @@ public:
    */
   int process_input(std::string input, inp_list &inp_tokens);
 
-  /** The first stage of lexical processing, without chart dependencies and
-   * unknown lex entries processing.
-   *
-   * Do lexicon access and morphology, complete active multi word lexemes
-   *
-   * \param inp_tokens The input tokens coming from process_input
-   * \param lex_exhaustive If true, do exhaustive lexical processing before
-   *        looking for gaps and chart dependencies. This allows to catch more
-   *        complex problems and properties.
-   * \param FSAS the allocation state for the whole parse
-   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
-   */
-  void lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
-                       fs_alloc_state &FSAS, std::list<tError> &errors);
-
   /** \brief Perform lexical processing. 
    *
    * Do lexicon access and morphology, complete active multi word lexemes, find
@@ -172,6 +157,21 @@ private:
    */
   int map_positions(inp_list &tokens, position_map position_mapping);
 
+  /** The first stage of lexical processing, without chart dependencies and
+   * unknown lex entries processing.
+   *
+   * Do lexicon access and morphology, complete active multi word lexemes
+   *
+   * \param inp_tokens The input tokens coming from process_input
+   * \param lex_exhaustive If true, do exhaustive lexical processing before
+   *        looking for gaps and chart dependencies. This allows to catch more
+   *        complex problems and properties.
+   * \param FSAS the allocation state for the whole parse
+   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   */
+  void lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
+                       fs_alloc_state &FSAS, std::list<tError> &errors);
+
   /** Check the chart dependencies.
    * Chart dependencies allow the user to express certain cooccurrence
    * restrictions for two items in the chart. A chart dependency is a pair of
@@ -189,8 +189,18 @@ private:
   void dependency_filter(struct setting *deps, bool unidirectional
                          , bool lex_exhaustive);
 
-  /** Add generic entries for uncovered input items.
-   * This is only applied if the option \c opt_default_les is \c true.
+  /** Add generic entries for uncovered input items in the traditional
+   * scenario (as opposed to the chart mapping scenario), i.e. when
+   * \c opt_default_les is \c true:
+   * Basically, for each unknown token in the input all generic entries are
+   * postulated. Optionally, there are two devices to filter out generic
+   * entries: suffix-based and by virtue of POS tag information. Generic
+   * entries that require a certain suffix (`generic-le-suffixes') only fire
+   * if the input form has the suffix. If the input word has one more more
+   * POS tags associated to it, these are looked up in the `posmapping' table:
+   * this table is a list of pairs (tag, gle) where `gle' is the name of one
+   * of the generic items in `generic-les'. A non-empty `posmapping' table will
+   * filter all generic entries that are not explicitly licensed by a POS tag.
    */
   void add_generics(std::list<tInputItem *> &unexpanded);
 
