@@ -159,6 +159,7 @@ void interactive() {
       if(!errors.empty())
         throw errors.front();
                 
+      // TODO Who needs this? Can we remove it? (pead 01.04.2008)
       if(verbosity == -1)
         fprintf(stdout, "%d\t%d\t%d\n",
                 stats.id, stats.readings, stats.pedges);
@@ -184,7 +185,7 @@ void interactive() {
 
       if(verbosity > 1 || opt_mrs) {
         int nres = 0;
-                
+
         list< tItem * > results(Chart->readings().begin()
                                 , Chart->readings().end());
         // sorting was done already in parse_finish
@@ -197,7 +198,7 @@ void interactive() {
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
           tCompactDerivationPrinter deriv(fstatus);
           tItem *it = *iter;
-                    
+
           nres++;
           fprintf(fstatus, "derivation[%d]", nres);
           fprintf(fstatus, " (%.4g)", it->score());
@@ -262,21 +263,22 @@ void interactive() {
           if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
           else fprintf(fstatus, "EOM\n");
         }
-#endif           
+#endif
       }
-      fflush(fstatus);
     } /* try */
         
     catch(tError e) {
       fprintf(ferr, "%s\n", e.getMessage().c_str());
-      if(verbosity > 0) stats.print(fstatus);
+      if (verbosity > 0)
+        stats.print(fstatus);
       stats.readings = -1;
 
       string surface = get_surface_string(Chart);
       dump_jxchg(surface, Chart);
       tsdb_dump.error(Chart, surface, e);
-
     }
+
+    fflush(fstatus);
 
     if(Chart != 0) delete Chart;
 
