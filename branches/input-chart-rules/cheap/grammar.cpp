@@ -739,7 +739,8 @@ tGrammar::init_parameters()
     }
     
     // TODO better use Listener pattern to initialize grammar-dependent params?
-    tChartUtil::initialize();
+    if ((opt_tok == TOKENIZER_FSC) || opt_chartmapping)
+      tChartUtil::initialize();
 }
 
 void
