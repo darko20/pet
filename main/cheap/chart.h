@@ -92,7 +92,12 @@ public:
   template < typename weight_t, typename weight_fn_t >
   void shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
                      , bool all = false);
-  
+
+  /** Extract a surface string from the input items in this chart. This is
+   *  in particular relevant where the input is given as a word lattice.
+   */
+  std::string get_surface_string();
+
   /** Return \c true if the chart is connected using only edges considered \a
    *  valid, i.e., there is a path from the first to the last node.
    */

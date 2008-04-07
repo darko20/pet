@@ -167,11 +167,39 @@ void chart::get_statistics()
     stats.fssize = (stats.pedges > 0) ? totalsize / stats.pedges : 0;
 }
 
+struct input_only_weights : public unary_function< tItem *, unsigned int > {
+  unsigned int operator()(tItem * i) {
+    // return a weight close to infinity if this is not an input item
+    // prefer shorter items over longer ones
+    if (dynamic_cast<tInputItem *>(i) != NULL)
+      return i->span();
+    else
+      return 1000000;
+  }
+};
 
+std::string
+chart::get_surface_string() {
+  list< tItem * > inputs;
+  input_only_weights io;
 
-/** Return \c true if the chart is connected using only edges considered \a
- *  valid, i.e., there is a path from the first to the last node.
- */
+  shortest_path<unsigned int>(inputs, io, false);
+  string surface;
+  for(list<tItem *>::iterator it = inputs.begin()
+        ; it != inputs.end(); it++) {
+    tInputItem *inp = dynamic_cast<tInputItem *>(*it);
+    if (inp != NULL) {
+      surface = surface + inp->orth() + " ";
+    }
+  }
+
+  int len = surface.length();
+  if (len > 0) {
+    surface.erase(surface.length() - 1);
+  }
+  return surface;
+}
+
 bool
 chart::connected(item_predicate &valid) {
   vector<bool> reached(rightmost() + 1, false);
