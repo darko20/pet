@@ -31,6 +31,7 @@
 #include "tsdb++.h"
 
 #include <sstream>
+#include <iostream>
 #include <sys/times.h>
 #include <unistd.h>
 
@@ -287,12 +288,9 @@ packed_edge(tItem *newitem) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {
         if(verbosity > 4) {
-          fprintf(ferr, "proactive (%s) packing:\n", backward
-                  ? "equi" : "subs");
-          newitem->print(ferr);
-          fprintf(ferr, "\n --> \n");
-          olditem->print(ferr);
-          fprintf(ferr, "\n");
+          cerr << "proactive (" << (backward ? "equi" : "subs") 
+               << ") packing:" << endl << *newitem << endl 
+               << " --> " << endl << *olditem << endl;
         }
                 
         if(backward)
@@ -307,11 +305,8 @@ packed_edge(tItem *newitem) {
       
     if(backward && (opt_packing & PACKING_RETRO) && !olditem->frosted()) {
       if(verbosity > 4) {
-        fprintf(ferr, "retroactive packing:\n");
-        newitem->print(ferr);
-        fprintf(ferr, " <- ");
-        olditem->print(ferr);
-        fprintf(ferr, "\n");
+        cerr << "retroactive packing:" << endl 
+             << *newitem << " <- " << *olditem << endl;
       }
 
       newitem->packed.splice(newitem->packed.begin(), olditem->packed);
@@ -445,6 +440,8 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
   list<tItem*> results 
     = tItem::selectively_unpack(uroots, opt_nsolutions
                                 , Chart->rightmost(), upedgelimit);
+
+  tCompactDerivationPrinter cdp(cerr, false);
   for (list<tItem*>::iterator res = results.begin();
        res != results.end(); res++) {
     //type_t rule;
@@ -452,11 +449,11 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
     // the checking is moved into selectively_unpack()
     readings.push_back(*res);
     if(verbosity > 2) {
-      fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
-              UnpackTime->convert2ms(UnpackTime->elapsed())
-              / 1000.);
-      (*res)->print_derivation(stderr, false);
-      fprintf(stderr, "\n");
+      cerr << "unpacked[" << nres++ << "] (" << setprecision(1)
+           << ((float) UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
+           << "): ";
+      cdp.print(*res);
+      cerr << endl;
     }
     //} 
   }
@@ -481,17 +478,19 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
       
       results = (*tree)->unpack(upedgelimit);
       
+      tCompactDerivationPrinter cdp(cerr, false);
       for(list<tItem *>::iterator res = results.begin();
           res != results.end(); ++res) {
         type_t rule;
         if((*res)->root(Grammar, Chart->rightmost(), rule)) {
           readings.push_back(*res);
           if(verbosity > 2) {
-            fprintf(stderr, "unpacked[%d] (%.1f): ", nres++,
-                    UnpackTime->convert2ms(UnpackTime->elapsed())
-                    / 1000.);
-            (*res)->print_derivation(stderr, false);
-            fprintf(stderr, "\n");
+            cerr << "unpacked[" << nres++ << "] (" << setprecision(1)
+                 << (float) (UnpackTime->convert2ms(UnpackTime->elapsed())
+                             / 1000.0) 
+                 << "): ";
+            cdp.print(*res);
+            cerr << endl;
           }
         }
       }
@@ -571,7 +570,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors) {
     }
 
     if(verbosity > 8)
-        Chart->print(fstatus);
+        Chart->print(cerr);
   
     if(resources_exhausted())
     {

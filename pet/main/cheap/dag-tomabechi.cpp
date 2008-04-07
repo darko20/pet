@@ -133,7 +133,7 @@ list_int *path_reverse = 0;
 
 /** A list of all failures occured when \c all_failures is \c true */
 list<failure *> failures;
-;
+
 bool dags_compatible(dag_node *dag1, dag_node *dag2) {
   bool res = true;
   
@@ -497,6 +497,9 @@ dag_unify_arcs(dag_node *dag1, dag_node *dag2) {
   arcs1 = dag1->arcs;
   new_arcs1 = comp_arcs1 = dag_get_comp_arcs(dag1);
 
+  // What is the reason that an arc can not appear in the arcs and in the
+  // comp_arcs of a dag? If that would be the case, two arcs with the same
+  // feature could be in new_arcs1
   if(! recfail<record_failure>::
      unify_arcs1(dag2->arcs, arcs1, comp_arcs1, &new_arcs1))
     return false;
@@ -1038,7 +1041,7 @@ void dag_get_qc_vector_temp(qc_node *path, dag_node *dag, type_t *qc_vector)
                            qc_vector);
 }
 
-
+#ifdef USE_DEPRECATED
 /* safe printing of dags - this doesn't modify the dags, and can print
    temporary structures */
 
@@ -1200,6 +1203,7 @@ void dag_print_safe(FILE *f, struct dag_node *dag, bool temporary, int format){
   dag_print_rec_safe(f, dag, 0, temporary, format);
   dags_visited.clear();
 }
+#endif // USE_DEPRECATED
 
 template<bool record_failure> dag_node * recfail<record_failure>::
 dag_cyclic_arcs(dag_arc *arc) {
@@ -1384,6 +1388,7 @@ void dag_initialize()
   // nothing to do
 }
 
+#ifdef USE_DEPRECATED
 void dag_print_rec_fed_safe(FILE *f, struct dag_node *dag) {
 // recursively print dag. requires `visit' field to be set up by
 // mark_coreferences. negative value in `visit' field means that node
@@ -1511,3 +1516,4 @@ void dag_print_fed_safe(FILE *f, struct dag_node *dag) {
   dag_print_rec_fed_safe(f, dag);
   dags_visited.clear();
 }
+#endif

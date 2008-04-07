@@ -37,6 +37,8 @@
 #endif
 
 #include "item-printer.h"
+#include "dagprinter.h"
+#include <fstream>
 
 bool
 lexentry_status(type_t t)
@@ -173,7 +175,7 @@ grammar_rule::grammar_rule(type_t t)
     // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
     //
 
-    // _fix_me_
+    // \todo 
     // this is wrong for more than binary branching rules, 
     // since adjacency is not guarantueed.
     
@@ -220,10 +222,9 @@ grammar_rule::grammar_rule(type_t t)
         _spanningonly = true;
     }
     
-    if(verbosity > 14)
-    {
-        print(fstatus); fprintf(fstatus, "\n");
-    }
+    // \todo this sucks and goes into another (debugging) method
+    // if(verbosity > 14) cerr << *this << endl;
+
 }
 
 grammar_rule::~grammar_rule() {
@@ -243,6 +244,7 @@ grammar_rule::make_grammar_rule(type_t t) {
   return NULL;
 }
 
+/*
 void
 grammar_rule::print(FILE *f)
 {
@@ -258,6 +260,19 @@ grammar_rule::print(FILE *f)
     
     fprintf(f, ")");
 } 
+*/
+
+void
+grammar_rule::print(ostream &out) {
+  out << print_name(_type) << "/" << _arity
+      << (_hyper == false ? "[-HA]" : "") ;
+    
+  list_int *l = _tofill;
+  while(l) {
+    out << " " << first(l);
+  }    
+  out << ")";
+} 
 
 void
 grammar_rule::lui_dump(const char *path) {
@@ -270,19 +285,25 @@ grammar_rule::lui_dump(const char *path) {
   } // if
   char name[MAXPATHLEN + 1];
   sprintf(name, "rule.%d.lui", _id);
-  FILE *stream;
-  if((stream = fopen(name, "w")) == NULL) {
+  ofstream stream(name);
+  if(! stream) {
     fprintf(ferr, 
             "grammar_rule::lui_dump(): unable to open `%s' (in `%s').\n",
             name, path);
     return;
   } // if
+  /*
   fprintf(stream, "avm -%d ", _id);
   fs foo = instantiate(true);
   foo.print(stream, DAG_FORMAT_LUI);
   fprintf(stream, " \"Rule # %d (%s)\"\f\n", _id, printname());
   fclose(stream);
-
+  */
+  stream << "avm -" << _id << " ";
+  LUIDagPrinter ldp;
+  instantiate(true).print(stream, ldp);
+  stream << " \"Rule # " << _id << " (" << printname() << ")\"\f\n";
+  stream.close();
 } // grammar_rule::lui_dump()
 
 
@@ -321,13 +342,13 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
   int qc_len_unif = 0, qc_len_subs = 0;
 
   for(int i = 0; i < nstatictypes; i++) {
-    if(i == qc_inst_unif) {
+    if(qc_inst_unif != 0 && i == qc_inst_unif) {
       if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
                                 print_name(qc_inst_unif));
       qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
       dag = 0;
     }
-    else if(i == qc_inst_subs) {
+    else if(qc_inst_subs && i == qc_inst_subs) {
       if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
                                 print_name(qc_inst_subs));
       qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
@@ -810,7 +831,7 @@ tGrammar::nhyperrules() {
 }
 
 bool
-tGrammar::root(fs &candidate, type_t &rule)
+tGrammar::root(const fs &candidate, type_t &rule) const
 {
     list_int *r;
     for(r = _root_insts, rule = -1; r != 0; r = rest(r))

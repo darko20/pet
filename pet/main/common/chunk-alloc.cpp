@@ -359,7 +359,9 @@ int chunk_allocator::_core_free(void *p, int size) {
 // generic core memory allocation for Windows et al
 //
 
+#ifndef __GNUG__
 #pragma argsused
+#endif
 void chunk_allocator::_init_core(bool down, int chunksize) {
   _chunk_size = chunksize;
 }
@@ -369,7 +371,9 @@ void *chunk_allocator::_core_alloc(int size) {
   return p;
 }
 
+#ifndef __GNUG__
 #pragma argsused
+#endif
 int chunk_allocator::_core_free(void *p, int size) {
   delete[] (char *) p;
   return 1;

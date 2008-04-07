@@ -24,12 +24,13 @@
 #include "fs.h"
 #include "tsdb++.h"
 #include "restrictor.h"
-#include "dag-tomabechi.h"
+#include "dagprinter.h"
 
 #include <iostream>
 
 using namespace std;
 
+// global variables for quick check
 qc_node *fs::_qc_paths_unif = NULL, *fs::_qc_paths_subs = NULL;
 int fs::_qc_len_unif = 0, fs::_qc_len_subs = 0;
 
@@ -56,13 +57,13 @@ fs::fs(char *path, type_t type)
 
 
 fs
-fs::get_attr_value(int attr)
+fs::get_attr_value(int attr) const
 {
     return fs(dag_get_attr_value(_dag, attr));
 }
 
 fs
-fs::get_attr_value(char *attr)
+fs::get_attr_value(char *attr) const
 {
     int a = lookup_attr(attr);
     if(a == -1) return fs();
@@ -72,28 +73,35 @@ fs::get_attr_value(char *attr)
 }
 
 fs
-fs::get_path_value(const char *path)
+fs::get_path_value(const char *path) const
 {
     return fs(dag_get_path_value(_dag, path));
 }
 
 const char *
-fs::name()
+fs::name() const
 {
     return type_name(dag_type(_dag));
 }
 
 const char *
-fs::printname()
+fs::printname() const
 {
   return print_name(dag_type(_dag));
 }
 
+/*
 void
 fs::print(FILE *f, int format)
 {
     if(temp()) dag_print_safe(f, _dag, true, format);
     else dag_print_safe(f, _dag, false, format);
+}
+*/
+
+void fs::print(std::ostream &out, AbstractDagPrinter &dp) const
+{
+  dp.print(out, _dag, temp());
 }
 
 void
@@ -252,6 +260,18 @@ map<int, double> failing_paths_subs;
 map<list_int *, int, list_int_compare> failing_sets_subs;
 
 void
+print_failures(std::ostream &out, const list<failure *> &fails,
+               bool unification, dag_node *a = 0, dag_node *b = 0) {
+  out << "failure (" << (unification ? "unif" : "subs") << ") at"
+      << std::endl ;
+  for(list<failure *>::const_iterator iter = fails.begin();
+      iter != fails.end(); ++iter) {
+    out << "  " << *iter << std::endl;
+  }
+}
+
+
+void
 record_failures(list<failure *> fails, bool unification,
                 dag_node *a = 0, dag_node *b = 0)
 {
@@ -382,14 +402,7 @@ record_failures(list<failure *> fails, bool unification,
     
     if(opt_print_failure)
     {
-        fprintf(ferr, "failure (%s) at\n", unification ? "unif" : "subs");
-        for(list<failure *>::iterator iter = fails.begin();
-            iter != fails.end(); ++iter)
-        {
-            fprintf(ferr, "  ");
-            (*iter)->print(ferr);
-            fprintf(ferr, "\n");
-        }
+      print_failures(cerr, fails, unification);
         // _fix_me_ need to delete f here
     }
 }
@@ -509,6 +522,8 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 
         if (opt_compute_qc_subs)
           record_failures(filtered, false, a._dag, b._dag);
+        if (opt_print_failure)
+          print_failures(cerr, filtered, false, a._dag, b._dag);
     }
     else
       dag_subsumes(a._dag, b._dag, forward, backward);

@@ -26,15 +26,17 @@
 
 #include "list-int.h"
 #include "dag.h"
+#include "types.h"
 
 /** Print a list of attributes in \a path to file stream \a f */
-void
-print_path(FILE *f, list_int *path);
+void print_path(std::ostream &out, list_int *path);
 
 /** this class represents one failure point in unification/subsumption */
 
 class failure
 {
+  static const char * const failure_names[];
+
  public:
   /** The possible reasons for failure
       \li \c SUCCESS: A failure that doesn't deserve its name
@@ -67,7 +69,7 @@ class failure
      * failed to subsume (be the supertype of) \a s2 in a \c CLASH.
      */
     failure(failure_type t, list_int *rev_path, int cost,
-                        int s1 = -1, int s2 = -1,
+            type_t s1 = T_BOTTOM, type_t s2 = T_BOTTOM,
                         dag_node *cycle = 0, dag_node *root = 0);
     ~failure();
   
@@ -75,16 +77,18 @@ class failure
     failure &operator=(const failure &f);
   
     /** Print contents of object readably. */
-    void print(FILE *f) const;
+    void print(std::ostream &out) const;
     /** Print the path where the failure occured */
-    inline void print_path(FILE *f) const { ::print_path(f, _path); }
+    inline void print_path(std::ostream &out) const {
+      ::print_path(out, _path);
+    }
 
     /** Return failure type */
     inline failure_type type() const { return _type; }
     /** Return the first type involved */
-    inline int s1() const { return _s1; }
+    inline type_t s1() const { return _s1; }
     /** Return the second type involved */
-    inline int s2() const { return _s2; }
+    inline type_t s2() const { return _s2; }
     /** Is the failure path empty? */
     inline bool empty_path() const { return _path == 0; }
     /** return the failure path */
@@ -100,7 +104,7 @@ class failure
  private:
     list_int *_path;
     failure_type _type;
-    int _s1, _s2;
+    type_t _s1, _s2;
     int _cost;
     std::list<list_int *> _cyclic_paths;
 
@@ -119,6 +123,11 @@ inline bool
 operator<(const failure &a, const failure &b)
 {
     return a.less_than(b) == -1;
+}
+
+inline std::ostream &
+operator<<(std::ostream &out, const failure &f) {
+  f.print(out); return out;
 }
 
 #endif

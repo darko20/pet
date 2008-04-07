@@ -51,19 +51,30 @@ void init_characterization();
   ___Type() { throw tError("unexpected call to copy constructor of ___Type"); }
 
 
+/* Some typedef abbreviations for commonly used item container types */
+
+/** A list of chart items */
+typedef std::list< class tItem * > item_list;
+/** Iterator for item_list */
+typedef std::list< class tItem * >::iterator item_iter;
+/** Iterator for const item list */
+typedef std::list< class tItem * >::const_iterator item_citer;
+/** A list of input items */
+typedef std::list< class tInputItem * > inp_list;
+/** Iterator for inp_list */
+typedef std::list< class tInputItem * >::iterator inp_iterator;
+
 /** Represent a possible (not necessarily valid) decomposition of an
     item. */
 struct tDecomposition
 {
 public:
-  std::set<std::vector<int> > indices;
-  std::list<tItem*> rhs;
-  tDecomposition(std::list<tItem*> rhs) 
-  {
+  std::set< std::vector<int> > indices;
+  item_list rhs;
+  tDecomposition(item_list rhs) {
     this->rhs = rhs; 
   }
-  tDecomposition(tItem* dtr)
-  {
+  tDecomposition(tItem* dtr) {
     this->rhs.push_back(dtr);
   }
 };
@@ -72,7 +83,7 @@ public:
 struct tHypothesis 
 {
 public:
-  std::map<std::list<tItem*>,double> scores;
+  std::map<item_list,double> scores;
   tItem* edge;
   tItem* inst_edge;
   bool inst_failed;
@@ -170,6 +181,12 @@ public:
   /** return end() - start() */
   inline int span() const { return (_end - _start); }
 
+  /** return the paths (ids) in the input graph this item belongs to */
+  const tPaths &paths() const { return _paths; }
+
+  /** return the list of still unsatisfied inflection rules (or \c NULL) */
+  const list_int *inflrs_todo() const { return _inflrs_todo; }
+
   /** Set the start node number of this item. */
   void set_start(int pos) { _start = pos ; }
   /** Set the end node number of this item. */
@@ -203,11 +220,13 @@ public:
     }
       
     if(R->spanningonly()) {
+      /* This is checked by the next two tests, too.
       if(R->arity() == 1) {
         if(span() != length)
           return false;
       }
-      else if(R->nextarg() == 1) {
+      else */
+      if(R->nextarg() == 1) {
         if(_start != 0)
           return false;
       }
@@ -232,27 +251,26 @@ public:
    * -- rules that may only create items spanning the whole chart check for
    *    appropriate start and end positions
    * -- when doing lattice parsing, check the compatiblity of the path sets
+   * \return \c false if not compatible
    */
   inline bool compatible(tItem *active, int length) const
   {
     if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
       
-    if(active->spanningonly())
-      {
-        if(active->nextarg() == 1)
-          {
-            if(_start != 0)
-              return false;
-          }
-        else if(active->nextarg() == active->arity() + active->nfilled())
-          {
-            if(_end != length)
-              return false;
-          }
-      }
+    if(active->spanningonly()) {
+      if(active->nextarg() == 1) {  // is it the first arg?
+        if(_start != 0)
+          return false;
+      } else
+        if(active->nextarg() == active->arity() + active->nfilled()) {
+          // or the last? 
+          if(_end != length)
+            return false;
+        }
+    }
   
-    if(!opt_lattice && !_paths.compatible(active->_paths))
+    if(opt_lattice && !_paths.compatible(active->_paths))
       return false;
     
     return true;
@@ -283,7 +301,7 @@ public:
    * compatible with one of the root FS nodes. Furthermore, the root node is
    * returned in \a rule.
    */
-  inline bool root(class tGrammar *G, int length, type_t &rule) {
+  inline bool root(class tGrammar *G, int length, type_t &rule) const {
     if(_trait == INFL_TRAIT)
       return false;
     
@@ -305,8 +323,10 @@ public:
   }
   
   /** Return the root type of this item's feature structure */
-  type_t type() {
-    return get_fs().type();
+  type_t type() const {
+    // \todo this is not nice. Should be solved by looking into the
+    // possibilities of get_fs()
+    return const_cast<tItem *>(this)->get_fs().type();
   }
   
   /** Return the number of next argument to fill, ranging from one to
@@ -321,7 +341,7 @@ public:
    *  one 
    */
   inline list_int *restargs() const { return rest(_tofill); }
-  /** The number of arguments yet to be filled */
+  /** The number of arguments still to be filled */
   inline int arity() const { return length(_tofill); }
   /** The number of arguments that are already filled. */
   inline int nfilled() const { return _nfilled; }
@@ -331,10 +351,11 @@ public:
   /** The external end position of that item */
   virtual int endposition() const { return _endposition; }
 
+  #ifdef USE_DEPRECATED
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
-  virtual void print(FILE *f, bool compact = false);
+  virtual void print(FILE *f, bool compact = false) const;
   /** Print the ID's of daughters and parents of this item to \a f */
   void print_family(FILE *f);
   /** Print the ID's of all items packed into this item to \a f */
@@ -343,9 +364,10 @@ public:
    *  quotes with backslashes if \a quoted is \c true.
    */
   virtual void print_derivation(FILE *f, bool quoted) = 0;
-  
+  #endif
+
   /** Print the yield of this item */
-  virtual void print_yield(FILE *f) = 0;
+  virtual std::string get_yield() = 0;
 
   /** Dump item in a format feasible for LUI (?) into \a directory */
   void lui_dump(const char* directory = "/tmp");
@@ -356,9 +378,9 @@ public:
   virtual std::string tsdb_derivation(int protocolversion) = 0;
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tItemPrinter class
+   *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tItemPrinter *ip) const = 0;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const = 0;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids) = 0;
@@ -367,7 +389,7 @@ public:
    * \attention Uses frosting mechanism \em outside the packing functionality
    * to avoid duplicates in \a result.
    */
-  virtual void collect_children(std::list<tItem *> &result) = 0;
+  virtual void collect_children(item_list &result) = 0;
 
   /** Return \c true if this item contributes to a result */
   inline bool result_contrib() const { return _result_contrib; }
@@ -422,13 +444,13 @@ public:
   /** Mark an item as permanently blocked and freeze all its parents. */
   inline void freeze() { block(2); }
   /** \c true if an item is marked as blocked. */
-  inline bool blocked() { return _blocked != 0; }
+  inline bool blocked() const { return _blocked != 0; }
   /** \c true if an item is marked as temporarily blocked. */
-  inline bool frosted() { return _blocked == 1; }
+  inline bool frosted() const { return _blocked == 1; }
   /** \c true if an item is marked as permanently blocked. */
-  inline bool frozen() { return _blocked == 2; }
+  inline bool frozen() const { return _blocked == 2; }
 
-  std::list<tItem *> unpack(int limit);
+  item_list unpack(int limit);
   /*@}*/
 
   /** \brief Base selective unpacking function that unpacks \a n best
@@ -438,7 +460,7 @@ public:
    *
    *  \return the list of items represented by this item
    */
-  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit) = 0;
+  //  virtual item_list selectively_unpack(int n, int upedgelimit) = 0;
 
   /** \brief Selective unpacking function that unpacks \a n best
    *   readings from the list of \a root items. Stop unpacking when \a
@@ -447,13 +469,13 @@ public:
    *
    *  \return the list of items represented by the list of \a roots
    */
-  static std::list<tItem *> selectively_unpack(std::list<tItem*> roots, int n, int end, int upedgelimit);
+  static item_list selectively_unpack(item_list roots, int n, int end, int upedgelimit);
 
   /** Return a meaningful external name. */
   inline const char *printname() const { return _printname.c_str(); }
 
   /** Return the list of daughters. */
-  inline const std::list<tItem *> &daughters() const { return _daughters; }
+  inline const item_list &daughters() const { return _daughters; }
 
   /** Return true if the given edge is a descendent of current edge */
   bool contains_p(tItem *);
@@ -472,14 +494,14 @@ protected:
    *
    * \return the list of items represented by this item
    */
-  virtual std::list<tItem *> unpack1(int limit) = 0;
+  virtual item_list unpack1(int limit) = 0;
 
   /** \brief Base function called by selectively_unpack to generate
    *   the \a i th best hypothesys with specific head \a path .
    *
    *  \return the \a i th best hypothesis of the item
    */
-  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i) = 0;
+  virtual tHypothesis * hypothesize_edge(item_list path, unsigned int i) = 0;
 
   /** \brief Base function that instantiate the hypothesis (and
    *   recursively instantiate its sub-hypotheses) until \a upedgelimit
@@ -487,7 +509,7 @@ protected:
    *
    *  \return the instantiated item from the hypothesis
    */
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit) = 0;
+  virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit) = 0;
 
 
 private:
@@ -502,15 +524,19 @@ private:
 
   rule_trait _trait;
 
+  /** chart node positions */ /*@{*/
   int _start, _end;
-  
-  // external position
+  /*@}*/
+
+  /** external positions */ /*@{*/
   int _startposition, _endposition;
+  /*@}*/
 
   bool _spanningonly;
 
   tPaths _paths;
-  
+
+  /** the (possibly restricted) feature structure of this item */
   fs _fs;
 
   list_int *_tofill;
@@ -519,9 +545,14 @@ private:
 
   tLexItem *_key_item;
 
+  /** List of inflection rules that must be applied to get a valid lex item */
   list_int *_inflrs_todo;
 
   type_t _result_root;
+
+  /** if \c true, this item contributes to some result tree 
+   * \todo check if this description is correct 
+   */
   bool _result_contrib;
 
   qc_vec _qc_vector_unif;
@@ -531,25 +562,25 @@ private:
 
   const std::string _printname;
 
-  std::list<tItem *> _daughters;
+  item_list _daughters;
 
   int _blocked;
-  std::list<tItem *> *_unpack_cache;
-
+  item_list *_unpack_cache;
+  
 public:
   /** The parents of this node */
-  std::list<tItem *> parents;
+  item_list parents;
 
   /** If this list is not empty, this item is a representative of a class of
    *  packed items.
    */
-  std::list<tItem *> packed;
+  item_list packed;
 
   friend class tInputItem;
   friend class tLexItem;
   friend class tPhrasalItem;
-  
-  friend class tItemPrinter;
+
+  friend class tAbstractItemPrinter;
 };
 
 /** Token classes of an input item.
@@ -614,7 +645,7 @@ public:
    * Create a new complex input item (an input item with input item
    * daughters as it can be defined in PIC).
    */
-  tInputItem(std::string id, const std::list< tInputItem * > &dtrs
+  tInputItem(std::string id, const inp_list &dtrs
              , std::string stem
              , int token_class = WORD_TOKEN_CLASS
              , modlist fsmods = modlist());
@@ -626,13 +657,15 @@ public:
 
   INHIBIT_COPY_ASSIGN(tInputItem);
 
+  /** Print the yield of this item */
+  virtual std::string get_yield();
+  #ifdef USE_DEPRECATED
   /** \brief Print item readably to \a f. \a compact is ignored here */
   virtual void print(FILE *f, bool compact=true);
-  /** Print the yield of this item */
-  virtual void print_yield(FILE *f);
   /** Print a readable description of the derivation tree encoded in this item.
    */
   virtual void print_derivation(FILE *f, bool quoted);
+  #endif 
 
   /** Print a machine readable description of the derivation tree encoded in
    *  this item for use with the incr[tsdb] system.
@@ -640,9 +673,9 @@ public:
   virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tItemPrinter class
+   *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tItemPrinter *ip) const ;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -650,7 +683,7 @@ public:
    * \attention Uses frosting mechanism \em outside the packing functionality
    * to avoid duplicates in \a result.
    */
-  virtual void collect_children(std::list<tItem *> &result);
+  virtual void collect_children(item_list &result);
 
   /** Always returns \c NULL */
   virtual grammar_rule *rule();
@@ -665,14 +698,6 @@ public:
   
   /** Return the string(s) that is (are) the input to this item */
   std::string orth() const;
-
-  /** @name External Positions
-   * Return the external positions of this item
-   */
-  /*@{*/
-  virtual int startposition() const { return _startposition ; }
-  virtual int endposition() const { return _endposition ; }
-  /*@}*/
 
   /** Tell me if this token should be skipped before chart positions are
    *  computed.
@@ -702,7 +727,7 @@ public:
   /** Set the postags coming from the input */
   void set_in_postags(const postags &p) { _postags = p; }
   /** Get the postags coming from the input */
-  const postags &get_in_postags() { return _postags; }
+  const postags & get_in_postags() const { return _postags; }
   /** I've got no clue. 
    * \todo I'll fix this when i have an idea where supplied postags come from 
    */
@@ -740,16 +765,16 @@ public:
    * have no other items packed into them, they need not be unpacked. Unpacking
    * does not proceed past tLexItem.
    */
-  virtual std::list<tItem *> unpack1(int limit);
+  virtual item_list unpack1(int limit);
 
   /** \brief tInputItem will not have items packed into them. They
       need not be unpacked. */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
-  //  virtual list<tItem *> selectively_unpack(int n, int upedgelimit);
+  //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
   /** Return the external id associated with this item */
-  const std::string &external_id() { return _input_id; }
+  const std::string &external_id() const { return _input_id; }
   
 private:  
   std::string _input_id; /// external ID
@@ -771,7 +796,7 @@ private:
   postags _postags;
 
   // inflrs_todo und score aus tItem
-  friend class tItemPrinter;
+  friend class tAbstractItemPrinter;
 };
 
 /** An item created from an input item with a corresponding lexicon
@@ -806,6 +831,7 @@ class tLexItem : public tItem
 
   INHIBIT_COPY_ASSIGN(tLexItem);
 
+  #ifdef USE_DEPRECATED
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
@@ -815,17 +841,18 @@ class tLexItem : public tItem
    *  quotes with backslashes if \a quoted is \c true.
    */
   virtual void print_derivation(FILE *f, bool quoted);
+  #endif
   /** Print the yield of this item */
-  virtual void print_yield(FILE *f);
+  virtual std::string get_yield();
   /** Print the derivation of this item in incr[tsdb()] compatible form,
    *  according to \a protocolversion.
    */
   virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tItemPrinter class
+   *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tItemPrinter *ip) const ;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -833,7 +860,7 @@ class tLexItem : public tItem
   /** \brief Collect all (transitive) children into \a result. Uses frosting
    * mechanism.
    */
-  virtual void collect_children(std::list<tItem *> &result);
+  virtual void collect_children(item_list &result);
 
   /** Always return NULL */
   virtual grammar_rule *rule();
@@ -908,14 +935,14 @@ class tLexItem : public tItem
   /** \brief Return a list of items that is represented by this item. For this
    *  class of items, the list always contains only the item itself
    */
-  virtual std::list<tItem *> unpack1(int limit);
+  virtual item_list unpack1(int limit);
 
   /** \brief Return the \a i th best hypothesis. For tLexItem, there
    *   is always only one hypothesis, for a given \a path . 
    */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
-  //  virtual std::list<tItem *> selectively_unpack(int n, int upedgelimit);
+  //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
  private:
   void init();
@@ -943,7 +970,7 @@ class tLexItem : public tItem
   tHypothesis* _hypo;
 
   friend class tPhrasalItem; // to get access to the _mod...fs
-  friend class tItemPrinter;
+  friend class tAbstractItemPrinter;
 };
 
 /** An item build from a grammar rule and arguments (tPhrasalItem or tLexItem).
@@ -979,6 +1006,7 @@ class tPhrasalItem : public tItem {
 
   INHIBIT_COPY_ASSIGN(tPhrasalItem);
 
+  #ifdef USE_DEPRECATED
   /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
    * false.
    */
@@ -987,17 +1015,18 @@ class tPhrasalItem : public tItem {
    *  quotes with backslashes if \a quoted is \c true.
    */
   virtual void print_derivation(FILE *f, bool quoted);
-  /** Print the yield of this item */
-  virtual void print_yield(FILE *f);
+  #endif
+  /** get the yield of this item */
+  virtual std::string get_yield();
   /** Print the derivation of this item in incr[tsdb()] compatible form,
    *  according to \a protocolversion.
    */
   virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tItemPrinter class
+   *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tItemPrinter *ip) const ;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -1006,7 +1035,7 @@ class tPhrasalItem : public tItem {
    * \attention Uses frosting mechanism \em outside the packing functionality
    * to avoid duplicates in \a result.
    */
-  virtual void collect_children(std::list<tItem *> &result);
+  virtual void collect_children(item_list &result);
 
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule);
@@ -1040,7 +1069,7 @@ class tPhrasalItem : public tItem {
    * This requires first the unpacking of all daughters, and then generate all
    * possible combinations to compute the unpacked items represented here.
    */
-  virtual std::list<tItem *> unpack1(int limit);
+  virtual item_list unpack1(int limit);
 
   /** Apply the rule that built this item to all combinations of the daughter
    *  items in \a dtrs and collect the results in \a res.
@@ -1054,9 +1083,9 @@ class tPhrasalItem : public tItem {
    *                \a dtrs
    *  \param res contains all successfully built items.
    */
-  void unpack_cross(std::vector<std::list<tItem *> > &dtrs,
+  void unpack_cross(std::vector<item_list> &dtrs,
                     int index, std::vector<tItem *> &config,
-                    std::list<tItem *> &res);
+                    item_list &res);
 
   /** Try to fill the rule of this item with the arguments in \a config. */
   tItem *unpack_combine(std::vector<tItem *> &config);
@@ -1066,7 +1095,7 @@ class tPhrasalItem : public tItem {
    *
    * \return The list of unpacked results (up to \a n items)
    */
-  //  virtual std::list<tItem *> selectively_unpack(int n, int upedgelimit);
+  //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
   /** Get the \i th best hypothesis of the item with \a path to root. */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
@@ -1102,7 +1131,7 @@ class tPhrasalItem : public tItem {
   std::list<tDecomposition*> decompositions;
 
   friend class active_and_passive_task;
-  friend class tItemPrinter;
+  friend class tAbstractItemPrinter;
 };
 
 /** Recursively propagate instantiation failure of the hypothesis to
@@ -1120,22 +1149,21 @@ std::list<std::vector<int> > advance_indices(std::vector<int> indices);
  */
 void hagenda_insert(std::list<tHypothesis*> &agenda, tHypothesis* hypo, std::list<tItem*> path);
 
-// _fix_me_
+// \todo _fix_me_
 #if 0
-class greater_than_score
-{
+class greater_than_score {
 public:
-    greater_than_score(tSM *sm)
-        : _sm(sm) {}
-
-    bool operator() (tItem *i, tItem *j)
-    {
-        return i->score(_sm) > j->score(_sm);
-    }
- private:
-    tSM *_sm;
+  greater_than_score(tSM *sm)
+    : _sm(sm) {}
+  
+  bool operator() (tItem *i, tItem *j) {
+      return i->score(_sm) > j->score(_sm);
+  }
+private:
+  tSM *_sm;
 };
 #endif
+
 
 /** Manage proper release of chart items.
  * Destruction of the owner will destroy all items owned by it.
@@ -1144,50 +1172,31 @@ class item_owner
 {
  public:
   item_owner() {}
-  ~item_owner()
-    {
-      for(std::list<tItem *>::iterator curr = _list.begin(); 
-          curr != _list.end(); 
-          ++curr)
-        delete *curr;
-      tItem::reset_ids();
-    }
+  ~item_owner() {
+    for(item_iter curr = _list.begin(); curr != _list.end(); ++curr)
+      delete *curr;
+    tItem::reset_ids();
+  }
   void add(tItem *it) { _list.push_back(it); }
-  void print(FILE *stream) {
-    for(std::list<tItem *>::iterator item = _list.begin(); 
-        item != _list.end(); 
-        ++item)
-      if(!(*item)->frozen()) {
-        (*item)->print(stream);
-        fprintf(stream, "\n");
+  void print(std::ostream &stream) {
+    for(item_iter it = _list.begin(); it != _list.end(); ++it)
+      if(!(*it)->frozen()) {
+        stream << *it << std::endl;
       } // if
   } // print()
  private:
-  std::list<tItem *> _list;
+  item_list _list;
 };
 
 namespace HASH_SPACE {
   /** hash function for pointer that just looks at the pointer content */
-  template<> struct hash< tItem * >
-  {
+  template<> struct hash< tItem * > {
     /** \return A hash code for a pointer */
-    inline size_t operator()(tItem *key) const
-    {
+    inline size_t operator()(tItem *key) const {
       return (size_t) key;
     }
   };
 }
-
-/** A list of chart items */
-typedef std::list< tItem * > item_list;
-/** Iterator for item_list */
-typedef std::list< tItem * >::iterator item_iter;
-/** Iterator for const item list */
-typedef std::list< tItem * >::const_iterator item_citer;
-/** A list of input items */
-typedef std::list< tInputItem * > inp_list;
-/** Iterator for inp_list */
-typedef std::list< tInputItem * >::iterator inp_iterator;
 
 /** A virtual base class for predicates on items */
 struct item_predicate : public std::unary_function<bool, tItem *> {

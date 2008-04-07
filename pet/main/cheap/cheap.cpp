@@ -90,7 +90,7 @@ void dump_jxchg(string surface, chart *current) {
     } else {
       out << "0 " << current->rightmost() << endl;
       tJxchgPrinter chp(out);
-      current->print(&chp);
+      current->print(out, &chp, true, false); // print only passive edges
     }
   }
 }
@@ -163,15 +163,13 @@ void interactive() {
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
-          tCompactDerivationPrinter deriv(fstatus);
+          tCompactDerivationPrinter deriv(std::cerr);
           tItem *it = *iter;
 
           nres++;
           fprintf(fstatus, "derivation[%d]", nres);
           fprintf(fstatus, " (%.4g)", it->score());
-          fprintf(fstatus, ":");
-          it->print_yield(fstatus);
-          fprintf(fstatus, "\n");
+          fprintf(fstatus, ":%s\n", it->get_yield().c_str());
           if(verbosity > 2) {
             deriv.print(it);
             fprintf(fstatus, "\n");
@@ -253,9 +251,8 @@ void interactive() {
   } /* while */
 
   if(opt_compute_qc) {
-    FILE *qc = fopen(opt_compute_qc, "w");
+    ofstream qc(opt_compute_qc);
     compute_qc_paths(qc);
-    fclose(qc);
   }
 }
 
@@ -310,7 +307,8 @@ void print_grammar(FILE *f) {
 
   for(int i = 0; i < nstatictypes; i++) {
     fprintf(f, "\n%d\t%s:\n", i, print_name(i));
-    dag_print_safe(f, type_dag(i), false, 0);
+    // \todo this has to be replaced, but too much for now
+    //dag_print_safe(f, type_dag(i), false, 0);
   }
 }
 
@@ -331,7 +329,7 @@ void process(const char *s) {
     cheap_settings = new settings(base.c_str(), s, "reading");
     fprintf(fstatus, "\n");
     fprintf(fstatus, "loading `%s' ", s);
-    Grammar = new tGrammar(s); 
+    Grammar = new tGrammar(s);
 
 #ifdef HAVE_ECL
     char *cl_argv[] = {"cheap", 0};
@@ -361,6 +359,8 @@ void process(const char *s) {
     }
     Lexparser.register_lexicon(new tInternalLexicon());
 
+    
+    // \todo this cries for a separate tokenizer factory
     tTokenizer *tok;
     switch (opt_tok) {
     case TOKENIZER_YY: 
