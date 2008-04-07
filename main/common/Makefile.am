@@ -17,6 +17,8 @@ EXTRA_DIST = bitcode.cpp	\
 	dag-simple.cpp		\
 	dag-simple.h		\
 	dag.h			\
+	dagprinter.cpp		\
+	dagprinter.h		\
 	dumper.cpp		\
 	dumper.h		\
 	errors.h		\

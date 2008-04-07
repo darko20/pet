@@ -72,26 +72,24 @@ class fs
   { _dag = f._dag; _temp = f._temp; return *this; }
 
   /** return \c true if the underlying dag is valid (not empty or \c FAIL) */
-  inline bool valid() { return _dag != 0 && _dag != FAIL; }
+  inline bool valid() const { return _dag != 0 && _dag != FAIL; }
 
   /** return \c true if dags are eq */
-  inline bool operator==(const fs &f)
-  { return _dag == f._dag; }
+  inline bool operator==(const fs &f) const { return _dag == f._dag; }
 
   /** return \c true if dags are not eq */
-  inline bool operator!=(const fs &f)
-  { return _dag != f._dag; }
+  inline bool operator!=(const fs &f) const { return _dag != f._dag; }
 
   /** Return a new fs representing the subdag under \a attr, if this Attribute
       is in the root fs. */
-  fs get_attr_value(int attr);
+  fs get_attr_value(int attr) const;
   /** Return a new fs representing the subdag under \a attr, if this Attribute
       is in the root fs. */
-  fs get_attr_value(char *attr);
+  fs get_attr_value(char *attr) const;
 
   /** Return a new fs representing the subdag under \a path, if this Path
       exists in the fs. */  
-  fs get_path_value(const char *path);
+  fs get_path_value(const char *path) const;
 
   /** Return the \a n th subdag in the \c ARGS list */
   inline fs nth_arg(int n) const {
@@ -101,9 +99,9 @@ class fs
       return fs(dag_nth_arg(_dag, n)); }
 
   /** Return internal type name of the root node */
-  const char *name();
+  const char *name() const;
   /** Return external type name of the root node */
-  const char *printname();
+  const char *printname() const;
 
   /** Return type of the root node */
   int type() const { return dag_type(_dag); }
@@ -162,7 +160,7 @@ class fs
   bool characterize(list_int *path, attr_t attr, type_t value);  
 
   /** Print readably for debugging purposes */
-  void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL);
+  void print(std::ostream &out, class AbstractDagPrinter &dp) const;
 
 
   /** Initialize the static variables for quick check appropriately */

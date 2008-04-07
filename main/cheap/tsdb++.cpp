@@ -32,6 +32,7 @@
 
 #include<sys/time.h>
 #include<sstream>
+#include<fstream>
 
 using namespace std;
 
@@ -327,9 +328,8 @@ cheap_complete_test_run(int run_id, char *custom)
     if(opt_compute_qc)
     {
         fprintf(ferr, "computing quick check paths\n");
-        FILE *qc = fopen(opt_compute_qc, "w");
+        ofstream qc(opt_compute_qc);
         compute_qc_paths(qc);
-        fclose(qc);
     }
 
     return 0;

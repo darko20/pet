@@ -25,6 +25,8 @@
 #include "item-printer.h"
 #include "hashing.h"
 
+#include <ostream>
+
 using namespace std;
 using namespace HASH_SPACE;
 
@@ -50,8 +52,7 @@ chart::~chart()
 void chart::add(tItem *it)
 {
 #ifdef DEBUG
-    it->print(ferr);
-    fprintf(ferr, "\n");
+  it->print(DEBUGLOGGER); DEBUGLOGGER << endl;
 #endif
 
     _Chart.push_back(it);
@@ -89,8 +90,7 @@ void chart::remove(hash_set<tItem *> &to_delete)
     for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
           ; hit != to_delete.end(); hit++) {
 #ifdef DEBUG
-      it->print(ferr);
-      fprintf(ferr, "removed \n");
+      it->print(DEBUGLOGGER); DEBUGLOGGER << "removed " << endl;
 #endif
       
       tItem *it = *hit;
@@ -111,25 +111,18 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
-void chart::print(FILE *f)
-{
-    int i = 0;
-    for(chart_iter pos(this); pos.valid(); pos++, i++)
-    {
-        (pos.current())->print(f);
-        fprintf(f, "\n");
+void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
+                  bool passives, bool actives) {
+  tItemPrinter def_print(out, verbosity > 2, verbosity > 10);
+  if (pr == NULL) {
+    pr = &def_print;
+  }
+  for(chart_iter pos(this); pos.valid(); pos++) {
+    tItem *curr = pos.current();
+    if ((curr->passive() && passives) || (! curr->passive() && actives)) {
+      pr->print(curr); out << endl;
     }
-}
-
-void chart::print(tItemPrinter *f, bool passives, bool actives)
-{
-    int i = 0;
-    for(chart_iter pos(this); pos.valid(); pos++, i++)
-    {
-      tItem *curr = pos.current();
-      if ((curr->passive() && passives) || (! curr->passive() && actives))
-        f->print(curr);
-    }
+  }
 }
 
 void chart::get_statistics()

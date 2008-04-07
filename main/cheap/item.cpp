@@ -30,8 +30,10 @@
 #include "tsdb++.h"
 #include "types.h"
 #include "utility.h"
+#include "dagprinter.h"
 
 #include <sstream>
+#include <iostream>
 #include <sys/times.h>
 
 using namespace std;
@@ -69,6 +71,7 @@ struct charz_t {
 static charz_t cfrom, cto;
 static list_int *carg_path = NULL;
 static bool charz_init = false;
+static bool charz_use = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
@@ -82,6 +85,7 @@ void init_characterization() {
     cfrom.set(cfrom_path);
     cto.set(cto_path);
     charz_init = true;
+    charz_use = opt_mrs; //(Config::get<char*>("opt_mrs") != 0);
   }
   char *carg_path_string = cheap_settings->value("mrs-carg-path");
   if (NULL != carg_path_string)
@@ -93,7 +97,7 @@ void finalize_characterization() {
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
-  if((opt_mrs != 0) && charz_init) {
+  if(charz_use) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
                               , retrieve_string_instance(from))
@@ -106,7 +110,7 @@ inline bool characterize(fs &thefs, int from, int to) {
 #define characterize(fs, start, end)
 #endif
 
-item_owner *tItem::_default_owner = 0;
+item_owner *tItem::_default_owner = NULL;
 int tItem::_next_id = 1;
 
 
@@ -139,6 +143,7 @@ tItem::set_result_root(type_t rule) {
 }
 
 
+/*
 void tItem::lui_dump(const char *path) {
 
   if(chdir(path)) {
@@ -160,6 +165,36 @@ void tItem::lui_dump(const char *path) {
   fclose(stream);
 
 } // tItem::lui_dump()
+*/
+
+void tItem::lui_dump(const char *path) {
+
+  if(chdir(path)) {
+    fprintf(ferr, "tItem::lui_dump(): invalid target directory `%s'.\n", path);
+    return;
+  } // if
+  char name[MAXPATHLEN + 1];
+  sprintf(name, "%d.lui", _id);
+  ofstream stream(name);
+  if(! stream) {
+    fprintf(ferr, 
+            "tItem::lui_dump(): unable to open `%s' (in `%s').\n",
+            name, path);
+    return;
+  } // if
+  stream << "avm " << _id << " ";
+  LUIDagPrinter ldp;
+  _fs.print(stream, ldp);
+  stream << " \"Edge # " << _id << "\"\f\n" ;
+  stream.close();
+  /*
+  fprintf(stream, "avm %d ", _id);
+  _fs.print(stream, DAG_FORMAT_LUI);
+  fprintf(stream, " \"Edge # %d\"\f\n", _id);
+  fclose(stream);
+  */
+} // tItem::lui_dump()
+
 
 
 /*****************************************************************************
@@ -213,6 +248,13 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   _trait = INPUT_TRAIT;
 }
 
+void
+tInputItem::print_gen(class tAbstractItemPrinter *ip) const
+{
+  ip->real_print(this);
+}
+
+#ifdef USE_DEPRECATED
 void tInputItem::print(FILE *f, bool compact)
 {
   // [bmw] print also start/end nodes
@@ -235,12 +277,6 @@ void tInputItem::print(FILE *f, bool compact)
 }
 
 void
-tInputItem::print_gen(class tItemPrinter *ip) const
-{
-  ip->real_print(this);
-}
-
-void
 tInputItem::print_derivation(FILE *f, bool quoted) {
     fprintf (f, "(%s\"%s%s\" %.4g %d %d)",
              quoted ? "\\" : "", orth().c_str(), quoted ? "\\" : "", score(),
@@ -248,11 +284,10 @@ tInputItem::print_derivation(FILE *f, bool quoted) {
 
     fprintf(f, ")");
 }
+#endif
 
-void 
-tInputItem::print_yield(FILE *f)
-{
-  fprintf(f, "%s ", orth().c_str());
+std::string tInputItem::get_yield() {
+  return orth().c_str();
 }
 
 string
@@ -421,7 +456,7 @@ void tLexItem::init() {
 
 tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
                    , fs &f, const list_int *inflrs_todo)
-  : tItem(i_item->start(), i_item->end(), i_item->_paths
+  : tItem(i_item->start(), i_item->end(), i_item->paths()
           , f, stem->printname())
   , _ldot(stem->inflpos()), _rdot(stem->inflpos() + 1)
   , _stem(stem), _fs_full(f), _hypo(NULL)
@@ -436,7 +471,7 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
 }
 
 tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
-  : tItem(-1, -1, from->_paths.common(newdtr->_paths)
+  : tItem(-1, -1, from->paths().common(newdtr->paths())
           , from->get_fs(), from->printname())
     , _ldot(from->_ldot), _rdot(from->_rdot)
     , _keydaughter(from->_keydaughter)
@@ -467,7 +502,7 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
 }
 
 tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
-  : tItem(pasv->_start, pasv->_end, pasv->_paths, f, R->printname()),
+  : tItem(pasv->start(), pasv->end(), pasv->paths(), f, R->printname()),
     _adaughter(0), _rule(R) {
   _startposition = pasv->startposition();
   _endposition = pasv->endposition();
@@ -479,7 +514,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   if(R->trait() == INFL_TRAIT) {
     // We don't copy here, so only the tLexItem is responsible for deleting
     // the list
-    _inflrs_todo = rest(pasv->_inflrs_todo);
+    _inflrs_todo = rest(pasv->inflrs_todo());
     _trait = LEX_TRAIT;
     if(inflrs_complete_p()) {
       // Modify the feature structure to contain the surface form in the
@@ -534,26 +569,26 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 }
 
 tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
-    : tItem(-1, -1, active->_paths.common(pasv->_paths),
-           f, active->printname()),
-      _adaughter(active), _rule(active->_rule)
+  : tItem(-1, -1, active->paths().common(pasv->paths()),
+          f, active->printname()),
+    _adaughter(active), _rule(active->_rule)
 {
     _daughters = active->_daughters;
     if(active->left_extending())
     {
-        _start = pasv->_start;
-        _startposition = pasv->startposition();
-        _end = active->_end;
-        _endposition = active->endposition();
-        _daughters.push_front(pasv);
+      _start = pasv->start();
+      _startposition = pasv->startposition();
+      _end = active->end();
+      _endposition = active->endposition();
+      _daughters.push_front(pasv);
     }
     else
     {
-        _start = active->_start;
-        _startposition = active->startposition();
-        _end = pasv->_end;
-        _endposition = pasv->endposition();
-        _daughters.push_back(pasv);
+      _start = active->start();
+      _startposition = active->startposition();
+      _end = pasv->end();
+      _endposition = pasv->endposition();
+      _daughters.push_back(pasv);
     }
   
 #ifdef DEBUG
@@ -627,8 +662,9 @@ tPhrasalItem::set_result_root(type_t rule)
     _result_root = rule;
 }
 
+#ifdef USE_DEPRECATED
 void
-tItem::print(FILE *f, bool compact)
+tItem::print(FILE *f, bool compact) const
 {
     fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
             _trait);
@@ -686,9 +722,10 @@ tLexItem::print(FILE *f, bool compact)
         _fs.print(f);
     }
 }
+#endif 
 
 void
-tLexItem::print_gen(class tItemPrinter *ip) const
+tLexItem::print_gen(class tAbstractItemPrinter *ip) const
 {
   ip->real_print(this);
 }
@@ -712,6 +749,13 @@ tLexItem::orth()
 }
 
 void
+tPhrasalItem::print_gen(class tAbstractItemPrinter *ip) const
+{
+  ip->real_print(this);
+}
+
+#ifdef USE_DEPRECATED
+void
 tPhrasalItem::print(FILE *f, bool compact)
 {
     fprintf(f, "P ");
@@ -722,12 +766,6 @@ tPhrasalItem::print(FILE *f, bool compact)
         fprintf(f, "\n");
         _fs.print(f);
     }
-}
-
-void
-tPhrasalItem::print_gen(class tItemPrinter *ip) const
-{
-  ip->real_print(this);
 }
 
 void
@@ -777,11 +815,10 @@ tLexItem::print_derivation(FILE *f, bool quoted)
 
     _keydaughter->print_derivation(f, quoted);
 }
+#endif
 
-void
-tLexItem::print_yield(FILE *f)
-{
-  fprintf(f, "%s ", orth().c_str());
+std::string tLexItem::get_yield() {
+  return orth().c_str();
 }
 
 string
@@ -812,6 +849,7 @@ tLexItem::collect_children(list<tItem *> &result)
     result.push_back(this);
 }
 
+#ifdef USE_DEPRECATED
 void
 tPhrasalItem::print_derivation(FILE *f, bool quoted)
 {
@@ -861,15 +899,18 @@ tPhrasalItem::print_derivation(FILE *f, bool quoted)
 
     fprintf(f, ")");
 }
+#endif
 
-void
-tPhrasalItem::print_yield(FILE *f)
-{
-    for(list<tItem *>::iterator pos = _daughters.begin();
-        pos != _daughters.end(); ++pos)
-    {
-        (*pos)->print_yield(f);
-    }
+std::string
+tPhrasalItem::get_yield() {
+  std::string result;
+  item_iter pos = _daughters.begin();
+  if (pos != _daughters.end()) { result += (*pos)->get_yield(); ++pos; }
+  for(; pos != _daughters.end(); ++pos) {
+    result += " " ;
+    result += (*pos)->get_yield();
+  }
+  return result;
 }
 
 string
@@ -992,9 +1033,7 @@ tItem::block(int mark)
 {
     if(verbosity > 4)
     {
-        fprintf(ferr, "%sing ", mark == 1 ? "frost" : "freez");
-        print(ferr);
-        fprintf(ferr, "\n");
+      cerr << (mark == 1 ? "frost" : "freez") << "ing " << *this << endl;
     }
     if(!blocked() || mark == 2)
     {
@@ -1111,6 +1150,7 @@ tPhrasalItem::unpack1(int upedgelimit)
     return res;
 }
 
+#ifdef USE_DEPRECATED
 void
 print_config(FILE *f, int motherid, vector<tItem *> &config)
 {
@@ -1118,6 +1158,17 @@ print_config(FILE *f, int motherid, vector<tItem *> &config)
     for(vector<tItem *>::iterator it = config.begin(); it != config.end(); ++it)
         fprintf(f, "%s%d", it == config.begin() ? "" : " ", (*it)->id());
     fprintf(f, "]");
+}
+#endif
+
+void
+print_config(ostream &out, int motherid, vector<tItem *> &config) {
+  out << motherid << "[";
+  vector<tItem *>::iterator it = config.begin();
+  if (it != config.end()) { out << (*it)->id(); ++it; }
+  for(; it != config.end(); ++it)
+    out << " " << (*it)->id();
+  out << "]";
 }
 
 // Recursively compute all configurations of dtrs, and accumulate valid
@@ -1134,14 +1185,12 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
         {
             if(verbosity > 9)
             {
-                fprintf(stderr, "%*screated edge %d from ",
-                        unpacking_level * 2, "", combined->id());
-                print_config(stderr, id(), config);
-                fprintf(stderr, "\n");
-                combined->print(stderr);
-                fprintf(stderr, "\n");
-                if(verbosity > 14)
-                    dag_print(stderr, combined->get_fs().dag());
+              cerr << setw(unpacking_level * 2) << "" 
+                   << "created edge " << combined->id() << " from " ;
+              print_config(cerr, id(), config);
+              cerr << endl << *combined << endl;
+              if(verbosity > 14)
+                dag_print(stderr, combined->get_fs().dag());
             }
             res.push_back(combined);
         }
@@ -1150,10 +1199,10 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
             stats.p_failures++;
             if(verbosity > 9)
             {
-                fprintf(stderr, "%*sfailure instantiating ",
-                        unpacking_level * 2, "");
-                print_config(stderr, id(), config);
-                fprintf(stderr, "\n");
+              cerr << setw(unpacking_level * 2) << "" 
+                   << "failure instantiating ";
+              print_config(cerr, id(), config);
+              cerr << endl;
             }
         }
         return;
@@ -1226,7 +1275,7 @@ tLexItem::hypothesize_edge(list<tItem*> path, unsigned int i) {
       _hypo = new tHypothesis(this);
       stats.p_hypotheses ++;
     }
-    Grammar->sm()->score_hypothesis(_hypo, path);
+    Grammar->sm()->score_hypothesis(_hypo, path, opt_gplevel);
     
     return _hypo;
   } else
@@ -1257,7 +1306,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     _hypo_agendas[path].clear();
     for (vector<tHypothesis*>::iterator h = _hypotheses.begin();
          h != _hypotheses.end(); h ++) {
-      Grammar->sm()->score_hypothesis(*h, path);
+      Grammar->sm()->score_hypothesis(*h, path, opt_gplevel);
       hagenda_insert(_hypo_agendas[path], *h, path);
     }
     _hypo_path_max[path] = UINT_MAX;
@@ -1411,7 +1460,7 @@ tPhrasalItem::new_hypothesis(tDecomposition* decomposition,
   _hypotheses.push_back(hypo);
   for (map<list<tItem*>, list<tHypothesis*> >::iterator iter = _hypo_agendas.begin();
        iter != _hypo_agendas.end(); iter++) {
-    Grammar->sm()->score_hypothesis(hypo, (*iter).first);
+    Grammar->sm()->score_hypothesis(hypo, (*iter).first, opt_gplevel);
     hagenda_insert(_hypo_agendas[(*iter).first], hypo, (*iter).first);
   }
 }
@@ -1496,6 +1545,14 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 }
 */
 
+/** Unpack at most \a n trees from the packed parse forest given by \a roots.
+ * \param roots       a set of packed trees
+ * \param n           the maximal number of trees to unpack
+ * \param end         the rightmost position of the chart
+ * \param upedgelimit the maximal number of passive edges to create during
+ *                    unpacking
+ * \return a list of the best, at most \a n unpacked trees
+ */
 list<tItem *> 
 tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit) 
 {

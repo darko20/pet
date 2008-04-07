@@ -95,7 +95,7 @@ class postags
   bool license(type_t t) const;
 
   /** Print the contents of this set for debugging purposes */
-  void print(FILE *) const;
+  void print(std::ostream &) const;
 
   /** serialise as string (for debugging purposes) **/
   std::string getPrintString() const;
@@ -113,5 +113,9 @@ class postags
   std::set<std::string, ltstr> _tags;
   std::map<std::string, double, ltstr> _probs;
 };
+
+inline std::ostream & operator<<(std::ostream &out, const postags &tags) {
+  tags.print(out); return out;
+}
 
 #endif

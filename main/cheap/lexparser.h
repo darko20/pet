@@ -192,13 +192,13 @@ private:
   /** Add generic entries for uncovered input items.
    * This is only applied if the option \c opt_default_les is \c true.
    */
-  void add_generics(std::list<tInputItem *> &unexpanded);
+  void add_generics(inp_list &unexpanded);
 
   /** Add predicted entries for uncovered input items.  
    * This is only applied if the option \c opt_predict_les is \c
    * non-zero and \opt_default_les is false.
    */
-  void add_predicts(std::list<tInputItem *> &unexpanded, inp_list &inp_tokens);
+  void add_predicts(inp_list &unexpanded, inp_list &inp_tokens);
 
   /** Use the registered tokenizer(s) to tokenize the input string and put the
    *  result into \a tokens.

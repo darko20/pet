@@ -145,7 +145,10 @@ class tMorphAnalyzer
   /** Add an irregular form entry.
    *
    * These entries map the surface form to the base form directly, additionally
-   * specifying the HPSG inflection rule to apply.
+   * specifying the HPSG inflection rule to apply. Actually, they are very
+   * similar to morphological rules, in that they are applied in the same way,
+   * with the restriction that the remaining string in the analysis must match
+   * the complete surface form.
    * \param stem the base form
    * \param t the type id of the HPSG inflection rule.
    * \param form the surface form.

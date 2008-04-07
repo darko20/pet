@@ -303,16 +303,15 @@ tSM::scoreLeaf(tLexItem *it)
 }
 
 double
-tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
+tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path, int gplevel)
 {
   vector<int> v1, v2;
   double total = neutralScore();
-  
+  int level = path.size();
+  if (level > gplevel)  // we can only those levels we have ancestors for
+    level = gplevel;
   // collect grand-parenting features
-  for (int i = opt_gplevel; i >= 0; i -- ) {
-    // each level of grand-parenting
-    if (path.size() < (unsigned int)i) // not enough ancestors, skip the level
-      continue; 
+  for (int i = level; i >= 0; i -- ) {
     v1.clear();
     v2.clear();
 
@@ -348,7 +347,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
       int key = phrase->rule()->nextarg();
       list<tItem*> newpath = path;
       newpath.push_back(hypo->edge);
-      if (newpath.size() > opt_gplevel)
+      if (newpath.size() > gplevel)
         newpath.pop_front();
       for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
            hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr++) {
@@ -356,7 +355,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path)
         if (i == 0) { // combine the scores of daughters only once
           (*hypo_dtr)->scores.size(); //debug
           if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end()) 
-            score_hypothesis(*hypo_dtr, newpath);
+            score_hypothesis(*hypo_dtr, newpath, gplevel);
           total = combineScores(total, (*hypo_dtr)->scores[newpath]);
         }
         if (--key == 0) 

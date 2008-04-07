@@ -144,10 +144,6 @@ inline void dag_init(dag_node *dag, type_t s)
 #endif
 }
 
-/** I've got no clue
- *  \todo would someone please explain this?
- */
-inline dag_node *dag_deref(dag_node *dag) { return dag; }
 /** Get the type of the dag */
 inline type_t dag_type(dag_node *dag) { return dag->type; }
 /** Set the type of the dag */
@@ -257,6 +253,7 @@ void dag_get_qc_vector_temp(struct qc_node *qc_paths, dag_node *dag,
  */
 dag_node *dag_nth_arg_temp(dag_node *dag, int n);
 
+#ifdef USE_DEPRECATED
 /** Print \a dag readably to \a f, if \a temporary is \c true, the dag will be
  *  treated as such, and the generation protected members will be considered
  *  too, to print its complete state.
@@ -272,28 +269,29 @@ void dag_print_fed_safe(FILE *f, dag_node *dag);
  *  exchange with Java servers/clients.
  */
 void dag_print_jxchg(std::ostream &f, dag_node *dag);
+#endif
 
 /** @name Generation Protected Slots
  * Accessor functions for the generation protected slots -- inlined for
  * efficiency.
  */
 /*@{*/
-inline type_t dag_get_new_type(dag_node *dag)
+inline type_t dag_get_new_type(const dag_node *dag)
 {
   return (dag->generation == unify_generation) ? dag->new_type : dag->type ;
 }
 
-inline struct dag_arc *dag_get_comp_arcs(dag_node *dag)
+inline struct dag_arc *dag_get_comp_arcs(const dag_node *dag)
 {
   if(dag->generation == unify_generation) return dag->comp_arcs; else return 0;
 }
 
-inline dag_node *dag_get_forward(dag_node *dag)
+inline dag_node *dag_get_forward(const dag_node *dag)
 {
   if(dag->generation == unify_generation) return dag->forward; else return 0;
 }
 
-inline dag_node *dag_get_copy(dag_node *dag)
+inline dag_node *dag_get_copy(const dag_node *dag)
 {
   if(dag->generation == unify_generation) return dag->copy; else return 0;
 }
@@ -389,12 +387,29 @@ inline void dag_invalidate_visited()
 
 inline dag_node *
 dag_deref1(dag_node *dag) {
-  dag_node* res = dag_get_forward(dag);
-  while(res) {
+  dag_node* res;
+  while((res = dag_get_forward(dag)) != NULL) {
     dag = res;
-    res = dag_get_forward(dag);
   }
   return dag;
+}
+
+inline const dag_node *
+dag_deref1(const dag_node *dag) {
+  const dag_node* res;
+  while((res = dag_get_forward(dag)) != NULL) {
+    dag = res;
+  }
+  return dag;
+}
+
+/** I've got no clue, why was this a do-nothing?
+ *  \todo would someone please explain this?
+ *  bk: i change it now, because i want to be sure this works correctly.
+ */
+inline dag_node *dag_deref(dag_node *dag) { return dag_deref1(dag); }
+inline const dag_node *dag_deref(const dag_node *dag) {
+  return dag_deref1(dag);
 }
 
 /** A class to save the current global generation counter in a local

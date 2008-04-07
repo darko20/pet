@@ -153,6 +153,8 @@ void undump_hierarchy(class dumper *f);
 void undump_tables(class dumper *f);
 /** Initialize the table for the maximal appropriate type under a feature by
  *  consulting the type dag of the appropriate type.
+ * \todo this has got nothing to do with the `pure' type hierarchy and should
+ * go to where the dag(s) hierarchy is initialized/undumped
  */
 void initialize_maxapp();
 
