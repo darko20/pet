@@ -79,39 +79,6 @@ struct passive_weights : public unary_function< tItem *, unsigned int > {
   }
 };
 
-struct input_only_weights : public unary_function< tItem *, unsigned int > {
-  unsigned int operator()(tItem * i) {
-    // return a weight close to infinity if this is not an input item
-    // prefer shorter items over longer ones
-    if (dynamic_cast<tInputItem *>(i) != NULL)
-      return i->span();
-    else
-      return 1000000;
-  }
-};
-
-string get_surface_string(chart *ch) {
-  list< tItem * > inputs;
-  input_only_weights io;
-
-  ch->shortest_path<unsigned int>(inputs, io, false);
-  string surface;
-  for(list<tItem *>::iterator it = inputs.begin()
-        ; it != inputs.end(); it++) {
-    tInputItem *inp = dynamic_cast<tInputItem *>(*it);
-    if (inp != NULL) {
-      surface = surface + inp->orth() + " ";
-    }
-  }
-
-  int len = surface.length();
-  if (len > 0) {
-    surface.erase(surface.length() - 1);
-  }
-  return surface;
-}
-
-
 void dump_jxchg(string surface, chart *current) {
   if (! opt_jxchg_dir.empty()) {
     string yieldname = surface;
@@ -164,7 +131,7 @@ void interactive() {
         fprintf(stdout, "%d\t%d\t%d\n",
                 stats.id, stats.readings, stats.pedges);
 
-      string surface = get_surface_string(Chart);
+      string surface = Chart->get_surface_string();
 
       fprintf(fstatus, 
               "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
@@ -273,7 +240,7 @@ void interactive() {
         stats.print(fstatus);
       stats.readings = -1;
 
-      string surface = get_surface_string(Chart);
+      string surface = Chart->get_surface_string();
       dump_jxchg(surface, Chart);
       tsdb_dump.error(Chart, surface, e);
     }
