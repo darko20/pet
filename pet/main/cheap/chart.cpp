@@ -178,9 +178,8 @@ chart::get_surface_string() {
 
   shortest_path<unsigned int>(inputs, io, false);
   string surface;
-  for(list<tItem *>::iterator it = inputs.begin()
-        ; it != inputs.end(); it++) {
-    tInputItem *inp = dynamic_cast<tInputItem *>(*it);
+  for(item_citer it = inputs.begin(); it != inputs.end(); it++) {
+    const tInputItem *inp = dynamic_cast<const tInputItem *>(*it);
     if (inp != NULL) {
       surface = surface + inp->orth() + " ";
     }
@@ -203,7 +202,7 @@ chart::connected(item_predicate &valid) {
   current.push(0);
   while(! reached[rightmost()] && ! current.empty()) {
     pos = current.front(); current.pop();
-    for(list<tItem *>::iterator it = _Cp_start[pos].begin()
+    for(item_iter it = _Cp_start[pos].begin()
           ; it != _Cp_start[pos].end(); it++) {
       if (! reached[(*it)->end()] && valid(*it)) {
         reached[(*it)->end()] = true;

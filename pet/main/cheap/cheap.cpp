@@ -146,19 +146,19 @@ void interactive() {
 
       //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
       //tFegramedPrinter chp("/tmp/fed-");
-      //Chart->print(&chp);
+      //Chart->print(cerr, &chp, true, true);
 
       //dump_jxchg(surface, Chart);
 
       if(verbosity > 1 || opt_mrs) {
         int nres = 0;
 
-        list< tItem * > results(Chart->readings().begin()
+        item_list results(Chart->readings().begin()
                                 , Chart->readings().end());
         // sorting was done already in parse_finish
         // results.sort(item_greater_than_score());
-        for(list<tItem *>::iterator iter = results.begin()
-              ; (iter != results.end())
+        for(item_iter iter = results.begin();
+            (iter != results.end())
               && ((opt_nresults == 0) || (opt_nresults > nres))
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
@@ -211,8 +211,7 @@ void interactive() {
           Chart->shortest_path<unsigned int>(partials, pass, true);
           bool rmrs_xml = (strcmp(opt_mrs, "rmrx") == 0);
           if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
-          for(list<tItem *>::iterator it = partials.begin()
-                ; it != partials.end(); ++it) {
+          for(item_iter it = partials.begin(); it != partials.end(); ++it) {
             if(opt_mrs) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {

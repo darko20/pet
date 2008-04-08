@@ -5,7 +5,7 @@
 using namespace std;
 
 // ----------------------------------------------------------------------
-// Default item printer 
+// Default item printer, was t???Item::print(FILE *)
 // ----------------------------------------------------------------------
 
 tItemPrinter::tItemPrinter(ostream &out, bool print_derivation, bool print_fs)
@@ -22,7 +22,7 @@ tItemPrinter::~tItemPrinter() {
   delete _dag_printer;
 }
 
-// helper function from tItem::print, complete
+// helper function from tItem::print
 inline void tItemPrinter::print_tofill(ostream &out, const tItem *item) {
   if (item->passive()) return; 
   list_int *l;
@@ -41,7 +41,7 @@ inline void tItemPrinter::print_inflrs(ostream &out, const tItem *item) {
   }
 }
 
-// helper function from tItem::print, complete
+// helper function from tItem::print
 inline void tItemPrinter::print_paths(ostream &out, const tItem *item) {
   const list<int> &paths = get_paths(item).get();
   list<int>::const_iterator it = paths.begin();
@@ -51,7 +51,7 @@ inline void tItemPrinter::print_paths(ostream &out, const tItem *item) {
   }
 }
 
-// from tItem::print_packed (complete)
+// former tItem::print_packed (complete)
 inline void tItemPrinter::print_packed(ostream &out, const tItem *item) {
   const item_list &packed = item->packed;
   if(packed.size() == 0) return;
@@ -62,7 +62,7 @@ inline void tItemPrinter::print_packed(ostream &out, const tItem *item) {
   out << ">";
 }
 
-// from tItem::print_family (complete)
+// former tItem::print_family
 inline void tItemPrinter::print_family(ostream &out, const tItem *item) {
   const item_list &items = item->daughters();
   out << " < dtrs: ";
@@ -75,8 +75,7 @@ inline void tItemPrinter::print_family(ostream &out, const tItem *item) {
   out << ">";
 }
 
-// from tItem::print, complete except for derivation printing, see commented
-// out region of code
+// former tItem::print
 void tItemPrinter::print_common(ostream &out, const tItem *item) {
   out << "[" << item->id() 
        << " " << item->start() << "-" << item->end() << " " 
@@ -95,14 +94,9 @@ void tItemPrinter::print_common(ostream &out, const tItem *item) {
   if(_derivation_printer != NULL) {
     _derivation_printer->print(item);
   }
-  /*
-#ifdef LUI
-  lui_dump();
-#endif
-  */
 }
 
-// from tInputItem::print (is complete)
+// from tInputItem::print
 void tItemPrinter::real_print(const tInputItem *item) {
   // [bmw] print also start/end nodes
   _out << "[n" << item->start() << " - n" << item->end() << "] ["
@@ -149,10 +143,9 @@ std::ostream &operator<<(std::ostream &out, const tItem &item) {
   return out;
 }
 
-
-// ----------------------------------------------------------------------
-// TCL chart item printer 
-// ----------------------------------------------------------------------
+// ---------------------------------------------------------------------- //
+// ----------------------- TCL chart item printer ----------------------- //
+// ---------------------------------------------------------------------- //
 
 const char tcl_chars_to_escape[] = { '\\', '"', '\0' };
 
@@ -204,7 +197,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
 /* ----------------------- CompactDerivationPrinter ------------------------ */
 /* ------------------------------------------------------------------------- */
 
-// from tInputItem::print_derivation (complete)
+// former tInputItem::print_derivation
 void
 tCompactDerivationPrinter::real_print(const tInputItem *item) {
   _out << "(" 
@@ -241,7 +234,7 @@ tCompactDerivationPrinter::print_daughters_same_line(const tItem* item) {
   }
 }
 
-// from tLexItem::print_derivation (complete)
+// former tLexItem::print_derivation
 void 
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
   _out << "(" << item->id() << " " << stem(item)->printname() << "/"
@@ -259,7 +252,7 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
   _out << ")";
 }
 
-// from tPhrasalItem::print_derivation (complete)
+// former tPhrasalItem::print_derivation
 void 
 tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
   _out << "(" << item->id() << " " << item->printname() << " "
@@ -286,6 +279,41 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
   print_daughters(item);
   
   _out << ")";
+}
+
+/* ------------------------------------------------------------------------- */
+/* ------------------------ TSDBDerivationPrinter -------------------------- */
+/* ------------------------------------------------------------------------- */
+
+void tTSDBDerivationPrinter::real_print(const tInputItem *item) {
+  _out << "(\"" << escape_string(item->orth()) 
+       << "\" " << item->start() << " " << item->end() << "))" << flush;
+}
+
+void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
+  _out << "(" << item->id() << " " << item->stem()->printname()
+       << " " << item->score() << " " << item->start() <<  " " << item->end()
+       << " " << "(\"" << escape_string(item->orth()) << "\" "
+       << item->start() << " " << item->end() << "))" << flush; 
+}
+
+void tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
+  if(item->result_root() > -1) 
+    _out << "(" << print_name(item->result_root()) << " ";
+  
+  _out << "(" << item->id() << " " << item->printname() << " " << item->score()
+       << " " << item->start() << " " << item->end();
+  
+  const item_list &daughters = item->daughters();
+  for(item_citer pos = daughters.begin(); pos != daughters.end(); ++pos) {
+    _out << " ";
+    if(_protocolversion == 1)
+      (*pos)->print_gen(this);
+    else
+      _out << (*pos)->id();
+  }
+
+  _out << (item->result_root() > -1 ? "))" : ")") << flush;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -400,4 +428,20 @@ tJxchgPrinter::real_print(const tPhrasalItem *item) {
   _out << " ) ";
   jxchgprinter.print(_out, get_fs(item).dag());
   _out << std::endl;
+}
+
+/* ------------------------------------------------------------------------- */
+/* ------------------------------ tLUIPrinter ------------------------------ */
+/* ------------------------------------------------------------------------- */
+
+void 
+tLUIPrinter::print(const tItem *item) {
+  ostringstream fn;
+  fn << _path << item->id() << ".lui";
+  ofstream stream(fn.str().c_str());
+  stream << "avm " << item->id() << " ";
+  if (! stream) throw tError("File open error for file " + fn.str());
+  get_fs(item).print(stream, _dagprinter);
+  stream << " \"Edge # " << item->id() << "\"\f\n" ;
+  stream.close();
 }

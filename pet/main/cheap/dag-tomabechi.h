@@ -253,24 +253,6 @@ void dag_get_qc_vector_temp(struct qc_node *qc_paths, dag_node *dag,
  */
 dag_node *dag_nth_arg_temp(dag_node *dag, int n);
 
-#ifdef USE_DEPRECATED
-/** Print \a dag readably to \a f, if \a temporary is \c true, the dag will be
- *  treated as such, and the generation protected members will be considered
- *  too, to print its complete state.
- */
-void dag_print_safe(FILE *f, dag_node *dag, bool temporary, 
-                    int format = DAG_FORMAT_TRADITIONAL);
-/*@}*/
-
-/** Print \a dag to \a f in \em fegramed syntax. */
-void dag_print_fed_safe(FILE *f, dag_node *dag);
-
-/** Print \a dag to \a f in a special, compact syntax, originally intended for
- *  exchange with Java servers/clients.
- */
-void dag_print_jxchg(std::ostream &f, dag_node *dag);
-#endif
-
 /** @name Generation Protected Slots
  * Accessor functions for the generation protected slots -- inlined for
  * efficiency.

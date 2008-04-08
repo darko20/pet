@@ -584,8 +584,7 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
     
     words[4] = item->orth();
     vector<vector<type_t> > types(4);
-    for (list<tInputItem*>::iterator it = inp_tokens.begin();
-         it != inp_tokens.end(); it ++) {
+    for (inp_iterator it = inp_tokens.begin(); it != inp_tokens.end(); it ++) {
       int idx = -1;
       if ((*it)->endposition() == item->startposition() - 1)
         idx = 0;
