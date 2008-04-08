@@ -29,12 +29,12 @@
 
 #include <iostream>
 
-// global variables for quick check
+using namespace std;
 
-int qc_len_unif;
-qc_node *qc_paths_unif;
-int qc_len_subs;
-qc_node *qc_paths_subs;
+// global variables for quick check
+qc_node *fs::_qc_paths_unif = NULL, *fs::_qc_paths_subs = NULL;
+int fs::_qc_len_unif = 0, fs::_qc_len_subs = 0;
+
 
 //options managed by configuration subsystem
 bool opt_compute_qc_unif, opt_compute_qc_subs,
@@ -228,16 +228,7 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
   return succeeded;
 }
 
-#if 0
-// _fix_me_ 
-// code for treating CARG differently
-bool fs::modify_foo(list_int *path, fs &arg) {
-  dag_node *newdag = dag_unify(this->_dag, arg._dag, path);
-  if (newdag == FAIL) return false;
-  _dag = newdag;
-  return true;
-}
-#endif
+
 // statistics
 
 static long int total_cost_fail = 0;
@@ -263,13 +254,11 @@ get_unifier_stats()
     total_cost_fail = 0;
 }
 
-#ifdef QC_PATH_COMP
-
 // recording of failures for qc path computation
 
 int next_failure_id = 0;
-map<unification_failure, int> failure_id;
-map<int, unification_failure> id_failure;
+map<failure, int> failure_id;
+map<int, failure> id_failure;
 
 map<int, double> failing_paths_unif;
 map<list_int *, int, list_int_compare> failing_sets_unif;
@@ -278,127 +267,159 @@ map<int, double> failing_paths_subs;
 map<list_int *, int, list_int_compare> failing_sets_subs;
 
 void
-record_failures(list<unification_failure *> fails, bool unification,
-                dag_node *a = 0, dag_node *b = 0) {
-  unification_failure *f;
-  list_int *sf = 0;
+record_failures(list<failure *> fails, bool unification,
+                dag_node *a = 0, dag_node *b = 0)
+{
+    failure *f;
+    list_int *sf = 0;
     
-  int total = fails.size();
-  int *value = new int[total], price = 0;
-  int i = 0;
-  int id;
-
-  for(list<unification_failure *>::iterator iter = fails.begin();
-      iter != fails.end(); ++iter) {
-    f = *iter;
-    value[i] = 0;
-    if(f->type() == unification_failure::CLASH) {
-      bool good = true;
-      // let's see if the quickcheck could have filtered this
-                
-      dag_node *d1, *d2;
-                
-      d1 = dag_get_path_value_l(a, f->path());
-      d2 = dag_get_path_value_l(b, f->path());
-                
-      int s1 = BI_TOP, s2 = BI_TOP;
-                
-      if(d1 != FAIL) s1 = dag_type(d1);
-      if(d2 != FAIL) s2 = dag_type(d2);
-
-      if(unification) {
-        if(glb(s1, s2) != -1)
-          good = false;
-      }
-      else {
-        bool st_1_2, st_2_1;
-        subtype_bidir(s1, s2, st_1_2, st_2_1);
-        if(st_1_2 == false && st_2_1 == false)
-          good = false;
-      }
-
-      if(good) {
-        value[i] = f->cost();
-        price += f->cost();
-                    
-        if(failure_id.find(*f) == failure_id.end()) {
-          // This is a new failure. Assign an id.
-          id = failure_id[*f] = next_failure_id++;
-          id_failure[id] = *f;
-        }
-        else
-          id = failure_id[*f];
-                    
-        // Insert id into sorted list of failure ids for this
-        // configuration.
-        list_int *p = sf, *q = 0;
-                    
-        while(p && first(p) < id)
-          q = p, p = rest(p);
-
-        if((!p) || (first(p) != id)) {
-          // This is not a duplicate. Insert into list.
-          // Duplicates can occur when failure paths are also
-          // recorded inside constraint unification. This is
-          // now disabled. Duplicates also occur for subsumption.
-          if(q == 0)
-            sf = cons(id, sf);
-          else
-            q -> next = cons(id, p);
-        }
-        else if(unification) {
-          // _fix_me_ i needed to comment this out because it
-          // didn't work with the more general restrictors
-          // but i don't know the exact reason (bk)
-          //throw tError("Duplicate failure path");
-        }
-      }
-    }
-    i++;
-  } // end for
-
-  // If this is not a new failure set, free it.
-  if(sf) {
-    if(unification) {
-      if(failing_sets_unif[sf]++ > 0)
-        free_list(sf);
-    } else {
-      if(failing_sets_subs[sf]++ > 0)
-        free_list(sf);
-    }
-  }
-
-  i = 0;
-  for(list<unification_failure *>::iterator iter = fails.begin();
-      iter != fails.end(); ++iter) {
-    f = *iter;
-    if(value[i] > 0) {
-      if(unification)
-        failing_paths_unif[failure_id[*f]] +=
-          value[i] / double(price);
-      else
-        failing_paths_subs[failure_id[*f]] +=
-          value[i] / double(price);
-    }
-    i++;
-    delete f;
-  }
+    if(opt_compute_qc)
+    {
+        int total = fails.size();
+        int *value = new int[total], price = 0;
+        int i = 0;
+        int id;
         
-  delete[] value;
+        for(list<failure *>::iterator iter = fails.begin();
+            iter != fails.end(); ++iter)
+        {
+            f = *iter;
+            value[i] = 0;
+            if(f->type() == failure::CLASH)
+            {
+                bool good = true;
+                // let's see if the quickcheck could have filtered this
+                
+                dag_node *d1, *d2;
+                
+                d1 = dag_get_path_value_l(a, f->path());
+                d2 = dag_get_path_value_l(b, f->path());
+                
+                int s1 = BI_TOP, s2 = BI_TOP;
+                
+                if(d1 != FAIL) s1 = dag_type(d1);
+                if(d2 != FAIL) s2 = dag_type(d2);
+
+                if(unification)
+                {
+                    if(glb(s1, s2) != -1)
+                        good = false;
+                }
+                else
+                {
+                    bool st_1_2, st_2_1;
+                    subtype_bidir(s1, s2, st_1_2, st_2_1);
+                    if(st_1_2 == false && st_2_1 == false)
+                        good = false;
+                }
+
+                if(good)
+                {
+                    value[i] = f->cost();
+                    price += f->cost();
+                    
+                    if(failure_id.find(*f) == failure_id.end())
+                    {
+                        // This is a new failure. Assign an id.
+                        id = failure_id[*f] = next_failure_id++;
+                        id_failure[id] = *f;
+                    }
+                    else
+                        id = failure_id[*f];
+                    
+                    // Insert id into sorted list of failure ids for this
+                    // configuration.
+                    list_int *p = sf, *q = 0;
+                    
+                    while(p && first(p) < id)
+                        q = p, p = rest(p);
+
+                    if((!p) || (first(p) != id))
+                    {
+                        // This is not a duplicate. Insert into list.
+                        // Duplicates can occur when failure paths are also
+                        // recorded inside constraint unification. This is
+                        // now disabled. Duplicates also occur for subsumption.
+                        if(q == 0)
+                            sf = cons(id, sf);
+                        else
+                            q -> next = cons(id, p);
+                    }
+                    else if(unification)
+                    {
+                      // _fix_me_ i needed to comment this out because it
+                      // didn't work with the more general restrictors
+                      // but i don't know the exact reason (bk)
+                      //throw tError("Duplicate failure path");
+                    }
+                }
+            }
+            i++;
+        }
+        
+        // If this is not a new failure set, free it.
+        if(sf)
+        {
+            if(unification)
+            {
+                if(failing_sets_unif[sf]++ > 0)
+                    free_list(sf);
+            }
+            else
+            {
+                if(failing_sets_subs[sf]++ > 0)
+                    free_list(sf);
+            }
+
+        }
+
+        i = 0;
+        for(list<failure *>::iterator iter = fails.begin();
+            iter != fails.end(); ++iter)
+        {
+            f = *iter;
+            if(value[i] > 0)
+            {
+                if(unification)
+                    failing_paths_unif[failure_id[*f]] +=
+                        value[i] / double(price);
+                else
+                    failing_paths_subs[failure_id[*f]] +=
+                        value[i] / double(price);
+            }
+            i++;
+            delete f;
+            // _fix_me_ may not delete f if opt_print_failure is on
+        }
+        
+        delete[] value;
+    }
+    
+    if(opt_print_failure)
+    {
+        fprintf(ferr, "failure (%s) at\n", unification ? "unif" : "subs");
+        for(list<failure *>::iterator iter = fails.begin();
+            iter != fails.end(); ++iter)
+        {
+            fprintf(ferr, "  ");
+            (*iter)->print(ferr);
+            fprintf(ferr, "\n");
+        }
+        // _fix_me_ need to delete f here
+    }
 }
 
 void
-print_failures(std::ostream &out, list<unification_failure *> fails,
+print_failures(std::ostream &out, list<failure *> fails,
                bool unification, dag_node *a = 0, dag_node *b = 0) {
   out << "failure (" << (unification ? "unif" : "subs") << ") at"
       << std::endl ;
-  for(list<unification_failure *>::iterator iter = fails.begin();
+  for(list<failure *>::iterator iter = fails.begin();
       iter != fails.end(); ++iter) {
     out << "  " << *iter << std::endl;
   }
 }
 
-#endif
 
 fs
 unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
@@ -414,19 +435,13 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
       stats.unifications_fail++;
     }
         
-#ifdef QC_PATH_COMP
     if(opt_compute_qc_unif || opt_print_failure) {
-      list<unification_failure *> fails =
+      list<failure *> fails =
         dag_unify_get_failures(a._dag, b._dag, true);
-
-      if (opt_compute_qc_unif)
+            
+      if (opt_compute_qc_unif) 
         record_failures(fails, true, a._dag, b._dag);
-      // \todo replace cerr by a stream that is dedicated to the printing of
-      // unification failures
-      if (opt_print_failure)
-        print_failures(cerr, fails, true, a._dag, b._dag);
     }
-#endif
         
     dag_alloc_release(s);
   }
@@ -466,14 +481,12 @@ unify_np(fs &root, const fs &a, fs &b)
         total_cost_fail += unification_cost;
         stats.unifications_fail++;
         
-#ifdef QC_PATH_COMP
         if(opt_print_failure)
         {
           LOG_ERROR(loggerFs,
                     "unification failure: unexpected failure in non"
                     " permanent unification");
         }
-#endif
     }
     else
     {
@@ -490,10 +503,9 @@ unify_np(fs &root, const fs &a, fs &b)
 void
 subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 {
-#ifdef QC_PATH_COMP
     if(opt_compute_qc_subs || opt_print_failure)
     {
-        list<unification_failure *> failures =
+        list<failure *> failures =
             dag_subsumes_get_failures(a._dag, b._dag, forward, backward,
                                       true); 
 
@@ -501,12 +513,12 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
         // (prefix) path. Assumes path with shortest failure path comes
         // before longer ones with shared prefix.
 
-        list<unification_failure *> filtered;
-        for(list<unification_failure *>::iterator f = failures.begin();
+        list<failure *> filtered;
+        for(list<failure *>::iterator f = failures.begin();
             f != failures.end(); ++f)
         {
             bool good = true;
-            for(list<unification_failure *>::iterator g = filtered.begin(); 
+            for(list<failure *>::iterator g = filtered.begin(); 
                 g != filtered.end(); ++g)
             {
                 if(prefix(**g, **f))
@@ -528,8 +540,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
           print_failures(cerr, filtered, false, a._dag, b._dag);
     }
     else
-#endif
-    dag_subsumes(a._dag, b._dag, forward, backward);
+      dag_subsumes(a._dag, b._dag, forward, backward);
 
     if(forward || backward)
         stats.subsumptions_succ++;
@@ -591,52 +602,41 @@ compare(const fs &a, const fs &b)
     return a._dag - b._dag;
 }
 
-/* \todo why isn't this a method of fs?
- */
-type_t *
-get_qc_vector(qc_node *qc_paths, int qc_len, const fs &f)
-{
-    type_t *vector;
+qc_vec fs::get_qc_vector(qc_node *qc_paths, int qc_len) const {
+  qc_vec vector = new type_t [qc_len];
+  memset(vector, 0, qc_len * sizeof(type_t));
     
-    vector = new type_t [qc_len];
-    for(int i = 0; i < qc_len; i++) vector[i] = 0;
-    
-    if(//opt_hyper &&  // temporary dags only during hyperactive parsing
-       f.temp())
-    { 
-        dag_get_qc_vector_temp(qc_paths, f._dag, vector);
-    }
-    else
-        dag_get_qc_vector(qc_paths, f._dag, vector);
-    
-    return vector;
+  if(opt_hyper && temp())
+    dag_get_qc_vector_temp(qc_paths, _dag, vector);
+  else
+    dag_get_qc_vector(qc_paths, _dag, vector);
+  
+  return vector;
 }
 
 bool
-qc_compatible_unif(int qc_len, type_t *a, type_t *b)
+fs::qc_compatible_unif(const qc_vec &a, const qc_vec &b)
 {
-    for(int i = 0; i < qc_len; i++)
-    {
-        if(glb(a[i], b[i]) < 0)
-        {
+  for(int i = 0; i < _qc_len_unif; i++) {
+    if(glb(a[i], b[i]) == T_BOTTOM) {
 #ifdef DEBUG
           LOG_ERROR(loggerFs,
                     "quickcheck fails for path %d with `%s' vs. `%s'"
                     i, print_name(a[i]), print_name(b[i]));
 #endif
-            return false;
-        }
+      return false;
     }
+  }
     
-    return true;
+  return true;
 }
 
 void
-qc_compatible_subs(int qc_len, type_t *a, type_t *b,
-                   bool &forward, bool &backward)
+fs::qc_compatible_subs(const qc_vec &a, const qc_vec &b,
+                       bool &forward, bool &backward)
 {
     bool st_a_b, st_b_a;
-    for(int i = 0; i < qc_len; i++)
+    for(int i = 0; i < _qc_len_subs; i++)
     {
         if(a[i] == b[i])
             continue;

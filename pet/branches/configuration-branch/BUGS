@@ -1,11 +1,4 @@
-- the bound on the number of inflection rules (setting max-inflections) does 
-  not work
-- flop is not able to dump cyclic structures
+Check the tickets at http://pet.opendfki.de
 
-- wrong/no characterization when unfilling is used
-  :-( No clean way to implement this; in fact, characterization should be 
-  implemented in the grammar, not in the processing engine.
-
-- "Duplicate failure path" is triggered when the german grammar with
-  new restrictors is used to compute unification quickcheck paths
-  (during computation of the rule filter)
+Maybe this should be kept in sync with the above location to have it accessible
+in the distribution without the need of internet access.

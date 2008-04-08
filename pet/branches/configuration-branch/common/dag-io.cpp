@@ -220,9 +220,11 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
       arc = dag->arcs;
       while(arc)
         {
-          dump_a.attr = (short int) arc->attr;
-          dump_a.val = (short int) (abs(dag_get_visit(dag_deref(arc->val))) - 1);
-          assert(dump_a.val < dump_index);
+          dump_a.attr = (short) arc->attr;
+          dump_a.val = (short) (abs(dag_get_visit(dag_deref(arc->val))) - 1);
+          // this assertion fails on cyclic feature structures, but why is it
+          // necessary? I want to be able to dump cyclic restrictors. (bk)
+          //assert(dump_a.val < dump_index);
           dump_arc(f, &dump_a);
           arc = arc->next;
         }

@@ -19,6 +19,7 @@
 
 /* ECL integration */
 
+#include "pet-config.h"
 #include "petecl.h"
 #include "stdlib.h"
 
@@ -28,10 +29,22 @@
 
 char *
 ecl_decode_string(cl_object x) {
-  if (type_of(x) != t_string) return NULL;
-  // make sure the string is correctly terminated
-  char *result = (char *) x->string.self;
-  result[x->string.fillp] = '\0';
+  char *result = 0;
+  switch (type_of(x)) {
+#ifdef HAVE_STRUCT_ECL_STRING
+    case t_string:
+      result = (char *) x->string.self;
+      result[x->string.fillp] = '\0';
+      break;
+#endif
+#ifdef HAVE_STRUCT_ECL_BASE_STRING
+    case t_base_string:
+      result = (char *) x->base_string.self;
+      result[x->base_string.fillp] = '\0';
+      break;
+#endif
+    default: ;
+  }
   return result;
 }
 

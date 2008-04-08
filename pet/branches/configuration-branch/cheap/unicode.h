@@ -73,4 +73,7 @@ private:
 /** Initialize the conversion service and the global encoding converter */
 void initialize_encoding_converter(std::string encoding);
 
+/** Finalize the conversion service and the global encoding converter */
+void finalize_encoding_converter();
+
 #endif

@@ -27,6 +27,7 @@
 #include "hashing.h"
 #include "types.h"
 #include "input-modules.h"
+#include "morph-inner.h"
 
 #include <string>
 #include <list>
@@ -42,7 +43,7 @@ class tMorphAnalysis
   tMorphAnalysis() {}
 
   /** Build a tMorphAnalysis from available data */
-  tMorphAnalysis(std::list<std::string> forms, std::list<type_t> rules)
+  tMorphAnalysis(std::list<std::string> forms, std::list<grammar_rule *> rules)
     : _forms(forms), _rules(rules)
     {}
 
@@ -57,7 +58,7 @@ class tMorphAnalysis
   /** Return the inflection rules that have to be applied to perform this
    *  morphological analysis.
    */
-  std::list<type_t> &rules() { return _rules; }
+  const std::list<grammar_rule *> &rules() { return _rules; }
 
   /** Print readably for debugging purposes */
   void print(FILE *f) const;
@@ -84,7 +85,7 @@ class tMorphAnalysis
   };
 
   std::list<std::string> _forms;
-  std::list<type_t> _rules;
+  rulelist _rules;
 
   struct less_than 
     : public std::binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
@@ -92,7 +93,7 @@ class tMorphAnalysis
       if (a.base() < b.base()) return true;
       if (a.base() == b.base()) {
         // "lexicographic" ordering on infl-rules
-        std::list<type_t>::const_iterator ar, ae, br, be;
+        ruleiter ar, ae, br, be;
         ar = a._rules.begin();
         ae = a._rules.end();
         br = b._rules.begin();
@@ -140,13 +141,13 @@ class tMorphAnalyzer
   /** Add a morpological rule with its corresponding HPSG rule, encoded in the
    *  typedag of \a t.
    */
-  void add_rule(type_t t, std::string rule);
+  void add_rule(grammar_rule *, std::string rule);
   /** Add an irregular form entry.
    *
    * These entries map the surface form to the base form directly, additionally
    * specifying the HPSG inflection rule to apply. Actually, they are very
    * similar to morphological rules, in that they are applied in the same way,
-   * with the restriction that the remaining string in the analysis must matcht
+   * with the restriction that the remaining string in the analysis must match
    * the complete surface form.
    * \param stem the base form
    * \param t the type id of the HPSG inflection rule.
@@ -164,7 +165,7 @@ class tMorphAnalyzer
   void set_irregular_only(bool b) { _irregs_only = b; }
 
   /** Return the letterset named \a name (an alias for a character class). */
-  class morph_letterset *letterset(std::string name);
+  class morph_letterset *letterset(std::string name) const;
   /** \brief Lettersets can imply co-occurence restrictions that are enforced
    *  via bindings. Reset the bindings of all lettersets.
    */
@@ -178,20 +179,37 @@ class tMorphAnalyzer
   /** Print the contents of this analyzer for debugging purposes */
   void print(FILE *f);
 
- private:
-  void parse_rule(type_t t, std::string rule, bool suffix);
+  /** Initialize the special filter for morphology analysis */
+  void initialize_lexrule_filter();
 
-  std::list<tMorphAnalysis> analyze1(tMorphAnalysis form);
+  /** check if to infl rules can feed each other (even through a list of
+   *  non-affixation rules) 
+   *
+   *  this is a weaker version of the rule filter for affixation rules for the
+   *  purpose of doing correct filtering during morphological analysis.
+   */
+  inline bool
+  lexfilter_compatible(grammar_rule *mother, grammar_rule *daughter) {
+    return _rulefilter.get(mother, daughter);
+  }
+
+ private:
+
+  void parse_rule(grammar_rule *, std::string rule, bool suffix);
+
+  void analyze1(tMorphAnalysis form, std::list<tMorphAnalysis> &result);
   bool matching_irreg_form(tMorphAnalysis a);
 
   void add_subrule(class morph_subrule *sr) 
     { _subrules.push_back(sr); }
 
-  class morph_lettersets *_lettersets;
-  class morph_trie *_suffixrules;
-  class morph_trie *_prefixrules;
+  class morph_lettersets _lettersets;
+  class morph_trie _suffixrules;
+  class morph_trie _prefixrules;
 
   std::vector<class morph_subrule *> _subrules;
+
+  rulefilter _rulefilter;
 
   bool _irregs_only;
 
@@ -208,11 +226,6 @@ class tMorphAnalyzer
    *  Gets the value of the setting \c orthographemics-minimum-stem-length
    */
   unsigned int _minimal_stem_length;
-  /** Check inflection rules during morph analysis for applicability with the
-   *  rule filter.
-   *  Set to \c true if \c orthographemics-cohesive-chains is set.
-   */
-  bool _rule_filter;
 
   std::multimap<std::string, tMorphAnalysis *> _irregs_by_stem;
   std::multimap<std::string, tMorphAnalysis *> _irregs_by_form;
@@ -244,20 +257,6 @@ private:
 
   tMorphAnalyzer _morph;
 };
-
-namespace HASH_SPACE {
-  /** hash function for pointer that just looks at the pointer content */
-  template<> struct hash< std::string >
-  {
-    /** \return A hash code for a pointer */
-    inline size_t operator()(const std::string &s) const
-    {
-      hash< const char *> h;
-      return h(s.c_str()) ;
-    }
-  };
-}
-
 
 /** Take an input token and compute a list of input tokens with morphological
  *  information stored in the \c _inflrs_todo and \c _stem fields.

@@ -9,6 +9,7 @@
 #define _HASHING_H
 
 #include "pet-config.h"
+#include "hash.h"
 
 #ifdef HAVE_HASH_MAP
 #define HASH_SPACE std
@@ -24,20 +25,57 @@
 #if ((__GNUC__ == 3) && ( __GNUC_MINOR__ > 1)) || (__GNUC__ > 3)
 //g++ version 3.2.x or later
 #define HASH_SPACE __gnu_cxx
-using namespace HASH_SPACE;
 #else
 // g++ version 3.0.x or 3.1.x, not recommended
 #define HASH_SPACE std
 #endif
 #endif 
 
-#if ! defined(HAVE_HASH_MAP) && ! defined(HAVE_EXT_HASH_MAP)
-// no hash_map available
-#undef HASH_SPACE
-#include <map>
-#include <set>
-#define hash_map map
-#define hash_set set
-#endif
+namespace HASH_SPACE {
+  /**
+   * A standard hash implementation for strings.
+   */
+  template<> struct hash< std::string >
+  {
+    inline size_t operator()(const std::string &s) const
+    {
+      return HASH_SPACE::hash<const char* >()( s.c_str() );
+    }
+  };
+}
+
+/* function object: hash function for pointers */
+struct pointer_hash {
+  inline size_t operator() (void* p) const {
+    return reinterpret_cast<size_t>(p);
+  }
+};
+
+/* function object: standard hash function for std::string */
+struct standard_string_hash {
+  inline size_t operator() (const std::string& s) const
+  {
+    return HASH_SPACE::hash<const char* >()( s.c_str() );
+  }
+};
+
+/* function object: simple hash function for std::string */
+struct simple_string_hash {
+  inline size_t operator()(const std::string &key) const {
+    size_t v = 0;
+    for(unsigned int i = 0; i < key.length(); i++)
+      v += key[i];
+    return v;
+  }
+};
+
+/* function object: hash function for std::string by Bob Jenkins */
+struct bj_string_hash
+{
+  inline size_t operator()(const std::string &key) const
+  {
+    return bjhash((const ub1 *) key.data(), key.size(), 0);
+  }
+};
 
 #endif

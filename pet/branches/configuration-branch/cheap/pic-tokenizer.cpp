@@ -26,8 +26,18 @@ using std::list;
 
 XERCES_CPP_NAMESPACE_USE
 
+bool tPICTokenizer::next_input(std::istream &in, std::string &input) {
+  input.clear();
+  string nextline;
+  do {
+    std::getline(in, nextline);
+    input += nextline;
+  } while (! nextline.empty());
+  return ! input.empty();
+}
+
 /** Produce a set of tokens from the given XML input. */
-void tPICTokenizer::tokenize(string input, inpitemlist &result) {
+void tPICTokenizer::tokenize(string input, inp_list &result) {
 
   if (input.compare(0, 2, "<?") == 0)
     tokenize_from_stream(input, result);
@@ -45,7 +55,7 @@ void tPICTokenizer::tokenize(string input, inpitemlist &result) {
 }
 
 /** Produce a set of tInputItem tokens from the given XML input on stdin. */
-void tPICTokenizer::tokenize_from_stream(string input, inpitemlist &result) {
+void tPICTokenizer::tokenize_from_stream(string input, inp_list &result) {
   string buffer = input;
   if(verbosity > 4)
     {
@@ -64,7 +74,7 @@ void tPICTokenizer::tokenize_from_stream(string input, inpitemlist &result) {
 }
 
 /** Produce a set of tokens from the given XML file. */
-void tPICTokenizer::tokenize_from_file(string filename, inpitemlist &result) {
+void tPICTokenizer::tokenize_from_file(string filename, inp_list &result) {
   PICHandler picreader(true, _translate_iso_chars);
   XMLCh * XMLFilename = XMLString::transcode(filename.c_str());
   LocalFileInputSource inputfile(XMLFilename);

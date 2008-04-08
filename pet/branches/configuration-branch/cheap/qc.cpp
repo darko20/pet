@@ -20,7 +20,6 @@
 /* computing quick check paths */
 
 #include "pet-config.h"
-#ifdef QC_PATH_COMP
 
 #include "qc.h"
 #include "parse.h"
@@ -32,15 +31,15 @@
 #include "failure.h"
 
 #include <queue>
-#include <sstream>
-
-// _fix_me_ this should not be hardwired (need to make sure it exists)
-#define DUMMY_ATTR "ARGS"
 
 using std::set;
 using std::vector;
 using std::list;
 using std::map;
+using std::priority_queue;
+
+// _fix_me_ this should not be hardwired (need to make sure it exists)
+#define DUMMY_ATTR "ARGS"
 
 inline bool
 intersect_empty(set<int> &a, set<int> &b)
@@ -198,13 +197,6 @@ choose_paths(FILE *f,
 
 extern int next_failure_id;
 
-void print_failure_path(FILE *f, unification_failure &fail) {
-  std::ostringstream out;
-  fail.print(out);
-  fprintf(f, "%s", out.str().c_str());
-}
-  
-
 void
 compute_qc_sets(FILE *f, const char *tname,
                 map<list_int *, int, list_int_compare> &sets,
@@ -219,7 +211,7 @@ compute_qc_sets(FILE *f, const char *tname,
     // Get failure sets sorted by frequency.
     //
     
-    std::priority_queue<pq_item<int, list_int *> > sets_by_frequency;
+    priority_queue<pq_item<int, list_int *> > sets_by_frequency;
     
     double total_count = 0;
     for(map<list_int *, int, list_int_compare>::iterator iter =
@@ -319,7 +311,7 @@ compute_qc_sets(FILE *f, const char *tname,
 
     // compute optimal order for selected paths
     
-    std::priority_queue< pq_item<int, int> > top_paths;
+    priority_queue< pq_item<int, int> > top_paths;
 
     for(set<int>::iterator iter = min_sol.begin();
         iter != min_sol.end(); ++iter)
@@ -346,7 +338,7 @@ compute_qc_sets(FILE *f, const char *tname,
         pq_item<int, int> top = top_paths.top();
         top_paths.pop();
         
-        unification_failure fail = id_failure[top.inf];
+        failure fail = id_failure[top.inf];
         
         if(n != 0) fprintf(f, ",\n  ");
         if(!fail.empty_path())
@@ -389,13 +381,13 @@ compute_qc_traditional(FILE *f, const char *tname,
         pq_item<double, int> top = top_failures.top(); 
         top_failures.pop();
         
-        unification_failure fail = id_failure[top.inf];
+        failure fail = id_failure[top.inf];
         
         if(n != 0) fprintf(f, ",\n  ");
         if(!fail.empty_path())
         {
             fprintf(f, DUMMY_ATTR ".");
-            print_failure_path(f, fail);
+            fail.print_path(f);
         }
         else
             fprintf(f, DUMMY_ATTR);
@@ -419,7 +411,7 @@ compute_qc_paths(FILE *f) {
   fprintf(f, ";; %d total failing paths:\n;;\n", next_failure_id);
   for(int i = 0; i < next_failure_id; i++) {
     fprintf(f, ";; #%d ", i);
-    print_failure_path(f, id_failure[i]);
+    id_failure[i].print_path(f);
     fprintf(f, "\n");
   }
   fprintf(f, "\n");
@@ -440,6 +432,3 @@ compute_qc_paths(FILE *f) {
     compute_qc_sets(f, "qc_subs_set_pack", failing_sets_subs, 90.0);
   }
 }
-
-
-#endif

@@ -29,10 +29,11 @@ inflrs: - "null" = do internal morph analysis
 
 #include "yy-tokenizer.h"
 #include "cheap.h"
+#include "hashing.h"
 #include <iostream>
 
-using std::string;
-using std::list;
+using namespace std;
+using namespace HASH_SPACE;
 
 tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
   : tTokenizer()
@@ -356,7 +357,7 @@ tYYTokenizer::read_token()
 }
 
 void
-tYYTokenizer::tokenize(myString s, inpitemlist &result)
+tYYTokenizer::tokenize(myString s, inp_list &result)
 {
   _yyinput = s;
   _yypos = 0;

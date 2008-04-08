@@ -23,13 +23,13 @@
 #include <sys/param.h>
 
 #include "cheap.h"
-#include "utility.h"
-#include "types.h"
 #include "item.h"
 #include "item-printer.h"
 #include "parse.h"
-#include "tsdb++.h"
 #include "sm.h"
+#include "tsdb++.h"
+#include "types.h"
+#include "utility.h"
 #include "dagprinter.h"
 
 #include <sstream>
@@ -82,6 +82,10 @@ struct charz_t {
     attribute = 0;
   }
 
+  ~charz_t() {
+    free_list(path);
+  }
+
   void set(const char *string_path) {
     free_list(path);
     list_int *lpath = path_to_lpath(string_path);
@@ -118,13 +122,17 @@ void init_characterization() {
     carg_path = path_to_lpath(carg_path_string);
 }
 
+void finalize_characterization() {
+  free_list(carg_path);
+}
+
 inline bool characterize(fs &thefs, int from, int to) {
   if(charz_use) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
-                               , lookup_unsigned_symbol(from))
+                              , retrieve_string_instance(from))
            && thefs.characterize(cto.path, cto.attribute
-                                 ,lookup_unsigned_symbol(to));
+                              , retrieve_string_instance(to));
   } 
   return true;
 }
@@ -134,6 +142,7 @@ inline bool characterize(fs &thefs, int from, int to) {
 
 item_owner *tItem::_default_owner = NULL;
 int tItem::_next_id = 1;
+
 
 tItem::tItem(int start, int end, const tPaths &paths,
              const fs &f, const char *printname)
@@ -149,20 +158,6 @@ tItem::tItem(int start, int end, const tPaths &paths,
     if(_default_owner) _default_owner->add(this);
 }
 
-
-tItem::tItem(int start, int end, const tPaths &paths,
-             const char *printname)
-    : _id(_next_id++),
-      _start(start), _end(end), _spanningonly(false), _paths(paths),
-      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
-      _result_root(-1), _result_contrib(false),
-      _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0), _printname(printname),
-      _blocked(0), _unpack_cache(0), parents(), packed()
-{
-    if(_default_owner) _default_owner->add(this);
-}
-
 tItem::~tItem()
 {
     delete[] _qc_vector_unif;
@@ -170,6 +165,13 @@ tItem::~tItem()
     // free_list(_inflrs_todo); // This is now only done in tLexItem
     delete _unpack_cache;
 }
+
+void
+tItem::set_result_root(type_t rule) {
+  set_result_contrib();
+  _result_root = rule;
+}
+
 
 /*
 void tItem::lui_dump(const char *path) {
@@ -230,38 +232,38 @@ void tItem::lui_dump(const char *path) {
  INPUT ITEM
  *****************************************************************************/
 
-// constructor with start/end NODES specified
-tInputItem::tInputItem(string id, int startnode, int endnode
-                       , int start, int end, string surface
-                       , string stem, const tPaths &paths, int token_class
-                       , modlist fsmods)
-  : tItem(startnode, endnode, paths, surface.c_str())
+// constructor with start/end nodes and external start/end positions
+tInputItem::tInputItem(string id
+                       , int start, int end, int startposition, int endposition
+                       , string surface, string stem
+                       , const tPaths &paths, int token_class, modlist fsmods)
+  : tItem(start, end, paths, fs(), surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods)
 {
-  _startposition = start;
-  _endposition = end;
+  _startposition = startposition;
+  _endposition = endposition;
   _trait = INPUT_TRAIT;
 }
 
 
-// constructor without start/end NODES specified
-tInputItem::tInputItem(string id, int start, int end, string surface
-                       , string stem, const tPaths &paths, int token_class
-                       , modlist fsmods)
-  : tItem(-1, -1, paths, surface.c_str())
-    , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
-    , _fsmods(fsmods)
+// constructor with external start/end positions only
+tInputItem::tInputItem(string id, int startposition, int endposition
+                       , string surface, string stem
+                       , const tPaths &paths, int token_class, modlist fsmods)
+  : tItem(-1, -1, paths, fs(), surface.c_str()),
+    _input_id(id), _class(token_class), _surface(surface), _stem(stem),
+    _fsmods(fsmods)
 {
-  _startposition = start;
-  _endposition = end;
+  _startposition = startposition;
+  _endposition = endposition;
   _trait = INPUT_TRAIT;
 }
 
 
 tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
                        , string stem, int token_class, modlist fsmods)
-  : tItem(-1, -1, tPaths(), "")
+  : tItem(-1, -1, tPaths(), fs(), "")
     , _input_id(id), _class(token_class), _stem(stem)
     , _fsmods(fsmods)
 {
@@ -277,7 +279,13 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   _trait = INPUT_TRAIT;
 }
 
-/*
+void
+tInputItem::print_gen(class tAbstractItemPrinter *ip) const
+{
+  ip->real_print(this);
+}
+
+#ifdef USE_DEPRECATED
 void tInputItem::print(FILE *f, bool compact)
 {
   // [bmw] print also start/end nodes
@@ -298,15 +306,7 @@ void tInputItem::print(FILE *f, bool compact)
   fprintf(f, " }");
   fprintf(f, "\n");
 }
-*/
 
-void
-tInputItem::print_gen(class tAbstractItemPrinter *ip) const
-{
-  ip->real_print(this);
-}
-
-/*
 void
 tInputItem::print_derivation(FILE *f, bool quoted) {
     fprintf (f, "(%s\"%s%s\" %.4g %d %d)",
@@ -315,7 +315,7 @@ tInputItem::print_derivation(FILE *f, bool quoted) {
 
     fprintf(f, ")");
 }
-*/
+#endif
 
 std::string tInputItem::get_yield() {
   return orth().c_str();
@@ -342,13 +342,6 @@ void
 tInputItem::collect_children(list<tItem *> &result)
 {
   return;
-}
-
-void
-tInputItem::set_result_root(type_t rule)
-{
-    set_result_contrib();
-    _result_root = rule;
 }
 
 grammar_rule *
@@ -437,7 +430,7 @@ void tLexItem::init() {
   if (passive()) {
     _supplied_pos = postags(_stem);
 
-    for(itemlist_iter it = _daughters.begin(); it != _daughters.end(); it++) {
+    for(item_iter it = _daughters.begin(); it != _daughters.end(); it++) {
       (*it)->parents.push_back(this);
     }
 
@@ -450,7 +443,7 @@ void tLexItem::init() {
     if (_keydaughter->form().size() > 0) {
       _mod_form_fs
         = fs(dag_create_path_value(orth_path.c_str()
-                              , lookup_symbol(_keydaughter->form().c_str())));
+               , retrieve_string_instance(_keydaughter->form())));
     } else {
       _mod_form_fs = fs(FAIL);
     }
@@ -459,29 +452,31 @@ void tLexItem::init() {
     // (if there is one) into the right position of the orth list
     _mod_stem_fs 
       = fs(dag_create_path_value(orth_path.c_str()
-                              , lookup_symbol(_stem->orth(_stem->inflpos()))));
+             , retrieve_string_instance(_stem->orth(_stem->inflpos()))));
 
     characterize(_fs_full, _startposition, _endposition);
     
     // \todo Not nice to overwrite the _fs field.
     // A copy of _fs_full and the containing dag is made
-    if(opt_packing)
-      _fs = packing_partial_copy(_fs_full, Grammar->packing_restrictor(),
-                                 false);
+   if(opt_packing)
+     _fs = packing_partial_copy(_fs_full, Grammar->packing_restrictor(),
+                                false);
    
     _trait = LEX_TRAIT;
     // \todo Berthold says, this is the right number. Settle this
     // stats.words++;
 
     if(opt_nqc_unif != 0)
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, _fs_full);
+      _qc_vector_unif = _fs_full.get_unif_qc_vector();
 
     if(opt_nqc_subs != 0)
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, _fs_full);
+      _qc_vector_subs = _fs_full.get_subs_qc_vector();
 
     // compute _score score for lexical items
     if(Grammar->sm())
       score(Grammar->sm()->scoreLeaf(this));
+
+    characterize(_fs, _startposition, _endposition);
   }
 
 #ifdef DEBUG
@@ -578,17 +573,22 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 #endif
   pasv->parents.push_back(this);
   
+  if(opt_nqc_unif != 0) {
+    if(passive())
+      _qc_vector_unif = f.get_unif_qc_vector();
+    else
+      _qc_vector_unif = nextarg(f).get_unif_qc_vector();
+  }
+  
+  if(opt_nqc_subs != 0)
+    if(passive())
+      _qc_vector_subs = f.get_subs_qc_vector();
+  
   // rule stuff + characterization
   if(passive()) {
-    if(opt_nqc_unif != 0)
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
-    if(opt_nqc_subs != 0)
-      _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
     R->passives++;
     characterize(_fs, _startposition, _endposition);
   } else {
-    if(opt_nqc_unif != 0)
-      _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, nextarg(f));
     R->actives++;
   }
 
@@ -634,19 +634,23 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 
     _trait = SYNTAX_TRAIT;
 
+    if(opt_nqc_unif != 0)
+    {
+        if(passive())
+          _qc_vector_unif = f.get_unif_qc_vector();
+        else
+          _qc_vector_unif = nextarg(f).get_unif_qc_vector();
+    }
+    
+    if((opt_nqc_subs != 0) && passive())
+      _qc_vector_subs = f.get_subs_qc_vector();
+
     // rule stuff
     if(passive()) {
       characterize(_fs, _startposition, _endposition);
       active->rule()->passives++;
-      if(opt_nqc_unif != 0)
-        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif, f);
-      if(opt_nqc_subs != 0)
-        _qc_vector_subs = get_qc_vector(qc_paths_subs, qc_len_subs, f);
     } else {
       active->rule()->actives++;
-      if(opt_nqc_unif != 0)
-        _qc_vector_unif = get_qc_vector(qc_paths_unif, qc_len_unif,
-                                        nextarg(f));
     }
 
 #ifdef DEBUG
@@ -669,13 +673,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
 
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size(); 
-}
-
-void
-tLexItem::set_result_root(type_t rule)
-{
-    set_result_contrib();
-    _result_root = rule;
+    _result_root = sponsor->result_root();
 }
 
 void
@@ -696,9 +694,9 @@ tPhrasalItem::set_result_root(type_t rule)
     _result_root = rule;
 }
 
-/*
+#ifdef USE_DEPRECATED
 void
-tItem::print(FILE *f, bool compact)
+tItem::print(FILE *f, bool compact) const
 {
     fprintf(f, "[%d %d-%d %s (%d) ", _id, _start, _end, _fs.printname(),
             _trait);
@@ -744,9 +742,7 @@ tItem::print(FILE *f, bool compact)
     lui_dump();
 #endif
 }
-*/
 
-/*
 void
 tLexItem::print(FILE *f, bool compact)
 {
@@ -758,7 +754,7 @@ tLexItem::print(FILE *f, bool compact)
         _fs.print(f);
     }
 }
-*/
+#endif 
 
 void
 tLexItem::print_gen(class tAbstractItemPrinter *ip) const
@@ -784,7 +780,13 @@ tLexItem::orth()
     return orth;
 }
 
-/*
+void
+tPhrasalItem::print_gen(class tAbstractItemPrinter *ip) const
+{
+  ip->real_print(this);
+}
+
+#ifdef USE_DEPRECATED
 void
 tPhrasalItem::print(FILE *f, bool compact)
 {
@@ -797,15 +799,7 @@ tPhrasalItem::print(FILE *f, bool compact)
         _fs.print(f);
     }
 }
-*/
 
-void
-tPhrasalItem::print_gen(class tAbstractItemPrinter *ip) const
-{
-  ip->real_print(this);
-}
-
-/*
 void
 tItem::print_packed(FILE *f)
 {
@@ -853,7 +847,7 @@ tLexItem::print_derivation(FILE *f, bool quoted)
 
     _keydaughter->print_derivation(f, quoted);
 }
-*/
+#endif
 
 std::string tLexItem::get_yield() {
   return orth().c_str();
@@ -887,7 +881,7 @@ tLexItem::collect_children(list<tItem *> &result)
     result.push_back(this);
 }
 
-/*
+#ifdef USE_DEPRECATED
 void
 tPhrasalItem::print_derivation(FILE *f, bool quoted)
 {
@@ -937,12 +931,12 @@ tPhrasalItem::print_derivation(FILE *f, bool quoted)
 
     fprintf(f, ")");
 }
-*/
+#endif
 
 std::string
 tPhrasalItem::get_yield() {
   std::string result;
-  itemlist_iter pos = _daughters.begin();
+  item_iter pos = _daughters.begin();
   if (pos != _daughters.end()) { result += (*pos)->get_yield(); ++pos; }
   for(; pos != _daughters.end(); ++pos) {
     result += " " ;
@@ -955,7 +949,9 @@ string
 tPhrasalItem::tsdb_derivation(int protocolversion)
 {
     ostringstream result;
-    
+
+    if(_result_root > -1) result << "(" << print_name(_result_root) << " ";
+
     result << "(" << _id << " " << printname() << " " << _score
            << " " << _start << " " << _end;
 
@@ -969,8 +965,7 @@ tPhrasalItem::tsdb_derivation(int protocolversion)
             result << (*pos)->id();
     }
 
-    result << ")";
-
+    result << (_result_root > -1 ? "))" : ")");
     return result.str();
 }
 
@@ -1044,6 +1039,23 @@ void tPhrasalItem::recreate_fs()
 #endif
 }
 
+bool
+tItem::contains_p(tItem *it)
+{
+  tItem *pit = this;
+  while (true) {
+    if (it->startposition() != pit->startposition() ||
+        it->endposition() != pit->endposition())
+      return false;
+    else if (it->id() == pit->id())
+      return true;
+    else if (pit->_daughters.size() != 1) 
+      return false;
+    else 
+      pit = pit->daughters().front();
+  }
+}
+
 //
 // Blocking (frosting and freezing) for packing
 //
@@ -1109,6 +1121,14 @@ tItem::unpack(int upedgelimit)
     if(upedgelimit > 0 && stats.p_upedges >= upedgelimit)
         return res;
 
+    // Check if we reached timeout. Caller is responsible for checking
+    // this to verify completeness of results.
+    if (opt_timeout > 0) {
+      timestamp = times(NULL);
+      if (timestamp >= timeout)
+        return res;
+    }
+
     // Recursively unpack items that are packed into this item.
     for(list<tItem *>::iterator p = packed.begin();
         p != packed.end(); ++p)
@@ -1164,7 +1184,7 @@ tPhrasalItem::unpack1(int upedgelimit)
     return res;
 }
 
-/*
+#ifdef USE_DEPRECATED
 void
 print_config(FILE *f, int motherid, vector<tItem *> &config)
 {
@@ -1173,7 +1193,7 @@ print_config(FILE *f, int motherid, vector<tItem *> &config)
         fprintf(f, "%s%d", it == config.begin() ? "" : " ", (*it)->id());
     fprintf(f, "]");
 }
- */
+#endif
 
 void
 print_config(ostream &out, int motherid, vector<tItem *> &config) {
@@ -1301,6 +1321,14 @@ tHypothesis *
 tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
 {
   tHypothesis *hypo = NULL;
+
+  // check whether timeout has passed.
+  if (opt_timeout > 0) {
+    timestamp = times(NULL);
+    if (timestamp >= timeout)
+      return hypo;
+  }
+  
   // Only check the path length no longer than the opt_gplevel
   while (path.size() > opt_gplevel)
     path.pop_front();

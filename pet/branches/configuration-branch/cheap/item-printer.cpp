@@ -1,5 +1,5 @@
 #include "item-printer.h"
-#include "dagprinter.h"
+
 #include <sstream>
 
 using namespace std;
@@ -35,23 +35,23 @@ void tItemPrinter::print_paths(const tItem *item) {
 }
 
 void tItemPrinter::print_packed(const tItem *item) {
-  const itemlist &packed = item->packed;
+  const item_list &packed = item->packed;
   if(packed.size() == 0) return;
   
   _out << " < packed: ";
-  for(itemlist_citer pos = packed.begin(); pos != packed.end(); ++pos)
+  for(item_citer pos = packed.begin(); pos != packed.end(); ++pos)
     _out << get_id(*pos) << " ";
   _out << ">";
 }
 
 void tItemPrinter::print_family(const tItem *item) {
-  const itemlist &items = item->daughters();
+  const item_list &items = item->daughters();
   _out << " < dtrs: ";
-  for(itemlist_citer pos = items.begin(); pos != items.end(); ++pos)
+  for(item_citer pos = items.begin(); pos != items.end(); ++pos)
     _out << get_id(*pos) << " ";
   _out << "parents: ";
-  const itemlist &parents = item->parents;
-  for(itemlist_citer pos = parents.begin(); pos != parents.end(); ++pos)
+  const item_list &parents = item->parents;
+  for(item_citer pos = parents.begin(); pos != parents.end(); ++pos)
     _out << get_id(*pos) << " ";
   _out << ">";
 }
@@ -159,7 +159,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
   const list<tItem*> &dtrs = item->daughters();
   item_map::iterator it = _items.find((long int) item);
   if (it == _items.end()) {
-    list<tItem *>::const_iterator dtr;
+    item_citer dtr;
     for(dtr = dtrs.begin(); dtr != dtrs.end(); dtr++) {
       print(*dtr);
     }
@@ -210,7 +210,7 @@ tCompactDerivationPrinter::print_inflrs(const tItem* item) {
 
 void 
 tCompactDerivationPrinter::print_daughters(const tItem* item) {
-  for(list<tItem *>::const_iterator pos = item->daughters().begin();
+  for(item_citer pos = item->daughters().begin();
       pos != item->daughters().end(); ++pos)
     print(*pos);
 }
@@ -226,6 +226,7 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
            , item->id(), stem(item)->printname()
            , print_name(const_cast<tLexItem *>(item)->type()), item->score()
            , item->start(), item->end());
+  
   fprintf(_out, "[");
   */
   /*out << " [";
@@ -240,7 +241,7 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 
   print_daughters(item);
   /*
-  for(list<tItem *>::const_iterator pos = item->daughters().begin();
+  for(item_citer pos = item->daughters().begin();
       pos != item->daughters().end(); ++pos)
     print(*pos);
   */
@@ -261,7 +262,7 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
   if(item->packed.size()) {
     _out << " {";
     //fprintf(_out, " {");
-    list<tItem *>::const_iterator pack = item->packed.begin();
+    item_citer pack = item->packed.begin();
     if (pack != item->packed.end()) { _out << (*pack)->id(); ++pack; }
     for(; pack != item->packed.end(); ++pack) {
       _out << " " <<  (*pack)->id();
@@ -287,7 +288,7 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
 
   print_daughters(item);
   /*
-  for(list<tItem *>::const_iterator pos = item->daughters().begin();
+  for(item_citer pos = item->daughters().begin();
       pos != item->daughters().end(); ++pos) {
     print(*pos);
   }
@@ -319,7 +320,7 @@ void
 tDelegateDerivationPrinter::real_print(const tPhrasalItem *item) {
   _itemprinter.print(item);
 
-  for(list<tItem *>::const_iterator pos = item->daughters().begin();
+  for(item_citer pos = item->daughters().begin();
       pos != item->daughters().end(); ++pos) {
     print(*pos);
   }
@@ -359,7 +360,7 @@ void tJxchgPrinter::print_yield(const tInputItem *item) {
   if (item->daughters().empty()) {
     _out << '"' << item->form() << '"';
   } else {
-    itemlist_citer it = item->daughters().begin();
+    item_citer it = item->daughters().begin();
     print(*it);
     while(++it != item->daughters().end()) {
       _out << " ";
@@ -382,8 +383,8 @@ tJxchgPrinter::real_print(const tLexItem *item) {
   }
   _out << "] ( "; 
   // This prints only the yield, because all daughters are tInputItems
-  for(itemlist_citer it = item->daughters().begin();
-      it != item->daughters().end(); it++)
+  for(item_citer it = item->daughters().begin(); it != item->daughters().end()
+        ; it++)
     print_yield(dynamic_cast<tInputItem *>(*it));
   _out << " ) ";
   jxchgprinter.print(_out, get_fs(item).dag());
@@ -396,8 +397,8 @@ tJxchgPrinter::real_print(const tPhrasalItem *item) {
     // print the rule type, if any
        << print_name(item->identity()) 
        << " (";
-  for(itemlist_citer it = item->daughters().begin();
-      it != item->daughters().end() ; it++) {
+  for(item_citer it = item->daughters().begin(); it != item->daughters().end()
+        ; it++) {
     _out << " " << (*it)->id();
   }
   _out << " ) ";

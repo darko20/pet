@@ -73,18 +73,42 @@ public:
   virtual ~tTokenizer() { }
 
   /** Produce a set of tokens from the given string. */
-  virtual void tokenize(myString s, inpitemlist &result) = 0;
+  virtual void tokenize(myString s, inp_list &result) = 0;
 
-  /** Return \c STANDOFF_COUNTS if the position in the returned tokens are counts
-   *  , \c STANDOFF_POINTS if they are points
+  /** Return \c STANDOFF_COUNTS if the position in the returned tokens are
+   *  counts, \c STANDOFF_POINTS if they are points
    */
   virtual position_map position_mapping() = 0;
+  
+  /** Get the next input string from the given stream */
+  virtual bool next_input(std::istream &in, std::string &result);
+
+  /** set the treatment of line comments in the input
+   *  If not zero, pay attention to lines starting either with '#' or '//' and
+   *  treat them as comment lines. If greater that zero, echo them to the 
+   *  status stream, otherwise just strip them.
+   */
+  void set_comment_passthrough(int passthrough) {
+    _comment_passthrough = passthrough;
+  }
 
 protected:
   tTokenizer();
   
   /** Determine if a string only consists of punctuation characters */
   bool punctuationp(const std::string &s);
+
+#ifdef HAVE_ICU
+  inline bool 
+  punctuation_char(const UChar32 c, const UnicodeString &punctuation_chars) {
+    return (punctuation_chars.indexOf(c) != -1);
+  }
+#else
+  inline bool
+  punctuation_char(const char c, const std::string &punctuation_chars) {
+    return (punctuation_chars.find(c) != std::string::npos);
+  }
+#endif
 
   /** \brief Translate the german ISO umlaut and sz characters in \a s by their
    *  isomorphix (ae, ue, ss, etc.) counterparts, if \c _translate_iso_chars
@@ -101,10 +125,16 @@ protected:
   std::string _punctuation_characters;
 #endif
 
-  /** If \c true, Translate the german ISO umlaut and sz characters in stem and
+  /** If \c true, translate the german ISO umlaut and sz characters in stem and
    *  surface forms.
    */
   bool _translate_iso_chars;
+
+  /** If not zero, pay attention to lines starting either with '#' or '//' and
+   * treat them as comment lines. If greater that zero, echo them to the 
+   * status stream, otherwise just strip them.
+   */
+  int _comment_passthrough;
 };
 
 /** Call a Named Entity Recognizer.
@@ -118,7 +148,7 @@ public:
   virtual ~tNE_recognizer() {}
 
   /** Add Named Entities to the list of tokens. */
-  virtual void compute_ne(myString s, inpitemlist &tokens_result) = 0;
+  virtual void compute_ne(myString s, inp_list &tokens_result) = 0;
 };
 
 /** Add POS information (destructively) to the tokens in \a tokens_result.
@@ -128,7 +158,7 @@ public:
   virtual ~tPOSTagger() {}
 
   /** Add POS tags to the tokens in tokens_result */
-  virtual void compute_tags(myString s, inpitemlist &tokens_result) = 0;
+  virtual void compute_tags(myString s, inp_list &tokens_result) = 0;
 };
 
 /** Take an input token and compute a list of morphological analyses, 

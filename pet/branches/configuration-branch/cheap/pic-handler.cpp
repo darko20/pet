@@ -1,5 +1,6 @@
 #include "pic-states.h"
 #include "fs.h"
+#include "hashing.h"
 #include <xercesc/framework/MemBufFormatTarget.hpp>
 #ifdef HAVE_ICU
 #include "unicode.h"
@@ -7,6 +8,7 @@
 #include <sstream>
 
 using namespace std;
+using namespace HASH_SPACE;
 using namespace XERCES_CPP_NAMESPACE;
 using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
 

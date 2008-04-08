@@ -51,21 +51,8 @@ postags::postags(const class lex_stem * ls) {
   }
 }
 
-#if 0
-postags::postags(const class full_form ff) {
-  if(!ff.valid())
-    return;
-    
-  set<string> tags = cheap_settings->smap("type-to-pos", ff.stem()->type());
-  
-  for(set<string>::iterator it = tags.begin(); it != tags.end(); ++it) {
-    add(*it);
-  }
-}
-#endif
-
-postags::postags(const list< class tItem *> &les) {
-  for(list<tItem *>::const_iterator it = les.begin(); it != les.end(); ++it) {
+postags::postags(const item_list &les) {
+  for(item_citer it = les.begin(); it != les.end(); ++it) {
     tLexItem *le = dynamic_cast<tLexItem *>(*it);
     if (le != NULL) 
       add(le->get_supplied_postags());
@@ -121,18 +108,13 @@ void postags::remove(const postags &s) {
 
 void postags::print(std::ostream &out) const {
   set<string>::const_iterator iter = _tags.begin();
-  if (iter != _tags.end()) {
+  for(set<string>::const_iterator iter = _tags.begin(); ; ++iter) {
     out << *iter;
     map<string, double>::const_iterator p = _probs.find(*iter);
     if(p != _probs.end())
       out << " " << std::setprecision(2) << p->second;
-    iter ++;
-  }
-  for(; iter != _tags.end(); ++iter) {
-    out << " " << *iter;
-    map<string, double>::const_iterator p = _probs.find(*iter);
-    if(p != _probs.end())
-      out << " " << std::setprecision(2) << p->second;
+    if (iter == _tags.end()) break;
+    out << " " ;
   }
 }
 
