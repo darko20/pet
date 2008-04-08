@@ -219,6 +219,29 @@ private:
   bool _quoted;
 };
 
+/** Print the derivation of an item in incr[tsdb()] compatible form,
+ *  according to \a protocolversion.
+ *  For function descriptions, \see tAbstractItemPrinter.
+ */
+class tTSDBDerivationPrinter : public tAbstractItemPrinter {
+public:
+  tTSDBDerivationPrinter(std::ostream &outstr, int protocolversion)
+    : _out(outstr), _protocolversion(protocolversion) {}
+
+  virtual ~tTSDBDerivationPrinter() {}
+
+  virtual void print(const tItem *item) { item->print_gen(this); }
+
+  virtual void real_print(const tInputItem *item);
+  virtual void real_print(const tLexItem *item);
+  virtual void real_print(const tPhrasalItem *item);
+
+private:
+  ostream &_out;
+  bool _protocolversion;
+};
+
+
 /** Print an item with its derivation, but delegate the real printing to
  *  another tAbstractItemPrinter object.
  *  For function descriptions, \see tAbstractItemPrinter.
@@ -441,6 +464,26 @@ private:
   JxchgDagPrinter jxchgprinter;
   std::ostream &_out;
 };
+
+
+/** Print chart items for the exchange with Ulrich Krieger's jfs, mainly for
+ *  use with his corpus directed approximation.
+ *  For function descriptions, \see tAbstractItemPrinter.
+ */
+class tLUIPrinter : public tAbstractItemPrinter {
+public:
+  /** Print items into files that are under \a path. */
+  tLUIPrinter(const char *path) : _dagprinter(), _path(path) {}
+  
+  virtual ~tLUIPrinter() {}
+
+  virtual void print(const tItem *arg) ;
+
+private:
+  LUIDagPrinter _dagprinter;
+  string _path;
+};
+
 
 /** default printing for chart items: use a tItemPrinter */
 std::ostream &operator<<(std::ostream &out, const tItem &item);

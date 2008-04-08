@@ -26,6 +26,7 @@
 #include "qc.h"
 #include "cppbridge.h"
 #include "version.h"
+#include "item-printer.h"
 #ifdef YY
 # include "yy.h"
 #endif
@@ -553,6 +554,13 @@ tsdb_parse_collect_edges(tsdb_parse &T, tItem *root)
     }
 }
 
+string tsdb_derivation(tItem *it, int protocolversion) {
+  ostringstream out;
+  tTSDBDerivationPrinter tdp(out, protocolversion);
+  tdp.print(it);
+  return out.str();
+}
+
 void
 cheap_tsdb_summarize_item(chart &Chart, int length,
                           int treal, int nderivations, 
@@ -578,7 +586,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     R.score = (*iter)->score();
                 }
                 if(opt_tsdb == 1)
-                    R.derivation = (*iter)->tsdb_derivation(opt_tsdb);
+                    R.derivation = tsdb_derivation(*iter, opt_tsdb);
                 else
                 {
                     R.edge_id = (*iter)->id();
@@ -605,7 +613,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_result R;
                     
                     R.result_id = nres;
-                    R.derivation = it.current()->tsdb_derivation(opt_tsdb);
+                    R.derivation = tsdb_derivation(it.current(), opt_tsdb);
                     
                     T.push_result(R);
                     nres++;

@@ -208,8 +208,8 @@ public:
   }
 
 private:
-  std::list<tItem *> &_LI;
-  std::list<tItem *>::iterator _curr;
+  item_list &_LI;
+  item_iter _curr;
 };
 
 
@@ -261,7 +261,7 @@ private:
 
   int _max, _currindex;
   std::vector< std::list< class tItem * > > &_LI;
-  std::list<class tItem *>::iterator _curr;
+  item_iter _curr;
 };
 
 /** Return all passive items adjacent to a given active item
@@ -297,8 +297,8 @@ public:
   }
 
 private:
-  std::list<tItem *> &_LI;
-  std::list<tItem *>::iterator _curr;
+  item_list &_LI;
+  item_iter _curr;
 };
 
 /** Return all active items adjacent to a given passive item
@@ -343,11 +343,11 @@ public:
   }
 
 private:
-  std::list<tItem *> &_LI_start, &_LI_end;
+  item_list &_LI_start, &_LI_end;
     
   bool _at_start;
     
-  std::list<tItem *>::iterator _curr;
+  item_iter _curr;
 };
 
 
@@ -369,7 +369,7 @@ void chart::shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
   weight_t *distance = new weight_t[size + 1] ;
   weight_t new_dist ;
 
-  std::list <tItem *>::iterator curr ;
+  item_iter curr ;
   tItem *passive ;
 
   // compute the minimal distance and minimal distance predecessor nodes for
