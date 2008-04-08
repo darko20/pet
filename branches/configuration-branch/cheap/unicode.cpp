@@ -100,9 +100,13 @@ UnicodeString EncodingConverter::convert(const string from)
 
 void initialize_encoding_converter(string encoding)
 {
-  if(Conv) delete Conv;
+  delete Conv;
   Conv = new EncodingConverter(encoding);
   // obsolete, except for yy
   if(ConvUTF8 == 0)
     ConvUTF8 = new EncodingConverter("utf8");
+}
+
+void finalize_encoding_converter() {
+  delete Conv;
 }

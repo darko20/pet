@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-#	pet-system.h		\
+# distribute the following files in any case:
 EXTRA_DIST = bitcode.cpp	\
 	bitcode.h		\
 	builtins.h		\

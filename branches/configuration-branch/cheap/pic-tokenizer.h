@@ -30,7 +30,7 @@ public:
   virtual ~tPICTokenizer() {}
 
   /** Produce a set of tokens from the given XML input. */
-  virtual void tokenize(std::string input, inpitemlist &result);
+  virtual void tokenize(std::string input, inp_list &result);
   
   /** A string to describe the module */
   virtual std::string description() { return "XML input chart reader"; }
@@ -42,12 +42,15 @@ public:
   void set_position_mapping(position_map position_mapping) { 
     _position_mapping = position_mapping ; }
 
+  /** Get the next input string from the given stream */
+  virtual bool next_input(std::istream &in, std::string &result);
+
 private:
   /** Produce a set of tInputItem tokens from the given XML input on stdin. */
-  void tokenize_from_stream(std::string input, inpitemlist &result);
+  void tokenize_from_stream(std::string input, inp_list &result);
 
   /** Produce a set of tokens from the given XML file. */
-  void tokenize_from_file(std::string filename, inpitemlist &result);
+  void tokenize_from_file(std::string filename, inp_list &result);
 
   position_map _position_mapping;
 };

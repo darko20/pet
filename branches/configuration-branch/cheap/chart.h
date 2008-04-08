@@ -47,7 +47,7 @@ public:
   void add(tItem *);
 
   /** Remove the item in the set from the chart */
-  void remove(hash_set<tItem *> &to_delete);
+  void remove(HASH_SPACE::hash_set<tItem *> &to_delete);
 
   /** Print all chart items */
   void print(std::ostream &);
@@ -55,8 +55,7 @@ public:
   /** Print chart items using \a f, select active and passive items with \a
    *  passives and \a actives.
    */
-  void 
-  print(tAbstractItemPrinter *f, bool passives = true, bool actives = false);
+  void print(tAbstractItemPrinter *f, bool passives = true, bool actives = false);
 
   /** Get statistics from the chart, like nr. of active/passive edges, average
    *  feature structure size, items contributing to a reading etc.

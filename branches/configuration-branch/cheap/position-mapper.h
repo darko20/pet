@@ -27,18 +27,18 @@ private:
   class poschartnode {
   private:
   public:
-    inpitemlist in_edges, out_edges;
+    inp_list in_edges, out_edges;
     int chartpos;
     void add_in_edge(tInputItem *item) { in_edges.push_back(item); }
     void add_out_edge(tInputItem *item) { out_edges.push_back(item); }
 
     void set_chartpositions() {
-      for (inpitemlist::iterator item_iterator = this->in_edges.begin()
+      for (inp_list::iterator item_iterator = this->in_edges.begin()
              ; item_iterator != this->in_edges.end()
              ; item_iterator++) {
         (*item_iterator)->set_end(chartpos);
       }
-      for (inpitemlist::iterator item_iterator = this->out_edges.begin()
+      for (inp_list::iterator item_iterator = this->out_edges.begin()
              ; item_iterator != this->out_edges.end()
              ; item_iterator++) {
         (*item_iterator)->set_start(chartpos);

@@ -22,7 +22,7 @@ public:
   tYYTokenizer(position_map position_mapping = STANDOFF_POINTS, char classchar = '$');
 
   /** Produce a set of tokens from the given string. */
-  virtual void tokenize(myString s, inpitemlist &result);
+  virtual void tokenize(myString s, inp_list &result);
   
   /** A string to describe the module */
   virtual std::string description() { return "YY style tokenizer"; }

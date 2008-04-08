@@ -36,6 +36,13 @@ call_resp_chain (MOD_ITER begin, MOD_ITER end
 }
 
 
+template < typename IM > 
+void free_modules(std::list< IM * > &modules) {
+  for(typename std::list< IM * >::iterator it = modules.begin();
+      it != modules.end(); it++)
+    delete *it;
+}
+
 /** This object takes complete control and responsibility of input processing
  *  prior to syntactic processing.
  *
@@ -52,6 +59,14 @@ class lex_parser {
 public:
   lex_parser() : _maxpos(-1), _carg_path(NULL) { }
   
+  ~lex_parser() {
+    free_modules(_tokenizers);
+    free_modules(_taggers);
+    free_modules(_ne_recogs);
+    free_modules(_morphs);
+    free_modules(_lexica);
+  }
+    
   /** Perform lexparser initializations.
    *  - Set carg modification (surface string) path
    */
@@ -62,6 +77,13 @@ public:
    */
   void reset();
 
+  /** Read the next input chunk from \a in into \a result and return \c true if
+   *  the end of input/file has been reached, false otherwise.
+   *
+   *  The functionality is delegated to the registered tokenizer.
+   */
+  bool next_input(std::istream &in, std::string &result);
+
   /** Perform tokenization, named entity recognition, POS tagging and skipping
    *  of unknown tokens.
    *  \param input The input string, not necessarily a simple sentence.
@@ -69,7 +91,22 @@ public:
    *  \return The rightmost position of the parsing chart that has to be
    *  created. 
    */
-  int process_input(std::string input, inpitemlist &inp_tokens);
+  int process_input(std::string input, inp_list &inp_tokens);
+
+  /** The first stage of lexical processing, without chart dependencies and
+   * unknown lex entries processing.
+   *
+   * Do lexicon access and morphology, complete active multi word lexemes
+   *
+   * \param inp_tokens The input tokens coming from process_input
+   * \param lex_exhaustive If true, do exhaustive lexical processing before
+   *        looking for gaps and chart dependencies. This allows to catch more
+   *        complex problems and properties.
+   * \param FSAS the allocation state for the whole parse
+   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   */
+  void lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
+                       fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** \brief Perform lexical processing. 
    *
@@ -85,7 +122,7 @@ public:
    * \param FSAS the allocation state for the whole parse
    * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
    */
-  void lexical_processing(inpitemlist &inp_tokens, bool lex_exhaustive
+  void lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
                           , fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** Do a morphological analysis of \a form and return the results.
@@ -133,7 +170,7 @@ private:
    *                than (j, j+1).
    *  \return the end position of the rightmost item.
    */
-  int map_positions(inpitemlist &tokens, position_map position_mapping);
+  int map_positions(inp_list &tokens, position_map position_mapping);
 
   /** Check the chart dependencies.
    * Chart dependencies allow the user to express certain cooccurrence
@@ -155,14 +192,14 @@ private:
   /** Add generic entries for uncovered input items.
    * This is only applied if the option \c opt_default_les is \c true.
    */
-  void add_generics(inpitemlist &unexpanded);
+  void add_generics(inp_list &unexpanded);
 
   /** Add predicted entries for uncovered input items.  
    * This is only applied if the option \c opt_predict_les is \c
    * non-zero and \opt_default_les is false.
    */
-  void add_predicts(inpitemlist &unexpanded,
-                    inpitemlist &inp_tokens, int );
+  void add_predicts(inp_list &unexpanded,
+                    inp_list &inp_tokens, int predict_les);
 
   /** Use the registered tokenizer(s) to tokenize the input string and put the
    *  result into \a tokens.
@@ -170,16 +207,16 @@ private:
    * At the moment, it seems unlikely that more than one tokenizer should be
    * registered. Nevertheless, the structure to have multiple tokenizers
    */
-  void tokenize(std::string input, inpitemlist &tokens);
+  void tokenize(std::string input, inp_list &tokens);
 
   /** Call the registered taggers which add their results to the individual
    *  \a tokens.
    */
-  void tag(std::string input, inpitemlist &tokens);
+  void tag(std::string input, inp_list &tokens);
 
   /** Call the registered NE recognizers which add their results to \a tokens.
    */
-  void ne_recognition(std::string input, inpitemlist &tokens);
+  void ne_recognition(std::string input, inp_list &tokens);
 
   /** Consider lexica, some parallel and some in a chain of responsibility.
    *

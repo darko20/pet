@@ -24,11 +24,11 @@
 
 using std::list;
 
-const char * const unification_failure::failure_names[] = {
+const char * const failure::failure_names[] = {
   "success", "type clash", "cycle", "constraint clash", "coreference clash"
 };
 
-unification_failure::unification_failure()
+failure::failure()
   : _cyclic_paths()
 {
     _type = SUCCESS;
@@ -37,7 +37,7 @@ unification_failure::unification_failure()
     _cost = -1;
 }
 
-unification_failure::unification_failure(const unification_failure &f)
+failure::failure(const failure &f)
     : _cyclic_paths()
 {
     _type = f._type;
@@ -51,7 +51,7 @@ unification_failure::unification_failure(const unification_failure &f)
         _cyclic_paths.push_back(copy_list(*iter));
 }
 
-unification_failure::unification_failure(failure_type t, list_int *rev_path,
+failure::failure(failure_type t, list_int *rev_path,
                                          int cost, int s1, int s2,
                                          dag_node *cycle, dag_node *root)
     : _cyclic_paths()
@@ -60,15 +60,13 @@ unification_failure::unification_failure(failure_type t, list_int *rev_path,
     _path = reverse(rev_path);
     _s1 = s1;
     _s2 = s2; _cost = cost;
-#ifdef QC_PATH_COMP
     if(cycle && root)
     {
         _cyclic_paths = dag_paths(root, cycle);
     }
-#endif
 }
 
-unification_failure::~unification_failure()
+failure::~failure()
 {
     free_list(_path);
     for(list<list_int *>::iterator iter = _cyclic_paths.begin();
@@ -76,8 +74,8 @@ unification_failure::~unification_failure()
         free_list(*iter);
 }
   
-unification_failure &
-unification_failure::operator=(const unification_failure &f)
+failure &
+failure::operator=(const failure &f)
 {
     if(_path)
         free_list(_path);
@@ -124,7 +122,7 @@ void print_path(std::ostream &out, list_int *path) {
 }
 
 void
-unification_failure::print(std::ostream &out) const {
+failure::print(std::ostream &out) const {
   if ((_type >= SUCCESS) && (_type <= COREF)) {
     out << failure_names[_type];
   } else {
@@ -163,7 +161,7 @@ unification_failure::print(std::ostream &out) const {
 }
 #ifdef USE_DEPRECATED
 void
-unification_failure::print(FILE *f) const
+failure::print(FILE *f) const
 {
     switch(_type)
     {
@@ -222,7 +220,7 @@ unification_failure::print(FILE *f) const
 }
 #endif
 int
-unification_failure::less_than(const unification_failure &b) const
+failure::less_than(const failure &b) const
 {
     if(_type < b._type)
         return -1;

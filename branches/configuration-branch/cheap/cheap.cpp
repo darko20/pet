@@ -36,10 +36,9 @@
 #endif
 #include "item-printer.h"
 #include "version.h"
-
-#ifdef QC_PATH_COMP
+#include "mrs.h"
+#include "vpm.h"
 #include "qc.h"
-#endif
 
 #ifdef YY
 #include "yy.h"
@@ -94,7 +93,7 @@ char defaultPb[defaultPbSize];
 tGrammar *Grammar = 0;
 settings *cheap_settings = 0;
 bool XMLServices = false;
-
+tVPM *vpm = 0;
 
 struct passive_weights : public unary_function< tItem *, unsigned int > {
   unsigned int operator()(tItem * i) {
@@ -175,8 +174,7 @@ void interactive() {
                 Config::get<std::string>("opt_tsdb_dir").c_str());
   }
 
-  while(!(input = read_line(stdin,
-      Config::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
+  while(Lexparser.next_input(std::cin, input)) {
     chart *Chart = 0;
 
     tsdb_dump.start();
@@ -214,7 +212,7 @@ void interactive() {
 
       if(verbosity > 1 || Config::get<char*>("opt_mrs")) {
         int nres = 0;
-                
+
         list< tItem * > results(Chart->readings().begin()
                                 , Chart->readings().end());
         // sorting was done already in parse_finish
@@ -228,12 +226,11 @@ void interactive() {
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
           tCompactDerivationPrinter deriv(std::cerr);
           tItem *it = *iter;
-                    
+
           nres++;
           fprintf(fstatus, "derivation[%d]", nres);
           fprintf(fstatus, " (%.4g)", it->score());
-          fprintf(fstatus, ":%s", it->get_yield().c_str());
-          fprintf(fstatus, "\n");
+          fprintf(fstatus, ":%s\n", it->get_yield().c_str());
           if(verbosity > 2) {
             deriv.print(it);
             fprintf(fstatus, "\n");
@@ -254,6 +251,19 @@ void interactive() {
             }
           }
 #endif
+          if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
+            mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
+            if (mrs->valid()) {
+              mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
+              if (mapped_mrs->valid()) {
+                fprintf(fstatus, "\n");
+                mapped_mrs->print(fstatus);
+                fprintf(fstatus, "\n");
+              }
+              delete mapped_mrs;
+            }
+            delete mrs;
+          }
         }
 
 #ifdef HAVE_MRS
@@ -287,9 +297,8 @@ void interactive() {
           else 
             LOG(loggerUncategorized, Level::INFO, "EOM");
         }
-#endif           
+#endif
       }
-      fflush(fstatus);
     } /* try */
         
     catch(tError e) {
@@ -300,82 +309,26 @@ void interactive() {
       string surface = get_surface_string(Chart);
       dump_jxchg(surface, Chart);
       tsdb_dump.error(Chart, surface, e);
-
     }
+
+    fflush(fstatus);
 
     if(Chart != 0) delete Chart;
 
     id++;
   } /* while */
 
-#ifdef QC_PATH_COMP
   if(Config::get<char *>("opt_compute_qc")) {
     FILE *qc = fopen(Config::get<char *>("opt_compute_qc"), "w");
     compute_qc_paths(qc);
     fclose(qc);
   }
-#endif
-}
-
-void nbest() {
-  string input;
-
-  while(!feof(stdin)) {
-    int id = 0;
-    int selected = -1;
-    int time = 0;
-        
-    while(!(input = read_line(stdin,
-        Config::get<bool>("opt_comment_passthrough") ? 1 : 0)).empty()) {
-      if(selected != -1)
-        continue;
-
-      chart *Chart = 0;
-      try {
-        fs_alloc_state FSAS;
-                
-        list<tError> errors;
-        analyze(input, Chart, FSAS, errors, id);
-        if(!errors.empty())
-          throw errors.front();
-                
-        if(stats.readings > 0) {
-          selected = id;
-          fprintf(stdout, "[%d] %s\n", selected, input.c_str());
-        }
-                
-        stats.print(fstatus);
-        fflush(fstatus);
-      } /* try */
-            
-      catch(tError e) {
-        LOG_ERROR(loggerUncategorized, "%s", e.getMessage().c_str());
-        stats.print(fstatus);
-        fflush(fstatus);
-        stats.readings = -1;
-      }
-            
-      if(Chart != 0) delete Chart;
-            
-      time += stats.tcpu;
-            
-      id++;
-    }
-    if(selected == -1)
-      fprintf(stdout, "[]\n");
-
-    fflush(stdout);
-
-    LOG(loggerUncategorized, Level::INFO, "ttcpu: %d", time);
-  }
 }
 
 void interactive_morphology() {
-
   string input;
-  bool comment_passthrough;
-  Config::get("opt_comment_passthrough", comment_passthrough);
-  while(!(input = read_line(stdin, comment_passthrough)).empty()) {
+
+  while(Lexparser.next_input(std::cin, input)) {
     timer clock;
     list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
     
@@ -396,7 +349,7 @@ void interactive_morphology() {
 
 void dump_glbs(FILE *f) {
   int i, j;
-  for(i = 0; i < ntypes; i++) {
+  for(i = 0; i < nstatictypes; i++) {
     prune_glbcache();
     for(j = 0; j < i; j++)
       if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
@@ -405,7 +358,7 @@ void dump_glbs(FILE *f) {
 
 void print_symbol_tables(FILE *f) {
   fprintf(f, "type names (print names)\n");
-  for(int i = 0; i < ntypes; i++) {
+  for(int i = 0; i < nstatictypes; i++) {
     fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
   }
 
@@ -420,8 +373,21 @@ void print_grammar(FILE *f) {
     dump_glbs(f);
 
   print_symbol_tables(f);
+
+  for(int i = 0; i < nstatictypes; i++) {
+    fprintf(f, "\n%d\t%s:\n", i, print_name(i));
+    dag_print_safe(f, type_dag(i), false, 0);
+  }
 }
 
+void cleanup() {
+#ifdef HAVE_XML
+  if (XMLServices) xml_finalize();
+#endif
+  delete Grammar;
+  delete cheap_settings;
+  delete vpm;
+}
 
 void process(const char *s) {
   timer t_start;
@@ -431,24 +397,16 @@ void process(const char *s) {
     cheap_settings = new settings(base.c_str(), s, "reading");
     fprintf(fstatus, "\n");
     LOG(loggerUncategorized, Level::INFO, "loading `%s' ", s);
-    Grammar = new tGrammar(s); 
-  }
-  catch(tError &e) {
-    LOG_FATAL(loggerUncategorized, "aborted\n%s",
-              e.getMessage().c_str());
-    delete cheap_settings;
-    return;
-  }
+    Grammar = new tGrammar(s);
 
 #ifdef HAVE_ECL
-  char *cl_argv[] = {"cheap", 0};
-  ecl_initialize(1, cl_argv);
-  // make the redefinition warnings go away
-  ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
-                       "cl-user::*error-output* nil)");
+    char *cl_argv[] = {"cheap", 0};
+    ecl_initialize(1, cl_argv);
+    // make the redefinition warnings go away
+    ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
+                   "cl-user::*error-output* nil)");
 #endif  // HAVE_ECL
 
-  try {
 #ifdef DYNAMIC_SYMBOLS
     init_characterization();
 #endif
@@ -470,7 +428,7 @@ void process(const char *s) {
     Lexparser.register_lexicon(new tInternalLexicon());
 
     
-    // TODO: this yells for a separate tokenizer factory
+    // \todo this cries for a separate tokenizer factory
     tTokenizer *tok;
     switch (Config::get<tokenizer_id>("opt_tok")) {
     case TOKENIZER_YY: 
@@ -536,14 +494,14 @@ void process(const char *s) {
     default:
       tok = new tLingoTokenizer(); break;
     }
+    tok->set_comment_passthrough(opt_comment_passthrough);
     Lexparser.register_tokenizer(tok);
   }
     
   catch(tError &e) {
     LOG_FATAL(loggerUncategorized,
               "aborted\n%s", e.getMessage().c_str());
-    delete Grammar;
-    delete cheap_settings;
+    cleanup();
     return;
   }
 
@@ -559,6 +517,14 @@ void process(const char *s) {
   } else mrs_initialize(s, NULL);
 
 #endif
+
+  vpm = new tVPM();
+  char *name2 = cheap_settings->value("vpm");
+  if (name2) {
+    string file = find_file(name2, ".vpm", s);
+    vpm->read_vpm(file);
+  }
+
 #ifdef HAVE_ECL
   // reset the error stream so warnings show up again
   ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
@@ -588,18 +554,11 @@ void process(const char *s) {
         {
           if(Config::get<bool>("opt_interactive_morph"))
             interactive_morphology();
-          else if(Config::get<bool>("opt_nbest"))
-            nbest();
           else
             interactive();
         }
   }
-
-#ifdef HAVE_XML
-  if (XMLServices) xml_finalize();
-#endif
-  delete Grammar;
-  delete cheap_settings;
+  cleanup();
 }
 
 

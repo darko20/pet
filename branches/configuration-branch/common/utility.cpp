@@ -74,6 +74,26 @@ void strtoupper(char *s)
   }
 }
 
+/** Convert all characters in \a src to lower case and copy to \a dest */
+void strtolower(char *dest, const char *src) {
+  if (src == NULL || dest == NULL) return;
+  while (*src) {
+    *dest = tolower(*src);
+    src++, dest++;
+  }
+  *dest = *src;
+}
+
+/** Convert all characters in \a src to upper case and copy to \a dest */
+void strtoupper(char *dest, const char *src) {
+  if (src == NULL || dest == NULL) return;
+  while (*src) {
+    *dest = toupper(*src);
+    src++, dest++;
+  }
+  *dest = *src;
+}
+
 /** Convert a (possibly) quoted integer string \a s into an integer and issue
  *  an error if this does not succeed.
  *  \param s The input string

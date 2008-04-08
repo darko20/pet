@@ -23,8 +23,12 @@
 #include "chart.h"
 #include "tsdb++.h"
 #include "item-printer.h"
+#include "hashing.h"
 
 #include <ostream>
+
+using namespace std;
+using namespace HASH_SPACE;
 
 //#define DEBUG
 

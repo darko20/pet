@@ -17,6 +17,8 @@ bmw20@cl.cam.ac.uk
 
 #include <xercesc/dom/DOM.hpp> 
 
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <list>
 #include <map>
@@ -109,7 +111,7 @@ public:
   virtual ~tSMAFTokenizer() {}
 
   // produce a set of tokens from the SMAF XML input
-  virtual void tokenize(std::string input, inpitemlist &result);
+  virtual void tokenize(std::string input, inp_list &result);
   
   // string to describe module
   virtual std::string description() { return "SMAF XML input reader"; }
@@ -160,7 +162,7 @@ private:
   bool addNodePoint(int node, int point);
 
   // renumber nodes to avoid seg fault
-  void renumberNodes(inpitemlist &result);
+  void renumberNodes(inp_list &result);
 
   //
   // SMAF XML
@@ -200,7 +202,9 @@ private:
   tGMap _gMap;
 
   // read file and set _safConfs
-  void processSafConfFile(const std::string &filename);
+  void processSafConfFile(const char *filename);
+  void processSafConfDefault();
+  void processSafConfIstream(std::istream *filename);
   // extract saf conf from line
   tSafConf* processSafConfLine(const std::string &line);
   // extract gMap setting from line
@@ -211,7 +215,7 @@ private:
   tSafConfNvpair* extractNvpair(const std::string &str);
 
   // use saf morph annot to update input item set 
-  void processSafMorphEdge(tSaf &saf, inpitemlist &items);
+  void processSafMorphEdge(tSaf &saf, inp_list &items);
   
   // use _safConfs to set local content of saf
   void setLocalContent(tSaf &saf);
@@ -247,7 +251,7 @@ private:
   // map saf to tInputItem
   tInputItem* getInputItemFromSaf(const tSaf &saf);
   // retrieve input item by id
-  tInputItem* getItemById(const std::string &id, const inpitemlist &items);
+  tInputItem* getItemById(const std::string &id, const inp_list &items);
 
 };
   

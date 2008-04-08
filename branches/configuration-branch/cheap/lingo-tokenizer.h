@@ -22,7 +22,7 @@ public:
   tLingoTokenizer() : tTokenizer() {}
 
   /** Produce a set of tokens from the given string. */
-  virtual void tokenize(std::string s, inpitemlist &result);
+  virtual void tokenize(std::string s, inp_list &result);
 
   virtual std::string description() { return "LinGO tokenization"; }
 

@@ -22,9 +22,7 @@
 #include "smaf-tokenizer.h"
 #include "cheap.h"
 
-#include <iostream>
 #include <fstream>
-
 using namespace std;
 
 #include <xercesc/dom/DOM.hpp> 
@@ -159,7 +157,13 @@ tSMAFTokenizer::tSMAFTokenizer()
   _chartNodeMax = -1;
   // load saf conf
   char* safConfFilename = cheap_settings->value("smaf-conf");
-  processSafConfFile(safConfFilename);
+  if (safConfFilename==NULL) 
+    {
+      cerr << endl << "WARNING: please set 'smaf-conf' in PET config file" << endl;
+      processSafConfDefault();
+    }
+  else
+    processSafConfFile(safConfFilename);
 }
 
 
@@ -476,7 +480,7 @@ tInputItem* tSMAFTokenizer::getInputItemFromSaf(const tSaf &saf){
 }
 
 // return item matching (external) id
-tInputItem* tSMAFTokenizer::getItemById(const string &id, const inpitemlist &items)
+tInputItem* tSMAFTokenizer::getItemById(const string &id, const inp_list &items)
 {
   for(list<tInputItem *>::const_iterator it = items.begin()
         ; it != items.end(); it++) {
@@ -488,7 +492,7 @@ tInputItem* tSMAFTokenizer::getItemById(const string &id, const inpitemlist &ite
   return NULL;
 }
 
-void tSMAFTokenizer::processSafMorphEdge(tSaf &saf, inpitemlist &items){
+void tSMAFTokenizer::processSafMorphEdge(tSaf &saf, inp_list &items){
 
   // EDGETYPE
   string edgeType = saf.lContent["edgeType"];
@@ -668,12 +672,12 @@ void tSMAFTokenizer::clearMySafs()
   _mySafs.clear();
 }
 
-void tSMAFTokenizer::renumberNodes(inpitemlist &result)
+void tSMAFTokenizer::renumberNodes(inp_list &result)
 {
   // rename nodes in forward seq to avoid seg fault later (!)
   map<int,int> nodePoint;
   // construct node point map
-  for(inpitemlist_iter it = result.begin(); it != result.end(); it++) 
+  for(inp_iterator it = result.begin(); it != result.end(); it++) 
     {
       int from=(*it)->start(), to=(*it)->end();
       int cfrom=(*it)->startposition(), cto=(*it)->endposition();
@@ -706,7 +710,7 @@ void tSMAFTokenizer::renumberNodes(inpitemlist &result)
     }
 
   // finally, rename the nodes
-  for(inpitemlist_iter it = result.begin(); it != result.end(); it++) 
+  for(inp_iterator it = result.begin(); it != result.end(); it++) 
     {
       // retrieve new values
       int from=(*it)->start(), to=(*it)->end();
@@ -718,7 +722,7 @@ void tSMAFTokenizer::renumberNodes(inpitemlist &result)
 }
 
 // map SMAF XML to set of tokens=input items
-void tSMAFTokenizer::tokenize(string input, inpitemlist &result) {
+void tSMAFTokenizer::tokenize(string input, inp_list &result) {
 
   // initialise mappings
   clearIdMapping();
@@ -768,7 +772,7 @@ void tSMAFTokenizer::tokenize(string input, inpitemlist &result) {
   // sanity check
   // to avoid seg fault later (why??) there must be an edge with start=0
   bool flag=false;
-  for(inpitemlist_iter it = result.begin(); it != result.end(); it++) 
+  for(inp_iterator it = result.begin(); it != result.end(); it++) 
     {
       if ((*it)->start()==0)
         flag=true;
@@ -1060,20 +1064,47 @@ bool tSMAFTokenizer::add2idMapping(const string &id, tInputItem &item)
 
 // in: filename
 // out: list of saf conf
-void tSMAFTokenizer::processSafConfFile(const string &filename)
+void tSMAFTokenizer::processSafConfFile(const char* filename)
   {
     // message to cerr
     cerr << endl << "reading SMAF conf '" << filename << "'..." << endl;
-
     // open file
-    ifstream ff(filename.c_str());
+    ifstream ff(filename);
+    // process istream
+    istream* istr =  &ff;
+    processSafConfIstream(istr);
+  }
 
+// out: list of saf conf (defaults)
+void tSMAFTokenizer::processSafConfDefault()
+  {
+    // default SMAF config text
+    string default_config = "define gMap.carg (synsem lkeys keyrel carg) STRING\n\
+token.[] -> edgeType='tok' tokenStr=content\n\
+wordForm.[] -> edgeType='morph' stem=content.stem partialTree=content.partial-tree\n\
+ersatz.[] -> edgeType='tok+morph' stem=content.name tokenStr=content.name gMap.carg=content.surface inject='t' analyseMorph='t'\n\
+pos.[] -> edgeType='morph' fallback='' pos=content.tag gMap.carg=deps.content";
+
+    // message to cerr
+    cerr << "WARNING: falling back to built-in default SMAF config: " << endl << endl;
+    cerr << default_config << endl << endl;
+
+    // process istream
+    std::stringstream s( default_config );
+    istream* istr =  &s;
+    processSafConfIstream(istr);
+  }
+
+// in: istream to SMAF config text
+void tSMAFTokenizer::processSafConfIstream(istream* istr)
+  {
     char ch;
     string line="";
     UnicodeString u_line;
 
     // walk thru chars
-    while (ff.get(ch))
+    //    while (ff.get(ch))
+    while (istr->get(ch))
       {
         if (ch=='\n')
           // end of line

@@ -161,7 +161,7 @@ mrs_initialize(const char *grammar_file_name, const char *vpm) {
 
   ecl_cpp_load_files("postload-lisp-files", grammar_file_name);
 
-  // [bmw] uncomment lines below when debugging embedded Lisp MRS code
+  // [bmw] uncomment line below when debugging embedded Lisp MRS code
   //funcall(1, c_string_to_object("break"));
 
   if(vpm && *vpm )

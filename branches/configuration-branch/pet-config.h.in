@@ -1,7 +1,13 @@
 /* pet-config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have the `aref1' function. */
+#undef HAVE_AREF1
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
+
+/* define if the Boost library is available */
+#undef HAVE_BOOST
 
 /* Define to 1 if you have the <boost/graph/adjacency_list.hpp> header file.
    */
@@ -17,6 +23,9 @@
 /* Define to 1 if you have the `bzero' function. */
 #undef HAVE_BZERO
 
+/* define if CppUnit is available */
+#undef HAVE_CPPUNIT
+
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 #undef HAVE_DOPRNT
 
@@ -26,11 +35,20 @@
 /* Use ECL for MRS or preprocessing library */
 #undef HAVE_ECL
 
+/* Define to 1 if you have the `ecl_aref1' function. */
+#undef HAVE_ECL_AREF1
+
+/* Define to 1 if you have the <ecl/ecl.h> header file. */
+#undef HAVE_ECL_ECL_H
+
 /* Define to 1 if you have the <ecl.h> header file. */
 #undef HAVE_ECL_H
 
 /* Define to 1 if you have the <ext/hash_map> header file. */
 #undef HAVE_EXT_HASH_MAP
+
+/* Define to 1 if you have the <ext/hash_set> header file. */
+#undef HAVE_EXT_HASH_SET
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
@@ -50,7 +68,10 @@
 /* Define to 1 if you have the <hash_map> header file. */
 #undef HAVE_HASH_MAP
 
-/* use international character library from IBM */
+/* Define to 1 if you have the <hash_set> header file. */
+#undef HAVE_HASH_SET
+
+/* define to 1 if ICU library is available */
 #undef HAVE_ICU
 
 /* Define to 1 if you have the `inet_ntoa' function. */
@@ -62,11 +83,8 @@
 /* Define to 1 if you have the <itsdb.h> header file. */
 #undef HAVE_ITSDB_H
 
-/* Define to 1 if you have the `cppunit' library (-lcppunit). */
-#undef HAVE_LIBCPPUNIT
-
-/* Define to 1 if you have the `log4cxx' library (-llog4cxx). */
-#undef HAVE_LIBLOG4CXX
+/* Define to 1 if you have the `ecl' library (-lecl). */
+#undef HAVE_LIBECL
 
 /* Define to 1 if you have the `pq' library (-lpq). */
 #undef HAVE_LIBPQ
@@ -82,6 +100,18 @@
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
+
+/* Define to 1 if you have the `make_base_string_copy' function. */
+#undef HAVE_MAKE_BASE_STRING_COPY
+
+/* Define to 1 if you have the `make_simple_base_string' function. */
+#undef HAVE_MAKE_SIMPLE_BASE_STRING
+
+/* Define to 1 if you have the `make_simple_string' function. */
+#undef HAVE_MAKE_SIMPLE_STRING
+
+/* Define to 1 if you have the `make_string_copy' function. */
+#undef HAVE_MAKE_STRING_COPY
 
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
@@ -102,7 +132,7 @@
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
 
-/* use ECL x-preprocessing library */
+/* use ECL preprocessing library */
 #undef HAVE_PREPROC
 
 /* Define to 1 if your system has a GNU libc compatible `realloc' function,
@@ -118,9 +148,6 @@
 /* Define to 1 if `stat' has the bug that it succeeds when given the
    zero-length file name argument. */
 #undef HAVE_STAT_EMPTY_STRING_BUG
-
-/* Define to 1 if stdbool.h conforms to C99. */
-#undef HAVE_STDBOOL_H
 
 /* Define to 1 if you have the <stddef.h> header file. */
 #undef HAVE_STDDEF_H
@@ -160,6 +187,12 @@
 
 /* Define to 1 if you have the `strtol' function. */
 #undef HAVE_STRTOL
+
+/* Define to 1 if the system has the type `struct ecl_base_string'. */
+#undef HAVE_STRUCT_ECL_BASE_STRING
+
+/* Define to 1 if the system has the type `struct ecl_string'. */
+#undef HAVE_STRUCT_ECL_STRING
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
@@ -207,9 +240,6 @@
 /* Enable XML input modes, using Xerces C++ library */
 #undef HAVE_XML
 
-/* Define to 1 if the system has the type `_Bool'. */
-#undef HAVE__BOOL
-
 /* Include instantiation failure cache code */
 #undef INSTFC
 
@@ -225,6 +255,9 @@
 
 /* Enable grammar dumping in LUI format */
 #undef LUI
+
+/* Define to 1 if assertions should be disabled. */
+#undef NDEBUG
 
 /* Name of package */
 #undef PACKAGE
@@ -244,14 +277,11 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* "directory path separator char" */
+/* directory path separator char */
 #undef PATH_SEP
 
 /* Define to 1 if the C compiler supports function prototypes. */
 #undef PROTOTYPES
-
-/* Enable code for QuickCheck computation */
-#undef QC_PATH_COMP
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
@@ -276,7 +306,7 @@
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 #undef TM_IN_SYS_TIME
 
-/* "incr[tsdb()] libraries available, supply API" */
+/* "Define to 1 for [incr tsdb()] support" */
 #undef TSDBAPI
 
 /* Version number of package */

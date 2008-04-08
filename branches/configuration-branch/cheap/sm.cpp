@@ -21,6 +21,7 @@
 
 #include "sm.h"
 #include "hash.h"
+#include "hashing.h"
 #include "lex-tdl.h"
 #include "utility.h"
 #include "settings.h"
@@ -30,8 +31,8 @@
 #include <sstream>
 #include <float.h>
 
-using std::string;
-using std::list;
+using namespace std;
+using namespace HASH_SPACE;
 
 int
 tSMFeature::hash() const
@@ -85,14 +86,6 @@ namespace HASH_SPACE {
             return key.hash();
         }
     };
-
-    template<> struct hash<string>
-    {
-        inline size_t operator()(const string &key) const
-        {
-            return ::bjhash((const ub1 *) key.data(), key.size(), 0);
-        }
-    };
 }
 
 /** Maintains a mapping between features (instances of tSMFeature) and codes.
@@ -130,7 +123,7 @@ class tSMMap
 
     /* Subfeature mapping */
     int _next_subfeature;
-    hash_map<string, int> _stringToSubfeature;
+    hash_map<string, int, bj_string_hash> _stringToSubfeature;
 };
 
 int
@@ -171,7 +164,8 @@ tSMMap::codeToFeature(int code) const
 int
 tSMMap::stringToSubfeature(const string &s)
 {
-    hash_map<string, int>::iterator itMatch = _stringToSubfeature.find(s);
+    hash_map<string, int, bj_string_hash>::iterator itMatch =
+      _stringToSubfeature.find(s);
     if(itMatch != _stringToSubfeature.end())
     {
         return itMatch->second;
@@ -515,7 +509,7 @@ tMEM::parseOptions()
         consume(1);
       }
       free(pname);
-    }
+    }    
     else 
       consume(1);
   }
@@ -983,7 +977,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
              it != letypes[i].end(); it ++) {
           v.push_back(map()->typeToSubfeature(output));
           v.push_back(map()->intToSubfeature(6));
-          v.push_back(map()->intToSubfeature(i));
+          v.push_back(map()->intToSubfeature(i));       
           v.push_back(map()->typeToSubfeature(*it));
           total = combineScores(total, score(tSMFeature(v)));
           v.clear();

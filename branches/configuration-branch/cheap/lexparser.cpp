@@ -19,16 +19,18 @@
 
 #include "pet-config.h"
 #include "lexparser.h"
-#include "position-mapper.h" 
+#include "position-mapper.h"
 #include "chart.h"
 #include "task.h"
 #include "tsdb++.h"
 #include "item-printer.h"
 #include "cheap.h"
+#include "hashing.h"
 
 #include <iostream>
 
 using namespace std;
+using namespace HASH_SPACE;
 
 lex_parser global_lexparser;
 lex_parser &Lexparser = global_lexparser;
@@ -84,7 +86,7 @@ string get_xml_input(string input) {
  * registered. Nevertheless, the structure to have multiple tokenizers is
  * already there.
  */
-void lex_parser::tokenize(string input, inpitemlist &tokens) {
+void lex_parser::tokenize(string input, inp_list &tokens) {
   if (_tokenizers.empty())
     throw tError("No tokenizer registered");
 
@@ -112,7 +114,7 @@ void lex_parser::tokenize(string input, inpitemlist &tokens) {
 /** Call the registered taggers which add their results to the individual
  *  \a tokens.
  */
-void lex_parser::tag(string input, inpitemlist &tokens) {
+void lex_parser::tag(string input, inp_list &tokens) {
   if (! _taggers.empty()) {
     _taggers.front()->compute_tags(input, tokens);
   }
@@ -120,7 +122,7 @@ void lex_parser::tag(string input, inpitemlist &tokens) {
 
 /** Call the registered NE recognizers which add their results to \a tokens.
  */
-void lex_parser::ne_recognition(string input, inpitemlist &tokens) {
+void lex_parser::ne_recognition(string input, inp_list &tokens) {
   if (! _ne_recogs.empty()) {
     _ne_recogs.front()->compute_ne(input, tokens);
   }
@@ -224,6 +226,20 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
 }
 
 
+
+/** Return the inflection rules that have to be applied to perform this
+ *  morphological analysis.
+ */
+static list_int *get_rules(tMorphAnalysis &analysis) {
+  const std::list<grammar_rule *> &rules = analysis.rules();
+  list_int *res = NULL;
+  for(std::list<grammar_rule *>::const_reverse_iterator it = rules.rbegin()
+        ; it != rules.rend(); ++it) {
+    res = cons((*it)->type(), res);
+  }
+  return res;
+}
+
 /** Add the input item to the global chart and combine it with the
  * appropriate lexical units, eventually applying morphological processing
  * beforehand.
@@ -251,7 +267,7 @@ lex_parser::add(tInputItem *inp) {
       list<lex_stem *> stems = get_lex_entries(mrph->base());      
       for(list<lex_stem *>::iterator it = stems.begin()
             ; it != stems.end(); it++) {
-        list_int *rules = copy_list(mrph->rules());
+        list_int *rules = get_rules(*mrph);
         combine(*it, inp, rules, inp->mods());
         free_list(rules);
       }
@@ -302,10 +318,10 @@ struct tInputItem_position_less
   }
 };
 
-int lex_parser::map_positions(inpitemlist &tokens, position_map position_mapping) {
+int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
   int maxend = 0;
   if (position_mapping==NO_POSITION_MAP) {
-    for(inpitemlist_iter it = tokens.begin(); it != tokens.end(); it++) {
+    for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
       maxend=max(maxend,(*it)->end());
     }
     return maxend;
@@ -316,7 +332,7 @@ int lex_parser::map_positions(inpitemlist &tokens, position_map position_mapping
   // first delete all skip tokens
   tokens.remove_if(mem_fun(&tInputItem::is_skip_token));
 
-  for(inpitemlist_iter it = tokens.begin(); it != tokens.end(); it++) {
+  for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
     posmapper.add(*it);
   }
   maxend = posmapper.map_to_chart_positions();
@@ -526,6 +542,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
  
   for(list<tInputItem *>::iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
+
     // debug messages
     LOG_ONLY(pbprintf(pb, "  token "));
     LOG_ONLY((*it)->print(pb));
@@ -585,7 +602,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
         } else {
           for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
                 ; mrph != morphs.end(); mrph++) {
-            list_int *rules = copy_list(mrph->rules());
+            list_int *rules = get_rules(*mrph);
             combine(*ls, *it, rules, in_mods);
             free_list(rules);
           }
@@ -669,7 +686,7 @@ lex_parser::add_predicts(inpitemlist &unexpanded,
       } else {
         for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
                ; mrph != morphs.end(); mrph++) {
-          list_int *rules = copy_list(mrph->rules());
+          list_int *rules = get_rules(*mrph);
           combine(*ls, *it, rules, in_mods);
           free_list(rules);
         }
@@ -689,8 +706,16 @@ lex_parser::reset() {
   _maxpos = -1;
 }
 
+
+bool lex_parser::next_input(std::istream &in, std::string &result) {
+  if (_tokenizers.empty())
+    throw tError("No tokenizer registered");
+  
+  return _tokenizers.front()->next_input(in, result);
+}
+
 int
-lex_parser::process_input(string input, inpitemlist &inp_tokens) {
+lex_parser::process_input(string input, inp_list &inp_tokens) {
   // Tokenize the input
   tokenize(input, inp_tokens);
   
@@ -707,10 +732,9 @@ lex_parser::process_input(string input, inpitemlist &inp_tokens) {
   return _maxpos;
 }
 
-
 void
-lex_parser::lexical_processing(inpitemlist &inp_tokens, bool lex_exhaustive
-                               , fs_alloc_state &FSAS, list<tError> &errors) {
+lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
+                            fs_alloc_state &FSAS, list<tError> &errors){
   // if lex_exhaustive, process inflectional and lexical rules first and
   // exhaustively before applying syntactic rules
   // This allows more elaborate checking of gaps and chart dependencies
@@ -725,7 +749,7 @@ lex_parser::lexical_processing(inpitemlist &inp_tokens, bool lex_exhaustive
 
   // now initialize agenda of lexical parser with list of input tokens
   // and start lexical processing with application of lex entries and lex rules
-  for(inpitemlist_iter it=inp_tokens.begin(); it != inp_tokens.end(); it++) {
+  for(inp_iterator it=inp_tokens.begin(); it != inp_tokens.end(); it++) {
     add(*it);
   }
 
@@ -738,6 +762,13 @@ lex_parser::lexical_processing(inpitemlist &inp_tokens, bool lex_exhaustive
   if (lex_exhaustive) {
     parse_loop(FSAS, errors);
   }
+}
+
+
+void
+lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
+                               , fs_alloc_state &FSAS, list<tError> &errors) {
+  lexical_parsing(inp_tokens, lex_exhaustive, FSAS, errors);
 
   // dependency filtering is done on the chart itself
   dependency_filter(cheap_settings->lookup("chart-dependencies"),
@@ -811,7 +842,7 @@ lex_parser::lexical_processing(inpitemlist &inp_tokens, bool lex_exhaustive
   // throw an error if there are unexpanded input items
   if (! unexpanded.empty()) {
     string missing = "";
-    for(inpitemlist_iter inp = unexpanded.begin()
+    for(inp_iterator inp = unexpanded.begin()
           ; inp != unexpanded.end(); inp++) {
       missing += "\n\t\"" + (*inp)->orth() + "\"";
       if(opt_default_les) 
@@ -846,3 +877,4 @@ lex_parser::lexical_processing(inpitemlist &inp_tokens, bool lex_exhaustive
   }
 
 }
+
