@@ -542,6 +542,19 @@ AC_SUBST(PREPROCDIR)
 
 
 # --------------------------------------------------------------------
+# XMLRPC for C and C++ library (xmlrpc-c)
+# --------------------------------------------------------------------
+
+AX_LIB_XMLRPC_C([c++2 abyss-server], [xmlrpc_c="yes"], [xmlrpc_c="no"])
+if test x$xmlrpc_c = xyes; then
+  CHEAPCPPFLAGS="$XMLRPC_C_CPPFLAGS_SEARCHPATH $CHEAPCPPFLAGS"
+  CHEAPLDFLAGS="$XMLRPC_C_LDFLAGS_SEARCHPATH $CHEAPLDFLAGS"
+  CHEAPLIBS="$XMLRPC_C_LIBS $CHEAPLIBS"
+fi
+AM_CONDITIONAL(XMLRPC_C, [test x$xmlrpc_c = xyes])
+
+
+# --------------------------------------------------------------------
 # Unit testing with CppUnit
 # --------------------------------------------------------------------
 
@@ -761,6 +774,7 @@ echo "LKB preprocessor code (requires ECL)            $preproc"
 echo "Embeddable Common-Lisp processor (ECL)          $ecl"
 echo "ICU library (Unicode support)                   $icu"
 echo "Xerces C++ (XML input modes)                    $xml"
+echo "XML-RPC for C/C++ (XML-RPC server mode)         $xmlrpc_c"
 echo "CppUnit (unit testing)                          $cppunit"
 echo "Grammar dumping in LUI format                   $lui"
 echo "Memory allocation with mmap                     $mmapalloc"

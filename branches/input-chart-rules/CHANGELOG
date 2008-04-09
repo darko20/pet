@@ -1,4 +1,5 @@
 specific to input-chart-rules branch:
+  - added preliminary XML-RPC server mode
   - added chart mapping engine:
     * chart mapping rules are resource-sensntive rewrite rules
     * chart mapping rules operate on a generalized chart
