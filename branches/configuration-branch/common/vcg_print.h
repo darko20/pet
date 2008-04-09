@@ -22,7 +22,7 @@ inline type_t local_ntypes() {
 #ifdef FLOP
   return types.number();
 #else
-  return ntypes;
+  return nstatictypes;
 #endif
 }
 

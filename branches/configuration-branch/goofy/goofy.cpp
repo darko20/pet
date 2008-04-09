@@ -442,7 +442,7 @@ void GoofyWindow::load_grammar(const char *fn)
   setCaption( fn );
   set_menu_state(true);
 
-  for(int i = 0; i < ntypes; i++)
+  for(int i = 0; i < nstatictypes; i++)
     {
       _sort_names.append(QString(type_name(i)));
     }

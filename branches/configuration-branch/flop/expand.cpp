@@ -69,48 +69,58 @@ bool compute_appropriateness() {
 
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));
-  for(vector<int>::reverse_iterator it = topo.rbegin();
-      it != topo.rend(); ++it) {
-    struct dag_arc *arc;
-    i = *it;
-
-    if(!pseudo_type(i)) {
-      arc = dag_deref(types[i]->thedag)->arcs;
-      while(arc) { // look at all top level features of type
-        attr = arc->attr;
-
-        if(apptype[attr] != BI_TOP) {
-          if(!subtype(i, apptype[attr])) {
-            LOG_ERROR(loggerExpand, "error: feature `%s' introduced at"
-                      " `%s' and `%s'.", attrname[attr],
-                      typenames[i], typenames[apptype[attr]]);
-            fail = true;
-          }
+  for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
+    {
+      struct dag_arc *arc;
+      i = *it;
+        
+      if(!pseudo_type(i))
+        {
+          arc = dag_deref(types[i]->thedag)->arcs;
+          while(arc) // look at all top level features of type
+            {
+              attr = arc->attr;
+              
+              if(apptype[attr] != BI_TOP)
+                {
+                  if(!subtype(i, apptype[attr]))
+                    {
+                      LOG_ERROR(loggerExpand, "error: feature `%s' introduced at"
+                              " `%s' and `%s'.\n", attrname[attr],
+                              type_name(i),
+                              type_name(apptype[attr]));
+                      fail = true;
+                    }
+                }
+              else
+                {
+              apptype[attr] = i;
+                }
+              arc = arc->next;
+            }
         }
-        else {
-          apptype[attr] = i;
-        }
-        arc = arc->next;
-      }
     }
   }
 
-  for(i = 0; i < attributes.number(); i++) {
-    if(apptype[i] == BI_TOP) {
-      // With the option 'no-semantics', all structures under a feature
-      // which is specified as 'sem-attr' in the 'flop.set' are
-      // removed from the hierarchy definitions and the feature itself is
-      // ignored in all computation concering features, such as appropriate
-      // type computation.
-      if(opt_no_sem
-         && i == attributes.id(flop_settings->req_value("sem-attr")))
-        apptype[i] = types.id(flop_settings->req_value("grammar-info"));
-      else
-        // This attribute did not appear on the top level of a type
-        // definition, so maybe it was not introduced correctly
-        LOG(loggerExpand, Level::WARN,
-            "warning: attribute `%s' introduced on top (?)",
-            attributes.name(i).c_str());
+  for(i = 0; i < attributes.number(); i++)
+    {
+      if(apptype[i] == BI_TOP)
+        {
+          // With the option 'no-semantics', all structures under a feature
+          // which is specified as 'sem-attr' in the 'flop.set' are
+          // removed from the hierarchy definitions and the feature itself is
+          // ignored in all computation concering features, such as appropriate
+          // type computation.
+          if(opt_no_sem 
+             && i == attributes.id(flop_settings->req_value("sem-attr")))
+            apptype[i] = types.id(flop_settings->req_value("grammar-info"));
+          else
+            // This attribute did not appear on the top level of a type
+            // definition, so maybe it was not introduced correctly
+            LOG(loggerExpand, Level::WARN,
+                "warning: attribute `%s' introduced on top (?)",
+                attributes.name(i).c_str());
+        }
     }
   }
 
@@ -135,9 +145,27 @@ bool apply_appropriateness_rec(struct dag_node *dag) {
     new_type = dag->type;
     arc = dag->arcs;
 
-    while(arc) {
-      old_type = new_type;
-      new_type = glb(new_type, apptype[arc->attr]);
+      while(arc)
+        {
+          old_type = new_type;
+          new_type = glb(new_type, apptype[arc->attr]);
+          
+          if(new_type == -1)
+            {
+              LOG(loggerExpand, Level::INFO,
+                  "feature `%s' on type `%s' (refined to `%s' from other features) not appropriate "
+                  "(appropriate type is `%s')\n",
+                  attrname[arc->attr], type_name(dag->type),
+                  type_name(old_type),
+                  type_name(apptype[arc->attr]));
+              return false;
+            }
+
+          if(!apply_appropriateness_rec(arc->val))
+            return false;
+          
+          arc = arc->next;
+        }
 
       if(new_type == -1) {
         LOG(loggerExpand, Level::INFO,
@@ -171,12 +199,17 @@ bool apply_appropriateness() {
   LOG(loggerExpand, Level::INFO,
       "- applying appropriateness constraints for types");
 
-  for(i = 0; i < types.number(); i++) {
-    if(!pseudo_type(i) && !apply_appropriateness_rec(types[i]->thedag)) {
-      LOG(loggerExpand, Level::INFO,
-          "when applying appropriateness constraints on type `%s'",
-          types.name(i).c_str());
-      fail = true;;
+  for(i = 0; i < types.number(); i++)
+    {
+      if(!pseudo_type(i) && !apply_appropriateness_rec(types[i]->thedag))
+        {
+          LOG(loggerExpand, Level::INFO,
+              "when applying appropriateness constraints on type `%s'",
+              types.name(i).c_str());
+          fail = true;;
+        }
+
+      dag_invalidate_visited();
     }
 
     dag_invalidate_visited();
@@ -200,25 +233,26 @@ bool delta_expand_types() {
   bool opt_expand_all_instances =
     Config::get<bool>("opt_expand_all_instances");
 
-  LOG(loggerExpand, Level::INFO,
-      "- delta expansion for types");
-
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));
-  for(vector<int>::reverse_iterator it = topo.rbegin();
-      it != topo.rend(); ++it) {
-    i = *it;
-
-    if(!pseudo_type(i) && (opt_expand_all_instances || !dont_expand(i))) {
-      l = immediate_supertypes(i);
-      forallint(e, l) {
-        if(dag_unify3(types[e]->thedag, types[i]->thedag) == FAIL) {
-          LOG(loggerExpand, Level::INFO,
-              "`%s' incompatible with parent constraints"
-              " (`%s')", typenames[i], typenames[e]);
-          return false;
+  for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
+    {
+      i = *it;
+      
+      if(!pseudo_type(i) && (opt_expand_all_instances || !dont_expand(i)))
+        {
+          l = immediate_supertypes(i);
+          forallint(e, l)
+            {
+              if(dag_unify3(types[e]->thedag, types[i]->thedag) == FAIL)
+                {
+                  LOG(loggerExpand, Level::INFO,
+                      "`%s' incompatible with parent constraints"
+                      " (`%s')\n", type_name(i), type_name(e));
+                  return false;
+                }
+            }
         }
-      }
     }
   }
 
@@ -238,13 +272,15 @@ void critical_types(struct dag_node *dag, set<int> &cs) {
   if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) { // not yet visited
     struct dag_arc *arc;
 
-    if(dag->type < types.number() /* && dag->arcs */ )
-      cs.insert(dag->type);
+      if(dag->type < types.number() /* && dag->arcs */ )
+        cs.insert(dag->type);
 
-    arc = dag->arcs;
-    while(arc) {
-      critical_types(arc->val, cs);
-      arc = arc->next;
+      arc = dag->arcs;
+      while(arc)
+        {
+          critical_types(arc->val, cs);
+          arc = arc->next;
+        }
     }
   }
 }
@@ -273,13 +309,40 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
     struct dag_arc *arc;
     depth++;
 
-    if(depth > MAX_EXP_DEPTH) {
-      LOG(loggerExpand, Level::INFO,
-          "expansion [cycle with `%s'] for", typenames[dag->type]);
-      depth--;
-      return cons(T_BOTTOM, NULL);
-    }
+      if(depth > MAX_EXP_DEPTH)
+        {
+          LOG(loggerExpand, Level::INFO,
+              "expansion [cycle with `%s'] for",
+              type_name(dag->type));
+          depth--;
+          return cons(T_BOTTOM, NULL);
+        }
 
+      if(dag->type < types.number() && (full || dag->arcs))
+        {
+          if(dag_unify3(types[dag->type]->thedag, dag) == FAIL)
+            {
+              LOG(loggerExpand, Level::INFO,
+                  "full expansion with `%s' for",
+                  type_name(dag->type));
+              depth--;
+              return cons(T_BOTTOM, NULL);
+            }
+        }
+
+      list_int *res;
+      arc = dag->arcs;
+      while(arc)
+        { 
+          if((res = fully_expand(arc->val, full)) != NULL)
+            {
+              depth--;
+              return cons(arc->attr, res);
+            }
+          arc = arc->next;
+        }
+
+        /* \todo ????? a duplicate of above **************
     if(dag->type < types.number() && (full || dag->arcs)) {
       if(dag_unify3(types[dag->type]->thedag, dag) == FAIL) {
         LOG(loggerExpand, Level::INFO,
@@ -287,7 +350,7 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
         depth--;
         return cons(T_BOTTOM, NULL);
       }
-    }
+    } */
 
     list_int *res;
     arc = dag->arcs;
@@ -321,7 +384,7 @@ bool fully_expand_types(bool full_expansion) {
   set<int> cs;
 
   tHierarchy G;
-
+  
   LOG(loggerExpand, Level::INFO, "- full type expansion");
 
   bool fail = false;
@@ -343,34 +406,44 @@ bool fully_expand_types(bool full_expansion) {
     }
   }
 
-  initialize_dags(ntypes);
+  initialize_dags(nstatictypes);
 
   unify_reset_visited = true;
 
   vector<int> topo;
   boost::topological_sort(G, std::back_inserter(topo));
-  for(vector<int>::reverse_iterator it = topo.rbegin();
-      it != topo.rend(); ++it) {
-    i = *it;
+  for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
+    {
+      i = *it;
+        
+      if(!pseudo_type(i))
+        {
+          list_int *path = fully_expand(types[i]->thedag, full_expansion);
 
-    if(!pseudo_type(i)) {
-      list_int *path = fully_expand(types[i]->thedag, full_expansion);
+          if(path != NULL)
+            {
+              LOG_ONLY(PrintfBuffer pb);
+              LOG_ONLY(pbprintf(pb, " `%s' failed under path (", type_name(i)));
+              list_int *start = path;
+              while (rest(start) != NULL) { // last element is invalid
+                LOG_ONLY(pbprintf(pb, "%s", attrname[first(start)]));
+                start = rest(start);
+                if (rest(start) != NULL) LOG_ONLY(pbprintf(pb, "|"));
+              }
+              LOG_ONLY(pbprintf(pb, ")\n"));
+              LOG(loggerExpand, Level::INFO, "%s", pb.getContents());
+              fail = true;
+              free_list(path);
+            }
+          
+          dag_invalidate_visited();
 
-      if(path != NULL) {
-        LOG_ONLY(PrintfBuffer pb);
-        LOG_ONLY(pbprintf(pb, " `%s' failed under path (", typenames[i]));
-        list_int *start = path;
-        while (rest(start) != NULL) { // last element is invalid
-          LOG_ONLY(pbprintf(pb, "%s", attrname[first(start)]));
-          start = rest(start);
-          if (rest(start) != NULL)
-            LOG_ONLY(pbprintf(pb, "|"));
+          if(!fail && dag_cyclic(types[i]->thedag))
+            {
+              fprintf(ferr, " `%s' failed (cyclic structure)\n", type_name(i));
+              fail = true;
+            }
         }
-        LOG_ONLY(pbprintf(pb, ")\n"));
-        LOG(loggerExpand, Level::INFO, "%s", pb.getContents());
-        fail = true;
-        free_list(path);
-      }
 
       dag_invalidate_visited();
 
@@ -412,22 +485,23 @@ void compute_maxapp() {
   for(i = 0; i < types.number(); i++)
     for(int j = 0; j < attributes.number(); j++)
       if(apptype[j] == i) nintro[i]++;
-
-  // initialize maxapp array to max appropriate type per feature
-  for(i = 0; i < attributes.number(); i++) {
-    maxapp[i] = 0;
-    struct dag_node *cval = dag_get_attr_value(types[apptype[i]]->thedag, i);
-    if(cval && cval != FAIL)
-      maxapp[i] = dag_type(cval);
-
-    LOG(loggerExpand, Level::DEBUG,
-        "feature `%s': value: %s `%s', introduced by `%s'",
-        attributes.name(i).c_str(),
-        maxapp[i] > types.number() ? "symbol" : "type",
-        typenames[maxapp[i]],
-        types.name(apptype[i]).c_str());
-
-  }
+  
+  // initialize maxapp array to max appropriate type per feature 
+  for(i = 0; i < attributes.number(); i++)
+    {
+      maxapp[i] = 0;
+      struct dag_node *cval = dag_get_attr_value(types[apptype[i]]->thedag, i);
+      if(cval && cval != FAIL)
+        maxapp[i] = dag_type(cval);
+      
+      LOG(loggerExpand, Level::DEBUG,
+          "feature `%s': value: %s `%s', introduced by `%s'",
+          attributes.name(i).c_str(),
+          maxapp[i] > types.number() ? "symbol" : "type",
+          type_name(maxapp[i]),
+          types.name(apptype[i]).c_str());
+        }
+    }
 }
 
 /** @name Unfilling */
@@ -467,21 +541,32 @@ int unfill_dag_rec(struct dag_node *dag, int root) {
   struct dag_arc *arc, *keep, *tmparc;
 
   arc = dag->arcs; keep = 0;
+  
+  while(arc)
+    {
+      struct dag_node *dst = dag_deref(arc->val);
+      
+      if(dst->arcs)
+        nunfilled += unfill_dag_rec(dst, 0);
+      else
+        total_nodes++;
+      
+      coref = dag_get_visit(dst) - 1;
 
-  while(arc) {
-    struct dag_node *dst = dag_deref(arc->val);
-
-    if(dst->arcs)
-      nunfilled += unfill_dag_rec(dst, 0);
-    else
-      total_nodes++;
-
-    coref = dag_get_visit(dst) - 1;
-
-    if(dst->arcs == 0 && coref == 0 && dst->type == maxapp[arc->attr]
-       && apptype[arc->attr] != root) { // && root != -1 <-- Always true
-      nunfilled++;
-      arc = arc->next;
+      if(dst->arcs == 0 && coref == 0 && dst->type == maxapp[arc->attr]
+         && apptype[arc->attr] != root) // && root != -1 <-- Always true
+        {
+          nunfilled++;
+          arc = arc->next;
+        }
+      else
+        {
+          tmparc = arc;
+          arc = arc->next;
+          
+          tmparc->next = keep;
+          keep = tmparc;
+        }
     }
     else {
       tmparc = arc;
@@ -513,8 +598,8 @@ void unfill_types() {
     dag_invalidate_visited();
   }
 
-  LOG(loggerExpand, Level::INFO,
-      "(%d total nodes, %d removed)", total_nodes, n);
+    LOG(loggerExpand, Level::INFO, "(%d total nodes, %d removed)",
+        total_nodes, n);
 }
 /*@}*/
 
@@ -616,28 +701,37 @@ void bottom_up_partitions() {
       LOG(loggerExpand, Level::DEBUG, "partition %d (`%s'):",
           nfeatsets, types.name(part(i)).c_str());
 
-      for(int j = 0; j < types.number(); j++)
-        if(!reached[j] && part.same_set(i, j)) {
-          featset[j] = nfeatsets;
-          reached[j] = true;
-          LOG(loggerExpand, Level::DEBUG, "  %s", types.name(j).c_str());
-
-          list_int *l = theconf[featconf[j]];
-          while(l) {
-            if(!contains(feats, first(l))) feats = cons(first(l), feats);
-            l = rest(l);
+        for(int j = 0; j < types.number(); j++)
+          if(!reached[j] && part.same_set(i, j))
+            {
+              featset[j] = nfeatsets;
+              reached[j] = true;
+              LOG(loggerExpand, Level::DEBUG, "  %s", types.name(j).c_str());
+                
+              list_int *l = theconf[featconf[j]];
+              while(l)
+                {
+                  if(!contains(feats, first(l))) feats = cons(first(l), feats);
+                  l = rest(l);
+                }
+            }
+        // \todo logging
+        if(verbosity > 4)
+          {
+            fprintf(fstatus, "features (%d):", length(feats));
+        
+            list_int *l = feats;
+            while(l)
+              {
+                fprintf(fstatus, " %s", attributes.name(first(l)).c_str()); 
+                l = rest(l);
+              }
+            fprintf(fstatus, "\n");
           }
-        }
 
-      if(verbosity > 4) {
-        fprintf(fstatus, "features (%d):", length(feats));
+        theset[nfeatsets] = feats;
 
-        list_int *l = feats;
-        while(l) {
-          fprintf(fstatus, " %s", attributes.name(first(l)).c_str());
-          l = rest(l);
-        }
-        fprintf(fstatus, "\n");
+        nfeatsets++;
       }
 
       theset[nfeatsets] = feats;

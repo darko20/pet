@@ -352,32 +352,8 @@ public:
   /** The external end position of that item */
   virtual int endposition() const { return _endposition; }
 
-  
-  #ifdef USE_DEPRECATED
-  /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
-   * false.
-   */
-  virtual void print(FILE *f, bool compact = false) const;
-  /** Print the ID's of daughters and parents of this item to \a f */
-  void print_family(FILE *f);
-  /** Print the ID's of all items packed into this item to \a f */
-  virtual void print_packed(FILE *f);
-  /** \brief Print the whole derivation of this item to \a f. Escape double
-   *  quotes with backslashes if \a quoted is \c true.
-   */
-  virtual void print_derivation(FILE *f, bool quoted) = 0;
-  #endif
-
   /** Print the yield of this item */
   virtual std::string get_yield() = 0;
-
-  /** Dump item in a format feasible for LUI (?) into \a directory */
-  void lui_dump(const char* directory = "/tmp");
-
-  /** Print the derivation of this item in incr[tsdb()] compatible form,
-   *  according to \a protocolversion.
-   */
-  virtual std::string tsdb_derivation(int protocolversion) = 0;
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
@@ -419,7 +395,7 @@ public:
   /** \brief Return the rule this item was built from. This returns values
    *  different from \c NULL only for phrasal items.
    */
-  virtual grammar_rule *rule() = 0;
+  virtual grammar_rule *rule() const = 0;
 
   /** Return the complete fs for this item. This may be more than a simple
    *  access, e.g. in cases of hyperactive parsing and temporary dags.
@@ -480,7 +456,7 @@ public:
   inline const item_list &daughters() const { return _daughters; }
 
   /** Return true if the given edge is a descendent of current edge */
-  bool contains_p(tItem *);
+  bool contains_p(const tItem *) const ;
 
   /** compare two items for linear precendece; used to sort YY tokens */
   struct precedes 
@@ -663,18 +639,6 @@ public:
 
   /** Print the yield of this item */
   virtual std::string get_yield();
-  #ifdef USE_DEPRECATED
-  /** \brief Print item readably to \a f. \a compact is ignored here */
-  virtual void print(FILE *f, bool compact=true);
-  /** Print a readable description of the derivation tree encoded in this item.
-   */
-  virtual void print_derivation(FILE *f, bool quoted);
-  #endif 
-
-  /** Print a machine readable description of the derivation tree encoded in
-   *  this item for use with the incr[tsdb] system.
-   */
-  virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
@@ -690,7 +654,7 @@ public:
   virtual void collect_children(item_list &result);
 
   /** Always returns \c NULL */
-  virtual grammar_rule *rule();
+  virtual grammar_rule *rule() const;
 
   /** This method always throws an error */
   virtual void recreate_fs();
@@ -698,7 +662,7 @@ public:
   /** I've got no clue.
    * \todo i will fix this when i know what "description" ought to do
    */
-  std::string description() { return _surface; }
+  std::string description() const { return _surface; }
   
   /** Return the string(s) that is (are) the input to this item */
   std::string orth() const;
@@ -735,10 +699,10 @@ public:
   /** I've got no clue. 
    * \todo I'll fix this when i have an idea where supplied postags come from 
    */
-  const postags &get_supplied_postags() { return _postags; }
+  const postags &get_supplied_postags() const { return _postags; }
 
   /** Get the inflrs_todo (inflection rules <-> morphology) */
-  list_int *inflrs() { return _inflrs_todo; }
+  list_int *inflrs() const { return _inflrs_todo; }
 
   /** Set the inflrs_todo (inflection rules <-> morphology) */
   void set_inflrs(const std::list<int> &infl_rules) {
@@ -835,23 +799,8 @@ class tLexItem : public tItem
 
   INHIBIT_COPY_ASSIGN(tLexItem);
 
-  #ifdef USE_DEPRECATED
-  /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
-   * false.
-   */
-  virtual void print(FILE *f, bool compact = false);
-
-  /** \brief Print the whole derivation of this item to \a f. Escape double
-   *  quotes with backslashes if \a quoted is \c true.
-   */
-  virtual void print_derivation(FILE *f, bool quoted);
-  #endif
   /** Print the yield of this item */
   virtual std::string get_yield();
-  /** Print the derivation of this item in incr[tsdb()] compatible form,
-   *  according to \a protocolversion.
-   */
-  virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
@@ -867,7 +816,7 @@ class tLexItem : public tItem
   virtual void collect_children(item_list &result);
 
   /** Always return NULL */
-  virtual grammar_rule *rule();
+  virtual grammar_rule *rule() const ;
 
   /** Return either the \a full or the restricted feature structure */
   virtual fs get_fs(bool full = false) {
@@ -878,28 +827,28 @@ class tLexItem : public tItem
   virtual void recreate_fs();
 
   /** \todo what is this function good for? */
-  std::string description();
+  std::string description() const;
   /** Return the surface string(s) this item originates from */
-  std::string orth();
+  std::string orth() const;
 
   /** Is this item passive or not? */
-  bool passive() {
+  bool passive() const {
     return (_ldot == 0) && (_rdot == _stem->length());
   }
 
   /** Is this item active and extends to the left? */
-  bool left_extending() {
+  bool left_extending() const {
     return _ldot > 0;
   }
   
   /** Return the next argument position to fill */
-  int nextarg() {
+  int nextarg() const {
     return left_extending() ? _ldot - 1 : _rdot;
   }
 
   /** The surface string of this item: the string encoded in its lex_entry.
    */
-  const char *form(int pos) {
+  const char *form(int pos) const {
     return _stem->orth(pos);
   }
 
@@ -909,11 +858,11 @@ class tLexItem : public tItem
   }
 
   /** Returns the POS tags coming from the input */
-  inline const postags &get_in_postags() {
+  inline const postags &get_in_postags() const {
     return _keydaughter->get_in_postags();
   }
   /** Returns the POS tags given by the lexical stem of this item */
-  inline const postags &get_supplied_postags() {
+  inline const postags &get_supplied_postags() const {
     return _supplied_pos;
   }
 
@@ -926,7 +875,7 @@ class tLexItem : public tItem
    *  -- This item may not have produced an item with the same start and end
    *     position as the new potential result.
    */
-  bool compatible(tInputItem *inp) {
+  bool compatible(tInputItem *inp) const {
     if (form(nextarg()) != inp->form()) return false;
 
     // check if we already did this combination before: is the new start
@@ -1010,22 +959,8 @@ class tPhrasalItem : public tItem {
 
   INHIBIT_COPY_ASSIGN(tPhrasalItem);
 
-  #ifdef USE_DEPRECATED
-  /** \brief Print item readably to \a f. Don't be too verbose if \a compact is
-   * false.
-   */
-  virtual void print(FILE *f, bool compact = false);
-  /** \brief Print the whole derivation of this item to \a f. Escape double
-   *  quotes with backslashes if \a quoted is \c true.
-   */
-  virtual void print_derivation(FILE *f, bool quoted);
-  #endif
   /** get the yield of this item */
   virtual std::string get_yield();
-  /** Print the derivation of this item in incr[tsdb()] compatible form,
-   *  according to \a protocolversion.
-   */
-  virtual std::string tsdb_derivation(int protocolversion);
 
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
@@ -1047,7 +982,7 @@ class tPhrasalItem : public tItem {
   /** \brief Return the rule this item was built from. This returns values
    *  different from \c NULL only for phrasal items.
    */
-  virtual grammar_rule *rule();
+  virtual grammar_rule *rule() const ;
 
   /** Return the complete fs for this item. This may be more than a simple
    *  access, e.g. in cases of hyperactive parsing and temporary dags.
@@ -1185,8 +1120,7 @@ class item_owner
   void print(std::ostream &stream) {
     for(item_iter it = _list.begin(); it != _list.end(); ++it)
       if(!(*it)->frozen()) {
-        (*it)->print(stream);
-        stream << std::endl;
+        stream << *it << std::endl;
       } // if
   } // print()
  private:

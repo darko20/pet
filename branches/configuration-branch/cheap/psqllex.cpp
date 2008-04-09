@@ -42,8 +42,6 @@ void warn(const string &message) {
   fprintf(stderr, "Warning: %s\n", message.c_str());
 }
 
-#define lookup_string lookup_symbol
-
 #define FIELDS_FIELDS "slot, field, path, type"
 #define SLOT_COLUMN 0
 #define NAME_COLUMN 1
@@ -71,7 +69,7 @@ type_t lookup_type(string type_name) {
 }
 
 string lookup_typename(type_t tcode) {
-  return typenames[tcode];
+  return type_name(tcode);
 }
 
 ostream &lex_stem::print(ostream &out) {
@@ -346,8 +344,8 @@ dag_node * dag_listify_internal(const char *typenamelist, dag_node **last) {
       stringptr--;
     if (stringptr[1] != '\0') {
       dag_node *new_cons = new_dag(BI_CONS);
-      dag_add_arc(new_cons, new_arc(BIA_FIRST,
-                                    new_dag(lookup_string(stringptr + 1))));
+      dag_add_arc(new_cons
+        , new_arc(BIA_FIRST, new_dag(retrieve_string_instance(stringptr + 1))));
       dag_add_arc(new_cons, new_arc(BIA_REST, current));
       current = new_cons;
     }
@@ -380,18 +378,18 @@ dag_node *tPSQLLex::dagify_slot_value(string slot_value, field_t slot_type) {
   switch(slot_type) {
   case COL_SYMBOL:
     // lookup the
-    fstype = lookup_type(slot_value.c_str());
+    fstype = lookup_type(slot_value);
     return (fstype == -1) ? NULL : new_dag(fstype);
   case COL_STRING:
-    return new_dag(lookup_string(slot_value.c_str()));
+    return new_dag(retrieve_string_instance(slot_value));
   case COL_MIXED:
     if (slot_value[0] == '"') {
       // This is like a string slot, but remove the double quotes first
       string sub_value = string(slot_value, 1, slot_value.size() - 2);
-      return new_dag(lookup_string(slot_value.c_str()));
+      return new_dag(retrieve_string_instance(slot_value));
     } else {
       // This is like a symbol slot
-      fstype = lookup_type(slot_value.c_str());
+      fstype = lookup_type(slot_value);
       return (fstype == -1) ? NULL : new_dag(fstype);
     }
   case COL_STRING_LIST:
@@ -492,7 +490,7 @@ lex_stem *tPSQLLex::build_lex_stem(PGresult *res, int row_no) {
     if (currval == NULL) 
       entry_error("Wrong entry in lexdb: no name", res, row_no);
     // The instance type is potentially a dynamic type
-    type_t instance_type = lookup_symbol(currval);
+    type_t instance_type = retrieve_type(currval);
 
     // get the type name and retrieve the type code
     currval = PQgetvalue(res, row_no, 1);

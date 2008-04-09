@@ -24,6 +24,7 @@
 #include "dag.h"
 #include "dumper.h"
 #include "hashing.h"
+#include "utility.h"
 
 #ifdef FLOP
 #include "flop.h"
@@ -35,7 +36,7 @@
 using namespace std;
 using namespace HASH_SPACE;
 
-int nleaftypes;
+int nstaticleaftypes;
 int *leaftypeparent = 0;
 
 static vector<bitcode *> typecode;
@@ -52,21 +53,16 @@ int nstatus;
 char **statusnames = 0;
 
 // types
-type_t ntypes;
+type_t nstatictypes;
 type_t first_leaftype;
-char **typenames = 0;
-char **printnames = 0;
+type_t ntypes;
+std::vector<std::string> typenames;
+std::vector<std::string> printnames;
 int *typestatus = 0;
+typedef hash_map<string, type_t, simple_string_hash, string_eq> string_map;
+string_map typename_memo;
 
-type_t last_dynamic;
-#ifdef DYNAMIC_SYMBOLS
-// dyntypename contains all dynamically needed type names for a parse.
-map<string, type_t> dyntypememo ;
-vector<string> dyntypename;
-vector<int> integer_type_map;
-#endif
-
-int BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
+type_t BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
 
 #ifndef FLOP
 vector<list<int> > immediateSupertype;
@@ -77,16 +73,6 @@ char **attrname = 0;
 int nattrs;
 int *attrnamelen = 0;
 int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
-
-inline bool is_leaftype(type_t s) {
-  assert(is_type(s));
-  return s >= first_leaftype;
-}
-
-inline bool is_proper_type(type_t s) {
-  assert(is_type(s));
-  return s < first_leaftype;
-}
 
 void initialize_codes(int n) {
   codesize = n;
@@ -107,76 +93,53 @@ void register_typecode(int i, bitcode *b) {
   typecode[i] = b;
 }
 
-#ifdef HASH_SPACE
-struct string_equal : public binary_function<string, string, bool> {
-  inline bool operator()(const string &s1, const string &s2) {
-    return s1 == s2;
-  }
-};
-typedef hash_map<string, int, simple_string_hash, string_equal> string_map;
-#else
-typedef map<string, int> string_map;
-#endif
+#ifdef DYNAMIC_SYMBOLS
+type_t register_dynamic_type(const std::string &name) {
+  int len = name.length();
+  // Dynamic types are subtypes of BI_STRING. Thus, their typenames have to be
+  // enclosed in double quotes.
+  assert((len >= 2) && (name[0] == '"') && (name[len-1] == '"'));
+  // Only register if the typename is unknown.
+  assert(typename_memo.find(name) == typename_memo.end());
+  typenames.push_back(name);
+  printnames.push_back(name.substr(1, len-2));
+  typename_memo[name] = ntypes;
+  return ntypes++;
+}
 
-string_map _typename_memo;
+void clear_dynamic_types() {
+  for (type_t t = nstatictypes; t < ntypes; t++)
+    typename_memo.erase(typenames[t]);
+  typenames.resize(nstatictypes);
+  printnames.resize(nstatictypes);
+  ntypes = nstatictypes;
+}
+#endif // DYNAMIC_SYMBOLS
 
-int lookup_type(const char *s) {
+int lookup_type(const std::string &name) {
+  // lazy initialization of typename cache:
   static bool initialized_cache = false;
-
   if(!initialized_cache) {
-    for(int i = 0; i < ntypes; i++)
-      _typename_memo[typenames[i]] = i;
+    for(int i = 0; i < nstatictypes; i++)
+      typename_memo[typenames[i]] = i;
     initialized_cache = true;
   }
-  
-  string_map::iterator pos = _typename_memo.find(s);
-  return (pos != _typename_memo.end()) ? (*pos).second : T_BOTTOM;
+  // lookup in the cache:
+  string_map::iterator pos = typename_memo.find(name);
+  return (pos != typename_memo.end()) ? (*pos).second : T_BOTTOM;
 }
 
+int retrieve_type(const std::string &name) {
+  int type = lookup_type(name);
 #ifdef DYNAMIC_SYMBOLS
-int lookup_symbol(const char *s) {
-  int type = lookup_type(s);
-
   if (type == T_BOTTOM) {
-    // is it registered as dynamic type?
-    string str = s;
-    map<string, int>::iterator pos = dyntypememo.find(str);
-    if(pos != dyntypememo.end())
-      return (*pos).second;
-
-    // None of the above: register it as new dynamic type
-    dyntypememo[str] = last_dynamic ;
-    dyntypename.push_back(str);
-
-    last_dynamic++ ;
-    return last_dynamic - 1 ;
+    size_t len = name.length();
+    if ((len>= 2) && (name[0] == '"') && (name[len-1] == '"'))
+      type = register_dynamic_type(name);
   }
-  else return type;
-}
-
-int lookup_unsigned_symbol(unsigned int i) {
-  if(integer_type_map.size() <= i) {
-    integer_type_map.resize(i + 1, T_BOTTOM);
-  }
-  if(integer_type_map[i] == T_BOTTOM) {
-    char intstring[40];
-    sprintf(intstring, "\"%d\"", i);
-    integer_type_map[i] = lookup_symbol(intstring);
-  }
-  return integer_type_map[i];
-}
-
-void clear_dynamic_symbols() {
-  last_dynamic = ntypes ;
-  for(unsigned int i = 0; i < integer_type_map.size(); i++) {
-    if(integer_type_map[i] >= last_dynamic) {
-      integer_type_map[i] = T_BOTTOM;
-    }
-  }
-  dyntypename.erase(dyntypename.begin(), dyntypename.end()) ;
-  dyntypememo.erase(dyntypememo.begin(), dyntypememo.end()) ;
-}
 #endif
+  return type;
+}
 
 map<string, attr_t> _attrname_memo; 
 
@@ -276,10 +239,10 @@ void undump_symbol_tables(dumper *f)
   // npropertypes
   first_leaftype = f->undump_int();
 
-  // nleaftypes
-  nleaftypes = f->undump_int();
-  ntypes = first_leaftype + nleaftypes;
-  last_dynamic = ntypes;
+  // nstaticleaftypes
+  nstaticleaftypes = f->undump_int();
+  nstatictypes = first_leaftype + nstaticleaftypes;
+  ntypes = nstatictypes;
 
   // nattrs
   nattrs = f->undump_int();
@@ -289,43 +252,38 @@ void undump_symbol_tables(dumper *f)
   for(int i = 0; i < nstatus; i++)
     statusnames[i] = f->undump_string();
 
-  typenames = (char **) malloc(sizeof(char *) * ntypes);
-  typestatus = (int *) malloc(sizeof(int) * ntypes);
+  typenames = std::vector<std::string>(nstatictypes);
+  typenames.reserve(2 * nstatictypes); // increase capacity for dynamic types
+  typestatus = (int *) malloc(sizeof(int) * nstatictypes);
 
-  for(int i = 0; i < ntypes; i++)
-    {
-      typenames[i] = f->undump_string();
-      typestatus[i] = f->undump_int();
-    }
+  for(int i = 0; i < nstatictypes; i++) {
+    typenames[i] = f->undump_string();
+    typestatus[i] = f->undump_int();
+  }
 
   attrname = (char **) malloc(sizeof(char *) * nattrs);
   attrnamelen = (int *) malloc(sizeof(int) * nattrs);
 
-  for(int i = 0; i < nattrs; i++)
-    {
-      attrname[i] = f->undump_string();
-      attrnamelen[i] = strlen(attrname[i]);
-    }
+  for(int i = 0; i < nattrs; i++) {
+    attrname[i] = f->undump_string();
+    attrnamelen[i] = strlen(attrname[i]);
+  }
 
   initialize_specials(cheap_settings);
 }
 
 void undump_printnames(dumper *f)
 {
-  if(f == 0) // we have no printnames
-    {
-      printnames = typenames;
-      return;
-    }
-
-  printnames = (char **) malloc(sizeof(char *) * ntypes);
-
-  for(int i = 0; i < ntypes; i++)
-    {
-      printnames[i] = f->undump_string();
-      if(printnames[i] == 0)
-        printnames[i] = typenames[i];
-    }
+  if(f == 0) { // we have no printnames
+    printnames = typenames; // copy typenames
+    return;
+  }
+  printnames = std::vector<std::string>(nstatictypes);
+  printnames.reserve(2 * nstatictypes); // increase capacity for dynamic types
+  for(int i = 0; i < nstatictypes; i++) {
+    char *s = f->undump_string();
+    printnames[i] = std::string(s ? s : typenames[i]);
+  }
 }
 
 void free_type_tables()
@@ -337,11 +295,8 @@ void free_type_tables()
     free(statusnames);
     statusnames = 0;
   }
-  if(typenames != 0)
-  {
-    free(typenames);
-    typenames = 0;
-  }
+  typenames.clear();
+  printnames.clear();
   if(typestatus != 0)
   {
     free(typestatus);
@@ -356,11 +311,6 @@ void free_type_tables()
   {
     free(attrnamelen);
     attrnamelen = 0;
-  }
-  if(printnames != 0)
-  {
-    free(printnames);
-    printnames = 0;
   }
 
   delete temp_bitcode;
@@ -396,7 +346,7 @@ void dump_hierarchy(dumper *f)
           type_name(rleaftype_order[i]), i, rleaftype_order[i]);
 
   // parents for all leaf types
-  for(i = first_leaftype; i < ntypes; i++)
+  for(i = first_leaftype; i < nstatictypes; i++)
     if(leaftypeparent[rleaftype_order[i]] != -1)
       {
         f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
@@ -423,8 +373,8 @@ void undump_hierarchy(dumper *f)
       temp_bitcode = new bitcode(codesize);
     }
 
-  leaftypeparent = new int[nleaftypes];
-  for(int i = 0; i < nleaftypes; i++)
+  leaftypeparent = new int[nstaticleaftypes];
+  for(int i = 0; i < nstaticleaftypes; i++)
     leaftypeparent[i] = f->undump_int();
 }
 
@@ -516,9 +466,6 @@ void get_all_supertypes(type_t type, hash_set< type_t > &result) {
   // information 
   if((type == BI_TOP) || (result.find(type) != result.end())) return;
   result.insert(type);
-#ifdef DYNAMIC_SYMBOLS
-  if (is_dynamic_type(type)) return;
-#endif
   if (is_leaftype(type)) {
     get_all_supertypes(leaftype_parent(type), result);
   } else {
@@ -544,7 +491,7 @@ const list< type_t > &all_supertypes(type_t type) {
   return all_supertypes_cache[type];
 }
 
-#endif
+#endif // not FLOP
 
 int core_glb(int a, int b)
 {
@@ -590,9 +537,10 @@ bool subtype(int a, int b)
   if(b == -1) return false; // no other type is a subtype of bottom
 
 #ifdef DYNAMIC_SYMBOLS
-  if(is_dynamic_type(a)) return false; // dyntypes are only subtypes of BI_TOP
-    // return subtype(b, BI_STRING); // dyntypes are direct subtypes of STRING
-  if(is_dynamic_type(b)) return false; // and always leaf types
+  if(is_dynamic_type(a))
+    return b == BI_STRING;             // dyntypes are direct subtypes of STRING
+  if(is_dynamic_type(b))
+    return false;                      // and always leaf types
 #endif
 
 #ifdef FLOP
@@ -608,7 +556,7 @@ bool subtype(int a, int b)
 
 #ifdef SUBTYPECACHE
   // result is a _reference_ to the cache entry -> automatic writeback
-  int &result = subtypecache[ (typecachekey_t) a*ntypes + b ];
+  int &result = subtypecache[ (typecachekey_t) a*nstatictypes + b ];
   if(result != -1) return result;
   return (result = core_subtype(a, b));
 #endif
@@ -625,11 +573,8 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     // precondition: a != b, a >= 0, b >= 0
     // postcondition: forward == subtype(a, b) && backward == subtype(b, a)
     
-    LOG(loggerUncategorized, Level::DEBUG, "ST %d %d - ", a, b);
-
     if(a == BI_TOP)
     {
-        LOG(loggerUncategorized, Level::DEBUG, "1");
         forward = false;
         backward = true;
         return;
@@ -637,19 +582,19 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
 
     if(b == BI_TOP)
     {
-        LOG(loggerUncategorized, Level::DEBUG, "2");
         forward = true;
         backward = false;
         return;
     }
 #ifdef DYNAMIC_SYMBOLS
-  if(is_dynamic_type(a)) {
-    forward = backward = false;
-    return; // dyntypes are only subtypes of BI_TOP
+  if(is_dynamic_type(a)) {      // a is a string literal
+    forward = (b == BI_STRING); // b == BI_TOP checked earlier
+    backward = false;           // string literals are leaftypes
+    return;
   }
-  // return subtype(b, BI_STRING); // dyntypes are direct subtypes of STRING
-  if(is_dynamic_type(b)) {
-    forward = backward = false; // and always leaf types
+  if(is_dynamic_type(b)) {       // b is a string literal
+    forward = false;             // string literals are leaftypes
+    backward = (a == BI_STRING); // a == BI_TOP checked earlier
     return;
   }
 #endif
@@ -661,8 +606,6 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     // another leaftype.
     if(is_leaftype(a) && is_leaftype(b)) // both types are leaftypes
     {
-        LOG(loggerUncategorized, Level::DEBUG, "3");
-
         // Follow the leaftype_parent chain of a up to the first
         // non-leaftype or b. If we encounter b, a is a subtype of b.
         // Otherwise do the same for b.
@@ -676,8 +619,6 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         {
             forward = true;
             backward = false;
-            LOG(loggerUncategorized, Level::DEBUG,
-                " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
             return;
         }
         a = savedA;
@@ -689,41 +630,30 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         {
             backward = true;
             forward = false;
-            LOG(loggerUncategorized, Level::DEBUG,
-                " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
             return;
         }
         forward = false;
         backward = false;
-        LOG(loggerUncategorized, Level::DEBUG,
-            " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
     else if(is_leaftype(a)) // a is a leaftype, b not
     {
-        LOG(loggerUncategorized, Level::DEBUG, "4");
-
         backward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
             a = leaftypeparent[a - first_leaftype]; 
         } while(is_leaftype(a));
         forward = core_subtype(a, b);
-        LOG(loggerUncategorized, Level::DEBUG,
-            " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
     else if(is_leaftype(b)) // b is a leaftype, a not
     {
-        LOG(loggerUncategorized, Level::DEBUG, "5");
         forward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
             b = leaftypeparent[b - first_leaftype]; 
         } while(is_leaftype(b));
         backward = core_subtype(b, a);
-        LOG(loggerUncategorized, Level::DEBUG,
-            " - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
 #else
@@ -731,21 +661,21 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
     {
         forward = subtype(a, b);
         backward = subtype(b, a);
-        LOG(loggerUncategorized, Level::DEBUG,
-            "456 - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
         return;
     }
 #endif
     
     subset_bidir(*typecode[a], *typecode[b], forward, backward);
-    LOG(loggerUncategorized, Level::DEBUG,
-        "6 - %c%c", forward ? 't' : 'f', backward ? 't' : 'f');
 }
 #endif
 
 #ifndef FLOP
 int leaftype_parent(int t)
 {
+#ifdef DYNAMIC_SYMBOLS
+  if(is_dynamic_type(t))
+    return BI_STRING;
+#endif
   if(is_leaftype(t))
     return leaftypeparent[t - first_leaftype];
   else
@@ -764,13 +694,24 @@ int glb(int s1, int s2)
     }
 
   // now we know that s1 < s2
-
   if(s1 == BI_TOP) return s2;
   if(s1 < 0) return T_BOTTOM;
 
 #ifndef FLOP
+  
+  // glbcache is not suitable for dynamic types
+#ifdef DYNAMIC_SYMBOLS
+  // since s1 < s2, it can't be that is_dynamic_type(s1) & !is_dynamic_type(s2)
+  if (is_dynamic_type(s2)) {  
+    if (s1 == BI_STRING)
+      return s2;
+    else // since s1 != s2 & s1 != BI_TOP, s1 must be a different dynamic type
+      return T_BOTTOM;
+  }
+#endif
+  
   // result is a _reference_ to the cache entry -> automatic writeback
-  int &result = glbcache[ (typecachekey_t) s1*ntypes + s2 ];
+  int &result = glbcache[ (typecachekey_t) s1*nstatictypes + s2 ];
   if(result) return result;
 
   if(is_leaftype(s1))

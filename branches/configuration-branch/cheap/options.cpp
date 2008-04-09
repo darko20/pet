@@ -28,6 +28,7 @@
 #include "version.h"
 #include "logging.h"
 #include <string>
+#include <unistd.h>
 
 
 // opt_fullform_morph is obsolete
@@ -52,6 +53,7 @@ void usage(FILE *f)
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
+  fprintf(f, "  `-timeout=n' --- maximum time (in seconds) spent on analyzing a sentence\n");
   fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n"); 
   fprintf(f, "  `-no-filter' --- disable rule filter\n"); 
   fprintf(f, "  `-qc-unif=n' --- use only top n quickcheck paths (unification)\n");
@@ -73,22 +75,14 @@ void usage(FILE *f)
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
 #ifdef YY
   fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
-  fprintf(f, "  `-k2y[=n]' --- "
-          "output K2Y, filter at `n' %% of raw atoms (default: 50)\n");
-  fprintf(f, "  `-k2y-segregation' --- "
-          "pre-nominal modifiers in analogy to reduced relatives\n");
   fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth]\n"
              "                         valid semantic formula\n");
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
-#ifdef ONLINEMORPH
-  fprintf(f, "  `-no-online-morph' --- disable online morphology\n");
-#endif
   fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
   fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
-  fprintf(f, "  `-nbest' --- n-best parsing mode\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
   fprintf(f, "  `-log=[+]file' --- "
@@ -142,12 +136,11 @@ void usage(FILE *f)
 #define OPTION_JXCHG_DUMP 35
 #define OPTION_COMMENT_PASSTHROUGH 36
 #define OPTION_PREDICT_LES 37
+#define OPTION_TIMEOUT 38
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
 #define OPTION_YY 101
-#define OPTION_K2Y 102
-#define OPTION_K2Y_SEGREGATION 103
 #endif
 
 
@@ -215,6 +208,7 @@ void init_options()
   Config::addOption("opt_predict_les", 
                     "if not zero predict lexical entries for uncovered input",
                     (int) 0);
+  opt_timeout = 0;
 
   Config::addOption<char*>("opt_mrs",
     "determines if and which kind of MRS output is generated", 0 );
@@ -249,6 +243,7 @@ bool parse_options(int argc, char* argv[])
     {"verbose", optional_argument, 0, OPTION_VERBOSE},
     {"limit", required_argument, 0, OPTION_LIMIT},
     {"memlimit", required_argument, 0, OPTION_MEMLIMIT},
+    {"timeout", required_argument, 0, OPTION_TIMEOUT},
     {"no-shrink-mem", no_argument, 0, OPTION_NO_SHRINK_MEM},
     {"no-filter", no_argument, 0, OPTION_NO_FILTER},
     {"qc-unif", required_argument, 0, OPTION_NQC_UNIF},
@@ -270,7 +265,6 @@ bool parse_options(int argc, char* argv[])
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", no_argument, 0, OPTION_PG},
     {"lattice", no_argument, 0, OPTION_LATTICE},
-    {"nbest", no_argument, 0, OPTION_NBEST},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
@@ -411,13 +405,14 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
             Config::setString("memlimit", optarg);
           break;
+      case OPTION_TIMEOUT:
+          if(optarg != NULL)
+              opt_timeout = sysconf(_SC_CLK_TCK) * strtoint(optarg, "as argument to -timeout");
+          break;
       case OPTION_LOG:
           if(optarg != NULL)
               if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
               else flog = fopen(optarg, "w");
-          break;
-      case OPTION_NBEST:
-          Config::set("opt_nbest", true);
           break;
       case OPTION_NO_ONLINE_MORPH:
           Config::set("opt_online_morph", false);
@@ -536,7 +531,7 @@ bool parse_options(int argc, char* argv[])
   {
     LOG_ERROR(loggerUncategorized, 
               "quickcheck computation doesn't work "
-              "in hyperactive mode, disabling hyperactive mode.");
+              "in hyperactive mode, disabling hyperactive mode.\n");
       Config::set("opt_hyper", false);
   }
 

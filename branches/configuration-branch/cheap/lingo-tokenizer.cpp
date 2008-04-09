@@ -18,8 +18,6 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* tokenizer base class and simple lingo tokenizer */
-
 #include "pet-config.h"
 #include "settings.h"
 #include "lingo-tokenizer.h"

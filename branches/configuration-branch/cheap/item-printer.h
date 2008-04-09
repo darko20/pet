@@ -55,7 +55,8 @@ protected:
    */
   /*@{*/
   int get_id(const tItem *item) { return item->_id; }
-  const fs &get_fs(const tItem *item) { 
+  const fs &get_fs(const tItem *item) {
+    // \todo cast is not nice, but the best we can do
     return const_cast<tItem *>(item)->_fs;
   }
   const list_int *inflrs_todo(const tItem *item) { return item->_inflrs_todo; }
@@ -74,12 +75,13 @@ protected:
  */
 class tItemPrinter : public tAbstractItemPrinter {
 public:
-  tItemPrinter(std::ostream &out) : _out(out), _dag_printer(NULL) {}
+  tItemPrinter(std::ostream &out, bool print_derivation = false,
+               bool print_fs = false);
 
   virtual ~tItemPrinter();
 
   /** The top level function called by the user */
-  virtual void print(const tItem *arg) = 0;
+  virtual void print(const tItem *arg) { arg->print_gen(this); } 
 
   /** @name Base print functions
    * Concrete print functions for every subclass of tItem to implement the
@@ -93,34 +95,33 @@ public:
   /** Base printer function for a tPhrasalItem */
   virtual void real_print(const tPhrasalItem *item) ;
   /*@}*/
-
+  
 private:
   // Print the positions of argument positions which are still to fill (active
   // items only)
-  void print_tofill(const tItem *item);
+  void print_tofill(std::ostream &out, const tItem *item);
 
   // Print the list of inflection rules which remain to be processed
-  void print_inflrs(const tItem *item); 
+  void print_inflrs(std::ostream &out, const tItem *item); 
 
   // Print the lattice paths this item may belong to
-  void print_paths(const tItem *item);
+  void print_paths(std::ostream &out, const tItem *item);
 
   // Print the ids of the items packed into this node
-  void print_packed(const tItem *item);
+  void print_packed(std::ostream &out, const tItem *item);
 
   // Print parent and daughter ids of this item
-  void print_family(const tItem *item);
+  void print_family(std::ostream &out, const tItem *item);
 
   // Printing common to all subtypes of tItem
-  void print_common(const tItem *item);
+  void print_common(std::ostream &out, const tItem *item);
 
   // Printing the embedded fs, if required
-  void print_fs(const fs &f);
+  void print_fs(std::ostream &out, const fs &f);
 
   std::ostream &_out;
+  class tAbstractItemPrinter* _derivation_printer;
   class AbstractDagPrinter* _dag_printer;
-  bool _compact;
-  bool _print_fs_p;
 };
 
 
@@ -185,7 +186,6 @@ protected:
   /** Print a newline, followed by an appropriate indentation */
   virtual void newline() { 
     _out << std::endl ; _out << std::setw(_indentation) << "";
-    //fprintf(_out, "\n%*s", _indentation, "");
   };
   /** Increase the indentation level */
   inline void next_level(){ _indentation += _indent_delta; }
@@ -214,9 +214,33 @@ public:
 private:
   void print_inflrs(const tItem *);
   void print_daughters(const tItem *);
+  void print_daughters_same_line(const tItem *);
 
   bool _quoted;
 };
+
+/** Print the derivation of an item in incr[tsdb()] compatible form,
+ *  according to \a protocolversion.
+ *  For function descriptions, \see tAbstractItemPrinter.
+ */
+class tTSDBDerivationPrinter : public tAbstractItemPrinter {
+public:
+  tTSDBDerivationPrinter(std::ostream &outstr, int protocolversion)
+    : _out(outstr), _protocolversion(protocolversion) {}
+
+  virtual ~tTSDBDerivationPrinter() {}
+
+  virtual void print(const tItem *item) { item->print_gen(this); }
+
+  virtual void real_print(const tInputItem *item);
+  virtual void real_print(const tLexItem *item);
+  virtual void real_print(const tPhrasalItem *item);
+
+private:
+  ostream &_out;
+  bool _protocolversion;
+};
+
 
 /** Print an item with its derivation, but delegate the real printing to
  *  another tAbstractItemPrinter object.
@@ -238,7 +262,6 @@ public:
 private:
   virtual void newline() {
     if (_indent_delta > 0) _out << std::setw(_indentation) << "-";
-    //fprintf(_out, "\n%*s", _indentation, "-----------------");
   }
 
   bool _do_indentation;
@@ -441,5 +464,28 @@ private:
   JxchgDagPrinter jxchgprinter;
   std::ostream &_out;
 };
+
+
+/** Print chart items for the exchange with Ulrich Krieger's jfs, mainly for
+ *  use with his corpus directed approximation.
+ *  For function descriptions, \see tAbstractItemPrinter.
+ */
+class tLUIPrinter : public tAbstractItemPrinter {
+public:
+  /** Print items into files that are under \a path. */
+  tLUIPrinter(const char *path) : _dagprinter(), _path(path) {}
+  
+  virtual ~tLUIPrinter() {}
+
+  virtual void print(const tItem *arg) ;
+
+private:
+  LUIDagPrinter _dagprinter;
+  string _path;
+};
+
+
+/** default printing for chart items: use a tItemPrinter */
+std::ostream &operator<<(std::ostream &out, const tItem &item);
 
 #endif

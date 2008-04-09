@@ -136,8 +136,6 @@ class grammar_rule
   grammar_rule(type_t t);
   grammar_rule() { }
 
-  static int next_id;
-
   int _id;
   int _type;        // type index
   rule_trait _trait;
@@ -220,9 +218,9 @@ public:
 };
 
 /** Class containing all the infos from the HPSG grammar */
-class tGrammar
-{
- public:
+class tGrammar {
+public:
+
   /** initialize global options */
   static int init_globals();
 

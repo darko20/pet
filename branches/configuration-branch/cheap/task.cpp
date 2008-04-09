@@ -207,7 +207,7 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAgenda *A,
 tItem *
 rule_and_passive_task::execute()
 {
-    if(opt_packing && _passive->blocked())
+    if(_passive->blocked())
         return 0;
     
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
@@ -247,7 +247,7 @@ active_and_passive_task::active_and_passive_task(chart *C, tAgenda *A,
 tItem *
 active_and_passive_task::execute()
 {
-    if(opt_packing && (_passive->blocked() || _active->blocked()))
+    if(_passive->blocked() || _active->blocked())
         return 0;
     
     tItem *result = build_combined_item(_Chart, _active, _passive);

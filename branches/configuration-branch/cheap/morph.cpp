@@ -325,11 +325,9 @@ morph_letterset * morph_lettersets::get(string name) const
   return const_cast<morph_letterset *>(&pos->second);
 }
 
-void morph_lettersets::undo_bindings()
-{
-  for(map<string, morph_letterset*>::iterator it = _m.begin();
-      it != _m.end(); ++it)
-    it->second->bind(0);
+void morph_lettersets::undo_bindings() {
+  for(ml_iterator it = _m.begin(); it != _m.end(); ++it)
+    (it->second).bind(0);
 }
 
 void morph_lettersets::print(FILE *f) const
@@ -557,8 +555,8 @@ void morph_trie::add_subrule(grammar_rule *rule, string subrule)
   }
 
   LOG(loggerUncategorized, Level::DEBUG, "INFLSUBRULE<%s>: %s (`%s' -> `%s')",
-      print_name(rule), subrule.c_str(),
-      Conv->convert(left).c_str(), Conv->convert(right).c_str());
+            rule->printname(), subrule.c_str(),
+            Conv->convert(left).c_str(), Conv->convert(right).c_str());
 
   morph_subrule *sr = new morph_subrule(_analyzer, rule, left, right);
   _analyzer->add_subrule(sr);
@@ -791,7 +789,7 @@ void tMorphAnalyzer::parse_rule(grammar_rule *fsrule, string rule, bool suffix)
 void tMorphAnalyzer::add_rule(grammar_rule *fsrule, string rule) {
   if(verbosity > 9)
     LOG(loggerUncategorized, Level::INFO,
-        "INFLR<%s>: %s", print_name(t), rule.c_str());
+        "INFLR<%s>: %s", fsrule->printname(), rule.c_str());
 
   if(rule.compare(0, 6, "suffix") == 0)
     parse_rule(fsrule, rule.substr(6, rule.length() - 6), true);
@@ -1140,9 +1138,7 @@ tLKBMorphology::undump_inflrs(dumper &dmp) {
 
   _morph.initialize_lexrule_filter();
 
-  if(verbosity > 4)
-    LOG(loggerUncategorized, Level::INFO, ", %d infl rules", ninflrs);
-
+  if(verbosity > 4) LOG(loggerUncategorized, Level::INFO, ", %d infl rules", ninflrs);
   if(verbosity >14) _morph.print(fstatus);
 }
 
@@ -1256,7 +1252,7 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
           }
         }
           
-        // XXX _fix_me_ I'm not sure about what that offset really means.
+        // _fix_me_ I'm not sure about what that offset really means.
         // It seems to me to be modelled wrongly and rather belong to the stem.
         // lstem->keydtr(offset);
           
@@ -1289,7 +1285,6 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
                   ; affix != affixes.end(); affix++) {
               pbprintf(pb, "%s@%d ", (*affix)->printname(), offset);
             }
-            );
               
             LOG_ONLY(pbprintf(pb, "("));
             LOG_ONLY(lstem->print(pb));

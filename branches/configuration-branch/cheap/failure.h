@@ -125,4 +125,9 @@ operator<(const failure &a, const failure &b)
     return a.less_than(b) == -1;
 }
 
+inline std::ostream &
+operator<<(std::ostream &out, const failure &f) {
+  f.print(out); return out;
+}
+
 #endif

@@ -36,19 +36,20 @@ void dagify_symtabs()
   for(i = 0; i < nstatus; i++)
     statusnames[i] = (char *) statustable.name(i).c_str();
 
-  first_leaftype = types.number() - nleaftypes;
-  ntypes = types.number();
+  first_leaftype = types.number() - nstaticleaftypes;
+  nstatictypes = types.number();
   
-  typenames = (char **) salloc(sizeof(char *) * ntypes);
-  typestatus = (int *) salloc(sizeof(int) * ntypes);
-  printnames = (char **) salloc(sizeof(char *) * ntypes);
+  typenames = std::vector<std::string>(nstatictypes);
+  typestatus = (int *) salloc(sizeof(int) * nstatictypes);
+  printnames = std::vector<std::string>(nstatictypes);
 
   for(i = 0; i < types.number(); i ++)
     {
-      typenames[i] = (char *) types.name(i).c_str();
+      typenames[i] = types.name(i);
       typestatus[i] = types[i]->status;
       printnames[i] = types[i]->printname;
-      if(printnames[i] == 0) printnames[i] = typenames[i];
+      if(printnames[i].empty())
+        printnames[i] = typenames[i];
     }
 
   nattrs = attributes.number();
@@ -125,7 +126,7 @@ struct dag_node *dagify_avm(struct avm *A)
             {
               LOG(loggerUncategorized, Level::INFO,
                   "type `%s': unification under `%s' failed",
-                  typenames[current_toplevel_type], attrname[attr]);
+                  type_name(current_toplevel_type), attrname[attr]);
               return FAIL;
             }
         }
@@ -154,7 +155,7 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
                 {
                   LOG(loggerUncategorized, Level::INFO,
                       "type `%s': unification of `LAST' failed",
-                      typenames[current_toplevel_type]);
+                      type_name(current_toplevel_type));
                   return FAIL;
                 }
             }
@@ -220,10 +221,10 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
           {
             LOG(loggerUncategorized, Level::INFO,
                 "type `%s': inconsistent term detected: "
-                "`%s' & `%s' have no glb...",
-                typenames[current_toplevel_type],
-                typenames[type],
-                typenames[C->term[i]->type]);
+                "`%s' & `%s' have no glb...", 
+                type_name(current_toplevel_type),
+                type_name(type),
+                type_name(C->term[i]->type));
             return FAIL;
           }
         type = newtype;
@@ -233,9 +234,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
         if(cref != -1 && cref != C->term[i]->coidx)
           {
             LOG(loggerUncategorized, Level::INFO,
-                "type `%s': term specifies two coreference indices:"
-                " %d & %d...",
-                typenames[current_toplevel_type],
+                "type `%s': term specifies two coreference indices: %d & %d...\n",
+                type_name(current_toplevel_type),
                 cref, C->term[i]->coidx);
             return FAIL;
           }
@@ -258,8 +258,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
           if(dag_unify1(result, tmp) == FAIL)
             {
               LOG(loggerUncategorized, Level::INFO,
-                  "type `%s': feature term unification failed",
-                  typenames[current_toplevel_type]);
+                  "type `%s': feature term unification failed\n",
+                  type_name(current_toplevel_type));
               return FAIL;
             }
         }
@@ -270,8 +270,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
           if(dag_unify1(result, tmp) == FAIL)
             {
               LOG(loggerUncategorized, Level::INFO,
-                  "type `%s': list term unification failed",
-                  typenames[current_toplevel_type]);
+                  "type `%s': list term unification failed\n",
+                  type_name(current_toplevel_type));
               return FAIL;
             }
         }
@@ -285,8 +285,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
           if(dag_unify1(dagify_corefs[cref], result) == FAIL)
             {
               LOG(loggerUncategorized, Level::INFO,
-                  "type `%s': coreference unification failed",
-                  typenames[current_toplevel_type]);
+                  "type `%s': coreference unification failed\n",
+                  type_name(current_toplevel_type));
               return FAIL;
             }
         }

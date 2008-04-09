@@ -63,7 +63,7 @@
 /** Table size for attribute value lists: this grows dynamically */
 #define AV_TABLE_SIZE 8
 /** _fix_me_ Fixed size table for terms */
-#define CONJ_TABLE_SIZE 12
+#define CONJ_TABLE_SIZE 20
 /*@}*/
 
 
