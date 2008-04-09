@@ -208,10 +208,14 @@ void init_options()
   Config::addOption("opt_predict_les", 
                     "if not zero predict lexical entries for uncovered input",
                     (int) 0);
-  opt_timeout = 0;
+
+  Config::addOption("opt_timeout",
+                    "stop processing (parsing & unpacking) after the specified"
+                    " amount of (milli?)seconds",
+                    (int) 0);
 
   Config::addOption<char*>("opt_mrs",
-    "determines if and which kind of MRS output is generated", 0 );
+    "determines if and which kind of MRS output is generated", NULL );
   
   Config::addOption<bool>("opt_partial",
     "in case of parse failure, find a set of chart edges "
@@ -407,7 +411,9 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_TIMEOUT:
           if(optarg != NULL)
-              opt_timeout = sysconf(_SC_CLK_TCK) * strtoint(optarg, "as argument to -timeout");
+            Config::set("opt_timeout",
+                        (int)(sysconf(_SC_CLK_TCK) *
+                              strtoint(optarg, "as argument to -timeout")));
           break;
       case OPTION_LOG:
           if(optarg != NULL)

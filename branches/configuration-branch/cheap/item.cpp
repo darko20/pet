@@ -26,9 +26,7 @@
 #include "item.h"
 #include "item-printer.h"
 #include "parse.h"
-#include "types.h"
-#include "utility.h"
-#include "dagprinter.h"
+#include "sm.h"
 #include "tsdb++.h"
 #include "types.h"
 #include "utility.h"
@@ -177,34 +175,6 @@ tItem::set_result_root(type_t rule) {
 
 
 
-  if(chdir(path)) {
-    LOG_ERROR(loggerUncategorized,
-              "tItem::lui_dump(): invalid target directory `%s'.", path);
-    return;
-  } // if
-  char name[MAXPATHLEN + 1];
-  sprintf(name, "%d.lui", _id);
-  ofstream stream(name);
-  if(! stream) {
-    LOG_ERROR(loggerUncategorized,
-              "tItem::lui_dump(): unable to open `%s' (in `%s').", name, path);
-    return;
-  } // if
-  stream << "avm " << _id << " ";
-  LUIDagPrinter ldp;
-  _fs.print(stream, ldp);
-  stream << " \"Edge # " << _id << "\"\f\n" ;
-  stream.close();
-  /*
-  fprintf(stream, "avm %d ", _id);
-  _fs.print(stream, DAG_FORMAT_LUI);
-  fprintf(stream, " \"Edge # %d\"\f\n", _id);
-  fclose(stream);
-  */
-} // tItem::lui_dump()
-
-
-
 /*****************************************************************************
  INPUT ITEM
  *****************************************************************************/
@@ -264,7 +234,6 @@ tInputItem::print_gen(class tAbstractItemPrinter *ip) const {
 std::string tInputItem::get_yield() {
   return orth().c_str();
 }
-#endif
 
 void 
 tInputItem::daughter_ids(list<int> &ids)
@@ -840,7 +809,7 @@ tItem::unpack(int upedgelimit)
 
     // Check if we reached timeout. Caller is responsible for checking
     // this to verify completeness of results.
-    if (opt_timeout > 0) {
+    if (Config::get<int>("opt_timeout") > 0) {
       timestamp = times(NULL);
       if (timestamp >= timeout)
         return res;
@@ -1027,7 +996,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   tHypothesis *hypo = NULL;
 
   // check whether timeout has passed.
-  if (opt_timeout > 0) {
+  if (Config::get<int>("opt_timeout") > 0) {
     timestamp = times(NULL);
     if (timestamp >= timeout)
       return hypo;

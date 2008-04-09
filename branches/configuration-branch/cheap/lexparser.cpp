@@ -622,19 +622,21 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
 }
 
 void 
-lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens) {
+lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
+                         int nr_predicts) {
   list<lex_stem*> predicts;
   
+  // LOG
   //  if (verbosity > 4)
   //  fprintf(ferr, "adding prediction les\n");
   
   for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
-    if (verbosity > 4) {
-      cerr << "  token " << *it << endl;
-    }
-    */
-
-    predicts = predict_les(*it, inp_tokens, opt_predict_les);
+    // LOG
+    //if (verbosity > 4) {
+    //  cerr << "  token " << *it << endl;
+    //}
+    
+    predicts = predict_les(*it, inp_tokens, nr_predicts);
     list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
     for (list<lex_stem*>::iterator ls = predicts.begin();
          ls != predicts.end(); ls ++) {

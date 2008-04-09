@@ -100,7 +100,6 @@ bool compute_appropriateness() {
             }
         }
     }
-  }
 
   for(i = 0; i < attributes.number(); i++)
     {
@@ -122,7 +121,6 @@ bool compute_appropriateness() {
                 attributes.name(i).c_str());
         }
     }
-  }
 
   return !fail;
 }
@@ -197,9 +195,6 @@ bool apply_appropriateness() {
       dag_invalidate_visited();
     }
 
-    dag_invalidate_visited();
-  }
-
   return !fail;
 }
 
@@ -239,7 +234,6 @@ bool delta_expand_types() {
             }
         }
     }
-  }
 
   return true;
 }
@@ -266,7 +260,6 @@ void critical_types(struct dag_node *dag, set<int> &cs) {
           critical_types(arc->val, cs);
           arc = arc->next;
         }
-    }
   }
 }
 
@@ -457,7 +450,6 @@ void compute_maxapp() {
           maxapp[i] > types.number() ? "symbol" : "type",
           type_name(maxapp[i]),
           types.name(apptype[i]).c_str());
-        }
     }
 }
 
@@ -682,11 +674,6 @@ void bottom_up_partitions() {
 
         nfeatsets++;
       }
-
-      theset[nfeatsets] = feats;
-
-      nfeatsets++;
-    }
 
   LOG(loggerExpand, Level::INFO, "(%d partitions)", nfeatsets);
 }

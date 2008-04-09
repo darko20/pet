@@ -1284,7 +1284,7 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
             for(ruleiter affix = affixes.begin()
                   ; affix != affixes.end(); affix++) {
               pbprintf(pb, "%s@%d ", (*affix)->printname(), offset);
-            }
+            })
               
             LOG_ONLY(pbprintf(pb, "("));
             LOG_ONLY(lstem->print(pb));

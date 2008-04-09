@@ -411,8 +411,6 @@ compute_qc_paths(ostream &out) {
     out << endl;
   }
   out << endl;
-  }
-  fprintf(f, "\n");
 
   out << ";;\n;; quickcheck paths (unification)\n;;" << endl << endl;
   compute_qc_traditional(out, 

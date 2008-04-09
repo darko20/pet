@@ -222,7 +222,8 @@ void interactive() {
             }
           }
 #endif
-          if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
+          if (Config::get<char*>("opt_mrs")
+              && (strcmp(Config::get<char*>("opt_mrs"), "new") == 0)) {
             mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
             if (mrs->valid()) {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
@@ -411,8 +412,9 @@ void process(const char *s) {
             (Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
                ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
         else
-          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS
-                                  ? STANDOFF_COUNTS : STANDOFF_POINTS));
+          tok = new tYYTokenizer(
+            (Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
+             ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
     case TOKENIZER_STRING: 
@@ -464,7 +466,7 @@ void process(const char *s) {
     default:
       tok = new tLingoTokenizer(); break;
     }
-    tok->set_comment_passthrough(opt_comment_passthrough);
+    tok->set_comment_passthrough(Config::get<bool>("opt_comment_passthrough"));
     Lexparser.register_tokenizer(tok);
   }
     
