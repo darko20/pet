@@ -231,8 +231,8 @@ packed_edge(tItem *newitem) {
 
     if(!olditem->inflrs_complete_p() || (olditem->trait() == INPUT_TRAIT))
       continue;
-    
-    forward=backward = true;
+
+    forward = backward = true;
 
     // YZ 2007-07-25: avoid packing item with its offspring edges
     // (both forward and backward)
@@ -433,14 +433,15 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
       errors.push_back(s.str());
       break;
     }
-  
+    // test auf timeout fehlt hier
+
     basic_task* t = Agenda->pop();
 #ifdef DEBUG
     t->print(stderr); fprintf(stderr, "\n");
 #endif
     tItem *it = t->execute();
     delete t;
-    if (opt_timeout > 0)
+    if (Config::get<int>("opt_timeout") > 0)
       timestamp = times(NULL);
     // add_item checks all limits that have to do with the number of
     // analyses. If it returns true that means that one of these limits has
@@ -452,7 +453,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
                        , timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
-  if (opt_timeout > 0)
+  if (Config::get<int>("opt_timeout") > 0)
     timestamp = times(NULL);
 
   // selectively unpacking
@@ -497,12 +498,12 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
                         , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
-  if (opt_timeout > 0) 
+  if (Config::get<int>("opt_timeout") > 0) 
     timestamp = times(NULL);
   for(vector<tItem *>::iterator tree = trees.begin();
       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
         && tree != trees.end(); ++tree) {
-    if (opt_timeout > 0 && timestamp >= timeout)
+    if (Config::get<int>("opt_timeout") > 0 && timestamp >= timeout)
       break;
     if(! (*tree)->blocked()) {
       
@@ -564,9 +565,10 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
         errors.push_back(s.str());
       }
 
-      if (opt_timeout > 0 && timestamp >= timeout) {
+      if (Config::get<int>("opt_timeout") > 0 && timestamp >= timeout) {
         ostringstream s;
-        s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+        s << "timed out (" 
+          << Config::get<int>("opt_timeout") / sysconf(_SC_CLK_TCK) 
           << " s)";
         errors.push_back(s.str());
       }
@@ -650,7 +652,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
     unify_wellformed = true;
 
-    inpitemlist input_items;
+    inp_list input_items;
     int max_pos = Lexparser.process_input(input, input_items);
 
     Agenda = new tAgenda;
@@ -663,9 +665,9 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
     TotalParseTime.start();
     ParseTime.reset(); ParseTime.start();
-    if (opt_timeout > 0) {
+    if (Config::get<int>("opt_timeout") > 0) {
       timestamp = times(NULL);
-      timeout = timestamp + (clock_t)opt_timeout;
+      timeout = timestamp + (clock_t)Config::get<int>("opt_timeout");
     }
 
     Lexparser.lexical_processing(input_items

@@ -27,8 +27,6 @@
 
 using namespace std;
 
-static dag_node * const INSIDE = (dag_node *) -2;
-
 int unify_generation = 0;
 int unify_generation_max = 0;
 

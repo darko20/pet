@@ -136,6 +136,8 @@ class grammar_rule
   grammar_rule(type_t t);
   grammar_rule() { }
 
+  static int next_id;
+
   int _id;
   int _type;        // type index
   rule_trait _trait;

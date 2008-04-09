@@ -28,6 +28,7 @@
 #endif
 
 #include <cassert>
+#include <ostream>
 
 char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
@@ -43,7 +44,7 @@ int is_idchar(int c)
 
 int lisp_mode = 0; // shall lexer recognize lisp expressions 
 
-void print_token(IPrintfHandler &iph, struct lex_token *t);
+void print_token(std::ostream &out, struct lex_token *t);
 
 struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
     int rlen = -1)
@@ -414,17 +415,17 @@ struct lex_token *get_next_token()
   return t;
 }
 
-void print_token(IPrintfHandler &iph, struct lex_token *t)
+void print_token(std::ostream &out, lex_token *t)
 {
   assert(t != NULL);
   
   if(t->tag == T_EOF)
     {
-      pbprintf(iph, "*EOF*\n");
+      out << "*EOF*" << std::endl;
     }
   else
     {
-      pbprintf(iph, "[%d]<%s>\n", t->tag, t->text);
+      out << "[" << t->tag << "]<" << t->text << ">" << std::endl;
     }
 }
 
