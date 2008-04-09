@@ -900,18 +900,6 @@ tPhrasalItem::unpack1(int upedgelimit)
     return res;
 }
 
-#ifdef USE_DEPRECATED
-void
-print_config(ostream &out, int motherid, vector<tItem *> &config) {
-  out << motherid << "[";
-  vector<tItem *>::iterator it = config.begin();
-  if (it != config.end()) { out << (*it)->id(); ++it; }
-  for(; it != config.end(); ++it)
-    out << " " << (*it)->id();
-  out << "]";
-}
-#endif
-
 void
 print_config(ostream &out, int motherid, vector<tItem *> &config) {
   out << motherid << "[";

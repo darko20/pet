@@ -9,7 +9,7 @@ DEFS += -DDYNAMIC_SYMBOLS -DDAG_TOMABECHI
 bin_PROGRAMS = tester
 
 tester_SOURCES = tester.cpp \
-	paths.cpp
+	paths-test.cpp
 tester_LDADD = ../libcheap.a
 if ECLMRS
 tester_LDADD += ../libmrs.a

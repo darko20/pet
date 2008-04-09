@@ -343,7 +343,7 @@ public:
   }
 
 private:
-  std::list<tItem *> &_LI_start, &_LI_end;
+  item_list &_LI_start, &_LI_end;
     
   bool _at_start;
     
