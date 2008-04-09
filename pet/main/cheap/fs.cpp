@@ -90,15 +90,6 @@ fs::printname() const
   return print_name(dag_type(_dag));
 }
 
-/*
-void
-fs::print(FILE *f, int format)
-{
-    if(temp()) dag_print_safe(f, _dag, true, format);
-    else dag_print_safe(f, _dag, false, format);
-}
-*/
-
 void fs::print(std::ostream &out, AbstractDagPrinter &dp) const
 {
   dp.print(out, _dag, temp());

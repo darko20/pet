@@ -336,7 +336,7 @@ list_int *fully_expand(struct dag_node *dag, bool full)
  *
  * \return true if the definitions are all OK, false otherwise
  */
-bool fully_expand_types()
+bool fully_expand_types(bool full_expansion)
 {
   int i;
   list<int> l;
@@ -378,7 +378,7 @@ bool fully_expand_types()
         
       if(!pseudo_type(i))
         {
-          list_int *path = fully_expand(types[i]->thedag, opt_full_expansion);
+          list_int *path = fully_expand(types[i]->thedag, full_expansion);
 
           if(path != NULL)
             {

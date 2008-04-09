@@ -277,7 +277,7 @@ void process_types()
     exit(1);
 
   fprintf(fstatus, " / full");
-  if(!fully_expand_types())
+  if(!fully_expand_types(opt_full_expansion))
     exit(1);
 
   fprintf(fstatus, " expansion for types\n");
