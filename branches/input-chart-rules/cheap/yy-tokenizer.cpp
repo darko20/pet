@@ -317,7 +317,7 @@ tYYTokenizer::read_token()
     
     type_t infl_rule = lookup_type(inflr);
     if((infl_rule >= 0) 
-       // XXX _fix_me_ the next test seems to be desirable
+       // _fix_me_ the next test seems to be desirable
        // && (Grammar->find_rule(infl_rule)->trait() == INFL_TRAIT)
        ) {
       infl_rules.push_back(infl_rule);

@@ -25,6 +25,8 @@
 #include "item-printer.h"
 #include "hashing.h"
 
+#include <ostream>
+
 using namespace std;
 using namespace HASH_SPACE;
 
@@ -65,8 +67,7 @@ void chart::reset(int len)
 void chart::add(tItem *it)
 {
 #ifdef DEBUG
-    it->print(ferr);
-    fprintf(ferr, "\n");
+  it->print(DEBUGLOGGER); DEBUGLOGGER << endl;
 #endif
 
     _Chart.push_back(it);
@@ -104,8 +105,7 @@ void chart::remove(hash_set<tItem *> &to_delete)
     for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
           ; hit != to_delete.end(); hit++) {
 #ifdef DEBUG
-      it->print(ferr);
-      fprintf(ferr, "removed \n");
+      it->print(DEBUGLOGGER); DEBUGLOGGER << "removed " << endl;
 #endif
       
       tItem *it = *hit;
@@ -126,25 +126,18 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
-void chart::print(FILE *f)
-{
-    int i = 0;
-    for(chart_iter pos(this); pos.valid(); pos++, i++)
-    {
-        (pos.current())->print(f);
-        fprintf(f, "\n");
+void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
+                  bool passives, bool actives) {
+  tItemPrinter def_print(out, verbosity > 2, verbosity > 10);
+  if (pr == NULL) {
+    pr = &def_print;
+  }
+  for(chart_iter pos(this); pos.valid(); pos++) {
+    tItem *curr = pos.current();
+    if ((curr->passive() && passives) || (! curr->passive() && actives)) {
+      pr->print(curr); out << endl;
     }
-}
-
-void chart::print(tItemPrinter *f, bool passives, bool actives)
-{
-    int i = 0;
-    for(chart_iter pos(this); pos.valid(); pos++, i++)
-    {
-      tItem *curr = pos.current();
-      if ((curr->passive() && passives) || (! curr->passive() && actives))
-        f->print(curr);
-    }
+  }
 }
 
 void chart::get_statistics()
@@ -182,11 +175,38 @@ void chart::get_statistics()
     stats.fssize = (stats.pedges > 0) ? totalsize / stats.pedges : 0;
 }
 
+struct input_only_weights : public unary_function< tItem *, unsigned int > {
+  unsigned int operator()(tItem * i) {
+    // return a weight close to infinity if this is not an input item
+    // prefer shorter items over longer ones
+    if (dynamic_cast<tInputItem *>(i) != NULL)
+      return i->span();
+    else
+      return 1000000;
+  }
+};
 
+std::string
+chart::get_surface_string() {
+  list< tItem * > inputs;
+  input_only_weights io;
 
-/** Return \c true if the chart is connected using only edges considered \a
- *  valid, i.e., there is a path from the first to the last node.
- */
+  shortest_path<unsigned int>(inputs, io, false);
+  string surface;
+  for(item_citer it = inputs.begin(); it != inputs.end(); it++) {
+    const tInputItem *inp = dynamic_cast<const tInputItem *>(*it);
+    if (inp != NULL) {
+      surface = surface + inp->orth() + " ";
+    }
+  }
+
+  int len = surface.length();
+  if (len > 0) {
+    surface.erase(surface.length() - 1);
+  }
+  return surface;
+}
+
 bool
 chart::connected(item_predicate &valid) {
   vector<bool> reached(rightmost() + 1, false);
@@ -197,7 +217,7 @@ chart::connected(item_predicate &valid) {
   current.push(0);
   while(! reached[rightmost()] && ! current.empty()) {
     pos = current.front(); current.pop();
-    for(list<tItem *>::iterator it = _Cp_start[pos].begin()
+    for(item_iter it = _Cp_start[pos].begin()
           ; it != _Cp_start[pos].end(); it++) {
       if (! reached[(*it)->end()] && valid(*it)) {
         reached[(*it)->end()] = true;

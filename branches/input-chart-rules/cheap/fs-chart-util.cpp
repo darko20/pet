@@ -463,22 +463,3 @@ tChartUtil::map_chart(tChart &in, chart &out)
   }
   return nr_processed;
 }
-
-
-
-// =====================================================
-// class tChartPrinter
-// =====================================================
-
-void
-tChartPrinter::print(FILE *file, tChart &chart)
-{
-  std::list<tItem*> items = chart.items();
-  std::list<tItem*>::iterator it;
-  for (it = items.begin(); it != items.end(); it++)
-  {
-    //fprintf(file, "%p-%p : ", (*it)->prec_vertex(), (*it)->succ_vertex());
-    (*it)->print(file);
-    fprintf(file, "\n");
-  }
-}

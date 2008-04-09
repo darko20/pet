@@ -153,6 +153,8 @@ void undump_hierarchy(class dumper *f);
 void undump_tables(class dumper *f);
 /** Initialize the table for the maximal appropriate type under a feature by
  *  consulting the type dag of the appropriate type.
+ * \todo this has got nothing to do with the `pure' type hierarchy and should
+ * go to where the dag(s) hierarchy is initialized/undumped
  */
 void initialize_maxapp();
 
@@ -164,9 +166,9 @@ int lookup_status(const char *s);
     exist */
 attr_t lookup_attr(const char *s);
 
-/** Get the type id for type name \a s or return -1 if it does not exist. */
+/** Get the type id for type name \a name or return -1 if it does not exist. */
 type_t lookup_type(const std::string &name);
-/** Get the type id for type name \a s, registering a new type for unknown
+/** Get the type id for type name \a name, registering a new type for unknown
  *  string types (if dynamic types are enabled, i.e. DYNAMIC_TYPES is defined),
  *  or return -1 if it does not exist.
  */

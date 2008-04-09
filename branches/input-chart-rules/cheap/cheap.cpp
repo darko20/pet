@@ -80,39 +80,6 @@ struct passive_weights : public unary_function< tItem *, unsigned int > {
   }
 };
 
-struct input_only_weights : public unary_function< tItem *, unsigned int > {
-  unsigned int operator()(tItem * i) {
-    // return a weight close to infinity if this is not an input item
-    // prefer shorter items over longer ones
-    if (dynamic_cast<tInputItem *>(i) != NULL)
-      return i->span();
-    else
-      return 1000000;
-  }
-};
-
-string get_surface_string(chart *ch) {
-  list< tItem * > inputs;
-  input_only_weights io;
-
-  ch->shortest_path<unsigned int>(inputs, io, false);
-  string surface;
-  for(list<tItem *>::iterator it = inputs.begin()
-        ; it != inputs.end(); it++) {
-    tInputItem *inp = dynamic_cast<tInputItem *>(*it);
-    if (inp != NULL) {
-      surface = surface + inp->orth() + " ";
-    }
-  }
-
-  int len = surface.length();
-  if (len > 0) {
-    surface.erase(surface.length() - 1);
-  }
-  return surface;
-}
-
-
 void dump_jxchg(string surface, chart *current) {
   if (! opt_jxchg_dir.empty()) {
     string yieldname = surface;
@@ -124,7 +91,7 @@ void dump_jxchg(string surface, chart *current) {
     } else {
       out << "0 " << current->rightmost() << endl;
       tJxchgPrinter chp(out);
-      current->print(&chp);
+      current->print(out, &chp, true, false); // print only passive edges
     }
   }
 }
@@ -165,7 +132,7 @@ void interactive() {
         fprintf(stdout, "%d\t%d\t%d\n",
                 stats.id, stats.readings, stats.pedges);
 
-      string surface = get_surface_string(Chart);
+      string surface = Chart->get_surface_string();
 
       fprintf(fstatus, 
               "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
@@ -180,32 +147,30 @@ void interactive() {
 
       //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
       //tFegramedPrinter chp("/tmp/fed-");
-      //Chart->print(&chp);
+      //Chart->print(cerr, &chp, true, true);
 
       //dump_jxchg(surface, Chart);
 
       if(verbosity > 1 || opt_mrs) {
         int nres = 0;
 
-        list< tItem * > results(Chart->readings().begin()
+        item_list results(Chart->readings().begin()
                                 , Chart->readings().end());
         // sorting was done already in parse_finish
         // results.sort(item_greater_than_score());
-        for(list<tItem *>::iterator iter = results.begin()
-              ; (iter != results.end())
+        for(item_iter iter = results.begin();
+            (iter != results.end())
               && ((opt_nresults == 0) || (opt_nresults > nres))
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
-          tCompactDerivationPrinter deriv(fstatus);
+          tCompactDerivationPrinter deriv(std::cerr);
           tItem *it = *iter;
 
           nres++;
           fprintf(fstatus, "derivation[%d]", nres);
           fprintf(fstatus, " (%.4g)", it->score());
-          fprintf(fstatus, ":");
-          it->print_yield(fstatus);
-          fprintf(fstatus, "\n");
+          fprintf(fstatus, ":%s\n", it->get_yield().c_str());
           if(verbosity > 2) {
             deriv.print(it);
             fprintf(fstatus, "\n");
@@ -247,8 +212,7 @@ void interactive() {
           Chart->shortest_path<unsigned int>(partials, pass, true);
           bool rmrs_xml = (strcmp(opt_mrs, "rmrx") == 0);
           if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
-          for(list<tItem *>::iterator it = partials.begin()
-                ; it != partials.end(); ++it) {
+          for(item_iter it = partials.begin(); it != partials.end(); ++it) {
             if(opt_mrs) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
@@ -274,7 +238,7 @@ void interactive() {
         stats.print(fstatus);
       stats.readings = -1;
 
-      string surface = get_surface_string(Chart);
+      string surface = Chart->get_surface_string();
       dump_jxchg(surface, Chart);
       tsdb_dump.error(Chart, surface, e);
     }
@@ -288,9 +252,8 @@ void interactive() {
   } /* while */
 
   if(opt_compute_qc) {
-    FILE *qc = fopen(opt_compute_qc, "w");
+    ofstream qc(opt_compute_qc);
     compute_qc_paths(qc);
-    fclose(qc);
   }
 }
 
@@ -359,6 +322,8 @@ void print_type_hierarchy(FILE* f)
       }
     }
     fprintf(f, "%-30s %-7d %s\n", t_str, is_proper_type(t), st_str);
+    // \todo this has to be replaced, but too much for now
+    //dag_print_safe(f, type_dag(i), false, 0);
   }
   fprintf(f, "\n");
 }
@@ -388,7 +353,7 @@ void process(const char *s) {
     cheap_settings = new settings(base.c_str(), s, "reading");
     fprintf(fstatus, "\n");
     fprintf(fstatus, "loading `%s' ", s);
-    Grammar = new tGrammar(s); 
+    Grammar = new tGrammar(s);
 
 #ifdef HAVE_ECL
     char *cl_argv[] = {"cheap", 0};
@@ -418,6 +383,8 @@ void process(const char *s) {
     }
     Lexparser.register_lexicon(new tInternalLexicon());
 
+    
+    // \todo this cries for a separate tokenizer factory
     tTokenizer *tok;
     switch (opt_tok) {
     case TOKENIZER_YY: 

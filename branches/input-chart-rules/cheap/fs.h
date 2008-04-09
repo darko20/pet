@@ -79,12 +79,10 @@ class fs
   inline bool valid() const { return _dag != 0 && _dag != FAIL; }
 
   /** return \c true if dags are eq */
-  inline bool operator==(const fs &f) const
-  { return _dag == f._dag; }
+  inline bool operator==(const fs &f) const { return _dag == f._dag; }
 
   /** return \c true if dags are not eq */
-  inline bool operator!=(const fs &f) const
-  { return _dag != f._dag; }
+  inline bool operator!=(const fs &f) const { return _dag != f._dag; }
 
   /** Return a new fs representing the subdag under \a attr, if this Attribute
       is in the root fs. */
@@ -200,7 +198,7 @@ class fs
   bool characterize(list_int *path, attr_t attr, type_t value);  
 
   /** Print readably for debugging purposes */
-  void print(FILE *f, int format = DAG_FORMAT_TRADITIONAL) const;
+  void print(std::ostream &out, class AbstractDagPrinter &dp) const;
 
 
   /** Initialize the static variables for quick check appropriately */

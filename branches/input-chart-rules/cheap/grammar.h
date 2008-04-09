@@ -83,9 +83,10 @@ class grammar_rule
   inline void trait(rule_trait t) { _trait = t; }
 
   /** Print in readable form for debugging purposes */
-  void print(FILE *f);
+  void print(std::ostream &out);
 
   /** Dump grammar in a format feasible for LUI (?) into \a directory */
+  // \todo should go in favor of the print method above
   void lui_dump(const char* directory = "/tmp");
 
   /** Return the feature structure associated with this rule.
@@ -238,7 +239,7 @@ public:
    * \return \c true if \a f is compatible with one of the root FS nodes and
    * return the type of this root node in \a rule.
    */
-  bool root(fs &f, type_t &rule);
+  bool root(const fs &f, type_t &rule) const;
 
   /** Return the list of attributes that should be deleted in the root dags of
    *  passive items.

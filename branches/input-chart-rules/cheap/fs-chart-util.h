@@ -36,19 +36,6 @@
 
 
 /**
- * Printer utility class for tChart objects.
- */
-class tChartPrinter
-{
-public:
-  
-  /** Print a chart. */
-  static void print(FILE *file, tChart &chart);
-   
-};
-
-
-/**
  * Utility class for tChart related conversions. This class will eventually
  * become obsolete when the old chart implementation is replaced by tChart.
  */
