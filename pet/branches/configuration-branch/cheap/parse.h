@@ -34,6 +34,9 @@
  */
 extern timer TotalParseTime;
 
+extern clock_t timeout;
+extern clock_t timestamp;
+
 /** Take some kind of input, run it through the registered preprocessing
  *  modules first and then do syntactic parsing.
  * \param input Any kind of input feasible for the registered preprocessing

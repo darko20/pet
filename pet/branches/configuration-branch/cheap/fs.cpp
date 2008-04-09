@@ -22,7 +22,6 @@
 
 #include "cheap.h"
 #include "fs.h"
-#include "types.h"
 #include "tsdb++.h"
 #include "restrictor.h"
 #include "dagprinter.h"
@@ -267,6 +266,18 @@ map<int, double> failing_paths_subs;
 map<list_int *, int, list_int_compare> failing_sets_subs;
 
 void
+print_failures(std::ostream &out, const list<failure *> &fails,
+               bool unification, dag_node *a = 0, dag_node *b = 0) {
+  out << "failure (" << (unification ? "unif" : "subs") << ") at"
+      << std::endl ;
+  for(list<failure *>::const_iterator iter = fails.begin();
+      iter != fails.end(); ++iter) {
+    out << "  " << *iter << std::endl;
+  }
+}
+
+
+void
 record_failures(list<failure *> fails, bool unification,
                 dag_node *a = 0, dag_node *b = 0)
 {
@@ -397,28 +408,11 @@ record_failures(list<failure *> fails, bool unification,
     
     if(opt_print_failure)
     {
-        fprintf(ferr, "failure (%s) at\n", unification ? "unif" : "subs");
-        for(list<failure *>::iterator iter = fails.begin();
-            iter != fails.end(); ++iter)
-        {
-            fprintf(ferr, "  ");
-            (*iter)->print(ferr);
-            fprintf(ferr, "\n");
-        }
+      print_failures(cerr, fails, unification);
         // _fix_me_ need to delete f here
     }
 }
 
-void
-print_failures(std::ostream &out, list<failure *> fails,
-               bool unification, dag_node *a = 0, dag_node *b = 0) {
-  out << "failure (" << (unification ? "unif" : "subs") << ") at"
-      << std::endl ;
-  for(list<failure *>::iterator iter = fails.begin();
-      iter != fails.end(); ++iter) {
-    out << "  " << *iter << std::endl;
-  }
-}
 
 
 fs

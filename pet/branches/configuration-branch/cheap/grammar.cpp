@@ -184,7 +184,7 @@ grammar_rule::grammar_rule(type_t t)
     // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
     //
 
-    // _fix_me_
+    // \todo 
     // this is wrong for more than binary branching rules, 
     // since adjacency is not guarantueed.
     
@@ -233,9 +233,9 @@ grammar_rule::grammar_rule(type_t t)
         _spanningonly = true;
     }
     
-    LOG_ONLY(PrintfBuffer pb);
-    LOG_ONLY(print(pb));
-    LOG(loggerGrammar, Level::DEBUG, "%s", pb.getContents());
+    // \todo this sucks and goes into another (debugging) method
+    // if(verbosity > 14) cerr << *this << endl;
+
 }
 
 grammar_rule::~grammar_rule() {
@@ -255,6 +255,7 @@ grammar_rule::make_grammar_rule(type_t t) {
   return NULL;
 }
 
+/*
 void
 grammar_rule::print(IPrintfHandler &iph)
 {
@@ -269,7 +270,20 @@ grammar_rule::print(IPrintfHandler &iph)
     }
     
     pbprintf(iph, ")");
-}
+} 
+*/
+
+void
+grammar_rule::print(ostream &out) {
+  out << print_name(_type) << "/" << _arity
+      << (_hyper == false ? "[-HA]" : "") ;
+    
+  list_int *l = _tofill;
+  while(l) {
+    out << " " << first(l);
+  }    
+  out << ")";
+} 
 
 void
 grammar_rule::lui_dump(const char *path) {
@@ -402,6 +416,7 @@ tGrammar::tGrammar(const char * filename)
     char *s = undump_header(&dmp, version);
     if(s)
       LOG(loggerGrammar, Level::INFO, "(%s) ", s);
+    delete[] s;
     delete[] s;
     
     dump_toc toc(&dmp);

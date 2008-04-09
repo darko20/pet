@@ -32,6 +32,8 @@ using std::map;
 using std::set;
 using std::vector;
 
+#include <iomanip>
+
 postags::postags(const vector<string> &tags, const vector<double> &probs) {
   assert(tags.size() == probs.size());        
   for(vector<string>::const_iterator it = tags.begin(); it != tags.end();
@@ -107,8 +109,8 @@ void postags::remove(const postags &s) {
 }
 
 void postags::print(std::ostream &out) const {
-  set<string>::const_iterator iter = _tags.begin();
-  for(set<string>::const_iterator iter = _tags.begin(); ; ++iter) {
+  for(set<string>::const_iterator iter = _tags.begin(); iter != _tags.end();
+      ++iter) {
     out << *iter;
     map<string, double>::const_iterator p = _probs.find(*iter);
     if(p != _probs.end())

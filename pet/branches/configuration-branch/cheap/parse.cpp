@@ -31,6 +31,9 @@
 #include "tsdb++.h"
 
 #include <sstream>
+#include <iostream>
+#include <sys/times.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -85,6 +88,13 @@ static bool parser_init() {
 
 
 
+// timeout control for parsing 
+// timer class is not suitable because: 
+//  i) we do not need microsecond-level accuracy
+//  ii) timer based on CLOCK(3) can wrap around after 36 minutes
+// therefore it is more suitable to use TIMES(2)
+clock_t timeout;
+clock_t timestamp;
 //
 // filtering
 //
@@ -108,8 +118,8 @@ filter_rule_task(grammar_rule *R, tItem *passive)
     }
 
     if(opt_nqc_unif != 0
-       && !qc_compatible_unif(qc_len_unif, R->qc_vector_unif(R->nextarg()),
-                              passive->qc_vector_unif()))
+       && !fs::qc_compatible_unif(R->qc_vector_unif(R->nextarg()),
+                                  passive->qc_vector_unif()))
     {
         stats.ftasks_qc++;
         LOG_ONLY(pbprintf(pb, "filtered (qc)"));
@@ -144,8 +154,8 @@ filter_combine_task(tItem *active, tItem *passive)
     }
 
     if(opt_nqc_unif != 0
-       && !qc_compatible_unif(qc_len_unif, active->qc_vector_unif(),
-                              passive->qc_vector_unif()))
+       && !fs::qc_compatible_unif(active->qc_vector_unif(),
+                                  passive->qc_vector_unif()))
     {
         LOG_ONLY(pbprintf(pb, "filtered (qc)\n"));
 
@@ -167,18 +177,16 @@ filter_combine_task(tItem *active, tItem *passive)
  *  item with a suitable rule.
  */
 void
-postulate(tItem *passive)
-{
-    // iterate over all the rules in the grammar
-    for(rule_iter rule(Grammar); rule.valid(); rule++)
-    {
-        grammar_rule *R = rule.current();
-
-        if(passive->compatible(R, Chart->rightmost()))
-            if(filter_rule_task(R, passive))
-                Agenda->push(new rule_and_passive_task(Chart, Agenda, R,
-                                                       passive));
-    }
+postulate(tItem *passive) {
+  // iterate over all the rules in the grammar
+  for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
+      rule++) {
+    grammar_rule *R = *rule;
+    
+    if(passive->compatible(R, Chart->rightmost()))
+      if(filter_rule_task(R, passive))
+        Agenda->push(new rule_and_passive_task(Chart, Agenda, R, passive));
+  }
 }
 
 void
@@ -201,7 +209,7 @@ fundamental_for_active(tPhrasalItem *active) {
   // iterate over all passive items adjacent to active and try combination
 
   for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
-    if(opt_packing == 0 || !it.current()->blocked())
+    if(!it.current()->blocked())
       if(it.current()->compatible(active, Chart->rightmost()))
         if(filter_combine_task(active, it.current()))
           Agenda->push(new
@@ -210,7 +218,7 @@ fundamental_for_active(tPhrasalItem *active) {
 }
 
 extern void start_recording_failures();
-extern class unification_failure * stop_recording_failures();
+extern class failure * stop_recording_failures();
 
 bool
 packed_edge(tItem *newitem) {
@@ -223,16 +231,21 @@ packed_edge(tItem *newitem) {
 
     if(!olditem->inflrs_complete_p() || (olditem->trait() == INPUT_TRAIT))
       continue;
+    
+    forward=backward = true;
 
-    forward = backward = true;
-     
+    // YZ 2007-07-25: avoid packing item with its offspring edges
+    // (both forward and backward)
+    if (newitem->contains_p(olditem))
+          continue;
+
     if(opt_filter)
       Grammar->subsumption_filter_compatible(olditem->rule(),
                                              newitem->rule(),
                                              forward, backward);
 
 #ifdef DEBUG_SUBSFAILS
-    unification_failure *uf = NULL;
+    failure *uf = NULL;
 #endif
 
     if(forward ==false && backward == false) {
@@ -241,15 +254,14 @@ packed_edge(tItem *newitem) {
     else {
       bool f1 = true, b1 = true;
       if(opt_nqc_subs != 0)
-        qc_compatible_subs(qc_len_subs,
-                           olditem->qc_vector_subs(),
-                           newitem->qc_vector_subs(),
-                           f1, b1);
+        fs::qc_compatible_subs(olditem->qc_vector_subs(),
+                               newitem->qc_vector_subs(),
+                               f1, b1);
 
 #ifdef DEBUG_SUBSFAILS
       start_recording_failures();
 #endif
-            
+
       if(forward ==false && backward == false)
         stats.fsubs_qc++;
       else
@@ -293,7 +305,7 @@ packed_edge(tItem *newitem) {
         fprintf(ferr, "\n");
       }
 #endif
-    
+
     if(forward && !olditem->blocked()) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {
@@ -360,7 +372,7 @@ inline bool result_limits() {
 
 
 bool add_item(tItem *it) {
-  assert(!(opt_packing && it->blocked()));
+  assert(!it->blocked());
   
   LOG_ONLY(PrintfBuffer pb);
   LOG_ONLY(pbprintf(pb, "add_item "));
@@ -428,6 +440,8 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
 #endif
     tItem *it = t->execute();
     delete t;
+    if (opt_timeout > 0)
+      timestamp = times(NULL);
     // add_item checks all limits that have to do with the number of
     // analyses. If it returns true that means that one of these limits has
     // been reached
@@ -438,6 +452,9 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
                        , timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
+  if (opt_timeout > 0)
+    timestamp = times(NULL);
+
   // selectively unpacking
   list<tItem*> uroots;
   for (vector<tItem*>::iterator tree = trees.begin();
@@ -455,6 +472,8 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
   list<tItem*> results 
     = tItem::selectively_unpack(uroots, nsolutions
                                 , Chart->rightmost(), upedgelimit);
+
+  tCompactDerivationPrinter cdp(cerr, false);
   for (list<tItem*>::iterator res = results.begin();
        res != results.end(); res++) {
     //type_t rule;
@@ -478,17 +497,23 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
                         , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
+  if (opt_timeout > 0) 
+    timestamp = times(NULL);
   for(vector<tItem *>::iterator tree = trees.begin();
       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
         && tree != trees.end(); ++tree) {
+    if (opt_timeout > 0 && timestamp >= timeout)
+      break;
     if(! (*tree)->blocked()) {
-
+      
       stats.trees++;
       
       list<tItem *> results;
       
       results = (*tree)->unpack(upedgelimit);
       
+      // this has to be changed
+      tCompactDerivationPrinter cdp(cerr, false);
       for(list<tItem *>::iterator res = results.begin();
           res != results.end(); ++res) {
         type_t rule;
@@ -498,7 +523,8 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
           LOG_ONLY(pbprintf(pb, "unpacked[%d] (%.1f): ", nres++,
                             UnpackTime->convert2ms(UnpackTime->elapsed())
                             / 1000.));
-          LOG_ONLY((*res)->print_derivation(pb, false));
+          // should also be logged???
+          cdp.print(*res);
           LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
         }
       }
@@ -537,7 +563,14 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
           << " pedges)";
         errors.push_back(s.str());
       }
-      
+
+      if (opt_timeout > 0 && timestamp >= timeout) {
+        ostringstream s;
+        s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+          << " s)";
+        errors.push_back(s.str());
+      }
+
       stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
       stats.p_dyn_bytes = FSAS.dynamic_usage();
       stats.p_stat_bytes = FSAS.static_usage();
@@ -572,14 +605,33 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
     prune_glbcache();
   }
 
-  LOG_ONLY(PrintfBuffer pb);
-  LOG_ONLY(Chart->print(pb));
-  LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());
-     
-  Chart->readings() = collect_readings(FSAS, errors,
-                                       opt_nsolutions, pedgelimit,
-                                       Chart->trees());
-  stats.readings = Chart->readings().size();
+    LOG_ONLY(PrintfBuffer pb);  
+    LOG_ONLY(Chart->print(pb));   
+    LOG(loggerParse, Level::DEBUG, "%s", pb.getContents());if(verbosity > 8)
+    if(verbosity > 8)
+        Chart->print(cerr);
+  
+    if(resources_exhausted())
+    {
+        ostringstream s;
+
+        if (memlimit > 0 && t_alloc.max_usage() >= memlimit)
+            s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
+              << " MB)";
+        else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit)
+            s << "edge limit exhausted (" << pedgelimit 
+              << " pedges)";
+        else 
+          s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+            << " s)";
+        errors.push_back(s.str());
+    }
+
+    Chart->readings() = collect_readings(FSAS, errors, 
+                                         opt_nsolutions, pedgelimit,
+                                         Chart->trees());
+    stats.readings = Chart->readings().size();
+
 }
 
 
@@ -611,6 +663,10 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
     TotalParseTime.start();
     ParseTime.reset(); ParseTime.start();
+    if (opt_timeout > 0) {
+      timestamp = times(NULL);
+      timeout = timestamp + (clock_t)opt_timeout;
+    }
 
     Lexparser.lexical_processing(input_items
                                  , cheap_settings->lookup("lex-exhaustive")
@@ -628,5 +684,6 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     parse_finish(FSAS, errors, pedgelimit);
 
     Lexparser.reset();
+    // clear_dynamic_types(); // too early
     delete Agenda;
 }

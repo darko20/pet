@@ -26,12 +26,14 @@
 #include "qc.h"
 #include "cppbridge.h"
 #include "version.h"
+#include "item-printer.h"
 #ifdef YY
 # include "yy.h"
 #endif
 
 #include<sys/time.h>
 #include<sstream>
+#include<fstream>
 
 using namespace std;
 
@@ -234,8 +236,8 @@ cheap_tsdb_summarize_run(void)
     capi_printf("(:application . \"%s\") ", CHEAP_VERSION);
     capi_printf("(:platform . \"%s\") ", CHEAP_PLATFORM);
     capi_printf("(:grammar . \"%s\") ", Grammar->property("version").c_str());
-    capi_printf("(:avms . %d) ", ntypes);
-    capi_printf("(:leafs . %d) ", ntypes - first_leaftype);
+    capi_printf("(:avms . %d) ", nstatictypes);
+    capi_printf("(:leafs . %d) ", nstatictypes - first_leaftype);
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
     capi_printf("(:rules . %d) ", Grammar->rules().size());
     if(!Grammar->property("ntemplates").empty())
@@ -332,11 +334,9 @@ cheap_complete_test_run(int run_id, char *custom)
 
     if(Config::get<char *>("opt_compute_qc") != NULL)
     {
-      LOG(loggerTsdb, Level::INFO,
-          "computing quick check paths");
-        FILE *qc = fopen(Config::get<char *>("opt_compute_qc"), "w");
+        LOG(loggerTsdb, Level::INFO, "computing quick check paths\n");
+        ofstream qc(Config::get<char *>("opt_compute_qc"));
         compute_qc_paths(qc);
-        fclose(qc);
     }
 
     return 0;
@@ -560,6 +560,13 @@ tsdb_parse_collect_edges(tsdb_parse &T, tItem *root)
     }
 }
 
+string tsdb_derivation(tItem *it, int protocolversion) {
+  ostringstream out;
+  tTSDBDerivationPrinter tdp(out, protocolversion);
+  tdp.print(it);
+  return out.str();
+}
+
 void
 cheap_tsdb_summarize_item(chart &Chart, int length,
                           int treal, int nderivations, 
@@ -587,7 +594,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     R.score = (*iter)->score();
                 }
                 if(tsdb_mode == 1)
-                    R.derivation = (*iter)->tsdb_derivation(tsdb_mode);
+                    R.derivation = tsdb_derivation(*iter, tsdb_mode);
                 else
                 {
                     R.edge_id = (*iter)->id();
@@ -614,7 +621,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_result R;
                     
                     R.result_id = nres;
-                    R.derivation = it.current()->tsdb_derivation(tsdb_mode);
+                    R.derivation = tsdb_derivation(it.current(), tsdb_mode);
                     
                     T.push_result(R);
                     nres++;

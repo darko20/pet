@@ -146,6 +146,13 @@ struct cstr_lt_case {
   }
 };
 
+/** A function object comparing two strings for equality */
+struct string_eq : public std::binary_function<std::string, std::string, bool> {
+  inline bool operator()(const std::string &s1, const std::string &s2) {
+    return s1 == s2;
+  }
+};
+
 /** A function object comparing two strings lexicographically */
 struct string_lt {
   bool operator()(const std::string &s, const std::string &t) const {

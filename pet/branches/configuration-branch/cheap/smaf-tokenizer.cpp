@@ -375,7 +375,7 @@ bool tSMAFTokenizer::processGMapContent(const string &name, const tSaf &saf, mod
   if (type==str)
     val = '"' + val + '"';
   // add to fsmods
-  fsmods.push_back(pair<string, type_t>(dPath, lookup_symbol(val.c_str())));
+  fsmods.push_back(pair<string, type_t>(dPath, retrieve_type(val)));
 
   return true;
 }

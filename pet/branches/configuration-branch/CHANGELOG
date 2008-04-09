@@ -1,6 +1,34 @@
 v0.99.??
+  - implemented new printing functions for items and dags that use visitor 
+    objects (ItemPrinter and DagPrinter) and C++ streams instead of FILE *.
+    Old functions are still in-place and have to be removed. This is a 
+    preliminary check-in.
+  - made get_surface_string() in cheap.cpp a method of class chart
+  - better integration of static and dynamic types:
+    * dynamic types are subtypes of BI_STRING
+    * dynamic and static types now use the same data structures for their
+      print and type names, namely std::vector<std::string>
+    * added std::string get_printname() and std::string get_typename()
+    * consistent naming scheme for 'type', 'static type', 'dynamic type'
+      renamed is_resident_type() to is_static_type(), ntypes to nstatictypes,
+      nleaftypes to nstaticleaftypes, last_dynamic to ntypes
+    * new naming scheme for a lookup without vs lookup with registering of
+      new dynamic types (the latter is called "retrieve" and only registers
+      an unknown type if DYNAMIC_SYMBOLS is defined)
+      renamed lookup_symbol() to retrieve_type(),
+      added retrieve_string_instance(std::string)
+      renamed lookup_unsigned_symbol() to retrieve_string_instance(int),
+    * added is_string_instance(type_t)
   - moved several existing hash functions to hashing.h
   - revamped build system (please run autoreconf -i after svn checkout/update)
+    * made `make distcheck' work again;
+    * listed common C/C++ sources with full path as _SOURCES;
+    * added m4 directory for local and 3rd party autoconf-macros;
+    * made doxygen documentation buildable in any build path;
+    * respect user-provided variables such as CXXFLAGS in ./configure;
+    * don't try to override predefined -g -O flags with AM_CXXFLAGS;
+    * removed all Makefile.base files;
+    * removed Jamfiles (one build system suffices)
   - now compiles with ecl-0.9j
   - moved tTokenizer definition from lingo-tokenizer.cpp to input-modules.cpp
   - resolve escaped characters in TDL strings
@@ -31,8 +59,6 @@ v0.99.??
   - fixed wrong characterization introduced by a fix to another
     characterization bug (ticket #9)
   - fixed bug SMAF mode (provide built-in default if no config file provided)
-  - adapted build files: made `make distcheck' work again, and listed
-    common C/C++ sources with full path as cheap_SOURCES and flop_SOURCES
   - changed init() of tLexItem, such that characterization during exhaustive
     unpacking works correctly
   - Moved functionality of fresh_constraint_p into cached_constraint_of

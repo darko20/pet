@@ -361,7 +361,7 @@ extDictMapping::extDictMapping(const string& mappath)
     string rhs = elems.front();
     elems.pop_front();
     
-    type_t type = lookup_type(rhs.c_str());
+    type_t type = lookup_type(rhs);
     
     if(type == -1)
     {
@@ -399,7 +399,7 @@ extDictMapping::extDictMapping(const string& mappath)
       else if(state == 3)
       {
         value = *it;
-        if(lookup_type(value.c_str()) == -1)
+        if(lookup_type(value) == -1)
         {
           LOG(loggerUncategorized, Level::INFO,
               "Ignoring entry `%s' in mapping (unknown type `%s').",
@@ -438,7 +438,7 @@ extDictMapping::add_equiv(const list<string> &elems)
   
   for(list<string>::const_iterator it = elems.begin(); it != elems.end(); ++it)
   {
-    type_t t = lookup_type(it->c_str());
+    type_t t = lookup_type(*it);
     if(t != -1)
     {
       ts.push_back(t);

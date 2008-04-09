@@ -53,8 +53,8 @@ dump_symbol_tables(dumper *f)
   // npropertypes
   f->dump_int(first_leaftype);
 
-  // nleaftypes
-  f->dump_int(nleaftypes);
+  // nstaticleaftypes
+  f->dump_int(nstaticleaftypes);
 
   // nattrs
   f->dump_int(nattrs);
@@ -64,9 +64,9 @@ dump_symbol_tables(dumper *f)
     f->dump_string(statusnames[i]);
 
   // type names and status
-  for(int i = 0; i < ntypes; i++)
+  for(int i = 0; i < nstatictypes; i++)
     {
-      f->dump_string(typenames[rleaftype_order[i]]);
+      f->dump_string(type_name(rleaftype_order[i]));
       f->dump_int(typestatus[rleaftype_order[i]]);
     }
 
@@ -131,11 +131,10 @@ void
 dump_print_names(dumper *f)
 {
   // print names
-  for(int i = 0; i < ntypes; i++)
+  for(int i = 0; i < nstatictypes; i++)
     {
-      if(strcmp(printnames[rleaftype_order[i]],
-                typenames[rleaftype_order[i]]) != 0)
-        f->dump_string(printnames[rleaftype_order[i]]);
+      if(get_printname(rleaftype_order[i]) != get_typename(rleaftype_order[i]))
+        f->dump_string(print_name(rleaftype_order[i]));
       else
         f->dump_string(0);
     }
@@ -177,7 +176,7 @@ dump_inflrs(dumper *f)
       dump_inflr(f, -1, global_inflrs);
   }
   
-  for(int i = 0; i < ntypes; i++)
+  for(int i = 0; i < nstatictypes; i++)
     {
       if(types[i]->inflr != 0)
         {

@@ -19,6 +19,8 @@
 
 /* main module (standalone parser) */
 
+#include <iostream>
+
 #include "pet-config.h"
 #include "cheap.h"
 #include "parse.h"
@@ -105,39 +107,6 @@ struct passive_weights : public unary_function< tItem *, unsigned int > {
   }
 };
 
-struct input_only_weights : public unary_function< tItem *, unsigned int > {
-  unsigned int operator()(tItem * i) {
-    // return a weight close to infinity if this is not an input item
-    // prefer shorter items over longer ones
-    if (dynamic_cast<tInputItem *>(i) != NULL)
-      return i->span();
-    else
-      return 1000000;
-  }
-};
-
-string get_surface_string(chart *ch) {
-  list< tItem * > inputs;
-  input_only_weights io;
-
-  ch->shortest_path<unsigned int>(inputs, io, false);
-  string surface;
-  for(list<tItem *>::iterator it = inputs.begin()
-        ; it != inputs.end(); it++) {
-    tInputItem *inp = dynamic_cast<tInputItem *>(*it);
-    if (inp != NULL) {
-      surface = surface + inp->orth() + " ";
-    }
-  }
-
-  int len = surface.length();
-  if (len > 0) {
-    surface.erase(surface.length() - 1);
-  }
-  return surface;
-}
-
-
 void dump_jxchg(string surface, chart *current) {
   if (! Config::get<std::string>("opt_jxchg_dir").empty()) {
     string yieldname = surface;
@@ -150,7 +119,7 @@ void dump_jxchg(string surface, chart *current) {
     } else {
       out << "0 " << current->rightmost() << endl;
       tJxchgPrinter chp(out);
-      current->print(&chp);
+      current->print(out, &chp, true, false); // print only passive edges
     }
   }
 }
@@ -187,11 +156,12 @@ void interactive() {
       if(!errors.empty())
         throw errors.front();
                 
+      // TODO Who needs this? Can we remove it? (pead 01.04.2008)
       if(verbosity == -1)
         fprintf(stdout, "%d\t%d\t%d\n",
                 stats.id, stats.readings, stats.pedges);
 
-      string surface = get_surface_string(Chart);
+      string surface = Chart->get_surface_string();
 
       printf("(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
              stats.id, surface.c_str(), 
@@ -206,19 +176,19 @@ void interactive() {
 
       //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
       //tFegramedPrinter chp("/tmp/fed-");
-      //Chart->print(&chp);
+      //Chart->print(cerr, &chp, true, true);
 
       //dump_jxchg(surface, Chart);
 
       if(verbosity > 1 || Config::get<char*>("opt_mrs")) {
         int nres = 0;
 
-        list< tItem * > results(Chart->readings().begin()
+        item_list results(Chart->readings().begin()
                                 , Chart->readings().end());
         // sorting was done already in parse_finish
         // results.sort(item_greater_than_score());
-        for(list<tItem *>::iterator iter = results.begin()
-              ; (iter != results.end())
+        for(item_iter iter = results.begin();
+            (iter != results.end())
               && ((Config::get<int>("opt_nresults") == 0)
                    || (Config::get<int>("opt_nresults") > nres))
               ; ++iter) {
@@ -236,7 +206,8 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(Config::get<char*>("opt_mrs")) {
+          if(Config::get<char*>("opt_mrs") &&
+             (strcmp(Config::get<char*>("opt_mrs"), "new") != 0)) {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(),
                                       Config::get<char*>("opt_mrs"));
@@ -273,12 +244,11 @@ void interactive() {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(Config::get<char*>("opt_mrs"), "xml")
+          bool rmrs_xml = (strcmp(Config::get<char*>("opt_mrs"), "rmrx")
                            == 0);
           if (rmrs_xml)
-            LOG(loggerUncategorized, Level::INFO, "<rmrs-list>");
-          for(list<tItem *>::iterator it = partials.begin()
-                ; it != partials.end(); ++it) {
+            LOG(loggerUncategorized, Level::INFO, "\n<rmrs-list>\n");
+          for(item_iter it = partials.begin(); it != partials.end(); ++it) {
             if(Config::get<char*>("opt_mrs")) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
@@ -303,10 +273,11 @@ void interactive() {
         
     catch(tError e) {
       LOG_ERROR(loggerUncategorized, "%s", e.getMessage().c_str());
-      if(verbosity > 0) stats.print(fstatus);
+      if (verbosity > 0)
+        stats.print(fstatus);
       stats.readings = -1;
 
-      string surface = get_surface_string(Chart);
+      string surface = Chart->get_surface_string();
       dump_jxchg(surface, Chart);
       tsdb_dump.error(Chart, surface, e);
     }
@@ -319,9 +290,8 @@ void interactive() {
   } /* while */
 
   if(Config::get<char *>("opt_compute_qc")) {
-    FILE *qc = fopen(Config::get<char *>("opt_compute_qc"), "w");
+    ofstream qc(Config::get<char *>("opt_compute_qc"));
     compute_qc_paths(qc);
-    fclose(qc);
   }
 }
 
@@ -376,7 +346,8 @@ void print_grammar(FILE *f) {
 
   for(int i = 0; i < nstatictypes; i++) {
     fprintf(f, "\n%d\t%s:\n", i, print_name(i));
-    dag_print_safe(f, type_dag(i), false, 0);
+    // \todo this has to be replaced, but too much for now
+    //dag_print_safe(f, type_dag(i), false, 0);
   }
 }
 
@@ -440,9 +411,8 @@ void process(const char *s) {
             (Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
                ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
         else
-          tok = new tYYTokenizer((
-            Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
-              ? STANDOFF_COUNTS : STANDOFF_POINTS));
+          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS
+                                  ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
     case TOKENIZER_STRING: 
@@ -531,7 +501,8 @@ void process(const char *s) {
 #endif // HAVE_ECL
 
   LOG(loggerUncategorized, Level::INFO, "%d types in %0.2g s",
-          ntypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+          nstatictypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+  fflush(fstatus);
 
   if(Config::get<bool>("opt_pg")) {
     print_grammar(stdout);

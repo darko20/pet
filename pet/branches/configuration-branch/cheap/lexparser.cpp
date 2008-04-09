@@ -50,35 +50,6 @@ void lex_parser::init() {
   _carg_path = cheap_settings->value("mrs-carg-path");
 }
 
-string get_xml_input(string input) {
-  string buffer = input;
-  const int bufsize = 2048;
-  char *inbuf = new char[bufsize];
-  inbuf[bufsize - 1] = '\0';
-  int onelinecount;
-  bool partialread;
-  
-  do {
-    onelinecount = 0;
-    // Now read one line, maybe in several pieces if it is longer than the
-    // buffer
-    do {
-      partialread = false;
-      cin.getline(inbuf, bufsize - 1, '\n');
-      onelinecount += cin.gcount() - 1;
-      buffer += inbuf ;
-      if (cin.fail()) {
-        cin.clear(cin.rdstate() & ~ios::failbit);
-        partialread = true;
-      } else {
-        buffer += '\n';
-      }
-    } while (partialread);  // line too long, only read partially?
-    // exit if we read an empty line or we got an end_of_file
-  } while ((onelinecount > 0) && cin) ;
-  return buffer;
-}
-
 /** Use the registered tokenizer(s) to tokenize the input string and put the
  *  result into \a tokens.
  *
@@ -89,10 +60,6 @@ string get_xml_input(string input) {
 void lex_parser::tokenize(string input, inp_list &tokens) {
   if (_tokenizers.empty())
     throw tError("No tokenizer registered");
-
-  // if input mode is XML, consume all the XML input
-  if (_tokenizers.front()->description() == "XML input chart reader")
-    input=get_xml_input(input);
 
   // trace output
   if(verbosity > 4) {
@@ -161,9 +128,8 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
   if (_carg_path != NULL) {
-    // _fix_me_ are these double quotes necessary?
-    string s = '"' + carg + '"';
-    mods.push_back(pair<string, int>(_carg_path, lookup_symbol(s.c_str())));
+    mods.push_back(pair<string, int>(_carg_path
+                                     , retrieve_string_instance(carg)));
   }
 #endif
 }
@@ -391,7 +357,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
   hash_set<tItem *> to_delete;
   for(chart_iter iter2(Chart); iter2.valid(); iter2++) {
     lex = iter2.current();
-    // XXX _fix_me_ the next condition might depend on whether we did
+    // _fix_me_ the next condition might depend on whether we did
     // exhaustive lexical processing or not
     if (lex->passive() && (lex->trait() != INPUT_TRAIT)) {
 
@@ -540,7 +506,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   LOG(loggerUncategorized, Level::DEBUG, "adding generic les");
   LOG_ONLY(PrintfBuffer pb);
  
-  for(list<tInputItem *>::iterator it = unexpanded.begin()
+  for(inp_iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
 
     // debug messages
@@ -622,8 +588,7 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
     
     words[4] = item->orth();
     vector<vector<type_t> > types(4);
-    for (list<tInputItem*>::iterator it = inp_tokens.begin();
-         it != inp_tokens.end(); it ++) {
+    for (inp_iterator it = inp_tokens.begin(); it != inp_tokens.end(); it ++) {
       int idx = -1;
       if ((*it)->endposition() == item->startposition() - 1)
         idx = 0;
@@ -657,21 +622,15 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
 }
 
 void 
-lex_parser::add_predicts(inpitemlist &unexpanded,
-                         inpitemlist &inp_tokens, int opt_predict_les) {
+lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens) {
   list<lex_stem*> predicts;
   
   //  if (verbosity > 4)
   //  fprintf(ferr, "adding prediction les\n");
   
-  for (inpitemlist_iter it = unexpanded.begin(); it != unexpanded.end(); it++){
-
-    // \todo replace this by logging
-    /*
+  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
     if (verbosity > 4) {
-      fprintf(ferr, "  token ");
-      (*it)->print(ferr);
-      fprintf(ferr, "\n");
+      cerr << "  token " << *it << endl;
     }
     */
 

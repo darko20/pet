@@ -49,18 +49,35 @@ public:
   EncodingConverter(std::string encodingname);
   ~EncodingConverter();
 
-  /** Convert the string \a from, which has to be encoded in the encoding of
-   *  this converter, to UTF8 and return the new string
+  /** Convert the Unicode string \a from to the encoding of this converter
+   *  and return the new string
    */
   std::string convert(const UnicodeString from);
   
-  /** Convert the string \a from, which has to be encoded in the encoding of
-   *  this converter, to UTF8 and return the new string
+  /** Convert the null-terminated string \a from, which is built of Unicode
+   *  character units, to the encoding of this converter and return the new
+   *  string.
    */
-  std::string convert(const UChar* from, int length);
+  std::string convert(const UChar* from);
 
-  /** Convert the string \a from, which has to be encoded in UTF8, into the
-   *  encoding this converter and return the new string.
+  /** Convert the string \a from, which is built of Unicode character units, 
+   *  to the encoding of this converter and return the new string.
+   */
+  std::string convert(const UChar* from, int32_t length);
+
+  /** Convert the null-terminated string \a from, which is built of Unicode
+   *  character points, to the encoding of this converter and return the new
+   *  string.
+   */
+  std::string convert(const UChar32* from);
+
+  /** Convert the string \a from, which is built of Unicode character points, 
+   *  to the encoding of this converter and return the new string.
+   */
+  std::string convert(const UChar32* from, int32_t length);
+
+  /** Convert the string \a from, which has to be encoded in the encoding
+   *  of this converter, to Unicode strings.
    */
   UnicodeString convert(const std::string from);
 
