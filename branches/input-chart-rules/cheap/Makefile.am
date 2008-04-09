@@ -61,7 +61,6 @@ libcheap_a_SOURCES = \
 	cheaptimer.h \
 	fs.cpp fs.h \
 	fs-chart.cpp fs-chart.h \
-	fs-chart-util.cpp fs-chart-util.h \
 	fsc-tokenizer.cpp fsc-tokenizer.h \
 	grammar.cpp grammar.h \
 	input-modules.cpp input-modules.h \

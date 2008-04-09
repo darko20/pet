@@ -22,7 +22,6 @@
 
 #include "chart-mapping.h"
 #include "fs-chart.h"
-#include "fs-chart-util.h"
 #include "grammar.h"
 #include "list-int.h"
 #include "xmlparser.h"

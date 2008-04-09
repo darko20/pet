@@ -21,6 +21,7 @@
 #include "builtins.h"
 #include "cheap.h"
 #include "errors.h"
+#include "item.h"
 #include "grammar.h"
 #include "hashing.h"
 
@@ -49,12 +50,11 @@ using boost::lexical_cast;
 class not_contained_in_list
 {
 private:
-  std::list<tItem*> _items;
+  item_list _items;
 public:
-  not_contained_in_list(std::list<tItem*> items) : _items(items) { }
+  not_contained_in_list(item_list items) : _items(items) { }
   bool operator() (tItem*& item) {
-    typedef std::list<tItem*>::iterator tItemIt; 
-    for (tItemIt item_it = _items.begin(); item_it != _items.end(); item_it++)
+    for (item_iter item_it = _items.begin(); item_it != _items.end(); item_it++)
       if (*item_it == item)
         return false;
     return true;
@@ -90,15 +90,15 @@ typedef hash_map<tChartMappingMatchSig, tChartMappingMatch*, sig_hash>
  * match by evaluating the positional constraints of the next rule argument
  * \a next_arg and the current match \a match.
  */
-static inline std::list<tItem*>
+static inline item_list
 get_suitable_items(tChart &chart, tChartMappingMatch *match,
     const tChartMappingRuleArg *next_arg)
 {
   // matched items shall not be matched twice:
-  std::list<tItem*> skip = match->matched_items();
+  item_list skip = match->matched_items();
   
   // select all items from the chart that have not been matched already:
-  std::list<tItem*> items = chart.items(true, skip);
+  item_list items = chart.items(true, skip);
   
   // weed out all items that don't fulfil the positional constraints:
   typedef std::list<tChartMappingPosCons> tPosConsList;
@@ -112,7 +112,7 @@ get_suitable_items(tChart &chart, tChartMappingMatch *match,
       throw tError((string)"Positional constraint in rule " + 
         match->get_rule()->printname()+" refers to an unmatched item.");
     }
-    std::list<tItem*> restr; // restrictor set
+    item_list restr; // restrictor set
     switch ((*cons_it).rel) {
       case tChartMappingPosCons::same_cell:
         restr = chart.same_cell_items(matched_item, true, skip); break;
@@ -136,9 +136,8 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
   // loop over all suitable items for the next match:
   const tChartMappingRule *rule = match->get_rule();
   const tChartMappingRuleArg *arg = match->get_next_arg();
-  std::list<tItem*> suitable_items = get_suitable_items(chart, match, arg);
-  std::list<tItem*>::iterator it;
-  for (it = suitable_items.begin(); it != suitable_items.end(); it++) {
+  item_list suitable_items = get_suitable_items(chart, match, arg);
+  for (item_iter it = suitable_items.begin(); it!=suitable_items.end(); it++) {
     tItem *item = *it;
     tChartMappingMatch *next_match;
     bool new_match;
@@ -195,8 +194,8 @@ build_output(tChart &chart, tChartMappingMatch &match)
   tChartMappingRuleTrait trait = match.get_rule()->trait();
  
   // determine first and last vertex from INPUT or CONTEXT items:
-  std::list<tItem*> inps = match.matched_input_items();
-  std::list<tItem*> cons = match.matched_context_items();
+  item_list inps = match.matched_input_items();
+  item_list cons = match.matched_context_items();
   if (inps.size() > 0) {
     first_v = inps.front()->prec_vertex(); 
     last_v = inps.back()->succ_vertex();
@@ -250,7 +249,7 @@ build_output(tChart &chart, tChartMappingMatch &match)
   }
   
   // freeze all INPUT items from the chart:
-  for (std::list<tItem*>::iterator it = inps.begin(); it != inps.end(); it++)
+  for (item_iter it = inps.begin(); it != inps.end(); it++)
     (*it)->freeze();
   chart_changed = chart_changed || !inps.empty();
   
@@ -286,8 +285,8 @@ tChartMappingEngine::apply_rules(tChart &chart)
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
     //      not sure whether this is still the case)
-    std::list<tItem*> items = chart.items();
-    std::list<tItem*>::reverse_iterator it;
+    item_list items = chart.items();
+    item_list::reverse_iterator it;
     int max_id = -1;
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)
@@ -330,8 +329,8 @@ tChartMappingEngine::apply_rules(tChart &chart)
     // get max id for items in the chart:
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
-    std::list<tItem*> items = chart.items();
-    std::list<tItem*>::reverse_iterator it;
+    item_list items = chart.items();
+    item_list::reverse_iterator it;
     int max_id = -1;
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)

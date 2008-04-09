@@ -25,7 +25,7 @@
 
 #include "cheap.h"
 #include "fs.h"
-#include "fs-chart-util.h"
+#include "fs-chart.h"
 #include "chart-mapping.h"
 #include "parse.h"
 #include "utility.h"
