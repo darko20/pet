@@ -57,6 +57,9 @@
 #ifdef HAVE_PREPROC
 #include "eclpreprocessor.h"
 #endif
+#ifdef HAVE_XMLRPC_C
+#include "server-xmlrpc.h"
+#endif
 
 char * version_string = VERSION ;
 char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
@@ -348,6 +351,19 @@ void cleanup() {
 void process(const char *s) {
   timer t_start;
   
+  // initialize the server mode if requested:
+#if defined(YY) && defined(SOCKET_INTERFACE)
+  if(opt_server) {
+    if(cheap_server_initialize(opt_server))
+      exit(1);
+  }
+#endif
+#if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
+  std::auto_ptr<tXMLRPCServer> server;
+  if(opt_server)
+    server = std::auto_ptr<tXMLRPCServer>(new tXMLRPCServer(opt_server));
+#endif
+  
   try {
     string base = raw_name(s);
     cheap_settings = new settings(base.c_str(), s, "reading");
@@ -457,9 +473,7 @@ void process(const char *s) {
     }
     tok->set_comment_passthrough(opt_comment_passthrough);
     Lexparser.register_tokenizer(tok);
-  }
-    
-  catch(tError &e) {
+  } catch(tError &e) {
     fprintf(fstatus, "\naborted\n%s\n", e.getMessage().c_str());
     cleanup();
     return;
@@ -505,6 +519,11 @@ void process(const char *s) {
       cheap_server(opt_server);
     else 
 #endif
+#if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
+    if (opt_server) {
+      server->run();
+    } else 
+#endif
 #ifdef TSDBAPI
       if(opt_tsdb)
         tsdb_mode();
@@ -544,27 +563,18 @@ int main(int argc, char* argv[])
     grammar_file_name = "english";
 #endif
 
-#if defined(YY) && defined(SOCKET_INTERFACE)
-  if(opt_server) {
-    if(cheap_server_initialize(opt_server))
-      exit(1);
-  }
-#endif
-
   string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
   if(grammar_name.empty()) {
     fprintf(ferr, "Grammar not found\n");
     exit(1);
   }
 
-  try { process(grammar_name.c_str()); }
-
-  catch(tError &e) {
+  try {
+    process(grammar_name.c_str());
+  } catch(tError &e) {
     fprintf(ferr, "%s\n", e.getMessage().c_str());
     exit(1);
-  }
-
-  catch(bad_alloc) {
+  } catch(bad_alloc) {
     fprintf(ferr, "out of memory\n");
     exit(1);
   }

@@ -157,6 +157,10 @@ if ICU
 libcheap_a_SOURCES += unicode.h unicode.cpp
 endif
 
+if XMLRPC_C
+libcheap_a_SOURCES += server-xmlrpc.cpp server-xmlrpc.h
+endif
+
 # if LEXDB
 # libcheap_a_SOURCES += psqllex.h psqllex.cpp
 # endif
