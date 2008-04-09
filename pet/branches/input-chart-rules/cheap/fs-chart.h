@@ -39,6 +39,18 @@
 #include <vector>
 
 
+/** A list of chart items */
+typedef std::list< class tItem * > item_list;
+/** Iterator for item_list */
+typedef std::list< class tItem * >::iterator item_iter;
+/** Iterator for const item list */
+typedef std::list< class tItem * >::const_iterator item_citer;
+/** A list of input items */
+typedef std::list< class tInputItem * > inp_list;
+/** Iterator for inp_list */
+typedef std::list< class tInputItem * >::iterator inp_iterator;
+
+
 // forward declarations:
 class tItem;
 class tChartVertex;
@@ -59,9 +71,9 @@ class tChart
   
 private:
   std::list<tChartVertex*> _vertices;
-  std::list<tItem*> _items;
-  std::map<tChartVertex*, std::list<tItem*> > _vertex_to_starting_items;
-  std::map<tChartVertex*, std::list<tItem*> > _vertex_to_ending_items;
+  item_list _items;
+  std::map<tChartVertex*, item_list > _vertex_to_starting_items;
+  std::map<tChartVertex*, item_list > _vertex_to_ending_items;
   std::map<tItem*, tChartVertex* > _item_to_prec_vertex;
   std::map<tItem*, tChartVertex* > _item_to_succ_vertex;
   
@@ -143,15 +155,15 @@ public:
    * Removes the specified items from the chart.
    * The memory for tItem objects is handled by tItem::default_owner(), if set.
    */
-  void remove_items(std::list<tItem*> items);
+  void remove_items(item_list items);
   
   /**
    * Returns a list of all items in this chart.
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip list of items to be skipped
    */
-  std::list<tItem*>
-  items(bool skip_blocked=false, std::list<tItem*> skip = std::list<tItem*>());
+  item_list
+  items(bool skip_blocked=false, item_list skip = item_list());
   
   /**
    * Returns a list of all items that are in the same chart cell as
@@ -159,27 +171,27 @@ public:
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip list of items to be skipped
    */
-  std::list<tItem*>
+  item_list
   same_cell_items(tItem *item, bool skip_blocked=false,
-      std::list<tItem*> skip = std::list<tItem*>());
+      item_list skip = item_list());
   
   /**
    * Returns a list of all items immediately succeeding the specified item.
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip list of items to be skipped
    */
-  std::list<tItem*>
+  item_list
   succeeding_items(tItem *item, bool skip_blocked=false,
-      std::list<tItem*> skip = std::list<tItem*>());
+      item_list skip = item_list());
   
   /**
    * Returns a list of all items succeeding the specified item.
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip list of items to be skipped
    */
-  std::list<tItem*>
+  item_list
   all_succeeding_items(tItem *item, bool skip_blocked=false,
-      std::list<tItem*> skip = std::list<tItem*>());
+      item_list skip = item_list());
   
   /**
    * Print chart items to stream \a out using \a aip, select active and
@@ -230,18 +242,123 @@ public:
    * Gets all items starting at this vertex.
    */
   //@{
-  std::list<tItem*> starting_items();
-  const std::list<tItem*> starting_items() const;
+  item_list starting_items();
+  const item_list starting_items() const;
   //@}
   
   /**
    * Gets all items ending at this vertex.
    */
   //@{
-  std::list<tItem*> ending_items();
-  const std::list<tItem*> ending_items() const;
+  item_list ending_items();
+  const item_list ending_items() const;
   //@}
   
+};
+
+
+
+/**
+ * Utility class for tChart related conversions. This class will eventually
+ * become obsolete when the old chart implementation is replaced by tChart.
+ */
+class tChartUtil
+{
+private:
+  /** path within input items holding the form of the item */
+  static list_int* _inpitem_form_path;
+  /** path within input items holding the list of ids for the item */
+  static list_int* _inpitem_ids_path;
+  /** path within input items holding the external character start position */
+  static list_int* _inpitem_cfrom_path;
+  /** path within input items holding the external character end position */
+  static list_int* _inpitem_cto_path;
+  /** path within input items holding the stem of the item */
+  static list_int* _inpitem_stem_path;
+  /** path within input items holding the inflectional rules to apply */
+  static list_int* _inpitem_lexid_path;
+  /** path within input items holding the name of the lexical entry */
+  static list_int* _inpitem_inflr_path;
+  /** path within input items holding part-of-speech tags information */
+  static list_int* _inpitem_postags_path;
+  /** path within input items holding part-of-speech probs information */
+  static list_int* _inpitem_posprobs_path;
+  /** path within lexical items into which the input fs is unified */
+  static list_int* _lexitem_inpitem_path;
+  /** CONTEXT path within the rule's feature structure representation. */
+  static list_int* _context_path;
+  /** INPUT path within the rule's feature structure representation. */
+  static list_int* _input_path;
+  /** OUTPUT path within the rule's feature structure representation. */
+  static list_int* _output_path;
+  /** POSCONS path within the rule's feature structure representation. */
+  static list_int* _poscons_path;
+  
+  /**
+   * Assigns int nodes to all items in the specified \a chart, fills the
+   * list \a processed with all processed items (all which are connected to
+   * the first start node), and returns the largest int node assigned.
+   */
+  static int assign_int_nodes(tChart &chart, item_list &processed);
+  
+public:
+  
+  /**
+   * Initialize all path settings.
+   */
+  static void initialize();
+  
+  /** Get the path in lexical items into which input items should be unified. */
+  static const list_int* lexitem_inpitem_path();
+  /** Get the CONTEXT path for chart mapping rules. */
+  static const list_int* context_path();
+  /** Get the INPUT path for chart mapping rules. */
+  static const list_int* input_path();
+  /** Get the OUTPUT path for chart mapping rules. */
+  static const list_int* output_path();
+  /** Get the POSCONS path for chart mapping rules. */
+  static const list_int* poscons_path();
+  
+  /**
+   * Create a new input item from a input feature structure.
+   */
+  static tInputItem* create_input_item(const fs &input_fs);
+  
+  /**
+   * Create a token feature structure from an input item. Throws a tError
+   * if the feature structure is not valid.
+   */
+  static fs create_input_fs(tInputItem* item);
+  
+  /**
+   * Convert a list of input items to a tChart by setting the
+   * appropriate start and end vertices of each input item.
+   * \param[in] input_items the list of input items to be converted
+   * \param[out] chart the result of the conversion 
+   */
+  static void map_chart(std::list<tInputItem*> &input_items, tChart &chart);
+  
+  /**
+   * Convert an input tChart into a list of input items by setting the
+   * appropriate start and end vertices of each input item.
+   * \param[in] chart the chart to be converted
+   * \param[out] input_items the result of the conversion
+   * \return the greatest int chart vertex in \a input_items 
+   */
+  static int map_chart(tChart &chart, inp_list &input_items);
+  
+  /**
+   * Convert a chart to a tChart by setting the
+   * appropriate start and end vertices of each item.
+   */
+  static void map_chart(class chart &in, tChart &out);
+  
+  /**
+   * Convert a tChart to a chart by setting the
+   * appropriate start and end vertices of each item.
+   */
+  static int map_chart(tChart &in, class chart &out);
+   
 };
 
 
@@ -312,60 +429,96 @@ tChartVertex::create()
   return new tChartVertex();
 }
 
-inline std::list<tItem*>
+inline item_list
 tChartVertex::starting_items()
 {
   assert(_chart != NULL);
   tChartVertex* key = this;
-  std::map<tChartVertex*, std::list<tItem*> >::const_iterator entry =
+  std::map<tChartVertex*, item_list >::const_iterator entry =
     _chart->_vertex_to_starting_items.find(key);
   if (entry == _chart->_vertex_to_starting_items.end())
-    return std::list<tItem*>();
+    return item_list();
   else 
     return entry->second;
 }
 
-inline const std::list<tItem*>
+inline const item_list
 tChartVertex::starting_items() const
 {
   assert(_chart != NULL);
   // "this" is const in const member functions, but since the keys in
   // the map are not declared as const, we have to cast "this":
   tChartVertex* key = const_cast<tChartVertex*>(this);
-  std::map<tChartVertex*, std::list<tItem*> >::const_iterator entry =
+  std::map<tChartVertex*, item_list >::const_iterator entry =
     _chart->_vertex_to_starting_items.find(key);
   if (entry == _chart->_vertex_to_starting_items.end())
-    return std::list<tItem*>();
+    return item_list();
   else 
     return entry->second;
 }
 
-inline std::list<tItem*>
+inline item_list
 tChartVertex::ending_items()
 {
   assert(_chart != NULL);
   tChartVertex* key = this;
-  std::map<tChartVertex*, std::list<tItem*> >::const_iterator entry =
+  std::map<tChartVertex*, item_list >::const_iterator entry =
     _chart->_vertex_to_ending_items.find(key);
   if (entry == _chart->_vertex_to_ending_items.end())
-    return std::list<tItem*>();
+    return item_list();
   else 
     return entry->second;
 }
 
-inline const std::list<tItem*>
+inline const item_list
 tChartVertex::ending_items() const
 {
   assert(_chart != NULL);
   // "this" is const in const member functions, but since the keys in
   // the map are not declared as const, we have to cast "this":
   tChartVertex* key = const_cast<tChartVertex*>(this);
-  std::map<tChartVertex*, std::list<tItem*> >::const_iterator entry =
+  std::map<tChartVertex*, item_list >::const_iterator entry =
     _chart->_vertex_to_ending_items.find(key);
   if (entry == _chart->_vertex_to_ending_items.end())
-    return std::list<tItem*>();
+    return item_list();
   else 
     return entry->second;
+}
+
+
+
+// =====================================================
+// class tChartUtil
+// =====================================================
+
+inline const list_int*
+tChartUtil::lexitem_inpitem_path()
+{
+  return _lexitem_inpitem_path;
+}
+
+inline const list_int*
+tChartUtil:: context_path()
+{
+  return _context_path;
+}
+
+inline const list_int*
+tChartUtil:: input_path()
+{
+  return _input_path;
+}
+
+inline const list_int*
+tChartUtil:: output_path()
+{
+  return _output_path;
+}
+
+inline const list_int*
+tChartUtil:: poscons_path()
+{
+  return _poscons_path;
 }
 
 #endif /*_FS_CHART_H_*/

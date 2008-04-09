@@ -28,7 +28,6 @@
 #include "errors.h"
 #include "fs.h"
 #include "fs-chart.h"
-#include "fs-chart-util.h"
 #include "grammar.h"
 #include "item.h"
 

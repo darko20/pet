@@ -29,7 +29,6 @@
 
 #include "fs.h"
 #include "fs-chart.h"
-#include "fs-chart-util.h"
 #include "list-int.h"
 
 #include <list>
@@ -392,17 +391,17 @@ public:
   /**
    * Returns all INPUT and CONTEXT items that have been matched so far.
    */
-  std::list<tItem*> matched_items();
+  item_list matched_items();
   
   /**
    * Returns all INPUT items that have been matched so far.
    */
-  std::list<tItem*> matched_input_items();
+  item_list matched_input_items();
   
   /**
    * Returns all INPUT items that have been matched so far.
    */
-  std::list<tItem*> matched_context_items();
+  item_list matched_context_items();
   
   /**
    * Returns the feature structures of all OUTPUT items.
@@ -611,30 +610,30 @@ tChartMappingMatch::matched_item(std::string argname)
   return 0;
 }
 
-inline std::list<tItem*>
+inline item_list
 tChartMappingMatch::matched_items()
 {
-  std::list<tItem*> items;
+  item_list items;
   for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous)
     if (curr->_arg)
       items.push_front(curr->_item);
   return items;
 }
 
-inline std::list<tItem*>
+inline item_list
 tChartMappingMatch::matched_input_items()
 {
-  std::list<tItem*> items;
+  item_list items;
   for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous)
     if (curr->_arg && curr->_arg->is_input_arg())
       items.push_front(curr->_item);
   return items;
 }
 
-inline std::list<tItem*>
+inline item_list
 tChartMappingMatch::matched_context_items()
 {
-  std::list<tItem*> items;
+  item_list items;
   for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous)
     if (curr->_arg && curr->_arg->is_context_arg())
       items.push_front(curr->_item);

@@ -22,7 +22,7 @@
 #include "position-mapper.h"
 #include "chart.h"
 #include "chart-mapping.h"
-#include "fs-chart-util.h"
+#include "fs-chart.h"
 #include "task.h"
 #include "tsdb++.h"
 #include "item-printer.h"

@@ -23,7 +23,7 @@
 #include <sys/param.h>
 
 #include "cheap.h"
-#include "fs-chart-util.h"
+#include "fs-chart.h"
 #include "item.h"
 #include "item-printer.h"
 #include "parse.h"
