@@ -343,7 +343,8 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
  *
  * \return true if the definitions are all OK, false otherwise
  */
-bool fully_expand_types(bool full_expansion) {
+bool fully_expand_types(bool full_expansion)
+{
   int i;
   list<int> l;
   set<int> cs;

@@ -255,24 +255,6 @@ grammar_rule::make_grammar_rule(type_t t) {
   return NULL;
 }
 
-/*
-void
-grammar_rule::print(IPrintfHandler &iph)
-{
-    pbprintf(iph, "%s/%d%s (", print_name(_type), _arity,
-             _hyper == false ? "[-HA]" : "");
-    
-    list_int *l = _tofill;
-    while(l)
-    {
-        pbprintf(iph, " %d", first(l));
-        l = rest(l);
-    }
-    
-    pbprintf(iph, ")");
-} 
-*/
-
 void
 grammar_rule::print(ostream &out) {
   out << print_name(_type) << "/" << _arity
@@ -303,14 +285,6 @@ grammar_rule::lui_dump(const char *path) {
               name, path);
     return;
   } // if
-  /*
-  fprintf(stream, "avm -%d ", _id);
-  fs foo = instantiate(true);
-  foo.print(pb, DAG_FORMAT_LUI);
-  fprintf(stream, "%s", pb.getContents());
-  fprintf(stream, " \"Rule # %d (%s)\"\f\n", _id, printname());
-  fclose(stream);
-  */
   stream << "avm -" << _id << " ";
   LUIDagPrinter ldp;
   instantiate(true).print(stream, ldp);
