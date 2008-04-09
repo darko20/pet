@@ -167,21 +167,6 @@ bool apply_appropriateness_rec(struct dag_node *dag) {
           arc = arc->next;
         }
 
-      if(new_type == -1) {
-        LOG(loggerExpand, Level::INFO,
-            "feature `%s' on type `%s' (refined to `%s' from other features) "
-            "not appropriate (appropriate type is `%s')",
-            attrname[arc->attr], typenames[dag->type], typenames[old_type],
-            typenames[apptype[arc->attr]]);
-        return false;
-      }
-
-      if(!apply_appropriateness_rec(arc->val))
-        return false;
-
-      arc = arc->next;
-    }
-
     dag->type = new_type;
   }
 
@@ -342,26 +327,6 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
           arc = arc->next;
         }
 
-        /* \todo ????? a duplicate of above **************
-    if(dag->type < types.number() && (full || dag->arcs)) {
-      if(dag_unify3(types[dag->type]->thedag, dag) == FAIL) {
-        LOG(loggerExpand, Level::INFO,
-            "full expansion with `%s' for", typenames[dag->type]);
-        depth--;
-        return cons(T_BOTTOM, NULL);
-      }
-    } */
-
-    list_int *res;
-    arc = dag->arcs;
-    while(arc) {
-      if((res = fully_expand(arc->val, full)) != NULL) {
-        depth--;
-        return cons(arc->attr, res);
-      }
-      arc = arc->next;
-    }
-
     depth --;
   }
   return NULL;
@@ -445,17 +410,8 @@ bool fully_expand_types(bool full_expansion) {
             }
         }
 
-      dag_invalidate_visited();
-
-      if(!fail && dag_cyclic(types[i]->thedag)) {
-        LOG(loggerExpand, Level::INFO,
-            "`%s' failed (cyclic structure)", typenames[i]);
-        fail = true;
-      }
+      register_dag(i, (types[i]->thedag = dag_deref(types[i]->thedag)));
     }
-
-    register_dag(i, (types[i]->thedag = dag_deref(types[i]->thedag)));
-  }
 
   unify_reset_visited = false;
 
@@ -568,14 +524,6 @@ int unfill_dag_rec(struct dag_node *dag, int root) {
           keep = tmparc;
         }
     }
-    else {
-      tmparc = arc;
-      arc = arc->next;
-
-      tmparc->next = keep;
-      keep = tmparc;
-    }
-  }
 
   dag->arcs = keep;
 

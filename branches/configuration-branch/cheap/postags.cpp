@@ -32,8 +32,6 @@ using std::map;
 using std::set;
 using std::vector;
 
-#include <iomanip>
-
 postags::postags(const vector<string> &tags, const vector<double> &probs) {
   assert(tags.size() == probs.size());        
   for(vector<string>::const_iterator it = tags.begin(); it != tags.end();

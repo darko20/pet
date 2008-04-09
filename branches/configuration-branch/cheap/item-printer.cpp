@@ -275,9 +275,6 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
   if(inflrs_todo(item) != NULL) {
     print_inflrs(item);
   }
-    fprintf(_out, "]");*/
-    print_inflrs(item);
-  }
 
   print_daughters(item);
   
