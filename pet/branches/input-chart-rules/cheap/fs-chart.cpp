@@ -20,6 +20,7 @@
 #include "fs-chart.h"
 
 #include "item.h"
+#include "item-printer.h"
 
 #include <algorithm>
 
@@ -200,4 +201,21 @@ tChart::all_succeeding_items(tItem *item, bool skip_blocked,
     filter_items(succ_items, skip_blocked, skip, result);
   }
   return result;
+}
+
+void
+tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
+              bool passives, bool actives)
+{
+  tItemPrinter default_printer(out, verbosity > 2, verbosity > 10);
+  if (printer == NULL) {
+    printer = &default_printer;
+  }
+  item_list all_items = items();
+  for (item_iter it = all_items.begin(); it != all_items.end(); it++) {
+    tItem *item = *it;
+    if ((item->passive() && passives) || (! item->passive() && actives)) {
+      printer->print(item); out << endl;
+    }
+  }
 }

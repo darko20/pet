@@ -181,6 +181,13 @@ public:
   all_succeeding_items(tItem *item, bool skip_blocked=false,
       std::list<tItem*> skip = std::list<tItem*>());
   
+  /**
+   * Print chart items to stream \a out using \a aip, select active and
+   * passive items with \a passives and \a actives.
+   */
+  void print(std::ostream &out, class tAbstractItemPrinter *printer = NULL,
+             bool passives = true, bool actives = true);
+
 };
 
 

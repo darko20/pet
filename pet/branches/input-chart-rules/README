@@ -113,7 +113,7 @@ sure that these packages are installed, too.
 Required:
 
 Boost provides free portable C++ libraries for various applications.
-flop uses the Boost Graph library.
+flop and cheap both use the Boost Graph library.
 Current GNU/Linux distributions usually provide this library as a pre-built
 package. Make sure that the header files are installed, too (see above).
 http://www.boost.org/

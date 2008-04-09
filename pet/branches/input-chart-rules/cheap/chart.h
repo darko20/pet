@@ -58,13 +58,11 @@ public:
   /** Remove the item in the set from the chart */
   void remove(HASH_SPACE::hash_set<tItem *> &to_delete);
 
-  /** Print all chart items */
-  void print(FILE *f);
-
-  /** Print chart items using \a f, select active and passive items with \a
-   *  passives and \a actives.
+  /** Print chart items to stream \a out using \a aip, select active and
+   *  passive items with \a passives and \a actives.
    */
-  void print(tItemPrinter *f, bool passives = true, bool actives = false);
+  void print(std::ostream &out, tAbstractItemPrinter *aip = NULL,
+             bool passives = true, bool actives = true);
 
   /** Get statistics from the chart, like nr. of active/passive edges, average
    *  feature structure size, items contributing to a reading etc.
@@ -101,7 +99,12 @@ public:
   template < typename weight_t, typename weight_fn_t >
   void shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
                      , bool all = false);
-  
+
+  /** Extract a surface string from the input items in this chart. This is
+   *  in particular relevant where the input is given as a word lattice.
+   */
+  std::string get_surface_string();
+
   /** Return \c true if the chart is connected using only edges considered \a
    *  valid, i.e., there is a path from the first to the last node.
    */
@@ -214,8 +217,8 @@ public:
   }
 
 private:
-  std::list<tItem *> &_LI;
-  std::list<tItem *>::iterator _curr;
+  item_list &_LI;
+  item_iter _curr;
 };
 
 
@@ -267,7 +270,7 @@ private:
 
   int _max, _currindex;
   std::vector< std::list< class tItem * > > &_LI;
-  std::list<class tItem *>::iterator _curr;
+  item_iter _curr;
 };
 
 /** Return all passive items adjacent to a given active item
@@ -303,8 +306,8 @@ public:
   }
 
 private:
-  std::list<tItem *> &_LI;
-  std::list<tItem *>::iterator _curr;
+  item_list &_LI;
+  item_iter _curr;
 };
 
 /** Return all active items adjacent to a given passive item
@@ -349,11 +352,11 @@ public:
   }
 
 private:
-  std::list<tItem *> &_LI_start, &_LI_end;
+  item_list &_LI_start, &_LI_end;
     
   bool _at_start;
     
-  std::list<tItem *>::iterator _curr;
+  item_iter _curr;
 };
 
 
@@ -375,7 +378,7 @@ void chart::shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
   weight_t *distance = new weight_t[size + 1] ;
   weight_t new_dist ;
 
-  std::list <tItem *>::iterator curr ;
+  item_iter curr ;
   tItem *passive ;
 
   // compute the minimal distance and minimal distance predecessor nodes for

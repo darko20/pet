@@ -90,6 +90,7 @@ libcheap_a_SOURCES = \
 	$(top_srcdir)/common/dag-arced.cpp \
 	$(top_srcdir)/common/dag-common.cpp \
 	$(top_srcdir)/common/dag-io.cpp \
+	$(top_srcdir)/common/dagprinter.cpp \
 	$(top_srcdir)/common/dumper.cpp \
 	$(top_srcdir)/common/grammar-dump.cpp \
 	$(top_srcdir)/common/hash.cpp \

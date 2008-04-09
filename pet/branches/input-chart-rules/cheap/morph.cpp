@@ -1135,7 +1135,6 @@ tLKBMorphology::undump_inflrs(dumper &dmp) {
     delete[] r;
   }                      
 
-
   _morph.initialize_lexrule_filter();
 
   if(verbosity > 4) fprintf(fstatus, ", %d infl rules", ninflrs);
@@ -1251,7 +1250,7 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
           }
         }
           
-        // XXX _fix_me_ I'm not sure about what that offset really means.
+        // _fix_me_ I'm not sure about what that offset really means.
         // It seems to me to be modelled wrongly and rather belong to the stem.
         // lstem->keydtr(offset);
           

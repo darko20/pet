@@ -21,6 +21,11 @@ specific to input-chart-rules branch:
   - cheap -pg is a bit more informative
 
 v0.99.??
+  - implemented new printing functions for items and dags that use visitor 
+    objects (ItemPrinter and DagPrinter) and C++ streams instead of FILE *.
+    Old functions are still in-place and have to be removed. This is a 
+    preliminary check-in.
+  - made get_surface_string() in cheap.cpp a method of class chart
   - better integration of static and dynamic types:
     * dynamic types are subtypes of BI_STRING
     * dynamic and static types now use the same data structures for their

@@ -75,11 +75,8 @@ void lex_parser::tokenize(string input, inp_list &tokens) {
   // trace output
   if(verbosity > 4) {
     cerr << "tokenizer output:" << endl;
-    for(inp_list::iterator r = tokens.begin(); r != tokens.end(); ++r) {
-      (*r)->print(ferr);
-      cerr << endl;
-    }
-    cerr << endl;
+    for(inp_iterator r = tokens.begin(); r != tokens.end(); ++r)
+      cerr << **r << endl;
   }
  
 }
@@ -418,7 +415,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
   hash_set<tItem *> to_delete;
   for(chart_iter iter2(Chart); iter2.valid(); iter2++) {
     lex = iter2.current();
-    // XXX _fix_me_ the next condition might depend on whether we did
+    // _fix_me_ the next condition might depend on whether we did
     // exhaustive lexical processing or not
     if (lex->passive() && (lex->trait() != INPUT_TRAIT)) {
 
@@ -567,14 +564,12 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   if(verbosity > 4)
     fprintf(ferr, "adding generic les\n");
 
-  for(list<tInputItem *>::iterator it = unexpanded.begin()
+  for(inp_iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
 
     // debug messages
     if(verbosity > 4) {
-      fprintf(ferr, "  token ");
-      (*it)->print(ferr);
-      fprintf(ferr, "\n");
+      cerr << "  token " << *it << endl;
     }
 
     // instantiate gens
@@ -586,20 +581,15 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
 
       // debug messages
       if(verbosity > 4) {
-        fprintf(ferr, "    token provides tags:");
-        missing.print(ferr);
-        fprintf(ferr, "\n    already supplied:");
-        postags((*it)->parents).print(ferr);
-        fprintf(ferr, "\n");
+        cerr << "    token provides tags:" << missing << endl
+             << "    already supplied:" << postags((*it)->parents) << endl;
       }
 
       missing.remove(postags((*it)->parents));
 
       // debug messages
       if(verbosity > 4) {
-        fprintf(ferr, "    -> missing tags:");
-        missing.print(ferr);
-        fprintf(ferr, "\n");
+        cerr << "    -> missing tags:" << missing << endl;
       }
             
       if(!missing.empty())
@@ -653,8 +643,7 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
     
     words[4] = item->orth();
     vector<vector<type_t> > types(4);
-    for (list<tInputItem*>::iterator it = inp_tokens.begin();
-         it != inp_tokens.end(); it ++) {
+    for (inp_iterator it = inp_tokens.begin(); it != inp_tokens.end(); it ++) {
       int idx = -1;
       if ((*it)->endposition() == item->startposition() - 1)
         idx = 0;
@@ -688,18 +677,15 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
 }
 
 void 
-lex_parser::add_predicts(list<tInputItem *> &unexpanded, inp_list &inp_tokens) {
+lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens) {
   list<lex_stem*> predicts;
   
   if (verbosity > 4)
-    fprintf(ferr, "adding prediction les\n");
+    cerr << "adding prediction les" << endl;
   
-  for (list<tInputItem *>::iterator it = unexpanded.begin();
-       it != unexpanded.end(); it ++) {
+  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
     if (verbosity > 4) {
-      fprintf(ferr, "  token ");
-      (*it)->print(ferr);
-      fprintf(ferr, "\n");
+      cerr << "  token " << *it << endl;
     }
     
     predicts = predict_les(*it, inp_tokens, opt_predict_les);
