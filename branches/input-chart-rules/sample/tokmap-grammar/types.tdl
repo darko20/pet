@@ -108,8 +108,7 @@ head-second := binary-rule &
 ;;; -----------------------------------------------------------
 
 lex-item := sign &
-[ ORTH [ LIST [ REST #rest ], LAST #rest ] ,
-  TOKEN +tok ].
+[ ORTH [ LIST [ REST #rest ], LAST #rest ] ].
 
 lexeme := lex-item.
 
@@ -210,10 +209,10 @@ prep-lxm := const-lxm &
 ;;; ===========================================================
 
 chart-mapping-rule := *top* &
-  [ +CONTEXT *list*,
-    +INPUT   *list*,
-    +OUTPUT  *list*,
-    +POSCONS string ].
+  [ +CONTEXT  *list*,
+    +INPUT    *list*,
+    +OUTPUT   *list*,
+    +POSITION string ].
 
 
 ;;; input mapping rules:

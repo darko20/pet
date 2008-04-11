@@ -15,7 +15,7 @@ dag-rule := inpmap-x11-rule &
   [ +CONTEXT < [ +FORM "the" ], [ +FORM "barks" ]> ,
     +INPUT   < [ +FORM "dag" ] > ,
     +OUTPUT  < [ +FORM "dog" ] > ,
-    +POSCONS "C1<I1<C2" ].
+    +POSITION "C1<I1<C2" ].
 
 ; introducing items:
 switch-determiner-rule := inpmap-101-rule &
@@ -27,7 +27,7 @@ block-sth-rule := inpmap-rule &
   [ +CONTEXT < [ +FORM "that" ], [ +FORM "dog"  ] >,
     +INPUT   < [ +FORM "this" ] >,
     +OUTPUT  < > ,
-    +POSCONS "I1=C1<C2" ].
+    +POSITION "I1=C1<C2" ].
 
 ; map dates:
 dates-rule := inpmap-x11-rule &
@@ -47,7 +47,7 @@ tokenization-rule := inpmap-x21-rule &
     +INPUT   < [ +FORM  "/(.*)/" , +TNT #tnt ],
                [ +FORM  "/([.,;?!])/"   ] > ,
     +OUTPUT  < [ +FORM "${I1:+FORM:1}${I2:+FORM:1}" , +TNT #tnt ] > ,
-    +POSCONS "I1<I2" ].
+    +POSITION "I1<I2" ].
 
 ; make everything lower case:
 lower-case-rule := inpmap-x11-rule &
@@ -66,5 +66,5 @@ explode-tnt-rule := inpmap-012-rule &
                [ +FORM #form,
                  +TNT.+TAGS #tagrest,
                  +TNT.+PRBS #prbrest ] > ,
-    +POSCONS "O1=O2" ].
+    +POSITION "O1=O2" ].
 

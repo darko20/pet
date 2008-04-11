@@ -3,5 +3,5 @@ filter-generic-nouns := lexmap-rule &
   [ +CONTEXT < noun-lxm & [ ORTH <! "/(?!generic-stem).*/" !> ] > ,
     +INPUT   < noun-lxm & [ ORTH <! "generic-stem" !> ] > ,
     +OUTPUT  <> ,
-    +POSCONS "I1=C1" ].
+    +POSITION "I1=C1" ].
 
