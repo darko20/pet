@@ -17,7 +17,7 @@ lex-entries-can-fail.
 chart-mapping-context-path := "+CONTEXT".
 chart-mapping-input-path   := "+INPUT".
 chart-mapping-output-path  := "+OUTPUT".
-chart-mapping-poscons-path := "+POSCONS".
+chart-mapping-poscons-path := "+POSITION".
 
 ;; path settings for mapping tInputItem objects to input feature structures
 inpitem-form-path     := "+FORM".       ; required for input feature structures
@@ -30,5 +30,5 @@ inpitem-ids-path      := "+IDS".        ; optional, a list of ids
 inpitem-postags-path  := "+TNT.+TAGS".  ; optional, list of pos tags
 inpitem-posprobs-path := "+TNT.+PRBS".  ; optional, list of pos probabilities
 
-lexitem-inpitem-path  := "TOKEN".  ; unify input fs into this path in lex items
+lexitem-inpitem-path  := "ARGS".  ; unify input fs into this path in lex items
 
