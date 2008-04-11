@@ -246,7 +246,6 @@ void interactive() {
       tsdb_dump.error(Chart, surface, e);
     }
 
-    fprintf(fstatus, "-----\n"); // not in main branch
     fflush(fstatus);
 
     if(Chart != 0) delete Chart;
