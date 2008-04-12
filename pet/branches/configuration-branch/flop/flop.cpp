@@ -237,7 +237,7 @@ void preprocess_types()
   process_conjunctive_subtype_constraints();
   process_multi_instances();
 
-  process_hierarchy(Config::get<bool>("opt_propagate_status"));
+  process_hierarchy(get_opt_bool("opt_propagate_status"));
 
   assign_printnames();
 }
@@ -302,13 +302,13 @@ void process_types()
     exit(1);
 
   fprintf(fstatus, " / full");
-  if(!fully_expand_types(Config::get<bool>("opt_full_expansion")))
+  if(!fully_expand_types(get_opt_bool("opt_full_expansion")))
     exit(1);
 
   fprintf(fstatus, " expansion for types\n");
   compute_maxapp();
   
-  if(Config::get<bool>("opt_unfill"))
+  if(get_opt_bool("opt_unfill"))
     unfill_types();
 
   demote_instances();
@@ -316,7 +316,7 @@ void process_types()
   if(verbosity > 9)
     log_types("before dumping");
 
-  compute_feat_sets(Config::get<bool>("opt_minimal"));
+  compute_feat_sets(get_opt_bool("opt_minimal"));
 }
 
 void
@@ -330,10 +330,10 @@ fill_grammar_properties() {
   grammar_properties["ntemplates"] = ss.str();
 
   grammar_properties["unfilling"] =
-    Config::get<bool>("opt_unfill") ? "true" : "false";
+    get_opt_bool("opt_unfill") ? "true" : "false";
 
   grammar_properties["full-expansion"] =
-    Config::get<bool>("opt_full_expansion") ? "true" : "false";
+    get_opt_bool("opt_full_expansion") ? "true" : "false";
 }
 
 /*
@@ -452,16 +452,16 @@ int process(char *ofname) {
 
   flop_settings = new settings("flop", fname.c_str());
 
-  Config::addOption<bool>("opt_linebreaks", "", false);
+  managed_opt("opt_linebreaks", "", (bool) false);
   if(flop_settings->member("output-style", "stefan")) {
-    Config::set("opt_linebreaks", true);
+    set_opt("opt_linebreaks", true);
   }
 
   grammar_version = parse_version();
   if(grammar_version == 0) grammar_version = "unknown";
 
   string outfname = output_name(fname, TDL_EXT,
-           Config::get<bool>("opt_pre") ? PRE_EXT : GRAMMAR_EXT);
+           get_opt_bool("opt_pre") ? PRE_EXT : GRAMMAR_EXT);
   FILE *outf = fopen(outfname.c_str(), "wb");
   
   if(outf) {
@@ -512,7 +512,7 @@ int process(char *ofname) {
         read_irregs(irregfnamestr.c_str());
     }
 
-    if(!Config::get<bool>("opt_pre"))
+    if(!get_opt_bool("opt_pre"))
       check_undefined_types();
 
     LOG(loggerUncategorized, Level::INFO,
@@ -536,14 +536,14 @@ int process(char *ofname) {
     preprocess_types();
     mem_checkpoint("after preprocessing types");
 
-    if(!Config::get<bool>("opt_pre"))
+    if(!get_opt_bool("opt_pre"))
       process_types();
 
     mem_checkpoint("after processing types");
 
     fill_grammar_properties();        
 
-    if(Config::get<bool>("opt_pre")) {
+    if(get_opt_bool("opt_pre")) {
       write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version);
       write_pre(outf);
     } else {
@@ -565,14 +565,14 @@ int process(char *ofname) {
         "finished conversion - output generated in %0.3g s",
         (clock() - t_start) / (float) CLOCKS_PER_SEC);
 
-    if(Config::get<int>("opt_cmi") > 0) {
+    if(get_opt_int("opt_cmi") > 0) {
       string moifile = output_name(fname, TDL_EXT, ".moi");
       FILE *moif = fopen(moifile.c_str(), "wb");
       LOG(loggerUncategorized, Level::INFO,
           "Extracting morphological information into `%s'...",
           moifile.c_str());
       print_morph_info(moif);
-      if(Config::get<int>("opt_cmi") > 1) {
+      if(get_opt_int("opt_cmi") > 1) {
         fprintf(fstatus, " type hierarchy...");
         fprintf(moif, "\n");
         print_hierarchy(moif);
@@ -636,6 +636,10 @@ void setup_io()
   setvbuf(ferr, 0, _IONBF, 0);
 }
 
+void cleanup() {
+  Config::finalize();
+}
+
 int main(int argc, char* argv[])
 {
   int retval;
@@ -644,6 +648,8 @@ int main(int argc, char* argv[])
   ferr = fstatus = stderr; // preliminary setup
 
   setlocale(LC_ALL, "" );
+
+  Config::init();
 
   // initialization of log4cxx
 #if HAVE_LIBLOG4CXX
@@ -654,7 +660,7 @@ int main(int argc, char* argv[])
   if(!parse_options(argc, argv))
     {
       usage(stderr);
-      exit(1);
+      cleanup(); exit(1);
     }
 
   setup_io();
@@ -664,22 +670,23 @@ int main(int argc, char* argv[])
     {
       LOG_FATAL(loggerUncategorized,
                 "%s", e.getMessage().c_str());
-      exit(1);
+      cleanup(); exit(1);
     }
 
   catch(bad_alloc)
     {
       LOG_FATAL(loggerUncategorized,
                 "out of memory");
-      exit(1);
+      cleanup(); exit(1);
     }
 
   catch(...)
     {
       LOG_FATAL(loggerUncategorized,
                 "unknown exception");
-      exit(1);
+      cleanup(); exit(1);
     }
   
+  cleanup();
   return retval;
 }

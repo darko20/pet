@@ -277,7 +277,7 @@ void make_semilattice()
   bitcode *temp = new bitcode(codesize);
 
   bool glbdebug;
-  Config::get("opt_glbdebug", glbdebug);
+  get_opt("opt_glbdebug", glbdebug);
   LOG(loggerHierarchy, Level::INFO, "glbs ");
 
   low = 0; high = types.number();

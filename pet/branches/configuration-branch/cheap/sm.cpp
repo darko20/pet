@@ -501,7 +501,7 @@ tMEM::parseOptions()
         if (LA(0)->tag == T_COLON) consume(1);
         pvalue = match(T_ID, "parameter value", false);
         match(T_DOT, "dot after parameter value", true);
-        Config::set("opt_gplevel", (unsigned int) atoi(pvalue));
+        set_opt("opt_gplevel", (unsigned int) atoi(pvalue));
         free(pvalue);
       }
       else {

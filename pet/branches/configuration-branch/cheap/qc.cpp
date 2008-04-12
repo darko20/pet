@@ -398,7 +398,7 @@ compute_qc_traditional(ostream &out, const char *tname,
 void
 compute_qc_paths(ostream &out) {
   int packing_type;
-  Config::get("opt_packing", packing_type);
+  get_opt("opt_packing", packing_type);
   time_t t = time(NULL);
   out << ";;;\n;;; Quickcheck paths for " << Grammar->property("version")
       << ", generated on " << stats.id << " items on " << ctime(&t)

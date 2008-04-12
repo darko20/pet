@@ -65,22 +65,22 @@ int opt_nth_meaning;
 
 /** Initialize global variables and options for the parser */
 static bool parser_init() {
-  Config::addReference("opt_filter", "Use the static rule filter", opt_filter);
+  reference_opt("opt_filter", "Use the static rule filter", opt_filter);
   opt_filter = true;
-  Config::addReference("opt_hyper", "use hyperactive parsing", opt_hyper);
+  reference_opt("opt_hyper", "use hyperactive parsing", opt_hyper);
   opt_hyper = true;
-  Config::addReference("opt_nsolutions",
+  reference_opt("opt_nsolutions",
                        "The number of solutions until the parser is"
                        "stopped, if not in packing mode", opt_nsolutions);
   opt_nsolutions = 0;
-  Config::addReference("opt_packing",
+  reference_opt("opt_packing",
                        "a bit vector of flags: 1:equivalence "
                        "2:proactive 4:retroactive packing "
                        "8:selective 128:no unpacking", opt_packing);
   opt_packing = 0;
-  Config::addOption("opt_pedgelimit", "maximum number of passive edges",
+  managed_opt("opt_pedgelimit", "maximum number of passive edges",
                     (int) 0);
-  Config::addOption("opt_shrink_mem", "shrink process size after huge items",
+  managed_opt("opt_shrink_mem", "shrink process size after huge items",
                     true);
   return opt_hyper;
 }
@@ -411,7 +411,7 @@ bool add_item(tItem *it) {
 
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
-  long memlimit = Config::get<int>("memlimit") * 1024 * 1024; 
+  long memlimit = get_opt_int("memlimit") * 1024 * 1024; 
 
   //
   // run the core parser loop until either (a) we empty out the agenda, (b) we
@@ -441,7 +441,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
 #endif
     tItem *it = t->execute();
     delete t;
-    if (Config::get<int>("opt_timeout") > 0)
+    if (get_opt_int("opt_timeout") > 0)
       timestamp = times(NULL);
     // add_item checks all limits that have to do with the number of
     // analyses. If it returns true that means that one of these limits has
@@ -453,7 +453,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
                        , timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
-  if (Config::get<int>("opt_timeout") > 0)
+  if (get_opt_int("opt_timeout") > 0)
     timestamp = times(NULL);
 
   // selectively unpacking
@@ -498,12 +498,12 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
                         , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
-  if (Config::get<int>("opt_timeout") > 0) 
+  if (get_opt_int("opt_timeout") > 0) 
     timestamp = times(NULL);
   for(vector<tItem *>::iterator tree = trees.begin();
       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
         && tree != trees.end(); ++tree) {
-    if (Config::get<int>("opt_timeout") > 0 && timestamp >= timeout)
+    if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout)
       break;
     if(! (*tree)->blocked()) {
       
@@ -565,10 +565,10 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
         errors.push_back(s.str());
       }
 
-      if (Config::get<int>("opt_timeout") > 0 && timestamp >= timeout) {
+      if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
         ostringstream s;
         s << "timed out (" 
-          << Config::get<int>("opt_timeout") / sysconf(_SC_CLK_TCK) 
+          << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
           << " s)";
         errors.push_back(s.str());
       }
@@ -602,7 +602,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, int pedgelimit) {
   get_unifier_stats();
   Chart->get_statistics();
 
-  if(Config::get<bool>("opt_shrink_mem")) {
+  if(get_opt_bool("opt_shrink_mem")) {
     FSAS.may_shrink();
     prune_glbcache();
   }
@@ -665,9 +665,9 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
     TotalParseTime.start();
     ParseTime.reset(); ParseTime.start();
-    if (Config::get<int>("opt_timeout") > 0) {
+    if (get_opt_int("opt_timeout") > 0) {
       timestamp = times(NULL);
-      timeout = timestamp + (clock_t)Config::get<int>("opt_timeout");
+      timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
     }
 
     Lexparser.lexical_processing(input_items
@@ -675,7 +675,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
                                  , FSAS, errors);
 
     int pedgelimit;
-    Config::get("pedgelimit", pedgelimit);
+    get_opt("pedgelimit", pedgelimit);
     // during lexical processing, the appropriate tasks for the syntactic stage
     // are already created
     parse_loop(FSAS, errors, pedgelimit);

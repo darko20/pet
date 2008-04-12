@@ -80,21 +80,21 @@ bool parse_options(int argc, char* argv[])
     {0, 0, 0, 0}
   }; /* struct option */
   
-  Config::addOption<bool>("opt_pre",
+  managed_opt<bool>("opt_pre",
     "perform only the preprocessing stage (set local variable in fn process)",
     false);
-  Config::addOption<bool>("opt_expand_all_instances",
+  managed_opt<bool>("opt_expand_all_instances",
     "expand  expand all type definitions, except for pseudo types", false);
-  Config::addOption<bool>("opt_full_expansion",
+  managed_opt<bool>("opt_full_expansion",
     "expand the feature structures fully to find possible inconsistencies",
     false);
-  Config::addOption<bool>("opt_unfill", "", false);
-  Config::addOption<bool>("opt_minimal", "", false);
+  managed_opt<bool>("opt_unfill", "", false);
+  managed_opt<bool>("opt_minimal", "", false);
   opt_no_sem = false;
-  Config::addOption<bool>("opt_propagate_status", "", false);
-  Config::addOption<bool>("opt_glbdebug", "", false);
+  managed_opt<bool>("opt_propagate_status", "", false);
+  managed_opt<bool>("opt_glbdebug", "", false);
 
-  Config::addOption<int>("opt_cmi",
+  managed_opt<int>("opt_cmi",
     "print information about morphological processing "
     "(different types depending on value)",  0);
 
@@ -109,32 +109,32 @@ bool parse_options(int argc, char* argv[])
       return false;
       break;
     case OPTION_PRE:
-      Config::set("opt_pre", true);
+      set_opt("opt_pre", true);
       break;
     case OPTION_UNFILL:
-      Config::set("opt_unfill", true);
+      set_opt("opt_unfill", true);
       break;
     case OPTION_MINIMAL:
-      Config::set("opt_minimal", true);
+      set_opt("opt_minimal", true);
       break;
     case OPTION_FULL_EXPANSION:
-      Config::set("opt_full_expansion", true);
+      set_opt("opt_full_expansion", true);
       break;
     case OPTION_EXPAND_ALL_INSTANCES:
-      Config::set("opt_expand_all_instances", true);
+      set_opt("opt_expand_all_instances", true);
       break;
     case OPTION_NO_SEM:
       opt_no_sem = true;
       break;
     case OPTION_PROPAGATE_STATUS:
-      Config::set("opt_propagate_status", true);
+      set_opt("opt_propagate_status", true);
       break;
     case OPTION_GLBDEBUG:
-      Config::set("opt_glbdebug", true);
+      set_opt("opt_glbdebug", true);
       break;
     case OPTION_CMI:
       if(optarg != NULL)
-        Config::set("opt_cmi",
+        set_opt("opt_cmi",
           strtoint(optarg, "as argument to `-cmi'"));
       break;
     case OPTION_VERBOSE:

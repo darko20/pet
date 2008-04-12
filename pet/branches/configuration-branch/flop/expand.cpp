@@ -211,7 +211,7 @@ bool delta_expand_types() {
   int i, e;
   list<int> l;
   bool opt_expand_all_instances =
-    Config::get<bool>("opt_expand_all_instances");
+    get_opt_bool("opt_expand_all_instances");
 
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));

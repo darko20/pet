@@ -139,6 +139,9 @@ public:
  */
 class Config {
 public:
+  static void init() { _instance = new Config(); }
+  static void finalize() { delete _instance; }
+  
   ~Config();
 
   /** Adds new configuration option. Value is handled internally
@@ -151,11 +154,11 @@ public:
    * @exception ConfigException Thrown if option already exists or name is
    *                            empty
    */
-  template<class T> static void 
+  template<class T> void 
   addOption(const std::string& entry, const std::string& description,
             const T &initial, AbstractConverter<T> *converter);
 
-  template<class T> static void 
+  template<class T> void 
   addOption(const std::string& entry, const std::string& description,
             const T &initial);
 
@@ -169,11 +172,11 @@ public:
    * @exception ConfigException Thrown if option already exists or name is
    *                            empty.
    */
-  template<class T> static void 
+  template<class T> void 
   addReference(const std::string& entry, const std::string& description,
                T &place, AbstractConverter<T> *converter);
 
-  template<class T> static void 
+  template<class T> void 
   addReference(const std::string& entry, const std::string& description,
                T &place);
 
@@ -190,7 +193,7 @@ public:
    * @exception ConfigException Thrown if option already exists or name is
    *                            empty.
    */
-  template <class T> static void
+  template <class T> void
   addCallback(const std::string& entry, const std::string& description,
               Callback<T>* callback);
 
@@ -202,7 +205,7 @@ public:
    * @exception ConfigException Thrown if option does not exist.
    *                            Also if the option's type is different from T.
    */
-  template <class T> static T& get(const std::string& entry);
+  template <class T> T& get(const std::string& entry);
   
   /** Works exactly like #get(const std::string& entry), but result is passed
    * as an "out" parameter. Throws the same exceptions.
@@ -211,7 +214,7 @@ public:
    * @exception ConfigException Thrown if option does not exist.
    *                            Also if the option's type is different from T.
    */
-  template <class T> static void get(const std::string& entry, T& place);
+  template <class T> void get(const std::string& entry, T& place);
 
   /* Don't access the values directly. Use reference options if you want to.
 
@@ -222,7 +225,7 @@ public:
    * @exception ConfigException Thrown if option does not exist.
    *                            Also if the option's type is different from T.
    *
-  template<class T> static void getPointer(const std::string& entry, (T*)& place);
+  template<class T> void getPointer(const std::string& entry, (T*)& place);
 
   ** Works exactly like #get(const std::string& entry), but result is passed
    * as an "out pointer" parameter. Throws the same exceptions.
@@ -231,7 +234,7 @@ public:
    * @exception ConfigException Thrown if option does not exist.
    *                            Also if the option's type is different from T.
    *
-  template<class T> static T* getPointer(const std::string& entry);
+  template<class T> T* getPointer(const std::string& entry);
   */
 
   /** Sets the value of an existing configuration option.
@@ -242,26 +245,26 @@ public:
    * @exception ConfigException Thrown if option does not exist.
    *                            Also if the option's type is different from T.
    */
-  template <class T> static void 
+  template <class T> void 
   set(const std::string& entry, const T& value, int prio = 1);
 
   /** Sets the value of an existing configuration option from a string.
    * Works like #set, throws the same exceptions.
    */
-  static void 
+  void 
   setString(const std::string& entry, const std::string& value, int prio = 1);
   
   /** Get the value of an option as string.
    * Works like #get(const std::string& entry), throws the same exceptions
    */
-  static std::string
+  std::string
   getString(const std::string& entry);
 
   /** Checks if given name exists in configuration database.
    * @param entry Name of the parameter.
    * @return true iff entry is name of existing option.
    */
-  static bool hasOption(const std::string& entry);
+  bool hasOption(const std::string& entry);
 
   /** Retrieves description of an option.
    * @param entry Name of the option.
@@ -269,7 +272,10 @@ public:
    *
    * @exception ConfigException Thrown if option does not exist.
    */
-  static const std::string& getDescription(const std::string& entry);
+  const std::string& getDescription(const std::string& entry);
+
+  /** Get the singleton instance */
+  static Config *get_instance() { return _instance; }
 
 protected:
   /** Checks if string can be used as a name for an configuration option.
@@ -301,7 +307,7 @@ private:
 
   Config();
 
-  static Config* _instance;
+  static Config *_instance;
   typedef std::map<const std::string, IOption*> KeyValueMap;
   KeyValueMap keyValue_;
 };
@@ -347,7 +353,7 @@ T& Config::get(const std::string& entry) {
   LOG(logger, log4cxx::Level::DEBUG, "getting option %s", entry.c_str());
   
   try {
-    Option<T>& o = dynamic_cast<Option<T>&>( _instance->getIOption(entry) );
+    Option<T>& o = dynamic_cast<Option<T>&>( getIOption(entry) );
     return o.get();
   }
   catch(std::bad_cast) {
@@ -358,6 +364,30 @@ T& Config::get(const std::string& entry) {
 template<class T> 
 void Config::get(const std::string& entry, T& place) {
   place = get<T>(entry);
+}
+
+template<class T> void get_opt(const std::string& entry, T& place) {
+  place = Config::get_instance()->get<T>(entry);
+}
+
+template<class T> T& get_opt(const std::string& entry) {
+  return Config::get_instance()->get<T>(entry);
+}
+
+inline bool get_opt_bool(const std::string& entry) {
+  return get_opt<bool>(entry);
+}
+
+inline int get_opt_int(const std::string& entry) {
+  return get_opt<bool>(entry);
+}
+
+inline char * get_opt_charp(const std::string& entry) {
+  return get_opt<char *>(entry);
+}
+
+inline std::string &get_opt_string(const std::string& entry) {
+  return get_opt<std::string>(entry);
 }
 
 /* Don't access the values directly. Use reference options if you want to.
@@ -387,6 +417,41 @@ void Config::set(const std::string& entry, const T& value, int prio) {
   catch(std::bad_cast) {
     throw ConfigException("wrong type was used for option " + entry);
   }
+}
+
+template<class T> void 
+set_opt(const std::string& entry, const T& value, int prio = 1){
+  Config::get_instance()->set<T>(entry, value, prio);
+}
+
+inline void 
+set_optString(const std::string& entry, const std::string& value, int prio = 1){
+  Config::get_instance()->setString(entry, value, prio);
+}
+
+/** Registration: don't forget the doc strings. This may require mentioning
+ *  the template parameter explicitely. Check this.
+ *  Would be nice if we had another string for the module to get a sensible
+ *  grouping in a GUI, for example.
+ */
+template<class T>
+void managed_opt(const std::string &key, const std::string &docstring,
+                 T initialValue) {
+  Config::get_instance()->addOption<T>(key, docstring, initialValue);
+}
+
+template<class T>
+void reference_opt(const std::string key, const std::string docstring, 
+                   T &initialValue) {
+  Config::get_instance()->addReference<T>(key, docstring, initialValue);
+}
+// do we need that if we provide custom converters???
+// yes, if we would like to change a data member inside an object instead of
+// the object itself.
+template<class T>
+void callback_opt(const std::string key, const std::string docstring,
+                  Callback<T> &cb) {
+  Config::get_instance()->addCallback<T>(key, docstring, cb);
 }
 
 #endif //_CONFIGURATION_H

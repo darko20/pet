@@ -176,32 +176,32 @@ initialize_version()
     }
     
     int packing;
-    Config::get("opt_packing", packing);
+    get_opt("opt_packing", packing);
     sprintf(CHEAP_VERSION,
             "PET(%s cheap v%s) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s "
             "%s[%d(%s)] %s[%d(%s)]"
             " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
             da,
             version_string,
-            Config::get<int>("pedgelimit"),
+            get_opt_int("pedgelimit"),
             packing ? "+" : "-",
             packing,
             Grammar->sm() ? "+" : "-",
             Grammar->sm() ? Grammar->sm()->description().c_str() : "",
-            Config::get<int>("opt_key") == 0 ?
-              "key" : (Config::get<int>("opt_key") == 1 ?
-                "l-r" : (Config::get<int>("opt_key") == 2 ?
-                  "r-l" : (Config::get<int>("opt_key") == 3 ?
+            get_opt_int("opt_key") == 0 ?
+              "key" : (get_opt_int("opt_key") == 1 ?
+                "l-r" : (get_opt_int("opt_key") == 2 ?
+                  "r-l" : (get_opt_int("opt_key") == 3 ?
                     "head" : "unknown"))),
-            Config::get<bool>("opt_hyper") ? "+HA" : "-HA",
+            get_opt_bool("opt_hyper") ? "+HA" : "-HA",
             Grammar->nhyperrules(),
-            Config::get<bool>("opt_filter") ? "+FI" : "-FI",
+            get_opt_bool("opt_filter") ? "+FI" : "-FI",
             opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
             opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
-            ((Config::get<int>("opt_nsolutions") != 0) ? "+OS" : "-OS"),
-            Config::get<int>("opt_nsolutions"), 
-            Config::get<bool>("opt_shrink_mem") ? "+SM" : "-SM", 
-            Config::get<bool>("opt_shaping") ? "+SH" : "-SH",
+            ((get_opt_int("opt_nsolutions") != 0) ? "+OS" : "-OS"),
+            get_opt_int("opt_nsolutions"), 
+            get_opt_bool("opt_shrink_mem") ? "+SM" : "-SM", 
+            get_opt_bool("opt_shaping") ? "+SH" : "-SH",
             sizeof(dag_node),
             __DATE__, __TIME__,
             sts.c_str());
@@ -224,7 +224,7 @@ cheap_create_test_run(char *data, int run_id, char *comment,
                       char *custom)
 {
     if(protocol_version > 0 && protocol_version <= 2)
-      Config::set("opt_tsdb", protocol_version);
+      set_opt("opt_tsdb", protocol_version);
 
     cheap_tsdb_summarize_run();
     return 0;
@@ -269,8 +269,8 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        Config::set("pedgelimit", edges);
-        Config::set("opt_nsolutions", nanalyses);
+        set_opt("pedgelimit", edges);
+        set_opt("opt_nsolutions", nanalyses);
         
         gettimeofday(&tA, NULL);
 
@@ -332,10 +332,10 @@ cheap_complete_test_run(int run_id, char *custom)
       nprocessed,
       (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
 
-    if(Config::get<char *>("opt_compute_qc") != NULL)
+    if(get_opt_charp("opt_compute_qc") != NULL)
     {
         LOG(loggerTsdb, Level::INFO, "computing quick check paths\n");
-        ofstream qc(Config::get<char *>("opt_compute_qc"));
+        ofstream qc(get_opt_charp("opt_compute_qc"));
         compute_qc_paths(qc);
     }
 
@@ -369,7 +369,7 @@ tsdb_result::capi_print()
     if(scored)
         capi_printf("(:score . %.g) ", score);
 
-    if(Config::get<int>("opt_tsdb") == 1)
+    if(get_opt_int("opt_tsdb") == 1)
     {
         capi_printf("(:derivation . \"%s\") ", 
                     escape_string(derivation).c_str());
@@ -573,8 +573,8 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                           tsdb_parse &T)
 {
     int tsdb_mode;
-    Config::get<int>("opt_tsdb", tsdb_mode);
-    if(Config::get<bool>("opt_derivation"))
+    get_opt("opt_tsdb", tsdb_mode);
+    if(get_opt_bool("opt_derivation"))
     {
         int nres = 0;
         if(nderivations >= 0) // default case, report results
@@ -602,10 +602,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 }
                 
 #ifdef HAVE_MRS
-                if(Config::get<char*>("opt_mrs"))
+                if(get_opt_charp("opt_mrs"))
                 {
                   R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-                            Config::get<char*>("opt_mrs"));
+                            get_opt_charp("opt_mrs"));
                 }
 #endif
                 T.push_result(R);
@@ -630,7 +630,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         }
     }
 
-    if(Config::get<bool>("opt_rulestatistics"))
+    if(get_opt_bool("opt_rulestatistics"))
     {
       for(ruleiter rule = Grammar->rules().begin();
           rule != Grammar->rules().end(); rule++)

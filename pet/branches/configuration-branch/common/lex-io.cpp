@@ -176,7 +176,7 @@ int LConsume(int n)
   if(CURR->info)
     {
       // TODO: is this still necessary ??
-      if(Config::get<bool>("opt_linebreaks"))
+      if(get_opt_bool("opt_linebreaks"))
         {
           LOG(loggerUncategorized, Level::INFO,
               "%s `%s' ", CURR->info, CURR->fname);
