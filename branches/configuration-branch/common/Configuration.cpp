@@ -1,6 +1,6 @@
 #include "Configuration.h"
 
-Config* Config::_instance = new Config();
+Config* Config::_instance = NULL;
 
 GenericConverter<bool>* GenericConverter<bool>::_instance = NULL;
 

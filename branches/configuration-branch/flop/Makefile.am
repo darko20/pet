@@ -52,5 +52,6 @@ flop_SOURCES = corefs.cpp \
 	$(top_srcdir)/common/lex-tdl.cpp \
 	$(top_srcdir)/common/settings.cpp  \
 	$(top_srcdir)/common/types.cpp \
-	$(top_srcdir)/common/utility.cpp
+	$(top_srcdir)/common/utility.cpp \
+	$(top_srcdir)/common/Configuration.cpp
 

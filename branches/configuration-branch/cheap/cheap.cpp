@@ -359,7 +359,6 @@ void cleanup() {
   delete Grammar;
   delete cheap_settings;
   delete vpm;
-  Config::finalize();
 }
 
 void process(const char *s) {
@@ -538,8 +537,6 @@ void process(const char *s) {
 
 
 void main_init() {
-  Config::init();
-
   //2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
   managed_opt("opt_comment_passthrough",
     "Ignore/repeat input classified as comment: starts with '#' or '//'",
