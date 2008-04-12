@@ -56,16 +56,16 @@ extern int opt_packing;
 
 static bool init_globals() {
   opt_shaping = true;
-  Config::addReference("opt_shaping", 
+  reference_opt("opt_shaping", 
                        "Filter items that would reach beyond the chart",
                        opt_shaping);
   opt_lattice = false;
-  Config::addReference("opt_lattice", 
+  reference_opt("opt_lattice", 
                        "use the lattice structure specified in the input "
                        "to restrict the search space in parsing",
                        opt_lattice);
   opt_gplevel = 0;
-  Config::addReference("opt_gplevel",
+  reference_opt("opt_gplevel",
                        "determine the level of grandparenting "
                        "used in the models for selective unpacking",
                        opt_gplevel);
@@ -116,7 +116,7 @@ void init_characterization() {
     cfrom.set(cfrom_path);
     cto.set(cto_path);
     charz_init = true;
-    charz_use = (Config::get<char*>("opt_mrs") != 0);
+    charz_use = (get_opt_charp("opt_mrs") != 0);
   }
   char *carg_path_string = cheap_settings->value("mrs-carg-path");
   if (NULL != carg_path_string)
@@ -809,7 +809,7 @@ tItem::unpack(int upedgelimit)
 
     // Check if we reached timeout. Caller is responsible for checking
     // this to verify completeness of results.
-    if (Config::get<int>("opt_timeout") > 0) {
+    if (get_opt_int("opt_timeout") > 0) {
       timestamp = times(NULL);
       if (timestamp >= timeout)
         return res;
@@ -996,7 +996,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   tHypothesis *hypo = NULL;
 
   // check whether timeout has passed.
-  if (Config::get<int>("opt_timeout") > 0) {
+  if (get_opt_int("opt_timeout") > 0) {
     timestamp = times(NULL);
     if (timestamp >= timeout)
       return hypo;

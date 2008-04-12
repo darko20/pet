@@ -205,20 +205,23 @@ public:
   */
   void testConfigurationPresence() {
     CPPUNIT_ASSERT_EQUAL(false, Config::hasOption("statusmember"));
+    /*
     StatusMap statusmembers;
-    Config::addReference("statusmember", "special data structure test"
-                         ,statusmembers
-                         , (AbstractConverter<StatusMap>*) NULL);
+    reference_opt("statusmember", "special data structure test"
+                  , statusmembers
+                  , (AbstractConverter<StatusMap>*) NULL);
+    */
+    managed_opt("statusmember", "docstring", (bool) false);
     CPPUNIT_ASSERT_EQUAL(true, Config::hasOption("statusmember"));
   }
 
-  void testConfigurationSimpleOwn() {
-    Config::addOption<int>("int0", "Simple int test", 0);
+  void testConfigurationManaged() {
+    managed_opt("int0", "Simple int test", (int) 0);
 
     int int0 = 0;
-    Config::addReference("int1", "", int0);
+    reference_opt("int1", "", int0);
     int0 = 42;
-    Config::set<int>("int1", 42);
+    set_opt<int>("int1", 42);
     int& int1 = Config::get<int>("int1");
     CPPUNIT_ASSERT_EQUAL( 42, int1 );
     CPPUNIT_ASSERT( &int1 == &int0 );
@@ -226,8 +229,8 @@ public:
     CPPUNIT_ASSERT_EQUAL( 43, int0 );
 
     float float0 = 15.5f;
-    Config::addReference("MyFloat", "", float0);
-    Config::set("MyFloat", 15.5f);
+    reference_opt("MyFloat", "", float0);
+    set_opt("MyFloat", 15.5f);
     float& myFloat = Config::get<float>("MyFloat");
     //comparing floats is generally not a good idea but here it should work
     CPPUNIT_ASSERT_EQUAL( 15.5f, myFloat );
@@ -254,8 +257,8 @@ public:
   }
 
   void testConfigurationSimpleInt() {
-    Config::addOption("int2", "Simple test", (int) 0);
-    Config::set("int2", 42);
+    managed_opt("int2", "Simple test", (int) 0);
+    set_opt("int2", 42);
     int int1 = Config::get<int>("int2");
     CPPUNIT_ASSERT_EQUAL( 42, int1 );
     Config::get("int2", int1);
@@ -263,8 +266,8 @@ public:
   }
 
   void testConfigurationSimpleFloat() {
-    Config::addOption<float>("MyFloat2", "float test", (double) 0.0);
-    Config::set("MyFloat2", 15.5f);
+    managed_opt<float>("MyFloat2", "float test", (double) 0.0);
+    set_opt("MyFloat2", 15.5f);
     float myFloat = Config::get<float>("MyFloat2");
     //comparing floats is generally not a good idea but here it should work
     CPPUNIT_ASSERT_EQUAL( 15.5f, myFloat );
@@ -274,7 +277,7 @@ public:
   }
 
   void testConfigurationSimpleCharPointer() {
-    Config::addOption("MyCharP1", "float test", (char *) "initial");
+    managed_opt("MyCharP1", "float test", (char *) "initial");
     char *myString = Config::get<char *>("MyCharP1");
     //comparing floats is generally not a good idea but here it should work
     CPPUNIT_ASSERT( strcmp(myString,"initial") == 0 );
@@ -282,17 +285,17 @@ public:
     CPPUNIT_ASSERT( strcmp(myString,"initial") == 0 );
     { char foo[5];
       foo[0]='c'; foo[1] = 'h';foo[2] = 'a';foo[3] = 'r';foo[4] = '\0';
-      Config::set<char *>("MyCharP1", foo);
+      set_opt<char *>("MyCharP1", foo);
       foo[0] = 'd';
     }
     CPPUNIT_ASSERT( strcmp(Config::get<char *>("MyCharP1") ,"char") == 0 );
-    Config::set<char *>("MyCharP1", "other");
+    set_opt<char *>("MyCharP1", "other");
     CPPUNIT_ASSERT( strcmp(Config::get<char *>("MyCharP1") ,"other") == 0 );
   }
 
   void testConfigurationComplexOwn() {
     StatusMap statusmembers;
-    Config::addReference("statusmember1", "special type test", statusmembers,
+    reference_opt("statusmember1", "special type test", statusmembers,
                          (AbstractConverter<StatusMap>*) NULL);
 
     // This is true, but should not be exploited
@@ -312,7 +315,7 @@ public:
   }
 
   void testConfigurationComplex() {
-    Config::addOption("statusmember2", "special type handled test",
+    managed_opt("statusmember2", "special type handled test",
                       StatusMap(), (AbstractConverter<StatusMap>*) NULL);
     StatusMap &sm = Config::get<StatusMap>("statusmember2");
     sm.add("status1", "type1");
@@ -322,7 +325,7 @@ public:
   }
 
   void testEmptyName() {
-    CPPUNIT_ASSERT_THROW( Config::addOption<int>("", "desc", 0),
+    CPPUNIT_ASSERT_THROW( managed_opt<int>("", "desc", 0),
                           ConfigException );
     CPPUNIT_ASSERT_THROW( Config::get<int>(""),
                           ConfigException );
@@ -334,19 +337,19 @@ public:
   }
 
   void testWrongType() {
-    Config::addOption<int>("int3", "exception test", 0);
+    managed_opt<int>("int3", "exception test", 0);
     CPPUNIT_ASSERT_THROW( Config::get<double>("int3"),
                           ConfigException );
   }
 
   void testAlreadyExists() {
-    Config::addOption<int>("entry1", "exception test", 0);
-    CPPUNIT_ASSERT_THROW( Config::addOption<int>("entry1", "desc", 1),
+    managed_opt<int>("entry1", "exception test", 0);
+    CPPUNIT_ASSERT_THROW( managed_opt<int>("entry1", "desc", 1),
                           ConfigException );
 
     int entry2;
-    Config::addOption<int>("entry2", "exception test", 0);
-    CPPUNIT_ASSERT_THROW( Config::addReference<int>("entry2", "exception test",
+    managed_opt<int>("entry2", "exception test", 0);
+    CPPUNIT_ASSERT_THROW( reference_opt<int>("entry2", "exception test",
                                                     entry2),
                           ConfigException );
   }
@@ -357,37 +360,37 @@ public:
     Config::addCallback(std::string("cb1"), "callback test", &cb);
     CPPUNIT_ASSERT_EQUAL( 0, cb.callsCounter );
     
-    Config::set("cb1", 47);
+    set_opt("cb1", 47);
     CPPUNIT_ASSERT_EQUAL( 1, cb.callsCounter );
     CPPUNIT_ASSERT_EQUAL( 47, cb.lastValue );
     
-    Config::set("cb1", 49);
+    set_opt("cb1", 49);
     CPPUNIT_ASSERT_EQUAL( 49, cb.lastValue );
   }
     
   void testPriority() {
-    Config::addOption<int>("prio1", "priority test", 0);
-    Config::set("prio1", 58);
+    managed_opt<int>("prio1", "priority test", 0);
+    set_opt("prio1", 58);
     CPPUNIT_ASSERT_EQUAL( 58, Config::get<int>("prio1"));
         
-    Config::set("prio1", 59, 10);
+    set_opt("prio1", 59, 10);
     CPPUNIT_ASSERT_EQUAL( 59, Config::get<int>("prio1"));
         
-    Config::set("prio1", 44, 9);
+    set_opt("prio1", 44, 9);
     CPPUNIT_ASSERT_EQUAL( 59, Config::get<int>("prio1"));
         
-    Config::set("prio1", 44, 11);
+    set_opt("prio1", 44, 11);
     CPPUNIT_ASSERT_EQUAL( 44, Config::get<int>("prio1"));
   }
 
   // test if the descriptions of options are handled correctly
   void testDescription() {
-    Config::addOption<int>("opt_desc_H", "desc1", 0);
+    managed_opt<int>("opt_desc_H", "desc1", 0);
     CPPUNIT_ASSERT_EQUAL(std::string("desc1"),
                          Config::getDescription("opt_desc_H"));
 
     int i;
-    Config::addReference<int>("opt_desc_R", "desc2", i);
+    reference_opt<int>("opt_desc_R", "desc2", i);
     CPPUNIT_ASSERT_EQUAL(std::string("desc2"),
                          Config::getDescription("opt_desc_R"));
     
@@ -400,61 +403,61 @@ public:
   // test if the initial values of options are applied correctly
   void testInitial() {
     // --------------- Handled ---------------
-    Config::addOption<int>("initH1", "description", 3);
+    managed_opt<int>("initH1", "description", 3);
     CPPUNIT_ASSERT_EQUAL( 3, Config::get<int>("initH1") );
 
     // default constructors of primitive types
     // initialize variables to 0, 0.0, false, etc.
-    Config::addOption<int>("initH2", "desc", 0);
+    managed_opt<int>("initH2", "desc", 0);
     CPPUNIT_ASSERT_EQUAL( 0, Config::get<int>("initH2") );
     
     WithDefConstructor foo;
-    Config::addOption("initH3", "desc", foo,
+    managed_opt("initH3", "desc", foo,
                       (AbstractConverter<WithDefConstructor>*) NULL);
     CPPUNIT_ASSERT_EQUAL( string("abc"),
                           Config::get<WithDefConstructor>("initH3").s_ );
-    Config::addOption("initH4", "descr", WithDefConstructor("xyz"),
+    managed_opt("initH4", "descr", WithDefConstructor("xyz"),
                       (AbstractConverter<WithDefConstructor>*)NULL);
     CPPUNIT_ASSERT_EQUAL( string("xyz"),
                           Config::get<WithDefConstructor>("initH4").s_ );
 
     // --------------- Reference ---------------
     int i = 5;
-    Config::addReference<int>("initR1", "description", i);
+    reference_opt<int>("initR1", "description", i);
     CPPUNIT_ASSERT_EQUAL( 5, i );
     CPPUNIT_ASSERT_EQUAL( 5, Config::get<int>("initR1") );
     
     double d = 0.0;
-    Config::addReference<double>("initR2", "doubletest", d);
+    reference_opt<double>("initR2", "doubletest", d);
     CPPUNIT_ASSERT_EQUAL( 0.0, d );
     CPPUNIT_ASSERT_EQUAL( 0.0, Config::get<double>("initR2") );
 
     WithDefConstructor wdc1("xyz"), wdc2;
-    Config::addReference<WithDefConstructor>("initR3", "descr", wdc1, NULL);
+    reference_opt<WithDefConstructor>("initR3", "descr", wdc1, NULL);
     CPPUNIT_ASSERT_EQUAL( string("xyz"), wdc1.s_ );
-    Config::addReference<WithDefConstructor>("initR4", "default constructor",
+    reference_opt<WithDefConstructor>("initR4", "default constructor",
                                              wdc2, NULL);
     CPPUNIT_ASSERT_EQUAL( string("abc"), wdc2.s_ );
   }
 
   void testConverter() {
     // --------------- Handled -----------------
-    Config::addOption<int>("conv_1", "descr", 3);
+    managed_opt<int>("conv_1", "descr", 3);
     CPPUNIT_ASSERT_EQUAL( string("3"),
                           Config::getString("conv_1") );
-    Config::setString("conv_1", "47");
+    set_optString("conv_1", "47");
     CPPUNIT_ASSERT_EQUAL( 47,  Config::get<int>("conv_1") );
     
     // --------------- Reference ---------------
     int i = 3;
-    Config::addReference<int>("conv_2", "descr", i);
+    reference_opt<int>("conv_2", "descr", i);
     CPPUNIT_ASSERT_EQUAL( string("3"), Config::getString("conv_2") );
-    Config::setString("conv_2", "47");
+    set_optString("conv_2", "47");
     CPPUNIT_ASSERT_EQUAL( 47,  i );
   }
 
   void testConverterExceptions() {
-    Config::addOption<int>("convEx_1", "descr", 3);
+    managed_opt<int>("convEx_1", "descr", 3);
     CPPUNIT_ASSERT_THROW( Config::getString("convEx_1"),
                           NoConverterException );
   }
@@ -467,31 +470,31 @@ public:
     MapConverter<int> mc(m);
     
     // --------------- Handled -----------------
-    Config::addOption<int>("mconv_1", "descr", 3, &mc);
+    managed_opt<int>("mconv_1", "descr", 3, &mc);
     CPPUNIT_ASSERT_EQUAL( string("three"),
                           Config::getString("mconv_1") );
-    Config::setString("mconv_1", "two");
+    set_optString("mconv_1", "two");
     CPPUNIT_ASSERT_EQUAL( 2,  Config::get<int>("mconv_1") );
     
-    Config::set("mconv_1", 42);
+    set_opt("mconv_1", 42);
     CPPUNIT_ASSERT_THROW( Config::getString("mconv_1"),
                           ConfigException );
 
     // --------------- Reference ---------------
     int i = 1;
-    Config::addReference<int>("mconv_2", "descr", i, &mc);
+    reference_opt<int>("mconv_2", "descr", i, &mc);
     CPPUNIT_ASSERT_EQUAL( string("one"), Config::getString("mconv_2") );
-    Config::setString("mconv_2", "three");
+    set_optString("mconv_2", "three");
     CPPUNIT_ASSERT_EQUAL( 3,  i );
     i = 42;
     CPPUNIT_ASSERT_THROW( Config::getString("mconv_2"), ConfigException );
   }
 
   void testOnStrings() {
-    Config::addOption<string>("onString_1", "", string(""));
+    managed_opt<string>("onString_1", "", string(""));
     CPPUNIT_ASSERT_EQUAL( string(""),
                           Config::get<string>("onString_1") );
-    Config::set<string>("onString_1", "ab");
+    set_opt("onString_1", (string) "ab");
     CPPUNIT_ASSERT_EQUAL( string("ab"),
                           Config::get<string>("onString_1") );
     Config::get<string>("onString_1") += "cde";

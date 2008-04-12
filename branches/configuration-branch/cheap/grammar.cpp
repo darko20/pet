@@ -189,7 +189,7 @@ grammar_rule::grammar_rule(type_t t)
     // since adjacency is not guarantueed.
     
     int key_choice;
-    Config::get<int>("opt_key", key_choice);
+    get_opt("opt_key", key_choice);
     if(key_choice == 0) // take key arg specified in fs
     {
         if(keyarg != -1) 
@@ -361,7 +361,7 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
 }
 
 int tGrammar::init_globals() {
-  Config::addOption<int>("opt_key",
+  managed_opt<int>("opt_key",
     "What is the key daughter used in parsing?"
     "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", 0);
   return 0;
@@ -462,7 +462,7 @@ tGrammar::tGrammar(const char * filename)
             _lexicon[i] = st;
             _stemlexicon.insert(make_pair(st->orth(st->inflpos()), st));
 #if defined(YY)
-            if(Config::get<bool>("opt_yy") && st->length() > 1) 
+            if(get_opt_bool("opt_yy") && st->length() > 1) 
                 // for multiwords, insert additional index entry
             {
                 string full = st->orth(0);
@@ -528,7 +528,7 @@ tGrammar::tGrammar(const char * filename)
       for(ruleiter ri = _rules.begin(); ri != _rules.end(); ++ri)
         (*ri)->init_qc_vector_unif();
 
-    if(Config::get<bool>("opt_filter")) {
+    if(get_opt_bool("opt_filter")) {
       initialize_filter();
     }
 

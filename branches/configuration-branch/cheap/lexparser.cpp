@@ -310,7 +310,7 @@ int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
 void
 lex_parser::dependency_filter(struct setting *deps, bool unidirectional
                               , bool lex_exhaustive) {
-  if(deps == 0 || !Config::get<bool>("opt_chart_man"))
+  if(deps == 0 || !get_opt_bool("opt_chart_man"))
     return;
 
   vector<set <int> > satisfied(deps->n);
@@ -759,7 +759,7 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   }
 
   bool opt_default_les;
-  Config::get("opt_default_les", opt_default_les);
+  get_opt("opt_default_les", opt_default_les);
   // This may in principle lead to new lexical parsing, but only if generics
   // may be multi word entries.
   if(opt_default_les && ! unexpanded.empty()) {
@@ -782,7 +782,7 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   // unexpanded inps and the `-default-les' is not used.
   else {
     int opt_predict_les;
-    Config::get("opt_predict_les", opt_predict_les);
+    get_opt("opt_predict_les", opt_predict_les);
     if ((predict_les != 0) && ! unexpanded.empty()) {
       add_predicts(unexpanded, inp_tokens, opt_predict_les);
       unexpanded.clear();

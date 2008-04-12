@@ -108,10 +108,10 @@ struct passive_weights : public unary_function< tItem *, unsigned int > {
 };
 
 void dump_jxchg(string surface, chart *current) {
-  if (! Config::get<std::string>("opt_jxchg_dir").empty()) {
+  if (! get_opt_string("opt_jxchg_dir").empty()) {
     string yieldname = surface;
     replace(yieldname.begin(), yieldname.end(), ' ', '_');
-    yieldname = Config::get<std::string>("opt_jxchg_dir") + yieldname;
+    yieldname = get_opt_string("opt_jxchg_dir") + yieldname;
     ofstream out(yieldname.c_str());
     if (! out) {
       LOG(loggerUncategorized, Level::WARN,
@@ -133,14 +133,14 @@ void interactive() {
   //chp.print(type_dag(lookup_type("quant-rel")));
   //exit(1);
 
-  tTsdbDump tsdb_dump(Config::get<std::string>("opt_tsdb_dir"));
+  tTsdbDump tsdb_dump(get_opt_string("opt_tsdb_dir"));
   if (tsdb_dump.active()) {
-    Config::set("opt_tsdb", 1);
+    set_opt("opt_tsdb", 1);
   } else {
-    if (! Config::get<std::string>("opt_tsdb_dir").empty())
+    if (! get_opt_string("opt_tsdb_dir").empty())
       LOG_ERROR(loggerUncategorized,
                 "Could not open TSDB dump files in directory %s\n",
-                Config::get<std::string>("opt_tsdb_dir").c_str());
+                get_opt_string("opt_tsdb_dir").c_str());
   }
 
   while(Lexparser.next_input(std::cin, input)) {
@@ -165,7 +165,7 @@ void interactive() {
 
       printf("(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
              stats.id, surface.c_str(), 
-             Config::get<int>("pedgelimit"), stats.readings, 
+             get_opt_int("pedgelimit"), stats.readings, 
              stats.first/1000., stats.tcpu / 1000.,
              stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
              TotalParseTime.elapsed_ts() / 10.);
@@ -180,7 +180,7 @@ void interactive() {
 
       //dump_jxchg(surface, Chart);
 
-      if(verbosity > 1 || Config::get<char*>("opt_mrs")) {
+      if(verbosity > 1 || get_opt_charp("opt_mrs")) {
         int nres = 0;
 
         item_list results(Chart->readings().begin()
@@ -189,8 +189,8 @@ void interactive() {
         // results.sort(item_greater_than_score());
         for(item_iter iter = results.begin();
             (iter != results.end())
-              && ((Config::get<int>("opt_nresults") == 0)
-                   || (Config::get<int>("opt_nresults") > nres))
+              && ((get_opt_int("opt_nresults") == 0)
+                   || (get_opt_int("opt_nresults") > nres))
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
@@ -206,13 +206,13 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(Config::get<char*>("opt_mrs") &&
-             (strcmp(Config::get<char*>("opt_mrs"), "new") != 0)) {
+          if(get_opt_charp("opt_mrs") &&
+             (strcmp(get_opt_charp("opt_mrs"), "new") != 0)) {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(),
-                                      Config::get<char*>("opt_mrs"));
+                                      get_opt_charp("opt_mrs"));
             if (mrs.empty()) {
-              if (strcmp(Config::get<char*>("opt_mrs"), "xml") == 0)
+              if (strcmp(get_opt_charp("opt_mrs"), "xml") == 0)
                 LOG(loggerUncategorized, Level::INFO,
                     "<rmrs cfrom='-2' cto='-2'>\n</rmrs>");
               else
@@ -222,8 +222,8 @@ void interactive() {
             }
           }
 #endif
-          if (Config::get<char*>("opt_mrs")
-              && (strcmp(Config::get<char*>("opt_mrs"), "new") == 0)) {
+          if (get_opt_charp("opt_mrs")
+              && (strcmp(get_opt_charp("opt_mrs"), "new") == 0)) {
             mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
             if (mrs->valid()) {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
@@ -239,23 +239,23 @@ void interactive() {
         }
 
 #ifdef HAVE_MRS
-        if(Config::get<bool>("opt_partial")
+        if(get_opt_bool("opt_partial")
            && (Chart->readings().empty()))
         {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(Config::get<char*>("opt_mrs"), "rmrx")
+          bool rmrs_xml = (strcmp(get_opt_charp("opt_mrs"), "rmrx")
                            == 0);
           if (rmrs_xml)
             LOG(loggerUncategorized, Level::INFO, "\n<rmrs-list>\n");
           for(item_iter it = partials.begin(); it != partials.end(); ++it) {
-            if(Config::get<char*>("opt_mrs")) {
+            if(get_opt_charp("opt_mrs")) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
                 string mrs;
                 mrs = ecl_cpp_extract_mrs(item->get_fs().dag(),
-                                          Config::get<char*>("opt_mrs"));
+                                          get_opt_charp("opt_mrs"));
                 if (! mrs.empty()) {
                   LOG(loggerUncategorized, Level::INFO,
                       "%s", mrs.c_str());
@@ -290,8 +290,8 @@ void interactive() {
     id++;
   } /* while */
 
-  if(Config::get<char *>("opt_compute_qc")) {
-    ofstream qc(Config::get<char *>("opt_compute_qc"));
+  if(get_opt_charp("opt_compute_qc")) {
+    ofstream qc(get_opt_charp("opt_compute_qc"));
     compute_qc_paths(qc);
   }
 }
@@ -359,6 +359,7 @@ void cleanup() {
   delete Grammar;
   delete cheap_settings;
   delete vpm;
+  Config::finalize();
 }
 
 void process(const char *s) {
@@ -390,30 +391,30 @@ void process(const char *s) {
       Lexparser.register_morphology(ff);
       // ff->print(fstatus);
     }
-    if(Config::get<bool>("opt_online_morph")) {
+    if(get_opt_bool("opt_online_morph")) {
       tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
       if (lkbm != NULL)
         Lexparser.register_morphology(lkbm);
       else
-        Config::set("opt_online_morph", false);
+        set_opt("opt_online_morph", false);
     }
     Lexparser.register_lexicon(new tInternalLexicon());
 
     
     // \todo this cries for a separate tokenizer factory
     tTokenizer *tok;
-    switch (Config::get<tokenizer_id>("opt_tok")) {
+    switch (get_opt<tokenizer_id>("opt_tok")) {
     case TOKENIZER_YY: 
     case TOKENIZER_YY_COUNTS: 
       {
         char *classchar = cheap_settings->value("class-name-char");
         if (classchar != NULL)
           tok = new tYYTokenizer(
-            (Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
+            (get_opt<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
                ? STANDOFF_COUNTS : STANDOFF_POINTS), classchar[0]);
         else
           tok = new tYYTokenizer(
-            (Config::get<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
+                                 (get_opt<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
              ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
@@ -426,9 +427,10 @@ void process(const char *s) {
 #ifdef HAVE_XML
       xml_initialize();
       XMLServices = true;
-      tok = new tPICTokenizer((
-        Config::get<tokenizer_id>("opt_tok") == TOKENIZER_PIC_COUNTS
-        ? STANDOFF_COUNTS : STANDOFF_POINTS)); break;
+      tok = new tPICTokenizer((get_opt<tokenizer_id>("opt_tok")
+                               == TOKENIZER_PIC_COUNTS
+                               ? STANDOFF_COUNTS : STANDOFF_POINTS));
+      break;
 #else
       LOG_FATAL(loggerUncategorized,
                 "No XML input mode compiled into this cheap");
@@ -466,7 +468,7 @@ void process(const char *s) {
     default:
       tok = new tLingoTokenizer(); break;
     }
-    tok->set_comment_passthrough(Config::get<bool>("opt_comment_passthrough"));
+    tok->set_comment_passthrough(get_opt_bool("opt_comment_passthrough"));
     Lexparser.register_tokenizer(tok);
   }
     
@@ -506,7 +508,7 @@ void process(const char *s) {
           nstatictypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
   fflush(fstatus);
 
-  if(Config::get<bool>("opt_pg")) {
+  if(get_opt_bool("opt_pg")) {
     print_grammar(stdout);
   }
   else {
@@ -520,12 +522,12 @@ void process(const char *s) {
     else 
 #endif
 #ifdef TSDBAPI
-      if(Config::get<int>("opt_tsdb"))
+      if(get_opt_int("opt_tsdb"))
         tsdb_mode();
       else
 #endif
         {
-          if(Config::get<bool>("opt_interactive_morph"))
+          if(get_opt_bool("opt_interactive_morph"))
             interactive_morphology();
           else
             interactive();
@@ -536,17 +538,19 @@ void process(const char *s) {
 
 
 void main_init() {
+  Config::init();
+
   //2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
-  Config::addOption("opt_comment_passthrough",
+  managed_opt("opt_comment_passthrough",
     "Ignore/repeat input classified as comment: starts with '#' or '//'",
     false);
-  Config::addOption("opt_tsdb",
+  managed_opt("opt_tsdb",
     "enable [incr tsdb()] slave mode (protocol version = n)",
     0);
-  Config::addOption("opt_tsdb_dir",
+  managed_opt("opt_tsdb_dir",
      "write [incr tsdb()] item, result and parse files to this directory",
      ((std::string) ""));
-  Config::addOption("opt_server",
+  managed_opt("opt_server",
     "go into server mode, bind to port `n' (default: 4711)",
     0);
 }
