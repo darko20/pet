@@ -139,9 +139,6 @@ public:
  */
 class Config {
 public:
-  static void init() { _instance = new Config(); }
-  static void finalize() { delete _instance; }
-  
   ~Config();
 
   /** Adds new configuration option. Value is handled internally
@@ -156,12 +153,16 @@ public:
    */
   template<class T> void 
   addOption(const std::string& entry, const std::string& description,
-            const T &initial, AbstractConverter<T> *converter);
+            const T &initial, AbstractConverter<T> *converter) {
+    add(entry, new HandledOption<T>(description, initial, converter));
+  }
 
   template<class T> void 
   addOption(const std::string& entry, const std::string& description,
-            const T &initial);
-
+            const T &initial) {
+    add(entry, new HandledOption<T>(description, initial));
+  }
+  
   /** Adds new configuration option. Value is stored in given location.
    * @param entry Name of the option.
    * @param description
@@ -174,11 +175,15 @@ public:
    */
   template<class T> void 
   addReference(const std::string& entry, const std::string& description,
-               T &place, AbstractConverter<T> *converter);
+               T &place, AbstractConverter<T> *converter) {
+    add(entry, new ReferenceOption<T>(description, place, converter));
+  }
 
   template<class T> void 
   addReference(const std::string& entry, const std::string& description,
-               T &place);
+               T &place) {
+    add(entry, new ReferenceOption<T>(description, place));
+  }
 
 
   /** Adds new callback configuration option, which provides the accessors.
@@ -195,7 +200,9 @@ public:
    */
   template <class T> void
   addCallback(const std::string& entry, const std::string& description,
-              Callback<T>* callback);
+              Callback<T>* callback) {
+    add(entry, new CallbackOption<T>(description, callback));
+  }
 
   /** Gets value of configuration option, if it exists.
    * @param entry Name of the option.
@@ -205,7 +212,17 @@ public:
    * @exception ConfigException Thrown if option does not exist.
    *                            Also if the option's type is different from T.
    */
-  template <class T> T& get(const std::string& entry);
+  template <class T> T& get(const std::string& entry) {
+    LOG(logger, log4cxx::Level::DEBUG, "getting option %s", entry.c_str());
+    
+    try {
+      Option<T>& o = dynamic_cast<Option<T>&>( getIOption(entry) );
+      return o.get();
+    }
+    catch(std::bad_cast) {
+      throw ConfigException("wrong type was used for option " + entry);
+    }
+  };
   
   /** Works exactly like #get(const std::string& entry), but result is passed
    * as an "out" parameter. Throws the same exceptions.
@@ -246,7 +263,21 @@ public:
    *                            Also if the option's type is different from T.
    */
   template <class T> void 
-  set(const std::string& entry, const T& value, int prio = 1);
+  set(const std::string& entry, const T& value, int prio = 1) {
+#if HAVE_LIBLOG4CXX
+    std::stringstream ss;
+    ss << "setting option " << entry << ", priority is " << prio;
+    LOG4CXX_DEBUG(logger, ss.str());
+#endif // HAVE_LIBLOG4CXX
+    
+    try {
+      Option<T>& o = dynamic_cast<Option<T>&>( getIOption(entry) );
+      o.set(value, prio);
+    }
+    catch(std::bad_cast) {
+      throw ConfigException("wrong type was used for option " + entry);
+    }
+  }
 
   /** Sets the value of an existing configuration option from a string.
    * Works like #set, throws the same exceptions.
@@ -274,8 +305,11 @@ public:
    */
   const std::string& getDescription(const std::string& entry);
 
-  /** Get the singleton instance */
-  static Config *get_instance() { return _instance; }
+  /** Get the singleton instance, or create it if not yet available */
+  inline static Config *get_instance() { 
+    if (_instance) return _instance;
+    return (_instance = new Config());
+  }
 
 protected:
   /** Checks if string can be used as a name for an configuration option.
@@ -316,56 +350,6 @@ private:
  * Implementation of Config
  *****************************************************************************/
 
-template<class T> void 
-Config::addOption(const std::string& entry, const std::string& description,
-                  const T& initial, AbstractConverter<T> *converter) {
-  _instance->add(entry, new HandledOption<T>(description, initial, converter));
-}
-
-template<class T> void 
-Config::addOption(const std::string& entry, const std::string& description,
-                  const T& initial) {
-  _instance->add(entry, new HandledOption<T>(description, initial));
-}
-
-template<class T> void 
-Config::addReference(const std::string& entry, const std::string& description,
-                     T& place, AbstractConverter<T> *converter) {
-  _instance->add(entry, 
-                 new ReferenceOption<T>(description, place, converter));
-}
-
-template<class T> void 
-Config::addReference(const std::string& entry, const std::string& description,
-                     T &place) {
-  _instance->add(entry, new ReferenceOption<T>(description, place));
-}
-
-
-template <class T> void
-Config::addCallback(const std::string& entry, const std::string& description,
-                    Callback<T>* callback) {
-  _instance->add(entry, new CallbackOption<T>(description, callback));
-}
-
-template<class T> 
-T& Config::get(const std::string& entry) {
-  LOG(logger, log4cxx::Level::DEBUG, "getting option %s", entry.c_str());
-  
-  try {
-    Option<T>& o = dynamic_cast<Option<T>&>( getIOption(entry) );
-    return o.get();
-  }
-  catch(std::bad_cast) {
-    throw ConfigException("wrong type was used for option " + entry);
-  }
-}
-
-template<class T> 
-void Config::get(const std::string& entry, T& place) {
-  place = get<T>(entry);
-}
-
 template<class T> void get_opt(const std::string& entry, T& place) {
   place = Config::get_instance()->get<T>(entry);
 }
@@ -401,23 +385,6 @@ T * Config::getPointer(const std::string& entry) {
   return &(get<T>(entry));
 }
 */
-
-template<class T>
-void Config::set(const std::string& entry, const T& value, int prio) {
-#if HAVE_LIBLOG4CXX
-  std::stringstream ss;
-  ss << "setting option " << entry << ", priority is " << prio;
-  LOG4CXX_DEBUG(logger, ss.str());
-#endif // HAVE_LIBLOG4CXX
-
-  try {
-    Option<T>& o = dynamic_cast<Option<T>&>( _instance->getIOption(entry) );
-    o.set(value, prio);
-  }
-  catch(std::bad_cast) {
-    throw ConfigException("wrong type was used for option " + entry);
-  }
-}
 
 template<class T> void 
 set_opt(const std::string& entry, const T& value, int prio = 1){

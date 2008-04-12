@@ -168,19 +168,22 @@ void init_options()
     "Activate code that collects unification/subsumption failures "
     "for quick check computation, contains filename to write results to", 0);
   
+  opt_compute_qc_unif = false;
   reference_opt<bool>("opt_compute_qc_unif",
      "Activate failure registration for unification",
-     opt_compute_qc_unif, false);
+     opt_compute_qc_unif);
   
+  opt_compute_qc_subs = false;
   reference_opt<bool>
     ("opt_compute_qc_subs", "Activate failure registration for subsumption",
-     opt_compute_qc_subs, false);
+     opt_compute_qc_subs);
   
+  opt_print_failure = false;
   reference_opt<bool>
     ("opt_print_failure", 
      "Log unification/subsumption failures "
      "(should be replaced by logging or new/different API functionality)",
-     opt_print_failure, false);
+     opt_print_failure);
   
   managed_opt<bool>("opt_derivation",
     "Store derivations in tsdb profile", true);
@@ -226,7 +229,7 @@ void init_options()
                          "(should be an argument of an API function)", 0);
   
   managed_opt<tokenizer_id>("opt_tok", "", TOKENIZER_STRING,
-                                  new FooConverter());
+                            FooConverter());
 
   managed_opt("opt_jxchg_dir",
                     "the directory to write parse charts in jxchg format to",

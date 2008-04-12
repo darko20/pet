@@ -637,7 +637,6 @@ void setup_io()
 }
 
 void cleanup() {
-  Config::finalize();
 }
 
 int main(int argc, char* argv[])
@@ -648,8 +647,6 @@ int main(int argc, char* argv[])
   ferr = fstatus = stderr; // preliminary setup
 
   setlocale(LC_ALL, "" );
-
-  Config::init();
 
   // initialization of log4cxx
 #if HAVE_LIBLOG4CXX
