@@ -784,6 +784,7 @@ AC_CONFIG_FILES([Makefile
                  cheap/Makefile
                  cheap/test/Makefile
                  common/Makefile
+                 common/test/Makefile
                  flop/Makefile
                  doxyconfig.cheap
                  doxyconfig.flop])

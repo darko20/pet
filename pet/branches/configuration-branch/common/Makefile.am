@@ -1,5 +1,11 @@
 # -*- makefile -*-
 
+# build the current directory first, then the test directory since we
+# want to test the objects in this directory
+if CPPUNIT
+SUBDIRS = test
+endif
+
 # distribute the following files in any case:
 EXTRA_DIST = bitcode.cpp	\
 	bitcode.h		\

@@ -1,8 +1,11 @@
+#if 1
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
+#include <cppunit/CompilerOutputter.h>
+#include <cppunit/extensions/TestFactoryRegistry.h>
+#include <cppunit/ui/text/TestRunner.h>
 
-#include <string>
 #include <iostream>
 
 #include "Configuration.h"
@@ -14,6 +17,7 @@ char logBuffer[65536];
 #endif // HAVE_LIBLOG4CXX
 
 using namespace std;
+
 
 //for testing callbacks
 class MyCallbackTester : public Callback<int> {
@@ -44,6 +48,7 @@ struct MyCallbackGetter : public std::unary_function<void, int> {
   MyCallbackTester& _m;
 };
 
+/*
 class StatusMap {
 private:
   typedef std::set<std::string> StringSet;
@@ -157,29 +162,32 @@ public:
     CPPUNIT_ASSERT_THROW( mc.toString(5), ConvertionException );
   }
 };
+*/
 
 class ConfigurationTest : public CppUnit::TestFixture {
 public:
   CPPUNIT_TEST_SUITE( ConfigurationTest );
 
   //CPPUNIT_TEST( testGetInstance );
-  CPPUNIT_TEST( testConfigurationPresence );
+  CPPUNIT_TEST( testConfigurationPresenceDescription );
 
-  CPPUNIT_TEST( testConfigurationSimpleOwn );
-  CPPUNIT_TEST( testConfigurationSimpleInt );
-  CPPUNIT_TEST( testConfigurationSimpleFloat );
+  CPPUNIT_TEST( testConfigurationManaged );
+  CPPUNIT_TEST( testConfigurationReference );
+  CPPUNIT_TEST( testConfigurationCharPointer );
+  CPPUNIT_TEST( testConfigurationWrongType );
 
+  CPPUNIT_TEST( testAlreadyExists );
+  CPPUNIT_TEST( testCallback );
+  CPPUNIT_TEST( testPriority );
+  
+  /*
   CPPUNIT_TEST( testConfigurationComplexOwn );
   CPPUNIT_TEST( testConfigurationComplex );
 
   CPPUNIT_TEST( testEmptyName );
   CPPUNIT_TEST( testNonExistingEntry );
   CPPUNIT_TEST( testWrongType );
-  CPPUNIT_TEST( testAlreadyExists );
 
-  CPPUNIT_TEST( testCallback );
-    
-  CPPUNIT_TEST( testPriority );
   
   CPPUNIT_TEST( testDescription );
   CPPUNIT_TEST( testInitial );
@@ -187,81 +195,142 @@ public:
   CPPUNIT_TEST( testConverterExceptions );
   CPPUNIT_TEST( testMapConverter );
   CPPUNIT_TEST (testOnStrings );
-  
+  */
   CPPUNIT_TEST_SUITE_END();
 
+  // test basic option presence and description functionality
+
+  void testConfigurationPresenceDescription() {
+    CPPUNIT_ASSERT(! option_valid("statusmembers"));
+    int statusmembers;
+    reference_opt("statusmembers", "The number of status members",
+                  statusmembers);
+    CPPUNIT_ASSERT( option_valid("statusmembers"));
+    CPPUNIT_ASSERT( option_description("statusmembers") 
+                    == (string)"The number of status members");
+  }
+
+  // test functionality for a managed option
+  void testConfigurationManaged() {
+    CPPUNIT_ASSERT(! option_valid("int0") );
+    managed_opt("int0", "managed int option", (int) 1);
+    CPPUNIT_ASSERT_EQUAL( 1, get_opt_int("int0") );
+    set_opt("int0", (int) 42);
+    CPPUNIT_ASSERT_EQUAL( 42, get_opt_int("int0") );
+    int intVar;
+    get_opt( "int0", intVar );
+    CPPUNIT_ASSERT_EQUAL( 42, intVar );
+    intVar = 43;
+    CPPUNIT_ASSERT_EQUAL( 42, get_opt_int("int0") );
+  }
+
+  void testConfigurationWrongType() {
+    float fl = 0.1;
+    CPPUNIT_ASSERT( option_valid("int0") );
+    CPPUNIT_ASSERT_THROW( get_opt("int0", fl), WrongTypeException );
+    CPPUNIT_ASSERT_THROW( set_opt("int0", fl), WrongTypeException );
+  }
+
+  // test functionality for an "observed" option variable
+  void testConfigurationReference() {
+    CPPUNIT_ASSERT(! option_valid("int1") );
+    int int1 = 0;
+    reference_opt("int1", "reference int option", int1);
+    set_opt("int1", 42);
+    const int& intRef = get_opt_int("int1");
+    CPPUNIT_ASSERT_EQUAL( 42, intRef );
+    CPPUNIT_ASSERT_EQUAL( 42, get_opt_int("int1"));
+    CPPUNIT_ASSERT( &int1 == &intRef );
+    //intRef = 43;  // forbidden: good! :-)
+    //CPPUNIT_ASSERT_EQUAL( 43, int1 );
+
+    float float0 = 0.1f;
+    reference_opt("MyFloat", "", float0);
+    const float& myFloat = get_opt<float>("MyFloat");
+    CPPUNIT_ASSERT_EQUAL( 0.1f, myFloat );
+    set_opt("MyFloat", 15.6f);
+    //comparing floats is generally not a good idea but here it should work
+    CPPUNIT_ASSERT_EQUAL( 15.6f, myFloat );
+    CPPUNIT_ASSERT( &float0 == &myFloat );
+
+    // Be aware that the following code may entail the copy of a float. If this
+    // was a complex object, it would be a copy in any case.
+    float myFloat3;
+    get_opt("MyFloat", myFloat3);
+    //comparing floats is generally not a good idea but here it should work
+    CPPUNIT_ASSERT_EQUAL( 15.6f, myFloat3 );
+    CPPUNIT_ASSERT( &float0 != &myFloat3 );
+    myFloat3 = 0.0;
+    CPPUNIT_ASSERT_EQUAL( 15.6f, float0 );
+
+    myFloat3 = get_opt<float>("MyFloat");
+    //comparing floats is generally not a good idea but here it should work
+    CPPUNIT_ASSERT_EQUAL( 15.6f, myFloat3 );
+    CPPUNIT_ASSERT( &float0 != &myFloat3 );
+    myFloat3 = 0.0;
+    CPPUNIT_ASSERT_EQUAL( 15.6f, float0 );
+  }
+  
+  void testConfigurationCharPointer() {
+    managed_opt("charp0", "managed char pointer", (const char*) "badbadbad");
+    CPPUNIT_ASSERT_EQUAL( strcmp("badbadbad", get_opt_charp("charp0") ), 0 );
+    set_opt("charp0", (const char *)"goodgoodgood");
+    CPPUNIT_ASSERT_EQUAL( strcmp("goodgoodgood", get_opt_charp("charp0") ), 0 );
+    char * aString = new char[100];
+    strcpy(aString, "A constant String");
+    reference_opt("charp1", "managed char pointer", aString);
+    CPPUNIT_ASSERT_EQUAL( strcmp("A constant String",
+                                 get_opt<char*>("charp1") ), 0 );
+    delete[] aString;
+  }
+
+
+  void testAlreadyExists() {
+    managed_opt("entry1", "doc1", (int)0);
+    CPPUNIT_ASSERT_THROW( managed_opt("entry1", "doc2", (int)1),
+                          DuplicateOptionException );
+
+    int entry2;
+    reference_opt("entry2", "doc3", entry2);
+    CPPUNIT_ASSERT_THROW( managed_opt("entry2", "doc4", (int)0),
+                          DuplicateOptionException );
+  }
+
+  void testCallback() {
+    MyCallbackTester *cbp = new MyCallbackTester();
+
+    callback_opt<int>("cb1", "a callback option", cbp);
+    // the callback is deleted by the callback option !!!!
+    MyCallbackTester &cb = *cbp;
+
+    CPPUNIT_ASSERT_EQUAL( 0, cb.callsCounter );
+    
+    set_opt("cb1", 47);
+    CPPUNIT_ASSERT_EQUAL( 1, cb.callsCounter );
+    CPPUNIT_ASSERT_EQUAL( 47, cb.lastValue );
+    
+    set_opt("cb1", 49);
+    CPPUNIT_ASSERT_EQUAL( 49, cb.lastValue );
+  }
+    
+  void testPriority() {
+    managed_opt<int>("prio1", "doc11", 0);
+    set_opt("prio1", 58);
+    CPPUNIT_ASSERT_EQUAL( 58, get_opt_int("prio1"));
+        
+    set_opt("prio1", 59, 10);
+    CPPUNIT_ASSERT_EQUAL( 59, get_opt_int("prio1"));
+        
+    set_opt("prio1", 44, 9);
+    CPPUNIT_ASSERT_EQUAL( 59, get_opt_int("prio1"));
+        
+    set_opt("prio1", 44, 11);
+    CPPUNIT_ASSERT_EQUAL( 44, get_opt_int("prio1"));
+  }
+
+
+
   /*
-  //checks if call to getInstance return the same object
-  void testGetInstance() {
-    Configuration& c1 = Configuration::getInstance();
-    Configuration& c2 = Configuration::getInstance();
-    CPPUNIT_ASSERT(&c1 == &c2);
-    CPPUNIT_ASSERT(&c1 != 0);
-  }
-  */
-  void testConfigurationPresence() {
-    CPPUNIT_ASSERT_EQUAL(false, Configuration::hasOption("statusmember"));
-    StatusMap statusmembers;
-    Configuration::addReference("statusmember", &statusmembers);
-    CPPUNIT_ASSERT_EQUAL(true, Configuration::hasOption("statusmember"));
-  }
-
-  void testConfigurationSimpleOwn() {
-    Configuration::addOption<int>("int0", 0);
-
-    int int0 = 0;
-    Configuration::addReference("int1", "", &int0);
-    int0 = 42;
-    Configuration::set<int>("int1", 42);
-    int& int1 = Configuration::get<int>("int1");
-    CPPUNIT_ASSERT_EQUAL( 42, int1 );
-    CPPUNIT_ASSERT( &int1 == &int0 );
-    int1 = 43;
-    CPPUNIT_ASSERT_EQUAL( 43, int0 );
-
-    float float0 = 15.5f;
-    Configuration::addReference("MyFloat", "", &float0);
-    Configuration::set("MyFloat", 15.5f);
-    float& myFloat = Configuration::get<float>("MyFloat");
-    //comparing floats is generally not a good idea but here it should work
-    CPPUNIT_ASSERT_EQUAL( 15.5f, myFloat );
-    CPPUNIT_ASSERT( &float0 == &myFloat );
-
-    myFloat = 16.7f;
-    // Use the alternate form of get which does not need template parameters
-    Configuration::get("MyFloat", myFloat);
-    //comparing floats is generally not a good idea but here it should work
-    CPPUNIT_ASSERT_EQUAL( 16.7f, myFloat );
-    CPPUNIT_ASSERT( &float0 == &myFloat );
-
-    // Be aware that this code may entail the copy of a float. If this was a
-    // complex object, it would be a copy in any case.
-    float myFloat2;
-    Configuration::get("MyFloat", myFloat2);
-    //comparing floats is generally not a good idea but here it should work
-    CPPUNIT_ASSERT_EQUAL( 16.7f, myFloat2 );
-    CPPUNIT_ASSERT( &float0 != &myFloat2 );
-    myFloat2 = 0.0;
-
-    Configuration::get("MyFloat", myFloat);
-    CPPUNIT_ASSERT_EQUAL( 16.7f, myFloat );
-  }
-
-  void testConfigurationSimpleInt() {
-    Configuration::addOption<int>("int2");
-    Configuration::set("int2", 42);
-    int int1 = Configuration::get<int>("int2");
-    CPPUNIT_ASSERT_EQUAL( 42, int1 );
-  }
-
-  void testConfigurationSimpleFloat() {
-    Configuration::addOption<float>("MyFloat2");
-    Configuration::set("MyFloat2", 15.5f);
-    float myFloat = Configuration::get<float>("MyFloat2");
-    //comparing floats is generally not a good idea but here it should work
-    CPPUNIT_ASSERT_EQUAL( 15.5f, myFloat );
-  }
-
   void testConfigurationComplexOwn() {
     StatusMap statusmembers;
     Configuration::addReference("statusmember1", &statusmembers);
@@ -286,56 +355,6 @@ public:
                           WrongEntryNameException );
   }
 
-  void testNonExistingEntry() {
-    CPPUNIT_ASSERT_THROW( Configuration::get<int>("hello"),
-                          NoSuchEntryException );
-  }
-
-  void testWrongType() {
-    Configuration::addOption<int>("int3");
-    CPPUNIT_ASSERT_THROW( Configuration::get<double>("int3"),
-                          WrongTypeException );
-  }
-
-  void testAlreadyExists() {
-    Configuration::addOption<int>("entry1");
-    CPPUNIT_ASSERT_THROW( Configuration::addOption<int>("entry1"),
-                          EntryAlreadyExistsException );
-
-    int entry2;
-    Configuration::addOption<int>("entry2");
-    CPPUNIT_ASSERT_THROW( Configuration::addReference<int>("entry2", &entry2),
-                          EntryAlreadyExistsException );
-  }
-
-  void testCallback() {
-    MyCallbackTester cb;
-
-    Configuration::addCallback(std::string("cb1"), &cb);
-    CPPUNIT_ASSERT_EQUAL( 0, cb.callsCounter );
-    
-    Configuration::set("cb1", 47);
-    CPPUNIT_ASSERT_EQUAL( 1, cb.callsCounter );
-    CPPUNIT_ASSERT_EQUAL( 47, cb.lastValue );
-    
-    Configuration::set("cb1", 49);
-    CPPUNIT_ASSERT_EQUAL( 49, cb.lastValue );
-  }
-    
-  void testPriority() {
-    Configuration::addOption<int>("prio1");
-    Configuration::set("prio1", 58);
-    CPPUNIT_ASSERT_EQUAL( 58, Configuration::get<int>("prio1"));
-        
-    Configuration::set("prio1", 59, 10);
-    CPPUNIT_ASSERT_EQUAL( 59, Configuration::get<int>("prio1"));
-        
-    Configuration::set("prio1", 44, 9);
-    CPPUNIT_ASSERT_EQUAL( 59, Configuration::get<int>("prio1"));
-        
-    Configuration::set("prio1", 44, 11);
-    CPPUNIT_ASSERT_EQUAL( 44, Configuration::get<int>("prio1"));
-  }
 
   // test if the descriptions of options are handled correctly
   void testDescription() {
@@ -458,9 +477,10 @@ public:
     CPPUNIT_ASSERT_EQUAL( string("abcde"),
     Configuration::get<string>("onString_1") );
   }
+  */
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION( ConvertersTest );
+// CPPUNIT_TEST_SUITE_REGISTRATION( ConvertersTest );
 CPPUNIT_TEST_SUITE_REGISTRATION( ConfigurationTest );
 
 int main(int argc, char *argv[]) {
@@ -469,10 +489,30 @@ int main(int argc, char *argv[]) {
   log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::OFF);
 #endif // HAVE_LIBLOG4CXX
   
-CppUnit::TextUi::TestRunner runner;
-  CppUnit::TestFactoryRegistry &registry =
-    CppUnit::TestFactoryRegistry::getRegistry();
-  runner.addTest( registry.makeTest() );
+  CppUnit::Test *suite = CppUnit::TestFactoryRegistry::getRegistry().makeTest();
+
+  CppUnit::TextUi::TestRunner runner;
+  runner.addTest( suite );
+
+  runner.setOutputter( new CppUnit::CompilerOutputter( &runner.result(),
+                                                       std::cerr ) );
+
   bool wasSuccessful = runner.run("", false);
+  Config::finalize();
   return wasSuccessful ? 0 : 1;
 }
+
+#else
+
+#include <iostream>
+#include "Configuration.h"
+
+int main(int argc, char *argv[]) {
+  handled_value<int> val(0);
+  handled_value<char*> cval("My Teststring");
+  val.set(3);
+  std::string foo = cval.get_as_string();
+  std::cout << foo << " " <<  val.get() << std::endl;
+  return 0;
+}
+#endif
