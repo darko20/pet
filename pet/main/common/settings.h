@@ -31,7 +31,7 @@
 
 #define SET_SUBDIRECTORY "pet"
 #define SET_EXT ".set"
-#define SET_TABLE_SIZE 100
+#define SET_TABLE_SIZE 1024
 
 /** A setting from the settings file (in TDL format) */
 struct setting
