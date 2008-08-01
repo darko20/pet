@@ -180,9 +180,9 @@ extern "C" char *
 ecl_extract_mrs(int fs, char *mode);
 
 std::string
-ecl_cpp_extract_mrs(dag_node *d, char *mode) {
+ecl_cpp_extract_mrs(dag_node *d, const char *mode) {
   d = dag_expand(d);
-  char *res = ecl_extract_mrs(get_handle(d), mode);
+  char *res = ecl_extract_mrs(get_handle(d), const_cast<char *>(mode));
   flush_handles();
   
   if(res)

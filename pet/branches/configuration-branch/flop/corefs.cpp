@@ -21,6 +21,7 @@
    (eg. [ #1 & #2 ] is converted to [ #1_2 ]) */
 
 #include "flop.h"
+#include "logging.h"
 
 int add_coref(struct coref_table *co, char *name)
 {

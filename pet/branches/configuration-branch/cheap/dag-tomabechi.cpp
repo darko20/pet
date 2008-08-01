@@ -23,6 +23,7 @@
 #include "dag.h"
 #include "tsdb++.h"
 #include "options.h"
+#include "logging.h"
 #include <fstream>
 
 using namespace std;
@@ -89,8 +90,8 @@ bool dag_set_attr_value(dag_node *dag, attr_t attr, dag_node *val) {
 
 dag_node *dag_copy(dag_node *src, list_int *del);
 
-bool
-dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
+//bool
+//dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
 
 dag_node *
 dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del) {
