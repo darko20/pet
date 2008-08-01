@@ -143,7 +143,6 @@ void usage(FILE *f)
 #define OPTION_YY 101
 #endif
 
-
 class FooConverter : public AbstractConverter<tokenizer_id> {
   virtual ~FooConverter() {}
   virtual std::string toString(const tokenizer_id& t) {
@@ -156,6 +155,7 @@ class FooConverter : public AbstractConverter<tokenizer_id> {
     return TOKENIZER_INVALID;
   }
 };
+
 
 void init_options()
 {  

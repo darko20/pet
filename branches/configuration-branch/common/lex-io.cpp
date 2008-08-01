@@ -34,6 +34,7 @@
 #include "lex-io.h"
 #include "errors.h"
 #include "options.h"
+#include "logging.h"
 
 #include <cassert>
 #include <errno.h>

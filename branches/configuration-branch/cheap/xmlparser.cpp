@@ -4,6 +4,7 @@
 #include <xercesc/framework/MemBufFormatTarget.hpp>
 #include "xmlparser.h"
 #include "cheap.h"
+#include "logging.h"
 
 using namespace XERCES_CPP_NAMESPACE;
 
