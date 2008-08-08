@@ -257,7 +257,7 @@ print_failures(std::ostream &out, const list<failure *> &fails,
       << std::endl ;
   for(list<failure *>::const_iterator iter = fails.begin();
       iter != fails.end(); ++iter) {
-    out << "  " << *iter << std::endl;
+    out << "  " << **iter << std::endl;
   }
 }
 
