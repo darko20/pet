@@ -56,7 +56,7 @@ settings::settings(const char *name, const char *base, char *message)
   
   if(file_exists_p(_fname.c_str())) {
     push_file(_fname, message);
-    char *sv = lexer_idchars;
+    const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
     parse();
     lexer_idchars = sv;

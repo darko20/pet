@@ -30,11 +30,17 @@
 #include "symtab.h"
 #include "options.h"
 #include "version.h"
+#include "list-int.h"
+#include "dag.h"
+#include "utility.h"
+#include "grammar-dump.h"
+
+using namespace std;
 
 /*** global variables ***/
 
-char * version_string = VERSION ;
-char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
+const char * version_string = VERSION ;
+const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 symtab<struct type *> types;
 symtab<int> statustable;
@@ -49,10 +55,10 @@ settings *flop_settings = 0;
 
 /*** variables local to module */
 
-static char *grammar_version;
+static const char *grammar_version;
 
 void
-mem_checkpoint(char *where)
+mem_checkpoint(const char *where)
 {
     static size_t last = 0;
     
@@ -219,7 +225,7 @@ void preprocess_types()
   assign_printnames();
 }
 
-void log_types(char *title)
+void log_types(const char *title)
 {
   fprintf(stderr, "------ %s\n", title);
   for(int i = 0; i < types.number(); i++)

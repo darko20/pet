@@ -23,6 +23,8 @@
 #include "flop.h"
 #include "utility.h"
 
+using std::string;
+
 struct coref_table *crefs; /// topmost cref table
 char *context_descr = 0; /// context for warning/error messages
 

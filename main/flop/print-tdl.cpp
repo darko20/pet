@@ -20,6 +20,8 @@
 /* printing of internal representation in TDL syntax */
 
 #include "flop.h"
+#include "lex-io.h"
+#include "list-int.h"
 
 int tdl_save_lines = 1;
 

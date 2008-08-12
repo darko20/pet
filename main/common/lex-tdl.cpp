@@ -28,12 +28,12 @@
 
 #include <cassert>
 
-char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
+const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
 "end", "end!", "errorp", "expand-all-instances", "include", "leval",
 "sorts", "status" };
 
-char *lexer_idchars = "_+-*?";
+const char *lexer_idchars = "_+-*?";
 
 int is_idchar(int c)
 {
@@ -531,7 +531,7 @@ void consume(int n)
 
 int syntax_errors = 0;
 
-void syntax_error(char *msg, struct lex_token *t)
+void syntax_error(const char *msg, struct lex_token *t)
 {
   syntax_errors ++;
   if(t->tag == T_EOF)
@@ -570,7 +570,7 @@ void recover(enum TOKEN_TAG tag)
 
 char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
 {
-  char *text;
+  char *text = NULL;
   
   if(tag == T_ID && LA(0)->tag == T_KEYWORD)
     LA(0)->tag = T_ID;
@@ -580,7 +580,6 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
       char msg[80];
       sprintf(msg, "expecting %s", s);
       syntax_error(msg, LA(0));
-      text = NULL;
       // assume it was forgotten, continue
     }
   else
@@ -590,8 +589,6 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
           text = LA(0)->text;
           LA(0)->text = NULL;
         }
-      else
-        text = NULL;
 
       consume(1);
     }
@@ -599,15 +596,18 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
   return text;
 }
 
-void optional(enum TOKEN_TAG tag)
+bool consume_if(enum TOKEN_TAG tag)
 {
   if(LA(0)->tag == tag)
     {
       consume(1);
+      return true;
     }
+  else
+    return false;
 }
 
-int is_keyword(struct lex_token *t, char *kwd)
+int is_keyword(struct lex_token *t, const char *kwd)
 {
   if(t->tag == T_KEYWORD && strcmp(t->text, kwd) == 0)
     return 1;
@@ -615,7 +615,7 @@ int is_keyword(struct lex_token *t, char *kwd)
     return 0;
 }
 
-void match_keyword(char *kwd)
+void match_keyword(const char *kwd)
 {
   if(!is_keyword(LA(0), kwd))
     {

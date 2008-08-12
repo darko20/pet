@@ -22,6 +22,10 @@
 #include "options.h"
 #include "flop.h"
 #include "dag-arced.h"
+#include "settings.h"
+#include "utility.h"
+
+using std::string;
 
 int ncorefs = 0;
 struct dag_node **dagify_corefs;

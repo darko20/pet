@@ -297,7 +297,7 @@ void tPSQLLex::read_slot_specs(const char *mode) {
 /** Massage a string from the database into a list of strings.
  * \param ws_separated_strings The character string coming from the database, a
  *        whitespace separated list of strings
- * \returns a list of words as strings
+ * \return a list of words as strings
  * \todo remove eventual SQL escape sequences
  */
 list<string> tPSQLLex::split_ws(const char *ws_separated_strings) {
@@ -436,8 +436,8 @@ dag_node *dag_add_path(dag_node *root, list_int *path, dag_node *value) {
  *  \param row_no the row number to be treated now
  *  \param col the column number of the first non-fixed
  *                 (i.e. grammar-specified) retrieved column
- *  \returns a permanent feature structure containing the paths and value types
- *           specific for this lexicon entry
+ *  \return a permanent feature structure containing the paths and value types
+ *          specific for this lexicon entry
  */
 dag_node *
 tPSQLLex::build_instance_fs(PGresult *res, int row_no, int col) {

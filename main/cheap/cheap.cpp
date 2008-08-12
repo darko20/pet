@@ -57,8 +57,8 @@
 #include "eclpreprocessor.h"
 #endif
 
-char * version_string = VERSION ;
-char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
+const char * version_string = VERSION ;
+const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
 
@@ -277,37 +277,41 @@ void interactive_morphology() {
 } // interactive_morphology()
 
 
-void dump_glbs(FILE *f) {
-  int i, j;
-  for(i = 0; i < nstatictypes; i++) {
-    prune_glbcache();
-    for(j = 0; j < i; j++)
-      if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
+void print_grammar(int what, ostream &out) {
+  if(what == 1 || what == 4) {
+    out << ";; TYPE NAMES (PRINT NAMES) ==========================" << endl;
+    for(int i = 0; i < nstatictypes; i++) {
+      out << i << "\t" << type_name(i) << " (" << print_name(i) << ")" << endl;
+    }
+
+    out << ";; ATTRIBUTE NAMES ===================================" << endl;
+    for(int i = 0; i < nattrs; i++) {
+      out << i << "\t" << attrname[i] << endl;
+    }
   }
-}
-
-void print_symbol_tables(FILE *f) {
-  fprintf(f, "type names (print names)\n");
-  for(int i = 0; i < nstatictypes; i++) {
-    fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
+  
+  out << ";; GLBs ================================================" << endl;
+  if(what == 2 || what == 4) {
+    int i, j;
+    for(i = 0; i < nstatictypes; i++) {
+      prune_glbcache();
+      for(j = 0; j < i; j++)
+        if(glb(i,j) != -1) out << i << ' ' << j << ' ' << glb(i,j) << endl;
+    }
   }
 
-  fprintf(f, "attribute names\n");
-  for(int i = 0; i < nattrs; i++) {
-    fprintf(f, "%d\t%s\n", i, attrname[i]);
-  }
-}
-
-void print_grammar(FILE *f) {
-  if(verbosity > 10)
-    dump_glbs(f);
-
-  print_symbol_tables(f);
-
-  for(int i = 0; i < nstatictypes; i++) {
-    fprintf(f, "\n%d\t%s:\n", i, print_name(i));
-    // \todo this has to be replaced, but too much for now
-    //dag_print_safe(f, type_dag(i), false, 0);
+  if(what == 3 || what == 4) {
+    out << endl << " ;; TYPE DAGS ================================" << endl;
+    ReadableDagPrinter dp;
+    for(int i = 0; i < nstatictypes; i++) {
+      out << '(' << i << ") " ;
+      if (type_name(i)[0] == '$')
+        out << "[" << type_name(i) << ']' << endl ;
+      dp.print(out, type_dag(i));
+      out << endl;
+      // \todo this has to be replaced, but too much for now
+      //dag_print_safe(f, type_dag(i), false, 0);
+    }
   }
 }
 
@@ -460,7 +464,7 @@ void process(const char *s) {
   fflush(fstatus);
 
   if(opt_pg) {
-    print_grammar(stdout);
+    print_grammar(opt_pg, cout);
   }
   else {
     initialize_version();

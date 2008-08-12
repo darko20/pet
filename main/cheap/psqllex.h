@@ -126,7 +126,7 @@ private:
   /** Massage a string from the database into a list of strings.
    * \param ws_separated_strings The character string coming from the database,
    *        a whitespace separated list of strings
-   * \returns a list of strings
+   * \return a list of strings
    * \todo remove eventual SQL escape sequences
    */
   list<string> split_ws(const char *ws_separated_strings);
@@ -141,8 +141,8 @@ private:
    *  \param row_no the row number to be treated now
    *  \param startcol the column number of the first non-fixed
    *                 (i.e. grammar-specified) retrieved column
-   *  \returns a modlist containing the paths and the value types to be added
-   *           to the lexicon entry
+   *  \return a modlist containing the paths and the value types to be added
+   *          to the lexicon entry
    */
   dag_node *build_instance_fs(PGresult *res, int row_no, int startcol);
 

@@ -21,6 +21,7 @@
    (eg. [ #1 & #2 ] is converted to [ #1_2 ]) */
 
 #include "flop.h"
+#include "utility.h"
 
 int add_coref(struct coref_table *co, char *name)
 {
@@ -41,6 +42,21 @@ int add_coref(struct coref_table *co, char *name)
       assert(i < COREF_TABLE_SIZE);
       co->coref[i] = name;
       return co->n++;
+    }
+}
+
+void new_coref_domain(struct coref_table *co) {
+  int i;
+
+  for(i = 0; i < co->n; i++)
+    {
+      if(strchr(co->coref[i], '#') == NULL) {
+        // old length + hash + four digits + zero char
+        char *newname = (char *) salloc(strlen(co->coref[i]) + 6);
+        sprintf(newname, "%s#%.4d", co->coref[i], i);
+        free(co->coref[i]);
+        co->coref[i] = newname;
+      }
     }
 }
 

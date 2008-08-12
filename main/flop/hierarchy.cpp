@@ -23,8 +23,16 @@
 #include "flop.h"
 #include "hierarchy.h"
 #include "types.h"
+#include "settings.h"
+#include "list-int.h"
+#include "options.h"
+#include "utility.h"
 
 #include <boost/graph/topological_sort.hpp>
+
+using std::list;
+using std::map;
+using std::vector;
 
 void acyclicTransitiveReduction(tHierarchy &G);
 

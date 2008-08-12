@@ -31,14 +31,14 @@
 
 extern bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
-  opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
+  opt_hyper, opt_derivation, opt_rulestatistics,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
   opt_partial, opt_compute_qc_unif, opt_compute_qc_subs;
 #ifdef YY
 extern bool opt_yy;
 extern int opt_nth_meaning;
 #endif
-extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
+extern int opt_nsolutions, verbosity, pedgelimit, opt_nqc_unif, opt_nqc_subs, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout, opt_pg;
 extern int opt_tsdb;
 
 extern long int memlimit;

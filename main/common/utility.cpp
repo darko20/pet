@@ -199,7 +199,7 @@ string escape_string(const string &s)
 
 
 /** Return the current date and time in a static char array */
-char *current_time(void)
+const char *current_time(void)
 {
   time_t foo = time(0);
   struct tm *now = localtime(&foo);
@@ -232,8 +232,8 @@ bool file_exists_p(const char *filename) {
  * \param ext   the extension of the file
  * \param base  if given, the directory component of the pathname.
  *
- * \returns the full pathname of the file, if it exists with or without
- *          extension, an empty string otherwise.
+ * \return the full pathname of the file, if it exists with or without
+ *         extension, an empty string otherwise.
  */
 string find_file(const char *name, const char *ext, const char *base) {
   if (name == NULL) return string();
@@ -248,9 +248,9 @@ string find_file(const char *name, const char *ext, const char *base) {
 
 
 /** Extract the directory component of a pathname and return it.
- *  \returns an empty string, if \a pathname did not contain a path separator
- *           character, the appropriate substring otherwise
- *           (with the path separator at the end)
+ *  \return an empty string, if \a pathname did not contain a path separator
+ *          character, the appropriate substring otherwise
+ *          (with the path separator at the end)
  */
 string dir_name(const char *pathname) {
   char *slash = strrchr(pathname, PATH_SEP[0]);
@@ -273,7 +273,7 @@ string raw_name(const char *pathname) {
 }
 
 
-string output_name(const string &in, char *oldext, const char *newext) {
+string output_name(const string &in, const char *oldext, const char *newext) {
   string out = in;
 
   string::size_type ext = out.rfind('.');
