@@ -25,6 +25,7 @@
 #include "dumper.h"
 #include "hashing.h"
 #include "utility.h"
+#include "settings.h"
 
 #ifdef FLOP
 #include "flop.h"
@@ -180,7 +181,7 @@ type_t lookup_code(const bitcode &b) {
     return (*pos).second;
 }
 
-int get_special_name(settings *sett, char *suff, bool attr = false) {
+int get_special_name(settings *sett, const char *suff, bool attr = false) {
   char *buff = new char[strlen(suff) + 25];
   sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
   char *v = sett->req_value(buff);

@@ -31,7 +31,7 @@
 
 bool opt_shrink_mem, opt_shaping, opt_default_les,
   opt_filter, opt_print_failure,
-  opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
+  opt_hyper, opt_derivation, opt_rulestatistics,
   opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
   opt_online_morph, opt_fullform_morph, opt_partial,
   opt_compute_qc_unif, opt_compute_qc_subs;
@@ -40,7 +40,7 @@ bool opt_yy;
 int opt_nth_meaning;
 #endif
 
-int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
+int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout, opt_pg;
 int opt_tsdb;
 long int memlimit;
 char *grammar_file_name = 0;
@@ -103,7 +103,7 @@ void usage(FILE *f)
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
   fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
-  fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
+  fprintf(f, "  `-pg[=what]' --- print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
   fprintf(f, "  `-log=[+]file' --- "
@@ -188,7 +188,7 @@ void init_options()
   opt_rulestatistics = false;
   opt_default_les = false;
   opt_server = 0;
-  opt_pg = false;
+  opt_pg = 0;
   opt_chart_man = true;
   opt_interactive_morph = false;
   opt_lattice = false;
@@ -244,7 +244,7 @@ bool parse_options(int argc, char* argv[])
 #endif
     {"server", optional_argument, 0, OPTION_SERVER},
     {"log", required_argument, 0, OPTION_LOG},
-    {"pg", no_argument, 0, OPTION_PG},
+    {"pg", optional_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
@@ -324,32 +324,41 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_COMPUTE_QC:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+            opt_compute_qc = strdup(optarg);
           else
-              opt_compute_qc = "/tmp/qc.tdl";
+            opt_compute_qc = strdup("/tmp/qc.tdl");
           opt_compute_qc_unif = true;
           opt_compute_qc_subs = true;
           break;
       case OPTION_COMPUTE_QC_UNIF:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+            opt_compute_qc = strdup(optarg);
           else
-              opt_compute_qc = "/tmp/qc.tdl";
+            opt_compute_qc = strdup("/tmp/qc.tdl");
           opt_compute_qc_unif = true;
           break;
       case OPTION_COMPUTE_QC_SUBS:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+            opt_compute_qc = strdup(optarg);
           else
-              opt_compute_qc = "/tmp/qc.tdl";
+            opt_compute_qc = strdup("/tmp/qc.tdl");
           opt_compute_qc_subs = true;
           break;
       case OPTION_PRINT_FAILURE:
           opt_print_failure = true;
           break;
       case OPTION_PG:
-          opt_pg = true;
-          break;
+        opt_pg = 1;
+        if(optarg != NULL) {
+          const char *what = "sgta";
+          char *pos = strchr(what, optarg[0]);
+          if(pos != NULL) {
+            opt_pg = 1 + (pos - what);
+          } else {
+            fprintf(ferr,"Invalid argument to -pg, printing only symbols\n");
+          }
+        }
+        break;
       case OPTION_INTERACTIVE_MORPH:
           opt_interactive_morph = true;
           break;
@@ -406,9 +415,9 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_MRS:
           if(optarg != NULL)
-              opt_mrs = strdup(optarg);
+            opt_mrs = strdup(optarg);
           else
-              opt_mrs = "simple";
+            opt_mrs = strdup("simple");
           break;
       case OPTION_TSDB_DUMP:
           opt_tsdb_dir = optarg;

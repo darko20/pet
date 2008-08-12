@@ -53,7 +53,7 @@ class grammar_rule
 {
  public:
   /** Constructor for grammar rules. 
-   *  \returns If the feature structure of the given type is not a valid rule
+   *  \return If the feature structure of the given type is not a valid rule
    *  (no or empty \c ARGS path), this method returns \c NULL, a grammar rule
    *  for the given type otherwise.
    */

@@ -23,6 +23,7 @@
 #include "getopt.h"
 #include "options.h"
 #include "version.h"
+#include "utility.h"
 
 bool opt_pre, opt_expand_all_instances,
   opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
