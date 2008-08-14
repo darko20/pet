@@ -20,6 +20,7 @@
 /* memory management for dags */
 
 #include "dag.h"
+#include "dag-alloc.h"
 
 int allocated_nodes = 0, allocated_arcs = 0;
 

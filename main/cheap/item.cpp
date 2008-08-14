@@ -69,16 +69,11 @@ struct charz_t {
 };
 
 static charz_t cfrom, cto;
-static list_int *carg_path = NULL;
 static bool charz_init = false;
 static bool charz_use = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
-  if(NULL != carg_path) {
-    free_list(carg_path);
-    carg_path = NULL;
-  }
   char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
   char *cto_path = cheap_settings->value("mrs-cto-path");
   if ((cfrom_path != NULL) && (cto_path != NULL)) {
@@ -87,13 +82,10 @@ void init_characterization() {
     charz_init = true;
     charz_use = opt_mrs; //(Config::get<char*>("opt_mrs") != 0);
   }
-  char *carg_path_string = cheap_settings->value("mrs-carg-path");
-  if (NULL != carg_path_string)
-    carg_path = path_to_lpath(carg_path_string);
 }
 
 void finalize_characterization() {
-  free_list(carg_path);
+  // nothing to do
 }
 
 inline bool characterize(fs &thefs, int from, int to) {

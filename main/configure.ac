@@ -303,7 +303,7 @@ fi
 if test "x$xml" = "xyes" ; then
   LDFLAGS="$ICU_LDFLAGS_SEARCHPATH $LDFLAGS"
   LIBS="$ICU_LIBS $LIBS"
-  AC_CHECK_LIB([xerces-c], [_init], [ xml="yes" ],
+  AC_CHECK_LIB([xerces-c], [main], [ xml="yes" ],
     [
       xml="no"
       AC_MSG_WARN([Xerces C++ library not found for --with-xml; DISABLED])

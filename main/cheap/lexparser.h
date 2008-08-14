@@ -10,6 +10,7 @@
 #include <list>
 #include <queue>
 #include <string>
+#include "fs.h"
 #include "input-modules.h"
 #include "morph.h"
 
