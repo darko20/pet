@@ -39,7 +39,7 @@ bool opt_shrink_mem, opt_shaping,
 bool opt_yy;
 int opt_nth_meaning;
 #endif
-bool opt_chartmapping;
+bool opt_chart_mapping;
 
 int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
 default_les_modes opt_default_les;
@@ -123,8 +123,8 @@ void usage(FILE *f)
              "select input method (default `string')\n");  
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
-  fprintf(f, "  `-chartmapping' --- "
-          "enables chart mapping rules\n");
+  fprintf(f, "  `-chart-mapping' --- "
+          "enable token mapping and lexical mapping\n");
 }
 
 #define OPTION_TSDB 0
@@ -164,7 +164,7 @@ void usage(FILE *f)
 #define OPTION_COMMENT_PASSTHROUGH 36
 #define OPTION_PREDICT_LES 37
 #define OPTION_TIMEOUT 38
-#define OPTION_CHARTMAPPING 39
+#define OPTION_CHART_MAPPING 39
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -210,7 +210,7 @@ void init_options()
   opt_comment_passthrough = 0;
   opt_predict_les = 0;
   opt_timeout = 0;
-  opt_chartmapping = false;
+  opt_chart_mapping = false;
 #ifdef YY
   opt_yy = false;
   opt_nth_meaning = 0;
@@ -265,7 +265,7 @@ bool parse_options(int argc, char* argv[])
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
-    {"chartmapping", no_argument, 0, OPTION_CHARTMAPPING},
+    {"chart-mapping", no_argument, 0, OPTION_CHART_MAPPING},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -474,8 +474,8 @@ bool parse_options(int argc, char* argv[])
           else 
             opt_predict_les = 1;
           break;
-      case OPTION_CHARTMAPPING:
-          opt_chartmapping = true;
+      case OPTION_CHART_MAPPING:
+          opt_chart_mapping = true;
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:

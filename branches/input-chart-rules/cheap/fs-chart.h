@@ -266,25 +266,25 @@ class tChartUtil
 {
 private:
   /** path within input items holding the form of the item */
-  static list_int* _inpitem_form_path;
+  static list_int* _token_form_path;
   /** path within input items holding the list of ids for the item */
-  static list_int* _inpitem_ids_path;
+  static list_int* _token_ids_path;
   /** path within input items holding the external character start position */
-  static list_int* _inpitem_cfrom_path;
+  static list_int* _token_cfrom_path;
   /** path within input items holding the external character end position */
-  static list_int* _inpitem_cto_path;
+  static list_int* _token_cto_path;
   /** path within input items holding the stem of the item */
-  static list_int* _inpitem_stem_path;
+  static list_int* _token_stem_path;
   /** path within input items holding the inflectional rules to apply */
-  static list_int* _inpitem_lexid_path;
+  static list_int* _token_lexid_path;
   /** path within input items holding the name of the lexical entry */
-  static list_int* _inpitem_inflr_path;
+  static list_int* _token_inflr_path;
   /** path within input items holding part-of-speech tags information */
-  static list_int* _inpitem_postags_path;
+  static list_int* _token_postags_path;
   /** path within input items holding part-of-speech probs information */
-  static list_int* _inpitem_posprobs_path;
+  static list_int* _token_posprobs_path;
   /** path within lexical items into which the input fs is unified */
-  static list_int* _lexitem_inpitem_path;
+  static list_int* _lexicon_tokens_path;
   /** CONTEXT path within the rule's feature structure representation. */
   static list_int* _context_path;
   /** INPUT path within the rule's feature structure representation. */
@@ -309,7 +309,7 @@ public:
   static void initialize();
   
   /** Get the path in lexical items into which input items should be unified. */
-  static const list_int* lexitem_inpitem_path();
+  static const list_int* lexicon_tokens_path();
   /** Get the CONTEXT path for chart mapping rules. */
   static const list_int* context_path();
   /** Get the INPUT path for chart mapping rules. */
@@ -492,9 +492,9 @@ tChartVertex::ending_items() const
 // =====================================================
 
 inline const list_int*
-tChartUtil::lexitem_inpitem_path()
+tChartUtil::lexicon_tokens_path()
 {
-  return _lexitem_inpitem_path;
+  return _lexicon_tokens_path;
 }
 
 inline const list_int*

@@ -188,7 +188,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   newfs.modify_eagerly(mods);
   
   // unify input feature structure into the path 
-  if (tChartUtil::lexitem_inpitem_path()) {
+  if (tChartUtil::lexicon_tokens_path()) {
     // build an ARGS list of the right arity:
     fs args_fs(BI_LIST);
     fs cons_fs(BI_CONS);
@@ -204,10 +204,10 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
     free_list(lpath);
     
     // unify ARGS into newfs:
-    fs anchor_fs = newfs.get_path_value(tChartUtil::lexitem_inpitem_path());
+    fs anchor_fs = newfs.get_path_value(tChartUtil::lexicon_tokens_path());
     if (!anchor_fs.valid())
       throw tError((std::string)"Failed to get a value for the specified "
-        "`lexitem-inpitem-path' setting in lexical item of type `" +
+        "`lexicon-tokens-path' setting in lexical item of type `" +
         newfs.printname() + "'.");
     newfs = unify(newfs, anchor_fs, args_fs);
   }
@@ -743,9 +743,9 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
   _maxpos = map_positions(inp_tokens, position_mapping);
   
   // input chart mapping:
-  if (opt_chartmapping) {
+  if (opt_chart_mapping) {
     if (verbosity >= 4)
-      fprintf(stderr, "[chart mapping] input chart mapping starts\n");
+      fprintf(stderr, "[mapping] token mapping starts\n");
     // map to tChart:
     tChart chart;
     tChartUtil::map_chart(inp_tokens, chart);
@@ -758,7 +758,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
     if (verbosity >= 4)
-      fprintf(stderr, "[chart mapping] input chart mapping ends\n");
+      fprintf(stderr, "[mapping] token mapping ends\n");
   }
   
   return _maxpos;
@@ -797,9 +797,9 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
   }
   
   // Lexical chart mapping (a.k.a. lexical filtering):
-  if (opt_chartmapping) {
+  if (opt_chart_mapping) {
     if (verbosity >= 4)
-      fprintf(stderr, "[chart mapping] lexical chart mapping starts\n");
+      fprintf(stderr, "[mapping] lexical filtering starts\n");
     // map to tChart:
     tChart chart;
     tChartUtil::map_chart(*Chart, chart);
@@ -812,7 +812,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
     if (verbosity >= 4)
-      fprintf(stderr, "[chart mapping] lexical chart mapping ends\n");
+      fprintf(stderr, "[mapping] lexical filtering ends\n");
   }
 }
 
