@@ -254,16 +254,16 @@ init_lpath(list_int*& lpath, string name, string &errors)
 }
 
 // define static members:
-list_int* tChartUtil::_inpitem_form_path = 0;
-list_int* tChartUtil::_inpitem_ids_path = 0;
-list_int* tChartUtil::_inpitem_cfrom_path = 0;
-list_int* tChartUtil::_inpitem_cto_path = 0;
-list_int* tChartUtil::_inpitem_stem_path = 0;
-list_int* tChartUtil::_inpitem_lexid_path = 0;
-list_int* tChartUtil::_inpitem_inflr_path = 0;
-list_int* tChartUtil::_inpitem_postags_path = 0;
-list_int* tChartUtil::_inpitem_posprobs_path = 0;
-list_int* tChartUtil::_lexitem_inpitem_path = 0;
+list_int* tChartUtil::_token_form_path = 0;
+list_int* tChartUtil::_token_ids_path = 0;
+list_int* tChartUtil::_token_cfrom_path = 0;
+list_int* tChartUtil::_token_cto_path = 0;
+list_int* tChartUtil::_token_stem_path = 0;
+list_int* tChartUtil::_token_lexid_path = 0;
+list_int* tChartUtil::_token_inflr_path = 0;
+list_int* tChartUtil::_token_postags_path = 0;
+list_int* tChartUtil::_token_posprobs_path = 0;
+list_int* tChartUtil::_lexicon_tokens_path = 0;
 list_int* tChartUtil::_context_path = 0;
 list_int* tChartUtil::_input_path = 0;
 list_int* tChartUtil::_output_path = 0;
@@ -276,35 +276,35 @@ tChartUtil::initialize()
   string w; // warnings
   string m; // missing features for interpreting input fs
   
-  if (!init_lpath(_inpitem_form_path, "inpitem-form-path", e))
-    e += "Setting `inpitem-form-path' required for interpreting input fs.\n";
-  if (!init_lpath(_inpitem_ids_path, "inpitem-ids-path", e))
+  if (!init_lpath(_token_form_path, "token-form-path", e))
+    e += "Setting `token-form-path' required for interpreting input fs.\n";
+  if (!init_lpath(_token_ids_path, "token-ids-path", e))
     m += "item ids, ";
-  if (!init_lpath(_inpitem_cfrom_path, "inpitem-cfrom-path", e))
+  if (!init_lpath(_token_cfrom_path, "token-cfrom-path", e))
     m += "character start positions, ";
-  if (!init_lpath(_inpitem_cto_path, "inpitem-cto-path", e))
+  if (!init_lpath(_token_cto_path, "token-cto-path", e))
     m += "character end positions, ";
-  if (!init_lpath(_inpitem_stem_path, "inpitem-stem-path", e))
+  if (!init_lpath(_token_stem_path, "token-stem-path", e))
     m += "stems, ";
-  if (!init_lpath(_inpitem_lexid_path, "inpitem-lexid-path", e))
+  if (!init_lpath(_token_lexid_path, "token-lexid-path", e))
     m += "lexical ids, ";
-  if (!init_lpath(_inpitem_inflr_path, "inpitem-inflr-path", e))
+  if (!init_lpath(_token_inflr_path, "token-inflr-path", e))
     m += "inflectional rules, ";
-  if (   !init_lpath(_inpitem_postags_path, "inpitem-postags-path", e)
-      || !init_lpath(_inpitem_posprobs_path, "inpitem-posprobs-path", e))
+  if (   !init_lpath(_token_postags_path, "token-postags-path", e)
+      || !init_lpath(_token_posprobs_path, "token-posprobs-path", e))
     m += "parts of speech, ";
-  if (!init_lpath(_lexitem_inpitem_path, "lexitem-inpitem-path", e))
+  if (!init_lpath(_lexicon_tokens_path, "lexicon-tokens-path", e))
     w += " [ no input fs in lexical items ] ";
   if (!init_lpath(_context_path, "chart-mapping-context-path", e))
-    e += "Setting `chart-mapping-context-path' required for chart mapping.\n";
+    e += "Setting `mapping-context-path' required for chart mapping.\n";
   if (!init_lpath(_input_path, "chart-mapping-input-path", e))
-    e += "Setting `chart-mapping-input-path' required for chart mapping.\n";
+    e += "Setting `mapping-input-path' required for chart mapping.\n";
   if (!init_lpath(_output_path, "chart-mapping-output-path", e))
-    e += "Setting `chart-mapping-output-path' required for chart mapping.\n";
-  if (!init_lpath(_poscons_path, "chart-mapping-poscons-path", e))
-    e += "Setting `chart-mapping-poscons-path' required for chart mapping.\n";
+    e += "Setting `mapping-output-path' required for chart mapping.\n";
+  if (!init_lpath(_poscons_path, "chart-mapping-position-path", e))
+    e += "Setting `mapping-position-path' required for chart mapping.\n";
   
-  if (!m.empty()) {
+  if (!m.empty() && verbosity > 4) {
     m.erase(m.end()-2, m.end()); // erase last ", " from list of missing tags
     w += " [ no input fs mapping for " + m + " ] ";
   }
@@ -332,35 +332,35 @@ tChartUtil::create_input_item(const fs &input_fs)
   postags tagsnprobs; // part-of-speech tags and probabilities
   
   // extract information from input_fs:
-  type_t form_type = input_fs.get_path_value(_inpitem_form_path).type();
+  type_t form_type = input_fs.get_path_value(_token_form_path).type();
   if (form_type != BI_STRING) {
     form = get_printname(form_type);
   }
-  if (_inpitem_ids_path) {
-    list<fs> ids_list = input_fs.get_path_value(_inpitem_ids_path).get_list();
+  if (_token_ids_path) {
+    list<fs> ids_list = input_fs.get_path_value(_token_ids_path).get_list();
     for (list<fs>::iterator it = ids_list.begin();
          it != ids_list.end();
          it++)
       id += (std::string)(id.empty() ? "" : ",") + (*it).printname();
   }
-  if (_inpitem_cfrom_path) {
+  if (_token_cfrom_path) {
     try {
       cfrom = boost::lexical_cast<int>(
-          input_fs.get_path_value(_inpitem_cfrom_path).printname());
+          input_fs.get_path_value(_token_cfrom_path).printname());
     } catch(boost::bad_lexical_cast &error) {
       // should only happen if the value is not set. ignore!
     }
   }
-  if (_inpitem_cto_path) {
+  if (_token_cto_path) {
     try {
       cto = boost::lexical_cast<int>(
-          input_fs.get_path_value(_inpitem_cto_path).printname());
+          input_fs.get_path_value(_token_cto_path).printname());
     } catch(boost::bad_lexical_cast &error) {
       // should only happen if the value is not set. ignore!
     }
   }
-  if (_inpitem_stem_path) {
-    type_t t = input_fs.get_path_value(_inpitem_stem_path).type();
+  if (_token_stem_path) {
+    type_t t = input_fs.get_path_value(_token_stem_path).type();
     if (t != BI_STRING) { // if the stem is set to a string literal
       stem = get_printname(t);
       if (token_class != WORD_TOKEN_CLASS)
@@ -368,8 +368,8 @@ tChartUtil::create_input_item(const fs &input_fs)
       token_class = STEM_TOKEN_CLASS;
     }
   }
-  if (_inpitem_lexid_path) {
-    type_t t = input_fs.get_path_value(_inpitem_lexid_path).type();
+  if (_token_lexid_path) {
+    type_t t = input_fs.get_path_value(_token_lexid_path).type();
     if (t != BI_STRING) { // if the lexid is set to a string literal
       string lexid = get_printname(t);
       if (token_class != WORD_TOKEN_CLASS)
@@ -379,8 +379,8 @@ tChartUtil::create_input_item(const fs &input_fs)
         throw tError((std::string) "Unknown lex-id '" + lexid + "'");
     }
   }
-  if (_inpitem_inflr_path) {
-    type_t t = input_fs.get_path_value(_inpitem_inflr_path).type();
+  if (_token_inflr_path) {
+    type_t t = input_fs.get_path_value(_token_inflr_path).type();
     if (t != BI_STRING) { // for now, comma-separated list of typenames
       std::istringstream iss(get_printname(t));
       std::string rulename;
@@ -392,9 +392,9 @@ tChartUtil::create_input_item(const fs &input_fs)
       }
     }
   }
-  if (_inpitem_postags_path && _inpitem_posprobs_path) {
-    list<fs> tags = input_fs.get_path_value(_inpitem_postags_path).get_list();
-    list<fs> probs = input_fs.get_path_value(_inpitem_posprobs_path).get_list();
+  if (_token_postags_path && _token_posprobs_path) {
+    list<fs> tags = input_fs.get_path_value(_token_postags_path).get_list();
+    list<fs> probs = input_fs.get_path_value(_token_posprobs_path).get_list();
     if (tags.size() != probs.size())
       throw tError("Part-of-speech tag and probability lists are not aligned.");
     list<fs>::iterator ti, pi;
@@ -436,38 +436,38 @@ tChartUtil::create_input_item(const fs &input_fs)
 fs
 tChartUtil::create_input_fs(tInputItem* item)
 {
-  fs input_fs(_inpitem_form_path, retrieve_string_instance(item->orth()));
+  fs input_fs(_token_form_path, retrieve_string_instance(item->orth()));
   if (!input_fs.valid())
     throw tError("failed to create input fs");
-  if (_inpitem_ids_path) {
+  if (_token_ids_path) {
     fs id_f = retrieve_string_instance(item->external_id());
     fs ids_f = fs(BI_CONS);
     ids_f = unify(ids_f, ids_f.get_attr_value(BIA_FIRST), id_f);
-    input_fs = unify(input_fs,input_fs.get_path_value(_inpitem_ids_path),ids_f);
+    input_fs = unify(input_fs,input_fs.get_path_value(_token_ids_path),ids_f);
   }
-  if (_inpitem_cfrom_path) {
+  if (_token_cfrom_path) {
     fs f = retrieve_string_instance(item->startposition());
-    input_fs = unify(input_fs, input_fs.get_path_value(_inpitem_cfrom_path), f);
+    input_fs = unify(input_fs, input_fs.get_path_value(_token_cfrom_path), f);
   }
-  if (_inpitem_cto_path) {
+  if (_token_cto_path) {
     fs f = retrieve_string_instance(item->endposition());
-    input_fs = unify(input_fs, input_fs.get_path_value(_inpitem_cto_path), f);
+    input_fs = unify(input_fs, input_fs.get_path_value(_token_cto_path), f);
   }
-  if (_inpitem_stem_path) {
+  if (_token_stem_path) {
     string stem = item->stem();
     if (!stem.empty()) {
       fs f = retrieve_string_instance(item->stem());
-      input_fs = unify(input_fs, input_fs.get_path_value(_inpitem_stem_path),f);
+      input_fs = unify(input_fs, input_fs.get_path_value(_token_stem_path),f);
     }
   }
-  if (_inpitem_lexid_path) {
+  if (_token_lexid_path) {
     type_t t = item->tclass();
     if ((t != WORD_TOKEN_CLASS) && (t != STEM_TOKEN_CLASS)) {
       fs f = retrieve_string_instance(get_typename(t));
-      input_fs = unify(input_fs,input_fs.get_path_value(_inpitem_lexid_path),f);
+      input_fs = unify(input_fs,input_fs.get_path_value(_token_lexid_path),f);
     }
   }
-  if (_inpitem_inflr_path) {
+  if (_token_inflr_path) {
     list_int *infl_l = item->inflrs();
     string infl_s;
     while (infl_l) {
@@ -476,10 +476,10 @@ tChartUtil::create_input_fs(tInputItem* item)
     }
     if (!infl_s.empty()) {
       fs f = retrieve_string_instance(infl_s);
-      input_fs = unify(input_fs,input_fs.get_path_value(_inpitem_inflr_path),f);
+      input_fs = unify(input_fs,input_fs.get_path_value(_token_inflr_path),f);
     }
   }
-  if (_inpitem_postags_path && _inpitem_posprobs_path) {
+  if (_token_postags_path && _token_posprobs_path) {
     // TODO I need fs::create_list(std::list<fs>)
     fs tags_f(BI_LIST);
     fs probs_f(BI_LIST);
@@ -512,13 +512,13 @@ tChartUtil::create_input_fs(tInputItem* item)
     tags_f = unify(tags_f, tags_f.get_path_value(path), nil);
     probs_f = unify(probs_f, probs_f.get_path_value(path), nil);
     free_list(path);
-    fs f = fs(_inpitem_postags_path, BI_LIST);
+    fs f = fs(_token_postags_path, BI_LIST);
     input_fs = unify(input_fs, input_fs, f);
-    f = fs(_inpitem_posprobs_path, BI_LIST);
+    f = fs(_token_posprobs_path, BI_LIST);
     input_fs = unify(input_fs, input_fs, f);
-    input_fs = unify(input_fs, input_fs.get_path_value(_inpitem_postags_path),
+    input_fs = unify(input_fs, input_fs.get_path_value(_token_postags_path),
         tags_f);
-    input_fs = unify(input_fs, input_fs.get_path_value(_inpitem_posprobs_path),
+    input_fs = unify(input_fs, input_fs.get_path_value(_token_posprobs_path),
         probs_f);
   }
   

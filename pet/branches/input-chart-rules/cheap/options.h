@@ -76,10 +76,10 @@ extern std::string opt_tsdb_dir, opt_jxchg_dir;
 extern int opt_packing;
 
 /**
- * If set to \c true, turn on chart mapping engine on the input chart and
- * on the lexical chart (`lexical filtering').
+ * If set to \c true, turn on the chart mapping engine on the input chart (aka
+ * `token mapping') and on the lexical chart (aka `lexical filtering').
  */
-extern bool opt_chartmapping;
+extern bool opt_chart_mapping;
 
 void usage(FILE *f);
 

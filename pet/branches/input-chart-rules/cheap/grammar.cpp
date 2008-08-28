@@ -78,14 +78,14 @@ lex_rule_status(type_t t)
 bool
 inpmap_rule_status(type_t t)
 {
-  return cheap_settings->statusmember("input-mapping-rule-status-values",
+  return cheap_settings->statusmember("token-mapping-rule-status-values",
         typestatus[t]);
 }
 
 bool
 lexmap_rule_status(type_t t)
 {
-  return cheap_settings->statusmember("lexical-mapping-rule-status-values",
+  return cheap_settings->statusmember("lexical-filtering-rule-status-values",
         typestatus[t]);
 }
 
@@ -484,14 +484,14 @@ tGrammar::tGrammar(const char * filename)
               _rule_dict[i] = R;
             }
         }
-        else if (inpmap_rule_status(i) && opt_chartmapping)
+        else if (inpmap_rule_status(i) && opt_chart_mapping)
         {
             tChartMappingRule *R = tChartMappingRule::create(i, CM_INPUT_TRAIT);
             if (R != NULL) {
               _inpmap_rules.push_front(R);
             }
         }
-        else if (lexmap_rule_status(i) && opt_chartmapping)
+        else if (lexmap_rule_status(i) && opt_chart_mapping)
         {
             tChartMappingRule *R = tChartMappingRule::create(i, CM_LEX_TRAIT);
             if (R != NULL) {
@@ -735,7 +735,7 @@ tGrammar::init_parameters()
     }
     
     // TODO better use Listener pattern to initialize grammar-dependent params?
-    if ((opt_tok == TOKENIZER_FSC) || opt_chartmapping)
+    if ((opt_tok == TOKENIZER_FSC) || opt_chart_mapping)
       tChartUtil::initialize();
 }
 
