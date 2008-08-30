@@ -267,8 +267,8 @@ class tChartUtil
 private:
   /** path within input items holding the form of the item */
   static list_int* _token_form_path;
-  /** path within input items holding the list of ids for the item */
-  static list_int* _token_ids_path;
+  /** path within input items holding the id(s) for the item */
+  static list_int* _token_id_path;
   /** path within input items holding the external surface start position */
   static list_int* _token_from_path;
   /** path within input items holding the external surface end position */
@@ -283,8 +283,10 @@ private:
   static list_int* _token_postags_path;
   /** path within input items holding part-of-speech probs information */
   static list_int* _token_posprobs_path;
-  /** path within lexical items into which the input fs is unified */
+  /** path within lexical items into which the list of input fss is unified */
   static list_int* _lexicon_tokens_path;
+  /** last element of the list of input fss is unified */
+  static list_int* _lexicon_last_token_path;
   /** CONTEXT path within the rule's feature structure representation. */
   static list_int* _context_path;
   /** INPUT path within the rule's feature structure representation. */

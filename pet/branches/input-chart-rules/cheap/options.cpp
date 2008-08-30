@@ -479,7 +479,7 @@ bool parse_options(int argc, char* argv[])
             opt_chart_mapping 
               = strtoint(optarg, "as argument to -chart-mapping");
           else 
-            opt_chart_mapping = 1;
+            opt_chart_mapping = 128;
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:

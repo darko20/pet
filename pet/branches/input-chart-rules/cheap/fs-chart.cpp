@@ -255,7 +255,7 @@ init_lpath(list_int*& lpath, string name, string &errors)
 
 // define static members:
 list_int* tChartUtil::_token_form_path = 0;
-list_int* tChartUtil::_token_ids_path = 0;
+list_int* tChartUtil::_token_id_path = 0;
 list_int* tChartUtil::_token_from_path = 0;
 list_int* tChartUtil::_token_to_path = 0;
 list_int* tChartUtil::_token_stem_path = 0;
@@ -278,7 +278,7 @@ tChartUtil::initialize()
   
   if (!init_lpath(_token_form_path, "token-form-path", e))
     e += "Setting `token-form-path' required for interpreting input fs.\n";
-  if (!init_lpath(_token_ids_path, "token-ids-path", e))
+  if (!init_lpath(_token_id_path, "token-id-path", e))
     m += "item ids, ";
   if (!init_lpath(_token_from_path, "token-from-path", e))
     m += "surface start positions, ";
@@ -336,8 +336,8 @@ tChartUtil::create_input_item(const fs &input_fs)
   if (form_type != BI_STRING) {
     form = get_printname(form_type);
   }
-  if (_token_ids_path) {
-    list<fs> ids_list = input_fs.get_path_value(_token_ids_path).get_list();
+  if (_token_id_path) {
+    list<fs> ids_list = input_fs.get_path_value(_token_id_path).get_list();
     for (list<fs>::iterator it = ids_list.begin();
          it != ids_list.end();
          it++)
@@ -439,11 +439,11 @@ tChartUtil::create_input_fs(tInputItem* item)
   fs input_fs(_token_form_path, retrieve_string_instance(item->orth()));
   if (!input_fs.valid())
     throw tError("failed to create input fs");
-  if (_token_ids_path) {
+  if (_token_id_path) {
     fs id_f = retrieve_string_instance(item->external_id());
     fs ids_f = fs(BI_CONS);
     ids_f = unify(ids_f, ids_f.get_attr_value(BIA_FIRST), id_f);
-    input_fs = unify(input_fs,input_fs.get_path_value(_token_ids_path),ids_f);
+    input_fs = unify(input_fs,input_fs.get_path_value(_token_id_path),ids_f);
   }
   if (_token_from_path) {
     fs f = retrieve_string_instance(item->startposition());
