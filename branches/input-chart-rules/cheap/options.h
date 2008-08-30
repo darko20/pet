@@ -77,9 +77,11 @@ extern int opt_packing;
 
 /**
  * If set to \c true, turn on the chart mapping engine on the input chart (aka
- * `token mapping') and on the lexical chart (aka `lexical filtering').
+ * `token mapping') and on the lexical chart (aka `lexical filtering').  also
+ * used to select debugging levels for chart mapping, with a bit-mapped scheme:
+ * (to be determined).
  */
-extern bool opt_chart_mapping;
+extern int opt_chart_mapping;
 
 void usage(FILE *f);
 

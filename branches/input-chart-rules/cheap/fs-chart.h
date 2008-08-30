@@ -269,10 +269,10 @@ private:
   static list_int* _token_form_path;
   /** path within input items holding the list of ids for the item */
   static list_int* _token_ids_path;
-  /** path within input items holding the external character start position */
-  static list_int* _token_cfrom_path;
-  /** path within input items holding the external character end position */
-  static list_int* _token_cto_path;
+  /** path within input items holding the external surface start position */
+  static list_int* _token_from_path;
+  /** path within input items holding the external surface end position */
+  static list_int* _token_to_path;
   /** path within input items holding the stem of the item */
   static list_int* _token_stem_path;
   /** path within input items holding the inflectional rules to apply */

@@ -256,8 +256,8 @@ init_lpath(list_int*& lpath, string name, string &errors)
 // define static members:
 list_int* tChartUtil::_token_form_path = 0;
 list_int* tChartUtil::_token_ids_path = 0;
-list_int* tChartUtil::_token_cfrom_path = 0;
-list_int* tChartUtil::_token_cto_path = 0;
+list_int* tChartUtil::_token_from_path = 0;
+list_int* tChartUtil::_token_to_path = 0;
 list_int* tChartUtil::_token_stem_path = 0;
 list_int* tChartUtil::_token_lexid_path = 0;
 list_int* tChartUtil::_token_inflr_path = 0;
@@ -280,10 +280,10 @@ tChartUtil::initialize()
     e += "Setting `token-form-path' required for interpreting input fs.\n";
   if (!init_lpath(_token_ids_path, "token-ids-path", e))
     m += "item ids, ";
-  if (!init_lpath(_token_cfrom_path, "token-cfrom-path", e))
-    m += "character start positions, ";
-  if (!init_lpath(_token_cto_path, "token-cto-path", e))
-    m += "character end positions, ";
+  if (!init_lpath(_token_from_path, "token-from-path", e))
+    m += "surface start positions, ";
+  if (!init_lpath(_token_to_path, "token-to-path", e))
+    m += "surface end positions, ";
   if (!init_lpath(_token_stem_path, "token-stem-path", e))
     m += "stems, ";
   if (!init_lpath(_token_lexid_path, "token-lexid-path", e))
@@ -343,18 +343,18 @@ tChartUtil::create_input_item(const fs &input_fs)
          it++)
       id += (std::string)(id.empty() ? "" : ",") + (*it).printname();
   }
-  if (_token_cfrom_path) {
+  if (_token_from_path) {
     try {
       cfrom = boost::lexical_cast<int>(
-          input_fs.get_path_value(_token_cfrom_path).printname());
+          input_fs.get_path_value(_token_from_path).printname());
     } catch(boost::bad_lexical_cast &error) {
       // should only happen if the value is not set. ignore!
     }
   }
-  if (_token_cto_path) {
+  if (_token_to_path) {
     try {
       cto = boost::lexical_cast<int>(
-          input_fs.get_path_value(_token_cto_path).printname());
+          input_fs.get_path_value(_token_to_path).printname());
     } catch(boost::bad_lexical_cast &error) {
       // should only happen if the value is not set. ignore!
     }
@@ -445,13 +445,13 @@ tChartUtil::create_input_fs(tInputItem* item)
     ids_f = unify(ids_f, ids_f.get_attr_value(BIA_FIRST), id_f);
     input_fs = unify(input_fs,input_fs.get_path_value(_token_ids_path),ids_f);
   }
-  if (_token_cfrom_path) {
+  if (_token_from_path) {
     fs f = retrieve_string_instance(item->startposition());
-    input_fs = unify(input_fs, input_fs.get_path_value(_token_cfrom_path), f);
+    input_fs = unify(input_fs, input_fs.get_path_value(_token_from_path), f);
   }
-  if (_token_cto_path) {
+  if (_token_to_path) {
     fs f = retrieve_string_instance(item->endposition());
-    input_fs = unify(input_fs, input_fs.get_path_value(_token_cto_path), f);
+    input_fs = unify(input_fs, input_fs.get_path_value(_token_to_path), f);
   }
   if (_token_stem_path) {
     string stem = item->stem();
