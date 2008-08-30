@@ -148,13 +148,13 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
     next_match = new_match ? (cache[sig]=match->match(item, arg)) : cache[sig];
     
     // logging:
-    if ((verbosity >= 8) && new_match) {
+    if ((verbosity >= 8 || opt_chart_mapping & 2) && new_match) {
       // TODO implement tItem::to_string() or tItem::printname()??
       string itemstr = "chart item " + lexical_cast<string>(item->id());
       tInputItem* inp_item = dynamic_cast<tInputItem*>(item);
       if (inp_item)
         itemstr += " (input item `" + inp_item->form() + "')";
-      fprintf(stderr, "[chart mapping] %s %s, arg %s with %s\n",
+      fprintf(stderr, "[cm] %s %s, arg %s with %s\n",
           (next_match ? "MATCHED" : "checked"), rule->printname(),
           arg->name().c_str(), itemstr.c_str());
     }
@@ -254,7 +254,7 @@ build_output(tChart &chart, tChartMappingMatch &match)
   chart_changed = chart_changed || !inps.empty();
   
   // logging:
-  if (verbosity >= 4) {
+  if (verbosity >= 4 || opt_chart_mapping & 1) {
     std::string item_ids = "";
     std::vector<tChartMappingRuleArg*> args = match.get_rule()->args();
     std::vector<tChartMappingRuleArg*>::iterator arg_it;
@@ -269,7 +269,7 @@ build_output(tChart &chart, tChartMappingMatch &match)
       item_ids += "O" + lexical_cast<string>(i) + ":"
                   + lexical_cast<string>((*item_it)->id()) + " "; // TODO make OUTPUT rule item name accessible
     }
-    fprintf(stderr, "[chart mapping] rule %s fired. %s\n",
+    fprintf(stderr, "[cm] rule %s fired. %s\n",
         match.get_rule()->printname(), item_ids.c_str());
   }
   
@@ -280,7 +280,7 @@ void
 tChartMappingEngine::apply_rules(tChart &chart)
 {
   // logging:
-  if (verbosity >= 4) {
+  if (verbosity >= 4 || opt_chart_mapping & 1) {
     // get max id for items in the chart:
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
@@ -291,7 +291,7 @@ tChartMappingEngine::apply_rules(tChart &chart)
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)
         max_id = (*it)->id();
-    fprintf(stderr, "[chart mapping] greatest item id before chart mapping: "
+    fprintf(stderr, "[cm] greatest item id before chart mapping: "
         "%d\n", max_id);
   }
   
@@ -325,7 +325,7 @@ tChartMappingEngine::apply_rules(tChart &chart)
     delete match_it->second; // delete 0 is safe according C++ Standard
   
   // logging:
-  if (verbosity >= 4) {
+  if (verbosity >= 4 || opt_chart_mapping & 1) {
     // get max id for items in the chart:
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
@@ -335,7 +335,7 @@ tChartMappingEngine::apply_rules(tChart &chart)
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)
         max_id = (*it)->id();
-    fprintf(stderr, "[chart mapping] greatest item id after chart mapping: "
+    fprintf(stderr, "[cm] greatest item id after chart mapping: "
         "%d\n", max_id);
   }
 }
@@ -596,13 +596,13 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg)
       captures[att_lc] = val_lc;
       captures[att_uc] = val_uc;
     }
-    if (verbosity >= 10) {
+    if (verbosity >= 10 || opt_chart_mapping & 2) {
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
       string rex_str = Conv->convert(regex.str().c_str()); // UChar32* -> string
 #else
       string rex_str = regex.str();
 #endif
-      fprintf(stderr, "[chart mapping] regex_match(/%s/, \"%s\")\n",
+      fprintf(stderr, "[cm] regex_match(/%s/, \"%s\")\n",
           rex_str.c_str(), str.c_str());
     }
   }
