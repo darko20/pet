@@ -440,6 +440,13 @@ tChartUtil::create_input_fs(tInputItem* item)
   if (!input_fs.valid())
     throw tError("failed to create input fs");
   if (_token_id_path) {
+    //
+    // _fix_me_
+    // for rules to append ID values (when multiple tokens are merged), we need
+    // to make this value a difference list.  in general, i guess, one should
+    // check the unify() results below, as we ran into a segmentation error in
+    // the ERG when the value constraint on +ID was incompatible with BI_CONS.
+    //                                                         (30-aug-08; oe)
     fs id_f = retrieve_string_instance(item->external_id());
     fs ids_f = fs(BI_CONS);
     ids_f = unify(ids_f, ids_f.get_attr_value(BIA_FIRST), id_f);

@@ -634,9 +634,10 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
       timeout = timestamp + (clock_t)opt_timeout;
     }
 
-    Lexparser.lexical_processing(input_items
-                                 , cheap_settings->lookup("lex-exhaustive")
-                                 , FSAS, errors);
+    Lexparser.lexical_processing(input_items,
+                                 (opt_chart_mapping
+                                  || cheap_settings->lookup("lex-exhaustive")),
+                                 FSAS, errors);
 
     // during lexical processing, the appropriate tasks for the syntactic stage
     // are already created
