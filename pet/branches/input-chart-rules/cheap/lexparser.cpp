@@ -744,8 +744,8 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
   
   // input chart mapping:
   if (opt_chart_mapping) {
-    if (verbosity >= 4)
-      fprintf(stderr, "[mapping] token mapping starts\n");
+    if (verbosity >= 4 || opt_chart_mapping & 1)
+      fprintf(stderr, "[cm] token mapping starts\n");
     // map to tChart:
     tChart chart;
     tChartUtil::map_chart(inp_tokens, chart);
@@ -757,8 +757,8 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
     _maxpos = tChartUtil::map_chart(chart, inp_tokens);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (verbosity >= 4)
-      fprintf(stderr, "[mapping] token mapping ends\n");
+    if (verbosity >= 4 || opt_chart_mapping & 1)
+      fprintf(stderr, "[cm] token mapping ends\n");
   }
   
   return _maxpos;
@@ -798,8 +798,8 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
   
   // Lexical chart mapping (a.k.a. lexical filtering):
   if (opt_chart_mapping) {
-    if (verbosity >= 4)
-      fprintf(stderr, "[mapping] lexical filtering starts\n");
+    if (verbosity >= 4 || opt_chart_mapping & 1)
+      fprintf(stderr, "[cm] lexical filtering starts\n");
     // map to tChart:
     tChart chart;
     tChartUtil::map_chart(*Chart, chart);
@@ -811,8 +811,8 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
     _maxpos = tChartUtil::map_chart(chart, *Chart);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (verbosity >= 4)
-      fprintf(stderr, "[mapping] lexical filtering ends\n");
+    if (verbosity >= 4 || opt_chart_mapping & 1)
+      fprintf(stderr, "[cm] lexical filtering ends\n");
   }
 }
 
