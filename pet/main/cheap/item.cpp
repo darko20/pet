@@ -47,7 +47,7 @@ struct charz_t {
   list_int *path;
   attr_t attribute;
 
-  charz_t() { 
+  charz_t() {
     path = NULL;
     attribute = 0;
   }
@@ -95,7 +95,7 @@ inline bool characterize(fs &thefs, int from, int to) {
                               , retrieve_string_instance(from))
            && thefs.characterize(cto.path, cto.attribute
                               , retrieve_string_instance(to));
-  } 
+  }
   return true;
 }
 #else
@@ -196,13 +196,13 @@ std::string tInputItem::get_yield() {
   return orth().c_str();
 }
 
-void 
+void
 tInputItem::daughter_ids(list<int> &ids)
 {
   ids.clear();
 }
 
-void 
+void
 tInputItem::collect_children(list<tItem *> &result)
 {
   return;
@@ -221,7 +221,7 @@ tInputItem::recreate_fs()
 }
 
 /** \brief Since tInputItems do not have a feature structure, they need not be
- *  unpacked. Unpacking does not proceed past tLexItem 
+ *  unpacked. Unpacking does not proceed past tLexItem
  */
 list<tItem *>
 tInputItem::unpack1(int limit)
@@ -245,7 +245,7 @@ string tInputItem::orth() const {
 }
 
 
-/** Return generic lexical entries for this input token. If \a onlyfor is 
+/** Return generic lexical entries for this input token. If \a onlyfor is
  * non-empty, only those generic entries corresponding to one of those
  * POS tags are postulated. The correspondence is defined in posmapping.
  */
@@ -260,7 +260,7 @@ tInputItem::generics(postags onlyfor)
         return result;
 
     if(verbosity > 4)
-        fprintf(ferr, "using generics for [%d - %d] `%s':\n", 
+        fprintf(ferr, "using generics for [%d - %d] `%s':\n",
                 _start, _end, _surface.c_str());
 
     for(; gens != 0; gens = rest(gens))
@@ -313,7 +313,7 @@ void tLexItem::init() {
 
     // Create two feature structures to put the base resp. the surface form
     // (if there is one) into the right position of the orth list
-    _mod_stem_fs 
+    _mod_stem_fs
       = fs(dag_create_path_value(orth_path.c_str()
              , retrieve_string_instance(_stem->orth(_stem->inflpos()))));
 
@@ -420,7 +420,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
       // stats.words++;
     } else {
       // Modify the feature structure to contain the stem form in the right
-      // place 
+      // place
       _fs.modify_eagerly(_key_item->_mod_stem_fs);
     }
   }
@@ -430,7 +430,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   }
 
   _spanningonly = R->spanningonly();
-    
+  
 #ifdef DEBUG
   fprintf(stderr, "A %d < %d\n", pasv->id(), id());
 #endif
@@ -456,7 +456,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   }
 
 #ifdef DEBUG
-  fprintf(ferr, "new rule tItem (`%s' + %d@%d):", 
+  fprintf(ferr, "new rule tItem (`%s' + %d@%d):",
           R->printname(), pasv->id(), R->nextarg());
   print(ferr);
   fprintf(ferr, "\n");
@@ -485,7 +485,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
       _endposition = pasv->endposition();
       _daughters.push_back(pasv);
     }
-  
+    
 #ifdef DEBUG
     fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
 #endif
@@ -517,7 +517,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     }
 
 #ifdef DEBUG
-    fprintf(ferr, "new combined item (%d + %d@%d):", 
+    fprintf(ferr, "new combined item (%d + %d@%d):",
             active->id(), pasv->id(), active->nextarg());
     print(ferr);
     fprintf(ferr, "\n");
@@ -535,7 +535,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
         _daughters.push_back(*it);
 
     _trait = SYNTAX_TRAIT;
-    _nfilled = dtrs.size(); 
+    _nfilled = dtrs.size();
     _result_root = sponsor->result_root();
 }
 
@@ -552,7 +552,7 @@ tPhrasalItem::set_result_root(type_t rule)
         if(_adaughter)
             _adaughter->set_result_contrib();
     }
-  
+    
     set_result_contrib();
     _result_root = rule;
 }
@@ -597,7 +597,7 @@ tLexItem::daughter_ids(list<int> &ids)
     ids.clear();
 }
 
-void 
+void
 tLexItem::collect_children(list<tItem *> &result)
 {
     if(blocked())
@@ -629,7 +629,7 @@ tPhrasalItem::daughter_ids(list<int> &ids)
     }
 }
 
-void 
+void
 tPhrasalItem::collect_children(item_list &result)
 {
     if(blocked())
@@ -696,9 +696,9 @@ tItem::contains_p(const tItem *it) const
       return false;
     else if (it->id() == pit->id())
       return true;
-    else if (pit->_daughters.size() != 1) 
+    else if (pit->_daughters.size() != 1)
       return false;
-    else 
+    else
       pit = pit->daughters().front();
   }
 }
@@ -716,11 +716,11 @@ tItem::block(int mark)
     }
     if(!blocked() || mark == 2)
     {
-        if(mark == 2) 
+        if(mark == 2)
             stats.p_frozen++;
 
         _blocked = mark;
-    }  
+    }
 
     for(item_iter parent = parents.begin(); parent != parents.end(); ++parent)
     {
@@ -819,11 +819,11 @@ tPhrasalItem::unpack1(int upedgelimit)
     }
 
     // Consider all possible combinations of daughter structures
-    // and collect the ones that combine. 
+    // and collect the ones that combine.
     vector<tItem *> config(rule()->arity());
     item_list res;
     unpack_cross(dtrs, 0, config, res);
- 
+    
     return res;
 }
 
@@ -851,7 +851,7 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
         {
             if(verbosity > 9)
             {
-              cerr << setw(unpacking_level * 2) << "" 
+              cerr << setw(unpacking_level * 2) << ""
                    << "created edge " << combined->id() << " from " ;
               print_config(cerr, id(), config);
               cerr << endl << *combined << endl;
@@ -865,7 +865,7 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
             stats.p_failures++;
             if(verbosity > 9)
             {
-              cerr << setw(unpacking_level * 2) << "" 
+              cerr << setw(unpacking_level * 2) << ""
                    << "failure instantiating ";
               print_config(cerr, id(), config);
               cerr << endl;
@@ -892,7 +892,7 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
   fs res = rule()->instantiate(true);
 
   list_int *tofill = rule()->allargs();
-    
+  
   while(res.valid() && tofill) {
     fs arg = res.nth_arg(first(tofill));
     if(res.temp())
@@ -901,7 +901,7 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
       res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
     }
     else {
-      // _fix_me_ 
+      // _fix_me_
       // the whole _np architecture is rather messy
       res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
                            arg,
@@ -909,7 +909,7 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
     }
     tofill = rest(tofill);
   }
-    
+  
   if(!res.valid()) {
     FSAS.release();
     return 0;
@@ -947,14 +947,14 @@ tLexItem::hypothesize_edge(list<tItem*> path, unsigned int i) {
     return NULL;
 }
 
-tHypothesis * 
+tHypothesis *
 tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
 {
   tHypothesis *hypo = NULL;
 
   // check whether timeout has passed.
   if (opt_timeout > 0) {
-    timestamp = times(NULL);
+    timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
     if (timestamp >= timeout)
       return hypo;
   }
@@ -965,7 +965,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
 
   if (_hypo_agendas.find(path) == _hypo_agendas.end()) {
     // This is a new path:
-    // * initialize the agenda 
+    // * initialize the agenda
     // * score the hypotheses
     // * create the hypothese cache
     _hypo_agendas[path].clear();
@@ -1056,7 +1056,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
         vector<int> new_indices = indices;
         for (list<int>::iterator fidx = fdtr_idx.begin();
              fidx != fdtr_idx.end(); fidx ++) {
-          new_indices[*fidx] ++; 
+          new_indices[*fidx] ++;
         }
         indices_adv.push_back(new_indices);
       } else // every thing fine, create the new hypothesis
@@ -1077,7 +1077,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   //  return hypo;
 }
 
-int 
+int
 tPhrasalItem::decompose_edge()
 {
   int dnum = 1;
@@ -1118,7 +1118,7 @@ tPhrasalItem::decompose_edge()
 void
 tPhrasalItem::new_hypothesis(tDecomposition* decomposition,
                              list<tHypothesis *> dtrs,
-                             vector<int> indices) 
+                             vector<int> indices)
 {
   tHypothesis *hypo = new tHypothesis(this, decomposition, dtrs, indices);
   stats.p_hypotheses ++;
@@ -1147,8 +1147,8 @@ tLexItem::selectively_unpack(int n, int upedgelimit)
   return res;
 }
 
-list<tItem *> 
-tPhrasalItem::selectively_unpack(int n, int upedgelimit) 
+list<tItem *>
+tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 {
   list<tItem *> results;
   if (n <= 0)
@@ -1167,7 +1167,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
   for (list<tItem*>::iterator edge = packed.begin();
        edge != packed.end(); edge++) {
     // ignore frozen edges
-    if ((*edge)->frozen()) 
+    if ((*edge)->frozen())
       continue;
 
     hypo = (*edge)->hypothesize_edge(0);
@@ -1203,7 +1203,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 
   //_fix_me: release memory allocated
   for (list<tHypothesis*>::iterator it = ragenda.begin();
-       it != ragenda.end(); it++) 
+       it != ragenda.end(); it++)
     delete *it;
 
   return results;
@@ -1218,8 +1218,8 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
  *                    unpacking
  * \return a list of the best, at most \a n unpacked trees
  */
-list<tItem *> 
-tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit) 
+list<tItem *>
+tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
 {
   item_list results;
   if (n <= 0)
@@ -1236,7 +1236,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
 
   for (item_iter it = roots.begin(); it != roots.end(); it ++) {
     tPhrasalItem* root = (tPhrasalItem*)(*it);
-    hypo = (*it)->hypothesize_edge(path, 0); 
+    hypo = (*it)->hypothesize_edge(path, 0);
 
     if (hypo) {
       // Grammar->sm()->score_hypothesis(hypo);
@@ -1287,7 +1287,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
 
   //_fix_me release memory allocated
   for (list<tHypothesis*>::iterator it = ragenda.begin();
-       it != ragenda.end(); it++) 
+       it != ragenda.end(); it++)
     delete *it;
 
   return results;
@@ -1305,7 +1305,7 @@ tLexItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int uped
   return this;
 }
 
-tItem * 
+tItem *
 tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit)
 {
 
@@ -1332,10 +1332,10 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
 
   list<tItem*> newpath = path;
   newpath.push_back(this);
-  if (newpath.size() > opt_gplevel) 
+  if (newpath.size() > opt_gplevel)
     newpath.pop_front();
 
-  // Instantiate all the sub hypotheses. 
+  // Instantiate all the sub hypotheses.
   for (list<tHypothesis*>::iterator subhypo = hypo->hypo_dtrs.begin();
        subhypo != hypo->hypo_dtrs.end(); subhypo++) {
     tItem* dtr = (*subhypo)->edge->instantiate_hypothesis(newpath, *subhypo, upedgelimit);
@@ -1375,7 +1375,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   if (passive()) {
     characterize(res, _startposition, _endposition);
   }
-  
+
   stats.p_upedges++;
   tPhrasalItem *result = new tPhrasalItem(this, daughters, res);
   result->score(hypo->scores[path]);

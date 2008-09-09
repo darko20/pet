@@ -181,7 +181,7 @@ initialize_version()
             " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
             da,
             version_string,
-            pedgelimit,
+            opt_pedgelimit,
             opt_packing ? "+" : "-",
             opt_packing,
             Grammar->sm() ? "+" : "-",
@@ -264,7 +264,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        pedgelimit = edges;
+        opt_pedgelimit = edges;
         opt_nsolutions = nanalyses;
         
         gettimeofday(&tA, NULL);
