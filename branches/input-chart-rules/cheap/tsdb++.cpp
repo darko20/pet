@@ -214,9 +214,9 @@ initialize_version()
 #ifdef TSDBAPI
 
 int
-cheap_create_test_run(char *data, int run_id, char *comment,
+cheap_create_test_run(const char *data, int run_id, const char *comment,
                       int interactive, int protocol_version,
-                      char *custom)
+                      char const *custom)
 {
     if(protocol_version > 0 && protocol_version <= 2)
         opt_tsdb = protocol_version;
@@ -253,7 +253,7 @@ cheap_tsdb_summarize_run(void)
 static int nprocessed = 0;
 
 int
-cheap_process_item(int i_id, char *i_input, int parse_id, 
+cheap_process_item(int i_id, const char *i_input, int parse_id, 
                    int edges, int nanalyses, 
                    int nderivations, int interactive)
 {
@@ -318,7 +318,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
 }
 
 int
-cheap_complete_test_run(int run_id, char *custom)
+cheap_complete_test_run(int run_id, const char *custom)
 {
     fprintf(ferr, "total elapsed parse time %.3fs; %d items;"
             " avg time per item %.4fs\n",
@@ -337,7 +337,7 @@ cheap_complete_test_run(int run_id, char *custom)
 }
 
 int
-cheap_reconstruct_item(char *derivation)
+cheap_reconstruct_item(const char *derivation)
 {
     fprintf(ferr, "cheap_reconstruct_item(%s)\n", derivation);
     return 0;
