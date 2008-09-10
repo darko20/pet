@@ -183,7 +183,7 @@ void init_options()
   opt_tsdb = 0;
   opt_server = 0;
   opt_interactive_morph = false;
-  tokenizer_id opt_tok = TOKENIZER_STRING;
+  opt_tok = TOKENIZER_STRING;
   opt_comment_passthrough = 0;
   opt_default_les = false;
   opt_predict_les = 0;
