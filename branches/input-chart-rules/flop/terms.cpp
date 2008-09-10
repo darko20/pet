@@ -20,7 +20,11 @@
 /* internal TDL term representation - constructors and copy constructors */
 
 #include "flop.h"
+#include "lex-io.h"
 #include "hierarchy.h"
+#include "utility.h"
+
+using std::string;
 
 struct avm *new_avm()
 {

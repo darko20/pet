@@ -24,15 +24,9 @@
 #ifndef _FLOP_H_
 #define _FLOP_H_
 
-//using namespace std;
-
-#include "list-int.h"
 #include "symtab.h"
-#include "dag.h"
-#include "options.h"
-#include "settings.h"
-#include "grammar-dump.h"
-#include "utility.h"
+#include "types.h"
+#include <list>
 
 /***************************/
 /* compile time parameters */
@@ -116,7 +110,7 @@ extern int *leaftype_order, *rleaftype_order;
 extern int *leaftypeparent;
 
 /** The settings contained in flop.set and its includes. */
-extern settings *flop_settings;
+extern class settings *flop_settings;
 
 /** lex-tdl.cpp : `lexical tie ins': should lexer recognize lisp expressions?
  */
@@ -136,9 +130,9 @@ extern type_t *apptype;
 /** @name full-form.cc */
 /*@{*/
 /** List of full form entries */
-extern list<class ff_entry> fullforms;
+extern std::list<class ff_entry> fullforms;
 /** List of irregular form entries */
-extern list<class irreg_entry> irregforms;
+extern std::list<class irreg_entry> irregforms;
 /*@}*/
 
 /**************************/
@@ -281,7 +275,7 @@ struct type
   char *inflr;
 
   /** parents specified in definition */
-  list_int *parents;
+  struct list_int *parents;
 };
 
 /** @name Templates
@@ -350,8 +344,8 @@ class ff_entry
    *  \param filename    The filename of the full form file currently read
    *  \param line        The line number of this full form definition
    */
-  ff_entry(string preterminal, string affix, string form, int inflpos,
-           string filename = "unknown", int line = 0) 
+  ff_entry(std::string preterminal, std::string affix, std::string form,
+           int inflpos, std::string filename = "unknown", int line = 0) 
     : _preterminal(preterminal), _affix(affix), _form(form), _inflpos(inflpos),
     _fname(filename), _line(line)
     {};
@@ -363,7 +357,7 @@ class ff_entry
     {};
 
   /** Constructor setting only preterminal \a pre (type name of base form) */
-  ff_entry(string pre)
+  ff_entry(std::string pre)
     : _preterminal(pre)
     {};
 
@@ -373,13 +367,13 @@ class ff_entry
   /** Set the location were this full form entry was specified (file name and
    *  line number).
    */
-  void setdef(string fn, int ln)
+  void setdef(std::string fn, int ln)
     {
       _fname = fn; _line = ln;
     }
 
   /** Return the key (type name) of this full form entry */
-  const string& key() { return _preterminal; }
+  const std::string& key() { return _preterminal; }
 
   /** Dump entry in a binary representation to \a f */
   void dump(dumper *f);
@@ -388,21 +382,21 @@ class ff_entry
   friend int compare(const ff_entry &, const ff_entry &);
 
   /** Readable representation of full form entry for debugging */
-  friend ostream& operator<<(ostream& O, const ff_entry& C); 
+  friend std::ostream& operator<<(std::ostream& O, const ff_entry& C); 
   /** Input full form from stream, the entries have to look like this:
    * \verbatim {"rot-att", "rote", NULL, "ax-pos-e_infl_rule", 0, 1}, ... \endverbatim
    */
-  friend istream& operator>>(istream& I, ff_entry& C); 
+  friend std::istream& operator>>(std::istream& I, ff_entry& C); 
 
 private:
-  string _preterminal;
-  string _affix;
+  std::string _preterminal;
+  std::string _affix;
   
-  string _form;
+  std::string _form;
 
   int _inflpos;
 
-  string _fname;
+  std::string _fname;
   int _line;
 };
 
@@ -414,7 +408,7 @@ inline bool operator==(const ff_entry &a, const ff_entry &b)
 
 /* Extract the stem(s) from a dag (using the  path setting) */
 // No implementation available
-//vector<string> get_le_stems(dag_node *le);
+//vector<std::string> get_le_stems(dag_node *le);
 
 /** Representation of an irregular entry */
 class irreg_entry
@@ -425,14 +419,14 @@ class irreg_entry
    * \param in The affix rule
    * \param st The base form
    */
-  irreg_entry(string fo, string in, string st)
+  irreg_entry(std::string fo, std::string in, std::string st)
     : _form(fo), _infl(in), _stem(st) {}
   
   /** Dump entry in a binary representation to \a f */
   void dump(dumper *f);
 
  private:
-  string _form, _infl, _stem;
+  std::string _form, _infl, _stem;
 
 };
 /*@}*/
@@ -452,7 +446,7 @@ int strcount(char *s, char c);
 void indent (FILE *f, int nr);
 /** prints \a nr blanks on \a f */
 
-struct type *new_type(const string &name, bool is_inst, bool define = true);
+struct type *new_type(const std::string &name, bool is_inst, bool define = true);
 /** allocates memory for new type - returns pointer to initialized struct */
 
 /** Register a new builtin type with name \a name */
@@ -465,15 +459,15 @@ int new_bi_type(const char *name);
 char *add_inflr(char *old, char *add);
 
 /** A hash function for strings */
-extern int Hash(const string &s);
+extern int Hash(const std::string &s);
 /*@}*/
 
 /** @name full-form.cc */
 /*@{*/
 /** read full_form entries from file with name \a fname */
-void read_morph(string fname);
+void read_morph(std::string fname);
 /** read irregular entries from file with name \a fname */
-void read_irregs(string fname);
+void read_irregs(std::string fname);
 /*@}*/
 
 /** from template.cc: expand the template calls in all type definitions. */
@@ -483,13 +477,18 @@ void expand_templates();
 /*@{*/
 /** add coref \a name to the table \a co */
 int add_coref(struct coref_table *co, char *name);
+/** Start a new coref table domain for type addenda by making the old names
+ *  different from any new names by adding the coref index to each name
+ *  in the table
+ */
+void new_coref_domain(struct coref_table *co);
 /** `unify' multiple coreferences in conjunctions
     (e.g. [ #1 & #2 ] is converted to [ #1_2 ]). */
 void find_corefs();
 /*@}*/
 
 /** from print-chic.cc: Print the skeleton of \a t in CHIC format to \a f */
-void print_constraint(FILE *f, struct type *t, const string &name);
+void print_constraint(FILE *f, struct type *t, const std::string &name);
 
 /** @name print-tdl.cc */
 /*@{*/
@@ -630,7 +629,7 @@ list_int *fully_expand(struct dag_node *dag, bool full);
  * \param f low-level dumper class
  * \param desc readable description of the current grammar
  */
-void dump_grammar(dumper *f, char *desc);
+void dump_grammar(dumper *f, const char *desc);
 
 /** @name dag-tdl.cc */
 /*@{*/
@@ -646,6 +645,6 @@ void dagify_types();
 
 /** flop.cc: Tell the user how much memory was used up to point \a where */
 void
-mem_checkpoint(char *where);
+mem_checkpoint(const char *where);
 
 #endif

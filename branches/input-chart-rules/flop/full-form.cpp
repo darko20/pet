@@ -23,6 +23,12 @@
 #include <fstream>
 
 #include "flop.h"
+#include "settings.h"
+#include "utility.h"
+#include "dumper.h"
+#include "options.h"
+
+using namespace std;
 
 list<ff_entry> fullforms;
 list<irreg_entry> irregforms;

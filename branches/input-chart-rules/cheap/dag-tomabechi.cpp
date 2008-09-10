@@ -61,7 +61,7 @@ public:
 
   static dag_node * dag_unify2(dag_node *dag1, dag_node *dag2);
 
-  static inline bool unify_arcs1(dag_arc *arcs, dag_arc *arcs1, 
+  static inline bool unify_arcs1(dag_arc *arcs, dag_arc *arcs1,
                                  dag_arc *comp_arcs1, dag_arc **new_arcs1);
 
   static inline bool dag_unify_arcs(dag_node *dag1, dag_node *dag2);
@@ -74,13 +74,13 @@ public:
 dag_node *dag_get_attr_value(dag_node *dag, attr_t attr) {
   dag_arc *arc = dag_find_attr(dag->arcs, attr);
   if(arc == 0) return FAIL;
-  
+
   return arc->val;
 }
 
 bool dag_set_attr_value(dag_node *dag, attr_t attr, dag_node *val) {
   dag_arc *arc;
-  
+
   arc = dag_find_attr(dag->arcs, attr);
   if(arc == 0) return false;
   arc->val = val;
@@ -136,7 +136,7 @@ list<failure *> failures;
 
 bool dags_compatible(dag_node *dag1, dag_node *dag2) {
   bool res = true;
-  
+
   unification_cost = 0;
 
   if(recfail<false>::dag_unify1(dag1, dag2) == FAIL)
@@ -184,7 +184,7 @@ failure * stop_recording_failures() {
 
 dag_node *dag_cyclic_copy(dag_node *src, list_int *del);
 
-list<failure *> 
+list<failure *>
 dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool get_all_failures,
                        list_int *initial_path, dag_node **result_root) {
   all_failures = get_all_failures;
@@ -203,13 +203,13 @@ dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool get_all_failures,
     failures.push_back(last_failure);
     last_failure = 0;
   }
-  
+
 #ifdef COMPLETE_FAILURE_REPORTING
 
   dag_node *cycle;
   if(result_root != 0) {
     *result_root = dag_cyclic_copy(*result_root, 0);
-      
+
     // result might be cyclic
     free_list(path_reverse); path_reverse = 0;
     if((cycle = dag_cyclic_rec(*result_root)) != 0) {
@@ -242,7 +242,7 @@ dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
                           bool &forward, bool &backward,
                           bool get_all_failures) {
   all_failures = get_all_failures;
-    
+
   clear_failure();
   failures.clear();
   unification_cost = 0;
@@ -258,7 +258,7 @@ dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
     failures.push_back(last_failure);
     last_failure = 0;
   }
-  
+
   free_list(path_reverse); path_reverse = 0;
 
   dag_invalidate_changes();
@@ -273,7 +273,7 @@ inline bool dag_has_arcs(dag_node *dag) {
 template<bool record_failure> dag_node *
 recfail<record_failure>::dag_unify1(dag_node *dag1, dag_node *dag2) {
   unification_cost++;
-  
+
   dag1 = dag_deref1(dag1);
   dag2 = dag_deref1(dag2);
 
@@ -286,7 +286,7 @@ recfail<record_failure>::dag_unify1(dag_node *dag1, dag_node *dag2) {
       // _fix_doc_ But what is the problem ??
       if(!all_failures) {
         save_or_clear_failure();
-        last_failure = 
+        last_failure =
           new failure(failure::CYCLE, path_reverse, unification_cost);
         return FAIL;
       }
@@ -302,7 +302,7 @@ recfail<record_failure>::dag_unify1(dag_node *dag1, dag_node *dag2) {
     if(recfail<record_failure>::dag_unify2(dag1, dag2) == FAIL)
       return FAIL;
   }
-  
+
   return dag1;
 }
 
@@ -332,7 +332,7 @@ dag_arc *new_p_arc(attr_t attr, dag_node *val, dag_arc *next = NULL) {
 dag_node *dag_full_p_copy(dag_node *dag) {
   dag_node *copy;
   copy = dag_get_copy(dag);
-  
+
   if(copy == 0) {
     dag_arc *arc;
     copy = new_p_dag(dag->type);
@@ -380,7 +380,7 @@ void free_constraint_cache(type_t size) {
   delete[] constraint_cache;
 }
 
-/** Return an unused type dag for type \a s. 
+/** Return an unused type dag for type \a s.
  *  Either an unused dag can be found in the cache and is returned or another
  *  (permanent) copy is made, added to the cache, and returned.
  */
@@ -399,7 +399,7 @@ struct dag_node *cached_constraint_of(type_t s) {
      *
      * The copy is made with an increased generation counter because otherwise
      * the copy slots would not be invalidated and structures from the
-     * unification could interfere. 
+     * unification could interfere.
      *
      * But If all type dag unifications come from
      * the constraint cache, which makes full copies of the type dags, the
@@ -408,7 +408,7 @@ struct dag_node *cached_constraint_of(type_t s) {
      *
      * If it is right that the permanent dags never get touched by this scheme,
      * we could use it for rule and lexicon entry dags too and get rid of the
-     * permanent storage problem. 
+     * permanent storage problem.
      *
      * All this permanent storage thing is there to
      * support partial structure sharing
@@ -453,7 +453,7 @@ dag_make_wellformed(type_t new_type, dag_node *dag1, type_t s1, dag_node *dag2,
  * this case return the unified arcs in \a new_arcs1
  */
 template<bool record_failure> inline bool recfail<record_failure>::
-unify_arcs1(dag_arc *arcs, dag_arc *arcs1, 
+unify_arcs1(dag_arc *arcs, dag_arc *arcs1,
             dag_arc *comp_arcs1, dag_arc **new_arcs1) {
   dag_node *node;
   dag_arc *arc;
@@ -503,11 +503,11 @@ dag_unify_arcs(dag_node *dag1, dag_node *dag2) {
   if(! recfail<record_failure>::
      unify_arcs1(dag2->arcs, arcs1, comp_arcs1, &new_arcs1))
     return false;
-  
+
   if(! recfail<record_failure>::
      unify_arcs1(dag_get_comp_arcs(dag2), arcs1, comp_arcs1, &new_arcs1))
     return false;
-  
+
   if(new_arcs1 != 0) {
     dag_set_comp_arcs(dag1, new_arcs1);
   }
@@ -522,10 +522,10 @@ dag_unify2(dag_node *dag1, dag_node *dag2) {
   new_type = glb((s1 = dag_get_new_type(dag1)), (s2 = dag_get_new_type(dag2)));
 
   if(new_type == T_BOTTOM) {
-    if(record_failure) { 
+    if(record_failure) {
       save_or_clear_failure();
       last_failure = new failure(failure::CLASH, path_reverse, unification_cost
-                                 , s1, s2);      
+                                 , s1, s2);
       if(!all_failures)
         return FAIL;
       else
@@ -556,24 +556,24 @@ dag_unify2(dag_node *dag1, dag_node *dag2) {
   }
 #endif
 
-  // _fix_me_ maybe check if actually changed 
+  // _fix_me_ maybe check if actually changed
   dag_set_new_type(dag1, new_type);
 
   if(unify_wellformed) {
     if(!dag_make_wellformed(new_type, dag1, s1, dag2, s2)) {
 #ifdef COMPLETE_FAILURE_REPORTING
-      if(record_failure) { 
+      if(record_failure) {
         save_or_clear_failure();
         last_failure = new failure(failure::CONSTRAINT, path_reverse
                                    , unification_cost, s1, s2);
-        
+
         if(!all_failures)
           return FAIL;
       } else
 #endif
         return FAIL;
     }
-    
+
     dag1 = dag_deref1(dag1);
   }
 
@@ -587,12 +587,12 @@ dag_unify2(dag_node *dag1, dag_node *dag2) {
     else {
       dag_set_copy(dag1, INSIDE);
       dag_set_forward(dag2, dag1);
-      
+
       if(!dag_unify_arcs(dag1, dag2)) {
         dag_set_copy(dag1, 0);
         return FAIL;
       }
-    
+
       dag_set_copy(dag1, 0);
     }
 
@@ -601,7 +601,7 @@ dag_unify2(dag_node *dag1, dag_node *dag2) {
 
 dag_node *dag_full_copy(dag_node *dag) {
   dag_node *copy = dag_get_copy(dag);
-  
+
   if(copy == 0) {
     copy = new_dag(dag->type);
     dag_set_copy(dag, copy);
@@ -618,11 +618,11 @@ dag_node *dag_full_copy(dag_node *dag) {
 
 
 /** Return a new node with no arcs and type \a new_type as copy of \a dag.
- * This function is called when the restrictor cuts at node \a dag. 
+ * This function is called when the restrictor cuts at node \a dag.
  */
 struct dag_node *dag_partial_copy1(dag_node *dag, type_t new_type) {
   dag_node *copy = dag_get_copy(dag);
-    
+
   if(copy == 0) {
     copy = new_dag(new_type);
     dag_set_copy(dag, copy);
@@ -631,7 +631,7 @@ struct dag_node *dag_partial_copy1(dag_node *dag, type_t new_type) {
     copy->arcs = NULL;
     copy->type = new_type;
   }
-    
+
   return copy;
 }
 
@@ -649,7 +649,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
 
   dag_node *c1 = dag_get_forward(dag1),
     *c2 = dag_get_copy(dag2);
-    
+
   if(forward) {
     if(c1 == 0) {
       dag_set_forward(dag1, dag2);
@@ -664,7 +664,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
 #endif
     }
   }
-    
+
   if(backward) {
     if(c2 == 0) {
       dag_set_copy(dag2, dag1);
@@ -679,14 +679,14 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
 #endif
     }
   }
-    
+
   if(forward == false && backward == false) {
     if(!record_failure)
       return false;
     if (!all_failures)
       return false;
   }
-    
+
   if(dag1->type != dag2->type) {
     bool st_12, st_21;
     subtype_bidir(dag1->type, dag2->type, st_12, st_21);
@@ -714,13 +714,13 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
         return false;
     }
   }
-    
+
   if(dag1->arcs || dag2->arcs) {
     // Partial expansion makes this slightly more complicated. We
     // need to visit a structure even when the corresponding part
     // has been unfilled so that we find all coreferences.
     dag_node *tmpdag1 = dag1, *tmpdag2 = dag2;
-        
+
     if(!dag1->arcs && type_dag(dag1->type)->arcs)
       tmpdag1 = cached_constraint_of(dag1->type);
 
@@ -728,10 +728,10 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
       tmpdag2 = cached_constraint_of(dag2->type);
 
     dag_arc *arc1 = tmpdag1->arcs;
-        
+
     while(arc1) {
       dag_arc *arc2 = dag_find_attr(tmpdag2->arcs, arc1->attr);
-            
+
       if(arc2) {
         if(record_failure)
           path_reverse = cons(arc1->attr, path_reverse);
@@ -747,7 +747,7 @@ dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
         if(record_failure)
           path_reverse = pop_first(path_reverse);
       }
-            
+
       arc1 = arc1->next;
     }
   }
@@ -809,13 +809,13 @@ dag_node *dag_cyclic_copy(dag_node *src, list_int *del) {
   dag_arc *new_arcs = 0;
   dag_arc *arc;
   dag_node *v;
-  
+
   arc = src->arcs;
   while(arc) {
     if(!contains(del, arc->attr)) {
       if((v = dag_cyclic_copy(arc->val, 0)) == FAIL)
         return FAIL;
-      
+
       new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
     }
     arc = arc->next;
@@ -858,7 +858,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
 
   if(copy == FAIL)
     copy = NULL;
-  else 
+  else
     if(copy == INSIDE) {
       stats.cycles++;
       return FAIL;
@@ -886,7 +886,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
     //assert(!arcs_contain(new_arcs, arc->attr));
     if(!contains(del, arc->attr)) {
       if((v = dag_copy(arc->val, NULL)) == FAIL) return FAIL;
-      
+
       if(arc->val != v) {
         if (! copy_p) {
           // clone all arcs before arc
@@ -945,21 +945,21 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
     stats.cycles++;
     return FAIL;
   }
-  
+
   if(copy != 0)
     return copy;
 
   dag_set_copy(src, INSIDE);
-  
+
   dag_arc *new_arcs = 0;
   dag_node *v;
-  
+
   dag_arc *arc = src->arcs;
   while(arc) {
     if(!contains(del, arc->attr)) {
       if((v = dag_copy(arc->val, 0)) == FAIL)
         return FAIL;
-      
+
       new_arcs = dag_cons_arc(arc->attr, v, new_arcs);
     }
     arc = arc->next;
@@ -978,7 +978,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
 
   copy = new_dag(dag_get_new_type(src));
   copy->arcs = new_arcs;
-  
+
   dag_set_copy(src, copy);
 
   return copy;
@@ -996,7 +996,7 @@ inline dag_node *dag_get_attr_value_temp(dag_node *dag, attr_t attr) {
 
   arc = dag_find_attr(dag->arcs, attr);
   if(arc) return arc->val;
-  
+
   return FAIL;
 }
 
@@ -1095,13 +1095,13 @@ dag_cyclic_rec(dag_node *dag) {
   if(v == 0) {
     // not yet seen
     unification_cost++;
-      
+
     dag_set_copy(dag, INSIDE);
 
     if((v = dag_cyclic_arcs(dag->arcs)) != 0
        || (v = dag_cyclic_arcs(dag_get_comp_arcs(dag))) != 0)
       return v;
-      
+
     dag_set_copy(dag, FAIL);
   }
   else if(v == INSIDE) {
@@ -1165,10 +1165,10 @@ dag_node *dag_expand_rec(dag_node *dag) {
     }
   }
   dag = dag_deref1(dag);
-  
+
   if(!dag_expand_arcs(dag->arcs))
     return FAIL;
-  
+
   if(!dag_expand_arcs(dag_get_comp_arcs(dag)))
     return FAIL;
 
@@ -1208,7 +1208,7 @@ bool dag_valid_rec(dag_node *dag) {
     dag_arc *arc = dag->arcs;
 
     dag_set_copy(dag, INSIDE);
-      
+
     while(arc) {
       if(! is_attr(arc->attr)) {
         fprintf(ferr, "(3) invalid attr: %d, val: 0x%x\n",

@@ -26,6 +26,10 @@
 #include "hierarchy.h"
 #include "options.h"
 #include "lex-tdl.h"
+#include "utility.h"
+#include "list-int.h"
+
+using std::string;
 
 int default_status = NO_STATUS; /* for section-wide default status values */
 
@@ -36,34 +40,17 @@ int template_mode = 0;
    attribute names in template parameters. the idea is to delay inserting
    names into the type table until a the template is actually called */
 
-void tdl_domainname()
-{
-  if(LA(0)->tag == T_COLON)
-    {
-      consume(1);
-      if(LA(0)->tag != T_ID)
-        {
-          syntax_error("expecting domain name", LA(0));
-        }
-      else consume(1);
-    }
-  else if(LA(0)->tag == T_QUOTE)
-    {
-      consume(1);
-      if(LA(0)->tag != T_ID)
-        {
-          syntax_error("expecting domain name", LA(0));
-        }
-      else consume(1);
-    }
-  else if(LA(0)->tag == T_STRING)
-    {
-      consume(1);
-    }
-  else
-    {
+void tdl_domainname() {
+  if(consume_if(T_COLON)) {
+    if(! consume_if(T_ID))
       syntax_error("expecting domain name", LA(0));
-    }
+  }
+  else if(consume_if(T_QUOTE)) {
+    if(! consume_if(T_ID))
+      syntax_error("expecting domain name", LA(0));
+  }
+  else if(! consume_if(T_STRING))
+    syntax_error("expecting domain name", LA(0));
 }
 
 int tdl_opt_inst_status()
@@ -87,397 +74,287 @@ int tdl_opt_inst_status()
     return NO_STATUS;
 }
 
-int tdl_option(bool readonly)
+int tdl_option(bool readonly) {
 // returns value of last `status option, if any
-{
   char *statusname = NULL;
 
-  if(LA(0)->tag != T_KEYWORD)
-    {
-      syntax_error("option expected", LA(0));
+  if(LA(0)->tag != T_KEYWORD) {
+    syntax_error("option expected", LA(0));
+  } else {
+    if(is_keyword(LA(0), "status")) {
+      consume(1);
+      match(T_COLON, "`:' after `status'", true);
+      
+      statusname = match(T_ID, "status value", readonly);
+    } else {
+      syntax_error("unknown option", LA(0));
+      consume(1);
     }
-  else
-    {
-      if(is_keyword(LA(0), "status"))
-         {
-           
-           consume(1);
-           match(T_COLON, "`:' after `status'", true);
-
-           if(!readonly)
-             statusname = match(T_ID, "status value", readonly);
-           else
-             match(T_ID, "status value", readonly);
-         }
-      else
-        {
-          syntax_error("unknown option", LA(0));
-          consume(1);
-        }
-    }
+  }
   
-  if(statusname)
-    {
-      strtolower(statusname);
-      if(statustable.id(statusname) == -1)
-        statustable.add(statusname);
-
-      return statustable.id(statusname);
-    }
+  if(statusname != NULL) {
+    strtolower(statusname);
+    if(statustable.id(statusname) == -1)
+      statustable.add(statusname);
+    
+    return statustable.id(statusname);
+  }
   else
     return NO_STATUS;
 }
 
-void tdl_subtype_def(char *name, char *printname)
-{
+
+void tdl_subtype_def(char *name, char *printname) {
   int nr = 0;
   struct type *subt = NULL;
   bool readonly = false;
 
-  while(LA(0)->tag == T_ISA)
-    {
-      char *super;
-      
-      consume(1);
-
-      super = match(T_ID, "name of supertype", false);
+  while(consume_if(T_ISA)) {
+    char *super = match(T_ID, "name of supertype", readonly);
+    
+    if(super) {
+      // name ISA super
       strtolower(super);
       
-      if(super)
-        {
-          // name ISA super
-
-          int sub, sup;
-          struct type *supt;
-
-          sub = types.id(name); sup = types.id(super);
-
-          if(!readonly)
-            {
-              if(sub == -1)
-                {
-                  subt = new_type(name, false);
-                  subt->def = LA(0)->loc; LA(0)->loc = NULL;
-                }
-              else
-                {
-                  subt = types[sub];
-                  if(subt->implicit == false)
-                    {
-                      if(!allow_redefinitions)
-                        fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
-                                types.name(sub).c_str(),
-                                LA(0)->loc->fname, LA(0)->loc->linenr);
-                      
-                      undo_subtype_constraints(subt->id);
-                      
-                      subt->constraint = NULL;
-                    }
-                }
-              subt->printname = printname; printname = 0;
-              subt->implicit = false;
-              
-              if(sup == -1)
-                {
-                  supt = new_type(super, false);
-                  if(LA(0)->loc)
-                    {
-                      supt->def = LA(0)->loc; LA(0)->loc = NULL;
-                    }
-                  else
-                    supt->def = subt->def;
-                  supt->implicit = true;
-                }
-              else
-                {
-                  supt = types[sup];
-                }
-              subtype_constraint(subt->id, supt->id);
-              subt->parents = cons(supt->id, subt->parents);
-            }
+      int sub, sup;
+      struct type *supt;
+      
+      sub = types.id(name); sup = types.id(super);
+      
+      if(!readonly) {
+        if(sub == -1) {
+          subt = new_type(name, false);
+          subt->def = LA(0)->loc; LA(0)->loc = NULL;
+        } else {
+          subt = types[sub];
+          if(subt->implicit == false) {
+            if(!allow_redefinitions)
+              fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
+                      types.name(sub).c_str(),
+                      LA(0)->loc->fname, LA(0)->loc->linenr);
+            
+            undo_subtype_constraints(subt->id);
+            
+            subt->constraint = NULL;
+          }
         }
-      nr ++; name = super;
+        subt->printname = printname; printname = 0;
+        subt->implicit = false;
+        
+        if(sup == -1) {
+          supt = new_type(super, false);
+          if(LA(0)->loc) {
+            supt->def = LA(0)->loc; LA(0)->loc = NULL;
+          }
+          else
+            supt->def = subt->def;
+          supt->implicit = true;
+        } else {
+          supt = types[sup];
+        }
+        subtype_constraint(subt->id, supt->id);
+        subt->parents = cons(supt->id, subt->parents);
+      }
     }
+    nr ++; name = super;
+  }
   
   if(nr < 1) syntax_error("at least one supertype expected", LA(0));
   
-  while(LA(0)->tag == T_COMMA)
-    {
-      int status;
-      consume(1);
-      status = tdl_option(readonly);
-      if(!readonly && status != NO_STATUS)
-        {
-          if(nr > 1)
-            {
-              syntax_error("not sure about the semantics of this - ignoring", LA(0));
-            }
-          else
-            {
-              subt->status = status;
-              subt->defines_status = true;
-            }
-        }
+  while(consume_if(T_COMMA)) {
+    int status;
+    status = tdl_option(readonly);
+    if(!readonly && status != NO_STATUS) {
+      if(nr > 1) {
+        syntax_error("not sure about the semantics of this - ignoring", LA(0));
+      } else {
+        subt->status = status;
+        subt->defines_status = true;
+      }
     }
+  }
 }
 
 struct param *tdl_templ_par(struct coref_table *, bool readonly);
 void tdl_template_def(char *name);
 
-char *tdl_attribute(struct coref_table *co, bool readonly)
-{
-  if(LA(0)->tag == T_DOLLAR)
-    { 
-      struct param *par;
-      char *s;
-
-      par = tdl_templ_par(co, readonly);
-
-      if(par->value != NULL)
-        {
-          syntax_error("unexpected assignment to template parameter within body", LA(0));
-        }
-
-      s = (char *) salloc(strlen(par->name) + 2);
-      strcpy(s, "$");
-      strcat(s, par->name);
-      return s;
+char *tdl_attribute(struct coref_table *co, bool readonly) {
+  char *s = NULL;
+  if(LA(0)->tag == T_DOLLAR) { 
+    struct param *par = tdl_templ_par(co, readonly);
+    
+    if(par->value != NULL) {
+      syntax_error("unexpected assignment to template parameter within body",
+                   LA(0));
     }
-  else
-    {
-      if(!readonly)
-        {
-          char *s = NULL;
-          s = match(T_ID, "attribute", false);
-          strtoupper(s);
+
+    s = (char *) salloc(strlen(par->name) + 2);
+    strcpy(s, "$");
+    strcat(s, par->name);
+  } else {
+    s = match(T_ID, "attribute", readonly);
+    if(s != NULL) {
+      strtoupper(s);
           
-          if(attributes.id(s) == -1)
-            attributes.add(s);
-
-          return s;
-        }
-      else
-        {
-          match(T_ID, "attribute", true);
-          return NULL;
-        }
+      if(attributes.id(s) == -1)
+        attributes.add(s);
     }
+  }
+  return s;
 }
 
 struct conjunction *tdl_conjunction(struct coref_table *, bool readonly);
 struct conjunction *tdl_add_conjunction(struct coref_table *,
                                         struct conjunction *, bool readonly);
 
-struct attr_val *tdl_attr_val(struct coref_table *co, bool readonly)
-{
+struct attr_val *tdl_attr_val(struct coref_table *co, bool readonly) {
   struct attr_val *av = NULL, *av_inner = NULL, *av_outer = NULL;
 
-  if(!readonly)
-    {
-      av = new_attr_val();
-      av->attr = tdl_attribute(co, readonly);
-      av_inner = av_outer = av;
+  char *attribute = tdl_attribute(co, readonly);
+
+  if(!readonly) {
+    av = new_attr_val();
+    av->attr = attribute;
+    av_inner = av_outer = av;
+  }
+
+  while(consume_if(T_DOT)) {
+    // build a "path" of attribute-value structs, av_inner is the attr_val
+    // struct at the bottom, av_outer at the top of the path
+    struct term *T = NULL;
+    
+    attribute = tdl_attribute(co, readonly);
+    if(!readonly) {
+      av_inner = new_attr_val();
+      av_outer->val = new_conjunction();
+      T = add_term(av_outer->val, new_avm_term());
+      T->A->n = 1;
+      T->A->av[0] = av_inner;
+      av_inner->attr = attribute;
+      av_outer = av_inner;
     }
-  else
-    tdl_attribute(co, readonly);
+  }
 
-  while(LA(0)->tag == T_DOT)
-    {
-      // build a "path" of attribute-value structs, av_inner is the attr_val
-      // struct at the bottom, av_outer at the top of the path
-      struct term *T = NULL;
-      
-      consume(1);
-
-      if(!readonly)
-        {
-          av_inner = new_attr_val();
-          av_outer->val = new_conjunction();
-          T = add_term(av_outer->val, new_avm_term());
-          T->A->n = 1;
-          T->A->av[0] = av_inner;
-          av_inner->attr = tdl_attribute(co, readonly);
-          av_outer = av_inner;
-        }
-      else
-        tdl_attribute(co, readonly);
-    }
-
+  conjunction *conj = tdl_conjunction(co, readonly); 
   if(!readonly)
-    av_inner->val = tdl_conjunction(co, readonly);
-  else
-    tdl_conjunction(co, readonly);
+    av_inner->val = conj;
 
   return av;
 }
 
-struct avm *tdl_feature_term(struct coref_table *co, bool readonly)
-{
+struct avm *tdl_feature_term(struct coref_table *co, bool readonly) {
   struct avm *A = NULL;
 
-  match(T_LBRACKET, "`[' starting feature term", true);
-
+  // T_LBRACKET already consumed !
   if(!readonly) A = new_avm();
   
-  if(LA(0)->tag != T_RBRACKET)
-    {
+  if(LA(0)->tag != T_RBRACKET) {
+    attr_val *av;
+    do {
+      av = tdl_attr_val(co, readonly);
       if(!readonly)
-        add_attr_val(A, tdl_attr_val(co, readonly));
-      else
-        tdl_attr_val(co, readonly);
-
-      while(LA(0)->tag == T_COMMA)
-        {
-          consume(1);
-          if(!readonly)
-            add_attr_val(A, tdl_attr_val(co, readonly));
-          else
-            tdl_attr_val(co, readonly);
-        }
+        add_attr_val(A, av);
     }
+    while(consume_if(T_COMMA));
+  }
 
   match(T_RBRACKET, "`]' at the end of feature term", true);
 
   return A;
 }
 
-struct tdl_list *tdl_diff_list(struct coref_table *co, bool readonly)
-{
+struct tdl_list *tdl_diff_list(struct coref_table *co, bool readonly) {
   struct tdl_list *L = NULL;
 
-  if(!readonly)
-    {
-      L = new_list();
-      L->difflist = 1;
-    }
+  // T_LDIFF already consumed !!
+  if(!readonly) {
+    L = new_list();
+    L->difflist = 1;
+  }
 
-  match(T_LDIFF, "`<!' starting difference list", true);
-
-  if(LA(0)->tag != T_RDIFF)
-    {
+  if(LA(0)->tag != T_RDIFF) {
+    conjunction *conj;
+    do {
+      conj = tdl_conjunction(co, readonly);
       if(!readonly)
-        add_conjunction(L, tdl_conjunction(co, readonly));
-      else
-        tdl_conjunction(co, readonly);
-
-      while(LA(0)->tag == T_COMMA)
-        {
-          consume(1);
-          if(!readonly)
-            add_conjunction(L, tdl_conjunction(co, readonly));
-          else
-            tdl_conjunction(co, readonly);
-        }
+        add_conjunction(L, conj);
     }
+    while(consume_if(T_COMMA));
+  }
 
   match(T_RDIFF, "`!>' at the end of difference list", true);
 
   return L;
 }
 
-struct tdl_list *tdl_list(struct coref_table *co, bool readonly)
-{
+struct tdl_list *tdl_list(struct coref_table *co, bool readonly) {
   struct tdl_list *L = NULL;
   int openlist = 0;
 
-  match(T_LANGLE, "`<' starting list", true);
-
+  // T_LANGLE already consumed 
   if(!readonly) L = new_list();
 
-  if(LA(0)->tag != T_RANGLE)
-    {
-      if(!readonly)
-        add_conjunction(L, tdl_conjunction(co, readonly));
-      else
-        tdl_conjunction(co, readonly);
+  if(LA(0)->tag != T_RANGLE) {
+    conjunction *conj = tdl_conjunction(co, readonly);
+    if(!readonly)
+      add_conjunction(L, conj);
       
-      while(LA(0)->tag == T_COMMA)
-        {
-          consume(1);
-          
-          if(LA(0)->tag == T_DOT)
-            {
-              consume(1);
-              match(T_DOT, "`...' - got `.'", true);
-              match(T_DOT, "`...' - got `..'", true);
-              openlist = 1;
-            }
-          else
-            {
-              if(!readonly)
-                add_conjunction(L, tdl_conjunction(co, readonly));
-              else
-                tdl_conjunction(co, readonly);
-            }
+    while(consume_if(T_COMMA)) {
+        if(consume_if(T_DOT)) {
+          match(T_DOT, "`...' - got `.'", true);
+          match(T_DOT, "`...' - got `..'", true);
+          openlist = 1;
+        } else {
+          conj = tdl_conjunction(co, readonly);
+          if(!readonly)
+            add_conjunction(L, conj);
         }
-      
-      if(!openlist)
-        {
-          if(LA(0)->tag == T_DOT)
-            { // dotted pair at the end
-              consume(1);
-              if(!readonly)
-                {
-                  L->dottedpair = 1;
-                  L->rest = tdl_conjunction(co, readonly);
-                }
-              else
-                tdl_conjunction(co, readonly);
-            }
-        }
-
-      if(!readonly) L->openlist = openlist;
     }
+      
+    if(!openlist) {
+      if(consume_if(T_DOT)) { // dotted pair at the end
+        conj = tdl_conjunction(co, readonly);
+        if(!readonly) {
+          L->dottedpair = 1;
+          L->rest = conj;
+        }
+      }
+    }
+
+    if(!readonly) L->openlist = openlist;
+  }
 
   match(T_RANGLE, "`>' at the end of list", true);
 
   return L;
 }
 
-int tdl_coref(struct coref_table *co, bool readonly)
-{
-  char *name = NULL;
-
-  match(T_HASH, "`#'", true);
-
-  if(!readonly)
-    {
-      name = match(T_ID, "coreference name", false);
-    }
-  else
-    {
-      match(T_ID, "coreference name", true);
-    }
-
-  if(!readonly && name)
+int tdl_coref(struct coref_table *co, bool readonly) {
+  // T_HASH already consumed !!
+  char *name = match(T_ID, "coreference name", readonly);
+  if(name != NULL)
     return add_coref(co, name);
 
   return -1;
 }
 
-struct param *tdl_templ_par(struct coref_table *co, bool readonly)
-{
+struct param *tdl_templ_par(struct coref_table *co, bool readonly) {
   struct param *p = NULL;
 
   match(T_DOLLAR, "`$' at start of templ_par", true);
 
-  if(!readonly)
-    {
-      p = (struct param *) salloc(sizeof(struct param));
-      p->value = NULL;
-      p->name = match(T_ID, "templ-var", false);
-    }
-  else
-    match(T_ID, "templ-var", true);
-
-  if(LA(0)->tag == T_EQUALS)
-    {
-      consume(1);
-      if(!readonly)
-        p->value = tdl_conjunction(co, readonly);
-      else
-        tdl_conjunction(co, readonly);
-    }
+  char *name = match(T_ID, "templ-var", readonly);
+  if(!readonly) {
+    p = (struct param *) salloc(sizeof(struct param));
+    p->value = NULL;
+    p->name = name;
+  }
+  
+  if(consume_if(T_EQUALS)) {
+    conjunction *conj = tdl_conjunction(co, readonly);
+    if(!readonly)
+      p->value = conj;
+  }
   
   return p;
 }
@@ -486,42 +363,30 @@ struct param_list *tdl_templ_par_list(struct coref_table *co, bool readonly)
 {
   struct param_list *pl = NULL;
 
-  int sv = template_mode;
+  int save = template_mode;
   template_mode = 1;
 
-  if(!readonly)
-    {
-      pl = (struct param_list *) salloc(sizeof(struct param_list));
-      pl->n = 0;
-      pl->param = (struct param **) salloc(TABLE_SIZE * sizeof(struct param*));
-    }
+  if(!readonly) {
+    pl = (struct param_list *) salloc(sizeof(struct param_list));
+    pl->n = 0;
+    pl->param = (struct param **) salloc(TABLE_SIZE * sizeof(struct param*));
+  }
 
   match(T_LPAREN, "`(' starting template parameter list", true);
 
-  if(LA(0)->tag != T_RPAREN)
-    {
-      if(!readonly)
-        pl->param[pl->n++] = tdl_templ_par(co, readonly);
-      else
-        tdl_templ_par(co, readonly);
-
-      while(LA(0)->tag == T_COMMA)
-        {
-          consume(1);
-          
-          if(!readonly)
-            {
-              assert(pl->n < TABLE_SIZE);
-              pl->param[pl->n++] = tdl_templ_par(co, readonly);
-            }
-          else
-            tdl_templ_par(co, readonly);
+  if(LA(0)->tag != T_RPAREN) {
+    do {
+      struct param *par = tdl_templ_par(co, readonly);
+      if(!readonly) {
+        assert(pl->n < TABLE_SIZE);
+        pl->param[pl->n++] = par;
         }
-    }
+    } while (consume_if(T_COMMA)) ;
+  }
 
   match(T_RPAREN, "`)' at the end of  template parameter list", true);
 
-  template_mode = sv;
+  template_mode = save;
 
   return pl;
 }
@@ -529,185 +394,142 @@ struct param_list *tdl_templ_par_list(struct coref_table *co, bool readonly)
 struct templ *tdl_templ_call(struct coref_table *co, bool readonly)
 {
   struct templ *t = NULL;
+  // T_AT already consumed !!
 
-  match(T_AT, "`@' starting template call", true);
-  
-  if(!readonly)
-    {
-      t = (struct templ *) salloc(sizeof(struct templ));
-      t->name = match(T_ID, "template name", false);
-      if(templates.id(t->name) == -1)
-        {
-          fprintf(ferr, "warning: call to undefined template `%s' at %s:%d\n",
-                  t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
-        }
-      t->params = tdl_templ_par_list(co, readonly);
-      t->constraint = NULL;
-    }
-  else
-    {
-      match(T_ID, "template name", false);
-      tdl_templ_par_list(co, readonly);
-    }
+  char *name = match(T_ID, "template name", readonly);
+  param_list *params = tdl_templ_par_list(co, readonly);
 
+  if(!readonly) {
+    t = (struct templ *) salloc(sizeof(struct templ));
+    t->name = name;
+    if(templates.id(t->name) == -1) {
+      fprintf(ferr, "warning: call to undefined template `%s' at %s:%d\n",
+              t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
+    }
+    t->params = params;
+    t->constraint = NULL;
+  }
   
   return t;
 }
 
 
-struct term *tdl_term(struct coref_table *co, bool readonly)
-{
+struct term *tdl_term(struct coref_table *co, bool readonly) {
   struct term *t = NULL;
 
   if(!readonly) t = new_term();
 
-  if(LA(0)->tag == T_ID)
-    { // type name
-
-      if(!readonly)
-        {
-          int id = -1;
-          struct type *typ = NULL;
-          
-          t->tag = TYPE;
-          t->value = LA(0)->text; LA(0)->text = NULL;
-          strtolower(t->value);
-          
-          id = types.id(t->value);
-          if(id == -1 && !template_mode)
-            {
-              typ = new_type(t->value, false);
-              typ->def = LA(0)->loc; LA(0)->loc = NULL;
-              id = typ->id;
-              typ->implicit = true;
-            }
-          
-          t->type = id;
-        }
-
-      consume(1);
-    }
-  else if(LA(0)->tag == T_QUOTE)
-    { // atom
-      consume(1);
-      if(!readonly)
-        {
-          t->tag = ATOM;
-          t->value = match(T_ID, "atom expected (term)", false);
-          char *printname = strdup(t->value);
-          strtolower(t->value);
-
-          string s = "'" + string(t->value);
-          if(types.id(s) == -1)
-            {
-              struct type *ty = new_type(s, false);
-              ty->def = LA(0)->loc; LA(0)->loc = NULL;
-              subtype_constraint(ty->id, BI_SYMBOL);
-              ty->status = ATOM_STATUS;
-              ty->printname = printname; printname = 0;
-            }
-
-          if(printname) free(printname);
-        }
-      else
-        match(T_ID, "atom expected (term)", true);
-    }
-  else if(LA(0)->tag == T_STRING)
-    { // atom
-      if(!readonly)
-        {
-          t->tag = STRING;
-          t->value = LA(0)->text; LA(0)->text = NULL;
-
-          string s = "\"" + string(t->value) + "\"";
+  if(LA(0)->tag == T_ID) { // type name
+    if(!readonly) {
+      int id = -1;
+      struct type *typ = NULL;
       
-          if(types.id(s) == -1)
-            {
-              struct type *ty = new_type(s, false);
-              ty->def = LA(0)->loc; LA(0)->loc = NULL;
-              subtype_constraint(ty->id, BI_STRING);
-              ty->status = ATOM_STATUS;
-              ty->printname = t->value;
-            }
-        }
-
-      consume(1);
+      t->tag = TYPE;
+      t->value = LA(0)->text; LA(0)->text = NULL;
+      strtolower(t->value);
+      
+      id = types.id(t->value);
+      if(id == -1 && !template_mode) {
+        typ = new_type(t->value, false);
+        typ->def = LA(0)->loc; LA(0)->loc = NULL;
+        id = typ->id;
+        typ->implicit = true;
+      }
+      
+      t->type = id;
     }
-  else if(LA(0)->tag == T_LBRACKET)
-    {
-      if(!readonly)
-        {
-          t->tag = FEAT_TERM;
-          t->A = tdl_feature_term(co,readonly);
-        }
-      else
-        tdl_feature_term(co,readonly);
+    
+    consume(1);
+  }
+  else if(consume_if(T_QUOTE)) { // atom
+    char *value = match(T_ID, "atom expected (term)", readonly);
+    if(!readonly) {
+      t->tag = ATOM;
+      t->value = value;
+      char *printname = strdup(t->value);
+      strtolower(t->value);
+      
+      string s = "'" + string(t->value);
+      if(types.id(s) == -1) {
+        struct type *ty = new_type(s, false);
+        ty->def = LA(0)->loc; LA(0)->loc = NULL;
+        subtype_constraint(ty->id, BI_SYMBOL);
+        ty->status = ATOM_STATUS;
+        ty->printname = printname; printname = 0;
+      }
+      
+      if(printname) free(printname);
     }
-  else if(LA(0)->tag == T_LDIFF)
-    {
-      if(!readonly)
-        {
-          t->tag = DIFF_LIST;
-          t->L = tdl_diff_list(co, readonly);
-        }
-      else
-        tdl_diff_list(co, readonly);
+  }
+  else if(LA(0)->tag == T_STRING) { // atom
+    if(!readonly) {
+      t->tag = STRING;
+      t->value = LA(0)->text; LA(0)->text = NULL;
+      
+      string s = "\"" + string(t->value) + "\"";
+      
+      if(types.id(s) == -1) {
+        struct type *ty = new_type(s, false);
+        ty->def = LA(0)->loc; LA(0)->loc = NULL;
+        subtype_constraint(ty->id, BI_STRING);
+        ty->status = ATOM_STATUS;
+        ty->printname = t->value;
+      }
     }
-  else if(LA(0)->tag == T_LANGLE)
-    {
-      if(!readonly)
-        {
-          t->tag = LIST;
-          t->L = tdl_list(co,readonly);
-        }
-      else
-        tdl_list(co,readonly);
+    
+    consume(1);
+  }
+  else if(consume_if(T_LBRACKET)) {
+    struct avm *new_avm = tdl_feature_term(co,readonly);
+    if(!readonly) {
+      t->tag = FEAT_TERM;
+      t->A = new_avm;
     }
-  else if(LA(0)->tag == T_HASH)
-    {
-      if(!readonly)
-        {
-          t->tag = COREF;
-          t->coidx = tdl_coref(co,readonly);
-        }
-      else
-        tdl_coref(co, readonly);
+  }
+  else if(consume_if(T_LDIFF)) {
+    struct tdl_list *new_list = tdl_diff_list(co, readonly);
+    if(!readonly) {
+      t->tag = DIFF_LIST;
+      t->L = new_list;
     }
-  else if(LA(0)->tag == T_AT)
-    {
-      if(!readonly)
-        {
-          struct templ *temp;
-          t->tag = TEMPL_CALL;
-          temp = tdl_templ_call(co, readonly);
-          
-          t->value = temp->name;
-          t->params = temp->params;
-        }
-      else
-        tdl_templ_call(co, readonly);
+  }
+  else if(consume_if(T_LANGLE)) {
+    struct tdl_list *new_list = tdl_list(co,readonly);
+    if(!readonly) {
+      t->tag = LIST;
+      t->L = new_list;
     }
-  else if(LA(0)->tag == T_DOLLAR)
-    {
-      if(!readonly)
-        {
-          struct param *par;
-          
-          par = tdl_templ_par(co, readonly);
-          if(par->value != NULL)
-            syntax_error("unexpected assignment to template parameter within body", LA(0));
-          
-          t->tag = TEMPL_PAR;
-          t->value = par->name;
-        }
-      else
-        tdl_templ_par(co, readonly);
+  }
+  else if(consume_if(T_HASH)) {
+    int coref = tdl_coref(co,readonly);
+    if(!readonly) {
+      t->tag = COREF;
+      t->coidx = coref;
     }
-  else
-    {
-      t = NULL;
-      syntax_error("expecting term", LA(0));
+  }
+  else if(consume_if(T_AT)) {
+    struct templ *temp = tdl_templ_call(co, readonly);
+    if(!readonly) {
+      t->tag = TEMPL_CALL;
+      t->value = temp->name;
+      t->params = temp->params;
     }
+  }
+  else if(LA(0)->tag == T_DOLLAR) {
+    struct param *par = tdl_templ_par(co, readonly);
+    if(!readonly) {
+      if(par->value != NULL)
+        syntax_error("unexpected assignment to template parameter within body",
+                     LA(0));
+      
+      t->tag = TEMPL_PAR;
+      t->value = par->name;
+    }
+  }
+  else {
+    t = NULL;
+    syntax_error("expecting term", LA(0));
+  }
 
   return t;
 }
@@ -721,23 +543,15 @@ struct conjunction *
 tdl_add_conjunction(struct coref_table *co, struct conjunction *con,
                     bool readonly)
 {
-  if(!readonly)
-    {
-      if (con == NULL)
-        con = new_conjunction();
-      add_term(con, tdl_term(co, readonly));
-    }
-  else
-    tdl_term(co, readonly);
+  if(!readonly && con == NULL)
+    con = new_conjunction();
 
-  while(LA(0)->tag == T_AMPERSAND)
-    {
-      consume(1);
-      if(!readonly)
-        add_term(con, tdl_term(co, readonly));
-      else
-        tdl_term(co, readonly);
-    }
+  term * currterm;
+  do {
+    currterm = tdl_term(co, readonly);
+    if (!readonly)
+      add_term(con, currterm);
+  } while(consume_if(T_AMPERSAND));
 
   return con;
 }
@@ -896,6 +710,8 @@ void tdl_avm_add(char *name, char *printname, bool is_instance, bool readonly)
       if(t_id != -1)
         {
           t = types[t_id];
+          // make all old coref names distinct from possibly new ones
+          new_coref_domain(t->coref);
         }
       else
         {
@@ -923,12 +739,12 @@ void tdl_type_def(bool instance) {
   const char *what = (instance ? "instance name" : "type name");
 
   if(LA(0)->tag == T_STRING) {
-    name = match(T_STRING, what, false);
+    name = match(T_STRING, what, readonly);
     string s = "\"" + string(name) + "\"";
     printname = name;
     name = strdup(s.c_str());
   } else {
-    name = match(T_ID, what, false);
+    name = match(T_ID, what, readonly);
     printname = strdup(name);
     strtolower(name);
   }
@@ -1004,7 +820,7 @@ void tdl_template_def(char *name)
   template_mode = 0;
 }
 
-void block_not_closed(char *kind, char *fname, int lnr)
+void block_not_closed(const char *kind, const char *fname, int lnr)
 {
   char *msg;
 
@@ -1061,7 +877,7 @@ void tdl_block()
       
       tdl_start(0);
 
-      optional(T_COLON);
+      consume_if(T_COLON);
       
       if(!is_keyword(LA(0), "end"))
         {
@@ -1114,7 +930,7 @@ void tdl_block()
           }
       while (1);
 
-      optional(T_COLON);
+      consume_if(T_COLON);
       
       if(!is_keyword(LA(0), "end"))
         {
@@ -1136,14 +952,13 @@ void tdl_block()
 
       lisp_mode = 1;
 
-      while(LA(0)-> tag == T_LISP)
+      while(consume_if(T_LISP))
         {
-          consume(1);
         }
       
       lisp_mode = 0;
 
-      optional(T_COLON);
+      consume_if(T_COLON);
 
       if(!is_keyword(LA(0), "end"))
         {
@@ -1184,7 +999,7 @@ void tdl_block()
           }
       while (1);
 
-      optional(T_COLON);
+      consume_if(T_COLON);
             if(!is_keyword(LA(0), "end"))
         {
           block_not_closed("template", b_fname, b_lnr);
@@ -1225,7 +1040,7 @@ void tdl_block()
           }
       while (1);
 
-      optional(T_COLON);
+      consume_if(T_COLON);
 
       if(!is_keyword(LA(0), "end"))
         {

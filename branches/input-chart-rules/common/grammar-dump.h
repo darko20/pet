@@ -71,7 +71,7 @@ using namespace std;
  * which should be a string describing the grammar and grammar version.
  */
 /*@{*/
-void dump_header(dumper *f, char *description);
+void dump_header(dumper *f, const char *description);
 char *undump_header(dumper *f, int &version);
 /*@}*/
 

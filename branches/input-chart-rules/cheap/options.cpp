@@ -29,40 +29,50 @@
 #include <string>
 #include <unistd.h>
 
-bool opt_shrink_mem, opt_shaping,
-  opt_filter, opt_print_failure,
-  opt_hyper, opt_derivation, opt_rulestatistics, opt_pg,
-  opt_linebreaks, opt_chart_man, opt_interactive_morph, opt_lattice,
-  opt_online_morph, opt_fullform_morph, opt_partial,
-  opt_compute_qc_unif, opt_compute_qc_subs;
+char *grammar_file_name;
+char *opt_mrs;
+int opt_pg;
+int opt_tsdb;
+int opt_server;
+bool opt_interactive_morph;
+tokenizer_id opt_tok;
+int opt_comment_passthrough;
+int opt_chart_mapping;
+default_les_modes opt_default_les;
+int opt_predict_les;
+int opt_packing;
+int opt_nsolutions;
+bool opt_shaping;
+bool opt_filter;
+bool opt_hyper;
+bool opt_chart_man;
+int opt_key;
+char *opt_compute_qc;
+bool opt_compute_qc_unif;
+bool opt_compute_qc_subs;
+int opt_nqc_unif;
+int opt_nqc_subs;
+long int opt_memlimit;
+int opt_timeout;
+int opt_pedgelimit;
+bool opt_shrink_mem;
+int verbosity;
+bool opt_print_failure;
+bool opt_derivation;
+bool opt_rulestatistics;
+int opt_nresults;
+bool opt_partial;
+std::string opt_tsdb_dir;
+bool opt_online_morph;
+bool opt_lattice;
+unsigned int opt_gplevel;
+std::string opt_jxchg_dir;
+bool opt_linebreaks;
 #ifdef YY
 bool opt_yy;
 int opt_nth_meaning;
 #endif
-int opt_chart_mapping;
 
-int opt_nsolutions, opt_nqc_unif, opt_nqc_subs, verbosity, pedgelimit, opt_key, opt_server, opt_nresults, opt_predict_les, opt_timeout;
-default_les_modes opt_default_les;
-int opt_tsdb;
-long int memlimit;
-char *grammar_file_name = 0;
-
-char *opt_compute_qc = 0;
-
-char *opt_mrs = 0;
-
-// 2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
-int opt_comment_passthrough = 0;
-
-// 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting
-// level in MEM-based parse selection
-unsigned int opt_gplevel = 0;
-
-tokenizer_id opt_tok = TOKENIZER_STRING;
-
-std::string opt_tsdb_dir, opt_jxchg_dir;
-
-int opt_packing = 0;
 
 void usage(FILE *f)
 {
@@ -76,9 +86,9 @@ void usage(FILE *f)
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
-  fprintf(f, "  `-timeout=n' --- maximum time (in seconds) spent on analyzing a sentence\n");
-  fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n"); 
-  fprintf(f, "  `-no-filter' --- disable rule filter\n"); 
+  fprintf(f, "  `-timeout=n' --- maximum time (in clock ticks) spent on analyzing a sentence\n");
+  fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n");
+  fprintf(f, "  `-no-filter' --- disable rule filter\n");
   fprintf(f, "  `-qc-unif=n' --- use only top n quickcheck paths (unification)\n");
   fprintf(f, "  `-qc-subs=n' --- use only top n quickcheck paths (subsumption)\n");
   fprintf(f, "  `-compute-qc[=file]' --- compute quickcheck paths (output to file,\n"
@@ -106,8 +116,7 @@ void usage(FILE *f)
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
-  fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
-  fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
+  fprintf(f, "  `-pg[=what]' --- print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
   fprintf(f, "  `-log=[+]file' --- "
@@ -117,10 +126,10 @@ void usage(FILE *f)
   fprintf(f, "  `-jxchgdump directory' --- "
              "write jxchg/approximation chart files to `directory'\n");
   fprintf(f, "  `-partial' --- "
-             "print partial results in case of parse failure\n");  
-  fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
-  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf|fsc' --- "
-             "select input method (default `string')\n");  
+             "print partial results in case of parse failure\n");
+  fprintf(f, "  `-results=n' --- print at most n (full) results\n");
+  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
+             "select input method (default `string')\n");
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
   fprintf(f, "  `-chart-mapping' --- "
@@ -150,7 +159,6 @@ void usage(FILE *f)
 #define OPTION_LATTICE 22
 #define OPTION_NBEST 23
 #define OPTION_NO_ONLINE_MORPH 24
-#define OPTION_NO_FULLFORM_MORPH 25
 #define OPTION_PACKING 26
 #define OPTION_NQC_SUBS 27
 #define OPTION_MRS 28
@@ -174,43 +182,46 @@ void usage(FILE *f)
 
 void init_options()
 {
+  grammar_file_name = 0;
+  opt_mrs = 0;
+  opt_pg = 0;
   opt_tsdb = 0;
+  opt_server = 0;
+  opt_interactive_morph = false;
+  opt_tok = TOKENIZER_STRING;
+  opt_comment_passthrough = 0;
+  opt_chart_mapping = 0;
+  opt_default_les = NO_DEFAULT_LES;
+  opt_predict_les = 0;
+  opt_packing = 0;
   opt_nsolutions = 0;
-  verbosity = 0;
-  pedgelimit = 0;
-  memlimit = 0;
-  opt_shrink_mem = true;
   opt_shaping = true;
   opt_filter = true;
-  opt_nqc_unif = -1;
-  opt_nqc_subs = -1;
+  opt_hyper = true;
+  opt_chart_man = true;
+  opt_key = 0;
   opt_compute_qc = 0;
   opt_compute_qc_unif = false;
   opt_compute_qc_subs = false;
+  opt_nqc_unif = -1;
+  opt_nqc_subs = -1;
+  opt_memlimit = 0;
+  opt_timeout = 0;
+  opt_pedgelimit = 0;
+  opt_shrink_mem = true;
+  verbosity = 0;
   opt_print_failure = false;
-  opt_key = 0;
-  opt_hyper = true;
   opt_derivation = true;
   opt_rulestatistics = false;
-  opt_default_les = NO_DEFAULT_LES;
-  opt_server = 0;
-  opt_pg = false;
-  opt_chart_man = true;
-  opt_interactive_morph = false;
-  opt_lattice = false;
-  opt_online_morph = true;
-  opt_fullform_morph = true;
-  opt_packing = 0;
-  opt_mrs = 0;
-  opt_tsdb_dir = "";
-  opt_partial = false;
   opt_nresults = 0;
-  opt_tok = TOKENIZER_STRING;
+  opt_partial = false;
+  opt_tsdb_dir = "";
+  opt_online_morph = true;
+  opt_lattice = false;
+  opt_gplevel = 0;
   opt_jxchg_dir = "";
-  opt_comment_passthrough = 0;
-  opt_predict_les = 0;
-  opt_timeout = 0;
-  opt_chart_mapping = 0;
+  opt_linebreaks = false;
+
 #ifdef YY
   opt_yy = false;
   opt_nth_meaning = 0;
@@ -250,11 +261,10 @@ bool parse_options(int argc, char* argv[])
 #endif
     {"server", optional_argument, 0, OPTION_SERVER},
     {"log", required_argument, 0, OPTION_LOG},
-    {"pg", no_argument, 0, OPTION_PG},
+    {"pg", optional_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
-    {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
     {"mrs", optional_argument, 0, OPTION_MRS},
     {"tsdbdump", required_argument, 0, OPTION_TSDB_DUMP},
@@ -336,32 +346,41 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_COMPUTE_QC:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+            opt_compute_qc = strdup(optarg);
           else
-              opt_compute_qc = "/tmp/qc.tdl";
+            opt_compute_qc = strdup("/tmp/qc.tdl");
           opt_compute_qc_unif = true;
           opt_compute_qc_subs = true;
           break;
       case OPTION_COMPUTE_QC_UNIF:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+            opt_compute_qc = strdup(optarg);
           else
-              opt_compute_qc = "/tmp/qc.tdl";
+            opt_compute_qc = strdup("/tmp/qc.tdl");
           opt_compute_qc_unif = true;
           break;
       case OPTION_COMPUTE_QC_SUBS:
           if(optarg != NULL)
-              opt_compute_qc = strdup(optarg);
+            opt_compute_qc = strdup(optarg);
           else
-              opt_compute_qc = "/tmp/qc.tdl";
+            opt_compute_qc = strdup("/tmp/qc.tdl");
           opt_compute_qc_subs = true;
           break;
       case OPTION_PRINT_FAILURE:
           opt_print_failure = true;
           break;
       case OPTION_PG:
-          opt_pg = true;
-          break;
+        opt_pg = 1;
+        if(optarg != NULL) {
+          const char *what = "sgta";
+          char *pos = strchr(what, optarg[0]);
+          if(pos != NULL) {
+            opt_pg = 1 + (pos - what);
+          } else {
+            fprintf(ferr,"Invalid argument to -pg, printing only symbols\n");
+          }
+        }
+        break;
       case OPTION_INTERACTIVE_MORPH:
           opt_interactive_morph = true;
           break;
@@ -388,16 +407,16 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_LIMIT:
           if(optarg != NULL)
-              pedgelimit = strtoint(optarg, "as argument to -limit");
+              opt_pedgelimit = strtoint(optarg, "as argument to -limit");
           break;
       case OPTION_MEMLIMIT:
           if(optarg != NULL)
-              memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
+              opt_memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
           break;
       case OPTION_TIMEOUT:
-         if(optarg != NULL)
+          if(optarg != NULL)
               opt_timeout = sysconf(_SC_CLK_TCK) * strtoint(optarg, "as argument to -timeout");
-         break;
+          break;
       case OPTION_LOG:
           if(optarg != NULL)
               if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
@@ -405,9 +424,6 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NO_ONLINE_MORPH:
           opt_online_morph = false;
-          break;
-      case OPTION_NO_FULLFORM_MORPH:
-          opt_fullform_morph = false;
           break;
       case OPTION_PACKING:
           if(optarg != NULL)
@@ -418,9 +434,9 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_MRS:
           if(optarg != NULL)
-              opt_mrs = strdup(optarg);
+            opt_mrs = strdup(optarg);
           else
-              opt_mrs = "simple";
+            opt_mrs = strdup("simple");
           break;
       case OPTION_TSDB_DUMP:
           opt_tsdb_dir = optarg;
@@ -458,12 +474,12 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_JXCHG_DUMP:
           opt_jxchg_dir = optarg;
-          if (*(opt_jxchg_dir.end()--) != '/') 
+          if (*(opt_jxchg_dir.end()--) != '/')
             opt_jxchg_dir += '/';
           break;
       case OPTION_COMMENT_PASSTHROUGH:
           if(optarg != NULL)
-            opt_comment_passthrough = 
+            opt_comment_passthrough =
               strtoint(optarg, "as argument to -comment-passthrough");
           else
               opt_comment_passthrough = 1;
@@ -471,7 +487,7 @@ bool parse_options(int argc, char* argv[])
       case OPTION_PREDICT_LES:
           if (optarg != NULL)
             opt_predict_les = strtoint(optarg, "as argument to -predict-les");
-          else 
+          else
             opt_predict_les = 1;
           break;
       case OPTION_CHART_MAPPING:
@@ -541,8 +557,8 @@ void options_from_settings(settings *set)
   else
       opt_nsolutions = 0;
   verbosity = int_setting(set, "verbose");
-  pedgelimit = int_setting(set, "limit");
-  memlimit = 1024 * 1024 * int_setting(set, "memlimit");
+  opt_pedgelimit = int_setting(set, "limit");
+  opt_memlimit = 1024 * 1024 * int_setting(set, "memlimit");
   opt_timeout = sysconf(_SC_CLK_TCK) * int_setting(set, "timeout");
   opt_hyper = bool_setting(set, "hyper");
   // opt_default_les is not a bool setting anymore but since this function
