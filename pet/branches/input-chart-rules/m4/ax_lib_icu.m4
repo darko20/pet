@@ -90,14 +90,14 @@ AC_DEFUN([AX_LIB_ICU], [
   unset ICU_CPPFLAGS ICU_CPPFLAGS_SEARCHPATH
   unset ICU_CFLAGS ICU_CXXFLAGS ICU_LDFLAGS ICU_LDFLAGS_SEARCHPATH ICU_LIBS
   if test "x$ax_lib_icu" = "xyes" ; then
-    ICU_CPPFLAGS=$($ax_lib_icu_config --cppflags)
-    ICU_CPPFLAGS_SEARCHPATH=$($ax_lib_icu_config --cppflags-searchpath)
-    ICU_CFLAGS=$($ax_lib_icu_config --cflags)
-    ICU_CXXFLAGS=$($ax_lib_icu_config --cxxflags)
-    ICU_LDFLAGS=$($ax_lib_icu_config --ldflags)
-    ICU_LDFLAGS_SEARCHPATH=$($ax_lib_icu_config --ldflags-searchpath)
-    ICU_LIBS=$($ax_lib_icu_config --ldflags-system)
-    ICU_LIBS="$ICU_LIBS $($ax_lib_icu_config --ldflags-libsonly)"
+    ICU_CPPFLAGS=$($ax_lib_icu_config --cppflags | sed -e s/#.*//)
+    ICU_CPPFLAGS_SEARCHPATH=$($ax_lib_icu_config --cppflags-searchpath | sed -e s/#.*//)
+    ICU_CFLAGS=$($ax_lib_icu_config --cflags | sed -e s/#.*//)
+    ICU_CXXFLAGS=$($ax_lib_icu_config --cxxflags | sed -e s/#.*//)
+    ICU_LDFLAGS=$($ax_lib_icu_config --ldflags | sed -e s/#.*//)
+    ICU_LDFLAGS_SEARCHPATH=$($ax_lib_icu_config --ldflags-searchpath | sed -e s/#.*//)
+    ICU_LIBS=$($ax_lib_icu_config --ldflags-system | sed -e s/#.*//)
+    ICU_LIBS="$ICU_LIBS $($ax_lib_icu_config --ldflags-libsonly | sed -e s/#.*//)"
   fi
   
   ax_lib_icu_saved_CPPFLAGS=$CPPFLAGS
@@ -108,6 +108,9 @@ AC_DEFUN([AX_LIB_ICU], [
   CXXFLAGS="$ICU_CXXFLAGS $CXXFLAGS"
   LDFLAGS="$ICU_LDFLAGS $LDFLAGS"
   LIBS="$ICU_LIBS $LIBS"
+  
+  # checking header presence
+  AC_CHECK_HEADERS([unicode/unistr.h], [], [ax_lib_icu="no"])
   
   # checking library functionality
   if test "x$ax_lib_icu" = "xyes" ; then

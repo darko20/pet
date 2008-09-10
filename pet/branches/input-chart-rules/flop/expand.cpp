@@ -24,9 +24,13 @@
 #include "flop.h"
 #include "hierarchy.h"
 #include "partition.h"
+#include "settings.h"
+#include "dag.h"
 
 #include <set>
 #include <boost/graph/topological_sort.hpp>
+
+using namespace std;
 
 /** Is type \a i a pseudo type?
  * Pseudo types are used to define feature structures that do not belong to

@@ -22,6 +22,11 @@
 #include "hierarchy.h"
 #include "dumper.h"
 #include "flop.h"
+#include "options.h"
+#include "dag.h"
+#include "grammar-dump.h"
+
+using std::list;
 
 /** dump a bunch of string pairs that describe various properties of the
  *  grammar.
@@ -219,7 +224,7 @@ kbwritten(dumper *f)
  * \param desc readable description of the current grammar
  */
 void
-dump_grammar(dumper *f, char *desc)
+dump_grammar(dumper *f, const char *desc)
 {
   dump_header(f, desc);
 

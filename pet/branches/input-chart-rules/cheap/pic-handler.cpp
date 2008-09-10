@@ -22,20 +22,21 @@ namespace pic {
 
 const XMLCh yes_str[] = { chLatin_y,  chLatin_e,  chLatin_s, chNull };
 
-bool pic_base_state::req_bool_attr(AttributeList& attr, char *aname) {
+bool pic_base_state::req_bool_attr(AttributeList& attr, const char *aname) {
   const XMLCh *str;
   if ((str = attr.getValue(aname)) == NULL)
     throw Error((string) "required attribute '" + aname + "' missing");
   return (XMLString::compareIString(str, yes_str) == 0);
 }
 
-bool pic_base_state::opt_bool_attr(AttributeList& attr, char *aname, bool def){
+bool pic_base_state::opt_bool_attr(AttributeList& attr, const char *aname,
+    bool def){
   const XMLCh *str;
   if ((str = attr.getValue(aname)) == NULL) return def;
   return (XMLString::compareIString(str, yes_str) == 0);
 }
 
-int pic_base_state::req_int_attr(AttributeList& attr, char *aname) {
+int pic_base_state::req_int_attr(AttributeList& attr, const char *aname) {
   const XMLCh *val;
   if ((val = attr.getValue(aname)) == NULL)
     throw Error((string) "required attribute '" + aname + "' missing");
@@ -48,7 +49,8 @@ int pic_base_state::req_int_attr(AttributeList& attr, char *aname) {
   return res;
 }
 
-int pic_base_state::opt_int_attr(AttributeList& attr, char *aname, int def) {
+int pic_base_state::opt_int_attr(AttributeList& attr, const char *aname,
+    int def) {
   const XMLCh *val;
   if ((val = attr.getValue(aname)) == NULL) return def;
   const char *str = XMLCh2UTF8(val);
@@ -60,9 +62,9 @@ int pic_base_state::opt_int_attr(AttributeList& attr, char *aname, int def) {
   return res;
 }
 
-double pic_base_state::req_double_attr(AttributeList& attr, char *aname) {
+double pic_base_state::req_double_attr(AttributeList& attr, const char *aname) {
   const XMLCh *val;
-  if ((val = attr.getValue(aname)) == NULL) 
+  if ((val = attr.getValue(aname)) == NULL)
     throw Error((string) "required attribute '" + aname + "' missing");
   const char *str = XMLCh2UTF8(val);
   char *end;
@@ -74,7 +76,8 @@ double pic_base_state::req_double_attr(AttributeList& attr, char *aname) {
 }
 
 double
-pic_base_state::opt_double_attr(AttributeList& attr, char *aname, double def) {
+pic_base_state::opt_double_attr(AttributeList& attr, const char *aname,
+    double def) {
   const XMLCh *val;
   if ((val = attr.getValue(aname)) == NULL) return def;
   const char *str = XMLCh2UTF8(val);
@@ -87,7 +90,7 @@ pic_base_state::opt_double_attr(AttributeList& attr, char *aname, double def) {
 }
 
 string pic_base_state::
-req_string_attr(AttributeList &attr, char *aname) {
+req_string_attr(AttributeList &attr, const char *aname) {
   const XMLCh *val = attr.getValue(aname);
   if (val == NULL)
     throw Error((string) "required attribute '" + aname + "' missing");
@@ -101,7 +104,7 @@ req_string_attr(AttributeList &attr, char *aname) {
 }
 
 string pic_base_state::
-opt_string_attr(AttributeList &attr, char *aname) {
+opt_string_attr(AttributeList &attr, const char *aname) {
   const XMLCh *val = attr.getValue(aname);
   if (val == NULL) return "";
 #ifdef HAVE_ICU
@@ -176,7 +179,7 @@ const XMLCh path::tagname[] = {
 };
 
 const XMLCh typeinfo::tagname[] = {
-  chLatin_t, chLatin_y, chLatin_p, chLatin_e, 
+  chLatin_t, chLatin_y, chLatin_p, chLatin_e,
   chLatin_i, chLatin_n, chLatin_f, chLatin_o,
   chNull
 };
@@ -239,7 +242,7 @@ print_sax_exception(const char * errtype, const SAXParseException& e) {
   fprintf(ferr, "%s\n", XMLCh2Latin(e.getMessage()));
 }
 
-void 
+void
 PICHandler::startElement(const XMLCh* const name, AttributeList& attribs)
 {
   // cerr << "I saw Startelement: "<< XMLCh2Latin(name) << endl;
@@ -251,9 +254,9 @@ PICHandler::startElement(const XMLCh* const name, AttributeList& attribs)
     pic::pic_base_state *oldState = _state_stack.top();
     // get the new state from the state factory
     pic::pic_base_state *newState = _state_factory->get_state(name);
-    
+
     if (newState != NULL) {
-      // eventually change from current state into new state on tag NAME  
+      // eventually change from current state into new state on tag NAME
       //cerr << *_state << "<" << *newState;
       try {
         oldState->changeTo(newState, attribs);
@@ -288,7 +291,7 @@ PICHandler::endElement(const XMLCh* const name)
 
     //cerr << " " << *oldstate << ">" << *_state;
     // do anything necessary to finish the old state, eventually get results
-    // from oldstate into new current state 
+    // from oldstate into new current state
     try {
       newState->changeFrom(oldState);
     }
@@ -310,7 +313,7 @@ PICHandler::characters(const XMLCh *const chars, const unsigned int len){
 
 XMLCh _umlaute[] = { 0xE4, 0xFC, 0xF6, 0xC4, 0xDC, 0xD6, 0xDF, chNull} ;
 
-XMLCh isomorphix_umlaut[] = { 
+XMLCh isomorphix_umlaut[] = {
   chLatin_a, chLatin_e, chLatin_u, chLatin_e, chLatin_o, chLatin_e,
   chLatin_A, chLatin_e, chLatin_U, chLatin_e, chLatin_O, chLatin_e,
   chLatin_s, chLatin_s, chNull
@@ -318,7 +321,7 @@ XMLCh isomorphix_umlaut[] = {
 
 int german_umlaut_p(XMLCh c) { return XMLString::indexOf(_umlaute, c); }
 
-string 
+string
 PICHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
   XMLCh* res;
   if (_translate_iso_chars) {
@@ -360,7 +363,7 @@ void PICHandler::add_item(tInputItem *new_item) {
   if (_item_table.find(ext_id) != _item_table.end())
     throw SAXParseException(errmsg((string) "ID '" + ext_id + "' used twice")
                             , *_loc);
-  
+
   _item_table[ext_id] = new_item;
   _items.push_back(new_item);
 }

@@ -61,8 +61,8 @@
 #include "server-xmlrpc.h"
 #endif
 
-char * version_string = VERSION ;
-char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
+const char * version_string = VERSION ;
+const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
 
@@ -129,7 +129,7 @@ void interactive() {
       analyze(input, Chart, FSAS, errors, id);
       if(!errors.empty())
         throw errors.front();
-                
+
       // TODO Who needs this? Can we remove it? (pead 01.04.2008)
       if(verbosity == -1)
         fprintf(stdout, "%d\t%d\t%d\n",
@@ -137,9 +137,9 @@ void interactive() {
 
       string surface = Chart->get_surface_string();
 
-      fprintf(fstatus, 
+      fprintf(fstatus,
               "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-              stats.id, surface.c_str(), pedgelimit, stats.readings, 
+              stats.id, surface.c_str(), opt_pedgelimit, stats.readings,
               stats.first/1000., stats.tcpu / 1000.,
               stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
               TotalParseTime.elapsed_ts() / 10.);
@@ -196,7 +196,7 @@ void interactive() {
           if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
             mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
             if (mrs->valid()) {
-              mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
+              mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
               if (mapped_mrs->valid()) {
                 fprintf(fstatus, "\n");
                 mapped_mrs->print(fstatus);
@@ -234,7 +234,7 @@ void interactive() {
 #endif
       }
     } /* try */
-        
+
     catch(tError e) {
       fprintf(ferr, "%s\n", e.getMessage().c_str());
       if (verbosity > 0)
@@ -265,9 +265,9 @@ void interactive_morphology() {
   while(Lexparser.next_input(std::cin, input)) {
     timer clock;
     list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
-    
-    for(list<tMorphAnalysis>::iterator it = res.begin(); 
-        it != res.end(); 
+
+    for(list<tMorphAnalysis>::iterator it = res.begin();
+        it != res.end();
         ++it) {
       fprintf(stdout, "%s\t", it->base().c_str());
       it->print_lkb(stdout);
@@ -281,61 +281,42 @@ void interactive_morphology() {
 } // interactive_morphology()
 
 
-void dump_glbs(FILE *f) {
-  fprintf(f, "i j GLB(i,j)\n");
-  int i, j;
-  for(i = 0; i < nstatictypes; i++) {
-    prune_glbcache();
-    for(j = 0; j < i; j++)
-      if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
-  }
-  fprintf(f, "\n");
-}
-
-void print_symbol_tables(FILE *f) {
-  fprintf(f, "ID\tTYPE NAME (PRINT NAME)\n");
-  for(int i = 0; i < nstatictypes; i++) {
-    fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
-  }
-  fprintf(f, "\n");
-
-  fprintf(f, "ID\tATTRIBUTE NAME\n");
-  for(int i = 0; i < nattrs; i++) {
-    fprintf(f, "%d\t%s\n", i, attrname[i]);
-  }
-  fprintf(f, "\n");
-}
-
-void print_type_hierarchy(FILE* f)
-{
-  fprintf(f, "%-30s %-7s %s\n", "TYPE", "PROPER", "ALL SUPERTYPES (BUT *top*)");
-  for (int t = 1; t < nstatictypes; t++) {
-    char t_str[100] = "";
-    snprintf(t_str, 100, "%s(%d)", type_name(t), t);
-    char st_str[1000] = "";
-    std::list<type_t> sts = all_supertypes(t);
-    bool first = true;
-    for (std::list<type_t>::iterator it  = sts.begin(); it != sts.end(); it++) {
-      if ((*it) != t) {
-        char str[30] = "";
-        snprintf(str, 30, "%s%s(%d)", first ? "":",", type_name((*it)), (*it));
-        strncat(st_str, str, 30);
-        first = false;
-      }
+void print_grammar(int what, ostream &out) {
+  if(what == 1 || what == 4) {
+    out << ";; TYPE NAMES (PRINT NAMES) ==========================" << endl;
+    for(int i = 0; i < nstatictypes; i++) {
+      out << i << "\t" << type_name(i) << " (" << print_name(i) << ")" << endl;
     }
-    fprintf(f, "%-30s %-7d %s\n", t_str, is_proper_type(t), st_str);
-    // \todo this has to be replaced, but too much for now
-    //dag_print_safe(f, type_dag(i), false, 0);
+
+    out << ";; ATTRIBUTE NAMES ===================================" << endl;
+    for(int i = 0; i < nattrs; i++) {
+      out << i << "\t" << attrname[i] << endl;
+    }
   }
-  fprintf(f, "\n");
-}
 
-void print_grammar(FILE *f) {
-  if(verbosity > 10)
-    dump_glbs(f);
+  out << ";; GLBs ================================================" << endl;
+  if(what == 2 || what == 4) {
+    int i, j;
+    for(i = 0; i < nstatictypes; i++) {
+      prune_glbcache();
+      for(j = 0; j < i; j++)
+        if(glb(i,j) != -1) out << i << ' ' << j << ' ' << glb(i,j) << endl;
+    }
+  }
 
-  print_symbol_tables(f);
-  print_type_hierarchy(f);
+  if(what == 3 || what == 4) {
+    out << endl << " ;; TYPE DAGS ================================" << endl;
+    ReadableDagPrinter dp;
+    for(int i = 0; i < nstatictypes; i++) {
+      out << '(' << i << ") " ;
+      if (type_name(i)[0] == '$')
+        out << "[" << type_name(i) << ']' << endl ;
+      dp.print(out, type_dag(i));
+      out << endl;
+      // \todo this has to be replaced, but too much for now
+      //dag_print_safe(f, type_dag(i), false, 0);
+    }
+  }
 }
 
 void cleanup() {
@@ -349,7 +330,7 @@ void cleanup() {
 
 void process(const char *s) {
   timer t_start;
-  
+
   // initialize the server mode if requested:
 #if defined(YY) && defined(SOCKET_INTERFACE)
   if(opt_server) {
@@ -362,7 +343,7 @@ void process(const char *s) {
   if(opt_server)
     server = std::auto_ptr<tXMLRPCServer>(new tXMLRPCServer(opt_server));
 #endif
-  
+
   try {
     string base = raw_name(s);
     cheap_settings = new settings(base.c_str(), s, "reading");
@@ -398,16 +379,16 @@ void process(const char *s) {
     }
     Lexparser.register_lexicon(new tInternalLexicon());
 
-    
+
     // \todo this cries for a separate tokenizer factory
     tTokenizer *tok;
     switch (opt_tok) {
-    case TOKENIZER_YY: 
-    case TOKENIZER_YY_COUNTS: 
+    case TOKENIZER_YY:
+    case TOKENIZER_YY_COUNTS:
       {
         char *classchar = cheap_settings->value("class-name-char");
         if (classchar != NULL)
-          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS 
+          tok = new tYYTokenizer((opt_tok == TOKENIZER_YY_COUNTS
                                   ? STANDOFF_COUNTS : STANDOFF_POINTS),
                                  classchar[0]);
         else
@@ -415,12 +396,12 @@ void process(const char *s) {
                                   ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
-    case TOKENIZER_STRING: 
-    case TOKENIZER_INVALID: 
+    case TOKENIZER_STRING:
+    case TOKENIZER_INVALID:
       tok = new tLingoTokenizer(); break;
 
     case TOKENIZER_PIC:
-    case TOKENIZER_PIC_COUNTS: 
+    case TOKENIZER_PIC_COUNTS:
 #ifdef HAVE_XML
       xml_initialize();
       XMLServices = true;
@@ -466,7 +447,7 @@ void process(const char *s) {
       fprintf(ferr, "No XML input mode compiled into this cheap\n");
       exit(1);
 #endif
-      
+
     default:
       tok = new tLingoTokenizer(); break;
     }
@@ -508,20 +489,20 @@ void process(const char *s) {
   fflush(fstatus);
 
   if(opt_pg) {
-    print_grammar(stdout);
+    print_grammar(opt_pg, cout);
   }
   else {
     initialize_version();
-        
+
 #if defined(YY) && defined(SOCKET_INTERFACE)
     if(opt_server)
       cheap_server(opt_server);
-    else 
+    else
 #endif
 #if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
     if (opt_server) {
       server->run();
-    } else 
+    } else
 #endif
 #ifdef TSDBAPI
       if(opt_tsdb)

@@ -52,7 +52,7 @@ class fs
   /** Construct fs from typedag of \a type */
   fs(type_t type);
   /** Construct minimal fs containing \a path ending in typedag for \a type.
-   *  \attention there are no checks whether the resulting fs is valid! 
+   *  \attention there are no checks whether the resulting fs is valid!
    */
   fs(char *path, type_t type);
   /** Construct minimal fs containing \a path ending in typedag for \a type.
@@ -70,7 +70,7 @@ class fs
 
   /** Destructor */
   inline ~fs() {};
-  
+
   /** Assignment operator: flat copy */
   inline fs &operator=(const fs &f)
   { _dag = f._dag; _temp = f._temp; return *this; }
@@ -92,7 +92,7 @@ class fs
   fs get_attr_value(char *attr) const;
 
   /** Return a new fs representing the subdag under \a path, if this Path
-      exists in the fs. */  
+      exists in the fs. */
   fs get_path_value(const list_int *path) const;
   /** Return a new fs representing the subdag under \a path, if this Path
       exists in the fs. */  
@@ -148,7 +148,7 @@ class fs
 
   /** Return size of this fs. _fix_me_ not implemented */
   inline int size() const { return 1; /* dag_size(_dag); */ }
-  
+
   /** Return internal representation of fs */
   inline dag_node *dag() const { return _dag; }
   /** If the underlying dag is a non-permanent dag, return the generation it
@@ -172,7 +172,7 @@ class fs
    * \return \c true if the modifications succeed, \c false otherwise.
    */
   bool modify(modlist &mods);
-  
+
   /** \brief Try to apply as many modifications in \a mods as possible to this
    *  fs. If this succeeds, the fs is destructively modified,
    *
@@ -192,21 +192,21 @@ class fs
    *  Make sure that \a path exists (if possible), go to the end of that path,
    *  which must contain a f.s. list and try to find the element of the list
    *  where \a attr is not already filled and \a attr : \a value can be unified
-   *  into. 
+   *  into.
    *  \return \c true if the operation succeeded, \c false otherwise
    */
-  bool characterize(list_int *path, attr_t attr, type_t value);  
+  bool characterize(list_int *path, attr_t attr, type_t value);
 
   /** Print readably for debugging purposes */
   void print(std::ostream &out, class AbstractDagPrinter &dp) const;
 
 
   /** Initialize the static variables for quick check appropriately */
-  static void 
+  static void
   init_qc(qc_node *unif, int unif_len, qc_node *subs, int subs_len){
     _qc_paths_unif = unif; _qc_len_unif = unif_len;
     _qc_paths_subs = subs; _qc_len_subs = subs_len;
-  }    
+  }
 
   static int get_unif_qc_length() { return _qc_len_unif; }
   static int get_subs_qc_length() { return _qc_len_subs; }
@@ -225,7 +225,7 @@ class fs
    *  respect to unification. \a qc_len is the length of the vectors.
    */
   static bool qc_compatible_unif(const qc_vec &a, const qc_vec &b);
-  
+
   /** Check to quick check vectors \a a and \a b for compatibility with respect
    *  to subsumption in both directions. \a qc_len is the length of the
    *  vectors. If \a a subsumes \a b, \a forward is \c true on return,
@@ -238,7 +238,7 @@ class fs
                      bool &forward, bool &backward);
 
  private:
-  
+
   struct dag_node *_dag;
   int _temp;
 
@@ -257,7 +257,7 @@ class fs
   friend fs unify_np(fs &root, const fs &, fs &);
   friend void subsumes(const fs &a, const fs &b, bool &forward, bool &backward);
 
-  friend fs 
+  friend fs
     packing_partial_copy(const fs &a, const class restrictor &r, bool perm);
 
 
@@ -280,7 +280,7 @@ inline bool operator>(const fs &a, const fs &b)
  *  \param stat if \c true, will count unification statistics.
  *  If the unification failed, the resulting fs will not be valid.
  */
-extern fs 
+extern fs
 unify_restrict(fs &root, const fs & fs1, fs & fs2, list_int *del, bool stat);
 
 /** Unify two feature structures and return the result.
@@ -290,12 +290,12 @@ unify_restrict(fs &root, const fs & fs1, fs & fs2, list_int *del, bool stat);
  *  If the unification failed, the resulting fs will not be valid.
  */
 inline fs unify(fs &root, const fs &a, fs &b) {
-  return unify_restrict(root, a, b, 0, false); 
+  return unify_restrict(root, a, b, 0, false);
 }
 
 /** Do a unification without partial copy, results in temporary dag. np stands
  *  for "non permanent".
- *  \a root is the dag that contains \a a as subnode. 
+ *  \a root is the dag that contains \a a as subnode.
  *  \a a is unified with \a b and the result is returned.
  *  If the unification failed, the resulting fs will not be valid.
  */
@@ -313,7 +313,7 @@ extern void subsumes(const fs &a, const fs &b, bool &forward, bool &backward);
 /** Return a restricted (maybe \a permanent) copy of \a a according to
  * restrictor \a del.
  */
-fs 
+fs
 packing_partial_copy(const fs &a, const class restrictor &del, bool permanent);
 
 /** clone \a a (make a deep copy). */
@@ -344,10 +344,10 @@ class fs_alloc_state
     {
         dag_alloc_mark(_state);
     }
-    
+
     /** Destructor.
      * Eventually call release(), if the state was created with \c auto_release
-     * = \c true 
+     * = \c true
      */
     inline ~fs_alloc_state()
     {
@@ -370,7 +370,7 @@ class fs_alloc_state
     {
         dag_alloc_clear_stats();
     }
-    
+
     /**
      * Reports how much memory (in bytes) is required for storing all permanent
      * or temporary fs's that have been created so far (as if memory was not
@@ -390,19 +390,19 @@ class fs_alloc_state
     {
         return dag_alloc_static_mem();
     }
-    
+
     /** Release all memory allocated for feature structures. */
     void reset()
     {
         dag_alloc_reset();
     }
-    
+
     /** Tell the allocator to release memory chunks if it is convenient. */
     void may_shrink()
     {
         dag_alloc_may_shrink();
     }
-    
+
  private:
     struct dag_alloc_state _state;
     bool _auto;

@@ -31,7 +31,7 @@ namespace pic {
  * everywhere), is selected based on the source state, while the enterState
  * method is selected based on the target state and has to be implemented only
  * for existing state transitions.
- * 
+ *
  * This implementation requires two virtual function calls per state
  * transition, but keeps the code compact.
  */
@@ -46,7 +46,7 @@ public:
    * same way. They only exist to implement the double dispatch. Use the macro
    * \c STATE_COMMON_CODE for clarity and to avoid typos.
    */
-  /*@{*/  
+  /*@{*/
   /* Change into a new state. This function is called in the startElement
    * method of the document handler and dispatches on the basis of the source
    * state.
@@ -57,11 +57,11 @@ public:
   /* Change back into a previous state. This function is called in the
    * endElement method of the document handler and dispatches on the basis of
    * the current state.
-   */  
+   */
   virtual void changeFrom(pic_base_state* curr) = 0;
   /* { curr->leaveState(this); } */
   /*@}*/
-  
+
   /** Virtual clone function that mimics a virtual copy constructor */
   virtual pic_base_state *clone() = 0;
 
@@ -74,13 +74,13 @@ public:
    * There is one such method for each state pair, eventually implemented in
    * this superclass. The transport of information is handled between the two
    * states, and the object that calls this method is always the new state.
-   * The default implementation rejects the transition from one state into 
+   * The default implementation rejects the transition from one state into
    * another, because the transition table is sparse. This is just a safety net
    * that might be removed if everything works OK.
    *
    * \param state The current state.
    * \param attr  The list of XML attributes of the node associated with the
-   *              new state 
+   *              new state
    */
   /*@{*/
   virtual void enterState(class pic_base_state* state, AttributeList& attr);
@@ -133,25 +133,25 @@ public:
  * Helper Functions for different types of attributes with error handling.
  */
 /*@{*/
-bool req_bool_attr(AttributeList& attr, char *aname);
-bool opt_bool_attr(AttributeList& attr, char *aname, bool def);
-int req_int_attr(AttributeList& attr, char *aname);
-int opt_int_attr(AttributeList& attr, char *aname, int def);
-double req_double_attr(AttributeList& attr, char *aname);
-double opt_double_attr(AttributeList& attr, char *aname, double def);
-std::string req_string_attr(AttributeList &attr, char *aname);
-std::string opt_string_attr(AttributeList &attr, char *aname);
+bool req_bool_attr(AttributeList& attr, const char *aname);
+bool opt_bool_attr(AttributeList& attr, const char *aname, bool def);
+int req_int_attr(AttributeList& attr, const char *aname);
+int opt_int_attr(AttributeList& attr, const char *aname, int def);
+double req_double_attr(AttributeList& attr, const char *aname);
+double opt_double_attr(AttributeList& attr, const char *aname, double def);
+std::string req_string_attr(AttributeList &attr, const char *aname);
+std::string opt_string_attr(AttributeList &attr, const char *aname);
 /*@}*/
 
 protected:
   /** The XML SAX parser handler this state belongs to */
   PICHandler *_reader;
-  
+
 };
 
 
 /** Code common to all classes that may not be put into the base class
- * 
+ *
  * Double Dispatch Functions:
  * These two functions have to be implemented in every subclass of
  * pic_base_state in the same way. They only exist to implement the double
@@ -244,7 +244,7 @@ public:
     // If no add_item has been called and the _item_list is empty, we create a
     // WORD_TOKEN_CLASS input item that has to be analyzed internally
     if (_items == 0) {
-      tInputItem *new_item 
+      tInputItem *new_item
         = new tInputItem(_id, _cstart, _cend, _surface, ""
                          , (_paths.empty() ? tPaths() : tPaths(_paths))
                          , _constant ? SKIP_TOKEN_CLASS : WORD_TOKEN_CLASS);
@@ -273,7 +273,7 @@ public:
       if ((tokenclass = lookup_type(stem)) == T_BOTTOM)
         throw Error((std::string) "unknown type in w tag '" + stem + "'");
     }
-    tInputItem *new_item 
+    tInputItem *new_item
       = new tInputItem(id, _cstart, _cend, _surface, stem
                        , (_paths.empty() ? tPaths() : tPaths(_paths))
                        , tokenclass, mods);
@@ -308,17 +308,17 @@ class ne : public pic_base_state {
 public:
   // _prio must be initialized because otherwise there can be floating point
   // exceptions due to uninitialized values
-  ne(PICHandler *picreader) 
+  ne(PICHandler *picreader)
     : pic_base_state(picreader), _prio(0), _items(0) {};
   virtual ~ne() {}
-  
+
   /** pet_input_chart state --> ne state. */
   virtual void
   enterState(pet_input_chart* state, AttributeList& attr) {
     _id = req_string_attr(attr, "id");
     _prio = opt_double_attr(attr, "prio", 0.0);
     // Remember enclosing node to resolve the id references to the base input
-    // items 
+    // items
     //_pic_state = state;
   }
 
@@ -334,9 +334,9 @@ public:
   void add_pos(std::string tag, double prio) {
     _pos.add(tag, prio);
   }
-  
+
   /** Append the next given daughter to the daughters list */
-  void append_dtr(const std::string &id) { 
+  void append_dtr(const std::string &id) {
     //tInputItem *item = _pic_state->get_item(id);
     tInputItem *item = _reader->get_item(id);
     if (item == NULL) throw Error((std::string) "unknown item '" + id + "'");
@@ -384,10 +384,10 @@ class path : public pic_base_state {
 public:
   path(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~path() {}
-  
+
   /** w state --> path state: Add the new path to the enclosing w item */
   virtual void enterState(w* state, AttributeList& attr) {
-    state->add_path(req_int_attr(attr, "num")); 
+    state->add_path(req_int_attr(attr, "num"));
   }
 
 };
@@ -408,9 +408,9 @@ public:
   // exceptions due to uninitialized values
   typeinfo(PICHandler *picreader) : pic_base_state(picreader), _prio(0) {} ;
   virtual ~typeinfo() {}
-  
+
   /** @name w state <--> typeinfo state. */
-  /*@{*/  
+  /*@{*/
   /** Get base attributes*/
   virtual void
   enterState(w* state, AttributeList& attr) { get_attributes(attr); }
@@ -423,7 +423,7 @@ public:
   /*@}*/
 
   /** @name ne state <--> typeinfo state. */
-  /*@{*/  
+  /*@{*/
   /** Get base attributes*/
   virtual void
   enterState(ne* state, AttributeList& attr) { get_attributes(attr); }
@@ -481,7 +481,7 @@ public:
 
 };
 
-/** pic state representing the fsmod token (a feature structure modification) 
+/** pic state representing the fsmod token (a feature structure modification)
  */
 class fsmod : public pic_base_state {
   STATE_COMMON_CODE(fsmod)
@@ -505,19 +505,19 @@ class pos : public pic_base_state {
 public:
   pos(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~pos() {}
-  
+
   /** w state --> pos state. */
   virtual void enterState(w* state, AttributeList& attr) {
     state->add_pos(req_string_attr(attr, "tag")
                    , req_double_attr(attr, "prio"));
   }
-  
+
   /** ne state --> pos state. */
   virtual void enterState(ne* state, AttributeList& attr) {
     state->add_pos(req_string_attr(attr, "tag")
                    , req_double_attr(attr, "prio"));
   }
-  
+
 };
 
 /** pic state representing a surface token (a string) */
@@ -533,7 +533,7 @@ public:
   /** @name w state <--> surface state. */
   /*@{*/
   /** A do nothing */
-  virtual void enterState(w* state, AttributeList& attr) {} 
+  virtual void enterState(w* state, AttributeList& attr) {}
 
   /** set the surface string of the w node */
   virtual void leaveState(w* prev) { prev->set_surface(_surface); }
@@ -561,7 +561,7 @@ public:
   /** @name typeinfo state <--> stem state. */
   /*@{*/
   /** A do nothing */
-  virtual void enterState(typeinfo* state, AttributeList& attr) {} 
+  virtual void enterState(typeinfo* state, AttributeList& attr) {}
 
   /** set the stem string of the typedef node */
   virtual void leaveState(typeinfo* prev) { prev->set_stem(_surface); }
@@ -582,7 +582,7 @@ class ref : public pic_base_state {
 public:
   ref(PICHandler *picreader) : pic_base_state(picreader) {} ;
   virtual ~ref() {}
-  
+
   /** ne state --> ref state: Add the next daughter to the enclosing ne node */
   virtual void enterState(ne* state, AttributeList& attr) {
     state->append_dtr(req_string_attr(attr, "dtr"));
@@ -648,9 +648,9 @@ public:
   virtual ~STATE_CLASS() {}
 
   STATE_COMMON_CODE(STATE_CLASS)
-  
+
   /** state <--> state. */
-  /*@{*/  
+  /*@{*/
   /** */
   virtual void enterState(* state, AttributeList& attr) { }
 
@@ -673,9 +673,9 @@ public:
   virtual ~STATE_CLASS() {}
 
   STATE_COMMON_CODE(STATE_CLASS)
-  
+
   /** state <--> state. */
-  /*@{*/  
+  /*@{*/
   /** */
   virtual void enterState(* state, AttributeList& attr) { }
   /*@}*/

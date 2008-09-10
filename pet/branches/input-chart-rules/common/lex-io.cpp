@@ -52,7 +52,7 @@ lex_file *CURR;
 
 int total_lexed_lines = 0;
 
-struct lex_location *new_location(char *fname, int linenr, int colnr)
+struct lex_location *new_location(const char *fname, int linenr, int colnr)
 {
   struct lex_location *loc = (struct lex_location *) malloc(sizeof(struct lex_location));
 
@@ -63,7 +63,7 @@ struct lex_location *new_location(char *fname, int linenr, int colnr)
   return loc;
 }
 
-void push_file(const string &fname, char *info) {
+void push_file(const string &fname, const char *info) {
   lex_file f;
   struct stat statbuf;
 
@@ -108,7 +108,7 @@ void push_file(const string &fname, char *info) {
   
   f.pos = 0;
   f.linenr = 1; f.colnr = 1;
-  f.info = info;
+  f.info = (info != NULL ? strdup(info) : NULL);
 
   file_stack[file_nest++] = f;
 

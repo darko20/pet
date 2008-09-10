@@ -73,15 +73,15 @@ std::string convert_escapes(const std::string &s);
 std::string escape_string(const std::string &s);
 
 /** return current date and time in static string; client must not free() */
-char *current_time(void);
+const char *current_time(void);
 
 /** Return \c true if \a filename exists and is not a directory */
 bool file_exists_p(const char *filename);
 
 /** Extract the directory component of a pathname and return it.
- *  \returns an empty string, if \a pathname did not contain a path separator
- *           character, the appropriate substring otherwise
- *           (with the path separator at the end)
+ *  \return an empty string, if \a pathname did not contain a path separator
+ *          character, the appropriate substring otherwise
+ *          (with the path separator at the end)
  */
 std::string dir_name(const char *pathname);
 
@@ -98,8 +98,8 @@ std::string raw_name(const char *pathname);
  * \param ext   the extension of the file
  * \param base  if given, the directory component of the pathname.
  *
- * \returns the full pathname of the file, if it exists with or without
- *          extension, an empty string otherwise.
+ * \return the full pathname of the file, if it exists with or without
+ *         extension, an empty string otherwise.
  */
 std::string 
 find_file(const char *name, const char *extension, const char *base = NULL);
@@ -107,10 +107,10 @@ find_file(const char *name, const char *extension, const char *base = NULL);
 /** Produce an output file name from an input file name \a in by replacing the 
  *  \a oldextension (if existent) by \a newextension or appending the 
  *  \a newextension otherwise.
- *  \returns the new string
+ *  \return the new string
  */
 std::string
-output_name(const std::string &name, char *oldextension, const char *newextension);
+output_name(const std::string &name, const char *oldextension, const char *newextension);
 
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.

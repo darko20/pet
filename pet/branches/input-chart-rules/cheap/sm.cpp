@@ -397,7 +397,7 @@ void
 tMEM::readModel(const string &fileName)
 {
     push_file(fileName, "reading ME model");
-    char *sv = lexer_idchars;
+    const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
     parseModel();
     lexer_idchars = sv;

@@ -28,7 +28,7 @@
 
 using std::string;
 
-settings::settings(const char *name, const char *base, char *message)
+settings::settings(const char *name, const char *base, const char *message)
   : _li_cache() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
@@ -39,9 +39,9 @@ settings::settings(const char *name, const char *base, char *message)
     _prefix = dir_name(base);
 
     // fname contains the full pathname to the settings file, except for the
-    // extension, first in the directory the base path points to  
+    // extension, first in the directory the base path points to
     _fname = _prefix + name + SET_EXT;
-      
+
     if(! file_exists_p(_fname.c_str())) {
       // We could not find the settings file there, so try it in the
       // subdirectory predefined for settings
@@ -53,14 +53,14 @@ settings::settings(const char *name, const char *base, char *message)
     // The full pathname is in "name"
     _fname = name;
   }
-  
+
   if(file_exists_p(_fname.c_str())) {
     push_file(_fname, message);
-    char *sv = lexer_idchars;
+    const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
     parse();
     lexer_idchars = sv;
-    
+
   }
   _lloc = 0;
 }
@@ -82,7 +82,7 @@ settings::~settings() {
   }
 }
 
-/** Do a linear search for \a name in the settings and return the first 
+/** Do a linear search for \a name in the settings and return the first
  * matching setting.
  */
 setting *settings::lookup(const char *name) {
@@ -138,7 +138,7 @@ bool settings::member(const char *name, const char *value)
   for(int i = 0; i < set->n; i++)
     if(strcasecmp(set->values[i], value) == 0)
       return true;
-  
+
   return false;
 }
 
@@ -187,7 +187,7 @@ std::set<std::string> settings::smap(const char *name, int key_type)
                   "`%s' mapping - ignored\n", name);
           break;
         }
-      
+
       char *lhs = set->values[i], *rhs = set->values[i+1];
       int id = lookup_type(lhs);
       if(id != -1)
@@ -198,7 +198,7 @@ std::set<std::string> settings::smap(const char *name, int key_type)
       else
         fprintf(ferr, "warning: unknown type `%s' in "
                 "`%s' mapping - ignored\n", name, lhs);
-      
+
     }
 
   return res;
@@ -262,7 +262,7 @@ void settings::parse_one()
   if(LA(0)->tag != T_DOT)
     {
       match(T_ISEQ, "option setting", true);
-      
+
       while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
         {
           if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
@@ -281,7 +281,7 @@ void settings::parse_one()
               fprintf(ferr, "ignoring `%s' at %s:%d...\n", LA(0)->text,
                       LA(0)->loc->fname, LA(0)->loc->linenr);
             }
-          
+
           consume(1);
         }
     }
@@ -299,7 +299,7 @@ void settings::parse() {
     }
     else if(LA(0)->tag == T_KEYWORD && strcmp(LA(0)->text, "include") == 0) {
       consume(1);
-      
+
       if(LA(0)->tag != T_STRING) {
         fprintf(ferr, "expecting include file name at %s:%d...\n",
                 LA(0)->loc->fname, LA(0)->loc->linenr);
@@ -307,9 +307,9 @@ void settings::parse() {
       else {
         string ofname = _prefix + LA(0)->text + SET_EXT;
         consume(1);
-        
+
         match(T_DOT, "`.'", true);
-        
+
         if(file_exists_p(ofname.c_str())) {
           push_file(ofname, "including");
         } else {

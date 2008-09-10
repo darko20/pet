@@ -21,6 +21,10 @@
 
 #include "flop.h"
 #include "hierarchy.h"
+#include "lex-io.h"
+#include "utility.h"
+
+using namespace std;
 
 int strcount(char *s, char c)
 {

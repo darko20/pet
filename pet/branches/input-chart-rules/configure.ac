@@ -239,6 +239,7 @@ unset CHEAPCPPFLAGS CHEAPCXXFLAGS CHEAPLDFLAGS CHEAPLIBS
 AX_BOOST_BASE([], [boost="yes"], [boost="no"])
 AX_BOOST_REGEX([], [boost=no])
 if test "$boost" = "yes" ; then
+  CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
   AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp \
                     boost/graph/topological_sort.hpp \
                     boost/lambda/lambda.hpp \
@@ -253,6 +254,7 @@ if test "$boost" = "yes" ; then
                    [AC_MSG_WARN([Boost::Regex is not configured for ICU.
                                  No Unicode-support in regular expressions.])],
                    [])
+  CPPFLAGS="${savedCPPFLAGS}"
 fi
 if test "$boost" = "yes" ; then
   FLOPCPPFLAGS="${BOOST_CPPFLAGS} ${FLOPCPPFLAGS}"
@@ -312,7 +314,7 @@ fi
 if test "x$xml" = "xyes" ; then
   LDFLAGS="$ICU_LDFLAGS_SEARCHPATH $LDFLAGS"
   LIBS="$ICU_LIBS $LIBS"
-  AC_CHECK_LIB([xerces-c], [_init], [ xml="yes" ],
+  AC_CHECK_LIB([xerces-c], [main], [ xml="yes" ],
     [
       xml="no"
       AC_MSG_WARN([Xerces C++ library not found for --with-xml; DISABLED])

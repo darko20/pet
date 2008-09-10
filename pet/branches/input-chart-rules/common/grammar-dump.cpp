@@ -22,7 +22,7 @@
 #include "grammar-dump.h"
 
 void
-dump_header(dumper *f, char *desc)
+dump_header(dumper *f, const char *desc)
 {
     f->dump_int(DUMP_MAGIC);
     f->dump_int(DUMP_VERSION);
