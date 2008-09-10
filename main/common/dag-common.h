@@ -178,6 +178,11 @@ dag_node *dag_create_attr_value(attr_t attr, dag_node *val);
  */
 dag_node *dag_get_path_value(dag_node *dag, const char *path);
 
+/** Follow the \a path of attributes starting at \a dag and return the
+ *  node at the end, if it exists, \c FAIL otherwise.
+ */
+dag_node *dag_get_path_value(dag_node *dag, list_int *path);
+
 /** Create a minimal feature structure that contains the arc path
  *  \a path and where the node at the bottom has type \a type.
  *  \a path must to be a list of (known) attribute names, separated by dots.
@@ -205,11 +210,6 @@ dag_node *dag_create_path_value(list_int *path, struct dag_node *dag);
  */
 list_int *path_to_lpath(const char *path);
 
-/** Follow the \a path of attributes starting at \a dag and return the
- *  node at the end, if it exists, \c FAIL otherwise.
- */
-dag_node *dag_get_path_value(dag_node *dag, list_int *path);
-
 /** Convert a list encoded in a feature structure into a STL list of dag
  *  nodes.
  */
@@ -221,6 +221,19 @@ std::list<dag_node *> dag_get_list(dag_node* first);
  *  \attention As already said, the FS list is in reverse order.
  */ 
 dag_node *dag_listify_ints(list_int *l);
+
+/**
+ * Get the substructure under <attr>.REST*(n-1).FIRST if it exists, \c FAIL
+ * otherwise, where \a attr is the code for the attribute <attr> .
+ */
+dag_node *dag_nth_element(struct dag_node *dag, int attr, int n);
+
+/**
+ * Get the substructure under <path>.REST*(n-1).FIRST if it exists, \c FAIL
+ * otherwise, where \a path contains a list of the attribute's codes that
+ * form the path <path>.
+ */
+dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n);
 
 /** Get the substructure under ARGS.REST*(n-1).FIRST if it exists, \c FAIL
  *  otherwise. 
