@@ -126,7 +126,7 @@ struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
   return arg;
 }
 
-struct dag_node *dag_get_path_value_l(struct dag_node *dag, list_int *path) {
+struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
   while(path) {
     if(dag == FAIL) return FAIL;
     dag = dag_get_attr_value(dag, first(path));
