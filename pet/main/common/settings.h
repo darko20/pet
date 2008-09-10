@@ -47,9 +47,9 @@ struct setting
 class settings
 {
  public:
-  settings(const char *name, const char *base, char *message = 0);
+  settings(const char *name, const char *base, const char *message = 0);
   ~settings();
-  
+
   setting *lookup(const char *name);
 
   char *value(const char *name);
