@@ -1,4 +1,17 @@
 v0.99.??
+  - more harmonization with chart-mapping branch:
+    * added dag_nth_element()
+    * implemented fs::fs(char *path, type_t type)
+    * added fs::fs(const list_int *path, type_t type)
+    * added fs::get_path_value(const list_int *path) const
+    * added fs::get_list() const 
+    * renamed dag_get_path_value_l to dag_get_path_value 
+  - made cheap/options.* less messy:
+    * added doxygen comments for options
+    * one option variable per line
+    * grouped options by function
+    * removed opt_fullform_morph
+    * renamed memlimit to opt_memlimit 
   - turn cheap.cpp/print-grammar and -pg into a useful function
   - fix type addenda problem when using same coreference names (closes
     ticket #16)
