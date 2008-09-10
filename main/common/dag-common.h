@@ -208,7 +208,7 @@ list_int *path_to_lpath(const char *path);
 /** Follow the \a path of attributes starting at \a dag and return the
  *  node at the end, if it exists, \c FAIL otherwise.
  */
-dag_node *dag_get_path_value_l(dag_node *dag, list_int *path);
+dag_node *dag_get_path_value(dag_node *dag, list_int *path);
 
 /** Convert a list encoded in a feature structure into a STL list of dag
  *  nodes.
