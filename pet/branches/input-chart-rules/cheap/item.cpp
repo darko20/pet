@@ -712,24 +712,22 @@ tItem::contains_p(const tItem *it) const
 //
 
 void
-tItem::block(int mark)
+tItem::block(int mark, bool freeze_parents)
 {
-    if(verbosity > 4)
-    {
-      cerr << (mark == 1 ? "frost" : "freez") << "ing " << *this << endl;
-    }
-    if(!blocked() || mark == 2)
-    {
-        if(mark == 2)
-            stats.p_frozen++;
+  if (verbosity > 4) {
+    cerr << (mark == 1 ? "frost" : "freez") << "ing " << *this << endl;
+  }
+  if (!blocked() || mark == 2) {
+    if (mark == 2)
+      stats.p_frozen++;
 
-        _blocked = mark;
+    _blocked = mark;
+  }
+  if (freeze_parents) {
+    for (item_iter p = parents.begin(); p != parents.end(); ++p) {
+      (*p)->freeze();
     }
-
-    for(item_iter parent = parents.begin(); parent != parents.end(); ++parent)
-    {
-      (*parent)->freeze();
-    }
+  }
 }
 
 //

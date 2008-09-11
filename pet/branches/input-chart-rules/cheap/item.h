@@ -73,7 +73,7 @@ public:
   std::set< std::vector<int> > indices;
   item_list rhs;
   tDecomposition(item_list rhs) {
-    this->rhs = rhs; 
+    this->rhs = rhs;
   }
   tDecomposition(tItem* dtr) {
     this->rhs.push_back(dtr);
@@ -81,7 +81,7 @@ public:
 };
 
 /** Represent a hypothesis with which the item is constructed. */
-struct tHypothesis 
+struct tHypothesis
 {
 public:
   std::map<item_list,double> scores;
@@ -92,7 +92,7 @@ public:
   std::list<tHypothesis*> hypo_parents;
   std::list<tHypothesis*> hypo_dtrs;
   std::vector<int> indices;
-  tHypothesis(tItem* e, tDecomposition* decomp, std::list<tHypothesis*> dtrs, std::vector<int> ind) 
+  tHypothesis(tItem* e, tDecomposition* decomp, std::list<tHypothesis*> dtrs, std::vector<int> ind)
   {
     edge = e;
     inst_edge = NULL;
@@ -129,7 +129,7 @@ public:
 
 
 /** Represent an item in a chart. Conceptually there are input items,
- *  lexical items and phrasal items. 
+ *  lexical items and phrasal items.
  */
 class tItem {
 public:
@@ -219,7 +219,7 @@ public:
     else if(R->trait() == SYNTAX_TRAIT) {
       if(! inflrs_complete_p()) return false;
     }
-      
+
     if(R->spanningonly()) {
       /* This is checked by the next two tests, too.
       if(R->arity() == 1) {
@@ -236,16 +236,16 @@ public:
           return false;
       }
     }
-      
+
     if(opt_shaping == false)
       return true;
-      
+
     if(R->left_extending())
       return _end + R->arity() - 1 <= length;
     else
       return _start - (R->arity() - 1) >= 0;
   }
-  
+
   /** Cheap compatibility tests of a passive and an active item.
    *
    * -- \c INFL and \c INPUT items do not combine with active items
@@ -258,28 +258,28 @@ public:
   {
     if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
-      
+
     if(active->spanningonly()) {
       if(active->nextarg() == 1) {  // is it the first arg?
         if(_start != 0)
           return false;
       } else
         if(active->nextarg() == active->arity() + active->nfilled()) {
-          // or the last? 
+          // or the last?
           if(_end != length)
             return false;
         }
     }
-  
+
     if(opt_lattice && !_paths.compatible(active->_paths))
       return false;
-    
+
     return true;
   }
-  
+
   /** Does this active item extend to the left or right?
    *  \pre assumes \c this is an active item.
-   *  \todo Remove the current restriction to binary rules. 
+   *  \todo Remove the current restriction to binary rules.
    */
   inline bool left_extending() const
   {
@@ -305,13 +305,13 @@ public:
   inline bool root(class tGrammar *G, int length, type_t &rule) const {
     if(_trait == INFL_TRAIT)
       return false;
-    
+
     if(_start == 0 && _end == length)
       return G->root(_fs, rule);
     else
       return false;
   }
-  
+
   /** Return the feature structure of this item.
    * \todo This function is only needed because some items may have temporary
    * dags, which have not been copied after unification. This functionality is
@@ -322,14 +322,14 @@ public:
       recreate_fs();
     return _fs;
   }
-  
+
   /** Return the root type of this item's feature structure */
   type_t type() const {
     // \todo this is not nice. Should be solved by looking into the
     // possibilities of get_fs()
     return const_cast<tItem *>(this)->get_fs().type();
   }
-  
+
   /** Return the number of next argument to fill, ranging from one to
    *  arity().
    */
@@ -339,7 +339,7 @@ public:
    */
   inline fs nextarg(fs &f) const { return f.nth_arg(nextarg()); }
   /** Return the yet to fill arguments of this item, except for the current
-   *  one 
+   *  one
    */
   inline list_int *restargs() const { return rest(_tofill); }
   /** The number of arguments still to be filled */
@@ -374,13 +374,13 @@ public:
   /** This item contributes to a result */
   inline void set_result_contrib() { _result_contrib = true; }
 
-  /** Return the root node type that licensed this item as result, or 
+  /** Return the root node type that licensed this item as result, or
    *  T_BOTTOM, if this item is not a result.
    */
   inline type_t result_root() const { return _result_root; }
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule );
-  
+
   /** Return the unification quick check vector of this item.
    * For active items, this is the quick check vector corresponding to the next
    * daughter that has to be filled, while for passive items, this is the qc
@@ -418,10 +418,12 @@ public:
    * See Oepen & Carroll 2000
    */
   /*@{*/
-  /** Mark an item as temporarily blocked and freeze all its parents. */
-  inline void frost() { block(1); }
-  /** Mark an item as permanently blocked and freeze all its parents. */
-  inline void freeze() { block(2); }
+  /** Mark an item as temporarily blocked and optionally freeze all its parents.
+   */
+  inline void frost(bool freeze_parents = true) { block(1, freeze_parents); }
+  /** Mark an item as permanently blocked and optionally freeze all its parents.
+   */
+  inline void freeze(bool freeze_parents = true) { block(2, freeze_parents); }
   /** \c true if an item is marked as blocked. */
   inline bool blocked() const { return _blocked != 0; }
   /** \c true if an item is marked as temporarily blocked. */
@@ -460,7 +462,7 @@ public:
   bool contains_p(const tItem *) const ;
 
   /** compare two items for linear precendece; used to sort YY tokens */
-  struct precedes 
+  struct precedes
     : public std::binary_function<bool, tItem *, tItem *> {
     bool operator() (tItem *foo, tItem *bar) const {
       return foo->startposition() < bar->startposition();
@@ -492,8 +494,12 @@ protected:
 
 
 private:
-  // Internal function for packing/frosting
-  void block(int mark);
+  /**
+   * Internal function for frosting/freezing
+   * @param mark 1=frost, 2=freeze
+   * @param freeze_parents frost/freeze all parents of this item
+   */
+  void block(int mark, bool freeze_parents);
 
   static class item_owner *_default_owner;
 
@@ -529,8 +535,8 @@ private:
 
   type_t _result_root;
 
-  /** if \c true, this item contributes to some result tree 
-   * \todo check if this description is correct 
+  /** if \c true, this item contributes to some result tree
+   * \todo check if this description is correct
    */
   bool _result_contrib;
 
@@ -545,7 +551,7 @@ private:
 
   int _blocked;
   item_list *_unpack_cache;
-  
+
 public:
   /** The parents of this node */
   item_list parents;
@@ -560,7 +566,7 @@ public:
   friend class tPhrasalItem;
 
   friend class tAbstractItemPrinter;
-  
+
   /**
    * \name Generalized chart interface
    * At the moment, tItem objects can be added to the old chart implementation
@@ -595,7 +601,7 @@ public:
   const tChartVertex* succ_vertex() const;
   //@}
   friend class tChart; // Doxygen doesn't understand this in the member group
-  
+
 };
 
 /** Token classes of an input item.
@@ -610,7 +616,7 @@ enum tok_class { SKIP_TOKEN_CLASS = -3, WORD_TOKEN_CLASS, STEM_TOKEN_CLASS };
 /**
  * tInputItems represent items from the tokenization/input format reading
  * process.
- * 
+ *
  * tInputItems can only have daughters that are tInputItems. That could
  * represent a named entity consisting of several other input tokens.
  * A tInputItem may never be a daughter of a tPhrasalItem, but only of a
@@ -674,9 +680,9 @@ public:
              , const fs &input_fs = fs());
   //@}
   //@}
-  
+
   ~tInputItem() {
-    free_list(_inflrs_todo); 
+    free_list(_inflrs_todo);
   }
 
   INHIBIT_COPY_ASSIGN(tInputItem);
@@ -713,7 +719,7 @@ public:
    * \todo i will fix this when i know what "description" ought to do
    */
   std::string description() const { return _surface; }
-  
+
   /** Return the string(s) that is (are) the input to this item */
   std::string orth() const;
 
@@ -746,8 +752,8 @@ public:
   void set_in_postags(const postags &p) { _postags = p; }
   /** Get the postags coming from the input */
   const postags & get_in_postags() const { return _postags; }
-  /** I've got no clue. 
-   * \todo I'll fix this when i have an idea where supplied postags come from 
+  /** I've got no clue.
+   * \todo I'll fix this when i have an idea where supplied postags come from
    */
   const postags &get_supplied_postags() const { return _postags; }
 
@@ -781,7 +787,7 @@ public:
     return _fs;
   }
 
-  /** Return generic lexical entries for this input token. If \a onlyfor is 
+  /** Return generic lexical entries for this input token. If \a onlyfor is
    * non-empty, only those generic entries corresponding to one of those
    * POS tags are postulated. The correspondence is defined in posmapping.
    */
@@ -804,14 +810,14 @@ public:
 
   /** Return the external id associated with this item */
   const std::string &external_id() const { return _input_id; }
-  
-private:  
+
+private:
   std::string _input_id; /// external ID
 
   int _class; /// token or NE-class (an HPSG type code), or one of tok_class
 
   /** The surface form, as delivered by the tokenizer. May possibly be put into
-   *  tItem's printname 
+   *  tItem's printname
    */
   std::string _surface;
 
@@ -831,7 +837,7 @@ private:
 /** An item created from an input item with a corresponding lexicon
  *  entry or a lexical or morphological rule
  *  This contains also morphological and part of speech information. The
- *  \c tLexItems with only tInputItems as daughters are there to lexical 
+ *  \c tLexItems with only tInputItems as daughters are there to lexical
  *  entries, maybe for multi word expressions. Otherwise, \c tLexItems are the
  *  results of applications of morphological or lexical rules and have
  *  \c tLexItems as daughters. A \c tLexItem can also be a daughter of a
@@ -852,7 +858,7 @@ class tLexItem : public tItem
   tLexItem(tLexItem *from, tInputItem *new_dtr);
 
   ~tLexItem() {
-    free_list(_inflrs_todo); 
+    free_list(_inflrs_todo);
 
     if (_hypo != NULL)
       delete _hypo;
@@ -901,7 +907,7 @@ class tLexItem : public tItem
   bool left_extending() const {
     return _ldot > 0;
   }
-  
+
   /** Return the next argument position to fill */
   int nextarg() const {
     return left_extending() ? _ldot - 1 : _rdot;
@@ -929,7 +935,7 @@ class tLexItem : public tItem
 
   /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const { return _fs.type(); }
-  
+
   /** Cheap compatibility tests of an active tLexItem and a tInputItem.
    *  -- The input items surface string must match the string of the next
    *     argument.
@@ -952,7 +958,7 @@ class tLexItem : public tItem
   virtual item_list unpack1(int limit);
 
   /** \brief Return the \a i th best hypothesis. For tLexItem, there
-   *   is always only one hypothesis, for a given \a path . 
+   *   is always only one hypothesis, for a given \a path .
    */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
@@ -1007,7 +1013,7 @@ class tPhrasalItem : public tItem {
   tPhrasalItem(tPhrasalItem *representative, std::vector<tItem *> &dtrs, fs &newfs);
 
   virtual ~tPhrasalItem() {
-    // clear the hypotheses cache 
+    // clear the hypotheses cache
     for (std::vector<tHypothesis*>::iterator h = _hypotheses.begin();
          h != _hypotheses.end(); h ++)
       delete *h;
@@ -1072,11 +1078,11 @@ class tPhrasalItem : public tItem {
 
  protected:
   /** @name Unpacking Functions
-   * This is the complex case where daughter combinations have to be 
+   * This is the complex case where daughter combinations have to be
    * considered.
    */
   /*@{*/
-  /** Return a list of items that is represented by this item. 
+  /** Return a list of items that is represented by this item.
    * This requires first the unpacking of all daughters, and then generate all
    * possible combinations to compute the unpacked items represented here.
    */
@@ -1114,8 +1120,8 @@ class tPhrasalItem : public tItem {
   /** Instantiatve the hypothesis */
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
 
-  /** Decompose edge and return the number of decompositions 
-   * All the decompositions are recorded in this->decompositions . 
+  /** Decompose edge and return the number of decompositions
+   * All the decompositions are recorded in this->decompositions .
    */
   virtual int decompose_edge();
 
@@ -1166,7 +1172,7 @@ class greater_than_score {
 public:
   greater_than_score(tSM *sm)
     : _sm(sm) {}
-  
+
   bool operator() (tItem *i, tItem *j) {
       return i->score(_sm) > j->score(_sm);
   }
@@ -1178,7 +1184,7 @@ private:
 
 /** Manage proper release of chart items.
  * Destruction of the owner will destroy all items owned by it.
- */ 
+ */
 class item_owner
 {
  public:
@@ -1237,7 +1243,7 @@ tItem::notify_chart_changed(tChart *chart)
 {
   _chart = chart;
 }
-  
+
 inline tChartVertex*
 tItem::prec_vertex()
 {
@@ -1251,7 +1257,7 @@ tItem::prec_vertex() const
   assert(_chart);
   // "this" is const in const member functions, but since the keys in
   // the map are not declared as const, we have to cast "this":
-  tItem* key = const_cast<tItem*>(this); 
+  tItem* key = const_cast<tItem*>(this);
   return (_chart->_item_to_prec_vertex.find(key))->second;
 }
 
@@ -1268,7 +1274,7 @@ tItem::succ_vertex() const
   assert(_chart);
   // "this" is const in const member functions, but since the keys in
   // the map are not declared as const, we have to cast "this":
-  tItem* key = const_cast<tItem*>(this); 
+  tItem* key = const_cast<tItem*>(this);
   return (_chart->_item_to_succ_vertex.find(key))->second;
 }
 
