@@ -42,11 +42,12 @@ using boost::lexical_cast;
 
 // helper function:
 /**
- * Add all \a items that are not included in \a skip to \a result. 
+ * Add all \a items that are not included in \a skip to \a result.
  */
 inline static void
 filter_items(const item_list &items,
     bool skip_blocked,
+    bool skip_pending_inflrs,
     item_list &skip,
     item_list &result)
 {
@@ -54,8 +55,9 @@ filter_items(const item_list &items,
        it != items.end();
        it++)
   {
-    if (!(skip_blocked && (*it)->blocked()) &&
-        (find(skip.begin(), skip.end(), *it) == skip.end()))
+    if (!(skip_blocked && (*it)->blocked())
+        && !(skip_pending_inflrs && !(*it)->inflrs_complete_p())
+        && (find(skip.begin(), skip.end(), *it) == skip.end()))
     {
       result.push_back(*it);
     }
@@ -116,15 +118,15 @@ tChart::add_item(tItem *item, tChartVertex *prec, tChartVertex *succ)
 {
   assert((item != NULL) && (prec != NULL) && (succ != NULL));
   assert((prec->_chart == this) && (succ->_chart == this));
-  
+
   _items.push_back(item);
   _item_to_prec_vertex[item] = prec;
   _item_to_succ_vertex[item] = succ;
   _vertex_to_starting_items[prec].push_back(item);
   _vertex_to_ending_items[succ].push_back(item);
-  
+
   item->notify_chart_changed(this);
-  
+
   return item;
 }
 
@@ -134,15 +136,15 @@ tChart::remove_item(tItem *item)
   assert(item != NULL);
   assert(item->_chart == this);
   assert(_item_to_prec_vertex.find(item) != _item_to_prec_vertex.end());
-  
+
   _vertex_to_starting_items[item->prec_vertex()].remove(item);
   _vertex_to_ending_items[item->succ_vertex()].remove(item);
   _item_to_prec_vertex.erase(item);
   _item_to_succ_vertex.erase(item);
   _items.remove(item);
-  
+
   item->notify_chart_changed(0);
-  
+
   // items are usually released by the tItem::default_owner
 }
 
@@ -155,32 +157,36 @@ tChart::remove_items(item_list items)
 }
 
 item_list
-tChart::items(bool skip_blocked, item_list skip)
+tChart::items(bool skip_blocked, bool skip_pending_inflrs, item_list skip)
 {
   item_list result;
-  filter_items(_items, skip_blocked, skip, result);
+  filter_items(_items, skip_blocked, skip_pending_inflrs, skip, result);
   return result;
 }
 
 item_list
-tChart::same_cell_items(tItem *item, bool skip_blocked, item_list skip)
+tChart::same_cell_items(tItem *item, bool skip_blocked,
+    bool skip_pending_inflrs, item_list skip)
 {
   item_list result;
-  filter_items(item->prec_vertex()->starting_items(), skip_blocked,skip,result);
+  filter_items(item->prec_vertex()->starting_items(), skip_blocked,
+      skip_pending_inflrs, skip, result);
   return result;
 }
 
 item_list
-tChart::succeeding_items(tItem *item, bool skip_blocked, item_list skip)
+tChart::succeeding_items(tItem *item, bool skip_blocked,
+    bool skip_pending_inflrs, item_list skip)
 {
   item_list result;
-  filter_items(item->succ_vertex()->starting_items(), skip_blocked,skip,result);
+  filter_items(item->succ_vertex()->starting_items(), skip_blocked,
+      skip_pending_inflrs, skip, result);
   return result;
 }
 
 item_list
 tChart::all_succeeding_items(tItem *item, bool skip_blocked,
-    item_list skip)
+    bool skip_pending_inflrs, item_list skip)
 {
   item_list result;
   std::list<tChartVertex*> vertices;
@@ -197,7 +203,7 @@ tChart::all_succeeding_items(tItem *item, bool skip_blocked,
         vertices.push_back(succ);
     }
     // add filtered succeeding items to the result list:
-    filter_items(succ_items, skip_blocked, skip, result);
+    filter_items(succ_items, skip_blocked, skip_pending_inflrs, skip, result);
   }
   return result;
 }
@@ -275,7 +281,7 @@ tChartUtil::initialize()
   string e; // errors
   string w; // warnings
   string m; // missing features for interpreting input fs
-  
+
   if (!init_lpath(_token_form_path, "token-form-path", e))
     e += "Setting `token-form-path' required for interpreting input fs.\n";
   if (!init_lpath(_token_id_path, "token-id-path", e))
@@ -303,7 +309,7 @@ tChartUtil::initialize()
     e += "Setting `mapping-output-path' required for chart mapping.\n";
   if (!init_lpath(_poscons_path, "chart-mapping-position-path", e))
     e += "Setting `mapping-position-path' required for chart mapping.\n";
-  
+
   if (!m.empty() && verbosity > 4) {
     m.erase(m.end()-2, m.end()); // erase last ", " from list of missing tags
     w += " [ no input fs mapping for " + m + " ] ";
@@ -319,7 +325,7 @@ tChartUtil::create_input_item(const fs &input_fs)
 {
   if (!input_fs.valid())
     throw tError("Invalid token feature structure.");
-  
+
   string id; // the external id (a concatenation of the ids from input_fs)
   string form;
   string stem;
@@ -330,7 +336,7 @@ tChartUtil::create_input_item(const fs &input_fs)
   int token_class = WORD_TOKEN_CLASS; // default; maybe reset in the following
   list<type_t> infls; // inflectional rules to be applied if STEM_TOKEN_CLASS
   postags tagsnprobs; // part-of-speech tags and probabilities
-  
+
   // extract information from input_fs:
   type_t form_type = input_fs.get_path_value(_token_form_path).type();
   if (form_type != BI_STRING) {
@@ -417,10 +423,10 @@ tChartUtil::create_input_item(const fs &input_fs)
       }
     }
   }
-  
+
   tInputItem *item = new tInputItem(id, vfrom, vto, cfrom, cto, form, stem,
       tPaths(), token_class, modlist(), input_fs);
-  
+
   if (!infls.empty()) {
     if (token_class == WORD_TOKEN_CLASS) {
       throw tError("infl rule type specified although neither a stem nor "
@@ -429,8 +435,8 @@ tChartUtil::create_input_item(const fs &input_fs)
     item->set_inflrs(infls);
   }
   item->set_in_postags(tagsnprobs);
-  
-  return item; 
+
+  return item;
 }
 
 fs
@@ -528,13 +534,13 @@ tChartUtil::create_input_fs(tInputItem* item)
     input_fs = unify(input_fs, input_fs.get_path_value(_token_posprobs_path),
         probs_f);
   }
-  
+
   if (!input_fs.valid()) {
     throw tError("Construction of input feature structure for token "
         "\"" + item->orth() + "\" (external id \"" + item->external_id() +
         "\") failed.");
   }
-  
+
   return input_fs;
 }
 
@@ -542,7 +548,7 @@ tChartUtil::create_input_fs(tInputItem* item)
  * Establishes a topological order, mapping chart vertices to int values
  * indicating the precedence of a vertex (vertices with higher values come
  * before vertices with lower values).
- * \pre exactly one start and end node & no loops in the chart 
+ * \pre exactly one start and end node & no loops in the chart
  */
 static void
 topological_order(tChartVertex *vertex, int &max_value,
@@ -590,7 +596,7 @@ tChartUtil::map_chart(inp_list &input_items, tChart &chart)
 {
   chart.clear();
   hash_map<int, tChartVertex*> vertex_map; // maps char positions to vertices
-  
+
   // convert each input item to a token feature structure:
   for (list<tInputItem*>::iterator item_it = input_items.begin();
        item_it != input_items.end();
@@ -601,7 +607,7 @@ tChartUtil::map_chart(inp_list &input_items, tChart &chart)
     int vto   = (*item_it)->end();           // end vertex as an int
     int cfrom = (*item_it)->startposition(); // external character position
     int cto   = (*item_it)->endposition();   // external character position
-    
+
     // fix vfrom and vto in case that the position_mapper has not performed its
     // job yet:
     if (vfrom == -1 || vto == -1) {
@@ -609,11 +615,11 @@ tChartUtil::map_chart(inp_list &input_items, tChart &chart)
       vfrom = cfrom;
       vto = cto;
     }
-    
+
     // get a chart vertex for the from and to positions:
     tChartVertex *from_v = retrieve_chart_vertex(chart, vertex_map, vfrom);
     tChartVertex *to_v   = retrieve_chart_vertex(chart, vertex_map, vto);
-    
+
     // finally insert a new chart item into the chart
     chart.add_item(*item_it, from_v, to_v);
   }

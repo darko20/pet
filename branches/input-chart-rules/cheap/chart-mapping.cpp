@@ -98,7 +98,7 @@ get_suitable_items(tChart &chart, tChartMappingMatch *match,
   item_list skip = match->matched_items();
 
   // select all items from the chart that have not been matched already:
-  item_list items = chart.items(true, skip);
+  item_list items = chart.items(true, true, skip);
 
   // weed out all items that don't fulfil the positional constraints:
   typedef std::list<tChartMappingPosCons> tPosConsList;
@@ -115,11 +115,11 @@ get_suitable_items(tChart &chart, tChartMappingMatch *match,
     item_list restr; // restrictor set
     switch ((*cons_it).rel) {
       case tChartMappingPosCons::same_cell:
-        restr = chart.same_cell_items(matched_item, true, skip); break;
+        restr = chart.same_cell_items(matched_item, true, true, skip); break;
       case tChartMappingPosCons::succeeding:
-        restr = chart.succeeding_items(matched_item, true, skip); break;
+        restr = chart.succeeding_items(matched_item, true, true, skip); break;
       case tChartMappingPosCons::all_succeeding:
-        restr = chart.all_succeeding_items(matched_item, true, skip); break;
+        restr = chart.all_succeeding_items(matched_item, true, true, skip); break;
     }
     items.remove_if(not_contained_in_list(restr));
   }
