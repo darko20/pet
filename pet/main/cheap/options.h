@@ -46,7 +46,7 @@ extern int opt_pg;
 extern int opt_tsdb;
 /** socket server mode (value: port or 0)*/
 extern int opt_server;
-/** interactive morphology (that is, only lexical parsing) */
+/** interactive morphology (apply only morphological rules, without lexicon) */
 extern bool opt_interactive_morph;
 //@}
 
@@ -120,7 +120,7 @@ extern int opt_nqc_subs;
 //@{
 /** memory limit (in MB) for parsing and unpacking */
 extern long int opt_memlimit;
-/** timeout limit (in clock ticks) for parsing and unpacking */
+/** timeout limit (in s) for parsing and unpacking */
 extern int opt_timeout;
 /** passive edge limit */
 extern int opt_pedgelimit;
