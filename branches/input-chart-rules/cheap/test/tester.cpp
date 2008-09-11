@@ -21,8 +21,8 @@
 
 using std::string;
 
-// required global settings from cheap.cpp 
-char * version_string = VERSION ;
+// required global settings from cheap.cpp
+const char * version_string = VERSION ;
 FILE* ferr = stderr;
 FILE* fstatus = stderr;
 FILE* flog = NULL;
@@ -47,7 +47,7 @@ main(int argc, char **argv)
   cheap_settings = new settings(gramname.c_str(), grampath.c_str(), "reading");
   Grammar = new tGrammar(grampath.c_str());
   fprintf(stderr, "\n");
-  
+
   // create and setup unit testing objects:
   CppUnit::TestResultCollector result;
   CppUnit::CompilerOutputter outputter(&result, std::cerr);
@@ -55,12 +55,12 @@ main(int argc, char **argv)
   CppUnit::TestResult controller;
   CppUnit::TestRunner runner;
   controller.addListener(&result);
-  controller.addListener(&progress);      
+  controller.addListener(&progress);
   runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
-  
+
   // run tests:
   runner.run(controller);
-  outputter.write();    
-  
+  outputter.write();
+
   return result.wasSuccessful() ? 0 : 1;
 }
