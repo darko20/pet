@@ -85,7 +85,7 @@ void usage(FILE *f)
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
-  fprintf(f, "  `-timeout=n' --- maximum time (in clock ticks) spent on analyzing a sentence\n");
+  fprintf(f, "  `-timeout=n' --- maximum time (in s) spent on analyzing a sentence\n");
   fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n");
   fprintf(f, "  `-no-filter' --- disable rule filter\n");
   fprintf(f, "  `-qc-unif=n' --- use only top n quickcheck paths (unification)\n");
