@@ -25,6 +25,8 @@
 #ifndef _FS_H_
 #define _FS_H_
 
+#include "pet-config.h"
+
 #include "types.h"
 #include "dag.h"
 
