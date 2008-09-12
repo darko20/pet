@@ -1,4 +1,5 @@
 specific to input-chart-rules branch:
+  - assert that fss in unify(), unify_restrict() and unify_np() are valid
   - added preliminary XML-RPC server mode
   - added chart mapping engine:
     * chart mapping rules are resource-sensntive rewrite rules
