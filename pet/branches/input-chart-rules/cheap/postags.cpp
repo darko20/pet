@@ -110,12 +110,12 @@ void postags::remove(const postags &s) {
 void postags::print(std::ostream &out) const {
   for(set<string>::const_iterator iter = _tags.begin(); iter != _tags.end();
       ++iter) {
+    if(iter != _tags.begin()) out << " ";
     out << *iter;
     map<string, double>::const_iterator p = _probs.find(*iter);
     if(p != _probs.end())
       out << " " << std::setprecision(2) << p->second;
     if (iter == _tags.end()) break;
-    out << " " ;
   }
 }
 

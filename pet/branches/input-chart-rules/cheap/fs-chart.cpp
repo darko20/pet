@@ -445,7 +445,7 @@ tChartUtil::create_input_fs(tInputItem* item)
   fs input_fs(_token_form_path, retrieve_string_instance(item->orth()));
   if (!input_fs.valid())
     throw tError("failed to create input fs");
-  if (_token_id_path) {
+  if (false && _token_id_path) {
     //
     // _fix_me_
     // for rules to append ID values (when multiple tokens are merged), we need
