@@ -219,7 +219,7 @@ private:
   bool _quoted;
 };
 
-/** Print the derivation of an item in incr[tsdb()] compatible form,
+/** Print the derivation of an item in [incr tsdb()] compatible form,
  *  according to \a protocolversion.
  *  For function descriptions, \see tAbstractItemPrinter.
  */

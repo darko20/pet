@@ -301,6 +301,10 @@ void tLexItem::init() {
       (*it)->parents.push_back(this);
     }
 
+    //
+    // _fix_me_
+    // `FIRST' and `REST' should not be hard-wired in the code. (14-sep-08; oe)
+    //
     string orth_path = cheap_settings->req_value("orth-path");
     for (int i = 0 ; i < _stem->inflpos(); i++) orth_path += ".REST";
     orth_path += ".FIRST";

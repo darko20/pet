@@ -99,11 +99,11 @@ void tItemPrinter::print_common(ostream &out, const tItem *item) {
 
 // from tInputItem::print
 void tItemPrinter::real_print(const tInputItem *item) {
-  // [bmw] print also start/end nodes
-  _out << "[n" << item->start() << " - n" << item->end() << "] ["
-       << item->startposition() << " - " << item->endposition() << "] ("
-       << item->external_id() << ") \"" 
-       << item->stem() << "\" \"" << item->form() << "\" ";
+  _out << "I[" << item->id() 
+       << " " << item->start() << "-" << item->end() << " (" 
+       << item->external_id() << ") <" 
+       << item->startposition() << ":" << item->endposition() << "> \""
+       << item->form() << "\" \"" << item->stem() << "\" ";
 
   _out << "{";
   print_inflrs(_out, item);
@@ -113,7 +113,9 @@ void tItemPrinter::real_print(const tInputItem *item) {
 
   _out << "{";
   item->get_in_postags().print(_out);
-  _out << "}";
+  _out << "}]";
+  if (_dag_printer) print_fs(_out, get_fs(item));
+  _out << endl;
 }
 
 inline void tItemPrinter::print_fs(ostream &out, const fs &f) {
