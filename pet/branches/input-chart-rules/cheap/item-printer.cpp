@@ -99,7 +99,7 @@ void tItemPrinter::print_common(ostream &out, const tItem *item) {
 
 // from tInputItem::print
 void tItemPrinter::real_print(const tInputItem *item) {
-  _out << "I[" << item->id() 
+  _out << "I [" << item->id() 
        << " " << item->start() << "-" << item->end() << " (" 
        << item->external_id() << ") <" 
        << item->startposition() << ":" << item->endposition() << "> \""
