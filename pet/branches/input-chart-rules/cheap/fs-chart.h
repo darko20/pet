@@ -207,7 +207,7 @@ public:
    * passive items with \a passives and \a actives.
    */
   void print(std::ostream &out, class tAbstractItemPrinter *printer = NULL,
-             bool passives = true, bool actives = true);
+             bool passives = true, bool actives = true, bool blocked = true);
 
 };
 

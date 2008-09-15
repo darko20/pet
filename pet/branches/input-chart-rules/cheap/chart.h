@@ -62,7 +62,8 @@ public:
    *  passive items with \a passives and \a actives.
    */
   void print(std::ostream &out, tAbstractItemPrinter *aip = NULL,
-             bool passives = true, bool actives = true);
+             bool passives = true, bool actives = true,
+             bool blocked = true);
 
   /** Get statistics from the chart, like nr. of active/passive edges, average
    *  feature structure size, items contributing to a reading etc.
