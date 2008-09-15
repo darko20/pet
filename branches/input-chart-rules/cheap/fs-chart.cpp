@@ -210,7 +210,7 @@ tChart::all_succeeding_items(tItem *item, bool skip_blocked,
 
 void
 tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
-              bool passives, bool actives)
+              bool passives, bool actives, bool blocked)
 {
   tItemPrinter default_printer(out, verbosity > 2, verbosity > 10);
   if (printer == NULL) {
@@ -219,7 +219,8 @@ tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
   item_list all_items = items();
   for (item_iter it = all_items.begin(); it != all_items.end(); it++) {
     tItem *item = *it;
-    if ((item->passive() && passives) || (! item->passive() && actives)) {
+    if ((blocked || !item->blocked())
+        && ((item->passive() && passives) || (! item->passive() && actives))) {
       printer->print(item); out << endl;
     }
   }
