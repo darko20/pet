@@ -22,10 +22,12 @@
 #include "cheap.h"
 #include "errors.h"
 #include "item.h"
+#include "item-printer.h"
 #include "grammar.h"
 #include "hashing.h"
 
 #include <stdio.h>
+#include <iostream>
 
 #include <deque>
 #include <map>
@@ -148,15 +150,15 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
     next_match = new_match ? (cache[sig]=match->match(item, arg)) : cache[sig];
 
     // logging:
-    if ((verbosity >= 8 || opt_chart_mapping & 2) && new_match) {
+    if ((opt_chart_mapping & 256) && new_match) {
       // TODO implement tItem::to_string() or tItem::printname()??
       string itemstr = "chart item " + lexical_cast<string>(item->id());
       tInputItem* inp_item = dynamic_cast<tInputItem*>(item);
       if (inp_item)
         itemstr += " (input item `" + inp_item->form() + "')";
       fprintf(stderr, "[cm] %s %s, arg %s with %s\n",
-          (next_match ? "MATCHED" : "checked"), rule->printname(),
-          arg->name().c_str(), itemstr.c_str());
+              (next_match ? "MATCHED" : "checked"), rule->printname(),
+              arg->name().c_str(), itemstr.c_str());
     }
 
     // base case and recursion:
@@ -254,7 +256,7 @@ build_output(tChart &chart, tChartMappingMatch &match)
   chart_changed = chart_changed || !inps.empty();
 
   // logging:
-  if (verbosity >= 4 || opt_chart_mapping & 1) {
+  if (opt_chart_mapping & 1 || opt_chart_mapping & 16) {
     std::string item_ids = "";
     std::vector<tChartMappingRuleArg*> args = match.get_rule()->args();
     std::vector<tChartMappingRuleArg*>::iterator arg_it;
@@ -269,9 +271,18 @@ build_output(tChart &chart, tChartMappingMatch &match)
       item_ids += "O" + lexical_cast<string>(i) + ":"
                   + lexical_cast<string>((*item_it)->id()) + " "; // TODO make OUTPUT rule item name accessible
     }
-    fprintf(stderr, "[cm] rule %s fired. %s\n",
+    fprintf(stderr, "[cm] `%s' fired: %s\n",
         match.get_rule()->printname(), item_ids.c_str());
-  }
+
+    if(opt_chart_mapping & 16) {
+      tItemPrinter ip(cerr, false, true);
+      for(std::vector<tItem *>::iterator item = outs.begin();
+          item != outs.end();
+          ++item) {
+        ip.print(*item); cerr << endl;
+      } // for
+    } // if
+  } // if
 
   return chart_changed;
 }
