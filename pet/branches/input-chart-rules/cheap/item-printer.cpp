@@ -114,7 +114,16 @@ void tItemPrinter::real_print(const tInputItem *item) {
   _out << "{";
   item->get_in_postags().print(_out);
   _out << "}]";
-  if (_dag_printer) print_fs(_out, get_fs(item));
+  if (_dag_printer)
+    // _fix_me_
+    // as i understand it, one should in principle use the following here (not
+    // the explicit const_cast<>, with the correct item type):
+    //   print_fs(_out, get_fs(item));
+    // however, when doing so i seem to end up with completely underspecified
+    // feature structures (`*top*'), possibly because the wrong virtual method
+    // gets invoked?                                           (15-sep-08; oe)
+    //
+    print_fs(_out, const_cast<tInputItem *>(item)->get_fs());
   _out << endl;
 }
 

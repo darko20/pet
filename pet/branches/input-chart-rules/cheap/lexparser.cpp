@@ -744,13 +744,16 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
   
   // input chart mapping:
   if (opt_chart_mapping) {
-    if (verbosity >= 4 || opt_chart_mapping & 1)
+    if (opt_chart_mapping & 1)
       fprintf(stderr, "[cm] token mapping starts\n");
     // map to tChart:
     tChart chart;
     tItemPrinter ip(cerr, false, true);
     tChartUtil::map_chart(inp_tokens, chart);
-    if (opt_chart_mapping & 4) chart.print(cerr, &ip);
+    if (opt_chart_mapping & 4) {
+      fprintf(stderr, "[cm] initial token chart:\n");
+      chart.print(cerr, &ip);
+    } // if
     // apply chart mapping rules:
     std::list<class tChartMappingRule*> rules = Grammar->inpmap_rules();
     tChartMappingEngine mapper(rules);
@@ -759,8 +762,11 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
     _maxpos = tChartUtil::map_chart(chart, inp_tokens);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (opt_chart_mapping & 4) chart.print(cerr, &ip);
-    if (verbosity >= 4 || opt_chart_mapping & 1)
+    if (opt_chart_mapping & 4) {
+      fprintf(stderr, "[cm] final token chart:\n");
+      chart.print(cerr, &ip);
+    } // if
+    if (opt_chart_mapping & 1)
       fprintf(stderr, "[cm] token mapping ends\n");
   }
   
@@ -801,13 +807,16 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
   
   // Lexical chart mapping (a.k.a. lexical filtering):
   if (opt_chart_mapping) {
-    if (verbosity >= 4 || opt_chart_mapping & 1)
+    if (opt_chart_mapping & 1)
       fprintf(stderr, "[cm] lexical filtering starts\n");
     // map to tChart:
     tChart chart;
     tItemPrinter ip(cerr, false, true);
     tChartUtil::map_chart(*Chart, chart);
-    if (opt_chart_mapping & 8) chart.print(cerr, &ip);
+    if (opt_chart_mapping & 8) {
+      fprintf(stderr, "[cm] initial lexical chart:\n");
+      chart.print(cerr, &ip);
+    } // if
     // apply chart mapping rules:
     std::list<class tChartMappingRule*> rules = Grammar->lexmap_rules();
     tChartMappingEngine mapper(rules);
@@ -816,8 +825,11 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
     _maxpos = tChartUtil::map_chart(chart, *Chart);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (opt_chart_mapping & 8) chart.print(cerr, &ip);
-    if (verbosity >= 4 || opt_chart_mapping & 1)
+    if (opt_chart_mapping & 8) {
+      fprintf(stderr, "[cm] final lexical chart:\n");
+      chart.print(cerr, &ip);
+    } // if
+    if (opt_chart_mapping & 1)
       fprintf(stderr, "[cm] lexical filtering ends\n");
   }
 }
