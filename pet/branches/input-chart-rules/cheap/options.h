@@ -160,6 +160,9 @@ extern std::string opt_tsdb_dir;
 /** use computational morphology */
 extern bool opt_online_morph;
 
+/** select statistical model for parse ranking */
+extern std::string opt_sm;
+
 /** word lattice parsing (permissible token paths, cf tPath class) */
 extern bool opt_lattice;
 
