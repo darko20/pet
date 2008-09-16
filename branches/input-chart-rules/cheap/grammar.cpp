@@ -541,19 +541,26 @@ tGrammar::tGrammar(const char * filename)
       initialize_filter();
     }
 
-    char *sm_file;
-    if((sm_file = cheap_settings->value("sm")) != 0)
-    {
+    //
+    // the parse selection can be supplied on the command line, or through the
+    // settings file.  and furthermore, even when a setting is present, the 
+    // command line can take precedence, including disabling parse ranking by
+    // virtue of a special `null' model.
+    //
+    if (!opt_sm.size() || opt_sm != "null") {
+      const char *sm_file 
+        = (opt_sm.size() ? opt_sm.c_str() : cheap_settings->value("sm"));
+      if(sm_file != 0) {
         // _fix_me_
-        // Once we have more than just MEMs we need to add a dispatch facility
-        // here, or have a factory build the models.
-      try { _sm = new tMEM(this, sm_file, filename); }
-      catch(tError &e)
-      {
-        fprintf(ferr, "\n%s", e.getMessage().c_str());
-        _sm = 0;
+        // Once we have more than just MEMs we will need to add a dispatch
+        // facility here, or have a factory build the models.
+        try { _sm = new tMEM(this, sm_file, filename); }
+        catch(tError &e) {
+          fprintf(ferr, "\n%s", e.getMessage().c_str());
+          _sm = 0;
+        }
       }
-    }
+    } // if
     char *lexsm_file;
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }

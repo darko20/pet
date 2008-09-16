@@ -64,6 +64,7 @@ int opt_nresults;
 bool opt_partial;
 std::string opt_tsdb_dir;
 bool opt_online_morph;
+std::string opt_sm;
 bool opt_lattice;
 unsigned int opt_gplevel;
 std::string opt_jxchg_dir;
@@ -83,6 +84,7 @@ void usage(FILE *f)
           "enable [incr tsdb()] slave mode (protocol version = n)\n");
 #endif
   fprintf(f, "  `-nsolutions[=n]' --- find best n only, 1 if n is not given\n");
+  fprintf(f, "  `-sm[=string]' --- parse selection model (`null' for none)\n");
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
@@ -173,6 +175,7 @@ void usage(FILE *f)
 #define OPTION_PREDICT_LES 37
 #define OPTION_TIMEOUT 38
 #define OPTION_CHART_MAPPING 39
+#define OPTION_SM 40
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -217,6 +220,7 @@ void init_options()
   opt_partial = false;
   opt_tsdb_dir = "";
   opt_online_morph = true;
+  opt_sm = "";
   opt_lattice = false;
   opt_gplevel = 0;
   opt_jxchg_dir = "";
@@ -276,6 +280,7 @@ bool parse_options(int argc, char* argv[])
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
     {"chart-mapping", optional_argument, 0, OPTION_CHART_MAPPING},
+    {"sm", optional_argument, 0, OPTION_SM},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -496,6 +501,12 @@ bool parse_options(int argc, char* argv[])
               = strtoint(optarg, "as argument to -chart-mapping");
           else 
             opt_chart_mapping = 128;
+          break;
+      case OPTION_SM:
+          if (optarg != NULL)
+            opt_sm = std::string(optarg); 
+          else 
+            opt_sm = "null";
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:
