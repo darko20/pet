@@ -269,8 +269,8 @@ void interactive() {
     id++;
   } /* while */
 
-  if(! get_opt_string("opt_compute_qc").empty()) {
-    ofstream qc(get_opt_string("opt_compute_qc").c_str());
+  if(get_opt_charp("opt_compute_qc") != NULL) {
+    ofstream qc(get_opt_charp("opt_compute_qc"));
     compute_qc_paths(qc);
   }
 }
