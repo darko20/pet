@@ -27,6 +27,7 @@
 #include "cppbridge.h"
 #include "version.h"
 #include "item-printer.h"
+//#include "logging.h"
 #ifdef YY
 # include "yy.h"
 #endif
@@ -158,9 +159,9 @@ initialize_version()
     char da[ABSBS]="unknown";
 #endif
     
-    char *qcsu = cheap_settings->value("qc-structure-unif");
+    const char *qcsu = cheap_settings->value("qc-structure-unif");
     if(qcsu == NULL) qcsu = "";
-    char *qcss = cheap_settings->value("qc-structure-subs");
+    const char *qcss = cheap_settings->value("qc-structure-subs");
     if(qcss == NULL) qcss = "";
     
     string sts("");
@@ -183,7 +184,7 @@ initialize_version()
             " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
             da,
             version_string,
-            get_opt_int("pedgelimit"),
+            get_opt_int("opt_pedgelimit"),
             packing ? "+" : "-",
             packing,
             Grammar->sm() ? "+" : "-",
@@ -219,9 +220,9 @@ initialize_version()
 #ifdef TSDBAPI
 
 int
-cheap_create_test_run(char *data, int run_id, char *comment,
+cheap_create_test_run(const char *data, int run_id, const char *comment,
                       int interactive, int protocol_version,
-                      char *custom)
+                      char const *custom)
 {
     if(protocol_version > 0 && protocol_version <= 2)
       set_opt("opt_tsdb", protocol_version);
@@ -258,7 +259,7 @@ cheap_tsdb_summarize_run(void)
 static int nprocessed = 0;
 
 int
-cheap_process_item(int i_id, char *i_input, int parse_id, 
+cheap_process_item(int i_id, const char *i_input, int parse_id, 
                    int edges, int nanalyses, 
                    int nderivations, int interactive)
 {
@@ -269,7 +270,7 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        set_opt("pedgelimit", edges);
+        set_opt("opt_pedgelimit", edges);
         set_opt("opt_nsolutions", nanalyses);
         
         gettimeofday(&tA, NULL);
@@ -323,18 +324,17 @@ cheap_process_item(int i_id, char *i_input, int parse_id,
 }
 
 int
-cheap_complete_test_run(int run_id, char *custom)
+cheap_complete_test_run(int run_id, const char *custom)
 {
-  LOG(loggerTsdb, Level::INFO,
-      "total elapsed parse time %.3fs; %d items;"
-      " avg time per item %.4fs",
-      TotalParseTime.elapsed_ts() / 10.,
-      nprocessed,
-      (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
+  LOG(logTsdb, INFO,
+      "total elapsed parse time " << std::setprecision(3)
+      << TotalParseTime.elapsed_ts() / 10.<< "s; " 
+      << nprocessed << "%d items; avg time per item " << std::setprecision(4) 
+      << (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10. << "s");
 
     if(get_opt_charp("opt_compute_qc") != NULL)
     {
-        LOG(loggerTsdb, Level::INFO, "computing quick check paths\n");
+        LOG(logTsdb, INFO, "computing quick check paths");
         ofstream qc(get_opt_charp("opt_compute_qc"));
         compute_qc_paths(qc);
     }
@@ -343,9 +343,9 @@ cheap_complete_test_run(int run_id, char *custom)
 }
 
 int
-cheap_reconstruct_item(char *derivation)
+cheap_reconstruct_item(const char *derivation)
 {
-    LOG(loggerTsdb, Level::INFO, "cheap_reconstruct_item(%s)", derivation);
+    LOG(logTsdb, INFO, "cheap_reconstruct_item(" << derivation << ")");
     return 0;
 }
 
