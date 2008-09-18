@@ -253,9 +253,7 @@ tYYTokenizer::read_token()
 
   // skip empty tokens and punctuation
   if(stem.empty() || punctuationp(stem)) {
-    if(verbosity > 4)
-      LOG(loggerUncategorized, Level::INFO,
-          " - punctuation");
+    LOG(logLexproc, NOTICE, " - punctuation");
 
     token_class = SKIP_TOKEN_CLASS;
   } else {
@@ -324,10 +322,8 @@ tYYTokenizer::read_token()
        ) {
       infl_rules.push_back(infl_rule);
     } else {
-      if(verbosity > 4)
-      LOG(loggerUncategorized, Level::INFO,
-          "Ignoring token containing unknown "
-          "infl rule %s.", inflr.c_str());
+      LOG(logLexproc, WARN, 
+          "Ignoring token containing unknown infl rule " << inflr);
       return NULL;
     }
   } while (read_string(inflr, true)) ; 
@@ -363,13 +359,8 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
   _yyinput = s;
   _yypos = 0;
 
-  if(verbosity > 4)
-    {
-      LOG(loggerUncategorized, Level::INFO,
-          "received YY tokens: %s", s.c_str());
-      LOG(loggerUncategorized, Level::INFO,
-          "[processing yy_tokenizer input]");
-    };
+  LOG(logLexproc, NOTICE, "received YY tokens: " << s 
+      << "[processing yy_tokenizer input]");
   
   tInputItem *tok = 0;
   read_ws();

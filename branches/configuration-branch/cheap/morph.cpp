@@ -28,7 +28,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/transitive_closure.hpp>
 //#include <boost/graph/graph_utility.hpp>
-
+#include <iomanip>
 
 
 #ifndef HAVE_ICU
@@ -222,14 +222,11 @@ string get_next_list(string &s, string::size_type start,
   return s.substr(openp+1, closep-openp-1);
 }
 
-void print_analyses(FILE *f, list<tMorphAnalysis> res)
+void print_analyses(std::ostream &out, list<tMorphAnalysis> res)
 {
   int id = 0;
-  for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it)
-  {
-    fprintf(f, "[%d]: ", id++);
-    it->print(f);
-    fprintf(f, "\n");
+  for(list<tMorphAnalysis>::iterator it = res.begin(); it != res.end(); ++it) {
+    out << "[" << id++ << "]: " << *it << endl;
   }
 }
 
@@ -264,16 +261,14 @@ void morph_letterset::set(string name, string elems_u8) {
   } // while
 }
 
-void morph_letterset::print(FILE *f) const
-{
-  fprintf(f, "!%s -> ", _name.c_str());
-
+void morph_letterset::print(std::ostream &out) const {
+  out << "!" << _name << " -> ";
   for(std::set<MChar>::const_iterator it = _elems.begin();
       it != _elems.end(); ++it)
-    fprintf(f, "%s", Conv->convert(*it).c_str());
-
-  fprintf(f, " [%s]", Conv->convert(_bound).c_str());
+    out << Conv->convert(*it);
+  out << " [" << Conv->convert(_bound) << "]";
 }
+
 
 //
 // Lettersets (collection)
@@ -281,8 +276,6 @@ void morph_letterset::print(FILE *f) const
 
 void morph_lettersets::add(string s)
 {
-  LOG(loggerUncategorized, Level::DEBUG,"LETTERSET: <%s>", s.c_str());
-
   // s consists of the name and the characters making up the set
   // seperated by whitespace
   
@@ -295,24 +288,15 @@ void morph_lettersets::add(string s)
     if(p < s.length())
     {
       string elems = s.substr(p, s.length() - p); 
-      LOG(loggerUncategorized, Level::DEBUG,
-          " -> <%s> <%s>", name.c_str(), elems.c_str());
+      LOG(logMorph, DEBUG,
+          "LETTERSET: <" << s << "> => <" << name << "> <" << elems << ">");
       //morph_letterset ls = morph_letterset(name, elems);
       _m[name].set(name, elems);
     }
-    else
-    {
-      LOG(loggerUncategorized, Level::INFO,
-          "Ignoring ill-formed letterset definition: %s",
-          s.c_str());
-    }
   }
-  else
-  {
-    LOG(loggerUncategorized, Level::INFO,
-        "Ignoring ill-formed letterset definition: %s",
-        s.c_str());
-  }
+
+  if (p >= s.length())
+    LOG(logMorph, WARN, "Ignoring ill-formed letterset definition: " << s);
 }
 
 morph_letterset * morph_lettersets::get(string name) const
@@ -330,13 +314,10 @@ void morph_lettersets::undo_bindings() {
     (it->second).bind(0);
 }
 
-void morph_lettersets::print(FILE *f) const
-{
-  fprintf(f, "--- morph_lettersets[%x]:\n", (size_t) this);
+void morph_lettersets::print(ostream &out) const {
+  out << "--- morph_lettersets[" << ((size_t) this) << "]:" << endl ;
   for(ml_const_iterator it = _m.begin(); it != _m.end(); ++it) {
-    fprintf(f, "  ");
-    (it->second).print(f);
-    fprintf(f, "\n");
+    out << "  " << (it->second) << endl;
   }
 }
 
@@ -421,11 +402,10 @@ bool morph_subrule::base_form(MString matched,
   return true;
 }
 
-void morph_subrule::print(FILE *f)
-{
-  fprintf(f, "morph_subrule[%x] %s: %s->%s",
-          (size_t) this, _rule->printname(),
-          Conv->convert(_left).c_str(), Conv->convert(_right).c_str());
+void morph_subrule::print(ostream &out) const {
+  out << "morph_subrule[" << std::setbase(16) << (size_t) this << "] "
+      << _rule->printname() << ": " 
+      << Conv->convert(_left) << "->" << Conv->convert(_right) ;
 }
 
 //
@@ -479,27 +459,19 @@ void trie_node::add_path(MString path, morph_subrule *rule,
   }
 }
 
-void trie_node::print(FILE *f, int depth) const
-{
-  fprintf(f, "%*s", depth, "");
-
-  fprintf(f, "trie[%x] (", (size_t) this);
-  
+void trie_node::print(std::ostream &out, int depth) const {
+  out << std::setw(depth) << "" 
+      << "trie[" << setbase(16) << (size_t) this << "] (";
   for(vector<morph_subrule *>::const_iterator it = _rules.begin();
-      it != _rules.end(); ++it)
-  {
-    (*it)->print(f);
-    fprintf(f, " ");
+      it != _rules.end(); ++it) {
+    out << (*it) << " ";
   }
-  fprintf(f, ")\n");
+  out << ")" << endl;
 
-  for(tn_const_iterator it = _s.begin(); it != _s.end(); ++it)
-  {
-    fprintf(f, "%*s", depth, "");
-
-    fprintf(f, "[%s]\n", Conv->convert(it->first).c_str());
-
-    it->second->print(f, depth+2);
+  for(tn_const_iterator it = _s.begin(); it != _s.end(); ++it) {
+    out << std::setw(depth) << "" 
+        << "[" << Conv->convert(it->first) << "]" << endl;
+    it->second->print(out, depth+2);
   }
 }
 
@@ -554,15 +526,15 @@ void morph_trie::add_subrule(grammar_rule *rule, string subrule)
     reverse_subrule(right);
   }
 
-  LOG(loggerUncategorized, Level::DEBUG, "INFLSUBRULE<%s>: %s (`%s' -> `%s')",
-            rule->printname(), subrule.c_str(),
-            Conv->convert(left).c_str(), Conv->convert(right).c_str());
+  LOG(logMorph, DEBUG, "INFLSUBRULE<" << rule->printname() << ">: "
+      << subrule << " (`" << Conv->convert(left) << "' -> `"
+      <<  Conv->convert(right) << "')");
 
   morph_subrule *sr = new morph_subrule(_analyzer, rule, left, right);
   _analyzer->add_subrule(sr);
   _root.add_path(right, sr, _analyzer->_lettersets);
 
-}
+} 
 
 /** Remove all possible prefixes (or suffixes) encoded in this trie from the
  *  base string in \a a and return the list of newly created analyses.
@@ -661,10 +633,9 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis analysis) {
   return res;
 }
 
-void morph_trie::print(FILE *f)
-{
-  fprintf(f, "--- morph_trie (%s)\n", _suffix ? "suffix" : "prefix");
-  _root.print(f);
+void morph_trie::print(std::ostream &out) const {
+  out << "--- morph_trie (" << (_suffix ? "suffix" : "prefix") << ")" << endl
+      << _root;
 }
 
 //
@@ -675,30 +646,25 @@ void morph_trie::print(FILE *f)
 // Analysis
 //
 
-void tMorphAnalysis::print(FILE *f) const
-{
-    fprintf(f, "%s = %s", complex().c_str(), base().c_str());
-
-    for(ruleiter it = _rules.begin(); it != _rules.end(); ++it)
-      fprintf(f, " + %s", (*it)->printname());
+void tMorphAnalysis::print(std::ostream &out) const {
+  out << complex() << " = " << base();
+  for(ruleiter it = _rules.begin(); it != _rules.end(); ++it)
+    out << " + " <<  (*it)->printname();
 }
 
-void tMorphAnalysis::print_lkb(FILE *f)
-{
-  list<string>::iterator form = _forms.begin();
+void tMorphAnalysis::print_lkb(std::ostream &out) const {
+  list<string>::const_iterator form = _forms.begin();
 
-  fprintf(f, "(%s", form->c_str());
+  out << "(" << *form;
   ++form;
 
   ruleiter rule = _rules.begin(); 
-
-  while(form != _forms.end() && rule != _rules.end())
-  {
-    fprintf(f, " (%s %s)", (*rule)->printname(), form->c_str());
+  while(form != _forms.end() && rule != _rules.end()) {
+    out << " (" << (*rule)->printname() << " " << *form << ")";
     ++form; ++rule;
   }
 
-  fprintf(f, ")");
+  out << ")";
 }
 
 //
@@ -734,9 +700,7 @@ tMorphAnalyzer::~tMorphAnalyzer()
 }
 
 void tMorphAnalyzer::add_global(string rule) {
-  if(verbosity > 9)
-    LOG(loggerUncategorized, Level::INFO,
-        "INFLR<global>: %s", rule.c_str());
+  LOG(logMorph, DEBUG, "INFLR<global>: " << rule);
 
   string::size_type start, stop;
   
@@ -754,9 +718,7 @@ void tMorphAnalyzer::add_global(string rule) {
       //
       if(rule.compare(start, 2, "))") != 0) {
         string s = rule.substr(start);
-        LOG(loggerUncategorized, Level::INFO,
-            "ignoring remaining letter-set(s) <%s>",
-            s.c_str());
+        LOG(logMorph, WARN, "ignoring remaining letter-set(s) <" << s << ">");
       } // if 
     } // else
   } // while
@@ -787,9 +749,7 @@ void tMorphAnalyzer::parse_rule(grammar_rule *fsrule, string rule, bool suffix)
 }
 
 void tMorphAnalyzer::add_rule(grammar_rule *fsrule, string rule) {
-  if(verbosity > 9)
-    LOG(loggerUncategorized, Level::INFO,
-        "INFLR<%s>: %s", fsrule->printname(), rule.c_str());
+  LOG(logMorph, DEBUG, "INFLR<" << fsrule->printname() << ">: "<< rule);
 
   if(rule.compare(0, 6, "suffix") == 0)
     parse_rule(fsrule, rule.substr(6, rule.length() - 6), true);
@@ -802,16 +762,14 @@ void tMorphAnalyzer::add_rule(grammar_rule *fsrule, string rule) {
 
 void tMorphAnalyzer::add_irreg(string stem, type_t t, string form)
 {
-  if(verbosity > 14)
-    LOG(loggerUncategorized, Level::INFO,
-        "IRREG: %s + %s = %s",
-        stem.c_str(), print_name(t), form.c_str());
+  LOG(logMorph, DEBUG,
+      "IRREG: " << stem << " + " << print_name(t) << " = " << form);
 
   grammar_rule *rule = Grammar->find_rule(t);
   if (rule == NULL) {
-    fprintf(ferr, "warning: rule `%s' in irregs definition"
-            "`%s':`%s' doesn't correspond to any of the parser's "
-            "rules\n", print_name(t), stem.c_str(), form.c_str());
+    LOG(logMorph, WARN, "rule `" <<  print_name(t) 
+        << "' in irregs definition `" << stem << "':`" << form 
+        << "' doesn't correspond to any of the parser's rules" << endl);
     return;
   }
   rulelist rules;
@@ -926,12 +884,9 @@ bool tMorphAnalyzer::empty()
     return _irregs_by_stem.size() == 0 && _subrules.size() == 0;
 }
 
-void tMorphAnalyzer::print(FILE *f)
-{
-  fprintf(stderr, "tMorphAnalyzer[%x]:\n", (size_t) this);
-  _lettersets.print(f);
-  _prefixrules.print(f);
-  _suffixrules.print(f);
+void tMorphAnalyzer::print(ostream &out) const {
+  out << "tMorphAnalyzer[" << std::setbase(16) << (size_t) this << "]:" << endl
+      << _lettersets << _prefixrules << _suffixrules;
 }
 
 morph_letterset * tMorphAnalyzer::letterset(string name) const
@@ -1033,14 +988,8 @@ bool tMorphAnalyzer::matching_irreg_form(tMorphAnalysis analysis)
   {
     if(it->second->rules().front() == first)
     {
-      if(verbosity > 4)
-      {
-        fprintf(fstatus, "filtering ");
-        analysis.print(fstatus);
-        fprintf(fstatus, " [irreg ");
-        it->second->print(fstatus);
-        fprintf(fstatus, "]\n");
-      }
+      LOG(logMorph, DEBUG, "filtering " << analysis 
+          << " [irreg " << it->second << "]" << endl);
 
       return true;
     }
@@ -1049,10 +998,18 @@ bool tMorphAnalyzer::matching_irreg_form(tMorphAnalysis analysis)
   return false;
 }
 
+void debug_morph(list<tMorphAnalysis> results) {
+  ostringstream cdeb;;
+  cdeb << "tMorphAnalyzer working on:" << endl;
+  print_analyses(cdeb, results);
+  cdeb << "--------------------------" << endl ;
+  LOG(logMorph, DEBUG, cdeb.str());
+}
+
+
 list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
 {
-  LOG(loggerUncategorized, Level::DEBUG,
-      "tMorphAnalyzer::analyze(%s)", form.c_str());
+  LOG(logMorph, DEBUG, "tMorphAnalyzer::analyze(" << form << ")");
 
   // least fixpoint iteration
   
@@ -1072,12 +1029,7 @@ list<tMorphAnalysis> tMorphAnalyzer::analyze(string form)
   while(prev_results.size() > 0 
         && (!_maximal_depth || i++ <= _maximal_depth))
   {
-    if(verbosity > 9)
-    {
-      fprintf(fstatus, "tMorphAnalyzer working on:\n");
-      print_analyses(fstatus, prev_results);
-      fprintf(fstatus, "--------------------------\n");
-    }
+    if(LOG_ENABLED(logMorph, DEBUG)) debug_morph(prev_results);
 
     list<tMorphAnalysis> current_results;
     for(list<tMorphAnalysis>::iterator it = prev_results.begin();
@@ -1138,8 +1090,7 @@ tLKBMorphology::undump_inflrs(dumper &dmp) {
 
   _morph.initialize_lexrule_filter();
 
-  if(verbosity > 4) LOG(loggerUncategorized, Level::INFO, ", %d infl rules", ninflrs);
-  if(verbosity >14) _morph.print(fstatus);
+  LOG(logMorph, DEBUG, ", " << ninflrs << " infl rules" << _morph) ;
 }
 
 void
@@ -1155,9 +1106,8 @@ tLKBMorphology::undump_irregs(dumper &dmp) {  // irregular forms
       type_t inflr = lookup_type(infl);
       if(inflr == -1)
         {
-          LOG(loggerUncategorized, Level::INFO,
-              "Ignoring entry with unknown rule `%s' "
-              "in irregular forms", infl);
+          LOG(logMorph, WARN, "Ignoring entry with unknown rule `" 
+              << infl << "' in irregular forms");
           delete[] form; delete[] infl; delete[] stem;
           continue;
         }
@@ -1220,6 +1170,22 @@ tFullformMorphology::create(dumper &dmp) {
   }       
 }
 
+void debug_ffmorph(rulelist &affixes, lex_stem * lstem, int offset, bool found){
+  ostringstream cdeb;
+  cdeb << "(";
+  for(ruleiter affix = affixes.begin(); affix != affixes.end(); affix++) {
+    cdeb << (*affix)->printname() << "@" << offset << " ";
+  }
+  cdeb << "(" << lstem << ")";            
+  for(int i = 0; i < lstem->length(); i++)
+    cdeb << " \"" << lstem->orth(i) << "\"";
+  
+  cdeb << ")";
+  if (found) cdeb << "dupl" ;
+            
+  LOG(logMorph, DEBUG, cdeb.str());
+}
+
 tFullformMorphology::tFullformMorphology(dumper &dmp) {
   int nffs = dmp.undump_int();
   int invalid = 0;
@@ -1243,9 +1209,10 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
         if (affix != -1) {
           grammar_rule *rule = Grammar->find_rule(affix);
           if (rule == NULL) {
-            fprintf(ferr, "warning: rule `%s' in fullform definition"
-                    "`%s':`%s' doesn't correspond to any of the parser's "
-                    "rules\n", print_name(affix), s, print_name(preterminal));
+            LOG(logMorph, WARN, "rule `" << print_name(affix) 
+                << "' in fullform definition `" << s << "':`" 
+                << print_name(preterminal) 
+                << "' doesn't correspond to any of the parser's rules" << endl);
             continue;
           } else {
             affixes.push_front(rule);
@@ -1276,29 +1243,9 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
           }
         }
 
-        if(verbosity > 14)
-          {
-            LOG_ONLY(PrintfBuffer pb);
-            LOG_ONLY(pbprintf(pb, "("));
-            LOG_ONLY(
-            for(ruleiter affix = affixes.begin()
-                  ; affix != affixes.end(); affix++) {
-              pbprintf(pb, "%s@%d ", (*affix)->printname(), offset);
-            })
-              
-            LOG_ONLY(pbprintf(pb, "("));
-            LOG_ONLY(lstem->print(pb));
-            LOG_ONLY(pbprintf(pb, ")"));
-              
-            LOG_ONLY(
-              for(int i = 0; i < lstem->length(); i++)
-                pbprintf(pb, " \"%s\"", lstem->orth(i));
-            );
-  
-            LOG_ONLY( pbprintf(pb, ")%s", (found ? "dupl" : "")));
-            
-            LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
-          }
+        if(LOG_ENABLED(logMorph, DEBUG)) 
+          debug_ffmorph(affixes, lstem, offset, found);
+          
       } else {
         invalid++;
       }
@@ -1306,9 +1253,9 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
       delete[] s;
     }
 
-  LOG(loggerUncategorized, Level::DEBUG, "%d full form entries", nffs);
+  LOG(logMorph, DEBUG, nffs << " full form entries");
   if (invalid > 0)
-    LOG(loggerUncategorized, Level::DEBUG, "%d of them invalid", invalid);
+    LOG(logMorph, DEBUG, invalid << " of them invalid");
 }
 
 void tFullformMorphology::print(FILE *out) {

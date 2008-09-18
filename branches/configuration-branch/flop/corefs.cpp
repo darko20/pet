@@ -22,6 +22,7 @@
 
 #include "flop.h"
 #include "logging.h"
+#include "utility.h"
 
 int add_coref(struct coref_table *co, char *name)
 {
@@ -42,6 +43,21 @@ int add_coref(struct coref_table *co, char *name)
       assert(i < COREF_TABLE_SIZE);
       co->coref[i] = name;
       return co->n++;
+    }
+}
+
+void new_coref_domain(struct coref_table *co) {
+  int i;
+
+  for(i = 0; i < co->n; i++)
+    {
+      if(strchr(co->coref[i], '#') == NULL) {
+        // old length + hash + four digits + zero char
+        char *newname = (char *) salloc(strlen(co->coref[i]) + 6);
+        sprintf(newname, "%s#%.4d", co->coref[i], i);
+        free(co->coref[i]);
+        co->coref[i] = newname;
+      }
     }
 }
 
@@ -94,8 +110,8 @@ void find_coref_term (struct term *T, struct coref_table *coref)
       assert(!"this cannot happen");
       break;
     default:
-      LOG(loggerUncategorized, Level::WARN,
-          "unknown kind of term: %d", T -> tag);
+      LOG(root, ERROR, "unknown kind of term: " << T -> tag);
+      assert(false);
       break;
     }
 }

@@ -489,7 +489,6 @@ protected:
    */
   virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit) = 0;
 
-
 private:
   // Internal function for packing/frosting
   void block(int mark);
@@ -499,6 +498,7 @@ private:
   static int _next_id;
 
   static bool opt_shaping, opt_lattice;
+  static bool init_item();
 
   int _id;
 

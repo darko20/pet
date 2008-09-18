@@ -422,7 +422,7 @@ int cheap_server_child(int socket) {
                 "[%d] server_child(): "
                 "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                 getpid(),
-                stats.id, Config::get<int>("pedgelimit"), stats.readings, 
+                stats.id, Config::get<int>("opt_pedgelimit"), stats.readings, 
                 stats.first / 1000., stats.tcpu / 1000.,
                 stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
         fflush(*log);
@@ -461,7 +461,7 @@ int cheap_server_child(int socket) {
           log != _log_channels.end();
           log++) {
           fprintf(*log, "[%d] server_child(): (%d) [%d] --- error `%s'",
-                  stats.id, Config::get<int>("pedgelimit"),
+                  stats.id, Config::get<int>("opt_pedgelimit"),
                   getpid(), e.getMessage().c_str());
           fprintf(*log, " (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                   stats.first / 1000., stats.tcpu / 1000.,

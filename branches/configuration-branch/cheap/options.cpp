@@ -30,9 +30,52 @@
 #include <string>
 #include <unistd.h>
 
-
 // opt_fullform_morph is obsolete
 // bool opt_fullform_morph;
+#ifdef OLD_OPTIONS
+char *grammar_file_name;
+char *opt_mrs;
+int opt_pg;
+int opt_tsdb;
+int opt_server;
+bool opt_interactive_morph;
+tokenizer_id opt_tok;
+int opt_comment_passthrough;
+bool opt_default_les;
+int opt_predict_les;
+int opt_packing;
+int opt_nsolutions;
+bool opt_shaping;
+bool opt_filter;
+bool opt_hyper;
+bool opt_chart_man;
+int opt_key;
+char *opt_compute_qc;
+bool opt_compute_qc_unif;
+bool opt_compute_qc_subs;
+int opt_nqc_unif;
+int opt_nqc_subs;
+long int opt_memlimit;
+int opt_timeout;
+int opt_pedgelimit;
+bool opt_shrink_mem;
+int verbosity;
+bool opt_print_failure;
+bool opt_derivation;
+bool opt_rulestatistics;
+int opt_nresults;
+bool opt_partial;
+std::string opt_tsdb_dir;
+bool opt_online_morph;
+bool opt_lattice;
+unsigned int opt_gplevel;
+std::string opt_jxchg_dir;
+bool opt_linebreaks;
+#endif
+#ifdef YY
+bool opt_yy;
+#endif
+
 
 //defined in fs.cpp
 extern bool opt_compute_qc_unif, opt_compute_qc_subs, opt_print_failure;
@@ -53,9 +96,9 @@ void usage(FILE *f)
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
-  fprintf(f, "  `-timeout=n' --- maximum time (in seconds) spent on analyzing a sentence\n");
-  fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n"); 
-  fprintf(f, "  `-no-filter' --- disable rule filter\n"); 
+  fprintf(f, "  `-timeout=n' --- maximum time (in s) spent on analyzing a sentence\n");
+  fprintf(f, "  `-no-shrink-mem' --- don't shrink process size after huge items\n");
+  fprintf(f, "  `-no-filter' --- disable rule filter\n");
   fprintf(f, "  `-qc-unif=n' --- use only top n quickcheck paths (unification)\n");
   fprintf(f, "  `-qc-subs=n' --- use only top n quickcheck paths (subsumption)\n");
   fprintf(f, "  `-compute-qc[=file]' --- compute quickcheck paths (output to file,\n"
@@ -81,8 +124,7 @@ void usage(FILE *f)
 #endif
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
-  fprintf(f, "  `-no-fullform-morph' --- disable full form morphology\n");
-  fprintf(f, "  `-pg' --- print grammar in ASCII form\n");
+  fprintf(f, "  `-pg[=what]' --- print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
   fprintf(f, "  `-log=[+]file' --- "
@@ -92,10 +134,10 @@ void usage(FILE *f)
   fprintf(f, "  `-jxchgdump directory' --- "
              "write jxchg/approximation chart files to `directory'\n");
   fprintf(f, "  `-partial' --- "
-             "print partial results in case of parse failure\n");  
-  fprintf(f, "  `-results=n' --- print at most n (full) results\n");  
+             "print partial results in case of parse failure\n");
+  fprintf(f, "  `-results=n' --- print at most n (full) results\n");
   fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
-             "select input method (default `string')\n");  
+             "select input method (default `string')\n");
 
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
@@ -123,7 +165,6 @@ void usage(FILE *f)
 #define OPTION_LATTICE 22
 #define OPTION_NBEST 23
 #define OPTION_NO_ONLINE_MORPH 24
-#define OPTION_NO_FULLFORM_MORPH 25
 #define OPTION_PACKING 26
 #define OPTION_NQC_SUBS 27
 #define OPTION_MRS 28
@@ -143,28 +184,16 @@ void usage(FILE *f)
 #define OPTION_YY 101
 #endif
 
-class FooConverter : public AbstractConverter<tokenizer_id> {
-  virtual ~FooConverter() {}
-  virtual std::string toString(const tokenizer_id& t) {
-    std::ostringstream out;
-    out << (int) t;
-    return out.str();
-  }
-  virtual tokenizer_id fromString(const std::string& s) {
-    if (s == "pic_counts") return TOKENIZER_PIC_COUNTS;
-    return TOKENIZER_INVALID;
-  }
-};
+//typedef T (*fromfunc)(const std::string &s);
+//typedef std::string (*tofunc)(const T &val);
+
 
 
 void init_options()
-{  
+{
   verbosity = 0;
-  
-  opt_nqc_unif = -1;
-  opt_nqc_subs = -1;
-  
-  managed_opt<char*> ("opt_compute_qc",
+    
+  managed_opt<std::string> ("opt_compute_qc",
     "Activate code that collects unification/subsumption failures "
     "for quick check computation, contains filename to write results to", 0);
   
@@ -195,7 +224,9 @@ void init_options()
     "Try to use default lexical entries if no regular entries could be found. "
     "Uses POS annotation, if available.", false);
   
-  managed_opt<bool>("opt_pg", "", false);
+  managed_opt<char>("opt_pg",
+    "print grammar in ASCII form, one of (s)ymbols (the default), (g)lbs "
+    "(t)ype fs's or (a)ll", '\0');
   
   managed_opt<bool>("opt_chart_man",
     "Allow lexical dependency filtering", true);
@@ -217,7 +248,7 @@ void init_options()
                     " amount of (milli?)seconds",
                     (int) 0);
 
-  managed_opt<char*>("opt_mrs",
+  managed_opt<std::string>("opt_mrs",
     "determines if and which kind of MRS output is generated", NULL );
   
   managed_opt<bool>("opt_partial",
@@ -228,9 +259,6 @@ void init_options()
                          "The number of results to print "
                          "(should be an argument of an API function)", 0);
   
-  managed_opt<tokenizer_id>("opt_tok", "", TOKENIZER_STRING,
-                            FooConverter());
-
   managed_opt("opt_jxchg_dir",
                     "the directory to write parse charts in jxchg format to",
                     ((std::string) ""));
@@ -270,10 +298,9 @@ bool parse_options(int argc, char* argv[])
 #endif
     {"server", optional_argument, 0, OPTION_SERVER},
     {"log", required_argument, 0, OPTION_LOG},
-    {"pg", no_argument, 0, OPTION_PG},
+    {"pg", optional_argument, 0, OPTION_PG},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
-    {"no-fullform-morph", no_argument, 0, OPTION_NO_FULLFORM_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
     {"mrs", optional_argument, 0, OPTION_MRS},
     {"tsdbdump", required_argument, 0, OPTION_TSDB_DUMP},
@@ -305,10 +332,9 @@ bool parse_options(int argc, char* argv[])
               opt_tsdb = strtoint(optarg, "as argument to -tsdb");
               if(opt_tsdb < 0 || opt_tsdb > 2)
               {
-                LOG_ERROR(loggerUncategorized, 
-                          "parse_options(): invalid tsdb++ protocol"
-                          " version");
-                  return false;
+                LOG(logAppl, FATAL, 
+                    "parse_options(): invalid tsdb++ protocol version");
+               return false;
               }
           }
           else
@@ -333,7 +359,7 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_SERVER:
           if(optarg != NULL)
-            set_optString("opt_server", optarg);
+            set_opt_from_string("opt_server", optarg);
           else
             set_opt("opt_server", CHEAP_SERVER_PORT);
           break;
@@ -356,9 +382,9 @@ bool parse_options(int argc, char* argv[])
         // TODO: this is maybe the first application for a callback option to
         // handle the three cases
           if(optarg != NULL)
-              set_opt("opt_compute_qc", strdup(optarg));
+            set_opt("opt_compute_qc", strdup(optarg));
           else
-              set_opt("opt_compute_qc", "/tmp/qc.tdl");
+            set_opt("opt_compute_qc", (const char *) "/tmp/qc.tdl");
           set_opt("opt_compute_qc_unif", true);
           set_opt("opt_compute_qc_subs", true);
           break;
@@ -366,22 +392,30 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
               set_opt("opt_compute_qc", strdup(optarg));
           else
-              set_opt("opt_compute_qc", "/tmp/qc.tdl");
+              set_opt("opt_compute_qc", (const char *) "/tmp/qc.tdl");
           set_opt("opt_compute_qc_unif", true);
           break;
       case OPTION_COMPUTE_QC_SUBS:
           if(optarg != NULL)
               set_opt("opt_compute_qc", strdup(optarg));
           else
-              set_opt("opt_compute_qc", "/tmp/qc.tdl");
+            set_opt("opt_compute_qc", (const char *) "/tmp/qc.tdl");
           set_opt("opt_compute_qc_subs", true);
           break;
       case OPTION_PRINT_FAILURE:
           set_opt("opt_print_failure", true);
           break;
       case OPTION_PG:
-          set_opt("opt_pg", true);
-          break;
+        set_opt("opt_pg", 's');
+        if(optarg != NULL) {
+          char *pos = strchr("sgta", optarg[0]);
+          if(pos != NULL) {
+            set_opt("opt_pg", optarg[0]);
+          } else {
+            fprintf(ferr,"Invalid argument to -pg, printing only symbols\n");
+          }
+        }
+        break;
       case OPTION_LATTICE:
           set_opt("opt_lattice", true);
           break;
@@ -406,11 +440,11 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_LIMIT:
           if(optarg != NULL)
-            set_optString("pedgelimit", optarg);
+            set_opt_from_string("opt_pedgelimit", optarg);
           break;
       case OPTION_MEMLIMIT:
           if(optarg != NULL)
-            set_optString("memlimit", optarg);
+            set_opt_from_string("opt_memlimit", optarg);
           break;
       case OPTION_TIMEOUT:
           if(optarg != NULL)
@@ -426,13 +460,9 @@ bool parse_options(int argc, char* argv[])
       case OPTION_NO_ONLINE_MORPH:
           set_opt("opt_online_morph", false);
           break;
-      case OPTION_NO_FULLFORM_MORPH:
-          // opt_fullform_morph is obsolete
-          // opt_fullform_morph = false;
-          break;
       case OPTION_PACKING:
         if(optarg != NULL)
-          set_optString("opt_packing", optarg);
+          set_opt_from_string("opt_packing", optarg);
         else
           set_opt("opt_packing", 
                       (int)(PACKING_EQUI | PACKING_PRO |
@@ -442,7 +472,7 @@ bool parse_options(int argc, char* argv[])
           if(optarg != NULL)
             set_opt("opt_mrs", strdup(optarg));
           else
-            set_opt("opt_mrs", "simple");
+            set_opt("opt_mrs", (const char *) "simple");
           break;
       case OPTION_TSDB_DUMP:
         set_opt<std::string>("opt_tsdb_dir", ((std::string) optarg));
@@ -457,6 +487,7 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_TOK: 
         {
+          /*
           tokenizer_id opt_tok = TOKENIZER_STRING; //todo: make FSR the default
           if (optarg != NULL) {
             if (strcasecmp(optarg, "string") == 0)
@@ -466,13 +497,13 @@ bool parse_options(int argc, char* argv[])
             else if (strcasecmp(optarg, "yy_counts") == 0)
               opt_tok = TOKENIZER_YY_COUNTS;
             else if (strcasecmp(optarg, "xml") == 0) {
-              LOG(loggerUncategorized, WARN, "WARNING: deprecated command-line option "
-                       " -tok=xml, use -tok=pic instead\n");
+              LOG(logAppl, WARN, "deprecated command-line option "
+                  " -tok=xml, use -tok=pic instead\n");
               opt_tok = TOKENIZER_PIC; // deprecated command-line option
             }
             else if (strcasecmp(optarg, "xml_counts") == 0) {
-              LOG(loggerUncategorized, WARN, "WARNING: deprecated command-line option "
-                       " -tok=xml_counts, use -tok=pic_counts instead\n");
+              LOG(logAppl, WARN, "deprecated command-line option "
+                  " -tok=xml_counts, use -tok=pic_counts instead\n");
               opt_tok = TOKENIZER_PIC_COUNTS; // deprecated command-line option
             }
             else if (strcasecmp(optarg, "pic") == 0)
@@ -484,30 +515,29 @@ bool parse_options(int argc, char* argv[])
             else if (strcasecmp(optarg, "fsr") == 0)
               opt_tok = TOKENIZER_FSR;
             else
-              LOG_ERROR(loggerUncategorized,
-                        "WARNING: unknown tokenizer mode "
-                        "\"%s\": using 'tok=string'", optarg);
+              LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
+                  <<"\": using 'tok=string'");
           }
-          set_opt("opt_tok", opt_tok);
+          */
+          set_opt_from_string("opt_tok", optarg);
         }
         break;
       case OPTION_JXCHG_DUMP:
+        if (optarg[strlen(optarg) - 1] != '/')
+          set_opt("opt_jxchg_dir", (std::string) optarg + "/");
+        else
           set_opt("opt_jxchg_dir", optarg);
-          if (*(get_opt_string("opt_jxchg_dir").end()--)
-              != '/') 
-            get_opt_string("opt_jxchg_dir") += '/';
-          break;
-
+        break;
       case OPTION_COMMENT_PASSTHROUGH:
           if(optarg != NULL)
-            set_optString("opt_comment_passthrough", optarg);
+            set_opt_from_string("opt_comment_passthrough", optarg);
           else
             set_opt("opt_comment_passthrough", true);
           break;
 
       case OPTION_PREDICT_LES:
         if (optarg != NULL)
-          set_optString("opt_predict_les", optarg);
+          set_opt_from_string("opt_predict_les", optarg);
         else 
           set_opt("opt_predict_les", (int) 1);
         break;
@@ -515,13 +545,13 @@ bool parse_options(int argc, char* argv[])
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
-            set_optString("opt_nth_meaning", optarg);
+            set_opt_from_string("opt_nth_meaning", optarg);
           else
             set_opt("opt_nth_meaning", 1);
           break;
       case OPTION_YY:
           set_opt("opt_yy", true);
-          set_opt("opt_tok", TOKENIZER_YY);
+          set_opt_from_string("opt_tok", "yy");
           break;
 #endif
         }
@@ -529,8 +559,7 @@ bool parse_options(int argc, char* argv[])
 
   if(optind != argc - 1)
     {
-      LOG_ERROR(loggerUncategorized, 
-                "parse_options(): expecting name of grammar to load");
+      LOG(logAppl, FATAL, "parse_options(): expecting name of grammar to load");
       return false;
     }
   grammar_file_name = argv[optind];
@@ -538,9 +567,8 @@ bool parse_options(int argc, char* argv[])
   if( get_opt_bool("opt_hyper") &&
       get_opt_charp("opt_compute_qc") != NULL)
   {
-    LOG_ERROR(loggerUncategorized, 
-              "quickcheck computation doesn't work "
-              "in hyperactive mode, disabling hyperactive mode.\n");
+    LOG(logAppl, WARN,"quickcheck computation doesn't work "
+        "in hyperactive mode, disabling.");
       set_opt("opt_hyper", false);
   }
 

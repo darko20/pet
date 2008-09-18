@@ -61,9 +61,9 @@ class tMorphAnalysis
   const std::list<grammar_rule *> &rules() { return _rules; }
 
   /** Print readably for debugging purposes */
-  void print(FILE *f) const;
+  void print(std::ostream &) const;
   /** Print in LKB format */
-  void print_lkb(FILE *f);
+  void print_lkb(std::ostream &) const;
 
   /** Two analyses are equal if the base form and the inflection derivation are
    *  equal
@@ -122,6 +122,10 @@ class tMorphAnalysis
 
 bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b);
 
+inline std::ostream &operator<<(std::ostream &o, const tMorphAnalysis &ma){
+  ma.print(o); return o;
+}
+
 void erase_duplicates(std::list<tMorphAnalysis> &li) ;
 
 /** Morphological analyzer LKB style. Implements transformation rules similar
@@ -177,7 +181,7 @@ class tMorphAnalyzer
   std::string generate(tMorphAnalysis);
 
   /** Print the contents of this analyzer for debugging purposes */
-  void print(FILE *f);
+  void print(std::ostream &) const;
 
   /** Initialize the special filter for morphology analysis */
   void initialize_lexrule_filter();
@@ -233,6 +237,10 @@ class tMorphAnalyzer
   
   friend class morph_trie;
 };
+
+inline std::ostream &operator<<(std::ostream &o, const tMorphAnalyzer &ma){
+  ma.print(o); return o;
+}
 
 /** LKB style online morphology with regexps for suffixes and prefixes and a
  *  table for irregular forms.

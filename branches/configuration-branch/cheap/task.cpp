@@ -50,11 +50,7 @@ build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
     fs rule = R->instantiate();
     fs arg = R->nextarg(rule);
     
-    if(!arg.valid())
-    {
-      LOG_ERROR(loggerUncategorized, "trouble getting arg of rule");
-      return 0;
-    }
+    assert(arg.valid());
     
     if(!opt_hyper || R->hyperactive() == false)
     {
@@ -122,11 +118,7 @@ build_combined_item(chart *C, tItem *active, tItem *passive)
     
     fs arg = active->nextarg(combined);
     
-    if(!arg.valid())
-    {
-      LOG_ERROR(loggerUncategorized, "trouble getting arg of active item");
-      return 0;
-    }
+    assert(arg.valid());
     
     if(!opt_hyper || active->rule()->hyperactive() == false)
     {

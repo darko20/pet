@@ -122,7 +122,7 @@ pet_cpp_fs_path_value(int fs, int *path) {
     p = append(p, path[i]);
   }
     
-  dag_node *v = dag_get_path_value_l(d, p);
+  dag_node *v = dag_get_path_value(d, p);
   free_list(p);
 
   if(!v || v == FAIL)

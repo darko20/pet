@@ -145,6 +145,12 @@ print_dag_rec(ostream &out, const dag_node *dag, bool temp, int indent) {
   if(temp) print_arcs(out, dag_get_comp_arcs(dag), temp, indent);
 }
 
+/** default printing for chart items: use a tItemPrinter */
+std::ostream &operator<<(std::ostream &out, const dag_node *dag) {
+  ReadableDagPrinter rdp;
+  rdp.print(out, dag);
+  return out;
+}
 
 // ============================================================================
 // CompactDagPrinter implementation

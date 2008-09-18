@@ -22,6 +22,12 @@
 #include "hierarchy.h"
 #include "dumper.h"
 #include "flop.h"
+#include "options.h"
+#include "dag.h"
+#include "grammar-dump.h"
+#include "logging.h"
+
+using std::list;
 
 /** dump a bunch of string pairs that describe various properties of the
  *  grammar.
@@ -214,12 +220,16 @@ kbwritten(dumper *f)
   return diff / 1024;
 }
 
+void logkb(const char *what, dumper *f) {
+  LOG(root, INFO, what << " " << kbwritten(f) << "k");
+}
+
 /** Dump the whole grammar to a binary data file.
  * \param f low-level dumper class
  * \param desc readable description of the current grammar
  */
 void
-dump_grammar(dumper *f, char *desc)
+dump_grammar(dumper *f, const char *desc)
 {
   dump_header(f, desc);
 
@@ -244,23 +254,19 @@ dump_grammar(dumper *f, char *desc)
 
   toc.start_section(SEC_PRINTNAMES);
   dump_print_names(f);
-
-  LOG(loggerUncategorized, Level::INFO, "symbols %dk", kbwritten(f));
+  logkb("symbols", f);
 
   toc.start_section(SEC_HIERARCHY);
   dump_hierarchy(f);
-
-  LOG(loggerUncategorized, Level::INFO, ", hierarchy %dk", kbwritten(f));
+  logkb("hierarchy", f);
 
   toc.start_section(SEC_FEATTABS);
   dump_tables(f);
-
-  LOG(loggerUncategorized, Level::INFO, ", feature tables %dk", kbwritten(f));
+  logkb("feature tables", f);
 
   toc.start_section(SEC_SUPERTYPES);
   dump_supertypes(f);
-
-  LOG(loggerUncategorized, Level::INFO, ", supertypes %dk", kbwritten(f));
+  logkb("supertypes", f);
 
   toc.start_section(SEC_FULLFORMS);
   dump_fullforms(f);
@@ -271,13 +277,12 @@ dump_grammar(dumper *f, char *desc)
   toc.start_section(SEC_IRREGS);
   dump_irregs(f);
 
-  LOG(loggerUncategorized, Level::INFO, ", lexicon %dk", kbwritten(f));
+  logkb("lexicon", f);
 
   toc.start_section(SEC_CONSTRAINTS);
 
   for(int i = 0; i < types.number(); i++)
     dag_dump(f, types[rleaftype_order[i]]->thedag);
-
-  LOG(loggerUncategorized, Level::INFO, ", types %dk", kbwritten(f));
+  logkb("types", f);
 
 }

@@ -22,6 +22,7 @@
 
 #include "cheap.h"
 #include "fs.h"
+#include "types.h"
 #include "tsdb++.h"
 #include "restrictor.h"
 #include "dagprinter.h"
@@ -49,7 +50,7 @@ fs::fs(type_t type)
         throw tError("construction of non-existent dag requested");
 
     _dag = type_dag(type);
-    
+
     _temp = 0;
 }
 
@@ -57,12 +58,25 @@ fs::fs(char *path, type_t type)
 {
     if(! is_type(type))
         throw tError("construction of non-existent dag requested");
-    
-    _dag = 0; // dag_create_path_value(path, type);
-    
+
+    // TODO: as of rev 339, there are no checks whether the resulting dag
+    // is a valid type!
+    _dag = dag_create_path_value(path, type);
+
     _temp = 0;
 }
 
+fs::fs(const list_int *path, type_t type)
+{
+    if(! is_type(type))
+        throw tError("construction of non-existent dag requested");
+
+    // TODO: as of rev 339, there are no checks whether the resulting dag
+    // is a valid type!
+    _dag = dag_create_path_value(const_cast<list_int*>(path), type);
+
+    _temp = 0;
+}
 
 fs
 fs::get_attr_value(int attr) const
@@ -81,9 +95,29 @@ fs::get_attr_value(char *attr) const
 }
 
 fs
+fs::get_path_value(const list_int *path) const
+{
+    return fs(dag_get_path_value(_dag, const_cast<list_int*>(path)));
+}
+
+fs
 fs::get_path_value(const char *path) const
 {
     return fs(dag_get_path_value(_dag, path));
+}
+
+std::list<fs>
+fs::get_list() const
+{
+    list<fs> fs_list;
+    fs current = *this;
+    while (current.valid() && !subtype(current.type(), BI_NIL)) {
+        fs first = current.get_attr_value(BIA_FIRST);
+        if (first.valid())
+            fs_list.push_back(first);
+        current = current.get_attr_value(BIA_REST);
+    }
+    return fs_list;
 }
 
 const char *
@@ -135,16 +169,16 @@ fs::modify_eagerly(const modlist &mods) {
   for(modlist::const_iterator mod = mods.begin(); mod != mods.end(); ++mod) {
     dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
     if (p == FAIL) {
-      cerr << "; WARNING: failed to create dag for new path-value (" 
-           << (mod->first).c_str() << " = " << print_name(mod->second) << ")" 
+      cerr << "; WARNING: failed to create dag for new path-value ("
+           << (mod->first).c_str() << " = " << print_name(mod->second) << ")"
            << endl;
     } else {
       newdag = dag_unify(curr, p, curr, 0);
       if(newdag != FAIL) {
         curr = newdag;
       } else {
-        cout << "; WARNING: failed to unify new path-value (" 
-             << (mod->first).c_str() << " = " << print_name(mod->second) 
+        cout << "; WARNING: failed to unify new path-value ("
+             << (mod->first).c_str() << " = " << print_name(mod->second)
              << ") into fs (type: " << printname() << ")" << endl;
         full_success = false;
       }
@@ -185,7 +219,7 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
   bool succeeded = false;
   dag_node *curr = _dag;
   // try to retrieve the characterization path
-  dag_node *p = dag_get_path_value_l(curr, path);
+  dag_node *p = dag_get_path_value(curr, path);
   if( p == FAIL ) {
     // if it does not exist, maybe due to unfilling, try to put it into the
     // current feature structure using unification
@@ -194,11 +228,11 @@ fs::characterize(list_int *path, attr_t feature, type_t value) {
     dag_node *newdag = dag_unify(curr, p, curr, 0);
     if (newdag == FAIL) return false;
     curr = newdag;
-    p = dag_get_path_value_l(curr, path);
+    p = dag_get_path_value(curr, path);
   }
   // Now p points to the subdag where the list search should begin
 
-  dag_node *charz_dag 
+  dag_node *charz_dag
     = dag_create_attr_value(feature, dag_full_copy(type_dag(value)));
   do {
     dag_node *first = dag_get_attr_value(p, BIA_FIRST);
@@ -232,11 +266,11 @@ get_unifier_stats()
     if(stats.unifications_succ != 0)
     {
         stats.unify_cost_succ = total_cost_succ / stats.unifications_succ;
-        
+
     }
     else
         stats.unify_cost_succ = 0;
-    
+
     if(stats.unifications_fail != 0)
         stats.unify_cost_fail = total_cost_fail / stats.unifications_fail;
     else
@@ -258,18 +292,29 @@ map<list_int *, int, list_int_compare> failing_sets_unif;
 map<int, double> failing_paths_subs;
 map<list_int *, int, list_int_compare> failing_sets_subs;
 
+void
+print_failures(std::ostream &out, const list<failure *> &fails,
+               bool unification, dag_node *a = 0, dag_node *b = 0) {
+  out << "failure (" << (unification ? "unif" : "subs") << ") at"
+      << std::endl ;
+  for(list<failure *>::const_iterator iter = fails.begin();
+      iter != fails.end(); ++iter) {
+    out << "  " << **iter << std::endl;
+  }
+}
+
 
 void
 record_failures(list<failure *> fails, bool unification,
                 dag_node *a = 0, dag_node *b = 0) {
   failure *f;
   list_int *sf = 0;
-    
+
   int total = fails.size();
   int *value = new int[total], price = 0;
   int i = 0;
   int id;
-        
+
   for(list<failure *>::iterator iter = fails.begin();
       iter != fails.end(); ++iter)
     {
@@ -279,14 +324,14 @@ record_failures(list<failure *> fails, bool unification,
         {
           bool good = true;
           // let's see if the quickcheck could have filtered this
-                
+
           dag_node *d1, *d2;
-                
-          d1 = dag_get_path_value_l(a, f->path());
-          d2 = dag_get_path_value_l(b, f->path());
-                
+
+          d1 = dag_get_path_value(a, f->path());
+          d2 = dag_get_path_value(b, f->path());
+
           int s1 = BI_TOP, s2 = BI_TOP;
-                
+
           if(d1 != FAIL) s1 = dag_type(d1);
           if(d2 != FAIL) s2 = dag_type(d2);
 
@@ -307,7 +352,7 @@ record_failures(list<failure *> fails, bool unification,
             {
               value[i] = f->cost();
               price += f->cost();
-                    
+
               if(failure_id.find(*f) == failure_id.end())
                 {
                   // This is a new failure. Assign an id.
@@ -316,11 +361,11 @@ record_failures(list<failure *> fails, bool unification,
                 }
               else
                 id = failure_id[*f];
-                    
+
               // Insert id into sorted list of failure ids for this
               // configuration.
               list_int *p = sf, *q = 0;
-                    
+
               while(p && first(p) < id)
                 q = p, p = rest(p);
 
@@ -346,7 +391,7 @@ record_failures(list<failure *> fails, bool unification,
         }
       i++;
     }
-        
+
   // If this is not a new failure set, free it.
   if(sf)
     {
@@ -379,50 +424,38 @@ record_failures(list<failure *> fails, bool unification,
         }
       i++;
       delete f;
-      // _fix_me_ may not delete f if opt_print_failure is on
     }
-        
-  delete[] value;
-}
 
-void
-print_failures(std::ostream &out, const list<failure *> &fails,
-               bool unification, dag_node *a = 0, dag_node *b = 0) {
-  out << "failure (" << (unification ? "unif" : "subs") << ") at"
-      << std::endl ;
-  for(list<failure *>::const_iterator iter = fails.begin();
-      iter != fails.end(); ++iter) {
-    out << "  " << *iter << std::endl;
-  }
+  delete[] value;
 }
 
 
 fs
 unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
   struct dag_alloc_state s;
-    
+
   dag_alloc_mark(s);
-    
+
   struct dag_node *res = dag_unify(root._dag, a._dag, b._dag, del);
-    
+
   if(res == FAIL) {
     if(stat) {
       total_cost_fail += unification_cost;
       stats.unifications_fail++;
     }
-        
+
     if(opt_compute_qc_unif || opt_print_failure) {
       list<failure *> fails =
         dag_unify_get_failures(a._dag, b._dag, true);
-            
-      if (opt_compute_qc_unif) 
+
+      if (opt_compute_qc_unif)
         record_failures(fails, true, a._dag, b._dag);
-      // \todo replace cerr by a stream that is dedicated to the printing of 
+      // \todo replace cerr by a stream that is dedicated to the printing of
       // unification failures
       if (opt_print_failure)
         print_failures(cerr, fails, true, a._dag, b._dag);
     }
-        
+
     dag_alloc_release(s);
   }
   else {
@@ -431,7 +464,7 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
       stats.unifications_succ++;
     }
   }
-    
+
   return fs(res);
 }
 
@@ -451,21 +484,19 @@ fs
 unify_np(fs &root, const fs &a, fs &b)
 {
     struct dag_node *res;
-    
+
     res = dag_unify_temp(root._dag, a._dag, b._dag);
-    
+
     if(res == FAIL)
     {
         // We really don't expect failures, except in unpacking, or in
         // error conditions. No failure recording, thus.
         total_cost_fail += unification_cost;
         stats.unifications_fail++;
-        
-        if(opt_print_failure)
-        {
-          LOG_ERROR(loggerFs,
-                    "unification failure: unexpected failure in non"
-                    " permanent unification");
+
+        if(opt_print_failure) {
+          LOG(logAppl, ERROR, "unification failure: unexpected failure in non"
+              " permanent unification");
         }
     }
     else
@@ -473,10 +504,10 @@ unify_np(fs &root, const fs &a, fs &b)
         total_cost_succ += unification_cost;
         stats.unifications_succ++;
     }
-    
+
     fs f(res, unify_generation);
     dag_invalidate_changes();
-    
+
     return f;
 }
 
@@ -487,7 +518,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
     {
         list<failure *> failures =
             dag_subsumes_get_failures(a._dag, b._dag, forward, backward,
-                                      true); 
+                                      true);
 
         // Filter out failures that have a representative with a shorter
         // (prefix) path. Assumes path with shortest failure path comes
@@ -498,7 +529,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
             f != failures.end(); ++f)
         {
             bool good = true;
-            for(list<failure *>::iterator g = filtered.begin(); 
+            for(list<failure *>::iterator g = filtered.begin();
                 g != filtered.end(); ++g)
             {
                 if(prefix(**g, **f))
@@ -516,7 +547,7 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
 
         if (opt_compute_qc_subs)
           record_failures(filtered, false, a._dag, b._dag);
-        // \todo replace cerr by a stream that is dedicated to the printing of 
+        // \todo replace cerr by a stream that is dedicated to the printing of
         // subsumption failures
         if (opt_print_failure)
           print_failures(cerr, filtered, false, a._dag, b._dag);
@@ -538,7 +569,7 @@ packing_partial_copy(const fs &a, const restrictor &del, bool perm) {
   dag_invalidate_changes();
   if(perm) {
     res = dag_full_p_copy(res);
-        
+
     // \todo generalize this. This is heavily connected with getting a good
     // context-free approximation out of an HPSG grammar. So maybe more general
     // (dynamic) restrictors a la Kiefer&Krieger would be a good idea.
@@ -546,7 +577,7 @@ packing_partial_copy(const fs &a, const restrictor &del, bool perm) {
     //
     // one contrastive test run on the 700-item PARC (WSJ) dependency bank
     // seems to suggest that this is not worth it: we get a small increase
-    // in pro- and retro-active packings, at the cost of fewer equivalence 
+    // in pro- and retro-active packings, at the cost of fewer equivalence
     // packings, a hand-full reduction in edges, and a two percent increase
     // in parsing time.  may need more research             (7-jun-03; oe)
     //
@@ -568,11 +599,11 @@ bool
 compatible(const fs &a, const fs &b) {
   struct dag_alloc_state s;
   dag_alloc_mark(s);
-    
+
   bool res = dags_compatible(a._dag, b._dag);
-    
+
   dag_alloc_release(s);
-    
+
   return res;
 }
 
@@ -587,12 +618,12 @@ compare(const fs &a, const fs &b)
 qc_vec fs::get_qc_vector(qc_node *qc_paths, int qc_len) const {
   qc_vec vector = new type_t [qc_len];
   memset(vector, 0, qc_len * sizeof(type_t));
-    
+
   if(temp()) // && opt_hyper temporary dags only during hyperactive parsing
     dag_get_qc_vector_temp(qc_paths, _dag, vector);
   else
     dag_get_qc_vector(qc_paths, _dag, vector);
-  
+
   return vector;
 }
 
@@ -609,7 +640,7 @@ fs::qc_compatible_unif(const qc_vec &a, const qc_vec &b)
       return false;
     }
   }
-    
+
   return true;
 }
 

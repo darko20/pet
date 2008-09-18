@@ -23,6 +23,13 @@
 #include <fstream>
 
 #include "flop.h"
+#include "settings.h"
+#include "utility.h"
+#include "dumper.h"
+#include "options.h"
+#include "logging.h"
+
+using namespace std;
 
 list<ff_entry> fullforms;
 list<irreg_entry> irregforms;
@@ -60,8 +67,7 @@ string get_string(string &line, int &pos, istream &I)
     }
   else
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "ill formed morph entry `%s'...", line.c_str());
+      fprintf(ferr, "error: ill formed morph entry `%s'...", line.c_str());
       I.clear(ios::badbit);
       return string();
     }
@@ -81,8 +87,7 @@ int get_int(string &line, int &pos, istream &I)
     }
   else
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "ill formed morph entry `%s'...", line.c_str());
+      fprintf(ferr, "error: ill formed morph entry `%s'...", line.c_str());
       I.clear(ios::badbit);
       return -1;
     }
@@ -133,8 +138,7 @@ void ff_entry::dump(dumper *f)
   preterminal = types.id(_preterminal);
   if(preterminal == -1)
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "unknown preterminal `%s'", _preterminal.c_str());
+      LOG(logSemantic, WARN, "unknown preterminal `" << _preterminal << "'");
     }
 
   preterminal = leaftype_order[preterminal];
@@ -145,9 +149,8 @@ void ff_entry::dump(dumper *f)
 
   if(!_affix.empty() && affix == -1)
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "unknown affix `%s' for `%s'", _affix.c_str(),
-              _preterminal.c_str());
+      LOG(logSemantic, WARN,
+          "unknown affix `" << _affix << "' for `" << _preterminal << "'");
     }
 
   inflpos = _inflpos == 0 ? 0 : _inflpos - 1;
@@ -173,8 +176,7 @@ void read_morph(string fname)
   if(flop_settings->lookup("affixes-are-instances"))
     opt_inst_affixes = true;
 
-  LOG(loggerUncategorized, Level::INFO,
-      "reading full form entries from `%s': ", fname.c_str());
+  LOG(root, INFO, "reading full form entries from `" << fname << "': ");
 
   while(!f.eof())
   {
@@ -195,8 +197,7 @@ void read_morph(string fname)
           f.clear();
   }
   
-  //fprintf(fstatus, "%lu entries.\n", fullforms.size());
-  LOG(loggerUncategorized, Level::INFO, "%d entries.", fullforms.size());
+  LOG(root, INFO, fullforms.size() << " entries.");
 }
 
 bool parse_irreg(string line)

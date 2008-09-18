@@ -23,6 +23,8 @@
 #include "getopt.h"
 #include "options.h"
 #include "version.h"
+#include "utility.h"
+#include "logging.h"
 
 bool opt_no_sem;
 

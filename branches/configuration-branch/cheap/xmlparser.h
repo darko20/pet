@@ -42,8 +42,8 @@ using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
 /** Parse an XML file using the given SAX Document Handler.
  * \param inp The XML input source (stdin or file input)
  * \param dochandler The document handler to use (for different file contents).
- * \returns \c true, if no fatal error occurred, \c false otherwise.
-*/
+ * \return \c true, if no fatal error occurred, \c false otherwise.
+ */
 bool parse_file(XERCES_CPP_NAMESPACE_QUALIFIER InputSource &inp
                 , XERCES_CPP_NAMESPACE_QUALIFIER HandlerBase *dochandler);
 

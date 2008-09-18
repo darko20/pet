@@ -20,6 +20,8 @@
 /* output for the CHIC system */
 
 #include "flop.h"
+#include "utility.h"
+#include "logging.h"
 
 int save_lines = 1;
 
@@ -466,7 +468,7 @@ int print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
   return complex;
 }
 
-void print_constraint(FILE *f, struct type *t, const string &name)
+void print_constraint(FILE *f, struct type *t, const std::string &name)
 {
   int j, navm = 0;
   struct conjunction *c = t->constraint;

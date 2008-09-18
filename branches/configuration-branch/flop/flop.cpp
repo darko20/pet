@@ -23,6 +23,7 @@
 #include <errno.h>
 
 #include <sstream>
+#include <iomanip>
 
 #include "flop.h"
 #include "hierarchy.h"
@@ -30,6 +31,10 @@
 #include "symtab.h"
 #include "options.h"
 #include "version.h"
+#include "list-int.h"
+#include "dag.h"
+#include "utility.h"
+#include "grammar-dump.h"
 
 #include "pet-config.h"
 #include "logging.h"
@@ -54,10 +59,12 @@ char defaultPb[defaultPbSize];
 
 #endif // HAVE_LIBLOG4CXX
 
+using namespace std;
+
 /*** global variables ***/
 
-char * version_string = VERSION ;
-char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
+const char * version_string = VERSION ;
+const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 symtab<struct type *> types;
 symtab<int> statustable;
@@ -72,10 +79,10 @@ settings *flop_settings = 0;
 
 /*** variables local to module */
 
-static char *grammar_version;
+static const char *grammar_version;
 
 void
-mem_checkpoint(char *where)
+mem_checkpoint(const char *where)
 {
     static size_t last = 0;
     
@@ -101,10 +108,8 @@ check_undefined_types()
           if(loc == 0)
             loc = new_location("unknown", 0, 0);
 
-          LOG(loggerUncategorized, Level::WARN, 
-              "warning: type `%s' (introduced at %s:%d) has no definition",
-              types.name(i).c_str(),
-              loc->fname, loc->linenr);
+          fprintf(ferr,"%s:%d: warning: type `%s' has no definition",
+                  loc->fname, loc->linenr, types.name(i).c_str());
         }
     }
 }
@@ -137,6 +142,12 @@ char *synth_type_name(int offset = 0)
   return strdup(name);
 }
 
+string typelist2string(list_int *l) {
+  ostringstream out;
+  for(; l != 0; l = rest(l)) out << " " << types.name(first(l));
+  return out.str();
+}
+
 void process_multi_instances()
 {
   int i, n = types.number();
@@ -147,12 +158,8 @@ void process_multi_instances()
   for(i = 0; i < n; i++)
     if((t = types[i])->tdl_instance && length(t->parents) > 1)
       {
-        LOG_ONLY(PrintfBuffer pb);
-        LOG_ONLY(pbprintf(pb, "TDL instance `%s' has multiple parents: ",
-                          types.name(i).c_str()));
-        LOG_ONLY(for(list_int *l = t->parents; l != 0; l = rest(l))
-                   pbprintf(pb, " %s", types.name(first(l)).c_str()));
-        LOG(loggerUncategorized, Level::DEBUG, pb.getContents());
+        LOG(root, DEBUG, "TDL instance `" << types.name(i) 
+            << "' has multiple parents: " << typelist2string(t->parents));
 
         if(ptype[t->parents] == 0)
           {
@@ -166,9 +173,7 @@ void process_multi_instances()
 
             ptype[t->parents] = p->id;
 
-
-            LOG(loggerUncategorized, Level::INFO,
-                "Synthesizing new parent type `%d'", p->id); 
+            LOG(root, INFO, "Synthesizing new parent type `" << p->id << "'"); 
           }
 
         undo_subtype_constraints(t->id);
@@ -242,7 +247,7 @@ void preprocess_types()
   assign_printnames();
 }
 
-void log_types(char *title)
+void log_types(const char *title)
 {
   fprintf(stderr, "------ %s\n", title);
   for(int i = 0; i < types.number(); i++)
@@ -274,7 +279,7 @@ void demote_instances()
 
 void process_types()
 {
-  LOG(loggerUncategorized, Level::INFO, "- building dag representation");
+  LOG(root, INFO, "- building dag representation");
   unify_wellformed = false;
   dagify_symtabs();
   dagify_types();
@@ -398,9 +403,8 @@ char *parse_version() {
          && flop_settings->member("version-string", LA(0)->text)) {
         consume(1);
         if(LA(0)->tag != T_STRING) {
-          LOG(loggerUncategorized, Level::WARN,
-              "string expected for version at %s:%d",
-              LA(0)->loc->fname, LA(0)->loc->linenr);
+          fprintf(ferr, "%s:%d: warning: string expected for version",
+                  LA(0)->loc->fname, LA(0)->loc->linenr);
         }
         else {
           version = LA(0)->text; LA(0)->text = 0;
@@ -442,8 +446,7 @@ int process(char *ofname) {
   string fname = find_file(ofname, TDL_EXT);
   
   if(fname.empty()) {
-    LOG(loggerUncategorized, Level::WARN,
-        "file `%s' not found - skipping...", ofname);
+    fprintf(ferr, "warning: file `%s' not found - skipping...", ofname);
     return FILE_NOT_FOUND ;
   }
 
@@ -471,9 +474,8 @@ int process(char *ofname) {
     initialize_specials(flop_settings);
     initialize_status();
 
-    LOG(loggerUncategorized, Level::INFO,
-        "\nconverting `%s' (%s) into `%s' ...",
-        fname.c_str(), grammar_version, outfname.c_str());
+    LOG(root, INFO, endl << "converting `" << fname << "' (" << grammar_version 
+        << ") into `" << outfname << "' ...");
       
     if((set = flop_settings->lookup("postload-files")) != 0)
       for(i = set->n - 1; i >= 0; i--) {
@@ -515,17 +517,17 @@ int process(char *ofname) {
     if(!get_opt_bool("opt_pre"))
       check_undefined_types();
 
-    LOG(loggerUncategorized, Level::INFO,
-        "finished parsing - %d syntax errors, %d lines in %0.3g s",
-        syntax_errors, total_lexed_lines,
-        (clock() - t_start) / (float) CLOCKS_PER_SEC);
+    LOG(root, INFO,
+        "finished parsing - " << syntax_errors << " syntax errors, " 
+        << total_lexed_lines << "%d lines in " << std::setprecision(3)
+        << (clock() - t_start) / (float) CLOCKS_PER_SEC << " s");
 
     if (syntax_errors > 0) res = SYNTAX_ERRORS;
 
     mem_checkpoint("before preprocessing types");
 
-    LOG(loggerUncategorized, Level::INFO,
-        "processing type constraints (%d types):", types.number());
+    LOG(root, INFO,
+        "processing type constraints (" << types.number() << " types):");
       
     t_start = clock();
 
@@ -548,29 +550,27 @@ int process(char *ofname) {
       write_pre(outf);
     } else {
       dumper dmp(outf, true);
-      fprintf(fstatus, "dumping grammar (");
+      LOG(root, INFO, "dumping grammar starts");
       dump_grammar(&dmp, grammar_version);
-      fprintf(fstatus, ")\n");
-      LOG(loggerUncategorized, Level::DEBUG,
-          "%d[%d]/%d (%0.2g) total grammar nodes [atoms]/arcs (ratio) dumped",
-          dag_dump_grand_total_nodes, 
-          dag_dump_grand_total_atomic,
-          dag_dump_grand_total_arcs,
-          double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic);
+      LOG(root, INFO, "dumping grammar finished");
+      LOG(root, DEBUG, dag_dump_grand_total_nodes << "[" 
+          << dag_dump_grand_total_atomic << "]/"
+          << dag_dump_grand_total_arcs << " (" << std::setprecision(2)
+          << double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic
+          << "total grammar nodes [atoms]/arcs (ratio) dumped");
     }
       
     fclose(outf);
     
-    LOG(loggerUncategorized, Level::INFO,
-        "finished conversion - output generated in %0.3g s",
-        (clock() - t_start) / (float) CLOCKS_PER_SEC);
+    LOG(root, INFO, "finished conversion - output generated in " 
+        << std::setprecision(3) 
+        << (clock() - t_start) / (float) CLOCKS_PER_SEC << " s");
 
     if(get_opt_int("opt_cmi") > 0) {
       string moifile = output_name(fname, TDL_EXT, ".moi");
       FILE *moif = fopen(moifile.c_str(), "wb");
-      LOG(loggerUncategorized, Level::INFO,
-          "Extracting morphological information into `%s'...",
-          moifile.c_str());
+      LOG(root, INFO,
+          "Extracting morphological information into `" << moifile << "'...");
       print_morph_info(moif);
       if(get_opt_int("opt_cmi") > 1) {
         fprintf(fstatus, " type hierarchy...");
@@ -582,9 +582,8 @@ int process(char *ofname) {
     }
   }
   else {
-    LOG(loggerUncategorized, Level::WARN,
-        "couldn't open output file `%s' for `%s' - "
-        "skipping...", outfname.c_str(), fname.c_str());
+    LOG(root, WARN, "couldn't open output file `" << outfname << "' for `"
+        << fname << "' - skipping...");
     res = FILE_NOT_FOUND;
   }
   return res;

@@ -396,7 +396,7 @@ void
 tMEM::readModel(const string &fileName)
 {
     push_file(fileName, "reading ME model");
-    char *sv = lexer_idchars;
+    const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
     parseModel();
     lexer_idchars = sv;
@@ -518,7 +518,7 @@ tMEM::parseOptions()
 void
 tMEM::parseFeatures(int nFeatures)
 {
-    LOG(loggerParse, Level::INFO, "[%d features] ", nFeatures);
+    LOG(logSM, INFO, "[" << nFeatures << " features] ");
 
     _weights.resize(nFeatures);
 
@@ -548,7 +548,7 @@ tMEM::parseFeature(int n)
 {
     char *tmp;
 
-    LOG(loggerParse, Level::DEBUG, "[%d]", n);
+    LOG(logSM, DEBUG, "[" << n << "]");
 
     match(T_LBRACKET, "begin of feature vector", true);
 
@@ -562,7 +562,7 @@ tMEM::parseFeature(int n)
         {
             // This can be an integer or an identifier.
             tmp = match(T_ID, "subfeature in feature vector", false);
-            LOG(loggerParse, Level::DEBUG, " %s", tmp);
+            LOG(logSM, DEBUG, " " << tmp);
 
             char *endptr;
             int t = strtol(tmp, &endptr, 10);
@@ -579,9 +579,8 @@ tMEM::parseFeature(int n)
                 
                 if(t == -1)
                 {
-                  LOG(loggerParse, Level::INFO,
-                      "Unknown type/instance `%s' in feature #%d",
-                      tmp, n);
+                  LOG(logSM, WARN, "Unknown type/instance `" << tmp
+                      << "' in feature #" << n);
                   good = false;
                 }
                 else
@@ -602,8 +601,7 @@ tMEM::parseFeature(int n)
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                LOG(loggerParse, Level::DEBUG, " \"%s\"", tmp);
+            LOG(logSM, DEBUG, " \"" << tmp << "\"");
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
@@ -624,12 +622,12 @@ tMEM::parseFeature(int n)
     // check syntax of number
     double w = strtod(tmp, NULL);
     free(tmp);
-    LOG(loggerParse, Level::DEBUG, ": %g", w);
+    LOG(logSM, DEBUG, ": " << w);
 
     if(good)
     {
         int code = map()->featureToCode(v);
-        LOG(loggerParse, Level::DEBUG, " (code %d)", code);
+        LOG(logSM, DEBUG, " (code " << code << ")");
         assert(code >= 0);
         if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;
@@ -641,7 +639,7 @@ void
 tMEM::parseFeature2(int n)
 {
     char *tmp;
-    LOG(loggerParse, Level::DEBUG, "[%d]", n);
+    LOG(logSM, DEBUG, "[" << n << "]");
 
     match(T_LPAREN, "begin of feature", true);
     match(T_ID, "feature index", true);
@@ -658,7 +656,7 @@ tMEM::parseFeature2(int n)
         {
             // This can be an integer or an identifier.
             tmp = match(T_ID, "subfeature in feature vector", false);
-            LOG(loggerParse, Level::DEBUG, " %s", tmp);
+            LOG(logSM, DEBUG, " " << tmp);
 
             char *endptr;
             int t = strtol(tmp, &endptr, 10);
@@ -675,9 +673,8 @@ tMEM::parseFeature2(int n)
                 
                 if(t == -1)
                 {
-                  LOG(loggerParse, Level::INFO,
-                      "Unknown type/instance `%s' in feature #%d",
-                      tmp, n);
+                  LOG(logSM, INFO, "Unknown type/instance `" << tmp
+                      << "' in feature #" << n);
                   good = false;
                 }
                 else
@@ -695,7 +692,7 @@ tMEM::parseFeature2(int n)
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
-            LOG(loggerParse, Level::DEBUG, " \"%s\"", tmp);
+            LOG(logSM, DEBUG, " \"" << tmp << "\"");
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
@@ -725,12 +722,12 @@ tMEM::parseFeature2(int n)
     // check syntax of number
     double w = strtod(tmp, NULL);
     free(tmp);
-    LOG(loggerParse, Level::DEBUG, ": %g", w);
+    LOG(logSM, DEBUG, ": " << w);
 
     if(good)
     {
         int code = map()->featureToCode(v);
-        LOG(loggerParse, Level::DEBUG, " (code %d)", code);
+        LOG(logSM, DEBUG, " (code " << code << ")");
         assert(code >= 0);
         if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;

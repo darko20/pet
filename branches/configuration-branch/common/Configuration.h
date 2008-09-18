@@ -53,6 +53,15 @@ public:
 };
 
 
+/** An abstract template class to convert things from and to string
+    representations */
+template<class T> class AbstractConverter {
+public:
+  virtual std::string toString(const T &val) = 0;
+  virtual T fromString(const std::string &s) = 0;
+};
+
+
 /** Helper class for managing options with callback functions.
  * 
  * Methods of this class are called when value of an option is read or written.
@@ -123,6 +132,8 @@ inline std::string get_opt_as_string(const std::string& key) {
 /* @{ */
 inline const bool &get_opt_bool(const std::string& key) { return get_opt<bool>(key); }
 
+inline const char &get_opt_char(const std::string& key) { return get_opt<char>(key); }
+
 inline const int &get_opt_int(const std::string& key) { return get_opt<int>(key); }
 
 inline const char * const &get_opt_charp(const std::string& key) { 
@@ -168,6 +179,21 @@ template<class T>
 void managed_opt(const std::string &key, const std::string &docstring,
                  T initialValue) {
   Config::get_instance()->addOption<T>(key, docstring, initialValue);
+}
+
+template<class T>
+void managed_opt(const std::string &key, const std::string &docstring,
+                 T initialValue,
+                 typename value<T>::fromfunc from,
+                 typename value<T>::tofunc to) {
+  Config::get_instance()->addOption<T>(key, docstring, initialValue, from, to);
+}
+
+template<class T>
+void managed_opt(const std::string &key, const std::string &docstring,
+                 T initialValue,
+                 AbstractConverter<T> *conv) {
+  Config::get_instance()->addOption<T>(key, docstring, initialValue, conv);
 }
 
 /** \brief Register a reference option, i.e., a variable whose value shall be

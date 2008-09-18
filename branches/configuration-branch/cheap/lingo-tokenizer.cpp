@@ -35,10 +35,7 @@ extern settings *cheap_settings;
 void 
 tLingoTokenizer::tokenize(string s, inp_list &result) {
   list<string> tokens = do_it(s);
-  if(verbosity > 4)
-    LOG(loggerUncategorized, Level::INFO,
-        "[sending input through lingo_tokenizer]");
-
+  // logging is done by setting logLexproc's Priority to DEBUG 
   char idstrbuf[6];
   int i = 0, id = 0;
   tInputItem *tok = 0;

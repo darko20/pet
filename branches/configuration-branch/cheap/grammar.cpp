@@ -42,11 +42,8 @@
 
 int grammar_rule::next_id = tGrammar::init_globals();
 
-// defined in fs.cpp
-extern bool opt_compute_qc_unif, opt_compute_qc_subs;
-
 // defined in parse.cpp
-extern int  opt_packing;
+extern int opt_packing;
 
 bool
 lexentry_status(type_t t)
@@ -165,7 +162,7 @@ grammar_rule::grammar_rule(type_t t)
     {
         if(keyarg != -1)
         {
-          LOG(loggerGrammar, Level::WARN,
+          LOG(logGrammar, WARN,
               "warning: both keyarg-marker-path and rule-keyargs "
               "supply information on key argument...");
         }
@@ -250,7 +247,7 @@ grammar_rule::make_grammar_rule(type_t t) {
     return new grammar_rule(t);
   }
   catch (tError e) {
-    LOG_ERROR(loggerGrammar, "%s", e.getMessage().c_str());
+    LOG(logGrammar, ERROR, e.getMessage());
   }
   return NULL;
 }
@@ -271,18 +268,18 @@ void
 grammar_rule::lui_dump(const char *path) {
 
   if(chdir(path)) {
-    LOG_ERROR(loggerGrammar,
-              "grammar_rule::lui_dump(): invalid target directory `%s'.",
-              path);
+    LOG(logGrammar, ERROR,
+        "grammar_rule::lui_dump(): invalid target directory `"
+        << path << "'.)");
     return;
   } // if
   char name[MAXPATHLEN + 1];
   sprintf(name, "rule.%d.lui", _id);
   ofstream stream(name);
   if(! stream) { //(stream = fopen(name, "w")) == NULL) {
-    LOG_ERROR(loggerGrammar,
-              "grammar_rule::lui_dump(): unable to open `%s' (in `%s').",
-              name, path);
+    LOG(logGrammar, ERROR,
+        "grammar_rule::lui_dump(): unable to open `" << name 
+        << "' (in `" << path << "').");
     return;
   } // if
   stream << "avm -" << _id << " ";
@@ -329,14 +326,14 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
 
   for(int i = 0; i < nstatictypes; i++) {
     if(qc_inst_unif != 0 && i == qc_inst_unif) {
-      LOG(loggerGrammar, Level::DEBUG,
-          "[qc unif structure `%s'] ", print_name(qc_inst_unif));
+      LOG(logGrammar, DEBUG,
+          "[qc unif structure `" << print_name(qc_inst_unif) << "'] ");
       qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
       dag = 0;
     }
     else if(qc_inst_subs && i == qc_inst_subs) {
-      LOG(loggerGrammar, Level::DEBUG,
-          "[qc subs structure `%s'] ", print_name(qc_inst_subs));
+      LOG(logGrammar, DEBUG,
+          "[qc subs structure `" << print_name(qc_inst_subs) << "'] ");
       qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
       dag = 0;
     }
@@ -389,7 +386,7 @@ tGrammar::tGrammar(const char * filename)
     int version;
     char *s = undump_header(&dmp, version);
     if(s)
-      LOG(loggerGrammar, Level::INFO, "(%s) ", s);
+      LOG(logGrammar, INFO, "(" << s << ") ");
     delete[] s;
     delete[] s;
     
@@ -520,8 +517,8 @@ tGrammar::tGrammar(const char * filename)
     activate_all_rules();
     // The number of all rules for the unification and subsumption rule
     // filtering
-    LOG(loggerGrammar, Level::DEBUG,
-        "%d+%d stems, %d rules", nstems(), length(_generics), _rules.size());
+    LOG(logGrammar, DEBUG, nstems() << "+" << length(_generics)
+        << " stems, " << _rules.size() << " rules");
 
 
     if(opt_nqc_unif != 0)
@@ -541,8 +538,7 @@ tGrammar::tGrammar(const char * filename)
       try { _sm = new tMEM(this, sm_file, filename); }
       catch(tError &e)
       {
-        LOG_ERROR(loggerGrammar,
-                  "%s", e.getMessage().c_str());
+        LOG(logGrammar, ERROR, e.getMessage());
         _sm = 0;
       }
     }
@@ -576,9 +572,8 @@ tGrammar::tGrammar(const char * filename)
     }
     catch(tError &e)
     {
-        LOG_ERROR(loggerGrammar,
-                  "EXTDICT disabled: %s", e.msg().c_str());
-        _extDict = 0;
+      LOG_S(logGrammar, ERROR, "EXTDICT disabled: %s", e.msg().c_str());
+      _extDict = 0;
     }
 #endif
 
@@ -586,10 +581,10 @@ tGrammar::tGrammar(const char * filename)
 
     if(property("unfilling") == "true" && opt_packing)
     {
-      LOG(loggerGrammar, Level::WARN,
-          "warning: cannot using packing on unfilled grammar -"
-          " packing disabled");
-        opt_packing = 0;
+      LOG(logGrammar, WARN,
+            "warning: cannot using packing on unfilled grammar -"
+            " packing disabled");
+      opt_packing = 0;
     }
 
 #ifdef LUI
@@ -601,10 +596,7 @@ tGrammar::tGrammar(const char * filename)
 void
 tGrammar::undump_properties(dumper *f)
 {
-    LOG_ONLY(PrintfBuffer pb);
-
-    LOG_ONLY(pbprintf(pb, "["));
-
+    LOG(logGrammar, DEBUG, '[');
     int nproperties = f->undump_int();
     for(int i = 0; i < nproperties; i++)
     {
@@ -612,13 +604,12 @@ tGrammar::undump_properties(dumper *f)
         key = f->undump_string();
         val = f->undump_string();
         _properties[key] = val;
-        LOG_ONLY(pbprintf(pb, "%s%s=%s", i ? ", " : "", key, val));
+        LOG(logGrammar, DEBUG, (i ? ", " : "") << key << '=' << val);
         delete[] key;
         delete[] val;
     }
 
-    LOG_ONLY(pbprintf(pb, "]"));
-    LOG(loggerGrammar, Level::INFO, "%s", pb.getContents());
+    LOG(logGrammar, DEBUG, "]");
 }
 
 string
@@ -663,11 +654,8 @@ tGrammar::init_parameters()
             if((a = lookup_attr(set->values[i])) != -1)
                 _deleted_daughters = cons(a, _deleted_daughters);
             else
-            {
-              LOG(loggerGrammar, Level::INFO,
-                  "ignoring unknown attribute `%s' in deleted_daughters.",
-                  set->values[i]);
-            }
+              LOG(logGrammar, WARN, "ignoring unknown attribute `"
+                  << set->values[i] << "' in deleted_daughters.");
         }
     }
 
@@ -688,10 +676,8 @@ tGrammar::init_parameters()
             del_paths.push_front(del_attrs);
           }
           else {
-            LOG(loggerGrammar, Level::INFO,
-                "ignoring path with unknown attribute `%s' "
-                "in packing_restrictor.",
-                set->values[i]);
+            LOG(logGrammar, WARN, "ignoring path with unknown attribute `"
+                << set->values[i] << "' in packing_restrictor.");
           }
         }
       if (extended) {
@@ -723,7 +709,7 @@ tGrammar::init_parameters()
       }
     }
     if(opt_packing && (_packing_restrictor == NULL)) {
-      LOG(loggerGrammar, Level::WARN,
+      LOG(logGrammar, WARN,
           "Warning: packing enabled but no packing restrictor: "
           "packing disabled");
       opt_packing = 0;
@@ -887,22 +873,20 @@ tGrammar::lookup_stem(string s)
     list<extDictMapEntry> extDictMapped;
     _extDict->getMapped(s, extDictMapped);
 
-    LOG_ONLY(PrintBuffer pb);
-    LOG_ONLY(pbprintf(pb, "[EXTDICT] %s:", s.c_str()));
+    LOG(logGrammar, DEBUG, "[EXTDICT] " << s);
 
-    for(list<extDictMapEntry>::iterator it = extDictMapped.begin(); it != extDictMapped.end(); ++it)
+    for(list<extDictMapEntry>::iterator it = extDictMapped.begin();
+        it != extDictMapped.end(); ++it)
     {
         type_t t = it->type();
 
         // Create stem if not blocked by entry from native lexicon.
-        if(native_types.find(_extDict->equiv_rep(t)) != native_types.end())
-        {
-          LOG_ONLY(pbprintf(pb, " (%s)", type_name(t)));
+        if(native_types.find(_extDict->equiv_rep(t)) != native_types.end()) {
+          LOG(logGrammar, DEBUG, " (" << type_name(t) << ")");
           continue;
         }
-        else
-        {
-          LOG_ONLY(pbprintf(pb, " %s", type_name(t)));
+        else {
+          LOG(logGrammar, DEBUG, " " << type_name(t));
         }
 
         modlist mods;
@@ -922,8 +906,7 @@ tGrammar::lookup_stem(string s)
         results.push_back(st);
     }
 
-    LOG_ONLY(pbprintf(pb, "\n"));
-    LOG(loggerGrammar, Level::INFO, "%s", pb.getContents());
+    LOG(logGrammar, DEBUG, "\n");
 #endif
 
     return results;

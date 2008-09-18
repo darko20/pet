@@ -25,6 +25,7 @@
 #define _ERROR_H_
 
 #include <string>
+#include <sstream>
 
 /** \brief Represent an error that occured. The implementation is trivial, we
  *  just store an (optional) error message as a string.
@@ -35,7 +36,13 @@ class tError
     tError(std::string message = "Unknown error")
         : _message(message)
     {}
-    
+   
+    tError(std::string message, std::string filename, int line, int col=0) {
+      std::ostringstream errmsg;
+      errmsg << filename << ":" << line << ":" << " error: " << message;
+      message = errmsg.str();
+    }
+
     ~tError()
     {}
     

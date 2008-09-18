@@ -22,6 +22,9 @@
 #include "options.h"
 #include "flop.h"
 #include "utility.h"
+#include "logging.h"
+
+using std::string;
 
 struct coref_table *crefs; /// topmost cref table
 char *context_descr = 0; /// context for warning/error messages
@@ -177,14 +180,10 @@ void expand_term (struct term *T)
           assert(T->coidx < templ_stack[templ_nest-1]->coref->n);
           string uniq = expand_coref_tag(templ_stack[templ_nest-1]->coref->coref[T->coidx]);
           
-          if(verbosity > 10)
-            {
-              LOG(loggerUncategorized, Level::INFO,
-                  "expanding `%s': new name `%s' for tag(%d/%d) `%s'",
-                  context_descr, uniq.c_str(), T->coidx + 1,
-                  templ_stack[templ_nest-1]->coref->n,
-                  templ_stack[templ_nest-1]->coref->coref[T->coidx]);
-            }
+          LOG(root, DEBUG, "expanding `" << context_descr << "': new name `"
+              << uniq << "' for tag(" << T->coidx + 1 << "/"
+              << templ_stack[templ_nest-1]->coref->n << ") `"
+              << templ_stack[templ_nest-1]->coref->coref[T->coidx] << "'");
 
           int id = add_coref(crefs, strdup(uniq.c_str()));
           T -> coidx = id;
@@ -258,7 +257,7 @@ void expand_conjunction(struct conjunction *C)
       term = C->term[i];
       if(term == 0) 
         {
-          LOG(loggerUncategorized, Level::INFO, "funny...");
+          LOG(root, ERROR, "funny...");
           continue;
         }
       if(term -> tag == TEMPL_CALL)
@@ -437,7 +436,7 @@ void expand_templates()
 {
   int i;
 
-  LOG(loggerUncategorized, Level::INFO, "- expanding templates: ");
+  LOG(root, INFO, "- expanding templates: ");
 
   for(i = 0; i < types.number(); i++)
     {
@@ -448,7 +447,6 @@ void expand_templates()
       check_sorts_conjunction(types[i]->constraint);
     }
 
-  LOG(loggerUncategorized, Level::INFO,
-      "%d template instantiations", ntemplinstantiations);
+  LOG(root, INFO, ntemplinstantiations << " template instantiations");
 }
 /*@}*/
