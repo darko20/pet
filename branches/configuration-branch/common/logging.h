@@ -1,102 +1,20 @@
-/** @file logging.h
+/** -*- Mode: C++ -*-
+ *  @file logging.h
  *  @brief PET's utilities for log4cxx.
  */
 
 #ifndef _LOGGING_H
 #define _LOGGING_H
 
-#include <cstdarg>
-
 #include "pet-config.h"
 
-#if HAVE_LIBLOG4CXX
-// log4cxx header files define HAVE_XML and thus break Pet build system,
-// temporary solution below
-#  ifdef HAVE_XML
-#    define WE_HAVE_XML
-#    undef HAVE_XML
-#  endif // HAVE_XML
-#  include <log4cxx/logger.h>
-#  include <log4cxx/basicconfigurator.h>
-#  include <log4cxx/propertyconfigurator.h>
-#  include <sstream>
-#  ifdef WE_HAVE_XML
-#    undef WE_HAVE_XML
-#    define HAVE_XML
-#  else
-#    undef HAVE_XML
-#  endif // WE_HAVE_XML
-
-//use only if logging is enabled
-#  define LOG_ONLY(instr) instr
-
-// use this for levels WARN, INFO, DEBUG
-#  define LOG(logger, level, format, ...)  {                            \
-     if (logger->isEnabledFor(level)) {                                 \
-       snprintf(logBuffer, logBufferSize, format, ##__VA_ARGS__);        \
-       logger->forcedLog(level, logBuffer, LOG4CXX_LOCATION); }}
-
-#  define LOG_ERROR(logger, format, ...) {                                \
-    if (logger->isErrorEnabled()) {                                     \
-       snprintf(logBuffer, logBufferSize, format, ##__VA_ARGS__);        \
-       logger->forcedLog(::log4cxx::Level::ERROR, logBuffer, LOG4CXX_LOCATION); }}
-
-#  define LOG_FATAL(logger, format, ...) {                                \
-    if (logger->isErrorEnabled()) {                                     \
-       snprintf(logBuffer, logBufferSize, format, ##__VA_ARGS__);        \
-       logger->forcedLog(::log4cxx::Level::FATAL, logBuffer, LOG4CXX_LOCATION); }}
-
-extern const int logBufferSize;
-extern char logBuffer[];
-
-extern ::log4cxx::LoggerPtr loggerUncategorized;
-extern ::log4cxx::LoggerPtr loggerExpand;
-extern ::log4cxx::LoggerPtr loggerFs;
-extern ::log4cxx::LoggerPtr loggerGrammar;
-extern ::log4cxx::LoggerPtr loggerHierarchy;
-extern ::log4cxx::LoggerPtr loggerLexproc;
-extern ::log4cxx::LoggerPtr loggerParse;
-extern ::log4cxx::LoggerPtr loggerTsdb;
-
-using log4cxx::Level;
-
-extern const int defaultPbSize;
-extern char defaultPb[];
-
+#if HAVE_LIBLOG4CPP
 #else // HAVE_LIBLOG4CXX
-/*
-#  define LOG_ONLY(instr)
+#include <ostream>
 
-//#  ifndef LOG // despite lack of log4cxx if can be defined by user
-//#    define LOG(logger, level, format, ...)
-//#  endif // LOG
-
-#  ifndef LOG_ERROR
-#    define LOG_ERROR(logger, format, ...)    \
-       fprintf(stderr, format "\n", ##__VA_ARGS__)
-#  endif // LOG_ERROR
-
-#  ifndef LOG_FATAL
-#    define LOG_FATAL(logger, format, ...)    \
-       fprintf(stderr, format "\n", ##__VA_ARGS__)
-#  endif // LOG_FATAL
-*/
-#include <iostream>
-
-extern int root,
-  logPack,
-  logUnpack,
-  logMorph,
-  logLexproc,
-  logGrammar,
-  logGenerics,
-  logAppl,
-  logParse,
-  logSM,
-  logTsdb,
-  logSyntax,
-  logSemantic,
-  logXML;
+extern class Category 
+  logAppl, logApplC, logGenerics, logGrammar, logLexproc, logMorph, logPack,
+  logParse, logSM, logSemantic, logSyntax, logTsdb, logUnpack, logXML, root;
 
 typedef enum {EMERG  = 0, 
               FATAL  = 0,
@@ -110,94 +28,55 @@ typedef enum {EMERG  = 0,
               NOTSET = 800
 } PriorityLevel;
 
-extern std::string prio_names[];
+class Category {
+  PriorityLevel _prio;
+  int _printer;
+public:
+  Category(PriorityLevel prio, int printer) {
+    set(prio, printer);
+  }
+
+  void set(PriorityLevel prio, int printer){
+    _prio = prio != NOTSET ? prio : root._prio;
+    _printer = (printer != 0) ? printer : root._printer;
+  }
+  
+  friend class Logger;
+};
+
+class Logger {
+public:
+  class loggerendl {
+    const Category *_cat;
+    PriorityLevel _prio;
+  public:
+    const loggerendl &set(const Category &cat, PriorityLevel prio) {
+      _cat = &cat; _prio = prio; return *this;
+    }
+    void print(std::ostream &out) const;
+  };
+  inline static bool enabled(const Category &cat, PriorityLevel prio) {
+    return cat._prio >= prio;
+  }
+  static std::ostream &print(const Category &cat, PriorityLevel prio);
+  inline static const Logger::loggerendl &
+  endl(const Category &cat, PriorityLevel prio) { return _e.set(cat,prio); }
+private:
+  static Logger::loggerendl _e;
+};
+
+inline std::ostream &operator<<(std::ostream &o, const Logger::loggerendl &e) {
+  e.print(o); return o;
+}
 
 // wenigstens zwei (drei?) verschiedene Ausgabemethoden: wie compiler-errors
 // (vor allem fuer flop), ganz nackig (fuer Ausgaben aus dem System) und wie
 // richtige log-messages mit Zeitpunkt, priority und message
 
-#define LOG(XXXCAT, XXXPRIO, XXXMSG) \
-  ((XXXCAT >= XXXPRIO) ? (std::cerr << prio_names[XXXPRIO/100] \
-                          << ": " << XXXMSG << std::endl, 1) : 0)
-#define LOG_ENABLED(XXXCAT, XXXPRIO) (XXXCAT >= XXXPRIO)
+#define LOG_ENABLED(__C, __P) Logger::enabled(__C, __P)
+#define LOG(__C, __P, __M)                                              \
+  (LOG_ENABLED(__C, __P)                                                \
+   ? (Logger::print(__C, __P) << __M << Logger::endl(__C, __P), 1) : 0)
 
-
-#endif // HAVE_LIBLOG4CXX
-#if 0
-/**
- * @brief Interface for a class processing printf calls.
- *
- * A Class that implements this interface can be used in function
- * pbprintf(). It allows a programmer to change legacy code to use
- * more flexible I/O. This interface was designed to switch from fprintf-based
- * logging to log4cxx.
- */
-class IPrintfHandler {
-public:
-  /**
-   * This method is called by pbprintf(). See code of pbprintf.
-   */
-  virtual int vprintf(char *fmt, va_list ap) = 0;
-  
-  virtual ~IPrintfHandler();
-};
-
-/** @brief A Class for intercepting fprintf.
- *
- * Subsequent calls to printf method write to a buffer that can
- * be accessed at the end. Buffer's size changes dynamically.
- */
-class PrintfBuffer : public IPrintfHandler {
-public:
-  /**
-   * Use without parameters (default values shouuld be ok for everything).
-   */
-  PrintfBuffer(int size = 1024, int chunkSize = 1024);
-
-  virtual ~PrintfBuffer();
-
-  /**
-   * Gets a C-style string containing everything that has been printed
-   * (by method vprintf) so far.  Returned pointer is valid until the object
-   * is destructed.
-   */
-  virtual char* getContents();
-  
-  virtual int vprintf(char *fmt, va_list ap);
-
-protected:
-  char *buffer_;
-  int size_;        // size of the buffer_
-  int chunkSize_;   // buffer size will be increased by this number
-                    // each time it is neccessary
-  int nWritten_;    // number of characters written so far
-                    // (including trailing '\0')
-  
-#if HAVE_LIBLOG4CXX
-  static log4cxx::LoggerPtr logger;
-#endif // HAVE_LIBLOG4CXX
-
-private:
-  PrintfBuffer(const PrintfBuffer &pb);
-};
-
-/**
- * Output is sent to a stdio's FILE*.
- */
-class StreamPrinter : public PrintfBuffer {
-public:
-  StreamPrinter(FILE *file);
-  virtual ~StreamPrinter();
-  virtual int vprintf(char *fmt, va_list ap);
-private:
-  FILE *file_;
-};
-
-/**
- * @brief Substitutes fprintf, uses IPrintfHandler to process arguments.
- *
- * @param iph object that processes the rest of the arguments.
- */
-int pbprintf(IPrintfHandler &iph, char *fmt, ...);
-#endif
+#endif // HAVE_LIBLOG4CPP
 #endif // _LOGGING_H

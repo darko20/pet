@@ -82,6 +82,7 @@ libcheap_a_SOURCES = \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
+	$(top_srcdir)/common/config.cpp \
 	$(top_srcdir)/common/dag-alloc.cpp \
 	$(top_srcdir)/common/dag-arced.cpp \
 	$(top_srcdir)/common/dag-common.cpp \
@@ -96,8 +97,7 @@ libcheap_a_SOURCES = \
 	$(top_srcdir)/common/mfile.c \
 	$(top_srcdir)/common/settings.cpp \
 	$(top_srcdir)/common/types.cpp \
-	$(top_srcdir)/common/utility.cpp \
-	$(top_srcdir)/common/Configuration.cpp
+	$(top_srcdir)/common/utility.cpp
 
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI

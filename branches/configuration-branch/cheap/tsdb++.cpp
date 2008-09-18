@@ -27,7 +27,10 @@
 #include "cppbridge.h"
 #include "version.h"
 #include "item-printer.h"
-//#include "logging.h"
+#include "sm.h"
+#include "settings.h"
+#include "options.h" // opt_nqc_*
+#include "config.h"
 #ifdef YY
 # include "yy.h"
 #endif

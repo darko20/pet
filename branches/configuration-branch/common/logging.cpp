@@ -5,121 +5,62 @@
 
 #include "logging.h"
 
-int root,
-  logPack,
-  logUnpack,
-  logMorph,
-  logLexproc,
-  logGrammar,
-  logGenerics,
-  logAppl,
-  logParse,
-  logSM,
-  logXML,
-  logTsdb,
-  logSyntax,
-  logSemantic;
+#if HAVE_LIBLOG4CPP
+
+#else // HAVE_LIBLOG4CPP
+#include <iostream>
+#include <iomanip>
+
+Logger::loggerendl Logger::_e;
+ 
+Category   root(WARN, 1),
+  logAppl(INFO, 2),
+  logApplC(INFO, 3),
+  logGenerics(NOTSET, 0),
+  logGrammar(NOTSET, 0),
+  logLexproc(NOTSET, 0),
+  logMorph(NOTSET, 0),
+  logPack(NOTSET, 0),
+  logParse(NOTSET, 0),
+  logSM(NOTSET, 0),
+  logSemantic(NOTSET, 0),
+  logSyntax(NOTSET, 2),
+  logTsdb(NOTSET, 0),
+  logUnpack(NOTSET, 0),
+  logXML(NOTSET, 0);
 
 std::string prio_names[] = {
   "fatal", "alert", "critical", "error",
   "warning", "notice", "info", "debug", ""
 };
 
-#if 0
-#if HAVE_LIBLOG4CXX
-  log4cxx::LoggerPtr PrintfBuffer::logger(
-                                   log4cxx::Logger::getLogger("PrintfBuffer"));
-#endif // HAVE_LIBLOG4CXX
-
-IPrintfHandler::~IPrintfHandler() {
-}
-
-PrintfBuffer::PrintfBuffer(int size, int chunkSize)
-  : size_(size), chunkSize_(chunkSize), nWritten_(1)
-{
-  assert(size_ > 1 && chunkSize_ > 1);
-  
-  buffer_ = (char*)malloc(size_ * (sizeof *buffer_));
-  if(buffer_ == 0) {
-    LOG_FATAL(logger, "malloc returned 0");
-    exit(1);
+std::ostream &
+Logger::print(const Category &cat, PriorityLevel prio) {
+  // would be possible to create a new ostringstream here and decide in endl
+  // where to print it (more flexibility in the output)
+  switch (cat._printer) {
+  case 1:
+    return std::cerr << std::endl << std::setw(10) << clock() << " "
+                     << prio_names[prio/100] << ": " ;
+  case 2:
+    return std::cerr << std::endl;
+  case 3:
+    return std::cerr;
   }
-  buffer_[0] = '\0';
+  return std::cerr;
 }
 
-PrintfBuffer::~PrintfBuffer() {
-  free(buffer_);
-}
-
-char* PrintfBuffer::getContents() {
-  assert(nWritten_ <= size_);
-  assert(buffer_[nWritten_-1] == '\0');
-  return buffer_;
-}
-
-int PrintfBuffer::vprintf(char *fmt, va_list ap) {
-  assert(nWritten_ <= size_);
-  assert(buffer_[nWritten_-1] == '\0');
-  
-  int res;
-  bool fits = false;
-  
-  //try vsnprintf and increarse buffer until string fits
-  do {
-    res = vsnprintf((buffer_ + nWritten_ - 1), (size_ - nWritten_ + 1),
-                    fmt, ap);
-    
-    if(res < 0) {
-      LOG_FATAL(logger, "vnsprintf returned < 0");
-      exit(1);
-    }
-    
-    if(nWritten_ + res <= size_) {
-      nWritten_ += res;
-      fits = true;
-    }
-    else {
-      LOG(logger, Level::DEBUG,
-          "we need realloc, size_ == %d, nWritten_ == %d, res == %d",
-          size_, nWritten_, res);
-      int max = res > chunkSize_ ? res : chunkSize_;
-      size_ += max;
-      buffer_ = (char*)realloc(buffer_, size_ * (sizeof *buffer_));
-      if(buffer_ == 0) {
-        LOG_FATAL(logger, "realloc returned 0");
-        exit(1);
-      }
-    }
+void 
+Logger::loggerendl::print(std::ostream &out) const {
+  /*
+  switch (_cat->_printer || root->_printer) {
+  case 1:
+    break;
+  case 2:
+    break;
+  case 3:
+    break;
   }
-  while(!fits);
-
-  assert(nWritten_ <= size_);
-  assert(buffer_[nWritten_-1] == '\0');
-  return res;
+  */
 }
-
-PrintfBuffer::PrintfBuffer(const PrintfBuffer &pb) : size_(0) {
-}
-
-StreamPrinter::StreamPrinter(FILE *file) : file_(file) {
-}
-
-StreamPrinter::~StreamPrinter() {
-}
-
-int StreamPrinter::vprintf(char *fmt, va_list ap) {
-  return vfprintf(file_, fmt, ap);
-}
-
-int pbprintf(IPrintfHandler &iph, const char *fmt, ...) {
-  va_list ap;
-  int res;
-
-  va_start(ap, fmt);
-  res = iph.vprintf(fmt, ap);
-  va_end(ap);
-  
-  return res;
-}
-
 #endif

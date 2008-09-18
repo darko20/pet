@@ -28,7 +28,7 @@
 #include <limits.h>
 #include "list-int.h"
 #include "fs.h"
-#include "options.h"
+//#include "options.h"
 #include "grammar.h"
 #include "paths.h"
 #include "postags.h"
@@ -523,7 +523,7 @@ private:
 
   int _nfilled;
 
-  tLexItem *_key_item;
+  class tLexItem *_key_item;
 
   /** List of inflection rules that must be applied to get a valid lex item */
   list_int *_inflrs_todo;

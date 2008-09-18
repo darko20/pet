@@ -41,12 +41,12 @@ tSMFeature::hash() const
 }
 
 void
-tSMFeature::print(FILE *f) const
+tSMFeature::print(std::ostream &o) const
 {
     for(vector<int>::const_iterator it = _v.begin();
         it != _v.end(); ++it)
     {
-        fprintf(f, "%d ", *it);
+      o << *it << " ";
     }
 }
 
@@ -129,24 +129,17 @@ class tSMMap
 int
 tSMMap::featureToCode(const tSMFeature &feature)
 {
-    if(verbosity > 14)
-    {
-        fprintf(fstatus, "featureToCode(");
-        feature.print(fstatus);
-        fprintf(fstatus, ") -> ");
-    }
+    LOG(logSM, DEBUG, "featureToCode(" << feature << ") -> ");
 
     hash_map<tSMFeature, int>::iterator itMatch = _featureToCode.find(feature);
     if(itMatch != _featureToCode.end())
     {
-        if(verbosity > 14)
-            fprintf(fstatus, "%d\n", itMatch->second);
+        LOG(logSM, DEBUG, itMatch->second);
         return itMatch->second;
     }
     else
     {
-        if(verbosity > 14)
-            fprintf(fstatus, "added %d", _n);
+        LOG(logSM, DEBUG, "added " << _n);
         _codeToFeature.push_back(feature);
         return _featureToCode[feature] = _n++;
     }
@@ -754,8 +747,7 @@ tMEM::parseFeature_lexpred(int n)
 {
     char *tmp;
 
-    if(verbosity > 9)
-        fprintf(fstatus, "\n[%d]", n);
+    LOG(logSM, NOTICE, "\n[" << n << "]");
 
     match(T_LBRACKET, "begin of feature vector", true);
 
@@ -769,8 +761,7 @@ tMEM::parseFeature_lexpred(int n)
         {
             // This can be an integer or an identifier.
             tmp = match(T_ID, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " %s", tmp);
+            LOG(logSM, NOTICE, " " << tmp);
 
             char *endptr;
             int t = strtol(tmp, &endptr, 10);
@@ -787,8 +778,8 @@ tMEM::parseFeature_lexpred(int n)
                 
                 if(t == -1)
                 {
-                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
-                            tmp, n);
+                    LOG(logSM, ERROR, "Unknown type/instance `" << tmp
+                        << "' in feature #" << n);
                     good = false;
                 }
                 else
@@ -806,8 +797,7 @@ tMEM::parseFeature_lexpred(int n)
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " \"%s\"", tmp);
+            LOG(logSM, NOTICE, " \"" << tmp << "\"");
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
@@ -833,14 +823,12 @@ tMEM::parseFeature_lexpred(int n)
     // check syntax of number
     double w = strtod(tmp, NULL);
     free(tmp);
-    if(verbosity > 9)
-        fprintf(fstatus, ": %g", w);
+    LOG(logSM, NOTICE, ": " << w);
 
     if(good)
     {
         int code = map()->featureToCode(v);
-        if(verbosity > 9)
-            fprintf(fstatus, " (code %d)\n", code);
+        LOG(logSM, NOTICE, " (code " << code << ")");
         assert(code >= 0);
         if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;

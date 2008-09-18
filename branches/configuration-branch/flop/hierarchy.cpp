@@ -30,6 +30,7 @@
 #include "logging.h"
 
 #include <boost/graph/topological_sort.hpp>
+#include <sstream>
 
 using std::list;
 using std::map;
@@ -208,7 +209,7 @@ void compute_code_topo()
 /** Print all subtypes of bitcode \a b for debugging */
 std::string debug_print_subtypes(bitcode *b) {
   list_int *l = b->get_elements();
-  ostringstream out;
+  std::ostringstream out;
   for(list_int *c = l; c != NULL; c = rest(c)) {
     out << " " << types.name(idbit_type[first(c)]);
   }
@@ -279,7 +280,7 @@ void make_semilattice()
 
   bool glbdebug;
   get_opt("opt_glbdebug", glbdebug);
-  LOG(root, INFO, "glbs ");
+  LOG(logApplC, INFO, "glbs ");
 
   low = 0; high = types.number();
 
@@ -317,12 +318,12 @@ void make_semilattice()
            if(glbdebug)
            {
              LOG(logSemantic, DEBUG,
-                 "Introducing " << name << " for "
-                 << types.name(i) << " and " << types.name(j) << ":" << endl
+                 "Introducing " << name << " for " << types.name(i)
+                 << " and " << types.name(j) << ":" << std::endl
                  << "[" << types.name(i) << "]:"
-                 << debug_print_subtypes(types[i]->bcode) << endl
+                 << debug_print_subtypes(types[i]->bcode) << std::endl
                  << "[" << types.name(j) << "]:"
-                 << debug_print_subtypes(types[j]->bcode) << endl
+                 << debug_print_subtypes(types[j]->bcode) << std::endl
                  << "[" << name << "]:" <<debug_print_subtypes(temp));
            }
 
@@ -344,7 +345,7 @@ void make_semilattice()
 
   } while(changed);
 
-  LOG(logSemantic, INFO, "[%d], ", glbtypes);
+  LOG(logApplC, INFO, "[" << glbtypes << "], ");
 
   // register the codes corresponding to non-leaf types
   resize_codes(types.number());
@@ -359,10 +360,9 @@ void make_semilattice()
   // now we have to recompute the graph representation of the
   // hierarchy - there are two ways of doing this:
 
-  if(verbosity > 4)
-    LOG(logSemantic, INFO, " (%ld)", clock());
+  LOG(logApplC, DEBUG, " (" << clock() << "), ");
 
-  LOG(logSemantic, INFO, "recomputing");
+  LOG(logApplC, INFO, "recomputing");
 
 #ifdef NAIVE_RECOMPUTATION
 
@@ -417,16 +417,12 @@ void make_semilattice()
 
   acyclicTransitiveReduction(hierarchy);
 
-  if(verbosity > 4)
-    LOG(logSemantic, INFO, " (%ld)", clock());
+  LOG(logSemantic, DEBUG, " (" << clock() << ")");
 
   // do a few sanity checks:
   
   if(!is_simple(hierarchy)) {
-    LOG_ERROR(logSemantic,
-              "conception error - making hierarchy simple");
-    assert(false);
-    // Make_Simple(hierarchy);
+    throw tError("conception error - making hierarchy simple");
   }
 
 #if 0
@@ -579,13 +575,13 @@ void propagate_status()
                            !flop_settings->member("weak-status-values", statustable.name(chld->status).c_str()))
                         {
                             LOG(logSemantic, INFO,
-                                "`%s': status `%s' from `%s' overwrites old "
-                                "status `%s' from `%s'...",
-                                types.name(chld->id).c_str(),
-                                statustable.name(t->status).c_str(),
-                                types.name(t->id).c_str(),
-                                statustable.name(chld->status).c_str(),
-                                types.name(chld->status_giver).c_str());
+                                "`" << types.name(chld->id)
+                                << "': status `" << statustable.name(t->status)
+                                << "' from `" << types.name(t->id)
+                                << "' overwrites old status `"
+                                << statustable.name(chld->status)
+                                << "' from `" << types.name(chld->status_giver)
+                                << "'...");
                         }
                         
                         chld->status_giver = t->id;
@@ -601,7 +597,7 @@ bool process_hierarchy(bool propagate_status_p)
 {
   int i;
 
-  LOG(logSemantic, INFO, "- type hierarchy (");
+  LOG(logAppl, INFO, "- type hierarchy (");
 
   // sanity check: is the hierarchy simple (contains no parallel edges)
   if(!is_simple(hierarchy))
@@ -628,16 +624,16 @@ bool process_hierarchy(bool propagate_status_p)
       }
   }
 
-  LOG(logSemantic, INFO, "leaf types ");
+  LOG(logApplC, INFO, "leaf types ");
 
   // for each type t, leaftypeparent[t] is -1 if t is not a leaftype,
   // and the id of the parent type otherwise
   
   find_leaftypes();
   
-  LOG(logSemantic, INFO, "[%d], ", nstaticleaftypes); 
+  LOG(logApplC, INFO, "[" << nstaticleaftypes << "], "); 
   
-  LOG(logSemantic, INFO, "bitcodes, ");
+  LOG(logApplC, INFO, "bitcodes, ");
 
   // codesize is number of non-leaf types
   codesize = types.number() - nstaticleaftypes;
@@ -650,7 +646,7 @@ bool process_hierarchy(bool propagate_status_p)
 
   make_semilattice();
 
-  LOG(logSemantic, INFO, ")");
+  LOG(logApplC, INFO, ")");
 
   if(propagate_status_p) propagate_status();
 

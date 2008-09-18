@@ -31,6 +31,9 @@
 #include "types.h"
 #include "utility.h"
 #include "dagprinter.h"
+#include "settings.h"
+#include "options.h" // opt_nqc_** && verbosity
+#include "config.h"
 
 #include <sstream>
 #include <iostream>

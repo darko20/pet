@@ -27,7 +27,7 @@
 #include <cstdio>
 
 #include "pet-config.h"
-#include "Configuration.h"
+#include "config.h"
 
 extern bool opt_no_sem;
 

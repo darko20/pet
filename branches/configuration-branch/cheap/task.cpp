@@ -24,6 +24,7 @@
 #include "chart.h"
 #include "cheap.h"
 #include "tsdb++.h"
+#include "sm.h"
 
 using namespace std;
 

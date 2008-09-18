@@ -29,6 +29,7 @@
 #include "settings.h"
 #include "cheap.h"
 #include "failure.h"
+#include "config.h" // only because of one option, argument instead??
 
 #include <queue>
 #include <iomanip>

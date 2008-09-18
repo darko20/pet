@@ -30,6 +30,9 @@ inflrs: - "null" = do internal morph analysis
 #include "yy-tokenizer.h"
 #include "cheap.h"
 #include "hashing.h"
+#include "lex-tdl.h"
+#include "settings.h"
+
 #include <iostream>
 
 using namespace std;

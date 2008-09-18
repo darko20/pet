@@ -32,6 +32,9 @@
 #include "tsdb++.h"
 #include "sm.h"
 #include "restrictor.h"
+#include "settings.h"
+#include "options.h" // opt_nqc_*
+#include "config.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
@@ -385,9 +388,7 @@ tGrammar::tGrammar(const char * filename)
     
     int version;
     char *s = undump_header(&dmp, version);
-    if(s)
-      LOG(logGrammar, INFO, "(" << s << ") ");
-    delete[] s;
+    if(s) LOG(logGrammar, INFO, "(" << s << ") ");
     delete[] s;
     
     dump_toc toc(&dmp);
@@ -435,11 +436,11 @@ tGrammar::tGrammar(const char * filename)
     initialize_maxapp();
 
     if(opt_nqc_unif && qc_inst_unif == T_BOTTOM) {
-      fprintf(fstatus, "[ disabling unification quickcheck ] ");
+      LOG(logAppl, INFO, "[ disabling unification quickcheck ] ");
       opt_nqc_unif = 0;
     }
     if(opt_nqc_subs && qc_inst_subs == T_BOTTOM) {
-      fprintf(fstatus, "[ disabling subsumption quickcheck ] ");
+      LOG(logAppl, INFO, "[ disabling subsumption quickcheck ] ");
       opt_nqc_subs = 0;
     }
 
@@ -546,7 +547,7 @@ tGrammar::tGrammar(const char * filename)
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
       catch(tError &e) {
-        fprintf(ferr, "\n%s", e.getMessage().c_str());
+        LOG(logGrammar, ERROR, e.getMessage());
         _lexsm = 0;
       }
     }

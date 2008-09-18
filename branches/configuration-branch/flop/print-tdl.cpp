@@ -23,6 +23,7 @@
 #include "lex-io.h"
 #include "list-int.h"
 #include "logging.h"
+#include "errors.h"
 
 int tdl_save_lines = 1;
 
@@ -151,13 +152,11 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
           break;
         case TEMPL_PAR:
         case TEMPL_CALL:
-          LOG_FATAL(loggerUncategorized,
-                    "internal error: unresolved template call/parameter");
-          exit(1);
+          throw tError("internal error: unresolved template call/parameter");
           break;
         default:
-          LOG(loggerUncategorized, Level::INFO,
-              "unknown term tag `%d'", C -> term[i] -> tag); 
+          LOG(logSyntax, ERROR,
+              "unknown term tag `" << C -> term[i] -> tag << "'"); 
           break;
         }
     }

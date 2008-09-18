@@ -24,6 +24,8 @@
 #include "grammar.h"
 #include "utility.h"
 #include "postags.h"
+#include "settings.h"
+
 #include <iomanip>
 
 using std::string;

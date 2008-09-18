@@ -24,7 +24,6 @@
 #ifndef _CHEAP_H_
 #define _CHEAP_H_
 
-#include "options.h"
 #include "errors.h"
 
 /** The global settings for this process, read from the settings file */

@@ -130,13 +130,9 @@ void tdl_subtype_def(char *name, char *printname) {
           subt = types[sub];
           if(subt->implicit == false) {
             if(!allow_redefinitions)
-              //fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
-              //        types.name(sub).c_str(),
-              //        LA(0)->loc->fname, LA(0)->loc->linenr);
-              LOG(loggerUncategorized, Level::WARN,
-                  "warning: redefinition of `%s' at %s:%d",
-                  types.name(sub).c_str(),
-                  LA(0)->loc->fname, LA(0)->loc->linenr);
+              LOG(logSyntax, WARN,
+                  LA(0)->loc->fname << ":" << LA(0)->loc->linenr 
+                  << ": warning: redefinition of `" << types.name(sub) << "'");
             undo_subtype_constraints(subt->id);
             
             subt->constraint = NULL;
@@ -407,11 +403,8 @@ struct templ *tdl_templ_call(struct coref_table *co, bool readonly)
     t = (struct templ *) salloc(sizeof(struct templ));
     t->name = name;
     if(templates.id(t->name) == -1) {
-      //fprintf(ferr, "warning: call to undefined template `%s' at %s:%d\n",
-      //        t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
-      LOG(loggerUncategorized, Level::WARN,
-          "warning: call to undefined template `%s' at %s:%d",
-          t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
+      LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+          << ": warning: call to undefined template `" << t->name << "'");
     }
     t->params = params;
     t->constraint = NULL;
@@ -665,8 +658,9 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
           if(t->implicit == false)
             {
               if(!allow_redefinitions)
-                fprintf(ferr, "warning: redefinition of `%s' at %s:%d\n",
-                        name, LA(0)->loc->fname, LA(0)->loc->linenr);
+                LOG(logSyntax, WARN,
+                    LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+                    << ": warning: redefinition of `" << name << "'");
               
               undo_subtype_constraints(t->id);
 
@@ -722,8 +716,8 @@ void tdl_avm_add(char *name, char *printname, bool is_instance, bool readonly)
         }
       else
         {
-          fprintf(ferr, "warning: defining type `%s' with `:+' at %s:%d\n",
-                        name, LA(0)->loc->fname, LA(0)->loc->linenr);
+          LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+              << ": warning: defining type `" << name << "' with `:+'");
               
           t = new_type(name, is_instance);
 
@@ -800,9 +794,8 @@ void tdl_template_def(char *name)
   if((old = templates.id(t->name)) >= 0)
     {
       if(!allow_redefinitions)
-        LOG(loggerUncategorized, Level::WARN,
-            "warning: redefinition of template `%s' at %s:%d",
-            t->name, LA(0)->loc->fname, LA(0)->loc->linenr);
+        LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr 
+            << ": warning: redefinition of template `" << t->name << "'");
       templates[old] = t;
     }
   else
@@ -1137,8 +1130,7 @@ void tdl_statement() {
       string fname = find_file(ofname, TDL_EXT);
       
       if(fname.empty()) {
-        LOG(loggerUncategorized, Level::WARN,
-            "file `%s' not found. skipping...", ofname);
+        LOG(logSyntax, WARN, "file `" << ofname << "' not found. skipping...");
       } else {
         push_file(fname, "including");
       }

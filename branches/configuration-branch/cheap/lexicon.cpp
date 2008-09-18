@@ -24,6 +24,7 @@
 #include "utility.h"
 #include "grammar.h"
 #include "morph.h"
+#include "settings.h"
 
 using std::string;
 using std::list;
@@ -45,8 +46,8 @@ lex_stem::instantiate()
 
         if(!cheap_settings->lookup("lex-entries-can-fail"))
             throw tError(msg);
-        else if(verbosity > 4)
-            fprintf(stderr, "%s\n", msg.c_str());
+        else 
+            LOG(logGrammar, DEBUG, msg);
         return expanded;
     }
 

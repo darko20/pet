@@ -1,5 +1,5 @@
 #include "item-printer.h"
-
+#include "options.h" // for verbosity only
 #include <sstream>
 
 using namespace std;

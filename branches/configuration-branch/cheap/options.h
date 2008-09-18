@@ -31,7 +31,7 @@
 #include "pet-config.h"
 #include "settings.h"
 
-#include "Configuration.h"
+#include "config.h"
 
 #define CHEAP_SERVER_PORT 4711
 
@@ -55,8 +55,6 @@ extern int opt_pg;
 extern int opt_tsdb;
 /** socket server mode (value: port or 0)*/
 extern int opt_server;
-/** interactive morphology (apply only morphological rules, without lexicon) */
-extern bool opt_interactive_morph;
 //@}
 #endif
 
@@ -107,12 +105,6 @@ extern int opt_key;
  * see Oepen & Carroll 2000a,b
  */
 //@{
-/** compute quickcheck paths (path to results file or 0) */
-extern char *opt_compute_qc;
-/** compute quickcheck paths (unification) */
-extern bool opt_compute_qc_unif;
-/** compute quickcheck paths (subsumption) */
-extern bool opt_compute_qc_subs;
 /** use only top n quickcheck paths (unification) */
 extern int opt_nqc_unif;
 /** use only top n quickcheck paths (subsumption) */
@@ -135,8 +127,6 @@ extern bool opt_shrink_mem;
 //@{
 /** verbosity level */
 extern int verbosity;
-/** print unification failures */
-extern bool opt_print_failure;
 /** print derivations */
 extern bool opt_derivation;
 /** print rule statistics */
@@ -159,17 +149,6 @@ extern bool opt_lattice;
  * 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de> */
 extern unsigned int opt_gplevel;
 
-/** ??? */ // TODO description of this option needed
-extern std::string opt_jxchg_dir;
-
-/** ??? */ // TODO description of this option needed
-extern bool opt_linebreaks;
-#endif
-
-#ifdef YY
-/** ??? */ // TODO description of this option needed
-extern bool opt_yy;
-/** ??? */ // TODO description of this option needed
 #endif
 
 void usage(FILE *f);

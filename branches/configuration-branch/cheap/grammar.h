@@ -31,7 +31,6 @@
 #include "utility.h"
 #include "types.h"
 #include "fs.h"
-#include "sm.h"
 #include "lexicon.h"
 
 #include <string>
@@ -316,10 +315,10 @@ public:
   bool punctuationp(const std::string &s);
 
   /** Return the statistic maxent model of this grammar */
-  inline tSM *sm() { return _sm; }
+  inline class tSM *sm() { return _sm; }
 
   /** Return the lexical type predictor ME model */
-  inline tSM *lexsm() { return _lexsm; }
+  inline class tSM *lexsm() { return _lexsm; }
 
   /** deactivate all rules */
   void deactivate_all_rules() {
