@@ -66,8 +66,8 @@
 using namespace log4cxx;
 #endif // HAVE_LIBLOG4CXX
 
-char * version_string = VERSION ;
-char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
+const char * version_string = VERSION ;
+const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
 #if HAVE_LIBLOG4CXX
@@ -114,8 +114,7 @@ void dump_jxchg(string surface, chart *current) {
     yieldname = get_opt_string("opt_jxchg_dir") + yieldname;
     ofstream out(yieldname.c_str());
     if (! out) {
-      LOG(loggerUncategorized, Level::WARN,
-          "Can not open file %s", yieldname.c_str());
+      LOG(logAppl, WARN, "Can not open file " << yieldname);
     } else {
       out << "0 " << current->rightmost() << endl;
       tJxchgPrinter chp(out);
@@ -138,9 +137,8 @@ void interactive() {
     set_opt("opt_tsdb", 1);
   } else {
     if (! get_opt_string("opt_tsdb_dir").empty())
-      LOG_ERROR(loggerUncategorized,
-                "Could not open TSDB dump files in directory %s\n",
-                get_opt_string("opt_tsdb_dir").c_str());
+      LOG(logAppl, ERROR, "Could not open TSDB dump files in directory "
+          << get_opt_string("opt_tsdb_dir"));
   }
 
   while(Lexparser.next_input(std::cin, input)) {
@@ -163,12 +161,13 @@ void interactive() {
 
       string surface = Chart->get_surface_string();
 
-      printf("(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-             stats.id, surface.c_str(), 
-             get_opt_int("pedgelimit"), stats.readings, 
-             stats.first/1000., stats.tcpu / 1000.,
-             stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-             TotalParseTime.elapsed_ts() / 10.);
+      fprintf(fstatus, 
+              "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
+              stats.id, surface.c_str(), 
+              get_opt_int("opt_pedgelimit"), stats.readings, 
+              stats.first/1000., stats.tcpu / 1000.,
+              stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+              TotalParseTime.elapsed_ts() / 10.);
 
       if(verbosity > 0) stats.print(fstatus);
 
@@ -213,12 +212,12 @@ void interactive() {
                                       get_opt_charp("opt_mrs"));
             if (mrs.empty()) {
               if (strcmp(get_opt_charp("opt_mrs"), "xml") == 0)
-                LOG(loggerUncategorized, Level::INFO,
-                    "<rmrs cfrom='-2' cto='-2'>\n</rmrs>");
+                fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
+                        "</rmrs>\n");
               else
-                LOG(loggerUncategorized, Level::INFO, "No MRS");
+                fprintf(fstatus, "\nNo MRS\n");
             } else {
-              LOG(loggerUncategorized, Level::INFO, "%s", mrs.c_str());
+              fprintf(fstatus, "%s\n", mrs.c_str());
             }
           }
 #endif
@@ -239,16 +238,12 @@ void interactive() {
         }
 
 #ifdef HAVE_MRS
-        if(get_opt_bool("opt_partial")
-           && (Chart->readings().empty()))
-        {
+        if(get_opt_bool("opt_partial") && (Chart->readings().empty())) {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(get_opt_charp("opt_mrs"), "rmrx")
-                           == 0);
-          if (rmrs_xml)
-            LOG(loggerUncategorized, Level::INFO, "\n<rmrs-list>\n");
+          bool rmrs_xml = (strcmp(get_opt_charp("opt_mrs"), "rmrx") == 0);
+          if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
           for(item_iter it = partials.begin(); it != partials.end(); ++it) {
             if(get_opt_charp("opt_mrs")) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
@@ -257,23 +252,20 @@ void interactive() {
                 mrs = ecl_cpp_extract_mrs(item->get_fs().dag(),
                                           get_opt_charp("opt_mrs"));
                 if (! mrs.empty()) {
-                  LOG(loggerUncategorized, Level::INFO,
-                      "%s", mrs.c_str());
+                  fprintf(fstatus, "%s\n", mrs.c_str());
                 }
               }
             }
           }
-          if (rmrs_xml)
-            LOG(loggerUncategorized, Level::INFO, "</rmrs-list>");
-          else 
-            LOG(loggerUncategorized, Level::INFO, "EOM");
+          if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
+          else fprintf(fstatus, "EOM\n");
         }
 #endif
       }
     } /* try */
         
     catch(tError e) {
-      LOG_ERROR(loggerUncategorized, "%s", e.getMessage().c_str());
+      fprintf(ferr, "%s\n", e.getMessage().c_str());
       if (verbosity > 0)
         stats.print(fstatus);
       stats.readings = -1;
@@ -306,49 +298,53 @@ void interactive_morphology() {
     for(list<tMorphAnalysis>::iterator it = res.begin(); 
         it != res.end(); 
         ++it) {
-      fprintf(stdout, "%s\t", it->base().c_str());
-      it->print_lkb(stdout);
-      fprintf(stdout, "\n");
+      cout << it->base() << "\t";
+      it->print_lkb(cout);
+      cout << endl;
     } // for
-    fprintf(fstatus,
-            "\n%d chains in %0.2g s\n",
-            res.size(), clock.convert2ms(clock.elapsed()) / 1000.);
+    LOG(logAppl, INFO, endl << res.size() << " chains in "
+        << std::setprecision(2) << clock.convert2ms(clock.elapsed()) / 1000.
+        << " s\n");
   } // while
 
 } // interactive_morphology()
 
 
-void dump_glbs(FILE *f) {
-  int i, j;
-  for(i = 0; i < nstatictypes; i++) {
-    prune_glbcache();
-    for(j = 0; j < i; j++)
-      if(glb(i,j) != -1) fprintf(f, "%d %d %d\n", i, j, glb(i,j));
+void print_grammar(int what, ostream &out) {
+  if(what == 1 || what == 4) {
+    out << ";; TYPE NAMES (PRINT NAMES) ==========================" << endl;
+    for(int i = 0; i < nstatictypes; i++) {
+      out << i << "\t" << type_name(i) << " (" << print_name(i) << ")" << endl;
+    }
+
+    out << ";; ATTRIBUTE NAMES ===================================" << endl;
+    for(int i = 0; i < nattrs; i++) {
+      out << i << "\t" << attrname[i] << endl;
+    }
   }
-}
-
-void print_symbol_tables(FILE *f) {
-  fprintf(f, "type names (print names)\n");
-  for(int i = 0; i < nstatictypes; i++) {
-    fprintf(f, "%d\t%s (%s)\n", i, type_name(i), print_name(i));
+  
+  out << ";; GLBs ================================================" << endl;
+  if(what == 2 || what == 4) {
+    int i, j;
+    for(i = 0; i < nstatictypes; i++) {
+      prune_glbcache();
+      for(j = 0; j < i; j++)
+        if(glb(i,j) != -1) out << i << ' ' << j << ' ' << glb(i,j) << endl;
+    }
   }
 
-  fprintf(f, "attribute names\n");
-  for(int i = 0; i < nattrs; i++) {
-    fprintf(f, "%d\t%s\n", i, attrname[i]);
-  }
-}
-
-void print_grammar(FILE *f) {
-  if(verbosity > 10)
-    dump_glbs(f);
-
-  print_symbol_tables(f);
-
-  for(int i = 0; i < nstatictypes; i++) {
-    fprintf(f, "\n%d\t%s:\n", i, print_name(i));
-    // \todo this has to be replaced, but too much for now
-    //dag_print_safe(f, type_dag(i), false, 0);
+  if(what == 3 || what == 4) {
+    out << endl << " ;; TYPE DAGS ================================" << endl;
+    ReadableDagPrinter dp;
+    for(int i = 0; i < nstatictypes; i++) {
+      out << '(' << i << ") " ;
+      if (type_name(i)[0] == '$')
+        out << "[" << type_name(i) << ']' << endl ;
+      dp.print(out, type_dag(i));
+      out << endl;
+      // \todo this has to be replaced, but too much for now
+      //dag_print_safe(f, type_dag(i), false, 0);
+    }
   }
 }
 
@@ -368,7 +364,7 @@ void process(const char *s) {
     string base = raw_name(s);
     cheap_settings = new settings(base.c_str(), s, "reading");
     fprintf(fstatus, "\n");
-    LOG(loggerUncategorized, Level::INFO, "loading `%s' ", s);
+    LOG(logAppl, INFO, "loading `" << s << "' ");
     Grammar = new tGrammar(s);
 
 #ifdef HAVE_ECL
@@ -417,9 +413,6 @@ void process(const char *s) {
              ? STANDOFF_COUNTS : STANDOFF_POINTS));
       }
       break;
-    case TOKENIZER_STRING: 
-    case TOKENIZER_INVALID: 
-      tok = new tLingoTokenizer(); break;
 
     case TOKENIZER_PIC:
     case TOKENIZER_PIC_COUNTS: 
@@ -431,8 +424,7 @@ void process(const char *s) {
                                ? STANDOFF_COUNTS : STANDOFF_POINTS));
       break;
 #else
-      LOG_FATAL(loggerUncategorized,
-                "No XML input mode compiled into this cheap");
+      LOG(logAppl, FATAL, "No XML input mode compiled into this cheap");
       exit(1);
 #endif
 
@@ -442,8 +434,8 @@ void process(const char *s) {
       tok = new tFSRTokenizer(s); break;
 #endif
 #else
-      LOG_FATAL(loggerUncategorized, "No ecl/Lisp based FSR preprocessor "
-                "compiled into this cheap");
+      LOG(logAppl, FATAL,
+          "No ecl/Lisp based FSR preprocessor compiled into this cheap");
       exit(1);
 #endif
 
@@ -454,16 +446,18 @@ void process(const char *s) {
       XMLServices = true;
       tok = new tSMAFTokenizer(); break;
 #else
-      LOG_FATAL(loggerUncategorized,
-               "No ICU (Unicode) support compiled into this cheap.");
+      LOG(logAppl, FATAL, "No ICU (Unicode) support compiled into this cheap.");
       exit(1);
 #endif
 #else
-      LOG_FATAL(loggerUncategorized,
-                "No XML support compiled into this cheap.");
+      LOG(logAppl, FATAL, "No XML support compiled into this cheap.");
       exit(1);
 #endif
 
+    case TOKENIZER_INVALID: 
+      LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
+          <<"\": using 'tok=string'");
+    case TOKENIZER_STRING: 
     default:
       tok = new tLingoTokenizer(); break;
     }
@@ -472,8 +466,7 @@ void process(const char *s) {
   }
     
   catch(tError &e) {
-    LOG_FATAL(loggerUncategorized,
-              "aborted\n%s", e.getMessage().c_str());
+    LOG(logAppl, FATAL, "aborted" << endl << e.getMessage());
     cleanup();
     return;
   }
@@ -503,21 +496,19 @@ void process(const char *s) {
   ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
 #endif // HAVE_ECL
 
-  LOG(loggerUncategorized, Level::INFO, "%d types in %0.2g s",
-          nstatictypes, t_start.convert2ms(t_start.elapsed()) / 1000.);
+  LOG(logAppl, INFO, nstatictypes << " types in " << std::setprecision(2) 
+      << t_start.convert2ms(t_start.elapsed()) / 1000. << " s");
   fflush(fstatus);
 
-  if(get_opt_bool("opt_pg")) {
-    print_grammar(stdout);
+  if(get_opt_char("opt_pg") != '\0') {
+    print_grammar(get_opt_char("opt_pg"), cout);
   }
   else {
     initialize_version();
         
 #if defined(YY) && defined(SOCKET_INTERFACE)
-    int server_mode;
-    Config::get("opt_server", server_mode);
-    if(server_mode != 0)
-      cheap_server(server_mode);
+    if(get_opt_int("opt_server") != 0)
+      cheap_server(get_opt_int("opt_server"));
     else 
 #endif
 #ifdef TSDBAPI
@@ -572,7 +563,9 @@ int main(int argc, char* argv[])
 
   // Initialize global options
   main_init();
-
+  // Initialize options for the input modules
+  tInputModule::init();
+  
 #ifndef __BORLANDC__
   if(!parse_options(argc, argv)) {
     usage(ferr);
@@ -586,29 +579,27 @@ int main(int argc, char* argv[])
 #endif
 
 #if defined(YY) && defined(SOCKET_INTERFACE)
-  int server_mode;
-  Config::get("opt_server", server_mode);
-  if(server_mode != 0) {
-    if(cheap_server_initialize(server_mode))
+  if(get_opt_int("opt_server") != 0) {
+    if(cheap_server_initialize(get_opt_int("opt_server")))
       exit(1);
   }
 #endif
 
   string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
   if(grammar_name.empty()) {
-    LOG_FATAL(loggerUncategorized, "Grammar not found");
+    LOG(logAppl, FATAL, "Grammar not found");
     exit(1);
   }
 
   try { process(grammar_name.c_str()); }
 
   catch(tError &e) {
-    LOG_FATAL(loggerUncategorized, "%s", e.getMessage().c_str());
+    LOG(logAppl, FATAL, e.getMessage());
     exit(1);
   }
 
   catch(bad_alloc) {
-    LOG_FATAL(loggerUncategorized, "out of memory");
+    LOG(logAppl, FATAL, "out of memory");
     exit(1);
   }
 

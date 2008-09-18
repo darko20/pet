@@ -107,12 +107,15 @@ struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr)
   return dag_get_attr_value(dag, a);
 }
 
-struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
+// This is basically the prior dag_nth_arg with the only difference
+// being that the attribute can be specified. Made inline so that there will
+// be no difference in performance.
+inline struct dag_node *dag_nth_element(struct dag_node *dag, int attr, int n)
 {
   int i;
   dag_node *arg;
 
-  if((arg = dag_get_attr_value(dag, BIA_ARGS)) == FAIL)
+  if((arg = dag_get_attr_value(dag, attr)) == FAIL)
     return FAIL;
 
   for(i = 1; i < n && arg && arg != FAIL && !subtype(dag_type(arg), BI_NIL); i++)
@@ -126,7 +129,26 @@ struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
   return arg;
 }
 
-struct dag_node *dag_get_path_value_l(struct dag_node *dag, list_int *path) {
+struct dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n)
+{
+  // follow the path:
+  if (dag == FAIL)
+    return FAIL;
+  int attr = first(path);
+  while (rest(path)) {
+    dag = dag_get_attr_value(dag, attr);
+    path = rest(path);
+    attr = first(path);
+  }
+  return dag_nth_element(dag, attr, n); // inline call
+}
+
+struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
+{
+  return dag_nth_element(dag, BIA_ARGS, n); // inline call
+}
+
+struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
   while(path) {
     if(dag == FAIL) return FAIL;
     dag = dag_get_attr_value(dag, first(path));

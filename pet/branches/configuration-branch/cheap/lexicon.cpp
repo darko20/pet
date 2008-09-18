@@ -80,11 +80,9 @@ lex_stem::get_stems() {
     dag = dag_get_path_value(e.dag(),
                              cheap_settings->req_value("orth-path"));
   if(dag == FAIL) {
-    LOG(loggerUncategorized, Level::INFO,
-        "no orth-path in `%s'", type_name(_instance_type));
-    // TODO
-    //    if(verbosity > 9)
-    //  dag_print(stderr, e.dag());
+    LOG(logGrammar, WARN,
+        "no orth-path in `" << type_name(_instance_type) << "'");
+    LOG(logGrammar, DEBUG, e.dag());
         
     orth.push_back("");
     return orth;
@@ -109,8 +107,8 @@ lex_stem::get_stems() {
       }
     }
     else {
-      LOG(loggerUncategorized, Level::INFO,
-          "no valid stem in `%s'", type_name(_instance_type));
+      LOG(logGrammar, WARN, 
+          "no valid stem in `" << type_name(_instance_type) << "'") ;
     }
         
     return orth;
@@ -122,8 +120,8 @@ lex_stem::get_stems() {
       iter != stemlist.end(); ++iter) {
     dag = *iter;
     if(dag == FAIL) {
-      LOG(loggerUncategorized, Level::INFO,
-          "no stem %d in `%s'", n, type_name(_instance_type));
+      LOG(logGrammar, WARN,
+          "no stem "<< n << " in `" << type_name(_instance_type) << "'");
       return vector<string>();
     }
         
@@ -131,8 +129,8 @@ lex_stem::get_stems() {
       string s(type_name(dag_type(dag)));
       orth.push_back(s.substr(1,s.length()-2));
     } else {
-      LOG(loggerUncategorized, Level::INFO,
-          "no valid stem %d in `%s'",n,type_name(_instance_type));
+      LOG(logGrammar, WARN, "no valid stem " << n 
+          << " in `" << type_name(_instance_type) << "'");
       return vector<string>();
     }
     n++;
@@ -140,6 +138,13 @@ lex_stem::get_stems() {
     
   return orth;
 }
+
+void lex_stem::print(std::ostream &out) const {
+  out << printname() << ':';
+  for(int i = 0; i < _nwords; i++)
+    out << " \"" << _orth[i] << "\"";
+}
+
 
 lex_stem::lex_stem(type_t instance_type //, const modlist &mods
                    , type_t lex_type
@@ -182,9 +187,7 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
     }
   }
 
-  LOG_ONLY(PrintfBuffer pb);
-  LOG_ONLY(print(pb));
-  LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
+  LOG(logGrammar, DEBUG, *this);
 }
 
 
@@ -196,10 +199,3 @@ lex_stem::~lex_stem()
     delete[] _orth;
 }
 
-void
-lex_stem::print(IPrintfHandler &iph) const
-{
-  pbprintf(iph, "%s:", printname());
-  for(int i = 0; i < _nwords; i++)
-    pbprintf(iph, " \"%s\"", _orth[i]);
-}

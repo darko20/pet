@@ -29,7 +29,11 @@ public:
   typedef std::string (*tofunc)(const T &val);
 
   value(fromfunc from= default_fromstring<T>, tofunc to=default_tostring<T>) 
-    : _fromstring(from), _tostring(to) { }
+    : _fromstring(from), _tostring(to), _conv(NULL) { }
+
+  // the destruction of value will destroy the converter object
+  value(AbstractConverter<T> *conv) 
+    : _fromstring(NULL), _tostring(NULL), _conv(conv) { }
 
   virtual ~value() {};
 
@@ -43,7 +47,7 @@ public:
    *  \see set_from_string
    */
   virtual std::string get_as_string() {
-    return _tostring(get());
+    return (_conv == NULL) ? _tostring(get()) : _conv->toString(get());
   }
 
   /** Set the value of this option from a readable represenation.
@@ -51,12 +55,13 @@ public:
    * \param priority see #option<T>::set
    */
   virtual void set_from_string(const std::string& s) {
-    set(_fromstring(s));
+    set((_conv == NULL) ? _fromstring(s) : _conv->fromString(s));
   }
 
 private: 
   fromfunc _fromstring;
   tofunc _tostring;
+  AbstractConverter<T> *_conv;
 };
 
 /** Template classes for managed values.
@@ -64,11 +69,20 @@ private:
  * Object of this class stores the value of an option internally, as a field.
  */
 template<class T> class handled_value : public value<T> {
+  typedef typename value<T>::fromfunc fromfunc;
+  typedef typename value<T>::tofunc tofunc;
+
 public:
   /** Create a new value object managed completely by the Config system
    * \param initial the initial value
    */
   handled_value(const T& initial) : _value(initial) {}
+  
+  handled_value(const T& initial, fromfunc f, tofunc t)
+    : value<T>(f,t), _value(initial) {}
+  
+  handled_value(const T& initial, AbstractConverter<T> *c)
+    : value<T>(c), _value(initial) {}
   
   virtual ~handled_value() {}
 
@@ -286,20 +300,28 @@ public:
    *
    * \throw ConfigException Thrown if option already exists or name is
    *                            empty
-   *
-  template<class T> void 
-  addOption(const std::string& key, const std::string& description,
-            const T &initial, AbstractConverter<T> *converter) {
-    add(key, new option<T>(description, new handled_value<T>(initial),
-                           converter));
-  }
-  */
-
+   */
   template<class T> void 
   addOption(const std::string& key, const std::string& description,
             const T &initial) {
     if(check(key))  // we don't create the option if the key is not OK
       add(key, new option<T>(description, new handled_value<T>(initial)));
+  }
+
+  template<class T> void 
+  addOption(const std::string& key, const std::string& description,
+            const T &initial, AbstractConverter<T> *converter) {
+    add(key,
+        new option<T>(description, new handled_value<T>(initial, converter)));
+  }
+  
+  template<class T> void 
+  addOption(const std::string& key, const std::string& description,
+            const T &initial,
+            typename value<T>::fromfunc from, typename value<T>::tofunc to) {
+    if(check(key))  // we don't create the option if the key is not OK
+      add(key, 
+          new option<T>(description, new handled_value<T>(initial, from, to)));
   }
   
   /** Adds new configuration option. Value is stored in given location.

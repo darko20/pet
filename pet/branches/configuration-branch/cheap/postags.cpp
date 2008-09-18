@@ -133,8 +133,7 @@ bool postags::contains(type_t t, const class setting *set) const {
   
   for(int i = 0; i < set->n; i+=2) {
     if(i+2 > set->n) {
-      LOG(loggerUncategorized, Level::WARN,
-          "warning: incomplete last entry in POS mapping - ignored");
+      LOG(logAppl, WARN, "incomplete last entry in POS mapping - ignored");
       break;
     }
             
@@ -142,8 +141,7 @@ bool postags::contains(type_t t, const class setting *set) const {
             
     int type = lookup_type(rhs);
     if(type == -1) {
-      LOG(loggerUncategorized, Level::WARN,
-          "warning: unknown type `%s' in POS mapping", rhs);
+      LOG(logAppl, WARN, "unknown type `" << rhs << "' in POS mapping");
     } else {
       if(subtype(t, type) && contains(lhs))
         return true;

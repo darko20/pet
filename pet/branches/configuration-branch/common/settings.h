@@ -31,7 +31,7 @@
 
 #define SET_SUBDIRECTORY "pet"
 #define SET_EXT ".set"
-#define SET_TABLE_SIZE 100
+#define SET_TABLE_SIZE 1024
 
 /** A setting from the settings file (in TDL format) */
 struct setting
@@ -47,9 +47,9 @@ struct setting
 class settings
 {
  public:
-  settings(const char *name, const char *base, char *message = 0);
+  settings(const char *name, const char *base, const char *message = 0);
   ~settings();
-  
+
   setting *lookup(const char *name);
 
   char *value(const char *name);

@@ -238,11 +238,13 @@ unset CHEAPCPPFLAGS CHEAPCXXFLAGS CHEAPLDFLAGS CHEAPLIBS
 # Boost.Graph:
 AX_BOOST_BASE([], [boost="yes"], [boost="no"])
 if test "$boost" = "yes" ; then
+  CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
   AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp \
                     boost/graph/topological_sort.hpp \
                     boost/lambda/lambda.hpp ],
                    [],
                    [ boost="no" ])
+  CPPFLAGS="${savedCPPFLAGS}"
 fi
 if test "$boost" = "yes" ; then
   FLOPCPPFLAGS="${BOOST_CPPFLAGS} ${FLOPCPPFLAGS}"

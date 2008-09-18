@@ -5,6 +5,27 @@
 
 #include "logging.h"
 
+int root,
+  logPack,
+  logUnpack,
+  logMorph,
+  logLexproc,
+  logGrammar,
+  logGenerics,
+  logAppl,
+  logParse,
+  logSM,
+  logXML,
+  logTsdb,
+  logSyntax,
+  logSemantic;
+
+std::string prio_names[] = {
+  "fatal", "alert", "critical", "error",
+  "warning", "notice", "info", "debug", ""
+};
+
+#if 0
 #if HAVE_LIBLOG4CXX
   log4cxx::LoggerPtr PrintfBuffer::logger(
                                    log4cxx::Logger::getLogger("PrintfBuffer"));
@@ -90,7 +111,7 @@ int StreamPrinter::vprintf(char *fmt, va_list ap) {
   return vfprintf(file_, fmt, ap);
 }
 
-int pbprintf(IPrintfHandler &iph, char *fmt, ...) {
+int pbprintf(IPrintfHandler &iph, const char *fmt, ...) {
   va_list ap;
   int res;
 
@@ -100,3 +121,5 @@ int pbprintf(IPrintfHandler &iph, char *fmt, ...) {
   
   return res;
 }
+
+#endif

@@ -63,8 +63,8 @@ bool parse_file(InputSource &inp, HandlerBase *docHandler){
     parser.parse(inp);
   }
   catch (const XMLException& toCatch) {
-    LOG_ERROR(loggerXml, "SAX: XMLException line %d: %s",
-              toCatch.getSrcLine(), XMLCh2Latin(toCatch.getMessage()));
+    LOG(logXML, WARN, "unknown:" << toCatch.getSrcLine()
+        << ": error: SAX: " << XMLCh2Latin(toCatch.getMessage()));
     return false;
   }
   catch (const SAXParseException& toCatch) {
@@ -84,7 +84,7 @@ bool xml_initialize() {
   }
   catch (const XMLException& toCatch) {
     // we don't know if we have an encoder available
-    LOG_ERROR(loggerXml, "SAX: Error during XML initialization!");
+    LOG(logXML, ERROR, "SAX: Error during XML initialization!");
     return false;
   }
   return true;

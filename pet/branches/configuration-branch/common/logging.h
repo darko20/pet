@@ -64,12 +64,12 @@ extern const int defaultPbSize;
 extern char defaultPb[];
 
 #else // HAVE_LIBLOG4CXX
-
+/*
 #  define LOG_ONLY(instr)
 
-#  ifndef LOG // despite lack of log4cxx if can be defined by user
-#    define LOG(logger, level, format, ...)
-#  endif // LOG
+//#  ifndef LOG // despite lack of log4cxx if can be defined by user
+//#    define LOG(logger, level, format, ...)
+//#  endif // LOG
 
 #  ifndef LOG_ERROR
 #    define LOG_ERROR(logger, format, ...)    \
@@ -80,9 +80,50 @@ extern char defaultPb[];
 #    define LOG_FATAL(logger, format, ...)    \
        fprintf(stderr, format "\n", ##__VA_ARGS__)
 #  endif // LOG_FATAL
+*/
+#include <iostream>
+
+extern int root,
+  logPack,
+  logUnpack,
+  logMorph,
+  logLexproc,
+  logGrammar,
+  logGenerics,
+  logAppl,
+  logParse,
+  logSM,
+  logTsdb,
+  logSyntax,
+  logSemantic,
+  logXML;
+
+typedef enum {EMERG  = 0, 
+              FATAL  = 0,
+              ALERT  = 100,
+              CRIT   = 200,
+              ERROR  = 300, 
+              WARN   = 400,
+              NOTICE = 500,
+              INFO   = 600,
+              DEBUG  = 700,
+              NOTSET = 800
+} PriorityLevel;
+
+extern std::string prio_names[];
+
+// wenigstens zwei (drei?) verschiedene Ausgabemethoden: wie compiler-errors
+// (vor allem fuer flop), ganz nackig (fuer Ausgaben aus dem System) und wie
+// richtige log-messages mit Zeitpunkt, priority und message
+
+#define LOG(XXXCAT, XXXPRIO, XXXMSG) \
+  ((XXXCAT >= XXXPRIO) ? (std::cerr << prio_names[XXXPRIO/100] \
+                          << ": " << XXXMSG << std::endl, 1) : 0)
+#define LOG_ENABLED(XXXCAT, XXXPRIO) (XXXCAT >= XXXPRIO)
+
 
 #endif // HAVE_LIBLOG4CXX
-
+#if 0
 /**
  * @brief Interface for a class processing printf calls.
  *
@@ -158,5 +199,5 @@ private:
  * @param iph object that processes the rest of the arguments.
  */
 int pbprintf(IPrintfHandler &iph, char *fmt, ...);
-
+#endif
 #endif // _LOGGING_H

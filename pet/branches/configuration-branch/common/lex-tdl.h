@@ -29,7 +29,7 @@
 /** The number of predefined keywords of the TDL syntax. */
 #define N_KEYWORDS 18
 /** The predefined TDL keywords */
-extern char *keywords[N_KEYWORDS];
+extern const char *keywords[N_KEYWORDS];
 
 /** Enumeration for the different token types */
 enum TOKEN_TAG {
@@ -65,8 +65,10 @@ struct lex_token *LA(int n);
 
 /** Consume \a n tokens */
 void consume(int n);
-/** Consume the next token if its type is equal to \a tag */
-void optional(enum TOKEN_TAG tag);
+/** Consume the next token if its type is equal to \a tag. 
+ *  \return \c true if the token was consumed, \c false otherwise.
+ */
+bool consume_if(enum TOKEN_TAG tag);
 
 /** \brief Try to match the next token. Issue a syntax error if the next token
  *  does not fit.
@@ -80,21 +82,21 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly);
 /**  \brief Match and consume the keyword with surface string \a kwd. Issue a
  *  syntax error if the next token does not fit.
  */
-void match_keyword(char *kwd);
+void match_keyword(const char *kwd);
 /** \brief Check if the token \a t is a keyword with surface form \a
  *  kwd. Return non-zero if so, zero otherwise. 
  */
-int is_keyword(struct lex_token *t, char *kwd);
+int is_keyword(struct lex_token *t, const char *kwd);
 
 /** Print a syntax error to the error channel */
-void syntax_error(char *msg, struct lex_token *t);
+void syntax_error(const char *msg, struct lex_token *t);
 /** Consume tokens until one with type \a tag is found, then consume this token
  *  too and return.
  */
 void recover(enum TOKEN_TAG tag);
 
 /** The set of non-alphanumeric characters that may occur in an \c id token */
-extern char *lexer_idchars;
+extern const char *lexer_idchars;
 /** A predicate that returns \c true if \a c is a character that may occur in
  *  an \c id token .
  */

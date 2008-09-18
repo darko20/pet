@@ -50,7 +50,7 @@ typedef struct
 struct lex_location 
 {
   /** The file name */
-  char *fname;
+  const char *fname;
   /** line nr */
   int linenr;
   /** column nr */
@@ -58,7 +58,7 @@ struct lex_location
 };
 
 /** Build a new location object with the given parameters. */
-struct lex_location *new_location(char *fname, int linenr, int colnr);
+struct lex_location *new_location(const char *fname, int linenr, int colnr);
 
 /*@{*/
 /** File streams for error and status messages */
@@ -68,7 +68,7 @@ extern FILE *ferr, *fstatus;
 /** Push file \a fname onto include stack, where \a info provides a hint in
  *  which context the function is used.
  */
-void push_file(const std::string &fname, char *info);
+void push_file(const std::string &fname, const char *info);
 /** Pop file from include stack
  *  \return nonzero if there are still open files, zero otherwise.
  */

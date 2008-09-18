@@ -30,7 +30,7 @@
 
 using std::string;
 
-settings::settings(const char *name, const char *base, char *message)
+settings::settings(const char *name, const char *base, const char *message)
   : _li_cache() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
@@ -41,9 +41,9 @@ settings::settings(const char *name, const char *base, char *message)
     _prefix = dir_name(base);
 
     // fname contains the full pathname to the settings file, except for the
-    // extension, first in the directory the base path points to  
+    // extension, first in the directory the base path points to
     _fname = _prefix + name + SET_EXT;
-      
+
     if(! file_exists_p(_fname.c_str())) {
       // We could not find the settings file there, so try it in the
       // subdirectory predefined for settings
@@ -55,14 +55,14 @@ settings::settings(const char *name, const char *base, char *message)
     // The full pathname is in "name"
     _fname = name;
   }
-  
+
   if(file_exists_p(_fname.c_str())) {
     push_file(_fname, message);
-    char *sv = lexer_idchars;
+    const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
     parse();
     lexer_idchars = sv;
-    
+
   }
   _lloc = 0;
 }
@@ -84,7 +84,7 @@ settings::~settings() {
   }
 }
 
-/** Do a linear search for \a name in the settings and return the first 
+/** Do a linear search for \a name in the settings and return the first
  * matching setting.
  */
 setting *settings::lookup(const char *name) {
@@ -124,8 +124,6 @@ char *settings::req_value(const char *name)
   char *v = value(name);
   if(v == 0)
     {
-      LOG_ERROR(loggerUncategorized,
-                "no definition for required parameter `%s'", name);
       throw tError("no definition for required parameter `" + string(name) + "'");
     }
   return v;
@@ -141,7 +139,7 @@ bool settings::member(const char *name, const char *value)
   for(int i = 0; i < set->n; i++)
     if(strcasecmp(set->values[i], value) == 0)
       return true;
-  
+
   return false;
 }
 
@@ -186,11 +184,11 @@ std::set<std::string> settings::smap(const char *name, int key_type)
     {
       if(i+2 > set->n)
         {
-          LOG(loggerUncategorized, Level::WARN,
-              "warning: incomplete last entry in `%s' mapping - ignored", name);
+          LOG(logAppl, WARN, "warning: incomplete last entry in `" << name
+              << "' mapping - ignored");
           break;
         }
-      
+
       char *lhs = set->values[i], *rhs = set->values[i+1];
       int id = lookup_type(lhs);
       if(id != -1)
@@ -199,9 +197,9 @@ std::set<std::string> settings::smap(const char *name, int key_type)
             res.insert(rhs);
         }
       else
-        LOG(loggerUncategorized, Level::WARN,
-            "warning: unknown type `%s' in `%s' mapping - ignored", name, lhs);
-      
+        LOG(logAppl, WARN, "unknown type `" << name << "' in `"
+            << lhs << "' mapping - ignored");
+
     }
 
   return res;
@@ -227,9 +225,8 @@ bool settings::statusmember(const char *name, type_t key)
               int v = lookup_status(set->values[i]);
               if(v == -1)
                 {
-                  LOG(loggerUncategorized, Level::INFO,
-                      "ignoring unknown status `%s' in setting "
-                      "`%s'", set->values[i], name);
+                  LOG(logAppl, WARN, "ignoring unknown status `"
+                      << set->values[i] << "' in setting `" << name << "'");
                 }
               else
                 l = cons(v, l);
@@ -250,8 +247,8 @@ void settings::parse_one()
   set = lookup(option);
   if(set)
     {
-      LOG(loggerUncategorized, Level::WARN,
-          "warning: more than one definition for setting `%s'...", option);
+      LOG(logAppl, WARN,
+          "more than one definition for setting `" << option << "'...");
     }
   else
     {
@@ -267,7 +264,7 @@ void settings::parse_one()
   if(LA(0)->tag != T_DOT)
     {
       match(T_ISEQ, "option setting", true);
-      
+
       while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
         {
           if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
@@ -283,11 +280,10 @@ void settings::parse_one()
             }
           else
             {
-              LOG(loggerUncategorized, Level::WARN,
-                  "ignoring `%s' at %s:%d...", LA(0)->text,
-                  LA(0)->loc->fname, LA(0)->loc->linenr);
+              fprintf(ferr, "%s:%d: warning: ignoring %s\n",
+                      LA(0)->loc->fname, LA(0)->loc->linenr, LA(0)->text);
             }
-          
+
           consume(1);
         }
     }
@@ -305,23 +301,21 @@ void settings::parse() {
     }
     else if(LA(0)->tag == T_KEYWORD && strcmp(LA(0)->text, "include") == 0) {
       consume(1);
-      
+
       if(LA(0)->tag != T_STRING) {
-        LOG(loggerUncategorized, Level::WARN,
-            "expecting include file name at %s:%d...",
+        fprintf(ferr, "%s:%d: warning: expecting include file name",
                 LA(0)->loc->fname, LA(0)->loc->linenr);
       }
       else {
         string ofname = _prefix + LA(0)->text + SET_EXT;
         consume(1);
-        
+
         match(T_DOT, "`.'", true);
-        
+
         if(file_exists_p(ofname.c_str())) {
           push_file(ofname, "including");
         } else {
-          LOG(loggerUncategorized, Level::WARN,
-              "file `%s' not found. skipping...", ofname.c_str());
+          LOG(logAppl, WARN, "file `" << ofname << "' not found. skipping...");
         }
       }
     }

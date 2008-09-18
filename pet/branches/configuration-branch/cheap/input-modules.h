@@ -40,6 +40,11 @@ public:
    */
   virtual int level() const { return 1; }
 
+  /** Initialize all the options for the input modules.
+      \todo maybe we should split that into init()s for the modules, but it's
+      ok for now.
+   */
+  static void init();
 };
 
 /** function object to compare two modules according to their priority (level)
@@ -52,6 +57,12 @@ struct less_than_module
 };
 
 enum position_map { NO_POSITION_MAP = 0, STANDOFF_POINTS, STANDOFF_COUNTS};
+
+enum tokenizer_id {
+  TOKENIZER_STRING, TOKENIZER_YY, TOKENIZER_YY_COUNTS
+  , TOKENIZER_PIC, TOKENIZER_PIC_COUNTS
+  , TOKENIZER_FSR, TOKENIZER_SMAF, TOKENIZER_INVALID
+};
 
 /** Tokenize the input (not necessarily unambiguous)
  *

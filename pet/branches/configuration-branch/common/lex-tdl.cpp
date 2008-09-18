@@ -30,12 +30,12 @@
 #include <cassert>
 #include <ostream>
 
-char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
+const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
 "end", "end!", "errorp", "expand-all-instances", "include", "leval",
 "sorts", "status" };
 
-char *lexer_idchars = "_+-*?";
+const char *lexer_idchars = "_+-*?";
 
 int is_idchar(int c)
 {
@@ -170,10 +170,8 @@ struct lex_token *get_next_token()
       
       if(LLA(i) == EOF)
       { // runaway comment
-          LOG_ERROR(loggerUncategorized,
-                    "runaway block comment starting in %s:%d.%d",
-                    curr_fname(), curr_line(), curr_col());
-          throw tError("runaway block comment");
+        throw tError("runaway block comment", curr_fname(),
+                     curr_line(), curr_col());
       }
       
       i += 2;
@@ -200,10 +198,7 @@ struct lex_token *get_next_token()
 
       if(LLA(i) == EOF)
         { // runaway string
-          LOG_ERROR(loggerUncategorized,
-                    "runaway string starting in %s:%d.%d",
-                    curr_fname(), curr_line(), curr_col());
-          throw tError("runaway string");
+          throw tError("runaway string", curr_fname(), curr_line(), curr_col());
         }
 
       i += 1;
@@ -227,10 +222,8 @@ struct lex_token *get_next_token()
 
       if(LLA(i) == EOF)
        { // runaway LISP expression
-         LOG_ERROR(loggerUncategorized,
-                   "runaway LISP expression starting in %s:%d.%d",
-                   curr_fname(), curr_line(), curr_col());
-         throw tError("runaway LISP expression");
+         throw tError("runaway LISP expression", curr_fname(),
+                      curr_line(), curr_col());
        }
       
       t = make_token(T_LISP, start, i);
@@ -281,11 +274,9 @@ struct lex_token *get_next_token()
           while(is_idchar(LLA(i)) || LLA(i) == '!') i++;
           
           if(i == 0)
-          {
-            LOG_ERROR(loggerUncategorized,
-                      "unexpected character '%c' in %s:%d.%d",
-                      (char) c, curr_fname(), curr_line(), curr_col());
-            throw tError("unexpected character in input");
+          { char str[3] = { (char) c, '\'', '\0' };
+            throw tError("unexpected character '" + std::string(str),
+                         curr_fname(), curr_line(), curr_col());
           }
       }
           
@@ -400,13 +391,11 @@ struct lex_token *get_next_token()
           tag = T_RANGLE;
           break;
         default:
-          {
-            LOG_ERROR(loggerUncategorized,
-                      "unexpected character '%c' in %s:%d.%d",
-                      (char) c, curr_fname(), curr_line(), curr_col());
-           throw tError("unexpected character in input");
-         }
-       }
+          { char str[3] = { (char) c, '\'', '\0' };
+            throw tError("unexpected character '" + std::string(str),
+                         curr_fname(), curr_line(), curr_col());
+          }
+        }
       txt[0] = (char) c;
       t = make_token(tag, txt, 1);
       LConsume(1);
@@ -415,18 +404,20 @@ struct lex_token *get_next_token()
   return t;
 }
 
-void print_token(std::ostream &out, lex_token *t)
+void print(std::ostream &out, const lex_token &t)
 {
-  assert(t != NULL);
-  
-  if(t->tag == T_EOF)
+  if(t.tag == T_EOF)
     {
       out << "*EOF*" << std::endl;
     }
   else
     {
-      out << "[" << t->tag << "]<" << t->text << ">" << std::endl;
+      out << "[" << t.tag << "]<" << t.text << ">" << std::endl;
     }
+}
+
+inline std::ostream &operator<<(std::ostream &o, const lex_token &tok) {
+  print(o, tok); return o;
 }
 
 int tokensdelivered = 0;
@@ -434,20 +425,17 @@ int tokensdelivered = 0;
 struct lex_token *
 get_token()
 {
-  struct lex_token *t;
-  int hope = 1;
-  
-  LOG_ONLY(PrintfBuffer pb);
-  
-  while(hope)
+    struct lex_token *t;
+    int hope = 1;
+    
+    while(hope)
     {
         while((t = get_next_token())->tag != T_EOF)
         {
             if(t->tag != T_WS && t->tag != T_COMM)
             {
 #ifdef DEBUG
-              LOG_ONLY(pbprintf(pb, "delivering "));
-              LOG_ONLY(print_token(pb, t));
+              LOG(logSyntax, DEBUG, "delivering " << t) ;
 #endif
                 tokensdelivered++;
                 return t;
@@ -455,22 +443,20 @@ get_token()
 #ifdef DEBUG
             else
             {
-              LOG_ONLY(pbprintf(pb, "not delivering "));
-              LOG_ONLY(print_token(pb, t));
+              LOG(logSyntax, DEBUG, "not delivering " << t);
             }
 #endif
             free(t);
         }
         if(!pop_file()) hope = 0;
     }
-  
-  LOG_ONLY(pbprintf(pb, "delivering "));
-  LOG_ONLY(print_token(pb, t));
 
-  LOG(loggerUncategorized, Level::DEBUG, "%s", pb.getContents());
-  
-  tokensdelivered++;
-  return t;
+#ifdef DEBUG
+  LOG(logSyntax, DEBUG, "delivering " << t);
+#endif
+    
+    tokensdelivered++;
+    return t;
 }
 
 /* the parser operates on a stream of tokens. these are provided by get_token().
@@ -515,8 +501,7 @@ void consume1()
 
   if(LA_BUF[0] == NULL)
     {
-      LOG(loggerUncategorized, Level::WARN,
-          "warning: consuming tokens not looked at yet");
+      LOG(logSyntax, WARN, "consuming tokens not looked at yet");
       get_token();
     }
   else
@@ -544,24 +529,23 @@ void consume(int n)
 
 int syntax_errors = 0;
 
-void syntax_error(char *msg, struct lex_token *t)
+void syntax_error(const char *msg, struct lex_token *t)
 {
   syntax_errors ++;
   if(t->tag == T_EOF)
     {
-      LOG_ERROR(loggerUncategorized, "syntax error at end of input: %s", msg);
+      fprintf(ferr, "syntax error at end of input: %s\n", msg);
     }
   else if(t->loc == NULL)
     {
-      LOG_ERROR(loggerUncategorized, "syntax error - got `%.20s', %s",
-                t->text, msg);
+      fprintf(ferr, "syntax error - got `%.20s', %s\n",
+              t->text, msg);
     }
   else
     {
-      LOG_ERROR(loggerUncategorized,
-                "syntax error in %s:%d.%d - got `%.20s', %s",
-                t->loc->fname, t->loc->linenr, t->loc->colnr,
-                t->text, msg);
+      fprintf(ferr, "%s:%d:%d error: (syntax) - got `%.20s', %s\n",
+              t->loc->fname, t->loc->linenr, t->loc->colnr,
+              t->text, msg);
     }
 }
 
@@ -573,9 +557,7 @@ void recover(enum TOKEN_TAG tag)
 
   if(LA(0) ->tag == T_EOF)
     {
-      LOG_ERROR(loggerUncategorized,
-                "confused by previous errors, bailing out...");
-      throw tError("confused");
+      throw tError("confused by previous errors, bailing out...\n");
     }
   
   if(LA(0) == last_t) consume(1);
@@ -585,7 +567,7 @@ void recover(enum TOKEN_TAG tag)
 
 char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
 {
-  char *text;
+  char *text = NULL;
   
   if(tag == T_ID && LA(0)->tag == T_KEYWORD)
     LA(0)->tag = T_ID;
@@ -595,7 +577,6 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
       char msg[80];
       sprintf(msg, "expecting %s", s);
       syntax_error(msg, LA(0));
-      text = NULL;
       // assume it was forgotten, continue
     }
   else
@@ -605,8 +586,6 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
           text = LA(0)->text;
           LA(0)->text = NULL;
         }
-      else
-        text = NULL;
 
       consume(1);
     }
@@ -614,15 +593,18 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
   return text;
 }
 
-void optional(enum TOKEN_TAG tag)
+bool consume_if(enum TOKEN_TAG tag)
 {
   if(LA(0)->tag == tag)
     {
       consume(1);
+      return true;
     }
+  else
+    return false;
 }
 
-int is_keyword(struct lex_token *t, char *kwd)
+int is_keyword(struct lex_token *t, const char *kwd)
 {
   if(t->tag == T_KEYWORD && strcmp(t->text, kwd) == 0)
     return 1;
@@ -630,7 +612,7 @@ int is_keyword(struct lex_token *t, char *kwd)
     return 0;
 }
 
-void match_keyword(char *kwd)
+void match_keyword(const char *kwd)
 {
   if(!is_keyword(LA(0), kwd))
     {

@@ -22,6 +22,11 @@
 #include "options.h"
 #include "flop.h"
 #include "dag-arced.h"
+#include "settings.h"
+#include "utility.h"
+#include "logging.h"
+
+using std::string;
 
 int ncorefs = 0;
 struct dag_node **dagify_corefs;
@@ -124,9 +129,8 @@ struct dag_node *dagify_avm(struct avm *A)
         {
           if(dag_unify1(arc->val, val) == FAIL)
             {
-              LOG(loggerUncategorized, Level::INFO,
-                  "type `%s': unification under `%s' failed",
-                  type_name(current_toplevel_type), attrname[attr]);
+              LOG(root, WARN, "type `" << type_name(current_toplevel_type) 
+                  << "': unification under `" << attrname[attr] << "' failed");
               return FAIL;
             }
         }
@@ -153,9 +157,8 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
             {
               if(dag_unify1(last, result) == FAIL)
                 {
-                  LOG(loggerUncategorized, Level::INFO,
-                      "type `%s': unification of `LAST' failed",
-                      type_name(current_toplevel_type));
+                  LOG(root, WARN, "type `" << type_name(current_toplevel_type)
+                      << "': unification of `LAST' failed");
                   return FAIL;
                 }
             }
@@ -219,12 +222,11 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
         newtype = glb(type, C->term[i]->type);
         if(newtype == -1)
           {
-            LOG(loggerUncategorized, Level::INFO,
-                "type `%s': inconsistent term detected: "
-                "`%s' & `%s' have no glb...", 
-                type_name(current_toplevel_type),
-                type_name(type),
-                type_name(C->term[i]->type));
+            LOG(root, WARN,
+                "type `" << type_name(current_toplevel_type)
+                << "': inconsistent term detected: `" << type_name(type)
+                << "' & `" << type_name(C->term[i]->type)
+                << "' have no glb...");
             return FAIL;
           }
         type = newtype;
@@ -233,10 +235,10 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
       {
         if(cref != -1 && cref != C->term[i]->coidx)
           {
-            LOG(loggerUncategorized, Level::INFO,
-                "type `%s': term specifies two coreference indices: %d & %d...\n",
-                type_name(current_toplevel_type),
-                cref, C->term[i]->coidx);
+            LOG(root, WARN,
+                "type `" << type_name(current_toplevel_type)
+                << "': term specifies two coreference indices: " << cref
+                << " & " << C->term[i]->coidx << "..." << std::endl);
             return FAIL;
           }
         else
@@ -257,9 +259,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              LOG(loggerUncategorized, Level::INFO,
-                  "type `%s': feature term unification failed\n",
-                  type_name(current_toplevel_type));
+              LOG(root, WARN,
+                  "type `" << type_name(current_toplevel_type) 
+                  << "': feature term unification failed");
               return FAIL;
             }
         }
@@ -269,9 +271,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              LOG(loggerUncategorized, Level::INFO,
-                  "type `%s': list term unification failed\n",
-                  type_name(current_toplevel_type));
+              LOG(root, WARN, "type `" << type_name(current_toplevel_type)
+                  << "': list term unification failed" << std::endl);
               return FAIL;
             }
         }
@@ -284,9 +285,8 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
         {
           if(dag_unify1(dagify_corefs[cref], result) == FAIL)
             {
-              LOG(loggerUncategorized, Level::INFO,
-                  "type `%s': coreference unification failed\n",
-                  type_name(current_toplevel_type));
+              LOG(root, WARN, "type `" << type_name(current_toplevel_type)
+                  << "': coreference unification failed" << std::endl);
               return FAIL;
             }
         }

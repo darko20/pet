@@ -31,12 +31,12 @@
 #define VERSION_CHANGE "$Change: 850 $"
 
 /** The version string for the current PET version. */
-extern char *version_string;
+extern const char *version_string;
 
 /** The perforce change string for the current PET version.
  * This should correlate with the version string. It is mainly there to check
  * that the version number reflects the state of the package.
  */
-extern char *version_change_string;
+extern const char *version_change_string;
 
 #endif

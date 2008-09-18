@@ -11,7 +11,7 @@ using namespace std;
 
 #ifdef HASH_SPACE
 namespace HASH_SPACE {
-  template<> struct hash<const struct dag_node *> {
+  template<> struct hash<const struct ::dag_node *> {
     inline size_t operator()(const dag_node * const key) const {
       return (size_t) key;
     }
@@ -204,5 +204,9 @@ protected:
     out << " ]";
   }
 };
+
+/** default printing for dags */
+std::ostream &operator<<(std::ostream &out, const dag_node *dag);
+
 
 #endif

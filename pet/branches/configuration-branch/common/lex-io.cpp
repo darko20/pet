@@ -53,7 +53,7 @@ lex_file *CURR;
 
 int total_lexed_lines = 0;
 
-struct lex_location *new_location(char *fname, int linenr, int colnr)
+struct lex_location *new_location(const char *fname, int linenr, int colnr)
 {
   struct lex_location *loc = (struct lex_location *) malloc(sizeof(struct lex_location));
 
@@ -64,7 +64,7 @@ struct lex_location *new_location(char *fname, int linenr, int colnr)
   return loc;
 }
 
-void push_file(const string &fname, char *info) {
+void push_file(const string &fname, const char *info) {
   lex_file f;
   struct stat statbuf;
 
@@ -109,7 +109,7 @@ void push_file(const string &fname, char *info) {
   
   f.pos = 0;
   f.linenr = 1; f.colnr = 1;
-  f.info = info;
+  f.info = (info != NULL ? strdup(info) : NULL);
 
   file_stack[file_nest++] = f;
 
@@ -169,8 +169,7 @@ int LConsume(int n)
 
   if(CURR->pos + n > CURR->len)
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "nothing to consume...");
+      fprintf(ferr, "nothing to consume...\n");
       return 0;
     }
 
@@ -179,21 +178,14 @@ int LConsume(int n)
       // TODO: is this still necessary ??
       if(get_opt_bool("opt_linebreaks"))
         {
-          LOG(loggerUncategorized, Level::INFO,
-              "%s `%s' ", CURR->info, CURR->fname);
+          LOG(root, NOTICE, CURR->info << " `" << CURR->fname << "' ");
         }
       else
         {
           if(last_info != CURR->info)
-            {
-              LOG(loggerUncategorized, Level::INFO,
-                  "%s `%s'... ", CURR->info, CURR->fname);
-              }
+            LOG(root, NOTICE, CURR->info << " `" << CURR->fname << "'... ");
           else
-            {
-              LOG(loggerUncategorized, Level::INFO,
-                  "`%s'... ", CURR->fname);
-            }
+            LOG(root, NOTICE, "`" << CURR->fname << "'... ");
         }
 
       last_info = CURR->info;
