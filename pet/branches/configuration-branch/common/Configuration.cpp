@@ -1,4 +1,4 @@
-#include "Configuration.h"
+#include "config.h"
 
 Config* Config::_instance = NULL;
 
