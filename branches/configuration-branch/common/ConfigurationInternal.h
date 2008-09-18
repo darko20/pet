@@ -3,6 +3,8 @@
 #define _CONFIG_INTERNAL_H
 
 #include <boost/lexical_cast.hpp>
+#include <cassert>
+#include <iostream> 
 
 /** \file ConfigInternal.h
  * \brief Internal header for configuration subsystem - do not read ;)
@@ -248,6 +250,8 @@ private:
       return result;
     }
     catch(std::bad_cast) {
+      std::cerr << key << std::endl;
+      assert(false);
       throw WrongTypeException(key);
     }
   }
