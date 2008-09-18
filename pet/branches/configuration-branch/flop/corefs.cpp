@@ -110,7 +110,7 @@ void find_coref_term (struct term *T, struct coref_table *coref)
       assert(!"this cannot happen");
       break;
     default:
-      LOG(root, ERROR, "unknown kind of term: " << T -> tag);
+      LOG(logSyntax, ERROR, "unknown kind of term: " << T -> tag);
       assert(false);
       break;
     }

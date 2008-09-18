@@ -394,7 +394,7 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 
-      if(opt_yy
+      if(get_opt_bool("opt_yy")
          && (yy_stream = getenv("CHEAP_YY_STREAM")) != NULL
          && (yy_output = fopen(yy_stream, "a")) != NULL) {
         fprintf(yy_output, "%s\f\n", foo.c_str());
@@ -503,7 +503,7 @@ int cheap_server_child(int socket) {
     else {
       string foo = massageUTF8(string(input));
 
-      if(opt_yy && yy_output != NULL) {
+      if(get_opt_bool("opt_yy") && yy_output != NULL) {
         fprintf(yy_output, "%s\f\n", foo.c_str());
         fclose(yy_output);
       } /* if */
@@ -577,13 +577,13 @@ int socket_readline(int socket, char *string, int length) {
       (void)read(socket, &c, 1);
     } /* if */
     if(c == '\n') {
-      if(!opt_yy) {
+      if(!get_opt_bool("opt_yy")) {
         string[n] = (char)0;
         return n + 1;
       } /* if */
     } /* if */
     else if(c == '\f') {
-      if(opt_yy) {
+      if(get_opt_bool("opt_yy")) {
         string[n] = (char)0;
         return n + 1;
       } /* if */

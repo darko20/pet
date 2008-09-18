@@ -26,20 +26,58 @@
 #include "tsdb++.h"
 #include "restrictor.h"
 #include "dagprinter.h"
+#include "config.h"
 #include "logging.h"
 
 #include <iostream>
 
 using namespace std;
 
+
+/** @name Quick check
+ * see Oepen & Carroll 2000a,b
+ */
+//@{
 // global variables for quick check
 qc_node *fs::_qc_paths_unif = NULL, *fs::_qc_paths_subs = NULL;
 int fs::_qc_len_unif = 0, fs::_qc_len_subs = 0;
 
+/** compute quickcheck paths (unification) */
+bool opt_compute_qc_unif;
+/** compute quickcheck paths (subsumption) */
+bool opt_compute_qc_subs;
+//@}
 
-//options managed by configuration subsystem
-bool opt_compute_qc_unif, opt_compute_qc_subs,
-     opt_print_failure;
+bool fs_init();
+/** print unification failures */
+bool opt_print_failure = fs_init();
+
+bool fs_init() {
+  managed_opt
+    ("opt_compute_qc",
+    "Activate code that collects unification/subsumption failures "
+    "for quick check computation, contains filename to write results to",
+    (const char *) NULL);
+  
+  opt_compute_qc_unif = false;
+  reference_opt("opt_compute_qc_unif",
+                "Activate failure registration for unification",
+                opt_compute_qc_unif);
+  
+  opt_compute_qc_subs = false;
+  reference_opt ("opt_compute_qc_subs",
+                 "Activate failure registration for subsumption",
+                 opt_compute_qc_subs);
+  
+  opt_print_failure = false;
+  reference_opt
+    ("opt_print_failure", 
+     "Log unification/subsumption failures "
+     "(should be replaced by logging or new/different API functionality)",
+     opt_print_failure);
+  return opt_print_failure;
+}
+
 
 /** The type that indicates pruning in a dag restrictor */
 //type_t dag_restrictor::dag_rest_state::DEL_TYPE;

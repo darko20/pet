@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include "Configuration.h"
+#include "config.h"
 
 #if HAVE_LIBLOG4CXX
 #  include <log4cxx/basicconfigurator.h>
@@ -505,7 +505,7 @@ int main(int argc, char *argv[]) {
 #else
 
 #include <iostream>
-#include "Configuration.h"
+#include "config.h"
 
 int main(int argc, char *argv[]) {
   handled_value<int> val(0);

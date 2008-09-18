@@ -41,6 +41,8 @@
 #include "mrs.h"
 #include "vpm.h"
 #include "qc.h"
+#include "config.h"
+#include "options.h" // verbosity and many other things
 
 #ifdef YY
 #include "yy.h"
@@ -70,25 +72,9 @@ const char * version_string = VERSION ;
 const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
-#if HAVE_LIBLOG4CXX
 
-const int logBufferSize = 65536;
-char logBuffer[logBufferSize];
-
-LoggerPtr loggerUncategorized = Logger::getLogger("uncategorized");
-LoggerPtr loggerExpand = Logger::getLogger("expand");
-LoggerPtr loggerFs = Logger::getLogger("fs");
-LoggerPtr loggerGrammar = Logger::getLogger("grammar");
-LoggerPtr loggerHierarchy = Logger::getLogger("hierarchy");
-LoggerPtr loggerLexproc = Logger::getLogger("lexproc");
-LoggerPtr loggerParse = Logger::getLogger("parse");
-LoggerPtr loggerTsdb = Logger::getLogger("tsdb");
-LoggerPtr loggerXml = Logger::getLogger("xml");
-
-const int  defaultPbSize = 65536;
-char defaultPb[defaultPbSize];
-
-#endif // HAVE_LIBLOG4CXX
+#if HAVE_LIBLOG4CPP
+#endif // HAVE_LIBLOG4CPP
 
 // global variables for parsing
 
@@ -265,6 +251,7 @@ void interactive() {
     } /* try */
         
     catch(tError e) {
+      // shouldn't this be fstatus?? it's a "return value"
       fprintf(ferr, "%s\n", e.getMessage().c_str());
       if (verbosity > 0)
         stats.print(fstatus);
@@ -282,8 +269,8 @@ void interactive() {
     id++;
   } /* while */
 
-  if(get_opt_charp("opt_compute_qc")) {
-    ofstream qc(get_opt_charp("opt_compute_qc"));
+  if(! get_opt_string("opt_compute_qc").empty()) {
+    ofstream qc(get_opt_string("opt_compute_qc").c_str());
     compute_qc_paths(qc);
   }
 }
@@ -363,7 +350,7 @@ void process(const char *s) {
   try {
     string base = raw_name(s);
     cheap_settings = new settings(base.c_str(), s, "reading");
-    fprintf(fstatus, "\n");
+    //fprintf(fstatus, "\n");
     LOG(logAppl, INFO, "loading `" << s << "' ");
     Grammar = new tGrammar(s);
 
@@ -541,6 +528,10 @@ void main_init() {
   managed_opt("opt_server",
     "go into server mode, bind to port `n' (default: 4711)",
     0);
+  managed_opt
+    ("opt_interactive_morph",
+     "make cheap only run interactive morphology (only morphological rules, "
+     "without lexicon)", false);
 }
 
 #ifdef __BORLANDC__
@@ -552,49 +543,47 @@ int main(int argc, char* argv[])
   ferr = stderr;
   fstatus = stderr;
   flog = (FILE *)NULL;
-
-  setlocale(LC_ALL, "C" );
-  
-  // initialization of log4cxx
-#if HAVE_LIBLOG4CXX
-  BasicConfigurator::resetConfiguration();
-  PropertyConfigurator::configure(std::string("logging.conf"));
-#endif // HAVE_LIBLOG4CXX
-
-  // Initialize global options
-  main_init();
-  // Initialize options for the input modules
-  tInputModule::init();
-  
+  try { 
+    setlocale(LC_ALL, "C" );
+    
+    // initialization of log4cpp
+#if HAVE_LIBLOG4CPP
+    BasicConfigurator::resetConfiguration();
+    PropertyConfigurator::configure(std::string("logging.conf"));
+#endif // HAVE_LIBLOG4CPP
+    
+    // Initialize global options
+    main_init();
+    // Initialize options for the input modules
+    tInputModule::init();
+    
 #ifndef __BORLANDC__
-  if(!parse_options(argc, argv)) {
-    usage(ferr);
-    exit(1);
-  }
-#else
-  if(argc > 1)
-    grammar_file_name = argv[1];
-  else
-    grammar_file_name = "english";
-#endif
-
-#if defined(YY) && defined(SOCKET_INTERFACE)
-  if(get_opt_int("opt_server") != 0) {
-    if(cheap_server_initialize(get_opt_int("opt_server")))
+    if(!parse_options(argc, argv)) {
+      usage(ferr);
       exit(1);
-  }
+    }
+#else
+    grammar_file_name = "english"
+    if(argc > 1)
+      grammar_file_name = argv[1];
 #endif
-
-  string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
-  if(grammar_name.empty()) {
-    LOG(logAppl, FATAL, "Grammar not found");
-    exit(1);
+    
+#if defined(YY) && defined(SOCKET_INTERFACE)
+    if(get_opt_int("opt_server") != 0) {
+      if(cheap_server_initialize(get_opt_int("opt_server")))
+        exit(1);
+    }
+#endif
+    
+    string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
+    if(grammar_name.empty()) {
+      throw tError("Grammar not found");
+    }
+    
+    process(grammar_name.c_str()); 
   }
-
-  try { process(grammar_name.c_str()); }
-
   catch(tError &e) {
-    LOG(logAppl, FATAL, e.getMessage());
+    LOG(logAppl, FATAL, e.getMessage() << endl);
     exit(1);
   }
 

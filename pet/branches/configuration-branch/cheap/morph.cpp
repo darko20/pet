@@ -24,6 +24,7 @@
 
 #include "cheap.h"
 #include "grammar-dump.h"
+#include "settings.h"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/transitive_closure.hpp>

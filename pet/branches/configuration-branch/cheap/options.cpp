@@ -38,7 +38,6 @@ char *opt_mrs;
 int opt_pg;
 int opt_tsdb;
 int opt_server;
-bool opt_interactive_morph;
 tokenizer_id opt_tok;
 int opt_comment_passthrough;
 bool opt_default_les;
@@ -69,16 +68,7 @@ std::string opt_tsdb_dir;
 bool opt_online_morph;
 bool opt_lattice;
 unsigned int opt_gplevel;
-std::string opt_jxchg_dir;
-bool opt_linebreaks;
 #endif
-#ifdef YY
-bool opt_yy;
-#endif
-
-
-//defined in fs.cpp
-extern bool opt_compute_qc_unif, opt_compute_qc_subs, opt_print_failure;
 
 int opt_nqc_unif, opt_nqc_subs, verbosity;
 
@@ -193,27 +183,6 @@ void init_options()
 {
   verbosity = 0;
     
-  managed_opt<std::string> ("opt_compute_qc",
-    "Activate code that collects unification/subsumption failures "
-    "for quick check computation, contains filename to write results to", 0);
-  
-  opt_compute_qc_unif = false;
-  reference_opt<bool>("opt_compute_qc_unif",
-     "Activate failure registration for unification",
-     opt_compute_qc_unif);
-  
-  opt_compute_qc_subs = false;
-  reference_opt<bool>
-    ("opt_compute_qc_subs", "Activate failure registration for subsumption",
-     opt_compute_qc_subs);
-  
-  opt_print_failure = false;
-  reference_opt<bool>
-    ("opt_print_failure", 
-     "Log unification/subsumption failures "
-     "(should be replaced by logging or new/different API functionality)",
-     opt_print_failure);
-  
   managed_opt<bool>("opt_derivation",
     "Store derivations in tsdb profile", true);
   
@@ -240,16 +209,17 @@ void init_options()
   // opt_fullform_morph = true;
     
   managed_opt("opt_predict_les", 
-                    "if not zero predict lexical entries for uncovered input",
-                    (int) 0);
+              "if not zero predict lexical entries for uncovered input",
+              (int) 0);
 
   managed_opt("opt_timeout",
-                    "stop processing (parsing & unpacking) after the specified"
-                    " amount of (milli?)seconds",
-                    (int) 0);
+              "stop processing (parsing & unpacking) after the specified"
+              " amount of (milli?)seconds",
+              (int) 0);
 
-  managed_opt<std::string>("opt_mrs",
-    "determines if and which kind of MRS output is generated", NULL );
+  managed_opt("opt_mrs",
+              "determines if and which kind of MRS output is generated",
+              (const char *) NULL);
   
   managed_opt<bool>("opt_partial",
     "in case of parse failure, find a set of chart edges "
@@ -260,9 +230,15 @@ void init_options()
                          "(should be an argument of an API function)", 0);
   
   managed_opt("opt_jxchg_dir",
-                    "the directory to write parse charts in jxchg format to",
-                    ((std::string) ""));
+              "the directory to write parse charts in jxchg format to",
+              std::string());
 
+#ifdef YY
+  managed_opt
+    ("opt_yy", 
+     "old shit that should be thrown out or properly reengineered and renamed.",
+     false);
+#endif
 }
 
 #ifndef __BORLANDC__
@@ -381,25 +357,19 @@ bool parse_options(int argc, char* argv[])
       case OPTION_COMPUTE_QC:
         // TODO: this is maybe the first application for a callback option to
         // handle the three cases
-          if(optarg != NULL)
-            set_opt("opt_compute_qc", strdup(optarg));
-          else
-            set_opt("opt_compute_qc", (const char *) "/tmp/qc.tdl");
+          set_opt("opt_compute_qc",
+                  (optarg != NULL) ? optarg : "/tmp/qc.tdl");
           set_opt("opt_compute_qc_unif", true);
           set_opt("opt_compute_qc_subs", true);
           break;
       case OPTION_COMPUTE_QC_UNIF:
-          if(optarg != NULL)
-              set_opt("opt_compute_qc", strdup(optarg));
-          else
-              set_opt("opt_compute_qc", (const char *) "/tmp/qc.tdl");
+          set_opt("opt_compute_qc",
+                  (optarg != NULL) ? optarg : "/tmp/qc.tdl");
           set_opt("opt_compute_qc_unif", true);
           break;
       case OPTION_COMPUTE_QC_SUBS:
-          if(optarg != NULL)
-              set_opt("opt_compute_qc", strdup(optarg));
-          else
-            set_opt("opt_compute_qc", (const char *) "/tmp/qc.tdl");
+          set_opt("opt_compute_qc",
+                        (optarg != NULL) ? optarg : "/tmp/qc.tdl");
           set_opt("opt_compute_qc_subs", true);
           break;
       case OPTION_PRINT_FAILURE:
@@ -412,7 +382,8 @@ bool parse_options(int argc, char* argv[])
           if(pos != NULL) {
             set_opt("opt_pg", optarg[0]);
           } else {
-            fprintf(ferr,"Invalid argument to -pg, printing only symbols\n");
+            LOG(logAppl, WARN,
+                "Invalid argument to -pg, printing only symbols\n");
           }
         }
         break;
@@ -524,9 +495,9 @@ bool parse_options(int argc, char* argv[])
         break;
       case OPTION_JXCHG_DUMP:
         if (optarg[strlen(optarg) - 1] != '/')
-          set_opt("opt_jxchg_dir", (std::string) optarg + "/");
+          set_opt("opt_jxchg_dir", std::string(optarg) + "/");
         else
-          set_opt("opt_jxchg_dir", optarg);
+          set_opt("opt_jxchg_dir", std::string(optarg));
         break;
       case OPTION_COMMENT_PASSTHROUGH:
           if(optarg != NULL)

@@ -175,18 +175,13 @@ int LConsume(int n)
 
   if(CURR->info)
     {
-      // TODO: is this still necessary ??
-      if(get_opt_bool("opt_linebreaks"))
-        {
-          LOG(root, NOTICE, CURR->info << " `" << CURR->fname << "' ");
-        }
-      else
-        {
-          if(last_info != CURR->info)
-            LOG(root, NOTICE, CURR->info << " `" << CURR->fname << "'... ");
-          else
-            LOG(root, NOTICE, "`" << CURR->fname << "'... ");
-        }
+      {
+        if(last_info != CURR->info)
+          LOG(logApplC, INFO, 
+              CURR->info << " `" << CURR->fname << "'... ");
+        else
+          LOG(logApplC, INFO, "`" << CURR->fname << "'... ");
+      }
 
       last_info = CURR->info;
       CURR->info = NULL;

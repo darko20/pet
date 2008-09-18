@@ -24,7 +24,7 @@
 #include "tsdb++.h"
 #include "item-printer.h"
 #include "hashing.h"
-
+#include "options.h" // for verbosity
 #include <ostream>
 
 using namespace std;

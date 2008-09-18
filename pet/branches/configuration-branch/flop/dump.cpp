@@ -221,7 +221,7 @@ kbwritten(dumper *f)
 }
 
 void logkb(const char *what, dumper *f) {
-  LOG(root, INFO, what << " " << kbwritten(f) << "k");
+  LOG(logApplC, INFO, what << " " << kbwritten(f) << "k");
 }
 
 /** Dump the whole grammar to a binary data file.
@@ -258,15 +258,15 @@ dump_grammar(dumper *f, const char *desc)
 
   toc.start_section(SEC_HIERARCHY);
   dump_hierarchy(f);
-  logkb("hierarchy", f);
+  logkb(", hierarchy", f);
 
   toc.start_section(SEC_FEATTABS);
   dump_tables(f);
-  logkb("feature tables", f);
+  logkb(", feature tables", f);
 
   toc.start_section(SEC_SUPERTYPES);
   dump_supertypes(f);
-  logkb("supertypes", f);
+  logkb(", supertypes", f);
 
   toc.start_section(SEC_FULLFORMS);
   dump_fullforms(f);
@@ -277,12 +277,12 @@ dump_grammar(dumper *f, const char *desc)
   toc.start_section(SEC_IRREGS);
   dump_irregs(f);
 
-  logkb("lexicon", f);
+  logkb(", lexicon", f);
 
   toc.start_section(SEC_CONSTRAINTS);
 
   for(int i = 0; i < types.number(); i++)
     dag_dump(f, types[rleaftype_order[i]]->thedag);
-  logkb("types", f);
+  logkb(", types", f);
 
 }

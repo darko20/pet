@@ -65,7 +65,7 @@ bool compute_appropriateness() {
 
   bool fail = false;
 
-  LOG(root, INFO, "- computing appropriateness");
+  LOG(logAppl, INFO, "- computing appropriateness");
 
   apptype = new int[attributes.number()];
 
@@ -182,7 +182,7 @@ bool apply_appropriateness() {
 
   bool fail = false;
 
-  LOG(root, INFO, "- applying appropriateness constraints for types");
+  LOG(logAppl, INFO, "- applying appropriateness constraints for types");
 
   for(i = 0; i < types.number(); i++)
     {
@@ -359,8 +359,6 @@ bool fully_expand_types(bool full_expansion)
 
   tHierarchy G;
   
-  LOG(root, INFO, "- full type expansion");
-
   bool fail = false;
 
   for(i = 0; i < types.number(); ++i) {
@@ -453,7 +451,7 @@ void compute_maxapp() {
       if(cval && cval != FAIL)
         maxapp[i] = dag_type(cval);
       
-      LOG(root, DEBUG,
+      LOG(logSemantic, DEBUG,
           "feature `" << attributes.name(i)
           << "': value: " << (maxapp[i] > types.number() ? "symbol" : "type")
           << " `" << type_name(maxapp[i]) << "', introduced by `" 
@@ -537,7 +535,7 @@ int unfill_dag_rec(struct dag_node *dag, int root) {
 void unfill_types() {
   int i, n = 0;
 
-  LOG(root, INFO, "- unfilling ");
+  LOG(logAppl, INFO, "- unfilling ");
 
   for(i = 0; i < types.number(); i++) {
     struct dag_node *curr = dag_deref(types[i]->thedag);
@@ -547,7 +545,7 @@ void unfill_types() {
     dag_invalidate_visited();
   }
 
-  LOG(root, INFO, "(" << total_nodes << " total nodes, " << n << " removed)");
+  LOG(logApplC, INFO, "(" << total_nodes << " total nodes, " << n << " removed)");
 }
 /*@}*/
 
@@ -566,7 +564,7 @@ map<int, int> prefixl;
 
 void prefix_down(int t, int l) {
   prefixl[t] = l + nintro[t];
-  LOG(root, DEBUG,
+  LOG(logSemantic, DEBUG,
       "prefix length of `" << types.name(t) << "' = " << prefixl[t]);
 
   if(boost::out_degree(t, hierarchy) != 1)
@@ -608,7 +606,7 @@ void merge_partitions(int t, int p, tPartition &P, int s) {
   if(subtype(P(t), t))
     P.make_rep(t);
   else {
-    LOG(root, DEBUG, "merging " << types.name(t) << " into "
+    LOG(logSemantic, DEBUG, "merging " << types.name(t) << " into "
         << types.name(P(t)) << " partition (from " << types.name(s) << ")");
   }
 
@@ -629,7 +627,7 @@ void bottom_up_partitions() {
   assert(types.number() == (int) boost::num_vertices(hierarchy));
   tPartition part(types.number());
 
-  LOG(root, INFO, "- partitioning hierarchy ");
+  LOG(logAppl, INFO, "- partitioning hierarchy ");
 
   merge_top_down(0, part(0), part);
 
@@ -644,7 +642,7 @@ void bottom_up_partitions() {
   for(int i = 0; i < types.number(); i++)
     if(!reached[i]) {
         list_int *feats = 0;
-        LOG(root, DEBUG, 
+        LOG(logSemantic, DEBUG, 
             "partition " << nfeatsets << " (`" << types.name(part(i)) << "'):");
 
         for(int j = 0; j < types.number(); j++)
@@ -652,7 +650,7 @@ void bottom_up_partitions() {
             {
               featset[j] = nfeatsets;
               reached[j] = true;
-              LOG(root, DEBUG, "  " << types.name(j) << "");
+              LOG(logSemantic, DEBUG, "  " << types.name(j) << "");
                 
               list_int *l = theconf[featconf[j]];
               while(l)
@@ -662,7 +660,7 @@ void bottom_up_partitions() {
                 }
             }
 
-        LOG(root, DEBUG, "features (" << length(feats) << "):"
+        LOG(logSemantic, DEBUG, "features (" << length(feats) << "):"
             << attrlist2string(feats, " "));
 
         theset[nfeatsets] = feats;
@@ -670,7 +668,7 @@ void bottom_up_partitions() {
         nfeatsets++;
       }
 
-  LOG(root, INFO, "(" << nfeatsets << " partitions)");
+  LOG(logApplC, INFO, "(" << nfeatsets << " partitions)");
 }
 
 // featconf and featset computation

@@ -29,6 +29,8 @@
 #include "lexparser.h"
 #include "task.h"
 #include "tsdb++.h"
+#include "config.h"
+#include "options.h" // PACKING_ && verbosity
 
 #include <sstream>
 #include <iostream>
@@ -514,20 +516,16 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
       results = (*tree)->unpack(upedgelimit);
 
       // this has to be changed
-      tCompactDerivationPrinter cdp(cerr, false);
+      //tCompactDerivationPrinter cdp(cerr, false);
       for(list<tItem *>::iterator res = results.begin();
           res != results.end(); ++res) {
         type_t rule;
         if((*res)->root(Grammar, Chart->rightmost(), rule)) {
           readings.push_back(*res);
-          if(verbosity > 2) {
-            cerr << "unpacked[" << nres++ << "] (" << setprecision(1)
-                 << (float) (UnpackTime->convert2ms(UnpackTime->elapsed())
-                             / 1000.0)
-                 << "): ";
-            cdp.print(*res);
-            cerr << endl;
-          }
+          LOG(logParse, NOTICE,
+              "unpacked[" << nres++ << "] (" << setprecision(1)
+              << (float) (UnpackTime->convert2ms(UnpackTime->elapsed())
+                          / 1000.0) << "): " << *res);
         }
       }
     }

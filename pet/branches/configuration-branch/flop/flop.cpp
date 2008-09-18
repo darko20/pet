@@ -85,15 +85,13 @@ void
 mem_checkpoint(const char *where)
 {
     static size_t last = 0;
-    
-    if(verbosity > 1)
-    {
-        //fprintf(stderr, "Memory delta %luk (total %luk) [%s]\n"
-        fprintf(stderr, "Memory delta %dk (total %dk) [%s]\n"
-                , ((size_t) sbrk(0) - last) / 1024
-                , ((size_t) sbrk(0)) / 1024, where);
-    }
-    last = (size_t) sbrk(0);
+
+    size_t current = (size_t) sbrk(0);
+    LOG(logAppl, DEBUG, 
+        "Memory delta " << (current - last) / 1024 << "k (total "
+        << current / 1024 << "k) [" << where << "]");
+
+    last = current;
 }
 
 void
@@ -108,8 +106,8 @@ check_undefined_types()
           if(loc == 0)
             loc = new_location("unknown", 0, 0);
 
-          fprintf(ferr,"%s:%d: warning: type `%s' has no definition",
-                  loc->fname, loc->linenr, types.name(i).c_str());
+          LOG(logSyntax, WARN, loc->fname << ":" << loc->linenr 
+              << ": warning: type `" << types.name(i) << "' has no definition");
         }
     }
 }
@@ -158,7 +156,7 @@ void process_multi_instances()
   for(i = 0; i < n; i++)
     if((t = types[i])->tdl_instance && length(t->parents) > 1)
       {
-        LOG(root, DEBUG, "TDL instance `" << types.name(i) 
+        LOG(logSemantic, DEBUG, "TDL instance `" << types.name(i) 
             << "' has multiple parents: " << typelist2string(t->parents));
 
         if(ptype[t->parents] == 0)
@@ -173,7 +171,8 @@ void process_multi_instances()
 
             ptype[t->parents] = p->id;
 
-            LOG(root, INFO, "Synthesizing new parent type `" << p->id << "'"); 
+            LOG(logSemantic, INFO,
+                "Synthesizing new parent type `" << p->id << "'"); 
           }
 
         undo_subtype_constraints(t->id);
@@ -279,38 +278,34 @@ void demote_instances()
 
 void process_types()
 {
-  LOG(root, INFO, "- building dag representation");
+  LOG(logAppl, INFO, "- building dag representation");
   unify_wellformed = false;
   dagify_symtabs();
   dagify_types();
   reorder_leaftypes();
 
-  if(verbosity > 9)
+  if(LOG_ENABLED(logSemantic, DEBUG))
     log_types("after creation");
 
   if(!compute_appropriateness())
     {
-      LOG_FATAL(loggerUncategorized,
-          "non maximal introduction of features");
-      exit(1);
+      throw tError("non maximal introduction of features");
     }
   
   if(!apply_appropriateness())
     {
-      LOG_FATAL(loggerUncategorized,
-                "non well-formed feature structures");
-      exit(1);
+      throw tError("non well-formed feature structures");
     }
 
-  fprintf(fstatus, "- delta");
+  LOG(logAppl, INFO, "- delta");
   if(!delta_expand_types())
     exit(1);
 
-  fprintf(fstatus, " / full");
+  LOG(logApplC, INFO, " / full");
   if(!fully_expand_types(get_opt_bool("opt_full_expansion")))
     exit(1);
 
-  fprintf(fstatus, " expansion for types\n");
+  LOG(logApplC, INFO, " expansion for types");
   compute_maxapp();
   
   if(get_opt_bool("opt_unfill"))
@@ -318,7 +313,7 @@ void process_types()
 
   demote_instances();
 
-  if(verbosity > 9)
+  if(LOG_ENABLED(logSemantic, DEBUG))
     log_types("before dumping");
 
   compute_feat_sets(get_opt_bool("opt_minimal"));
@@ -403,8 +398,8 @@ char *parse_version() {
          && flop_settings->member("version-string", LA(0)->text)) {
         consume(1);
         if(LA(0)->tag != T_STRING) {
-          fprintf(ferr, "%s:%d: warning: string expected for version",
-                  LA(0)->loc->fname, LA(0)->loc->linenr);
+          LOG(logSyntax, WARN, LA(0)->loc->fname << ":" <<  LA(0)->loc->linenr
+              << ": warning: string expected for version");
         }
         else {
           version = LA(0)->text; LA(0)->text = 0;
@@ -446,7 +441,8 @@ int process(char *ofname) {
   string fname = find_file(ofname, TDL_EXT);
   
   if(fname.empty()) {
-    fprintf(ferr, "warning: file `%s' not found - skipping...", ofname);
+    LOG(logSyntax, WARN,
+        "warning: file `" << ofname << "' not found - skipping...");
     return FILE_NOT_FOUND ;
   }
 
@@ -454,11 +450,6 @@ int process(char *ofname) {
   BI_TOP = new_bi_type("*top*");
 
   flop_settings = new settings("flop", fname.c_str());
-
-  managed_opt("opt_linebreaks", "", (bool) false);
-  if(flop_settings->member("output-style", "stefan")) {
-    set_opt("opt_linebreaks", true);
-  }
 
   grammar_version = parse_version();
   if(grammar_version == 0) grammar_version = "unknown";
@@ -474,7 +465,7 @@ int process(char *ofname) {
     initialize_specials(flop_settings);
     initialize_status();
 
-    LOG(root, INFO, endl << "converting `" << fname << "' (" << grammar_version 
+    LOG(logAppl, INFO, "converting `" << fname << "' (" << grammar_version 
         << ") into `" << outfname << "' ...");
       
     if((set = flop_settings->lookup("postload-files")) != 0)
@@ -494,7 +485,6 @@ int process(char *ofname) {
     mem_checkpoint("before parsing TDL files");
 
     tdl_start(1);
-    fprintf(fstatus, "\n");
 
     mem_checkpoint("after parsing TDL files");
         
@@ -517,16 +507,16 @@ int process(char *ofname) {
     if(!get_opt_bool("opt_pre"))
       check_undefined_types();
 
-    LOG(root, INFO,
-        "finished parsing - " << syntax_errors << " syntax errors, " 
-        << total_lexed_lines << "%d lines in " << std::setprecision(3)
+    LOG(logAppl, INFO, std::endl << "finished parsing - " 
+        << syntax_errors << " syntax errors, "
+        << total_lexed_lines << " lines in " << std::setprecision(3)
         << (clock() - t_start) / (float) CLOCKS_PER_SEC << " s");
 
     if (syntax_errors > 0) res = SYNTAX_ERRORS;
 
     mem_checkpoint("before preprocessing types");
 
-    LOG(root, INFO,
+    LOG(logAppl, INFO,
         "processing type constraints (" << types.number() << " types):");
       
     t_start = clock();
@@ -550,10 +540,10 @@ int process(char *ofname) {
       write_pre(outf);
     } else {
       dumper dmp(outf, true);
-      LOG(root, INFO, "dumping grammar starts");
+      LOG(logAppl, INFO, "dumping grammar (");
       dump_grammar(&dmp, grammar_version);
-      LOG(root, INFO, "dumping grammar finished");
-      LOG(root, DEBUG, dag_dump_grand_total_nodes << "[" 
+      LOG(logApplC, INFO, ")");
+      LOG(logAppl, DEBUG, dag_dump_grand_total_nodes << "[" 
           << dag_dump_grand_total_atomic << "]/"
           << dag_dump_grand_total_arcs << " (" << std::setprecision(2)
           << double(dag_dump_grand_total_arcs)/dag_dump_grand_total_atomic
@@ -562,27 +552,26 @@ int process(char *ofname) {
       
     fclose(outf);
     
-    LOG(root, INFO, "finished conversion - output generated in " 
+    LOG(logAppl, INFO, "finished conversion - output generated in " 
         << std::setprecision(3) 
-        << (clock() - t_start) / (float) CLOCKS_PER_SEC << " s");
+        << (clock() - t_start) / (float) CLOCKS_PER_SEC << " s" << std::endl);
 
     if(get_opt_int("opt_cmi") > 0) {
       string moifile = output_name(fname, TDL_EXT, ".moi");
       FILE *moif = fopen(moifile.c_str(), "wb");
-      LOG(root, INFO,
+      LOG(logAppl, INFO,
           "Extracting morphological information into `" << moifile << "'...");
       print_morph_info(moif);
       if(get_opt_int("opt_cmi") > 1) {
-        fprintf(fstatus, " type hierarchy...");
+        LOG(logAppl, INFO, " type hierarchy...");
         fprintf(moif, "\n");
         print_hierarchy(moif);
       }
       fclose(moif);
-      fprintf(fstatus, "\n");
     }
   }
   else {
-    LOG(root, WARN, "couldn't open output file `" << outfname << "' for `"
+    LOG(logAppl, WARN, "couldn't open output file `" << outfname << "' for `"
         << fname << "' - skipping...");
     res = FILE_NOT_FOUND;
   }
@@ -623,7 +612,7 @@ void setup_io()
             }
           if((val & O_ACCMODE) == O_RDONLY)
             {
-              LOG_FATAL(loggerUncategorized, "setup_io(): fd errors_to is read only");
+              perror("setup_io(): fd errors_to is read only");
               exit(1);
             }
           ferr = fdopen(errors_to, "w");
@@ -664,22 +653,19 @@ int main(int argc, char* argv[])
   try { retval = process(grammar_file_name); }
   catch(tError &e)
     {
-      LOG_FATAL(loggerUncategorized,
-                "%s", e.getMessage().c_str());
+      LOG(logAppl, FATAL, e.getMessage());
       cleanup(); exit(1);
     }
 
   catch(bad_alloc)
     {
-      LOG_FATAL(loggerUncategorized,
-                "out of memory");
+      LOG(logAppl, FATAL, "out of memory");
       cleanup(); exit(1);
     }
 
   catch(...)
     {
-      LOG_FATAL(loggerUncategorized,
-                "unknown exception");
+      LOG(logAppl, FATAL, "unknown exception");
       cleanup(); exit(1);
     }
   

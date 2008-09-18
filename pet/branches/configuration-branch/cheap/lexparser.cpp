@@ -26,6 +26,9 @@
 #include "item-printer.h"
 #include "cheap.h"
 #include "hashing.h"
+#include "sm.h"
+#include "settings.h"
+#include "config.h"
 
 #include <iostream>
 
@@ -186,8 +189,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
     //fprintf(ferr, "combine() succeeded in creating valid fs\n");
     add(new tLexItem(stem, i_item, newfs, infl_rules));
   }
-  else if(verbosity > 4)
-    fprintf(ferr, "ERROR: combine() failed in creating valid fs\n");
+  else LOG(logParse, DEBUG, "combine() failed in creating valid fs!");
 }
 
 

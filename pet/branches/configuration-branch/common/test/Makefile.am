@@ -15,7 +15,7 @@ LIBS += @CPPUNIT_LIBS@
 check_PROGRAMS = ConfigurationTest loggingTest
 
 ConfigurationTest_SOURCES = ConfigurationTest.cpp
-nodist_ConfigurationTest_SOURCES = $(top_srcdir)/common/Configuration.cpp
+nodist_ConfigurationTest_SOURCES = $(top_srcdir)/common/config.cpp
 
 loggingTest_SOURCES = loggingTest.cpp
 nodist_loggingTest_SOURCES = $(top_srcdir)/common/logging.cpp

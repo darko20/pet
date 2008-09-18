@@ -82,7 +82,7 @@ public:
 /******************************************************************************
  * Implementation and internal classes of Config
  *****************************************************************************/
-#include "ConfigurationInternal.h"
+#include "config-inner.h"
 
 /******************************************************************************
  * Interface functions of Config

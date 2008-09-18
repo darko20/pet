@@ -67,7 +67,8 @@ string get_string(string &line, int &pos, istream &I)
     }
   else
     {
-      fprintf(ferr, "error: ill formed morph entry `%s'...", line.c_str());
+      LOG(logSyntax, ERROR, "error: ill formed morph entry `" 
+          << line << "'...");
       I.clear(ios::badbit);
       return string();
     }
@@ -87,7 +88,8 @@ int get_int(string &line, int &pos, istream &I)
     }
   else
     {
-      fprintf(ferr, "error: ill formed morph entry `%s'...", line.c_str());
+      LOG(logSyntax, ERROR, "error: ill formed morph entry `" 
+          << line << "'...");
       I.clear(ios::badbit);
       return -1;
     }
@@ -168,15 +170,14 @@ void read_morph(string fname)
 
   if(!f)
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "file `%s' not found. skipping...", fname.c_str());
+      LOG(logAppl, WARN, "file `" << fname << "' not found. skipping...");
       return;
     }
 
   if(flop_settings->lookup("affixes-are-instances"))
     opt_inst_affixes = true;
 
-  LOG(root, INFO, "reading full form entries from `" << fname << "': ");
+  LOG(logAppl, INFO, "reading full form entries from `" << fname << "': ");
 
   while(!f.eof())
   {
@@ -187,17 +188,14 @@ void read_morph(string fname)
           linenr++;
           e.setdef(fname, linenr);
           fullforms.push_front(e);
-          if(verbosity > 4)
-          {
-              cerr << e << endl;
-          }
+          LOG(logAppl, DEBUG, e);
           
       }
       else if(f.bad())
           f.clear();
   }
   
-  LOG(root, INFO, fullforms.size() << " entries.");
+  LOG(logApplC, INFO, fullforms.size() << " entries.");
 }
 
 bool parse_irreg(string line)

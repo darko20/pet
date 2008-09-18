@@ -22,6 +22,7 @@
 #include "flop.h"
 #include "utility.h"
 #include "logging.h"
+#include "errors.h"
 
 int save_lines = 1;
 
@@ -209,9 +210,7 @@ int print_exp_list(FILE *f, int level, struct tdl_list *L, struct coref_table *c
       fprintf(f, "[ LIST "), ind = 7, complex = 1;
       if(dl_cor)
         {
-          LOG_FATAL(loggerUncategorized,
-                    "nested diff_list - enhance dl_cor mechanism...");
-          exit(1);
+          throw tError("nested diff_list - enhance dl_cor mechanism...");
         }
     }
 
@@ -378,13 +377,11 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
           break;
         case TEMPL_PAR:
         case TEMPL_CALL:
-          LOG_FATAL(loggerUncategorized,
-                    "internal error: unresolved template call/parameter");
-          exit(1);
+          throw tError("internal error: unresolved template call/parameter");
           break;
         default:
-          LOG(loggerUncategorized, Level::INFO,
-              "unknown type of term `%d'", C -> term[i] -> tag); 
+          LOG(logSyntax, WARN,
+              "unknown type of term `" << C -> term[i] -> tag << "'"); 
           break;
         }
     }

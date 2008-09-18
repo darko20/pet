@@ -21,6 +21,7 @@
 #include "pet-config.h"
 #include "input-modules.h"
 #include "settings.h"
+#include "config.h"
 
 /** @name Tokenization options */
 //@{
