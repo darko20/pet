@@ -41,8 +41,8 @@
 
 using namespace std;
 
-//#define DEBUG
-//#define DEBUGPOS
+//#define PETDEBUG
+//#define PETDEBUGPOS
 
 // 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting
 // level in MEM-based parse selection
@@ -381,7 +381,7 @@ void tLexItem::init() {
     characterize(_fs, _startposition, _endposition);
   }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
   fprintf(ferr, "new lexical item (`%s'):", printname());
   print(ferr);
   fprintf(ferr, "\n");
@@ -470,7 +470,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 
   _spanningonly = R->spanningonly();
   
-#ifdef DEBUG
+#ifdef PETDEBUG
   fprintf(stderr, "A %d < %d\n", pasv->id(), id());
 #endif
   pasv->parents.push_back(this);
@@ -494,7 +494,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     R->actives++;
   }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
   fprintf(ferr, "new rule tItem (`%s' + %d@%d):",
           R->printname(), pasv->id(), R->nextarg());
   print(ferr);
@@ -525,7 +525,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
       _daughters.push_back(pasv);
     }
     
-#ifdef DEBUG
+#ifdef PETDEBUG
     fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
 #endif
     pasv->parents.push_back(this);
@@ -555,7 +555,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
       active->rule()->actives++;
     }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
     fprintf(ferr, "new combined item (%d + %d@%d):",
             active->id(), pasv->id(), active->nextarg());
     print(ferr);
@@ -715,7 +715,7 @@ void tPhrasalItem::recreate_fs()
     {
         throw tError("won't rebuild passive item");
     }
-#ifdef DEBUG
+#ifdef PETDEBUG
     {
         temporary_generation t(_fs.temp());
         fprintf(ferr, "recreated fs of ");

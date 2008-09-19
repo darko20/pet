@@ -5,9 +5,24 @@
 
 #include "logging.h"
 
-#if HAVE_LIBLOG4CPP
+#if HAVE_LOG4CPP
+Category &root = log4cpp::Category::getRoot(),
+  &logAppl = log4cpp::Category::getInstance(std::string("logAppl")),
+  &logApplC = log4cpp::Category::getInstance(std::string("logApplC")),
+  &logGenerics = log4cpp::Category::getInstance(std::string("logGenerics")),
+  &logGrammar = log4cpp::Category::getInstance(std::string("logGrammar")),
+  &logLexproc = log4cpp::Category::getInstance(std::string("logLexproc")),
+  &logMorph = log4cpp::Category::getInstance(std::string("logMorph")),
+  &logPack = log4cpp::Category::getInstance(std::string("logPack")),
+  &logParse = log4cpp::Category::getInstance(std::string("logParse")),
+  &logSM = log4cpp::Category::getInstance(std::string("logSM")),
+  &logSemantic = log4cpp::Category::getInstance(std::string("logSemantic")),
+  &logSyntax = log4cpp::Category::getInstance(std::string("logSyntax")),
+  &logTsdb = log4cpp::Category::getInstance(std::string("logTsdb")),
+  &logUnpack = log4cpp::Category::getInstance(std::string("logUnpack")),
+  &logXML = log4cpp::Category::getInstance(std::string("logXML"));
 
-#else // HAVE_LIBLOG4CPP
+#else // HAVE_LOG4CPP
 #include <iostream>
 #include <iomanip>
 
@@ -35,7 +50,7 @@ std::string prio_names[] = {
 };
 
 std::ostream &
-Logger::print(const Category &cat, PriorityLevel prio) {
+Logger::print(const Category &cat, Priority prio) {
   // would be possible to create a new ostringstream here and decide in endl
   // where to print it (more flexibility in the output)
   switch (cat._printer) {

@@ -30,7 +30,7 @@
 using namespace std;
 using namespace HASH_SPACE;
 
-//#define DEBUG
+//#define PETDEBUG
 
 chart::chart(int len, auto_ptr<item_owner> owner)
     : _Chart(), _trees(), _readings(), _pedges(0),
@@ -51,7 +51,7 @@ chart::~chart()
 
 void chart::add(tItem *it)
 {
-#ifdef DEBUG
+#ifdef PETDEBUG
   it->print(DEBUGLOGGER); DEBUGLOGGER << endl;
 #endif
 
@@ -89,7 +89,7 @@ void chart::remove(hash_set<tItem *> &to_delete)
                  , _Chart.end());
     for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
           ; hit != to_delete.end(); hit++) {
-#ifdef DEBUG
+#ifdef PETDEBUG
       it->print(DEBUGLOGGER); DEBUGLOGGER << "removed " << endl;
 #endif
       

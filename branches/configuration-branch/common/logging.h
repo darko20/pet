@@ -8,13 +8,39 @@
 
 #include "pet-config.h"
 
-#if HAVE_LIBLOG4CPP
-#else // HAVE_LIBLOG4CXX
-#include <ostream>
+#if HAVE_LOG4CPP
+#include <log4cpp/Category.hh>
+#include "log4cpp/Priority.hh"
+using log4cpp::Category;
 
-extern class Category 
-  logAppl, logApplC, logGenerics, logGrammar, logLexproc, logMorph, logPack,
-  logParse, logSM, logSemantic, logSyntax, logTsdb, logUnpack, logXML, root;
+#define EMERG  log4cpp::Priority::EMERG
+#define FATAL  log4cpp::Priority::FATAL
+#define ALERT  log4cpp::Priority::ALERT
+#define CRIT   log4cpp::Priority::CRIT
+#define ERROR  log4cpp::Priority::ERROR
+#define WARN   log4cpp::Priority::WARN
+#define NOTICE log4cpp::Priority::NOTICE
+#define INFO   log4cpp::Priority::INFO
+#define DEBUG  log4cpp::Priority::DEBUG
+#define NOTSET log4cpp::Priority::NOTSET
+
+inline std::ostream &get_stringstream() { return *(new std::ostringstream()); }
+
+#define LOG_ENABLED(__C, __P) (__C.isPriorityEnabled(__P))
+#define LOG(__C, __P, __M) { if LOG_ENABLED(__C, __P) { \
+        std::ostringstream ___o; ___o << __M << std::endl; \
+        __C << __P << ___o.str(); } }
+
+//inline std::ostringstream &operator<<(std::ostringstream &os, const std::string &s){
+//  os << s.c_str(); return os;
+//}
+
+extern class log4cpp::Category &logAppl, &logApplC, &logGenerics, &logGrammar,
+  &logLexproc, &logMorph, &logPack, &logParse, &logSM, &logSemantic,
+  &logSyntax, &logTsdb, &logUnpack, &logXML, &root;
+
+#else // HAVE_LOG4CPP
+#include <ostream>
 
 typedef enum {EMERG  = 0, 
               FATAL  = 0,
@@ -26,17 +52,17 @@ typedef enum {EMERG  = 0,
               INFO   = 600,
               DEBUG  = 700,
               NOTSET = 800
-} PriorityLevel;
+} Priority;
 
 class Category {
-  PriorityLevel _prio;
+  Priority _prio;
   int _printer;
 public:
-  Category(PriorityLevel prio, int printer) {
+  Category(Priority prio, int printer) {
     set(prio, printer);
   }
 
-  void set(PriorityLevel prio, int printer){
+  void set(Priority prio, int printer){
     _prio = prio != NOTSET ? prio : root._prio;
     _printer = (printer != 0) ? printer : root._printer;
   }
@@ -48,19 +74,19 @@ class Logger {
 public:
   class loggerendl {
     const Category *_cat;
-    PriorityLevel _prio;
+    Priority _prio;
   public:
-    const loggerendl &set(const Category &cat, PriorityLevel prio) {
+    const loggerendl &set(const Category &cat, Priority prio) {
       _cat = &cat; _prio = prio; return *this;
     }
     void print(std::ostream &out) const;
   };
-  inline static bool enabled(const Category &cat, PriorityLevel prio) {
+  inline static bool enabled(const Category &cat, Priority prio) {
     return cat._prio >= prio;
   }
-  static std::ostream &print(const Category &cat, PriorityLevel prio);
+  static std::ostream &print(const Category &cat, Priority prio);
   inline static const Logger::loggerendl &
-  endl(const Category &cat, PriorityLevel prio) { return _e.set(cat,prio); }
+  endl(const Category &cat, Priority prio) { return _e.set(cat,prio); }
 private:
   static Logger::loggerendl _e;
 };
@@ -78,5 +104,9 @@ inline std::ostream &operator<<(std::ostream &o, const Logger::loggerendl &e) {
   (LOG_ENABLED(__C, __P)                                                \
    ? (Logger::print(__C, __P) << __M << Logger::endl(__C, __P), 1) : 0)
 
+extern class log4cpp::Category
+  logAppl, logApplC, logGenerics, logGrammar, logLexproc, logMorph, logPack,
+  logParse, logSM, logSemantic, logSyntax, logTsdb, logUnpack, logXML, root;
 #endif // HAVE_LIBLOG4CPP
+
 #endif // _LOGGING_H

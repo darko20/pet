@@ -69,7 +69,7 @@ preprocess(UnicodeString u_inputstring, const char *format) {
               );
   char *result = ecl_decode_string(resobj);
   
-#ifdef DEBUG 
+#ifdef PETDEBUG 
   if (result) {
     cout << "FSR result: <" << result << ">" << resobj->string.fillp << endl << endl;
   } else {

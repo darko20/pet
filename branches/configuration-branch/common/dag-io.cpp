@@ -71,7 +71,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
       indent += fprintf(f, "#%d:", coref);
     }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
   fprintf(f, "%s (%x)", type_name(dag->type), (int) dag);
 #else
   fprintf(f, "%s", type_name(dag->type));

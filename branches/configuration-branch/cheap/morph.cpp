@@ -1005,7 +1005,7 @@ void debug_morph(list<tMorphAnalysis> results) {
   cdeb << "tMorphAnalyzer working on:" << endl;
   print_analyses(cdeb, results);
   cdeb << "--------------------------" << endl ;
-  LOG(logMorph, DEBUG, cdeb.str());
+  LOG(logMorph, DEBUG, (cdeb.str()));
 }
 
 
