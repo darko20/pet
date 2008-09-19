@@ -729,7 +729,7 @@ void compute_feat_sets(bool minimal) {
 
     nfeat[i] = nf;
 
-    if(verbosity > 7 && nintro[i] > 0) {
+    if(LOG_ENABLED(logSemantic, DEBUG) && nintro[i] > 0) {
 #if 0
       int nsub = DFS(hierarchy, i, reached).length();
 
@@ -755,7 +755,8 @@ void compute_feat_sets(bool minimal) {
     }
   }
 
-  for(i = 0; verbosity > 7 && i < feature_conf_id; i++) {
+  if (LOG_ENABLED(logSemantic, DEBUG))
+  for(i = 0; i < feature_conf_id; i++) {
     fprintf(fstatus, "feature configuration %d:", i);
 
     list_int *l = theconf[i];

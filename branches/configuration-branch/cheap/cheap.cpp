@@ -64,17 +64,10 @@
 
 #include "logging.h"
 
-#ifdef HAVE_LIBLOG4CXX
-using namespace log4cxx;
-#endif // HAVE_LIBLOG4CXX
-
 const char * version_string = VERSION ;
 const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
-
-#if HAVE_LIBLOG4CPP
-#endif // HAVE_LIBLOG4CPP
 
 // global variables for parsing
 
@@ -158,14 +151,15 @@ void interactive() {
       if(verbosity > 0) stats.print(fstatus);
 
       tsdb_dump.finish(Chart, surface);
-
+      dump_jxchg(surface, Chart);
+      
       //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
       //tFegramedPrinter chp("/tmp/fed-");
       //Chart->print(cerr, &chp, true, true);
 
-      //dump_jxchg(surface, Chart);
-
-      if(verbosity > 1 || get_opt_charp("opt_mrs")) {
+      const char * opt_mrs = get_opt_string("opt_mrs").c_str();
+      if (strlen(opt_mrs) == 0) opt_mrs = NULL;
+      if(verbosity > 1 || opt_mrs) {
         int nres = 0;
 
         item_list results(Chart->readings().begin()
@@ -191,24 +185,20 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(get_opt_charp("opt_mrs") &&
-             (strcmp(get_opt_charp("opt_mrs"), "new") != 0)) {
+          if(opt_mrs && (strcmp(opt_mrs, "new") != 0)) {
             string mrs;
-            mrs = ecl_cpp_extract_mrs(it->get_fs().dag(),
-                                      get_opt_charp("opt_mrs"));
+            mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
-              if (strcmp(get_opt_charp("opt_mrs"), "xml") == 0)
-                fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
-                        "</rmrs>\n");
-              else
-                fprintf(fstatus, "\nNo MRS\n");
+              fprintf(fstatus, "\n%s\n" 
+                      ((strcmp(opt_mrs, "rmrx") == 0)
+                       ? "<rmrs cfrom='-2' cto='-2'>\n</rmrs>"
+                       : "No MRS"));
             } else {
               fprintf(fstatus, "%s\n", mrs.c_str());
             }
           }
 #endif
-          if (get_opt_charp("opt_mrs")
-              && (strcmp(get_opt_charp("opt_mrs"), "new") == 0)) {
+          if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
             mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
             if (mrs->valid()) {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true); 
@@ -228,15 +218,13 @@ void interactive() {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (strcmp(get_opt_charp("opt_mrs"), "rmrx") == 0);
+          bool rmrs_xml = (opt_mrs != NULL && strcmp(opt_mrs, "rmrx") == 0);
           if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
           for(item_iter it = partials.begin(); it != partials.end(); ++it) {
-            if(get_opt_charp("opt_mrs")) {
+            if(opt_mrs) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
-                string mrs;
-                mrs = ecl_cpp_extract_mrs(item->get_fs().dag(),
-                                          get_opt_charp("opt_mrs"));
+                string mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs);
                 if (! mrs.empty()) {
                   fprintf(fstatus, "%s\n", mrs.c_str());
                 }
@@ -257,9 +245,11 @@ void interactive() {
         stats.print(fstatus);
       stats.readings = -1;
 
-      string surface = Chart->get_surface_string();
-      dump_jxchg(surface, Chart);
-      tsdb_dump.error(Chart, surface, e);
+      if (Chart != NULL) {
+        string surface = Chart->get_surface_string();
+        dump_jxchg(surface, Chart);
+        tsdb_dump.error(Chart, surface, e);
+      }
     }
 
     fflush(fstatus);
@@ -350,7 +340,6 @@ void process(const char *s) {
   try {
     string base = raw_name(s);
     cheap_settings = new settings(base.c_str(), s, "reading");
-    //fprintf(fstatus, "\n");
     LOG(logAppl, INFO, "loading `" << s << "' ");
     Grammar = new tGrammar(s);
 
@@ -371,7 +360,6 @@ void process(const char *s) {
     tFullformMorphology *ff = tFullformMorphology::create(dmp);
     if (ff != NULL) {
       Lexparser.register_morphology(ff);
-      // ff->print(fstatus);
     }
     if(get_opt_bool("opt_online_morph")) {
       tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
@@ -484,7 +472,7 @@ void process(const char *s) {
 #endif // HAVE_ECL
 
   LOG(logAppl, INFO, nstatictypes << " types in " << std::setprecision(2) 
-      << t_start.convert2ms(t_start.elapsed()) / 1000. << " s");
+      << t_start.convert2ms(t_start.elapsed()) / 1000. << " s" << endl);
   fflush(fstatus);
 
   if(get_opt_char("opt_pg") != '\0') {
@@ -528,10 +516,17 @@ void main_init() {
   managed_opt("opt_server",
     "go into server mode, bind to port `n' (default: 4711)",
     0);
-  managed_opt
-    ("opt_interactive_morph",
+  managed_opt("opt_interactive_morph",
      "make cheap only run interactive morphology (only morphological rules, "
      "without lexicon)", false);
+  managed_opt("opt_jxchg_dir",
+              "write parse charts in jxchg format to the given directory",
+              std::string());
+  managed_opt("opt_mrs",
+              "determines if and which kind of MRS output is generated. "
+              "(modes: C implementation, LKB bindings via ECL; default: no)",
+              std::string());
+  
 }
 
 #ifdef __BORLANDC__

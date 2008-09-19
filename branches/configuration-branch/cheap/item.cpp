@@ -32,7 +32,7 @@
 #include "utility.h"
 #include "dagprinter.h"
 #include "settings.h"
-#include "options.h" // opt_nqc_** && verbosity
+#include "options.h" // opt_nqc_**
 #include "config.h"
 
 #include <sstream>
@@ -116,7 +116,7 @@ void init_characterization() {
     cfrom.set(cfrom_path);
     cto.set(cto_path);
     charz_init = true;
-    charz_use = (get_opt_charp("opt_mrs") != 0);
+    charz_use = ! get_opt_string("opt_mrs").empty();
   }
   char *carg_path_string = cheap_settings->value("mrs-carg-path");
   if (NULL != carg_path_string)
@@ -779,14 +779,14 @@ tItem::unpack(int upedgelimit)
     list<tItem *> res;
 
     unpacking_level++;
-    if(verbosity > 3)
-        fprintf(stderr, "%*s> unpack [%d]\n", unpacking_level * 2, "", id());
+    LOG(logUnpack, DEBUG, std::setw(unpacking_level * 2) << ""
+        << "> unpack [" << id() << "]" );
 
     // Ignore frozen items.
     if(frozen())
     {
-        if(verbosity > 3)
-            fprintf(stderr, "%*s< unpack [%d] ( )\n", unpacking_level * 2, "", id());
+        LOG(logUnpack, DEBUG, std::setw(unpacking_level * 2) << ""
+            << "> unpack [" << id() << "] ( )" );
         unpacking_level--;
         return res;
     }
@@ -823,12 +823,15 @@ tItem::unpack(int upedgelimit)
     list<tItem *> tmp = unpack1(upedgelimit);
     res.splice(res.begin(), tmp);
 
-    if(verbosity > 3)
+    if(LOG_ENABLED(logUnpack, DEBUG))
     {
-        fprintf(stderr, "%*s< unpack [%d] ( ", unpacking_level * 2, "", id());
+        ostringstream updeb;
+        updeb << std::setw(unpacking_level * 2) << ""
+              << "> unpack [" << id() << "] (";
         for(item_citer i = res.begin(); i != res.end(); ++i)
-            fprintf(stderr, "%d ", (*i)->id());
-        fprintf(stderr, ")\n");
+          updeb << (*i)->id() << " ";
+        updeb << ")";
+        LOG(logUnpack, DEBUG, updeb.str());
     }
 
     _unpack_cache = new list<tItem *>(res);

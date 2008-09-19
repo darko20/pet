@@ -34,7 +34,6 @@
 // bool opt_fullform_morph;
 #ifdef OLD_OPTIONS
 char *grammar_file_name;
-char *opt_mrs;
 int opt_pg;
 int opt_tsdb;
 int opt_server;
@@ -183,26 +182,26 @@ void init_options()
 {
   verbosity = 0;
     
-  managed_opt<bool>("opt_derivation",
+  managed_opt("opt_derivation",
     "Store derivations in tsdb profile", true);
   
-  managed_opt<bool>("opt_rulestatistics",
+  managed_opt("opt_rulestatistics",
     "dump the per-rule statistics to the tsdb database", false);
   
-  managed_opt<bool>("opt_default_les",
+  managed_opt("opt_default_les",
     "Try to use default lexical entries if no regular entries could be found. "
     "Uses POS annotation, if available.", false);
   
-  managed_opt<char>("opt_pg",
+  managed_opt("opt_pg",
     "print grammar in ASCII form, one of (s)ymbols (the default), (g)lbs "
     "(t)ype fs's or (a)ll", '\0');
   
-  managed_opt<bool>("opt_chart_man",
+  managed_opt("opt_chart_man",
     "Allow lexical dependency filtering", true);
   
-  managed_opt<bool>("opt_nbest", "", false);
+  managed_opt("opt_nbest", "", false);
   
-  managed_opt<bool>("opt_online_morph", 
+  managed_opt("opt_online_morph", 
     "use the internal morphology (the regular expression style one)", true);
   
   // opt_fullform_morph is obsolete
@@ -217,22 +216,14 @@ void init_options()
               " amount of (milli?)seconds",
               (int) 0);
 
-  managed_opt("opt_mrs",
-              "determines if and which kind of MRS output is generated",
-              (const char *) NULL);
-  
-  managed_opt<bool>("opt_partial",
+  managed_opt("opt_partial",
     "in case of parse failure, find a set of chart edges "
     "that covers the chart in a good manner", false);
   
-  managed_opt<int>("opt_nresults",
-                         "The number of results to print "
-                         "(should be an argument of an API function)", 0);
+  managed_opt("opt_nresults",
+              "The number of results to print "
+              "(should be an argument of an API function)", 0);
   
-  managed_opt("opt_jxchg_dir",
-              "the directory to write parse charts in jxchg format to",
-              std::string());
-
 #ifdef YY
   managed_opt
     ("opt_yy", 
@@ -440,14 +431,13 @@ bool parse_options(int argc, char* argv[])
                             PACKING_RETRO | PACKING_SELUNPACK));
         break;
       case OPTION_MRS:
-          if(optarg != NULL)
-            set_opt("opt_mrs", strdup(optarg));
-          else
-            set_opt("opt_mrs", (const char *) "simple");
-          break;
+        // either this way or the like in the next option. too bad there's no
+        // automatic casting here
+        set_opt("opt_mrs", std::string((optarg != NULL) ? optarg : "simple"));
+        break;
       case OPTION_TSDB_DUMP:
-        set_opt<std::string>("opt_tsdb_dir", ((std::string) optarg));
-          break;
+        set_opt<std::string>("opt_tsdb_dir", optarg);
+        break;
       case OPTION_PARTIAL:
           set_opt("opt_partial", true);
           break;
@@ -457,42 +447,8 @@ bool parse_options(int argc, char* argv[])
                 strtoint(optarg, "as argument to -results"));
           break;
       case OPTION_TOK: 
-        {
-          /*
-          tokenizer_id opt_tok = TOKENIZER_STRING; //todo: make FSR the default
-          if (optarg != NULL) {
-            if (strcasecmp(optarg, "string") == 0)
-              opt_tok = TOKENIZER_STRING;
-            else if (strcasecmp(optarg, "yy") == 0)
-              opt_tok = TOKENIZER_YY;
-            else if (strcasecmp(optarg, "yy_counts") == 0)
-              opt_tok = TOKENIZER_YY_COUNTS;
-            else if (strcasecmp(optarg, "xml") == 0) {
-              LOG(logAppl, WARN, "deprecated command-line option "
-                  " -tok=xml, use -tok=pic instead\n");
-              opt_tok = TOKENIZER_PIC; // deprecated command-line option
-            }
-            else if (strcasecmp(optarg, "xml_counts") == 0) {
-              LOG(logAppl, WARN, "deprecated command-line option "
-                  " -tok=xml_counts, use -tok=pic_counts instead\n");
-              opt_tok = TOKENIZER_PIC_COUNTS; // deprecated command-line option
-            }
-            else if (strcasecmp(optarg, "pic") == 0)
-              opt_tok = TOKENIZER_PIC;
-            else if (strcasecmp(optarg, "pic_counts") == 0)
-              opt_tok = TOKENIZER_PIC_COUNTS;
-            else if (strcasecmp(optarg, "smaf") == 0)
-              opt_tok = TOKENIZER_SMAF;
-            else if (strcasecmp(optarg, "fsr") == 0)
-              opt_tok = TOKENIZER_FSR;
-            else
-              LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
-                  <<"\": using 'tok=string'");
-          }
-          */
           set_opt_from_string("opt_tok", optarg);
-        }
-        break;
+          break;
       case OPTION_JXCHG_DUMP:
         if (optarg[strlen(optarg) - 1] != '/')
           set_opt("opt_jxchg_dir", std::string(optarg) + "/");

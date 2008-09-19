@@ -41,8 +41,7 @@ extern int verbosity, opt_nqc_unif, opt_nqc_subs;
 extern char *grammar_file_name;
 
 #ifdef OLD_OPTIONS
-/** compute MRS (modes: C implementation, LKB bindings via ECL; default: no) */
-extern char *opt_mrs;
+/**  */
 
 /** @name Operating modes
  * If none of the following options is provided, cheap will go into the usual

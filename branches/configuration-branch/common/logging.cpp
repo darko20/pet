@@ -27,7 +27,7 @@ Category   root(WARN, 1),
   logSyntax(NOTSET, 2),
   logTsdb(NOTSET, 0),
   logUnpack(NOTSET, 0),
-  logXML(NOTSET, 0);
+  logXML(NOTSET, 2);
 
 std::string prio_names[] = {
   "fatal", "alert", "critical", "error",

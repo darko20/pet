@@ -537,23 +537,24 @@ dag_unify2(dag_node *dag1, dag_node *dag2) {
   }
 
 #if 0
-  if(verbosity > 4) {
+  if(LOG_ENABLED(logSemantic, DEBUG)) {
     if(new_type != s1 || new_type != s2) {
       if((dag_has_arcs(dag1) && featset[s1] != featset[new_type])
          || (dag_has_arcs(dag2) && featset[s2] != featset[new_type])) {
         if((dag_has_arcs(dag1) && featset[s1] == featset[new_type])
            || (dag_has_arcs(dag2) && featset[s2] == featset[new_type]))
-          LOG(loggerUncategorized, Level::INFO, "glb: one compatible set");
+          LOG(logSemantic, DEBUG, "glb: one compatible set");
         else
-          LOG(loggerUncategorized, Level::INFO,
-              "glb: %s%s(%d) & %s%s(%d) -> %s(%d)",
-              type_name(s1), dag_has_arcs(dag1) ? "[]" : "", featset[s1],
-              type_name(s2), dag_has_arcs(dag2) ? "[]" : "", featset[s2],
-              type_name(new_type), featset[new_type]);
+          LOG(logSemantic, DEBUG,
+              "glb: " << type_name(s1) << dag_has_arcs(dag1) ? "[]" : "" 
+              << "(" << featset[s1] << ")"
+              << type_name(s2) << dag_has_arcs(dag2) ? "[]" : "",
+              << "(" << featset[s2] << ") -> "
+              << type_name(new_type) << "(" << featset[new_type] << ")");
       } else
-        LOG(loggerUncategorized, Level::INFO, "glb: compatible feature sets");
+        LOG(logSemantic, DEBUG, "glb: compatible feature sets");
     } else {
-      LOG(loggerUncategorized, Level::INFO, "glb: type unchanged");
+      LOG(logSemantic, DEBUG, "glb: type unchanged");
     }
   }
 #endif
@@ -1191,14 +1192,15 @@ dag_node *dag_expand(dag_node *dag) {
 
 bool dag_valid_rec(dag_node *dag) {
   if(dag == 0 || dag == INSIDE || dag == FAIL) {
-    LOG(logAppl, DEBUG, "(1) dag is 0x" << std::setbase(16) << (size_t) dag);
+    LOG(logSemantic, DEBUG,
+        "(1) dag is 0x" << std::setbase(16) << (size_t) dag);
     return false;
   }
 
   dag = dag_deref1(dag);
 
   if(dag == 0 || dag == INSIDE || dag == FAIL) {
-    LOG(logAppl, DEBUG,"(2) dag is 0x" << std::setbase(16) << (size_t) dag);
+    LOG(logSemantic, DEBUG,"(2) dag is 0x" << std::setbase(16) << (size_t) dag);
     return false;
   }
 
@@ -1212,13 +1214,14 @@ bool dag_valid_rec(dag_node *dag) {
 
     while(arc) {
       if(! is_attr(arc->attr)) {
-        LOG(logAppl, DEBUG, "(3) invalid attr: " << arc->attr << ", val: 0x"
-            << std::setbase(16) << (size_t) arc->val);
+        LOG(logSemantic, DEBUG, "(3) invalid attr: " << arc->attr 
+            << ", val: 0x" << std::setbase(16) << (size_t) arc->val);
         return false;
       }
 
       if(dag_valid_rec(arc->val) == false) {
-        LOG(logAppl, DEBUG, "(4) invalid value under " << attrname[arc->attr]);
+        LOG(logSemantic, DEBUG, 
+            "(4) invalid value under " << attrname[arc->attr]);
         return false;
       }
 
@@ -1229,7 +1232,7 @@ bool dag_valid_rec(dag_node *dag) {
   }
   else if(v == INSIDE) {
     // cycle found
-    LOG(logAppl, DEBUG, "(5) invalid dag: cyclic");
+    LOG(logSemantic, DEBUG, "(5) invalid dag: cyclic");
     return false;
   }
 

@@ -26,8 +26,13 @@ public:
 /** @brief Exception thrown when string conversion not available. */
 class ConversionException : public ConfigException {
 public:
-  ConversionException(std::string message) 
-    : ConfigException("no conversion for " + message) {};
+  ConversionException(std::string convertername) 
+    : ConfigException(convertername) {};
+  ConversionException(std::string key, std::string value, 
+                      std::string convertername) 
+    : ConfigException("`" + value +  "' can not be converted " +
+                      "to fit the type of " + key
+                      + " (" + convertername +")") {};
 };
 
 /** Thrown when the specified option is not registered. */

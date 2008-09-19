@@ -126,13 +126,11 @@ int cheap_server_initialize(int port) {
 
   int i;
   if((i = fork()) < 0) {
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): unable to fork(2) server [%d].",
-              errno);
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): "
-              "unable to change process group [%d].",
-              errno);
+    LOG(logAppl, ERROR,
+        "server_initialize(): unable to fork(2) server [" << errno << "].");
+    LOG(logServer, ERROR,
+        "server_initialize(): unable to change process group ["
+        << errno << "].");
     fflush(flog)
     return -1;
   } /* if */
@@ -142,13 +140,10 @@ int cheap_server_initialize(int port) {
 
 #if defined(__SUNOS__)
   if(setpgrp(0, getpid()) == -1) {
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): "
-              "unable to change process group [%d].",
-              errno);
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): "
-              "unable to change process group [%d].", errno);
+    LOG(logAppl, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].");
+    LOG(logServer, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].");
     fflush(flog);
     return -1;
   } /* if */
@@ -158,23 +153,17 @@ int cheap_server_initialize(int port) {
   } /* if */
 #else
   if(setsid() == -1) {
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): "
-              "unable to change process group [%d].", errno);
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): "
-              "unable to change process group [%d].", errno);
-    fflush(flog);
+    LOG(logAppl, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].", errno);
+    LOG(logServer, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].", errno);
     return -1;
   } /* if */
   if((i = fork()) < 0) {
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): unable to fork(2) server [%d].",
-              errno);
-    LOG_ERROR(loggerUncategorized,
-              "server_initialize(): unable to fork(2) server [%d].",
-              errno);
-    fflush(flog);
+    LOG(logAppl, ERROR,
+        "server_initialize(): unable to fork(2) server [" << errno << "].");
+    LOG(logServer, ERROR,
+        "server_initialize(): unable to fork(2) server [" << errno << "].");
     return -1;
   } /* if */
   else if(i > 0) {
