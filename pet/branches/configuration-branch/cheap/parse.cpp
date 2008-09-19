@@ -30,7 +30,7 @@
 #include "task.h"
 #include "tsdb++.h"
 #include "config.h"
-#include "options.h" // PACKING_ && verbosity
+#include "options.h" // PACKING_
 
 #include <sstream>
 #include <iostream>

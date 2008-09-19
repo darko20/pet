@@ -511,7 +511,7 @@ tMEM::parseOptions()
 void
 tMEM::parseFeatures(int nFeatures)
 {
-    LOG(logSM, INFO, "[" << nFeatures << " features] ");
+    LOG(logApplC, INFO, "[" << nFeatures << " features] ");
 
     _weights.resize(nFeatures);
 
@@ -666,7 +666,7 @@ tMEM::parseFeature2(int n)
                 
                 if(t == -1)
                 {
-                  LOG(logSM, INFO, "Unknown type/instance `" << tmp
+                  LOG(logSM, WARN, "Unknown type/instance `" << tmp
                       << "' in feature #" << n);
                   good = false;
                 }

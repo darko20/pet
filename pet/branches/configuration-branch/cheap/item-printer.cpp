@@ -1,5 +1,4 @@
 #include "item-printer.h"
-#include "options.h" // for verbosity only
 #include <sstream>
 
 using namespace std;
@@ -138,7 +137,7 @@ void tItemPrinter::real_print(const tPhrasalItem *item) {
 
 /** default printing for chart items: use a tItemPrinter */
 std::ostream &operator<<(std::ostream &out, const tItem &item) {
-  tItemPrinter printer(out, verbosity > 2, verbosity > 10);
+  tItemPrinter printer(out);
   printer.print(&item);
   return out;
 }

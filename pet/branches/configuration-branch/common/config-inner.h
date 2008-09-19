@@ -420,7 +420,17 @@ public:
    */
   void set_from_string(const std::string& key, const std::string& value,
                        int prio = 1) {
-    get_option(key)->set_from_string(value, prio);
+    try {
+      get_option(key)->set_from_string(value, prio);
+    }
+    catch (boost::bad_lexical_cast b) {
+      throw ConversionException(key, value, "def");
+    }
+    catch (ConversionException c) {
+      // this comes from a custom converter, which should provide its name in
+      // the message
+      throw ConversionException(key, value, c.getMessage());
+    }
   }
 
   /** Checks if given name exists in configuration database.

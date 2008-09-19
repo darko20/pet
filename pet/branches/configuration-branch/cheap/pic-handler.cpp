@@ -238,8 +238,8 @@ void PICHandler::
 print_sax_exception(const char * errtype, const SAXParseException& e) {
   LOG(logXML, WARN, 
       XMLCh2Latin(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
-      << (int) e.getColumnNumber() << ": error: SAX: " << errtype
-      << XMLCh2Latin(e.getMessage()));
+      << (int) e.getColumnNumber() << ": error: SAX: " << errtype << " "
+      << XMLCh2Latin(e.getMessage()) << endl);
 }
 
 void

@@ -122,8 +122,8 @@ extDictionary:: readEmu(const string &dictpath)
     
     if(LLA(0) != ' ')
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "Missing space at %s:%d.%d", curr_fname(), curr_line(), curr_col());
+      LOG(logExtdict, WARN,
+          "Missing space at " << << ":%d.%d", curr_fname(), curr_line(), curr_col());
       lhs = "";
     }
     else
@@ -137,8 +137,8 @@ extDictionary:: readEmu(const string &dictpath)
 
     if(LLA(0) != '\n')
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "Missing newline at %s:%d.%d", curr_fname(), curr_line(), curr_col());
+      LOG(logExtdict, WARN,
+          "Missing newline at " << << ":%d.%d", curr_fname(), curr_line(), curr_col());
       rhs = "";
     }
     else
@@ -289,15 +289,17 @@ int extDictionary::equiv_rank(type_t t)
 // Mapping.
 // 
 
-void extDictMapEntry::print(FILE *f) const
+void extDictMapEntry::print(std::ostream &out) const
 {
-  fprintf(f, " %s [", type_name(_type));
+  out " " << type_name(_type) << " [";
   for(list<pair<string, string> >::const_iterator it = _paths.begin();
       it != _paths.end(); ++it)
-  {
-    fprintf(f, " %s: %s", it->first.c_str(), it->second.c_str());
-  }
-  fprintf(f, " ]");
+    out " " << it->first << ": " << it->second;
+  out << " ]";
+}
+
+inline std::ostream &operator<<(std::ostream &o, const extDictMapEntry &e) {
+  e.print(o); return o;
 }
 
 bool operator==(const extDictMapEntry &a, const extDictMapEntry &b)
@@ -314,7 +316,7 @@ extDictMapping::extDictMapping(const string& mappath)
 {
   FILE *f = fopen(mappath.c_str(), "r");
   if(!f)
-    throw error(string("Could not open map file \"") + mappath + string("\""));
+    throw tError("Could not open map file \"" + mappath + "\"");
   
   string line;
   while(!feof(f))
@@ -331,8 +333,8 @@ extDictMapping::extDictMapping(const string& mappath)
     
     if(elems.size() == 1)
     {
-      LOG(loggerUncategorized, Level::INFO,
-          "Ignoring entry `%s' in mapping (entry incomplete).", line.c_str());
+      LOG(logExtdict, WARN,
+          "Ignoring entry `" << line << "' in mapping (entry incomplete).");
       continue;
     }
 
@@ -349,8 +351,7 @@ extDictMapping::extDictMapping(const string& mappath)
     {
       if(elems.size() < 2)
       {
-        LOG(loggerUncategorized, Level::INFO, "Ignoring incomplete entry `%s'.",
-            line.c_str());
+        LOG(logExtdict, WARN, "Ignoring incomplete entry `" << line << "'.");
         continue;
       }
       
@@ -366,9 +367,8 @@ extDictMapping::extDictMapping(const string& mappath)
     if(type == -1)
     {
       if(rhs != "unknown_le")
-        LOG(loggerUncategorized, Level::INFO,
-            "Ignoring entry `%s' in mapping (unknown type `%s').",
-            line.c_str(), rhs.c_str());
+        LOG(logExtdict, WARN, "Ignoring entry `" << line
+            << "' in mapping (unknown type `" << rhs << "').");
       continue;
     }
 
@@ -384,8 +384,8 @@ extDictMapping::extDictMapping(const string& mappath)
       {
         if(*it != string(":"))
         {
-          LOG(loggerUncategorized, Level::INFO,
-              "Ignoring entry `%s' in mapping (not wellformed).", line.c_str());
+          LOG(logExtdict, WARN,
+              "Ignoring entry `" << line << "' in mapping (not wellformed).");
           state = -1;
           break;
         }
@@ -401,9 +401,8 @@ extDictMapping::extDictMapping(const string& mappath)
         value = *it;
         if(lookup_type(value) == -1)
         {
-          LOG(loggerUncategorized, Level::INFO,
-              "Ignoring entry `%s' in mapping (unknown type `%s').",
-              line.c_str(), value.c_str());
+          LOG(logExtdict, WARN, "Ignoring entry `" << line
+              << "' in mapping (unknown type `" << value << "').");
           state = -1;
           break;
         }
@@ -414,19 +413,14 @@ extDictMapping::extDictMapping(const string& mappath)
 
     if(state != 1) // skip entry
     {
-      LOG(loggerUncategorized, Level::INFO, "Ignoring entry `%s' in mapping.",
-          line.c_str());
+      LOG(logExtdict, WARN, "Ignoring entry `" << line << "' in mapping.",);
       continue;
     }
 
     extDictMapEntry entry(type, paths);
     _map[lhs] = entry;
 
-    if(verbosity > 9)
-    {
-      entry.print(fstatus);
-      fprintf(fstatus, "\n");
-    }
+    LOG(logExtdict, DEBUG, entry);
   }
 }
 
@@ -445,8 +439,8 @@ extDictMapping::add_equiv(const list<string> &elems)
       _rank[t] = ++rank;
     }
     else
-      LOG(loggerUncategorized, Level::INFO,
-          "Ignoring unknown type `%s' in equivalence class.",  it->c_str());
+      LOG(logExtdict, WARN,
+          "Ignoring unknown type `" << *it << "' in equivalence class.");
   }
 
   for(list<type_t>::iterator it = ts.begin(); it != ts.end(); ++it)

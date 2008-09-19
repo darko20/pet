@@ -22,10 +22,10 @@
 #include "hierarchy.h"
 #include "dumper.h"
 #include "flop.h"
-#include "options.h"
 #include "dag.h"
 #include "grammar-dump.h"
 #include "logging.h"
+#include "config.h"
 
 using std::list;
 

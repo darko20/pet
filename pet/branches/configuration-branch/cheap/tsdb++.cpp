@@ -329,7 +329,7 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
 int
 cheap_complete_test_run(int run_id, const char *custom)
 {
-  LOG(logTsdb, INFO,
+  LOG(logAppl, INFO,
       "total elapsed parse time " << std::setprecision(3)
       << TotalParseTime.elapsed_ts() / 10.<< "s; " 
       << nprocessed << "%d items; avg time per item " << std::setprecision(4) 
@@ -337,7 +337,7 @@ cheap_complete_test_run(int run_id, const char *custom)
 
     if(get_opt_charp("opt_compute_qc") != NULL)
     {
-        LOG(logTsdb, INFO, "computing quick check paths");
+        LOG(logAppl, INFO, "computing quick check paths");
         ofstream qc(get_opt_charp("opt_compute_qc"));
         compute_qc_paths(qc);
     }

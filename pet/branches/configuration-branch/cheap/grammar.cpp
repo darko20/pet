@@ -233,8 +233,7 @@ grammar_rule::grammar_rule(type_t t)
         _spanningonly = true;
     }
     
-    // \todo this sucks and goes into another (debugging) method
-    // if(verbosity > 14) cerr << *this << endl;
+    LOG(logGrammar, DEBUG, *this);
 
 }
 
@@ -256,14 +255,11 @@ grammar_rule::make_grammar_rule(type_t t) {
 }
 
 void
-grammar_rule::print(ostream &out) {
-  out << print_name(_type) << "/" << _arity
-      << (_hyper == false ? "[-HA]" : "") ;
-    
-  list_int *l = _tofill;
-  while(l) {
+grammar_rule::print(ostream &out) const {
+  out << print_name(_type) << "/" << _arity;
+  if (_hyper == false) out << "[-HA]" ;
+  for (list_int *l = _tofill; l != NULL; l = rest(l)) 
     out << " " << first(l);
-  }    
   out << ")";
 } 
 
@@ -388,7 +384,7 @@ tGrammar::tGrammar(const char * filename)
     
     int version;
     char *s = undump_header(&dmp, version);
-    if(s) LOG(logGrammar, INFO, "(" << s << ") ");
+    if(s) LOG(logApplC, INFO, "(" << s << ") ");
     delete[] s;
     
     dump_toc toc(&dmp);
@@ -573,7 +569,7 @@ tGrammar::tGrammar(const char * filename)
     }
     catch(tError &e)
     {
-      LOG_S(logGrammar, ERROR, "EXTDICT disabled: %s", e.msg().c_str());
+      LOG(logAppl, WARN, "EXTDICT disabled: " << e.msg());
       _extDict = 0;
     }
 #endif

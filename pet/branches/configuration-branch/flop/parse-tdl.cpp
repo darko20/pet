@@ -572,10 +572,9 @@ void tdl_opt_inflr(struct type *t)
 {
   while(LA(0)->tag == T_INFLR)
     {
-      if(verbosity > 9)
-        fprintf(stderr, "inflr <%s>: `%s'\n",
-                t == 0 ? "(global)" : types.name(t->id).c_str(),
-                LA(0)->text);
+      LOG(logSyntax, DEBUG,
+          "inflr <" << (t == 0 ? "(global)" : types.name(t->id))
+          << ">: `" << LA(0)->text << "'");
 
       if(t == 0)
         global_inflrs = add_inflr(global_inflrs, LA(0)->text);

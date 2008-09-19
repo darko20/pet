@@ -39,26 +39,6 @@
 #include "pet-config.h"
 #include "logging.h"
 
-#if HAVE_LIBLOG4CXX
-using namespace log4cxx;
-
-const int logBufferSize = 65536;
-char logBuffer[logBufferSize];
-
-LoggerPtr loggerUncategorized = Logger::getLogger("uncategorized");
-LoggerPtr loggerExpand = Logger::getLogger("expand");
-LoggerPtr loggerFs = Logger::getLogger("fs");
-LoggerPtr loggerGrammar = Logger::getLogger("grammar");
-LoggerPtr loggerHierarchy = Logger::getLogger("hierarchy");
-LoggerPtr loggerLexproc = Logger::getLogger("lexproc");
-LoggerPtr loggerParse = Logger::getLogger("parse");
-LoggerPtr loggerTsdb = Logger::getLogger("tsdb");
-
-const int  defaultPbSize = 65536;
-char defaultPb[defaultPbSize];
-
-#endif // HAVE_LIBLOG4CXX
-
 using namespace std;
 
 /*** global variables ***/

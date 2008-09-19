@@ -428,13 +428,11 @@ void make_semilattice()
 #if 0
   if(!Is_Loopfree(hierarchy))
     {
-      LOG_ERROR(logSemantic,
-                "conception error - making hierarchy loopfree");
+      LOG(logSemantic, ERROR, "conception error - making hierarchy loopfree");
       Delete_Loops(hierarchy);
     }
 
-  if(verbosity > 4)
-    LOG(logSemantic, INFO, " (%ld)", clock());
+  LOG(logSemantic, DEBUG, " (%ld)", clock());
 #endif
 }
 
@@ -449,9 +447,7 @@ inline void mark_leaftype(int i)
 // mark `i' as a leaftype
 {
   leaftypeparent[i] = immediate_supertypes(i).front();
-
-  //if(verbosity > 4)
-  //  fprintf(stderr, "LT: %d [%d]\n", i, leaftypeparent[i]);
+  // LOG(logSemantic, DEBUG, "LT: " << i << " [" << leaftypeparent[i] << "]");
 
   nstaticleaftypes++;
 }

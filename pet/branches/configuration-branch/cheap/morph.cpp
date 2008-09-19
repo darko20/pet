@@ -25,6 +25,7 @@
 #include "cheap.h"
 #include "grammar-dump.h"
 #include "settings.h"
+#include "config.h"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/transitive_closure.hpp>
@@ -1089,7 +1090,9 @@ tLKBMorphology::undump_inflrs(dumper &dmp) {
     delete[] r;
   }                      
 
-  _morph.initialize_lexrule_filter();
+  if(get_opt_bool("opt_filter")) {
+    _morph.initialize_lexrule_filter();
+  }
 
   LOG(logMorph, DEBUG, ", " << ninflrs << " infl rules" << _morph) ;
 }
