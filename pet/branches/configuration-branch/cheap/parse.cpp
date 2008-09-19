@@ -44,7 +44,7 @@ using namespace std;
 #endif
 
 // output for excessive subsumption failure debugging in the German grammar
-//#define DEBUG_SUBSFAILS
+//#define PETDEBUG_SUBSFAILS
 
 //
 // global variables for parsing
@@ -113,7 +113,7 @@ bool
 filter_rule_task(grammar_rule *R, tItem *passive)
 {
 
-#ifdef DEBUG
+#ifdef PETDEBUG
     LOG(logParse, DEBUG, "trying " << R << " & passive " << passive << " ==> ");
 #endif
 
@@ -122,7 +122,7 @@ filter_rule_task(grammar_rule *R, tItem *passive)
     {
         stats.ftasks_fi++;
 
-#ifdef DEBUG
+#ifdef PETDEBUG
         LOG(logParse, DEBUG, "filtered (rf)");
 #endif
 
@@ -135,14 +135,14 @@ filter_rule_task(grammar_rule *R, tItem *passive)
     {
         stats.ftasks_qc++;
 
-#ifdef DEBUG
+#ifdef PETDEBUG
         LOG(logParse, DEBUG, "filtered (qc)");
 #endif
 
         return false;
     }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
     LOG(logParse, DEBUG, "passed filters");
 #endif
 
@@ -152,7 +152,7 @@ filter_rule_task(grammar_rule *R, tItem *passive)
 bool
 filter_combine_task(tItem *active, tItem *passive)
 {
-#ifdef DEBUG
+#ifdef PETDEBUG
     LOG(logParse, DEBUG, "trying active " << active 
         << " & passive " << passive << " ==> ");
 #endif
@@ -161,7 +161,7 @@ filter_combine_task(tItem *active, tItem *passive)
                                                  active->nextarg(),
                                                  passive->rule()))
     {
-#ifdef DEBUG
+#ifdef PETDEBUG
         LOG(logParse, DEBUG, "filtered (rf)");
 #endif
 
@@ -173,7 +173,7 @@ filter_combine_task(tItem *active, tItem *passive)
        && !fs::qc_compatible_unif(active->qc_vector_unif(),
                                   passive->qc_vector_unif()))
     {
-#ifdef DEBUG
+#ifdef PETDEBUG
         LOG(logParse, DEBUG, "filtered (qc)");
 #endif
 
@@ -181,7 +181,7 @@ filter_combine_task(tItem *active, tItem *passive)
         return false;
     }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
     LOG(logParse, DEBUG, "passed filters");
 #endif
 
@@ -263,7 +263,7 @@ packed_edge(tItem *newitem) {
                                              newitem->rule(),
                                              forward, backward);
 
-#ifdef DEBUG_SUBSFAILS
+#ifdef PETDEBUG_SUBSFAILS
     failure *uf = NULL;
 #endif
 
@@ -277,7 +277,7 @@ packed_edge(tItem *newitem) {
                                newitem->qc_vector_subs(),
                                f1, b1);
 
-#ifdef DEBUG_SUBSFAILS
+#ifdef PETDEBUG_SUBSFAILS
       start_recording_failures();
 #endif
 
@@ -287,7 +287,7 @@ packed_edge(tItem *newitem) {
         subsumes(olditem->get_fs(), newitem->get_fs(),
                  forward, backward);
 
-#ifdef DEBUG_SUBSFAILS
+#ifdef PETDEBUG_SUBSFAILS
       uf = stop_recording_failures();
 #endif
 
@@ -308,7 +308,7 @@ packed_edge(tItem *newitem) {
 #endif
     }
 
-#ifdef DEBUG_SUBSFAILS
+#ifdef PETDEBUG_SUBSFAILS
     if ((! ((forward && !olditem->blocked()) &&
             ((!backward && (opt_packing & PACKING_PRO))
              || (backward && (opt_packing & PACKING_EQUI)))))
@@ -382,7 +382,7 @@ inline bool result_limits() {
 bool add_item(tItem *it) {
   assert(!it->blocked());
   
-#ifdef DEBUG
+#ifdef PETDEBUG
   LOG(logParse, DEBUG, "add_item " << it);
 #endif
 
@@ -439,7 +439,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
         ! resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
 
     basic_task* t = Agenda->pop();
-#ifdef DEBUG
+#ifdef PETDEBUG
         t->print(stderr);
         fprintf(stderr, "\n");
 #endif

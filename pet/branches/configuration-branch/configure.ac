@@ -272,6 +272,20 @@ AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
 
 
 # --------------------------------------------------------------------
+# log4cpp library.
+# --------------------------------------------------------------------
+
+AX_LIB_LOG4CPP([],
+  [
+    log4cpp=yes
+    export FLOPLIBS="$LOG4CPP_LIBS $FLOPLIBS"
+    export CHEAPLIBS="$LOG4CPP_LIBS $CHEAPLIBS"
+  ],
+  [log4cpp=no])
+AM_CONDITIONAL(LOG4CPP, [test "x$log4cpp" = "xyes"])
+
+
+# --------------------------------------------------------------------
 # XML support, i.e. Xerces C++ library.
 # --------------------------------------------------------------------
 
@@ -751,6 +765,7 @@ echo "LKB MRS code (requires ECL)                     $mrs"
 echo "LKB preprocessor code (requires ECL)            $preproc"
 echo "Embeddable Common-Lisp processor (ECL)          $ecl"
 echo "ICU library (Unicode support)                   $icu"
+echo "log4cpp library (extended logging support)      $log4cpp"
 echo "Xerces C++ (XML input modes)                    $xml"
 echo "CppUnit (unit testing)                          $cppunit"
 echo "Grammar dumping in LUI format                   $lui"

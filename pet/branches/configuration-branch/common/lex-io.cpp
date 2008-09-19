@@ -176,11 +176,13 @@ int LConsume(int n)
   if(CURR->info)
     {
       {
-        if(last_info != CURR->info)
+        if(last_info != CURR->info) {
           LOG(logApplC, INFO, 
               CURR->info << " `" << CURR->fname << "'... ");
-        else
+        }
+        else {
           LOG(logApplC, INFO, "`" << CURR->fname << "'... ");
+        }
       }
 
       last_info = CURR->info;

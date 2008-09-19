@@ -46,7 +46,7 @@ class tError
     ~tError()
     {}
     
-    std::string getMessage()
+    const std::string &getMessage() const 
     { 
         return _message;
     }

@@ -670,7 +670,7 @@ fs::qc_compatible_unif(const qc_vec &a, const qc_vec &b)
 {
   for(int i = 0; i < _qc_len_unif; i++) {
     if(glb(a[i], b[i]) == T_BOTTOM) {
-#ifdef DEBUG
+#ifdef PETDEBUG
       LOG(logAppl, DEBUG, "quickcheck fails for path " << i
           << " with `" << print_name(a[i]) 
           << "' vs. `" << print_name(b[i]) << "'");

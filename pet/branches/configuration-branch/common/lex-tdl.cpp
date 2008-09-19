@@ -434,13 +434,13 @@ get_token()
         {
             if(t->tag != T_WS && t->tag != T_COMM)
             {
-#ifdef DEBUG
+#ifdef PETDEBUG
               LOG(logSyntax, DEBUG, "delivering " << t) ;
 #endif
                 tokensdelivered++;
                 return t;
             }
-#ifdef DEBUG
+#ifdef PETDEBUG
             else
             {
               LOG(logSyntax, DEBUG, "not delivering " << t);
@@ -451,7 +451,7 @@ get_token()
         if(!pop_file()) hope = 0;
     }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
   LOG(logSyntax, DEBUG, "delivering " << t);
 #endif
     
