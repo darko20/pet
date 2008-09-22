@@ -30,33 +30,16 @@
 
 using std::string;
 
-settings::settings(const char *name, const char *base, const char *message)
+settings::settings(string name, string base_dir, const char *message)
   : _li_cache() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
-  if(base) {
-    // determine the full pathname for the settings file from the directory
-    // in "base" and the basename in "name"
-    _prefix = dir_name(base);
+  _prefix = dir_name(base_dir);
 
-    // fname contains the full pathname to the settings file, except for the
-    // extension, first in the directory the base path points to
-    _fname = _prefix + name + SET_EXT;
+  _fname = find_set_file(name, SET_EXT, base_dir);
 
-    if(! file_exists_p(_fname.c_str())) {
-      // We could not find the settings file there, so try it in the
-      // subdirectory predefined for settings
-      _prefix = _prefix + SET_SUBDIRECTORY + PATH_SEP;
-      _fname = _prefix + name + SET_EXT;
-    }
-  }
-  else {
-    // The full pathname is in "name"
-    _fname = name;
-  }
-
-  if(file_exists_p(_fname.c_str())) {
+  if(! _fname.empty()) {
     push_file(_fname, message);
     const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";

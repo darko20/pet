@@ -429,7 +429,7 @@ int process(char *ofname) {
   /* Initialize the builtin types with the topmost type in the hierarchy */
   BI_TOP = new_bi_type("*top*");
 
-  flop_settings = new settings("flop", fname.c_str());
+  flop_settings = new settings("flop", fname);
 
   grammar_version = parse_version();
   if(grammar_version == 0) grammar_version = "unknown";
@@ -616,11 +616,8 @@ int main(int argc, char* argv[])
 
   setlocale(LC_ALL, "" );
 
-  // initialization of log4cxx
-#if HAVE_LIBLOG4CXX
-  log4cxx::BasicConfigurator::resetConfiguration();
-  log4cxx::PropertyConfigurator::configure(std::string("logging.conf"));
-#endif // HAVE_LIBLOG4CXX
+  // initialization of logging
+  init_logging(argv[argc-1]);
 
   if(!parse_options(argc, argv))
     {
