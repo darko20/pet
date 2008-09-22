@@ -39,6 +39,9 @@ extern class log4cpp::Category &logAppl, &logApplC, &logGenerics, &logGrammar,
   &logLexproc, &logMorph, &logPack, &logParse, &logSM, &logSemantic,
   &logSyntax, &logTsdb, &logUnpack, &logXML, &root;
 
+void init_logging(const std::string &base_dir);
+void shutdown_logging();
+
 #else // HAVE_LOG4CPP
 #include <ostream>
 
@@ -107,6 +110,9 @@ inline std::ostream &operator<<(std::ostream &o, const Logger::loggerendl &e) {
 extern class log4cpp::Category
   logAppl, logApplC, logGenerics, logGrammar, logLexproc, logMorph, logPack,
   logParse, logSM, logSemantic, logSyntax, logTsdb, logUnpack, logXML, root;
+
+void init_logging(const std::string &base_dir) {}
+void shutdown_logging() {}
 #endif // HAVE_LIBLOG4CPP
 
 #endif // _LOGGING_H

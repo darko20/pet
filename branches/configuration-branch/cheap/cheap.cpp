@@ -541,12 +541,9 @@ int main(int argc, char* argv[])
   try { 
     setlocale(LC_ALL, "C" );
     
-    // initialization of log4cpp
-#if HAVE_LIBLOG4CPP
-    BasicConfigurator::resetConfiguration();
-    PropertyConfigurator::configure(std::string("logging.conf"));
-#endif // HAVE_LIBLOG4CPP
-    
+    // initialization of logging
+    init_logging(argv[argc-1]);
+
     // Initialize global options
     main_init();
     // Initialize options for the input modules
