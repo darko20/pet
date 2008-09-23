@@ -35,9 +35,9 @@ settings::settings(string name, string base_dir, const char *message)
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
-  _prefix = dir_name(base_dir);
-
   _fname = find_set_file(name, SET_EXT, base_dir);
+
+  _prefix = dir_name(_fname);
 
   if(! _fname.empty()) {
     push_file(_fname, message);

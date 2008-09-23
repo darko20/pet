@@ -177,7 +177,7 @@ void read_morph(string fname)
   if(flop_settings->lookup("affixes-are-instances"))
     opt_inst_affixes = true;
 
-  LOG(logAppl, INFO, "reading full form entries from `" << fname << "': ");
+  LOG(logApplC, INFO, "reading full form entries from `" << fname << "': ");
 
   while(!f.eof())
   {
@@ -195,7 +195,7 @@ void read_morph(string fname)
           f.clear();
   }
   
-  LOG(logApplC, INFO, fullforms.size() << " entries.");
+  LOG(logAppl, INFO, fullforms.size() << " entries.");
 }
 
 bool parse_irreg(string line)

@@ -627,7 +627,7 @@ void bottom_up_partitions() {
   assert(types.number() == (int) boost::num_vertices(hierarchy));
   tPartition part(types.number());
 
-  LOG(logAppl, INFO, "- partitioning hierarchy ");
+  LOG(logApplC, INFO, "- partitioning hierarchy ");
 
   merge_top_down(0, part(0), part);
 
@@ -668,7 +668,7 @@ void bottom_up_partitions() {
         nfeatsets++;
       }
 
-  LOG(logApplC, INFO, "(" << nfeatsets << " partitions)");
+  LOG(logAppl, INFO, "(" << nfeatsets << " partitions)");
 }
 
 // featconf and featset computation

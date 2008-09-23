@@ -427,7 +427,7 @@ void expand_templates()
 {
   int i;
 
-  LOG(logAppl, INFO, "- expanding templates: ");
+  LOG(logApplC, INFO, "- expanding templates: ");
 
   for(i = 0; i < types.number(); i++)
     {
@@ -438,6 +438,6 @@ void expand_templates()
       check_sorts_conjunction(types[i]->constraint);
     }
 
-  LOG(logApplC, INFO, ntemplinstantiations << " template instantiations");
+  LOG(logAppl, INFO, ntemplinstantiations << " template instantiations");
 }
 /*@}*/

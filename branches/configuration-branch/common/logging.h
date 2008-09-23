@@ -8,7 +8,7 @@
 
 #include "pet-config.h"
 
-#if HAVE_LOG4CPP
+#ifdef HAVE_LOG4CPP
 #include <log4cpp/Category.hh>
 #include "log4cpp/Priority.hh"
 using log4cpp::Category;
@@ -28,8 +28,7 @@ inline std::ostream &get_stringstream() { return *(new std::ostringstream()); }
 
 #define LOG_ENABLED(__C, __P) (__C.isPriorityEnabled(__P))
 #define LOG(__C, __P, __M) { if LOG_ENABLED(__C, __P) { \
-        std::ostringstream ___o; ___o << __M << std::endl; \
-        __C << __P << ___o.str(); } }
+        std::ostringstream ___o; ___o << __M; __C << __P << ___o.str(); } }
 
 //inline std::ostringstream &operator<<(std::ostringstream &os, const std::string &s){
 //  os << s.c_str(); return os;
@@ -56,6 +55,10 @@ typedef enum {EMERG  = 0,
               DEBUG  = 700,
               NOTSET = 800
 } Priority;
+
+extern class Category
+  logAppl, logApplC, logGenerics, logGrammar, logLexproc, logMorph, logPack,
+  logParse, logSM, logSemantic, logSyntax, logTsdb, logUnpack, logXML, root;
 
 class Category {
   Priority _prio;
@@ -107,12 +110,8 @@ inline std::ostream &operator<<(std::ostream &o, const Logger::loggerendl &e) {
   (LOG_ENABLED(__C, __P)                                                \
    ? (Logger::print(__C, __P) << __M << Logger::endl(__C, __P), 1) : 0)
 
-extern class log4cpp::Category
-  logAppl, logApplC, logGenerics, logGrammar, logLexproc, logMorph, logPack,
-  logParse, logSM, logSemantic, logSyntax, logTsdb, logUnpack, logXML, root;
-
-void init_logging(const std::string &base_dir) {}
-void shutdown_logging() {}
+inline void init_logging(const std::string &base_dir) {}
+inline void shutdown_logging() {}
 #endif // HAVE_LIBLOG4CPP
 
 #endif // _LOGGING_H

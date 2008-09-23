@@ -593,7 +593,7 @@ bool process_hierarchy(bool propagate_status_p)
 {
   int i;
 
-  LOG(logAppl, INFO, "- type hierarchy (");
+  LOG(logApplC, INFO, "- type hierarchy (");
 
   // sanity check: is the hierarchy simple (contains no parallel edges)
   if(!is_simple(hierarchy))
@@ -642,7 +642,7 @@ bool process_hierarchy(bool propagate_status_p)
 
   make_semilattice();
 
-  LOG(logApplC, INFO, ")");
+  LOG(logAppl, INFO, ")");
 
   if(propagate_status_p) propagate_status();
 

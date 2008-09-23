@@ -277,7 +277,7 @@ void process_types()
       throw tError("non well-formed feature structures");
     }
 
-  LOG(logAppl, INFO, "- delta");
+  LOG(logApplC, INFO, "- delta");
   if(!delta_expand_types())
     exit(1);
 
@@ -285,7 +285,7 @@ void process_types()
   if(!fully_expand_types(get_opt_bool("opt_full_expansion")))
     exit(1);
 
-  LOG(logApplC, INFO, " expansion for types");
+  LOG(logAppl, INFO, " expansion for types");
   compute_maxapp();
   
   if(get_opt_bool("opt_unfill"))
@@ -445,8 +445,8 @@ int process(char *ofname) {
     initialize_specials(flop_settings);
     initialize_status();
 
-    LOG(logAppl, INFO, "converting `" << fname << "' (" << grammar_version 
-        << ") into `" << outfname << "' ...");
+    LOG(logAppl, INFO, std::endl << "converting `" << fname << 
+        "' (" << grammar_version << ") into `" << outfname << "' ...");
       
     if((set = flop_settings->lookup("postload-files")) != 0)
       for(i = set->n - 1; i >= 0; i--) {
@@ -520,9 +520,9 @@ int process(char *ofname) {
       write_pre(outf);
     } else {
       dumper dmp(outf, true);
-      LOG(logAppl, INFO, "dumping grammar (");
+      LOG(logApplC, INFO, "dumping grammar (");
       dump_grammar(&dmp, grammar_version);
-      LOG(logApplC, INFO, ")");
+      LOG(logAppl, INFO, ")");
       LOG(logAppl, DEBUG, dag_dump_grand_total_nodes << "[" 
           << dag_dump_grand_total_atomic << "]/"
           << dag_dump_grand_total_arcs << " (" << std::setprecision(2)
@@ -543,7 +543,7 @@ int process(char *ofname) {
           "Extracting morphological information into `" << moifile << "'...");
       print_morph_info(moif);
       if(get_opt_int("opt_cmi") > 1) {
-        LOG(logAppl, INFO, " type hierarchy...");
+        LOG(logApplC, INFO, " type hierarchy...");
         fprintf(moif, "\n");
         print_hierarchy(moif);
       }
