@@ -11,14 +11,29 @@
 #include "log4cpp/OstreamAppender.hh"
 #include "log4cpp/PatternLayout.hh"
 #include "log4cpp/SimpleLayout.hh"
+#include <log4cpp/LayoutsFactory.hh>
+#include <log4cpp/FactoryParams.hh>
 
 namespace log4cpp {
+  class SimplestLayout : public Layout {
+    virtual ~SimplestLayout() {}
+    virtual std::string format(const LoggingEvent &event) {
+      return event.message + '\n';
+    }
+  };
   class EmptyLayout : public Layout {
     virtual ~EmptyLayout() {}
     virtual std::string format(const LoggingEvent &event) {
       return event.message;
     }
   };
+
+  std::auto_ptr<Layout> create_simplest_layout(const FactoryParams& params) {
+    return std::auto_ptr<Layout>(new SimplestLayout);
+  }
+  std::auto_ptr<Layout> create_empty_layout(const FactoryParams& params) {
+    return std::auto_ptr<Layout>(new EmptyLayout);
+  }
 };
 
 Category &root = log4cpp::Category::getRoot(),
@@ -38,6 +53,11 @@ Category &root = log4cpp::Category::getRoot(),
   &logXML = log4cpp::Category::getInstance(std::string("logXML"));
 
 void init_logging(const std::string &base_dir) {
+  log4cpp::LayoutsFactory::getInstance().
+    registerCreator("simplest", log4cpp::create_simplest_layout);
+  log4cpp::LayoutsFactory::getInstance().
+    registerCreator("org.apache.log4j.EmptyLayout", log4cpp::create_empty_layout);
+
   try {
     std::string initFileName 
       = find_set_file("logging", ".properties", base_dir);
@@ -46,38 +66,29 @@ void init_logging(const std::string &base_dir) {
       return;
     }
   } catch(log4cpp::ConfigureFailure& f) {
+    std::cerr << f.what() << std::endl;
   }
-  // use default configuration
 
-  // don't now hot to suppress the CR in this logger
-  //nocrapp = new log4cpp::OstreamAppender("nocr", &std::cerr);
-  //nocrapp->setLayout(new log4cpp::EmptyLayout());
-  /*
-  Category *cats[] = {
-    &root, &logAppl, &logApplC, &logGenerics, &logGrammar, &logLexproc,
-    &logMorph,
-    &logPack, &logParse, &logSM, &logSemantic, &logSyntax, &logTsdb,
-    &logUnpack, &logXML
-  };
-  */
-  log4cpp::Appender *plainapp
+  // use the default configuration 
+  root.setPriority(WARN);
+  log4cpp::Appender *app
     = new log4cpp::OstreamAppender("default", &std::cerr);
-  plainapp->setLayout(new log4cpp::SimpleLayout());
-  root.setAppender(plainapp); root.setPriority(WARN);
+  app->setLayout(new log4cpp::SimpleLayout());
+  root.setAppender(app);
 
-  Category *appls[] = { &logAppl, &logApplC, NULL };
-  for (int i = 0; NULL != appls[i]; ++i) {
-    appls[i]->setPriority(INFO); appls[i]->setAdditivity(false);
-    log4cpp::Appender *emptyapp
-      = new log4cpp::OstreamAppender("empty", &std::cerr);
-    emptyapp->setLayout(new log4cpp::EmptyLayout());
-    appls[i]->setAppender(emptyapp);
-  }
+  logAppl.setPriority(INFO); logAppl.setAdditivity(false);
+  app = new log4cpp::OstreamAppender("simplest", &std::cerr);
+  app->setLayout(new log4cpp::SimplestLayout());
+  logAppl.setAppender(app);
 
-  log4cpp::Appender *emptyapp
-    = new log4cpp::OstreamAppender("empty", &std::cerr);
-  emptyapp->setLayout(new log4cpp::EmptyLayout());
-  logSyntax.setAdditivity(false); logSyntax.setAppender(emptyapp);
+  logApplC.setPriority(INFO); logApplC.setAdditivity(false);
+  app = new log4cpp::OstreamAppender("empty", &std::cerr);
+  app->setLayout(new log4cpp::EmptyLayout());
+  logApplC.setAppender(app);
+
+  app = new log4cpp::OstreamAppender("emptySyn", &std::cerr);
+  app->setLayout(new log4cpp::EmptyLayout());
+  logSyntax.setAdditivity(false); logSyntax.setAppender(app);
 }
 
 void shutdown_logging() {
@@ -118,10 +129,10 @@ Logger::print(const Category &cat, Priority prio) {
   // where to print it (more flexibility in the output)
   switch (cat._printer) {
   case 1:
-    return std::cerr << std::endl << std::setw(10) << clock() << " "
-                     << prio_names[prio/100] << ": " ;
+    return std::cerr << std::setw(10) << clock() << " "
+                     << prio_names[prio/100] << ": ";
   case 2:
-    return std::cerr << std::endl;
+    return std::cerr;
   case 3:
     return std::cerr;
   }
@@ -130,15 +141,13 @@ Logger::print(const Category &cat, Priority prio) {
 
 void 
 Logger::loggerendl::print(std::ostream &out) const {
-  /*
-  switch (_cat->_printer || root->_printer) {
-  case 1:
+  switch (_cat->_printer) {
+  case 1: out << std::endl;
     break;
-  case 2:
+  case 2: out << std::endl;
     break;
   case 3:
     break;
   }
-  */
 }
 #endif

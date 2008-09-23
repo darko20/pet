@@ -338,8 +338,7 @@ void process(const char *s) {
   timer t_start;
   
   try {
-    string base = raw_name(s);
-    cheap_settings = new settings(base.c_str(), s, "reading");
+    cheap_settings = new settings(raw_name(s), s, "reading");
     LOG(logAppl, INFO, "loading `" << s << "' ");
     Grammar = new tGrammar(s);
 

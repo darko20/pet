@@ -511,7 +511,7 @@ tMEM::parseOptions()
 void
 tMEM::parseFeatures(int nFeatures)
 {
-    LOG(logApplC, INFO, "[" << nFeatures << " features] ");
+    LOG(logAppl, INFO, "[" << nFeatures << " features] ");
 
     _weights.resize(nFeatures);
 
