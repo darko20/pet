@@ -434,7 +434,11 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
   // selectively unpacking
   list<tItem*> uroots;
   for (vector<tItem*>::iterator tree = trees.begin();
+       // TODO: this should be checked beforehand, because it does not change
+       // in the loop, and will either lead to no or all trees ending up in
+       // uroots, or am i wrong??
        (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
+       // END TODO 
          && tree != trees.end(); ++tree) {
     if (! (*tree)->blocked()) {
       stats.trees ++;
@@ -464,6 +468,8 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
   return nres;
 }
 
+
+// \todo why is opt_nsolutions not honored here
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
                         , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
@@ -509,6 +515,8 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors
   vector<tItem *> readings;
 
   if(opt_packing && !(opt_packing & PACKING_NOUNPACK)) {
+    // \todo What if there are already valid solutions but the edge limit has
+    // been hit? Why is there no unpacking at all
     if (opt_pedgelimit == 0 || Chart->pedges() < opt_pedgelimit) {
       timer *UnpackTime = new timer();
       int nres = 0;
