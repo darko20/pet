@@ -551,8 +551,30 @@ find_unexpanded(chart *ch, item_predicate &valid_item) {
   list<tInputItem *> result_list;
   for(hash_map< tInputItem *, bool >::iterator it = expanded.begin()
         ; it != expanded.end(); it++) {
-    if(! it->second) 
-      result_list.push_back(it->first);
+    if(! it->second) {
+      bool covered = false;
+      //
+      // when working from a token lattice, it may be legitimate to not have
+      // instantiated _all_ input items, as long as for each chart cell there
+      // is at least one valid lexical item.  
+      // _fix_me_
+      // for now, make this dependent on whether or not chart mapping is used,
+      // but probably it should be a more general option.      (25-sep-08; oe)
+      //
+      if (opt_chart_mapping) {
+        
+        chart_iter_span_passive 
+          coverage(ch, it->first->start(), it->first->end());
+        while(coverage.valid()) {
+          if (valid_item(coverage.current())) {
+            covered = true;
+            break;
+          }
+          coverage++;
+        } // while
+      } // if
+      if (!covered) result_list.push_back(it->first);
+    } // if
   }
   return result_list;
 }
@@ -838,6 +860,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
 void
 lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
                                , fs_alloc_state &FSAS, list<tError> &errors) {
+
   lexical_parsing(inp_tokens, lex_exhaustive, FSAS, errors);
   
   // dependency filtering is done on the chart itself
@@ -855,7 +878,7 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   // input items which are compatible with the generic (viz. where the input
   // feature structures unifies into a predefined path in the generic lexical
   // entry), regardless of whether there is a gap in the chart or not. This
-  // latter approach is slower, so there is a tradeoff between maximal
+  // latter approach may be slower, so there can be a tradeoff between maximal
   // robustness and fast parsing.
   
   // Gap computation.
