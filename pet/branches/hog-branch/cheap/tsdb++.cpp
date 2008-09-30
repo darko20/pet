@@ -594,10 +594,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 }
                 
 #ifdef HAVE_MRS
-                if(opt_mrs)
+                char *mrs = ((opt_tsdb_mrs != NULL) ? opt_tsdb_mrs : opt_mrs);
+                if(mrs != NULL)
                 {
-                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag()
-                                                , opt_mrs);
+                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(), mrs);
                 }
 #endif
                 T.push_result(R);

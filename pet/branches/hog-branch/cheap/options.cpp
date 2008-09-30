@@ -31,6 +31,7 @@
 
 char *grammar_file_name;
 char *opt_mrs;
+char *opt_tsdb_mrs;
 int opt_pg;
 int opt_tsdb;
 int opt_server;
@@ -130,6 +131,7 @@ void usage(FILE *f)
 
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
+  fprintf(f, "  `-tsdb_mrs[=mrs|mrx|rmrs|rmrx]' --- compute (other) MRS semantics for [incr tsdb()]\n");
 }
 
 #define OPTION_TSDB 0
@@ -168,6 +170,7 @@ void usage(FILE *f)
 #define OPTION_COMMENT_PASSTHROUGH 36
 #define OPTION_PREDICT_LES 37
 #define OPTION_TIMEOUT 38
+#define OPTION_TSDB_MRS 39
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -179,6 +182,7 @@ void init_options()
 {
   grammar_file_name = 0;
   opt_mrs = 0;
+  opt_tsdb_mrs = 0;
   opt_pg = 0;
   opt_tsdb = 0;
   opt_server = 0;
@@ -261,6 +265,7 @@ bool parse_options(int argc, char* argv[])
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
     {"mrs", optional_argument, 0, OPTION_MRS},
+    {"tsdb_mrs", optional_argument, 0, OPTION_TSDB_MRS},
     {"tsdbdump", required_argument, 0, OPTION_TSDB_DUMP},
     {"partial", no_argument, 0, OPTION_PARTIAL},
     {"results", required_argument, 0, OPTION_NRESULTS},
@@ -425,6 +430,12 @@ bool parse_options(int argc, char* argv[])
             opt_mrs = strdup(optarg);
           else
             opt_mrs = strdup("simple");
+          break;
+      case OPTION_TSDB_MRS:
+          if(optarg != NULL)
+            opt_tsdb_mrs = strdup(optarg);
+          else
+            opt_tsdb_mrs = strdup("simple");
           break;
       case OPTION_TSDB_DUMP:
           opt_tsdb_dir = optarg;

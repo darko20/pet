@@ -34,6 +34,8 @@ extern char *grammar_file_name;
 
 /** compute MRS (modes: C implementation, LKB bindings via ECL; default: no) */
 extern char *opt_mrs;
+/** compute MRS in tsdb (modes: C implementation, LKB bindings via ECL; default: no) */
+extern char *opt_tsdb_mrs;
 
 /** @name Operating modes
  * If none of the following options is provided, cheap will go into the usual
