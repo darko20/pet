@@ -29,14 +29,10 @@
 #include "pet-config.h"
 #include "config.h"
 
-extern bool opt_no_sem;
-
-extern int verbosity;
-extern int errors_to;
-
-extern char *grammar_file_name;
+//extern int verbosity;
+//extern int errors_to;
 
 void usage(FILE *f);
-bool parse_options(int argc, char* argv[]);
+char *parse_options(int argc, char* argv[]);
 
 #endif

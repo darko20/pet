@@ -42,7 +42,9 @@ void init_logging(const std::string &base_dir);
 void shutdown_logging();
 
 #else // HAVE_LOG4CPP
+#include "errors.h"
 #include <ostream>
+#include <map>
 
 typedef enum {EMERG  = 0, 
               FATAL  = 0,
@@ -53,27 +55,40 @@ typedef enum {EMERG  = 0,
               NOTICE = 500,
               INFO   = 600,
               DEBUG  = 700,
-              NOTSET = 800
+              NOTSET = 800,
+              ILLEGAL = -1
 } Priority;
 
 extern class Category
-  logAppl, logApplC, logGenerics, logGrammar, logLexproc, logMorph, logPack,
-  logParse, logSM, logSemantic, logSyntax, logTsdb, logUnpack, logXML, root;
+  &logAppl, &logApplC, &logGenerics, &logGrammar, &logLexproc, &logMorph,
+  &logPack, &logParse, &logSM, &logSemantic, &logSyntax, &logTsdb, &logUnpack,
+  &logXML, &root;
 
 class Category {
   Priority _prio;
   int _printer;
+  std::string _name;
+
 public:
-  Category(Priority prio, int printer) {
+  Category() { }
+  Category(const std::string &name, Priority prio, int printer) : _name(name) {
     set(prio, printer);
   }
 
-  void set(Priority prio, int printer){
-    _prio = prio != NOTSET ? prio : root._prio;
-    _printer = (printer != 0) ? printer : root._printer;
+  inline Priority prio() const {
+    return (_prio != NOTSET) ? _prio : root._prio;
+  }
+  inline int printer() const {
+    return (_printer != 0) ? _printer : root._printer;
+  }
+  inline const std::string &name() const { return _name; }
+
+  void set(Priority prio, int printer = 0){
+    _prio = prio;
+    _printer = printer;
   }
   
-  friend class Logger;
+  //friend class Logger;
 };
 
 class Logger {
@@ -88,13 +103,29 @@ public:
     void print(std::ostream &out) const;
   };
   inline static bool enabled(const Category &cat, Priority prio) {
-    return cat._prio >= prio;
+    return cat.prio() >= prio;
   }
   static std::ostream &print(const Category &cat, Priority prio);
   inline static const Logger::loggerendl &
   endl(const Category &cat, Priority prio) { return _e.set(cat,prio); }
+
+  static Category &addCat(const std::string &name, Priority prio, int printer) {
+    if (hasCat(name)) throw tError("category "+ name + " added twice");
+    _cats.insert(std::pair<std::string, Category>
+                 (name, Category(name, prio, printer)));
+    return _cats[name];
+  }
+  static bool hasCat(const std::string name) {
+    return (_cats.find(name) != _cats.end());
+  }
+  static Category &getCat(const std::string name) {
+    std::map<std::string, Category>::iterator it = _cats.find(name);
+    if (it != _cats.end()) return _cats[name];
+    else throw tError("unknown logging category requested");
+  }
 private:
   static Logger::loggerendl _e;
+  static std::map<std::string, Category> _cats;
 };
 
 inline std::ostream &operator<<(std::ostream &o, const Logger::loggerendl &e) {
@@ -110,7 +141,7 @@ inline std::ostream &operator<<(std::ostream &o, const Logger::loggerendl &e) {
   (LOG_ENABLED(__C, __P)                                                \
    ? (Logger::print(__C, __P) << __M << Logger::endl(__C, __P), 1) : 0)
 
-inline void init_logging(const std::string &base_dir) {}
+void init_logging(const std::string &base_dir);
 inline void shutdown_logging() {}
 #endif // HAVE_LIBLOG4CPP
 

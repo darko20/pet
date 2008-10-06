@@ -25,6 +25,7 @@
 #include "grammar.h"
 #include "morph.h"
 #include "settings.h"
+#include "logging.h"
 
 using std::string;
 using std::list;

@@ -19,8 +19,11 @@
 
 /* command line options */
 
+#include "pet-config.h"
 #include "options.h"
-
+#include "settings.h"
+#include "parse.h"
+#include "yy.h"
 #include "getopt.h"
 #include "fs.h"
 #include "cheap.h"
@@ -30,48 +33,7 @@
 #include <string>
 #include <unistd.h>
 
-// opt_fullform_morph is obsolete
-// bool opt_fullform_morph;
-#ifdef OLD_OPTIONS
-char *grammar_file_name;
-int opt_pg;
-int opt_tsdb;
-int opt_server;
-tokenizer_id opt_tok;
-int opt_comment_passthrough;
-bool opt_default_les;
-int opt_predict_les;
-int opt_packing;
-int opt_nsolutions;
-bool opt_shaping;
-bool opt_filter;
-bool opt_hyper;
-bool opt_chart_man;
-int opt_key;
-char *opt_compute_qc;
-bool opt_compute_qc_unif;
-bool opt_compute_qc_subs;
-int opt_nqc_unif;
-int opt_nqc_subs;
-long int opt_memlimit;
-int opt_timeout;
-int opt_pedgelimit;
-bool opt_shrink_mem;
-int verbosity;
-bool opt_print_failure;
-bool opt_derivation;
-bool opt_rulestatistics;
-int opt_nresults;
-bool opt_partial;
-std::string opt_tsdb_dir;
-bool opt_online_morph;
-bool opt_lattice;
-unsigned int opt_gplevel;
-#endif
-
-int opt_nqc_unif, opt_nqc_subs, verbosity;
-
-char *grammar_file_name = 0;
+extern int verbosity, opt_nqc_subs, opt_nqc_unif;
 
 void usage(FILE *f)
 {
@@ -151,6 +113,7 @@ void usage(FILE *f)
 #define OPTION_NO_CHART_MAN 16
 #define OPTION_LOG 17
 #define OPTION_MEMLIMIT 18
+#define OPTION_INTERACTIVE_MORPH 19
 #define OPTION_LATTICE 22
 #define OPTION_NBEST 23
 #define OPTION_NO_ONLINE_MORPH 24
@@ -176,64 +139,8 @@ void usage(FILE *f)
 //typedef T (*fromfunc)(const std::string &s);
 //typedef std::string (*tofunc)(const T &val);
 
-
-
-void init_options()
-{
-  verbosity = 0;
-    
-  managed_opt("opt_derivation",
-    "Store derivations in tsdb profile", true);
-  
-  managed_opt("opt_rulestatistics",
-    "dump the per-rule statistics to the tsdb database", false);
-  
-  managed_opt("opt_default_les",
-    "Try to use default lexical entries if no regular entries could be found. "
-    "Uses POS annotation, if available.", false);
-  
-  managed_opt("opt_pg",
-    "print grammar in ASCII form, one of (s)ymbols (the default), (g)lbs "
-    "(t)ype fs's or (a)ll", '\0');
-  
-  managed_opt("opt_chart_man",
-    "Allow lexical dependency filtering", true);
-  
-  managed_opt("opt_nbest", "", false);
-  
-  managed_opt("opt_online_morph", 
-    "use the internal morphology (the regular expression style one)", true);
-  
-  // opt_fullform_morph is obsolete
-  // opt_fullform_morph = true;
-    
-  managed_opt("opt_predict_les", 
-              "if not zero predict lexical entries for uncovered input",
-              (int) 0);
-
-  managed_opt("opt_timeout",
-              "stop processing (parsing & unpacking) after the specified"
-              " amount of (milli?)seconds",
-              (int) 0);
-
-  managed_opt("opt_partial",
-    "in case of parse failure, find a set of chart edges "
-    "that covers the chart in a good manner", false);
-  
-  managed_opt("opt_nresults",
-              "The number of results to print "
-              "(should be an argument of an API function)", 0);
-  
-#ifdef YY
-  managed_opt
-    ("opt_yy", 
-     "old shit that should be thrown out or properly reengineered and renamed.",
-     false);
-#endif
-}
-
 #ifndef __BORLANDC__
-bool parse_options(int argc, char* argv[])
+char* parse_options(int argc, char* argv[])
 {
   int c,  res;
 
@@ -266,6 +173,7 @@ bool parse_options(int argc, char* argv[])
     {"server", optional_argument, 0, OPTION_SERVER},
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", optional_argument, 0, OPTION_PG},
+    {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
@@ -282,16 +190,14 @@ bool parse_options(int argc, char* argv[])
     {0, 0, 0, 0}
   }; /* struct option */
 
-  init_options();
-
-  if(!argc) return true;
+  if(!argc) return NULL;
 
   while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
   {
       switch(c)
       {
       case '?':
-          return false;
+          return NULL;
       case OPTION_TSDB: {
           int opt_tsdb;
           if(optarg != NULL)
@@ -301,7 +207,7 @@ bool parse_options(int argc, char* argv[])
               {
                 LOG(logAppl, FATAL, 
                     "parse_options(): invalid tsdb++ protocol version");
-               return false;
+               return NULL;
               }
           }
           else
@@ -313,10 +219,9 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NSOLUTIONS:
           if(optarg != NULL)
-              set_opt("opt_nsolutions",
-                strtoint(optarg, "as argument to -nsolutions"));
+            set_opt_from_string("opt_nsolutions", optarg);
           else
-              set_opt("opt_nsolutions", 1);
+            set_opt("opt_nsolutions", 1);
           break;
       case OPTION_DEFAULT_LES:
           set_opt("opt_default_les", true);
@@ -378,6 +283,9 @@ bool parse_options(int argc, char* argv[])
           }
         }
         break;
+      case OPTION_INTERACTIVE_MORPH:
+          set_opt("opt_interactive_morph", true);
+          break;
       case OPTION_LATTICE:
           set_opt("opt_lattice", true);
           break;
@@ -397,8 +305,7 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_KEY:
           if(optarg != NULL)
-              set_opt("opt_key",
-                strtoint(optarg, "as argument to `-key'"));
+            set_opt_from_string("opt_key", optarg);
           break;
       case OPTION_LIMIT:
           if(optarg != NULL)
@@ -409,6 +316,8 @@ bool parse_options(int argc, char* argv[])
             set_opt_from_string("opt_memlimit", optarg);
           break;
       case OPTION_TIMEOUT:
+        // \todo the option should store the raw value and leave the details to 
+        // the implementation
           if(optarg != NULL)
             set_opt("opt_timeout",
                         (int)(sysconf(_SC_CLK_TCK) *
@@ -443,8 +352,7 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NRESULTS:
           if(optarg != NULL)
-              set_opt("opt_nresults",
-                strtoint(optarg, "as argument to -results"));
+            set_opt_from_string("opt_nresults", optarg);
           break;
       case OPTION_TOK: 
           set_opt_from_string("opt_tok", optarg);
@@ -487,9 +395,8 @@ bool parse_options(int argc, char* argv[])
   if(optind != argc - 1)
     {
       LOG(logAppl, FATAL, "parse_options(): expecting name of grammar to load");
-      return false;
+      return NULL;
     }
-  grammar_file_name = argv[optind];
 
   if( get_opt_bool("opt_hyper") &&
       get_opt_charp("opt_compute_qc") != NULL)
@@ -499,7 +406,7 @@ bool parse_options(int argc, char* argv[])
       set_opt("opt_hyper", false);
   }
 
-  return true;
+  return argv[optind];
 }
 #endif
 
@@ -524,7 +431,6 @@ int int_setting(settings *set, const char *s)
 
 void options_from_settings(settings *set)
 {
-  init_options();
   if(bool_setting(set, "one-solution"))
       set_opt("opt_nsolutions", 1);
   else

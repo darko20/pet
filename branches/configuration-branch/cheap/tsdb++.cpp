@@ -31,6 +31,8 @@
 #include "settings.h"
 #include "options.h" // opt_nqc_*
 #include "config.h"
+#include "logging.h"
+
 #ifdef YY
 # include "yy.h"
 #endif
@@ -40,6 +42,18 @@
 #include<fstream>
 
 using namespace std;
+
+static bool init();
+static bool tsdb_init = init();
+static bool init(){
+  managed_opt("opt_derivation",
+    "Store derivations in tsdb profile", true);
+  
+  managed_opt("opt_rulestatistics",
+    "dump the per-rule statistics to the tsdb database", false);
+  return true;
+}
+
 
 statistics stats;
 

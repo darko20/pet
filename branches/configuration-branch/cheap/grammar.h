@@ -193,12 +193,12 @@ public:
    *  argument position
    */
   inline bool get(grammar_rule * mother, grammar_rule * daughter, int arg) {
-    return ! valid() || *access(mother, daughter) & (1 << (arg - 1)) ;
+    return ! valid() || (0 != (*access(mother, daughter) & (1 << (arg - 1)))) ;
   }
 
   /** is \a daughter compatible with \a mother */
   inline bool get(grammar_rule * mother, grammar_rule * daughter) {
-    return ! valid() || *access(mother, daughter)  ;
+    return ! valid() || (0 != *access(mother, daughter)) ;
   }
 
   /** specify that \a daughter is compatible with \a mother in the \a arg'th
@@ -230,9 +230,6 @@ public:
 /** Class containing all the infos from the HPSG grammar */
 class tGrammar {
 public:
-
-  /** initialize global options */
-  static int init_globals();
 
   /** Initalize this grammar by reading it from the file \a filename */
   tGrammar(const char *filename);

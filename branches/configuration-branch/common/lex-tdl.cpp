@@ -28,7 +28,7 @@
 #endif
 
 #include <cassert>
-#include <ostream>
+#include <iomanip>
 
 const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
@@ -534,18 +534,18 @@ void syntax_error(const char *msg, struct lex_token *t)
   syntax_errors ++;
   if(t->tag == T_EOF)
     {
-      fprintf(ferr, "syntax error at end of input: %s\n", msg);
+      LOG(logSyntax, ERROR, "error: syntax error at end of input: " << msg);
     }
   else if(t->loc == NULL)
     {
-      fprintf(ferr, "syntax error - got `%.20s', %s\n",
-              t->text, msg);
+      LOG(logSyntax, ERROR, "error: syntax error - got `" << std::setw(20)
+          << t->text << "', " << msg);
     }
   else
     {
-      fprintf(ferr, "%s:%d:%d error: (syntax) - got `%.20s', %s\n",
-              t->loc->fname, t->loc->linenr, t->loc->colnr,
-              t->text, msg);
+      LOG(logSyntax, ERROR, t->loc->fname << ":" << t->loc->linenr << ":"
+          << t->loc->colnr << ": error: (syntax) - got `" << std::setw(20)
+          << t->text << "', " << msg);
     }
 }
 

@@ -39,12 +39,6 @@ public:
    *  number means higher level, the highest level modules should return 1.
    */
   virtual int level() const { return 1; }
-
-  /** Initialize all the options for the input modules.
-      \todo maybe we should split that into init()s for the modules, but it's
-      ok for now.
-   */
-  static void init();
 };
 
 /** function object to compare two modules according to their priority (level)

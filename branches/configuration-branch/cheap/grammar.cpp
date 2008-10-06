@@ -35,6 +35,7 @@
 #include "settings.h"
 #include "options.h" // opt_nqc_*
 #include "config.h"
+#include "logging.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
@@ -43,7 +44,14 @@
 #include "dagprinter.h"
 #include <fstream>
 
-int grammar_rule::next_id = tGrammar::init_globals();
+static int init();
+int grammar_rule::next_id = init();
+static int init() {
+  managed_opt("opt_key",
+              "What is the key daughter used in parsing?"
+              "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", (int) 0);
+  return 0;
+}
 
 // defined in parse.cpp
 extern int opt_packing;
@@ -188,14 +196,14 @@ grammar_rule::grammar_rule(type_t t)
     // this is wrong for more than binary branching rules, 
     // since adjacency is not guarantueed.
     
-    int key_choice;
-    get_opt("opt_key", key_choice);
-    if(key_choice == 0) // take key arg specified in fs
+    int opt_key;
+    get_opt("opt_key", opt_key);
+    if(opt_key == 0) // take key arg specified in fs
     {
         if(keyarg != -1) 
             _tofill = append(_tofill, keyarg);
     }
-    else if(key_choice == 3) // take head daughter
+    else if(opt_key == 3) // take head daughter
     {
         if(head != -1) 
             _tofill = append(_tofill, head);
@@ -203,7 +211,7 @@ grammar_rule::grammar_rule(type_t t)
             _tofill = append(_tofill, keyarg);
     }
     
-    if(key_choice != 2) // right to left, 2 is left to right
+    if(opt_key != 2) // right to left, 2 is left to right
     {
         for(int i = 1; i <= _arity; i++)
             if(!contains(_tofill, i)) _tofill = append(_tofill, i);
@@ -354,13 +362,6 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
     qc_len_subs = opt_nqc_subs;
 
   fs::init_qc(qc_paths_unif, qc_len_unif, qc_paths_subs, qc_len_subs);
-}
-
-int tGrammar::init_globals() {
-  managed_opt<int>("opt_key",
-    "What is the key daughter used in parsing?"
-    "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", 0);
-  return 0;
 }
 
 // Construct a grammar object from binary representation in a file
@@ -579,8 +580,7 @@ tGrammar::tGrammar(const char * filename)
     if(property("unfilling") == "true" && opt_packing)
     {
       LOG(logGrammar, WARN,
-            "warning: cannot using packing on unfilled grammar -"
-            " packing disabled");
+            "cannot use packing on unfilled grammar - packing disabled");
       opt_packing = 0;
     }
 
@@ -707,8 +707,7 @@ tGrammar::init_parameters()
     }
     if(opt_packing && (_packing_restrictor == NULL)) {
       LOG(logGrammar, WARN,
-          "Warning: packing enabled but no packing restrictor: "
-          "packing disabled");
+          "packing enabled but no restrictor - packing disabled");
       opt_packing = 0;
     }
 }

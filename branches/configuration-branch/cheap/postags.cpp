@@ -25,6 +25,7 @@
 #include "utility.h"
 #include "postags.h"
 #include "settings.h"
+#include "logging.h"
 
 #include <iomanip>
 

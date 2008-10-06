@@ -169,7 +169,7 @@ int LConsume(int n)
 
   if(CURR->pos + n > CURR->len)
     {
-      fprintf(ferr, "nothing to consume...\n");
+      LOG(logSyntax, ERROR, "nothing to consume...");
       return 0;
     }
 

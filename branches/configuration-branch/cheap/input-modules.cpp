@@ -23,11 +23,14 @@
 #include "settings.h"
 #include "config.h"
 
+extern FILE *fstatus;
+
 /** @name Tokenization options */
 //@{
+static std::string init();
 /** choose tokenizer */
 std::string tokenizer_names[] = { 
-  "string", "yy", "yy_counts", "pic", "pic_counts", "smaf", "fsr", "INVALID"
+  "string", "yy", "yy_counts", "pic", "pic_counts", "smaf", "fsr", init()
 } ;
 //@}
 
@@ -56,12 +59,18 @@ class TokenizerIDConverter : public AbstractConverter<tokenizer_id> {
   }
 };
 
-void tInputModule::init() {
+/** Initialize all the options for the input modules.
+    \todo maybe we should split that into init()s for the modules, but it's
+    ok for now.
+*/
+static std::string init() {
   managed_opt<tokenizer_id>("opt_tok", "", TOKENIZER_STRING,
                             //string2tokenizerid, tokenizerid2string
                             new TokenizerIDConverter()
                             );
+  return std::string("INVALID");
 }
+
 
 using std::string;
 using std::list;

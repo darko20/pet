@@ -104,6 +104,10 @@ struct dag_node *dagify_avm(struct avm *A)
 
   result = new_dag(BI_TOP);
 
+  attr_t sem_attr = T_BOTTOM;
+  if (get_opt_bool("opt_no_sem"))
+    sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
+  
   for(i = 0; i < A->n; i++)
     {
       struct dag_arc *arc;
@@ -118,8 +122,7 @@ struct dag_node *dagify_avm(struct avm *A)
       // removed from the hierarchy definitions and the feature itself is
       // ignored in all computation concering features, such as appropriate
       // type computation.
-      if(opt_no_sem 
-         && attr == attributes.id(flop_settings->req_value("sem-attr")))
+      if(attr == sem_attr)
         continue;
 
       if((val = dagify_conjunction(A->av[i]->val, BI_TOP)) == FAIL)

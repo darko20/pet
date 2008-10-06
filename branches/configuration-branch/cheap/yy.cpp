@@ -51,6 +51,7 @@
 #include "typecache.h"
 #include "tsdb++.h"
 #include "yy.h"
+#include "config.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #define massageUTF8(str) Conv->convert(ConvUTF8->convert(str))

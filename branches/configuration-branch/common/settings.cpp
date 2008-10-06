@@ -263,8 +263,9 @@ void settings::parse_one()
             }
           else
             {
-              fprintf(ferr, "%s:%d: warning: ignoring %s\n",
-                      LA(0)->loc->fname, LA(0)->loc->linenr, LA(0)->text);
+              LOG(logSyntax, WARN, LA(0)->loc->fname << ":"
+                  << LA(0)->loc->linenr << ": warning: ignoring "
+                  << LA(0)->text);
             }
 
           consume(1);
@@ -286,8 +287,8 @@ void settings::parse() {
       consume(1);
 
       if(LA(0)->tag != T_STRING) {
-        fprintf(ferr, "%s:%d: warning: expecting include file name",
-                LA(0)->loc->fname, LA(0)->loc->linenr);
+        LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+            << ": warning: expecting include file name");
       }
       else {
         string ofname = _prefix + LA(0)->text + SET_EXT;

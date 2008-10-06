@@ -25,6 +25,7 @@
 #include "cheap.h"
 #include "tsdb++.h"
 #include "sm.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -249,27 +250,21 @@ active_and_passive_task::execute()
 }
 
 void
-basic_task::print(FILE *f)
+basic_task::print(std::ostream &out)
 {
-    fprintf(f, "task #%d (%.2f)", _id, _p);
+  out << "task #" << _id << " (" << std::setprecision(2) << _p << ")";
 }
 
 void
-rule_and_passive_task::print(FILE *f)
+rule_and_passive_task::print(std::ostream &out)
 {
-    fprintf(f,
-            "task #%d {%s + %d} (%.2f)",
-            _id,
-            _R->printname(), _passive->id(),
-            _p);
+  out << "task #" << _id << " {" << _R->printname() << " + "
+      << _passive->id() << "} (" << std::setprecision(2) << _p << ")";
 }
 
 void
-active_and_passive_task::print(FILE *f)
+active_and_passive_task::print(std::ostream &out)
 {
-    fprintf(f,
-            "task #%d {%d + %d} (%.2f)",
-            _id,
-            _active->id(), _passive->id(),
-            _p);
+  out << "task #" << _id << " {" << _active->id() << " + " << _passive->id() 
+      << "} (" << std::setprecision(2) << _p << ")";
 }

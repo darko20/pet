@@ -92,11 +92,6 @@ extern char *global_inflrs;
  */
 extern int allow_redefinitions;
 
-/** Output for status messages. */
-extern FILE *fstatus;
-/** Output for error messages. */
-extern FILE *ferr;
-
 /*@{*/
 /** Tables containing a reordering function for types, from the old type id to
  *  the new one and the inverse .

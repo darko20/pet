@@ -48,13 +48,12 @@ bool opt_compute_qc_unif;
 bool opt_compute_qc_subs;
 //@}
 
-bool fs_init();
+static bool fs_init();
 /** print unification failures */
 bool opt_print_failure = fs_init();
 
-bool fs_init() {
-  managed_opt
-    ("opt_compute_qc",
+static bool fs_init() {
+  managed_opt("opt_compute_qc",
     "Activate code that collects unification/subsumption failures "
     "for quick check computation, contains filename to write results to",
     (const char *) NULL);
