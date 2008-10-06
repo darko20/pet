@@ -28,7 +28,6 @@
 #include <limits.h>
 #include "list-int.h"
 #include "fs.h"
-//#include "options.h"
 #include "grammar.h"
 #include "paths.h"
 #include "postags.h"

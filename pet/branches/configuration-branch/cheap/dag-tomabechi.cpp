@@ -195,7 +195,7 @@ dag_unify_get_failures(dag_node *dag1, dag_node *dag2, bool get_all_failures,
   unification_cost = 0;
 
   if(path_reverse != 0)
-    fprintf(ferr, "dag_unify_get_failures: path_reverse not empty\n");
+    LOG(logSemantic, WARN, "dag_unify_get_failures: path_reverse not empty");
   path_reverse = reverse(initial_path);
 
   recfail<true>::dag_unify1(dag1, dag2);
@@ -249,7 +249,7 @@ dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
   unification_cost = 0;
 
   if(path_reverse != 0)
-    fprintf(ferr, "dag_subsumes_get_failures: path_reverse not empty\n");
+    LOG(logSemantic, WARN, "dag_subsumes_get_failures: path_reverse not empty");
 
   path_reverse = 0;
 
@@ -1160,8 +1160,8 @@ dag_node *dag_expand_rec(dag_node *dag) {
     // No need to check for dynamic types since their typedags have no arcs
     if(type_dag(super)->arcs && type_dag(super)->type == super) {
       if(recfail<false>::dag_unify1(dag, cached_constraint_of(super)) == FAIL){
-        fprintf(ferr, "expansion failed @ 0x%x for `%s'\n",
-                (size_t) dag, type_name(new_type));
+        LOG(logSemantic, WARN, "expansion failed @ 0x" << setbase(16)
+            << (size_t) dag << " for `" << type_name(new_type) << "'");
         return FAIL;
       }
     }

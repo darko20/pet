@@ -30,7 +30,8 @@
 #include "task.h"
 #include "tsdb++.h"
 #include "config.h"
-#include "options.h" // PACKING_
+#include "settings.h"
+#include "logging.h"
 
 #include <sstream>
 #include <iostream>
@@ -56,6 +57,17 @@ tAgenda *Agenda;
 timer ParseTime;
 timer TotalParseTime(false);
 
+/** @name Quick check
+ * see Oepen & Carroll 2000a,b
+ * \todo all of quick check should go into fs, including these two
+ */
+//@{
+/** use only top n quickcheck paths (unification) */
+int opt_nqc_unif;
+/** use only top n quickcheck paths (subsumption) */
+int opt_nqc_subs;
+//@}
+
 static bool parser_init();
 //options managed by configuration subsystem
 bool opt_filter, opt_hyper = parser_init();
@@ -67,27 +79,30 @@ int opt_nth_meaning;
 
 /** Initialize global variables and options for the parser */
 static bool parser_init() {
-  reference_opt("opt_filter", "Use the static rule filter", opt_filter);
+  reference_opt("opt_filter", 
+     "Use the static rule filter (see Kiefer et al 1999)", opt_filter);
   opt_filter = true;
-  reference_opt("opt_hyper", "use hyperactive parsing", opt_hyper);
+  reference_opt("opt_hyper",
+     "use hyperactive parsing (see Oepen & Carroll 2000b)", opt_hyper);
   opt_hyper = true;
   reference_opt("opt_nsolutions",
-                       "The number of solutions until the parser is"
-                       "stopped, if not in packing mode", opt_nsolutions);
+                "The number of solutions until the parser is"
+                "stopped, if not in packing mode", opt_nsolutions);
   opt_nsolutions = 0;
-  reference_opt("opt_packing",
-                       "a bit vector of flags: 1:equivalence "
-                       "2:proactive 4:retroactive packing "
-                       "8:selective 128:no unpacking", opt_packing);
+  reference_opt("opt_packing", 
+                "choose ambiguity packing mode. (see Oepen & Carroll 2000a,b) "
+                "a bit vector of flags: 1:equivalence "
+                "2:proactive 4:retroactive packing; "
+                "8:selective 128:no unpacking", opt_packing);
   opt_packing = 0;
   managed_opt("opt_pedgelimit", "maximum number of passive edges",
-                    (int) 0);
-  managed_opt("opt_memlimit", "maximum memory usage",
-                    (int) 0);
-  managed_opt("opt_timelimit", "maximum time usage",
-                    (int) 0);
-  managed_opt("opt_shrink_mem", "shrink process size after huge items",
-                    true);
+              (int) 0);
+  managed_opt("opt_memlimit", "memory limit (in MB) for parsing and unpacking",
+              (int) 0);
+  managed_opt("opt_timeout", "timeout limit (in s) for parsing and unpacking",
+              (int) 0);
+  managed_opt("opt_shrink_mem", "allow process to shrink after huge items",
+              true);
   return opt_hyper;
 }
 
@@ -153,8 +168,8 @@ bool
 filter_combine_task(tItem *active, tItem *passive)
 {
 #ifdef PETDEBUG
-    LOG(logParse, DEBUG, "trying active " << active 
-        << " & passive " << passive << " ==> ");
+    LOG(logParse, DEBUG, "trying active " << *active 
+        << " & passive " << *passive << " ==> ");
 #endif
 
     if(opt_filter && !Grammar->filter_compatible(active->rule(),
@@ -319,9 +334,10 @@ packed_edge(tItem *newitem) {
           ? newitem->rule()->printname() : newitem->printname() ;
         const char *id2 = (olditem->rule() != NULL)
           ? olditem->rule()->printname() : olditem->printname() ;
-        fprintf(ferr, "SF: %s <-> %s ", id1, id2);
-        if (uf != NULL) uf->print(ferr);
-        fprintf(ferr, "\n");
+        if (uf != NULL)
+          LOG(logParse, DEBUG, "SF: " << id1 << " <-> " << id2 << " " << *uf);
+        else 
+          LOG(logParse, DEBUG, "SF: " << id1 << " <-> " << id2);
       }
 #endif
 
@@ -361,6 +377,9 @@ packed_edge(tItem *newitem) {
   return false;
 }
 
+/** return \c true if parsing should be stopped because enough results have
+ *  been found
+ */
 inline bool result_limits() {
   // in no-unpacking mode (aiming to determine parseability only), have we
   // found at least one tree?
@@ -369,10 +388,10 @@ inline bool result_limits() {
   // in (non-packing) best-first mode, is the number of trees found equal to
   // the number of requested solutions?
   // opt_packing w/unpacking implies exhaustive parsing
-  if (! opt_packing
-      || (opt_nsolutions == 0 || stats.trees < opt_nsolutions)
+  if ((! opt_packing
+       && opt_nsolutions != 0 && stats.trees >= opt_nsolutions)
 #ifdef YY
-      || (opt_nth_meaning == 0 || stats.nmeanings < opt_nth_meaning)
+      || (opt_nth_meaning != 0 && stats.nmeanings >= opt_nth_meaning)
 #endif
       ) return true;
   return false;
@@ -383,7 +402,7 @@ bool add_item(tItem *it) {
   assert(!it->blocked());
   
 #ifdef PETDEBUG
-  LOG(logParse, DEBUG, "add_item " << it);
+  LOG(logParse, DEBUG, "add_item " << *it);
 #endif
 
   if(it->passive()) {
@@ -440,8 +459,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 
     basic_task* t = Agenda->pop();
 #ifdef PETDEBUG
-        t->print(stderr);
-        fprintf(stderr, "\n");
+    LOG(logParse, DEBUG, t);
 #endif
     tItem *it = t->execute();
     delete t;
@@ -611,7 +629,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
         prune_glbcache();
     }
 
-    LOG(logParse, DEBUG, Chart);
+    LOG(logParse, DEBUG, *Chart);
 
     if(resources_exhausted(pedgelimit, memlimit, timeout, timestamp))
     {

@@ -105,6 +105,10 @@ bool compute_appropriateness() {
         }
     }
 
+  attr_t sem_attr = T_BOTTOM;
+  if(get_opt_bool("opt_no_sem"))
+    sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
+
   for(i = 0; i < attributes.number(); i++)
     {
       if(apptype[i] == BI_TOP)
@@ -114,8 +118,7 @@ bool compute_appropriateness() {
           // removed from the hierarchy definitions and the feature itself is
           // ignored in all computation concering features, such as appropriate
           // type computation.
-          if(opt_no_sem 
-             && i == attributes.id(flop_settings->req_value("sem-attr")))
+          if(i == sem_attr)
             apptype[i] = types.id(flop_settings->req_value("grammar-info"));
           else
             // This attribute did not appear on the top level of a type
@@ -755,16 +758,15 @@ void compute_feat_sets(bool minimal) {
     }
   }
 
-  if (LOG_ENABLED(logSemantic, DEBUG))
-  for(i = 0; i < feature_conf_id; i++) {
-    fprintf(fstatus, "feature configuration %d:", i);
-
-    list_int *l = theconf[i];
-    while(l) {
-      fprintf(fstatus, " %s", attributes.name(first(l)).c_str());
-      l = rest(l);
+  if (LOG_ENABLED(logSemantic, DEBUG)) {
+    ostringstream sdeb;
+    for(i = 0; i < feature_conf_id; i++) {
+      sdeb << "feature configuration " << i << ":";
+      for(list_int *l = theconf[i]; l != NULL; l = rest(l))
+        sdeb << " " << attributes.name(first(l));
+      sdeb << std::endl;
     }
-    fprintf(fstatus, "\n");
+    LOG(logSemantic, DEBUG, sdeb.str());
   }
 
   if(!minimal) {

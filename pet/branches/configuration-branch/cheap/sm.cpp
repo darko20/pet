@@ -28,6 +28,8 @@
 #include "options.h"
 #include "grammar.h"
 #include "item.h"
+#include "logging.h"
+
 #include <sstream>
 #include <float.h>
 

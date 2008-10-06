@@ -29,6 +29,17 @@
 #include <string>
 #include <list>
 
+/** @name Ambiguity packing modes */
+//@{
+#define PACKING_EQUI  (1 << 0)
+#define PACKING_PRO   (1 << 1)
+#define PACKING_RETRO (1 << 2)
+#define PACKING_SELUNPACK (1 << 3)
+#define PACKING_NOUNPACK (1 << 7)
+//@}
+
+extern int opt_nqc_unif, opt_nqc_subs;
+
 /** Gives the total time spent in parsing (more specifically: in the function
  *  parse_loop).
  */

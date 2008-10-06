@@ -12,8 +12,6 @@ using namespace HASH_SPACE;
 using namespace XERCES_CPP_NAMESPACE;
 using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
 
-extern FILE *ferr;
-
 namespace pic {
 
 /******************************************************************************

@@ -487,7 +487,7 @@ int process(char *ofname) {
     if(!get_opt_bool("opt_pre"))
       check_undefined_types();
 
-    LOG(logAppl, INFO, std::endl << "finished parsing - " 
+    LOG(logAppl, INFO, std::endl << std::endl << "finished parsing - " 
         << syntax_errors << " syntax errors, "
         << total_lexed_lines << " lines in " << std::setprecision(3)
         << (clock() - t_start) / (float) CLOCKS_PER_SEC << " s");
@@ -558,6 +558,7 @@ int process(char *ofname) {
   return res;
 }
 
+/*
 FILE *fstatus, *ferr;
 
 void setup_io()
@@ -603,6 +604,7 @@ void setup_io()
 
   setvbuf(ferr, 0, _IONBF, 0);
 }
+*/
 
 void cleanup() {
 }
@@ -612,20 +614,19 @@ int main(int argc, char* argv[])
   int retval;
   // set up the streams for error and status reports
 
-  ferr = fstatus = stderr; // preliminary setup
-
   setlocale(LC_ALL, "" );
 
   // initialization of logging
   init_logging(argv[argc-1]);
 
-  if(!parse_options(argc, argv))
+  char *grammar_file_name;
+  if((grammar_file_name = parse_options(argc, argv)) == NULL)
     {
       usage(stderr);
       cleanup(); exit(1);
     }
 
-  setup_io();
+  //setup_io();
 
   try { retval = process(grammar_file_name); }
   catch(tError &e)

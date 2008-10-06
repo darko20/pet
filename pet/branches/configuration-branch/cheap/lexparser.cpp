@@ -29,16 +29,38 @@
 #include "sm.h"
 #include "settings.h"
 #include "config.h"
+#include "logging.h"
 
 #include <iostream>
 
 using namespace std;
 using namespace HASH_SPACE;
 
+static lex_parser &init();
+
 lex_parser global_lexparser;
-lex_parser &Lexparser = global_lexparser;
+lex_parser &Lexparser = init();
 extern chart *Chart;
 extern tAgenda *Agenda;
+
+static lex_parser &init() {
+  /** @name Unknown word handling */
+  //@{
+  managed_opt("opt_default_les",
+    "Try to use default (generic) lexical entries if no regular entries could "
+    "be found. Uses POS annotation, if available.", false);
+
+  managed_opt("opt_predict_les",
+    "Try to use lexical type predictor if no regular entries could "
+    "be found. Use at most the number of entries specified", 0);
+  //@}
+
+  managed_opt("opt_chart_man",
+    "allow/disallow chart manipulation (currently only dependency filter)",
+    true);
+  
+  return global_lexparser;
+} 
 
 // functions from parse.cpp
 extern void add_item(tItem *it);
@@ -56,7 +78,8 @@ void lex_parser::init() {
 void debug_tokenize(string desc, string input, inp_list &tokens) {
   ostringstream cdeb;
   cdeb << "tokenizer = " << desc << endl
-       << "tokenizer input:" << endl << input << endl << endl;
+       << "tokenizer input:" << endl << input << endl << endl
+       << "tokenizer output:" << endl;
   for(inp_iterator r = tokens.begin(); r != tokens.end(); ++r)
     cdeb << (*r);
   LOG(logLexproc, DEBUG, cdeb.str());
@@ -186,7 +209,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   newfs.modify_eagerly(mods);
 
   if (newfs.valid()) {
-    //fprintf(ferr, "combine() succeeded in creating valid fs\n");
+    // LOG(logParse, DEBUG, "combine() succeeded in creating valid fs");
     add(new tLexItem(stem, i_item, newfs, infl_rules));
   }
   else LOG(logParse, DEBUG, "combine() failed in creating valid fs!");
@@ -745,25 +768,24 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     unexpanded = find_unexpanded(Chart, *valid) ;
   }
 
-  bool opt_default_les ;
+  int opt_predict_les;
+  bool opt_default_les;
   get_opt("opt_default_les", opt_default_les);
   // This may in principle lead to new lexical parsing, but only if generics
   // may be multi word entries.
   if(! unexpanded.empty()) {
-    int opt_predict_les;
     if (opt_default_les) {
       add_generics(unexpanded);
     } else {
+      get_opt("opt_predict_les", opt_predict_les);
       // Lexical type predictor will only be used when there is
       // unexpanded inps and the `-default-les' is not used.
-      get_opt("opt_predict_les", opt_predict_les);
       if (opt_predict_les != 0) {
-        opt_default_les = true;
         add_predicts(unexpanded, inp_tokens, opt_predict_les);
       }
     }
 
-    if (opt_predict_les) {
+    if (opt_default_les || (0 != opt_predict_les)) {
       unexpanded.clear();
       
       while (! _agenda.empty()) {

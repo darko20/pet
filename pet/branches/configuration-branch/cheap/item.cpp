@@ -32,8 +32,8 @@
 #include "utility.h"
 #include "dagprinter.h"
 #include "settings.h"
-#include "options.h" // opt_nqc_**
 #include "config.h"
+#include "logging.h"
 
 #include <sstream>
 #include <iostream>
@@ -44,8 +44,8 @@ using namespace std;
 //#define PETDEBUG
 //#define PETDEBUGPOS
 
-// 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>: new option for grand-parenting
-// level in MEM-based parse selection
+// 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>:
+// option for grand-parenting level in MEM-based parse selection
 unsigned int opt_gplevel;
 
 // defined in parse.cpp
@@ -54,18 +54,19 @@ extern int opt_packing;
 bool tItem::init_item() {
   tItem::opt_shaping = true;
   reference_opt("opt_shaping", 
-                       "Filter items that would reach beyond the chart",
-                       tItem::opt_shaping);
+                "Filter items that would reach beyond the chart",
+                tItem::opt_shaping);
+  /** word lattice parsing (permissible token paths, cf tPath class) */
   tItem::opt_lattice = false;
   reference_opt("opt_lattice", 
-                       "use the lattice structure specified in the input "
-                       "to restrict the search space in parsing",
-                       tItem::opt_lattice);
+                "use the lattice structure specified in the input "
+                "to restrict the search space in parsing",
+                tItem::opt_lattice);
   opt_gplevel = 0;
   reference_opt("opt_gplevel",
-                       "determine the level of grandparenting "
-                       "used in the models for selective unpacking",
-                       opt_gplevel);
+                "determine the level of grandparenting "
+                "used in the models for selective unpacking",
+                opt_gplevel);
   return opt_lattice;
 }
 
@@ -382,9 +383,7 @@ void tLexItem::init() {
   }
 
 #ifdef PETDEBUG
-  fprintf(ferr, "new lexical item (`%s'):", printname());
-  print(ferr);
-  fprintf(ferr, "\n");
+  LOG(logParse, DEBUG, "new lexical item (`" << printname() << "'):" << *this);
 #endif
 }
 
@@ -471,7 +470,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   _spanningonly = R->spanningonly();
   
 #ifdef PETDEBUG
-  fprintf(stderr, "A %d < %d\n", pasv->id(), id());
+  LOG(logParse, DEBUG, "A " << pasv->id() << " < " << id());
 #endif
   pasv->parents.push_back(this);
   
@@ -495,10 +494,8 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   }
 
 #ifdef PETDEBUG
-  fprintf(ferr, "new rule tItem (`%s' + %d@%d):",
-          R->printname(), pasv->id(), R->nextarg());
-  print(ferr);
-  fprintf(ferr, "\n");
+  LOG(logParse, DEBUG, "new rule tItem (`" << R->printname() << "' + "
+      << pasv->id() << "@" << R->nextarg() << "):" << *this);
 #endif
 }
 
@@ -526,7 +523,8 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     }
     
 #ifdef PETDEBUG
-    fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
+    LOG(logParse, DEBUG, 
+        "A " << pasv->id() << " " <<  active->id() << " < " << id());
 #endif
     pasv->parents.push_back(this);
     active->parents.push_back(this);
@@ -556,10 +554,8 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     }
 
 #ifdef PETDEBUG
-    fprintf(ferr, "new combined item (%d + %d@%d):",
-            active->id(), pasv->id(), active->nextarg());
-    print(ferr);
-    fprintf(ferr, "\n");
+    LOG(logParse, DEBUG, "new combined item (" << active->id() << " + "
+        << pasv->id() << "@" << active->nextarg() << "):" << *this);
 #endif
 }
 
@@ -718,9 +714,7 @@ void tPhrasalItem::recreate_fs()
 #ifdef PETDEBUG
     {
         temporary_generation t(_fs.temp());
-        fprintf(ferr, "recreated fs of ");
-        print(ferr, false);
-        fprintf(ferr, "\n");
+        LOG(logParse, DEBUG, "recreated fs of " << *this)
     }
 #endif
 }

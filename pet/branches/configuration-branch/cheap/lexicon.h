@@ -25,7 +25,6 @@
 #define _LEXICON_H_
 
 #include "types.h"
-#include "logging.h"
 
 /** A lexicon entry. */
 class lex_stem

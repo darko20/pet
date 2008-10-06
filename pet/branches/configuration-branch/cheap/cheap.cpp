@@ -42,7 +42,8 @@
 #include "vpm.h"
 #include "qc.h"
 #include "config.h"
-#include "options.h" // verbosity and many other things
+#include "options.h"
+#include "settings.h"
 
 #ifdef YY
 #include "yy.h"
@@ -68,6 +69,8 @@ const char * version_string = VERSION ;
 const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
 FILE *ferr, *fstatus, *flog;
+
+int verbosity = 0;
 
 // global variables for parsing
 
@@ -153,9 +156,10 @@ void interactive() {
       tsdb_dump.finish(Chart, surface);
       dump_jxchg(surface, Chart);
       
-      //tTclChartPrinter chp("/tmp/final-chart-bernie", 0);
+      ofstream out("/tmp/final-chart-bernie");
+      tTclChartPrinter chp(out, 0);
       //tFegramedPrinter chp("/tmp/fed-");
-      //Chart->print(cerr, &chp, true, true);
+      Chart->print(out, &chp, true, true);
 
       const char * opt_mrs = get_opt_string("opt_mrs").c_str();
       if (strlen(opt_mrs) == 0) opt_mrs = NULL;
@@ -166,10 +170,11 @@ void interactive() {
                                 , Chart->readings().end());
         // sorting was done already in parse_finish
         // results.sort(item_greater_than_score());
-        for(item_iter iter = results.begin();
-            (iter != results.end())
-              && ((get_opt_int("opt_nresults") == 0)
-                   || (get_opt_int("opt_nresults") > nres))
+        int opt_nresults;
+        get_opt("opt_nresults", opt_nresults);
+        for(item_iter iter = results.begin()
+              ; (iter != results.end()
+                 && ((opt_nresults == 0) || (opt_nresults > nres)))
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
@@ -502,30 +507,63 @@ void process(const char *s) {
 
 
 void main_init() {
-  //2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option for input comments
+  //2004/03/12 Eric Nichols <eric-n@is.naist.jp>: new option to allow for
+  // input comments
   managed_opt("opt_comment_passthrough",
     "Ignore/repeat input classified as comment: starts with '#' or '//'",
     false);
+
+  /** @name Operating modes
+   * If none of the following options is provided, cheap will go into the usual
+   * parsing mode.
+   */
+  //@{
   managed_opt("opt_tsdb",
     "enable [incr tsdb()] slave mode (protocol version = n)",
     0);
-  managed_opt("opt_tsdb_dir",
-     "write [incr tsdb()] item, result and parse files to this directory",
-     ((std::string) ""));
   managed_opt("opt_server",
     "go into server mode, bind to port `n' (default: 4711)",
     0);
+  managed_opt("opt_pg",
+    "print grammar in ASCII form, one of (s)ymbols (the default), (g)lbs "
+    "(t)ype fs's or (a)ll", '\0');
+  //@}
+
   managed_opt("opt_interactive_morph",
      "make cheap only run interactive morphology (only morphological rules, "
      "without lexicon)", false);
+  
+  managed_opt("opt_online_morph", 
+    "use the internal morphology (the regular expression style one)", true);
+  
+  managed_opt("opt_tsdb_dir",
+     "write [incr tsdb()] item, result and parse files to this directory",
+     ((std::string) ""));
+
   managed_opt("opt_jxchg_dir",
               "write parse charts in jxchg format to the given directory",
               std::string());
+
+  /** @name Output control */
+  //@{
   managed_opt("opt_mrs",
               "determines if and which kind of MRS output is generated. "
               "(modes: C implementation, LKB bindings via ECL; default: no)",
               std::string());
-  
+  managed_opt("opt_nresults",
+              "print at most n (full) results "
+              "(should be the argument of an API function)", 0);
+  /** print partial results in case of parse failure */
+  managed_opt("opt_partial",
+    "in case of parse failure, find a set of chart edges (partial results)"
+    "that covers the chart in a good manner", false);
+  //@}
+
+  // \todo should go to yy.cpp, but this produces no code and the call is
+  // optimized away
+  managed_opt("opt_yy", 
+     "old shit that should be thrown out or properly reengineered and renamed.",
+     false);
 }
 
 #ifdef __BORLANDC__
@@ -545,11 +583,10 @@ int main(int argc, char* argv[])
 
     // Initialize global options
     main_init();
-    // Initialize options for the input modules
-    tInputModule::init();
     
+    char *grammar_file_name;
 #ifndef __BORLANDC__
-    if(!parse_options(argc, argv)) {
+    if((grammar_file_name = parse_options(argc, argv)) == NULL) {
       usage(ferr);
       exit(1);
     }

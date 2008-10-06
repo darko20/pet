@@ -32,6 +32,7 @@ inflrs: - "null" = do internal morph analysis
 #include "hashing.h"
 #include "lex-tdl.h"
 #include "settings.h"
+#include "logging.h"
 
 #include <iostream>
 

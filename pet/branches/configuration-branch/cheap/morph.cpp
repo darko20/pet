@@ -26,6 +26,7 @@
 #include "grammar-dump.h"
 #include "settings.h"
 #include "config.h"
+#include "logging.h"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/transitive_closure.hpp>

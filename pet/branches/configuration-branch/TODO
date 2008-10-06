@@ -1,3 +1,16 @@
+- make << operator for tItemPrinters to allow modifier stream like usage
+
+- parsing of properties file for simple (built-in) logging
+
+- make config cheap do the same thing as main cheap
+
+- finish proper distribution/handling of options
+
+- integrate management of settings files into the config system and get rid of 
+  the old settings
+
+-! fix the problem with multiple coreferences in one TDL conjunction in flop
+
 - check if the dumping of cyclic structures works correctly in flop
 
 - proper handling of upcase/lowercase handling in a) tokenizers and b) lexicon
@@ -9,8 +22,6 @@
   yy-tokenizer. This should be done in a common way and an option should be
   introduced that controls if conversion to lower case is done at all.
   (ticket #5) (The Ueber- bzw. Aegypten bug)  
-
-- reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 
 - unpacking of edges does not terminate in some cases with unary rules
   fix: separate the local unary edges and do a fix point computation. This must
@@ -39,8 +50,6 @@
   Idea: Make sure that permanent dags avoid using one of the slots that are 
         used for unification and mark it with a special value. After some 
         thinking, i would say that this might not be feasible.
-
-- 64bit version does not work properly
 
 - remove all uses of negative values as `marker'-values, especially where casts
   from integers to pointers and back are involved. 
@@ -197,4 +206,6 @@ refactoring:
   represented by its type and no features, or all appropriate features are
   present. THOUGHT ABOUT THIS AND I DON'T THINK IT WILL WORK. Would require 
   quite complicated refilling using appropriate type fs's
-
++ reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
++- 64bit version does not work properly (current tests suggest that this seems
+  to be fixed)
