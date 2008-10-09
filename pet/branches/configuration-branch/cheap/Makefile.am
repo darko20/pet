@@ -82,7 +82,7 @@ libcheap_a_SOURCES = \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
-	$(top_srcdir)/common/config.cpp \
+	$(top_srcdir)/common/configs.cpp \
 	$(top_srcdir)/common/dag-alloc.cpp \
 	$(top_srcdir)/common/dag-arced.cpp \
 	$(top_srcdir)/common/dag-common.cpp \

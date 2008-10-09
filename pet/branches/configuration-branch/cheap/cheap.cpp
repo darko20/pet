@@ -41,7 +41,7 @@
 #include "mrs.h"
 #include "vpm.h"
 #include "qc.h"
-#include "config.h"
+#include "configs.h"
 #include "options.h"
 #include "settings.h"
 
@@ -194,7 +194,7 @@ void interactive() {
             string mrs;
             mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
-              fprintf(fstatus, "\n%s\n" 
+              fprintf(fstatus, "\n%s\n",
                       ((strcmp(opt_mrs, "rmrx") == 0)
                        ? "<rmrs cfrom='-2' cto='-2'>\n</rmrs>"
                        : "No MRS"));
@@ -266,7 +266,7 @@ void interactive() {
 
   if(get_opt_charp("opt_compute_qc") != NULL) {
     ofstream qc(get_opt_charp("opt_compute_qc"));
-    compute_qc_paths(qc);
+    compute_qc_paths(qc, get_opt_int("opt_packing"));
   }
 }
 
@@ -348,8 +348,8 @@ void process(const char *s) {
     Grammar = new tGrammar(s);
 
 #ifdef HAVE_ECL
-    char *cl_argv[] = {"cheap", 0};
-    ecl_initialize(1, cl_argv);
+    const char *cl_argv[] = {"cheap", 0};
+    ecl_initialize(1, const_cast<char**>(cl_argv));
     // make the redefinition warnings go away
     ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
                    "cl-user::*error-output* nil)");

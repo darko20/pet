@@ -1,6 +1,7 @@
 #include "pic-states.h"
 #include "fs.h"
 #include "hashing.h"
+#include "logging.h"
 #include <xercesc/framework/MemBufFormatTarget.hpp>
 #ifdef HAVE_ICU
 #include "unicode.h"

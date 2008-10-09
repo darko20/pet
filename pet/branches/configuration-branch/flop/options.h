@@ -24,15 +24,15 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-#include <cstdio>
+#include <iosfwd>
 
 #include "pet-config.h"
-#include "config.h"
+#include "configs.h"
 
 //extern int verbosity;
 //extern int errors_to;
 
-void usage(FILE *f);
+void usage(std::ostream &);
 char *parse_options(int argc, char* argv[]);
 
 #endif

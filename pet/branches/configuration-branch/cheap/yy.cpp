@@ -51,7 +51,7 @@
 #include "typecache.h"
 #include "tsdb++.h"
 #include "yy.h"
-#include "config.h"
+#include "configs.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #define massageUTF8(str) Conv->convert(ConvUTF8->convert(str))
@@ -412,7 +412,7 @@ int cheap_server_child(int socket) {
                 "[%d] server_child(): "
                 "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                 getpid(),
-                stats.id, Config::get<int>("opt_pedgelimit"), stats.readings, 
+                stats.id, get_opt_int("opt_pedgelimit"), stats.readings, 
                 stats.first / 1000., stats.tcpu / 1000.,
                 stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
         fflush(*log);
@@ -451,7 +451,7 @@ int cheap_server_child(int socket) {
           log != _log_channels.end();
           log++) {
           fprintf(*log, "[%d] server_child(): (%d) [%d] --- error `%s'",
-                  stats.id, Config::get<int>("opt_pedgelimit"),
+                  stats.id, get_opt_int("opt_pedgelimit"),
                   getpid(), e.getMessage().c_str());
           fprintf(*log, " (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                   stats.first / 1000., stats.tcpu / 1000.,
@@ -460,7 +460,7 @@ int cheap_server_child(int socket) {
       } /* for */
 
 #ifdef TSDBAPI
-      if(Config::get<int>("opt_tsdb")) 
+      if(get_opt_int("opt_tsdb")) 
         yy_tsdb_summarize_error(input, Chart->rightmost(), e);
 #endif
     } /* catch */
@@ -511,7 +511,7 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 #ifdef TSDBAPI
-      if(!errorp && Config::get<int>("opt_tsdb") && Chart != NULL) {
+      if(!errorp && get_opt_int("opt_tsdb") && Chart != NULL) {
         yy_tsdb_summarize_item(*Chart, tsdbitem, Chart->rightmost(), 
                                treal, foo.c_str());
       } /* if */

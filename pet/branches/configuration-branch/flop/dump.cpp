@@ -25,7 +25,7 @@
 #include "dag.h"
 #include "grammar-dump.h"
 #include "logging.h"
-#include "config.h"
+#include "configs.h"
 
 using std::list;
 

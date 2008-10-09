@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 
@@ -333,17 +334,17 @@ void print_infls() {
 */
 
 void
-print_morph_info(FILE *f)
+print_morph_info(std::ostream &out)
 {
     char *path = flop_settings->value("morph-path");
-    fprintf(f, ";; Morphological information\n");
+    out << ";; Morphological information" << endl;
     // find all infl rules 
     for(int i = 0; i < nstatictypes; i++)
     {
         if(flop_settings->statusmember("infl-rule-status-values",
                                         typestatus[i]))
         {
-            fprintf(f, "%s:\n", type_name(i));
+            out << type_name(i) << ":" << std::endl;
             dag_node *dag = dag_copy(types[i]->thedag);
             
             if(dag != FAIL)
@@ -355,10 +356,10 @@ print_morph_info(FILE *f)
                 dag = dag_get_path_value(dag, path);
 
             if(dag != FAIL) 
-              dag_print(f, dag);
+              out << dag;
             else
-              fprintf(f, "(no structure under %s)\n", path);
-            fprintf(f, "\n");
+              out << "(no structure under " << path << ")";
+            out << std::endl;
         }
     }
     //    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
@@ -434,8 +435,9 @@ int process(char *ofname) {
   grammar_version = parse_version();
   if(grammar_version == 0) grammar_version = "unknown";
 
-  string outfname = output_name(fname, TDL_EXT,
-           get_opt_bool("opt_pre") ? PRE_EXT : GRAMMAR_EXT);
+  bool pre_only = get_opt_bool("opt_pre");
+  string outfname 
+    = output_name(fname, TDL_EXT, pre_only ? PRE_EXT : GRAMMAR_EXT);
   FILE *outf = fopen(outfname.c_str(), "wb");
   
   if(outf) {
@@ -484,7 +486,7 @@ int process(char *ofname) {
         read_irregs(irregfnamestr.c_str());
     }
 
-    if(!get_opt_bool("opt_pre"))
+    if(!pre_only)
       check_undefined_types();
 
     LOG(logAppl, INFO, std::endl << std::endl << "finished parsing - " 
@@ -508,14 +510,14 @@ int process(char *ofname) {
     preprocess_types();
     mem_checkpoint("after preprocessing types");
 
-    if(!get_opt_bool("opt_pre"))
+    if(!pre_only)
       process_types();
 
     mem_checkpoint("after processing types");
 
     fill_grammar_properties();        
 
-    if(get_opt_bool("opt_pre")) {
+    if(pre_only) {
       write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version);
       write_pre(outf);
     } else {
@@ -538,16 +540,16 @@ int process(char *ofname) {
 
     if(get_opt_int("opt_cmi") > 0) {
       string moifile = output_name(fname, TDL_EXT, ".moi");
-      FILE *moif = fopen(moifile.c_str(), "wb");
+      std::ofstream moif(moifile.c_str());
       LOG(logAppl, INFO,
           "Extracting morphological information into `" << moifile << "'...");
       print_morph_info(moif);
       if(get_opt_int("opt_cmi") > 1) {
         LOG(logApplC, INFO, " type hierarchy...");
-        fprintf(moif, "\n");
+        moif << std::endl;
         print_hierarchy(moif);
       }
-      fclose(moif);
+      moif.close();
     }
   }
   else {
@@ -558,55 +560,22 @@ int process(char *ofname) {
   return res;
 }
 
-/*
-FILE *fstatus, *ferr;
-
-void setup_io()
-{
-  // connect fstatus to fd 2, and ferr to fd errors_to, unless -1, 2 otherwise
-
-  int val;
-
-  val = fcntl(2, F_GETFL, 0);
-  if(val < 0)
-    {
-      perror("setup_io() [status of fd 2]");
-      exit(1);
-    }
-
-  fstatus = stderr;
-  setvbuf(fstatus, 0, _IONBF, 0);
-
-  if(errors_to != -1)
-    {
-      val = fcntl(errors_to, F_GETFL, 0);
-      if(val < 0 && errno == EBADF)
-        {
-          ferr = stderr;
-        }
-      else
-        {
-          if(val < 0)
-            {
-              perror("setup_io() [status of fd errors_to]");
-              exit(1);
-            }
-          if((val & O_ACCMODE) == O_RDONLY)
-            {
-              perror("setup_io(): fd errors_to is read only");
-              exit(1);
-            }
-          ferr = fdopen(errors_to, "w");
-        }
-    }
-  else
-    ferr = stderr;
-
-  setvbuf(ferr, 0, _IONBF, 0);
-}
-*/
-
 void cleanup() {
+}
+
+void init() {
+  managed_opt("opt_pre",
+    "perform only the preprocessing stage (set local variable in fn process)",
+    false);
+  managed_opt("opt_cmi",
+              "print information about morphological processing "
+              "(different types depending on value)",  (int) 0);
+  managed_opt("opt_full_expansion",
+    "expand the feature structures fully to find possible inconsistencies",
+    false);
+  managed_opt("opt_unfill", "", false);
+  managed_opt("opt_propagate_status", "", false);
+
 }
 
 int main(int argc, char* argv[])
@@ -622,7 +591,7 @@ int main(int argc, char* argv[])
   char *grammar_file_name;
   if((grammar_file_name = parse_options(argc, argv)) == NULL)
     {
-      usage(stderr);
+      usage(cerr);
       cleanup(); exit(1);
     }
 

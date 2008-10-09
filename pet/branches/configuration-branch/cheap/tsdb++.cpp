@@ -30,7 +30,7 @@
 #include "sm.h"
 #include "settings.h"
 #include "options.h" // opt_nqc_*
-#include "config.h"
+#include "configs.h"
 #include "logging.h"
 
 #ifdef YY
@@ -353,7 +353,7 @@ cheap_complete_test_run(int run_id, const char *custom)
     {
         LOG(logAppl, INFO, "computing quick check paths");
         ofstream qc(get_opt_charp("opt_compute_qc"));
-        compute_qc_paths(qc);
+        compute_qc_paths(qc, get_opt_int("opt_packing"));
     }
 
     return 0;

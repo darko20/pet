@@ -27,7 +27,7 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-#include "config.h"
+#include "configs.h"
 
 extern int verbosity;
 
