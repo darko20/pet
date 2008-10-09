@@ -32,7 +32,7 @@
 #include "utility.h"
 #include "dagprinter.h"
 #include "settings.h"
-#include "config.h"
+#include "configs.h"
 #include "logging.h"
 
 #include <sstream>

@@ -22,16 +22,14 @@
 #include "pet-config.h"
 
 #include "qc.h"
-#include "parse.h"
-#include "grammar.h"
 #include "fs.h"
 #include "tsdb++.h"
-#include "settings.h"
 #include "cheap.h"
+#include "grammar.h"
 #include "failure.h"
-#include "config.h" // only because of one option, argument instead??
 #include "logging.h"
 
+#include <set>
 #include <queue>
 #include <iomanip>
 
@@ -397,9 +395,7 @@ compute_qc_traditional(ostream &out, const char *tname,
 }
 
 void
-compute_qc_paths(ostream &out) {
-  int packing_type;
-  get_opt("opt_packing", packing_type);
+compute_qc_paths(ostream &out, int packing_type) {
   time_t t = time(NULL);
   out << ";;;\n;;; Quickcheck paths for " << Grammar->property("version")
       << ", generated on " << stats.id << " items on " << ctime(&t)

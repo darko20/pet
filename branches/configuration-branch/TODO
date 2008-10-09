@@ -1,13 +1,39 @@
-- make << operator for tItemPrinters to allow modifier stream like usage
++- make << operator for tItemPrinters to allow modifier stream like usage
+   - check if making the stream an argument of the print function decreases
+     performance, if not, remove the global pointer to the stream used and
+     replace it with a method argument 
 
-- parsing of properties file for simple (built-in) logging
+- all functionality for quick checks (opt_nqc...) into one place (fs.cpp/.h)
 
-- make config cheap do the same thing as main cheap
+- options to set/configure printers for items/dags/chart
 
-- finish proper distribution/handling of options
+- implement timelimit with signal-based alarm (check the intended
+  functionality)
 
-- integrate management of settings files into the config system and get rid of 
-  the old settings
+- code/modules that might go away:
+  - unconditional (exhaustive) unpacking
+  - CHIC printing
+  - extdict??
+
++ parsing of properties file for simple (built-in) logging
+
++- make config cheap do the same thing as main cheap. There seems to be a
+   reordering of tasks, is this why packed parses report different number of
+   passive items??
+
++- finish proper distribution/handling of options, still missing:
+   - `sections' to group the options, e.g., for GUI
+   - default values for when they are set with command line options, but
+     without value, like, e.g., opt_packing
+   - integrate management of settings files into the config system and get rid
+     of the old settings, this needs more elaborate values (maps and such)
+   - is there a way of turning the run-time type errors, at least for the 
+     static code, into compile-time or link-time errors?
+     Check the distribution of get_opt/set_opt/add_opt calls for that
+     1. transform the string keys into #define symbols. That at least prevents
+        the use of unknown keys (requires proper include file use, which isn't
+        such a bad idea anyway). That does not resolve the problem of 
+        key<->type correlation errors.
 
 -! fix the problem with multiple coreferences in one TDL conjunction in flop
 
@@ -37,7 +63,7 @@
   - foreign character encoding input and output
   - automated tests for single modules ??
 
-- finish lexdb: lexical database (postgres) integration
+- finish lexdb: lexical database (sqlite instead of postgres?) integration
 
 - unreleased memory? (see valgrind-errors-15-apr-04)
   Memory leak seems to be not ignoreable (berthold et al. Jan 2006)

@@ -25,7 +25,7 @@
 #include "cheap.h"
 #include "grammar-dump.h"
 #include "settings.h"
-#include "config.h"
+#include "configs.h"
 #include "logging.h"
 
 #include <boost/graph/adjacency_list.hpp>

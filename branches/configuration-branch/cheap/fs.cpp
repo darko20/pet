@@ -26,7 +26,7 @@
 #include "tsdb++.h"
 #include "restrictor.h"
 #include "dagprinter.h"
-#include "config.h"
+#include "configs.h"
 #include "logging.h"
 
 #include <iostream>

@@ -29,7 +29,7 @@
 #include "lexparser.h"
 #include "task.h"
 #include "tsdb++.h"
-#include "config.h"
+#include "configs.h"
 #include "settings.h"
 #include "logging.h"
 

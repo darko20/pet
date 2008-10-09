@@ -41,7 +41,7 @@ flop_SOURCES = corefs.cpp \
 	util.cpp \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
-	$(top_srcdir)/common/config.cpp \
+	$(top_srcdir)/common/configs.cpp \
 	$(top_srcdir)/common/dag-alloc.cpp \
 	$(top_srcdir)/common/dag-arced.cpp  \
 	$(top_srcdir)/common/dag-common.cpp \

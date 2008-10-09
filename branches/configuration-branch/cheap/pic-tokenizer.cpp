@@ -20,6 +20,7 @@
 
 #include "pic-tokenizer.h"
 #include "cheap.h"
+#include "logging.h"
 
 using std::string;
 using std::list;

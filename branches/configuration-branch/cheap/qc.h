@@ -28,6 +28,6 @@
 
 /** Compute the best quick check paths using the corpus in \a f */
 void
-compute_qc_paths(std::ostream &out);
+compute_qc_paths(std::ostream &out, int packing_type);
 
 #endif

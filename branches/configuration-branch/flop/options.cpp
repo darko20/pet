@@ -29,21 +29,25 @@
 //int verbosity;
 // int errors_to;
 
-void usage(FILE *f)
+void usage(std::ostream &out)
 {
-  fprintf(f, "flop version %s\n", version_string);
-  fprintf(f, "usage: `flop [options] tdl-file'; valid options are:\n");
-  fprintf(f, "  `-pre' --- do only syntactic preprocessing\n");
-  fprintf(f, "  `-expand-all-instances' --- expand all (even lexicon) instances\n");
-  fprintf(f, "  `-full-expansion' --- don't do partial expansion\n");
-  fprintf(f, "  `-unfill' --- unfill after expansion\n");
-  fprintf(f, "  `-minimal' --- minimal fixed arity encoding\n");
-  fprintf(f, "  `-propagate-status' --- propagate status the PAGE way\n");
-  fprintf(f, "  `-no-semantics' --- remove all semantics\n");
-  fprintf(f, "  `-glbdebug' --- print information about glb types created\n");
-  fprintf(f, "  `-cmi=level' --- create morph info, level = 0..2, default 0\n");
-  //fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
-  //fprintf(f, "  `-errors-to=n' --- print errors to fd n\n");
+  out << "flop version " << version_string << std::endl
+      << "usage: `flop [options] tdl-file'; valid options are:" << std::endl
+      << "  `-pre' --- do only syntactic preprocessing" << std::endl
+      << "  `-expand-all-instances' --- expand all (even lexicon) instances"
+      << std::endl
+      << "  `-full-expansion' --- don't do partial expansion" << std::endl
+      << "  `-unfill' --- unfill after expansion" << std::endl
+      << "  `-minimal' --- minimal fixed arity encoding" << std::endl
+      << "  `-propagate-status' --- propagate status the PAGE way" << std::endl
+      << "  `-no-semantics' --- remove all semantics" << std::endl
+      << "  `-glbdebug' --- print information about glb types created"
+      << std::endl
+      << "  `-cmi=level' --- create morph info, level = 0..2, default 0"
+      << std::endl
+  //    << "  `-verbose[=n]' --- set verbosity level to n" << std::endl
+  //    << "  `-errors-to=n' --- print errors to fd n" << std::endl
+    ;
 }
 
 #define OPTION_PRE 0
@@ -71,30 +75,17 @@ char *parse_options(int argc, char* argv[])
     {"minimal", no_argument, 0, OPTION_MINIMAL},
     {"no-semantics", no_argument, 0, OPTION_NO_SEM},
     {"propagate-status", no_argument, 0, OPTION_PROPAGATE_STATUS},
-    {"glbdebug", no_argument, 0, OPTION_GLBDEBUG},
     {"cmi", required_argument, 0, OPTION_CMI},
     //{"verbose", optional_argument, 0, OPTION_VERBOSE},
     //{"errors-to", required_argument, 0, OPTION_ERRORS_TO},
     {0, 0, 0, 0}
   }; /* struct option */
   
-  managed_opt("opt_pre",
-    "perform only the preprocessing stage (set local variable in fn process)",
-    false);
   managed_opt("opt_expand_all_instances",
     "expand  expand all type definitions, except for pseudo types", false);
-  managed_opt("opt_full_expansion",
-    "expand the feature structures fully to find possible inconsistencies",
-    false);
-  managed_opt("opt_unfill", "", false);
   managed_opt("opt_minimal", "", false);
   managed_opt("opt_no_sem", "", false);
-  managed_opt("opt_propagate_status", "", false);
-  managed_opt("opt_glbdebug", "", false);
 
-  managed_opt("opt_cmi",
-              "print information about morphological processing "
-              "(different types depending on value)",  (int) 0);
 
   //verbosity = 0;
   //errors_to = -1;
@@ -127,13 +118,9 @@ char *parse_options(int argc, char* argv[])
     case OPTION_PROPAGATE_STATUS:
       set_opt("opt_propagate_status", true);
       break;
-    case OPTION_GLBDEBUG:
-      set_opt("opt_glbdebug", true);
-      break;
     case OPTION_CMI:
       if(optarg != NULL)
-        set_opt("opt_cmi",
-          strtoint(optarg, "as argument to `-cmi'"));
+        set_opt_from_string("opt_cmi", optarg);
       break;
     /*
     case OPTION_VERBOSE:

@@ -278,8 +278,6 @@ void make_semilattice()
   // scratch bitcode
   bitcode *temp = new bitcode(codesize);
 
-  bool glbdebug;
-  get_opt("opt_glbdebug", glbdebug);
   LOG(logApplC, INFO, "glbs ");
 
   low = 0; high = types.number();
@@ -315,8 +313,6 @@ void make_semilattice()
               glbtype->def = new_location("synthesized", 0, 0);
               glbtype->bcode = temp;
 
-           if(glbdebug)
-           {
              LOG(logSemantic, DEBUG,
                  "Introducing " << name << " for " << types.name(i)
                  << " and " << types.name(j) << ":" << std::endl
@@ -325,7 +321,6 @@ void make_semilattice()
                  << "[" << types.name(j) << "]:"
                  << debug_print_subtypes(types[j]->bcode) << std::endl
                  << "[" << name << "]:" <<debug_print_subtypes(temp));
-           }
 
               // register the new type's bitcode in the hash table
               register_codetype(*temp, glbtype->id);
@@ -512,33 +507,33 @@ void find_leaftypes()
 
 /** Recursively print all subtypes of a given type t */
 void
-print_subtypes(FILE *f, int t, HASH_SPACE::hash_set<int> &visited)
+print_subtypes(std::ostream &out, int t, HASH_SPACE::hash_set<int> &visited)
 {
     if(visited.find(t) != visited.end())
         return;
     
     visited.insert(t);
-    fprintf(f, " %s", types.name(t).c_str());
+    out << " " << types.name(t);
 
     list<int> children = immediate_subtypes(t);
     for(list<int>::iterator child = children.begin();
         child != children.end(); ++child)
     {
-        print_subtypes(f, *child, visited);
+        print_subtypes(out, *child, visited);
     }
 }
 
 
 void
-print_hierarchy(FILE *f)
+print_hierarchy(std::ostream &out)
 {
     HASH_SPACE::hash_set<int> visited;
     for(int i = 1; i < types.number() ; i++)
     {
         visited.clear();
-        fprintf(f, "%s:", types.name(i).c_str());
-        print_subtypes(f, i, visited);
-        fprintf(f, "\n");
+        out << types.name(i) << ":";
+        print_subtypes(out, i, visited);
+        out << std::endl;
     }
 }
 

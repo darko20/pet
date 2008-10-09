@@ -34,7 +34,7 @@
 #include "restrictor.h"
 #include "settings.h"
 #include "options.h" // opt_nqc_*
-#include "config.h"
+#include "configs.h"
 #include "logging.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
