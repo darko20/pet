@@ -573,7 +573,7 @@ void init() {
   managed_opt("opt_full_expansion",
     "expand the feature structures fully to find possible inconsistencies",
     false);
-  managed_opt("opt_unfill", "", false);
+  managed_opt("opt_unfill", "Remove dag nodes whose information is subsumed by the type feature structure of one of its enclosing nodes", false);
   managed_opt("opt_propagate_status", "", false);
 
 }
@@ -585,19 +585,30 @@ int main(int argc, char* argv[])
 
   setlocale(LC_ALL, "" );
 
-  // initialization of logging
+  // initialization: global options
+  init();
+  // initialization: logging
   init_logging(argv[argc-1]);
 
-  char *grammar_file_name;
-  if((grammar_file_name = parse_options(argc, argv)) == NULL)
+  try {  
+    char *grammar_file_name;
+    if((grammar_file_name = parse_options(argc, argv)) == NULL)
+      {
+        usage(cerr);
+        cleanup(); exit(1);
+      }
+
+    //setup_io();
+    
+    retval = process(grammar_file_name);
+  }
+
+  catch(ConfigException &e)
     {
-      usage(cerr);
+      LOG(logAppl, FATAL, e.getMessage());
       cleanup(); exit(1);
     }
 
-  //setup_io();
-
-  try { retval = process(grammar_file_name); }
   catch(tError &e)
     {
       LOG(logAppl, FATAL, e.getMessage());

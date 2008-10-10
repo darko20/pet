@@ -538,7 +538,7 @@ int unfill_dag_rec(struct dag_node *dag, int root) {
 void unfill_types() {
   int i, n = 0;
 
-  LOG(logAppl, INFO, "- unfilling ");
+  LOG(logApplC, INFO, "- unfilling ");
 
   for(i = 0; i < types.number(); i++) {
     struct dag_node *curr = dag_deref(types[i]->thedag);
