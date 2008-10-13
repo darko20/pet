@@ -3,8 +3,6 @@
      performance, if not, remove the global pointer to the stream used and
      replace it with a method argument 
 
-- all functionality for quick checks (opt_nqc...) into one place (fs.cpp/.h)
-
 - options to set/configure printers for items/dags/chart
 
 - implement timelimit with signal-based alarm (check the intended
@@ -15,16 +13,12 @@
   - CHIC printing
   - extdict??
 
-+ parsing of properties file for simple (built-in) logging
-
-+- make config cheap do the same thing as main cheap. There seems to be a
-   reordering of tasks, is this why packed parses report different number of
-   passive items??
-
 +- finish proper distribution/handling of options, still missing:
    - `sections' to group the options, e.g., for GUI
    - default values for when they are set with command line options, but
      without value, like, e.g., opt_packing
+   - recode options.cpp such that it makes better use of the nice new 
+     functionality
    - integrate management of settings files into the config system and get rid
      of the old settings, this needs more elaborate values (maps and such)
    - is there a way of turning the run-time type errors, at least for the 
@@ -235,3 +229,9 @@ refactoring:
 + reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 +- 64bit version does not work properly (current tests suggest that this seems
   to be fixed)
++ all functionality for quick checks (opt_nqc...) into one place (fs.cpp/.h)
++ parsing of properties file for simple (built-in) logging
++ checked: config cheap does the same thing as main cheap. There seems to be a
+  reordering of tasks, which is why packed parses report different number of
+  passive items and parses that hit the limits report different numbers of 
+  tasks and items

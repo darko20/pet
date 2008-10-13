@@ -1091,7 +1091,7 @@ tLKBMorphology::undump_inflrs(dumper &dmp) {
     delete[] r;
   }                      
 
-  if(get_opt_bool("opt_filter")) {
+  if(Grammar->filter()) {
     _morph.initialize_lexrule_filter();
   }
 

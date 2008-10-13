@@ -156,10 +156,10 @@ void interactive() {
       tsdb_dump.finish(Chart, surface);
       dump_jxchg(surface, Chart);
       
-      ofstream out("/tmp/final-chart-bernie");
-      tTclChartPrinter chp(out, 0);
+      //ofstream out("/tmp/final-chart-bernie");
+      //tTclChartPrinter chp(out, 0);
       //tFegramedPrinter chp("/tmp/fed-");
-      Chart->print(out, &chp, true, true);
+      //Chart->print(out, &chp, true, true);
 
       const char * opt_mrs = get_opt_string("opt_mrs").c_str();
       if (strlen(opt_mrs) == 0) opt_mrs = NULL;

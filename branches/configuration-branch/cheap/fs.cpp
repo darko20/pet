@@ -58,6 +58,11 @@ static bool fs_init() {
     "for quick check computation, contains filename to write results to",
     (const char *) NULL);
   
+  managed_opt("opt_nqc_unif",
+              "use only top n quickcheck paths (unification)", (int) -1);
+  managed_opt("opt_nqc_subs",
+              "use only top n quickcheck paths (subsumption)", (int) -1);
+  
   opt_compute_qc_unif = false;
   reference_opt("opt_compute_qc_unif",
                 "Activate failure registration for unification",
@@ -653,6 +658,7 @@ compare(const fs &a, const fs &b)
 }
 
 qc_vec fs::get_qc_vector(qc_node *qc_paths, int qc_len) const {
+  if (qc_len == 0) return NULL;
   qc_vec vector = new type_t [qc_len];
   memset(vector, 0, qc_len * sizeof(type_t));
 
@@ -664,36 +670,27 @@ qc_vec fs::get_qc_vector(qc_node *qc_paths, int qc_len) const {
   return vector;
 }
 
-bool
-fs::qc_compatible_unif(const qc_vec &a, const qc_vec &b)
-{
-  for(int i = 0; i < _qc_len_unif; i++) {
-    if(glb(a[i], b[i]) == T_BOTTOM) {
-#ifdef PETDEBUG
-      LOG(logAppl, DEBUG, "quickcheck fails for path " << i
-          << " with `" << print_name(a[i]) 
-          << "' vs. `" << print_name(b[i]) << "'");
-#endif
-      return false;
-    }
-  }
-
-  return true;
-}
-
+/** Initialize the static variables for quick check appropriately */
 void
-fs::qc_compatible_subs(const qc_vec &a, const qc_vec &b,
-                       bool &forward, bool &backward)
-{
-    bool st_a_b, st_b_a;
-    for(int i = 0; i < _qc_len_subs; i++)
-    {
-        if(a[i] == b[i])
-            continue;
-        subtype_bidir(a[i], b[i], st_a_b, st_b_a);
-        if(st_a_b == false) backward = false;
-        if(st_b_a == false) forward = false;
-        if(forward == false && backward == false)
-            break;
-    }
+fs::init_qc_unif(dumper *f, bool subs_too) {
+  int nqc_unif = get_opt_int("opt_nqc_unif");
+  _qc_paths_unif = dag_read_qc_paths(f, nqc_unif, _qc_len_unif);
+  if (subs_too) {
+    _qc_paths_subs = _qc_paths_unif;
+    _qc_len_subs = _qc_len_unif;
+    int nqc_subs = get_opt_int("opt_nqc_subs");
+    if(nqc_subs > 0 && nqc_subs < _qc_len_subs)
+      _qc_len_subs = nqc_subs;
+  }
+  if(nqc_unif > 0 && nqc_unif < _qc_len_unif)
+    _qc_len_unif = nqc_unif;
 }
+  
+void
+fs::init_qc_subs(dumper *f) {
+  int nqc_subs = get_opt_int("opt_nqc_subs");
+  _qc_paths_subs = dag_read_qc_paths(f, nqc_subs, _qc_len_subs);
+  if(nqc_subs > 0 && nqc_subs < _qc_len_subs)
+    _qc_len_subs = nqc_subs;
+}
+  

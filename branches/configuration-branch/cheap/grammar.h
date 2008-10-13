@@ -261,6 +261,9 @@ public:
     return *_packing_restrictor;
   }
 
+  /** Is the static rule filter useable? */
+  inline bool filter() { return _filter.valid(); }
+
   /** Is successful unification of \a daughter as \a arg th argument of \a
    *  mother possible?
    * This is a precomputed table containing all the possible rule combinations,
@@ -268,7 +271,8 @@ public:
    */
   inline bool filter_compatible(grammar_rule *mother, int arg,
                                 grammar_rule *daughter) {
-    return ((daughter == NULL) || _filter.get(mother, daughter, arg));
+    return ! _filter.valid() 
+      || (daughter == NULL) || _filter.get(mother, daughter, arg);
   }
 
   /** Is rule \a a more general than \a b or vice versa?
@@ -278,7 +282,7 @@ public:
    */
   inline void subsumption_filter_compatible(grammar_rule *a, grammar_rule *b,
                                             bool &forward, bool &backward) {
-      if(a == 0 || b == 0) {
+      if(!_subsumption_filter.valid() || a == 0 || b == 0) {
           forward = backward = true;
       } else {
         forward = _subsumption_filter.get(b, a);

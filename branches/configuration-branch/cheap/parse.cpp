@@ -57,20 +57,9 @@ tAgenda *Agenda;
 timer ParseTime;
 timer TotalParseTime(false);
 
-/** @name Quick check
- * see Oepen & Carroll 2000a,b
- * \todo all of quick check should go into fs, including these two
- */
-//@{
-/** use only top n quickcheck paths (unification) */
-int opt_nqc_unif;
-/** use only top n quickcheck paths (subsumption) */
-int opt_nqc_subs;
-//@}
-
 static bool parser_init();
 //options managed by configuration subsystem
-bool opt_filter, opt_hyper = parser_init();
+bool opt_hyper = parser_init();
 int  opt_nsolutions, opt_packing;
 
 #ifdef YY
@@ -79,9 +68,6 @@ int opt_nth_meaning;
 
 /** Initialize global variables and options for the parser */
 static bool parser_init() {
-  reference_opt("opt_filter", 
-     "Use the static rule filter (see Kiefer et al 1999)", opt_filter);
-  opt_filter = true;
   reference_opt("opt_hyper",
      "use hyperactive parsing (see Oepen & Carroll 2000b)", opt_hyper);
   opt_hyper = true;
@@ -132,8 +118,7 @@ filter_rule_task(grammar_rule *R, tItem *passive)
     LOG(logParse, DEBUG, "trying " << R << " & passive " << passive << " ==> ");
 #endif
 
-    if(opt_filter && !Grammar->filter_compatible(R, R->nextarg(),
-                                                 passive->rule()))
+    if(!Grammar->filter_compatible(R, R->nextarg(), passive->rule()))
     {
         stats.ftasks_fi++;
 
@@ -144,9 +129,8 @@ filter_rule_task(grammar_rule *R, tItem *passive)
         return false;
     }
 
-    if(opt_nqc_unif != 0
-       && !fs::qc_compatible_unif(R->qc_vector_unif(R->nextarg()),
-                                  passive->qc_vector_unif()))
+    if(!fs::qc_compatible_unif(R->qc_vector_unif(R->nextarg()),
+                               passive->qc_vector_unif()))
     {
         stats.ftasks_qc++;
 
@@ -172,9 +156,8 @@ filter_combine_task(tItem *active, tItem *passive)
         << " & passive " << *passive << " ==> ");
 #endif
 
-    if(opt_filter && !Grammar->filter_compatible(active->rule(),
-                                                 active->nextarg(),
-                                                 passive->rule()))
+    if(!Grammar->filter_compatible(active->rule(), active->nextarg(),
+                                   passive->rule()))
     {
 #ifdef PETDEBUG
         LOG(logParse, DEBUG, "filtered (rf)");
@@ -184,9 +167,8 @@ filter_combine_task(tItem *active, tItem *passive)
         return false;
     }
 
-    if(opt_nqc_unif != 0
-       && !fs::qc_compatible_unif(active->qc_vector_unif(),
-                                  passive->qc_vector_unif()))
+    if(!fs::qc_compatible_unif(active->qc_vector_unif(),
+                               passive->qc_vector_unif()))
     {
 #ifdef PETDEBUG
         LOG(logParse, DEBUG, "filtered (qc)");
@@ -266,17 +248,14 @@ packed_edge(tItem *newitem) {
     if(!olditem->inflrs_complete_p() || (olditem->trait() == INPUT_TRAIT))
       continue;
 
-    forward=backward = true;
-
     // YZ 2007-07-25: avoid packing item with its offspring edges
     // (both forward and backward)
     if (newitem->contains_p(olditem))
-          continue;
+      continue;
 
-    if(opt_filter)
-      Grammar->subsumption_filter_compatible(olditem->rule(),
-                                             newitem->rule(),
-                                             forward, backward);
+    // sets forward and backward correctly in every case
+    Grammar->subsumption_filter_compatible(olditem->rule(), newitem->rule(),
+                                           forward, backward);
 
 #ifdef PETDEBUG_SUBSFAILS
     failure *uf = NULL;
@@ -287,10 +266,9 @@ packed_edge(tItem *newitem) {
     }
     else {
       bool f1 = true, b1 = true;
-      if(opt_nqc_subs != 0)
-        fs::qc_compatible_subs(olditem->qc_vector_subs(),
-                               newitem->qc_vector_subs(),
-                               f1, b1);
+      fs::qc_compatible_subs(olditem->qc_vector_subs(),
+                             newitem->qc_vector_subs(),
+                             f1, b1);
 
 #ifdef PETDEBUG_SUBSFAILS
       start_recording_failures();

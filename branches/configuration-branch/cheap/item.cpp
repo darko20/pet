@@ -369,11 +369,8 @@ void tLexItem::init() {
     // \todo Berthold says, this is the right number. Settle this
     // stats.words++;
 
-    if(opt_nqc_unif != 0)
-      _qc_vector_unif = _fs_full.get_unif_qc_vector();
-
-    if(opt_nqc_subs != 0)
-      _qc_vector_subs = _fs_full.get_subs_qc_vector();
+    _qc_vector_unif = _fs_full.get_unif_qc_vector();
+    _qc_vector_subs = _fs_full.get_subs_qc_vector();
 
     // compute _score score for lexical items
     if(Grammar->sm())
@@ -474,22 +471,16 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 #endif
   pasv->parents.push_back(this);
   
-  if(opt_nqc_unif != 0) {
-    if(passive())
-      _qc_vector_unif = f.get_unif_qc_vector();
-    else
-      _qc_vector_unif = nextarg(f).get_unif_qc_vector();
-  }
-  
-  if(opt_nqc_subs != 0)
-    if(passive())
-      _qc_vector_subs = f.get_subs_qc_vector();
-  
   // rule stuff + characterization
   if(passive()) {
+    _qc_vector_unif = f.get_unif_qc_vector();
+    _qc_vector_subs = f.get_subs_qc_vector();
     R->passives++;
     characterize(_fs, _startposition, _endposition);
   } else {
+    // \todo eventually do the handling of the nextarg inside the qc_vector
+    // computation
+    _qc_vector_unif = f.get_unif_qc_vector(nextarg());
     R->actives++;
   }
 
@@ -534,22 +525,14 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 
     _trait = SYNTAX_TRAIT;
 
-    if(opt_nqc_unif != 0)
-    {
-        if(passive())
-          _qc_vector_unif = f.get_unif_qc_vector();
-        else
-          _qc_vector_unif = nextarg(f).get_unif_qc_vector();
-    }
-    
-    if((opt_nqc_subs != 0) && passive())
-      _qc_vector_subs = f.get_subs_qc_vector();
-
     // rule stuff
     if(passive()) {
+      _qc_vector_unif = f.get_unif_qc_vector();
+      _qc_vector_subs = f.get_subs_qc_vector();
       characterize(_fs, _startposition, _endposition);
       active->rule()->passives++;
     } else {
+      _qc_vector_unif = f.get_unif_qc_vector(nextarg());
       active->rule()->actives++;
     }
 

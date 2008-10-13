@@ -38,8 +38,6 @@
 #define PACKING_NOUNPACK (1 << 7)
 //@}
 
-extern int opt_nqc_unif, opt_nqc_subs;
-
 /** Gives the total time spent in parsing (more specifically: in the function
  *  parse_loop).
  */
