@@ -265,7 +265,7 @@ find_set_file(const std::string &name, const std::string &ext,
   // fname contains the full pathname to the settings file, except for the
   // extension, first in the directory the base path points to
   fname = base_dir + name + ext;
-  
+
   if(! file_exists_p(fname.c_str())) {
     // We could not find the settings file there, so try it in the
     // subdirectory predefined for settings
@@ -286,7 +286,6 @@ string dir_name(const std::string &pathname) {
   // _prefix gets the dirname of the path encoded in base
   string result =
     (string::npos == lastslash) ? string() : pathname.substr(0, lastslash + 1);
-  //std::cerr << "dir_name|" << result << "|" << std::endl;
   return result;
 }
 
@@ -300,8 +299,7 @@ string raw_name(const std::string &pathname) {
   if(string::npos == lastslash) lastslash = 0; else lastslash++;
   string::size_type dot = pathname.find('.', lastslash);
 
-  string result = pathname.substr(lastslash, dot);
-  //std::cerr << "raw_name|" << result << "|" << std::endl;
+  string result = pathname.substr(lastslash, dot - lastslash);
   return result;
 }
 

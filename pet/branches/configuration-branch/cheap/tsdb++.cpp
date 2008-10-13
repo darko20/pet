@@ -29,7 +29,6 @@
 #include "item-printer.h"
 #include "sm.h"
 #include "settings.h"
-#include "options.h" // opt_nqc_*
 #include "configs.h"
 #include "logging.h"
 
@@ -153,6 +152,13 @@ statistics::print(FILE *f)
 char CHEAP_VERSION [4096];
 char CHEAP_PLATFORM [1024];
 
+// bool to char
+inline char btc(bool b) { return b ? '+' : '-'; }
+// bool opt to char
+inline char botc(const char *key) { return btc(get_opt_bool(key)); }
+// int opt to char
+inline char iotc(const char *key) { return btc(0 != get_opt_int(key)); }
+
 void
 initialize_version()
 {
@@ -193,33 +199,28 @@ initialize_version()
         }                 
     }
     
+    const char *keypos[] = { "key", "l-r", "r-l", "head", "unknown" };
     int packing;
     get_opt("opt_packing", packing);
     sprintf(CHEAP_VERSION,
-            "PET(%s cheap v%s) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s "
-            "%s[%d(%s)] %s[%d(%s)]"
-            " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
+            "PET(%s cheap v%s) [%d] %cPA(%d) %cSM(%s) RI[%s] %cHA(%d) %cFI "
+            "%cQCU[%d(%s)] %cQCS[%d(%s)]"
+            " %cOS[%d] %cSM %cSH {ns %d} (%s/%s) <%s>",
             da,
             version_string,
             get_opt_int("opt_pedgelimit"),
-            packing ? "+" : "-",
+            btc(0 != packing),
             packing,
-            Grammar->sm() ? "+" : "-",
-            Grammar->sm() ? Grammar->sm()->description().c_str() : "",
-            get_opt_int("opt_key") == 0 ?
-              "key" : (get_opt_int("opt_key") == 1 ?
-                "l-r" : (get_opt_int("opt_key") == 2 ?
-                  "r-l" : (get_opt_int("opt_key") == 3 ?
-                    "head" : "unknown"))),
-            get_opt_bool("opt_hyper") ? "+HA" : "-HA",
-            Grammar->nhyperrules(),
-            get_opt_bool("opt_filter") ? "+FI" : "-FI",
-            opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
-            opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
-            ((get_opt_int("opt_nsolutions") != 0) ? "+OS" : "-OS"),
-            get_opt_int("opt_nsolutions"), 
-            get_opt_bool("opt_shrink_mem") ? "+SM" : "-SM", 
-            get_opt_bool("opt_shaping") ? "+SH" : "-SH",
+            btc(NULL != Grammar->sm()),
+            (NULL != Grammar->sm()) ? Grammar->sm()->description().c_str() : "",
+            keypos[max(get_opt_int("opt_key"), 4)],
+            botc("opt_hyper"), Grammar->nhyperrules(),
+            botc("opt_filter"),
+            iotc("opt_nqc_unif"), get_opt_int("opt_nqc_unif"), qcsu,
+            iotc("opt_nqc_subs"), get_opt_int("opt_nqc_subs"), qcss,
+            iotc("opt_nsolutions"), get_opt_int("opt_nsolutions"), 
+            botc("opt_shrink_mem"), 
+            botc("opt_shaping"),
             sizeof(dag_node),
             __DATE__, __TIME__,
             sts.c_str());
@@ -346,7 +347,7 @@ cheap_complete_test_run(int run_id, const char *custom)
   LOG(logAppl, INFO,
       "total elapsed parse time " << std::setprecision(3)
       << TotalParseTime.elapsed_ts() / 10.<< "s; " 
-      << nprocessed << "%d items; avg time per item " << std::setprecision(4) 
+      << nprocessed << " items; avg time per item " << std::setprecision(4) 
       << (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10. << "s");
 
     if(get_opt_charp("opt_compute_qc") != NULL)

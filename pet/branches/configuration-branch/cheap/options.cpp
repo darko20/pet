@@ -33,7 +33,7 @@
 #include <string>
 #include <unistd.h>
 
-extern int verbosity, opt_nqc_subs, opt_nqc_unif;
+extern int verbosity;
 
 void usage(FILE *f)
 {
@@ -297,11 +297,11 @@ char* parse_options(int argc, char* argv[])
           break;
       case OPTION_NQC_UNIF:
           if(optarg != NULL)
-              opt_nqc_unif = strtoint(optarg, "as argument to `-qc-unif'");
+              set_opt_from_string("opt_nqc_unif", optarg);
           break;
       case OPTION_NQC_SUBS:
           if(optarg != NULL)
-              opt_nqc_subs = strtoint(optarg, "as argument to `-qc-subs'");
+              set_opt_from_string("opt_nqc_subs", optarg);
           break;
       case OPTION_KEY:
           if(optarg != NULL)

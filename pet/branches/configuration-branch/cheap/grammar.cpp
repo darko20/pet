@@ -33,7 +33,6 @@
 #include "sm.h"
 #include "restrictor.h"
 #include "settings.h"
-#include "options.h" // opt_nqc_*
 #include "configs.h"
 #include "logging.h"
 #ifdef HAVE_ICU
@@ -47,6 +46,8 @@
 static int init();
 int grammar_rule::next_id = init();
 static int init() {
+  managed_opt("opt_filter", 
+              "Use the static rule filter (see Kiefer et al 1999)", true);
   managed_opt("opt_key",
               "What is the key daughter used in parsing?"
               "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", (int) 0);
@@ -318,7 +319,7 @@ grammar_rule::init_qc_vector_unif() {
 
 /** pass T_BOTTOM for an invalid/unavailable qc structure */
 void
-undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
+undump_dags(dumper *f) {
   struct dag_node *dag;
   // allocate an array holding nstatictypes pointers to the typedags
   initialize_dags(nstatictypes);
@@ -328,20 +329,36 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
   init_constraint_cache(nstatictypes);
 #endif
 
-  qc_node *qc_paths_unif = NULL, *qc_paths_subs = NULL;
-  int qc_len_unif = 0, qc_len_subs = 0;
+  char *v;
+  type_t qc_inst_unif = T_BOTTOM;
+  if((v = cheap_settings->value("qc-structure-unif")) != 0
+     || (v = cheap_settings->value("qc-structure")) != 0)
+    qc_inst_unif = lookup_type(v);
+  if(get_opt_int("opt_nqc_unif") != 0 && qc_inst_unif == T_BOTTOM) {
+    LOG(logAppl, INFO, "[ disabling unification quickcheck ] ");
+    set_opt("opt_nqc_unif", 0);
+  }
+ 
+  type_t qc_inst_subs = T_BOTTOM;
+  if((v = cheap_settings->value("qc-structure-subs")) != 0
+     || (v = cheap_settings->value("qc-structure")) != 0)
+    qc_inst_subs = lookup_type(v);
+  if(get_opt_int("opt_nqc_subs") != 0 && qc_inst_subs == T_BOTTOM) {
+    LOG(logAppl, INFO, "[ disabling subsumption quickcheck ] ");
+    set_opt("opt_nqc_subs", 0);
+  }
 
   for(int i = 0; i < nstatictypes; i++) {
-    if(qc_inst_unif != 0 && i == qc_inst_unif) {
+    if(i == qc_inst_unif) {
       LOG(logGrammar, DEBUG,
           "[qc unif structure `" << print_name(qc_inst_unif) << "'] ");
-      qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
+      fs::init_qc_unif(f, i == qc_inst_subs);
       dag = 0;
     }
-    else if(qc_inst_subs && i == qc_inst_subs) {
+    else if(i == qc_inst_subs) {
       LOG(logGrammar, DEBUG,
           "[qc subs structure `" << print_name(qc_inst_subs) << "'] ");
-      qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
+      fs::init_qc_subs(f);
       dag = 0;
     }
     else
@@ -349,19 +366,6 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
         
     register_dag(i, dag);
   }
-
-  if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs) {
-    qc_paths_subs = qc_paths_unif;
-    qc_len_subs = qc_len_unif;
-  }
-  
-  if(opt_nqc_unif > 0 && opt_nqc_unif < qc_len_unif)
-    qc_len_unif = opt_nqc_unif;
-  
-  if(opt_nqc_subs > 0 && opt_nqc_subs < qc_len_subs)
-    qc_len_subs = opt_nqc_subs;
-
-  fs::init_qc(qc_paths_unif, qc_len_unif, qc_paths_subs, qc_len_subs);
 }
 
 // Construct a grammar object from binary representation in a file
@@ -416,30 +420,10 @@ tGrammar::tGrammar(const char * filename)
     
     init_parameters();
 
-    char *v;
-    type_t qc_inst_unif = T_BOTTOM;
-    if((v = cheap_settings->value("qc-structure-unif")) != 0
-       || (v = cheap_settings->value("qc-structure")) != 0)
-        qc_inst_unif = lookup_type(v);
-
-    type_t qc_inst_subs = T_BOTTOM;
-    if((v = cheap_settings->value("qc-structure-subs")) != 0
-       || (v = cheap_settings->value("qc-structure")) != 0)
-      qc_inst_subs = lookup_type(v);
-
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
-    undump_dags(&dmp, qc_inst_unif, qc_inst_subs);
+    undump_dags(&dmp);
     initialize_maxapp();
-
-    if(opt_nqc_unif && qc_inst_unif == T_BOTTOM) {
-      LOG(logAppl, INFO, "[ disabling unification quickcheck ] ");
-      opt_nqc_unif = 0;
-    }
-    if(opt_nqc_subs && qc_inst_subs == T_BOTTOM) {
-      LOG(logAppl, INFO, "[ disabling subsumption quickcheck ] ");
-      opt_nqc_subs = 0;
-    }
 
     // Tell unifier that all dags created from now an are not considered to
     // be part of the grammar. This is needed for the smart copying algorithm.
@@ -519,10 +503,10 @@ tGrammar::tGrammar(const char * filename)
         << " stems, " << _rules.size() << " rules");
 
 
-    if(opt_nqc_unif != 0)
-      for(ruleiter ri = _rules.begin(); ri != _rules.end(); ++ri)
-        (*ri)->init_qc_vector_unif();
+    for(ruleiter ri = _rules.begin(); ri != _rules.end(); ++ri)
+      (*ri)->init_qc_vector_unif();
 
+    // _filter.valid() will be false if not initialized
     if(get_opt_bool("opt_filter")) {
       initialize_filter();
     }
