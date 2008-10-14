@@ -576,6 +576,8 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg)
     while (regex_path) {
       str_path += attrname[regex_path->val];
       regex_path = regex_path->next;
+      if (regex_path)
+        str_path += ".";
     }
 
     // store matched strings:
