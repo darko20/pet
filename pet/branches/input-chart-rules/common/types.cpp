@@ -536,10 +536,10 @@ bool subtype(int a, int b)
   if(b == -1) return false; // no other type is a subtype of bottom
 
 #ifdef DYNAMIC_SYMBOLS
-  if(is_dynamic_type(a))
-    return b == BI_STRING;             // dyntypes are direct subtypes of STRING
   if(is_dynamic_type(b))
-    return false;                      // and always leaf types
+    return false;                 // b is a leaf type && a != b
+  if(is_dynamic_type(a))
+    return subtype(BI_STRING, b); // a is a subtype of BI_STRING
 #endif
 
 #ifdef FLOP
