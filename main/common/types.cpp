@@ -586,14 +586,14 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         return;
     }
 #ifdef DYNAMIC_SYMBOLS
-  if(is_dynamic_type(a)) {      // a is a string literal
-    forward = (b == BI_STRING); // b == BI_TOP checked earlier
-    backward = false;           // string literals are leaftypes
+  if(is_dynamic_type(a)) {            // a is a string literal
+    forward = subtype(BI_STRING, b);  // b == BI_TOP checked earlier
+    backward = false;                 // string literals are leaftypes
     return;
   }
-  if(is_dynamic_type(b)) {       // b is a string literal
-    forward = false;             // string literals are leaftypes
-    backward = (a == BI_STRING); // a == BI_TOP checked earlier
+  if(is_dynamic_type(b)) {            // b is a string literal
+    forward = false;                  // string literals are leaftypes
+    backward = subtype(BI_STRING, a); // a == BI_TOP checked earlier
     return;
   }
 #endif
@@ -702,7 +702,7 @@ int glb(int s1, int s2)
 #ifdef DYNAMIC_SYMBOLS
   // since s1 < s2, it can't be that is_dynamic_type(s1) & !is_dynamic_type(s2)
   if (is_dynamic_type(s2)) {  
-    if (s1 == BI_STRING)
+    if (subtype(BI_STRING, s1))
       return s2;
     else // since s1 != s2 & s1 != BI_TOP, s1 must be a different dynamic type
       return T_BOTTOM;
