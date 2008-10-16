@@ -5,12 +5,21 @@
 
 - options to set/configure printers for items/dags/chart
 
-- implement timelimit with signal-based alarm (check the intended
-  functionality)
+- implement timelimit with signal-based alarm and check the intended
+  functionality (real time?, cpu time?)
+
+- do a uniform treatment of all the resource limits
+
+- More generally: which parts of the processing should be affected by the given
+  limits, especially since we ge a new preprocessing component which may be
+  computationally expensive
+
+- make all _fix_me_'s \todos (so that they are handled by doxygen) and try to
+  settle as many of them as possible
 
 - code/modules that might go away:
   - unconditional (exhaustive) unpacking
-  - CHIC printing
+  - CHIC printing (flop)
   - extdict??
 
 +- finish proper distribution/handling of options, still missing:
@@ -18,7 +27,7 @@
    - default values for when they are set with command line options, but
      without value, like, e.g., opt_packing
    - recode options.cpp such that it makes better use of the nice new 
-     functionality
+     functionality, requires renaming of the options
    - integrate management of settings files into the config system and get rid
      of the old settings, this needs more elaborate values (maps and such)
    - is there a way of turning the run-time type errors, at least for the 
