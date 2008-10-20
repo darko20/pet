@@ -205,4 +205,8 @@ protected:
   }
 };
 
+/** default printing for dags */
+std::ostream &operator<<(std::ostream &out, const dag_node *dag);
+
+
 #endif

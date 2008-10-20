@@ -24,40 +24,38 @@
 #include "options.h"
 #include "version.h"
 #include "utility.h"
+#include "logging.h"
 
-bool opt_pre, opt_expand_all_instances,
-  opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
-  opt_propagate_status, opt_linebreaks, opt_glbdebug;
+//int verbosity;
+// int errors_to;
 
-int opt_cmi;
-int verbosity;
-int errors_to;
-
-char *grammar_file_name;
-
-void usage(FILE *f)
+void usage(std::ostream &out)
 {
-  fprintf(f, "flop version %s\n", version_string);
-  fprintf(f, "usage: `flop [options] tdl-file'; valid options are:\n");
-  fprintf(f, "  `-pre' --- do only syntactic preprocessing\n");
-  fprintf(f, "  `-expand-all-instances' --- expand all (even lexicon) instances\n");
-  fprintf(f, "  `-full-expansion' --- don't do partial expansion\n");
-  fprintf(f, "  `-unfill' --- unfill after expansion\n");
-  fprintf(f, "  `-minimal' --- minimal fixed arity encoding\n");
-  fprintf(f, "  `-propagate-status' --- propagate status the PAGE way\n");
-  fprintf(f, "  `-no-semantics' --- remove all semantics\n");
-  fprintf(f, "  `-glbdebug' --- print information about glb types created\n");
-  fprintf(f, "  `-cmi=level' --- create morph info, level = 0..2, default 0\n");
-  fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
-  fprintf(f, "  `-errors-to=n' --- print errors to fd n\n");
+  out << "flop version " << version_string << std::endl
+      << "usage: `flop [options] tdl-file'; valid options are:" << std::endl
+      << "  `-pre' --- do only syntactic preprocessing" << std::endl
+      << "  `-expand-all-instances' --- expand all (even lexicon) instances"
+      << std::endl
+      << "  `-full-expansion' --- don't do partial expansion" << std::endl
+      << "  `-unfill' --- unfill after expansion" << std::endl
+      << "  `-minimal' --- minimal fixed arity encoding" << std::endl
+      << "  `-propagate-status' --- propagate status the PAGE way" << std::endl
+      << "  `-no-semantics' --- remove all semantics" << std::endl
+      << "  `-glbdebug' --- print information about glb types created"
+      << std::endl
+      << "  `-cmi=level' --- create morph info, level = 0..2, default 0"
+      << std::endl
+  //    << "  `-verbose[=n]' --- set verbosity level to n" << std::endl
+  //    << "  `-errors-to=n' --- print errors to fd n" << std::endl
+    ;
 }
 
 #define OPTION_PRE 0
 #define OPTION_EXPAND_ALL_INSTANCES 3
 #define OPTION_FULL_EXPANSION 4
 #define OPTION_UNFILL 5
-#define OPTION_VERBOSE 6
-#define OPTION_ERRORS_TO 7
+//#define OPTION_VERBOSE 6
+//#define OPTION_ERRORS_TO 7
 #define OPTION_MINIMAL 8
 #define OPTION_NO_SEM 9
 #define OPTION_PROPAGATE_STATUS 10
@@ -65,7 +63,7 @@ void usage(FILE *f)
 #define OPTION_CMI 12
 
 
-bool parse_options(int argc, char* argv[])
+char *parse_options(int argc, char* argv[])
 {
   int c,  res;
 
@@ -77,62 +75,54 @@ bool parse_options(int argc, char* argv[])
     {"minimal", no_argument, 0, OPTION_MINIMAL},
     {"no-semantics", no_argument, 0, OPTION_NO_SEM},
     {"propagate-status", no_argument, 0, OPTION_PROPAGATE_STATUS},
-    {"glbdebug", no_argument, 0, OPTION_GLBDEBUG},
     {"cmi", required_argument, 0, OPTION_CMI},
-    {"verbose", optional_argument, 0, OPTION_VERBOSE},
-    {"errors-to", required_argument, 0, OPTION_ERRORS_TO},
+    //{"verbose", optional_argument, 0, OPTION_VERBOSE},
+    //{"errors-to", required_argument, 0, OPTION_ERRORS_TO},
     {0, 0, 0, 0}
   }; /* struct option */
   
-  opt_pre = false;
-  opt_expand_all_instances = false;
-  opt_full_expansion = false;
-  opt_unfill = false;
-  opt_minimal = false;
-  opt_no_sem = false;
-  opt_propagate_status = false;
-  opt_linebreaks = false;
-  opt_glbdebug = false;
+  managed_opt("opt_expand_all_instances",
+    "expand  expand all type definitions, except for pseudo types", false);
+  managed_opt("opt_minimal", "", false);
+  managed_opt("opt_no_sem", "", false);
 
-  opt_cmi = 0;
-  verbosity = 0;
-  errors_to = -1;
+
+  //verbosity = 0;
+  //errors_to = -1;
   
   while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
   {
     switch(c)
     {
     case '?':
-      return false;
+      return NULL;
       break;
     case OPTION_PRE:
-      opt_pre = true;
+      set_opt("opt_pre", true);
       break;
     case OPTION_UNFILL:
-      opt_unfill = true;
+      set_opt("opt_unfill", true);
       break;
     case OPTION_MINIMAL:
-      opt_minimal = true;
+      set_opt("opt_minimal", true);
       break;
     case OPTION_FULL_EXPANSION:
-      opt_full_expansion = true;
+      set_opt("opt_full_expansion", true);
       break;
     case OPTION_EXPAND_ALL_INSTANCES:
-      opt_expand_all_instances = true;
+      set_opt("opt_expand_all_instances", true);
       break;
     case OPTION_NO_SEM:
-      opt_no_sem = true;
+      set_opt("opt_no_sem", true);
       break;
     case OPTION_PROPAGATE_STATUS:
-      opt_propagate_status = true;
-      break;
-    case OPTION_GLBDEBUG:
-      opt_glbdebug = true;
+      set_opt("opt_propagate_status", true);
       break;
     case OPTION_CMI:
       if(optarg != NULL)
-        opt_cmi = strtoint(optarg, "as argument to `-cmi'");
+        set_opt_from_string("opt_cmi", optarg);
       break;
+    /*
     case OPTION_VERBOSE:
       if(optarg != NULL)
         verbosity = strtoint(optarg, "as argument to `-verbose'");
@@ -143,16 +133,16 @@ bool parse_options(int argc, char* argv[])
       if(optarg != NULL)
         errors_to = strtoint(optarg, "as argument to `-errors-to'");
       break;
+    */
     }
   }
   
   if(optind != argc - 1)
   {
-    fprintf(ferr, "parse_options(): expecting name of TDL grammar to process\n");
-    return false;
+    LOG(root, ERROR,
+        "parse_options(): expecting name of TDL grammar to process");
+    return NULL;
   }
   
-  grammar_file_name = argv[optind];
-  
-  return true;
+  return argv[optind];
 }

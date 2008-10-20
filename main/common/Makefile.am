@@ -1,5 +1,11 @@
 # -*- makefile -*-
 
+# build the current directory first, then the test directory since we
+# want to test the objects in this directory
+if CPPUNIT
+SUBDIRS = test
+endif
+
 # distribute the following files in any case:
 EXTRA_DIST = bitcode.cpp	\
 	bitcode.h		\
@@ -7,6 +13,9 @@ EXTRA_DIST = bitcode.cpp	\
 	byteorder.h		\
 	chunk-alloc.cpp		\
 	chunk-alloc.h		\
+	configs.cpp		\
+	configs.h		\
+	configs-inner.h		\
 	dag-alloc.cpp		\
 	dag-alloc.h		\
 	dag-arced.cpp		\
@@ -33,6 +42,8 @@ EXTRA_DIST = bitcode.cpp	\
 	lex-tdl.cpp		\
 	lex-tdl.h		\
 	list-int.h		\
+	logging.cpp		\
+	logging.h		\
 	mfile.c			\
 	mfile.h			\
 	settings.cpp		\

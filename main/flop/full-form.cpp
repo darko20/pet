@@ -27,6 +27,7 @@
 #include "utility.h"
 #include "dumper.h"
 #include "options.h"
+#include "logging.h"
 
 using namespace std;
 
@@ -66,7 +67,8 @@ string get_string(string &line, int &pos, istream &I)
     }
   else
     {
-      fprintf(ferr, "ill formed morph entry `%s'...\n", line.c_str());
+      LOG(logSyntax, ERROR, "error: ill formed morph entry `" 
+          << line << "'...");
       I.clear(ios::badbit);
       return string();
     }
@@ -86,7 +88,8 @@ int get_int(string &line, int &pos, istream &I)
     }
   else
     {
-      fprintf(ferr, "ill formed morph entry `%s'...\n", line.c_str());
+      LOG(logSyntax, ERROR, "error: ill formed morph entry `" 
+          << line << "'...");
       I.clear(ios::badbit);
       return -1;
     }
@@ -137,7 +140,7 @@ void ff_entry::dump(dumper *f)
   preterminal = types.id(_preterminal);
   if(preterminal == -1)
     {
-      fprintf(ferr, "unknown preterminal `%s'\n", _preterminal.c_str());
+      LOG(logSemantic, WARN, "unknown preterminal `" << _preterminal << "'");
     }
 
   preterminal = leaftype_order[preterminal];
@@ -148,8 +151,8 @@ void ff_entry::dump(dumper *f)
 
   if(!_affix.empty() && affix == -1)
     {
-      fprintf(ferr, "unknown affix `%s' for `%s'\n", _affix.c_str(),
-              _preterminal.c_str());
+      LOG(logSemantic, WARN,
+          "unknown affix `" << _affix << "' for `" << _preterminal << "'");
     }
 
   inflpos = _inflpos == 0 ? 0 : _inflpos - 1;
@@ -167,14 +170,14 @@ void read_morph(string fname)
 
   if(!f)
     {
-      fprintf(ferr, "file `%s' not found. skipping...\n", fname.c_str());
+      LOG(logAppl, WARN, "file `" << fname << "' not found. skipping...");
       return;
     }
 
   if(flop_settings->lookup("affixes-are-instances"))
     opt_inst_affixes = true;
 
-  fprintf(fstatus, "reading full form entries from `%s': ", fname.c_str());
+  LOG(logApplC, INFO, "reading full form entries from `" << fname << "': ");
 
   while(!f.eof())
   {
@@ -185,18 +188,14 @@ void read_morph(string fname)
           linenr++;
           e.setdef(fname, linenr);
           fullforms.push_front(e);
-          if(verbosity > 4)
-          {
-              cerr << e << endl;
-          }
+          LOG(logAppl, DEBUG, e);
           
       }
       else if(f.bad())
           f.clear();
   }
   
-  //fprintf(fstatus, "%lu entries.\n", fullforms.size());
-  fprintf(fstatus, "%d entries.\n", fullforms.size());
+  LOG(logAppl, INFO, fullforms.size() << " entries.");
 }
 
 bool parse_irreg(string line)

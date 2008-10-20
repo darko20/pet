@@ -28,6 +28,8 @@
 #include "options.h"
 #include "grammar.h"
 #include "item.h"
+#include "logging.h"
+
 #include <sstream>
 #include <float.h>
 
@@ -41,12 +43,12 @@ tSMFeature::hash() const
 }
 
 void
-tSMFeature::print(FILE *f) const
+tSMFeature::print(std::ostream &o) const
 {
     for(vector<int>::const_iterator it = _v.begin();
         it != _v.end(); ++it)
     {
-        fprintf(f, "%d ", *it);
+      o << *it << " ";
     }
 }
 
@@ -129,24 +131,17 @@ class tSMMap
 int
 tSMMap::featureToCode(const tSMFeature &feature)
 {
-    if(verbosity > 14)
-    {
-        fprintf(fstatus, "featureToCode(");
-        feature.print(fstatus);
-        fprintf(fstatus, ") -> ");
-    }
+    LOG(logSM, DEBUG, "featureToCode(" << feature << ") -> ");
 
     hash_map<tSMFeature, int>::iterator itMatch = _featureToCode.find(feature);
     if(itMatch != _featureToCode.end())
     {
-        if(verbosity > 14)
-            fprintf(fstatus, "%d\n", itMatch->second);
+        LOG(logSM, DEBUG, itMatch->second);
         return itMatch->second;
     }
     else
     {
-        if(verbosity > 14)
-            fprintf(fstatus, "added %d", _n);
+        LOG(logSM, DEBUG, "added " << _n);
         _codeToFeature.push_back(feature);
         return _featureToCode[feature] = _n++;
     }
@@ -501,7 +496,7 @@ tMEM::parseOptions()
         if (LA(0)->tag == T_COLON) consume(1);
         pvalue = match(T_ID, "parameter value", false);
         match(T_DOT, "dot after parameter value", true);
-        opt_gplevel = atoi(pvalue);
+        set_opt("opt_gplevel", (unsigned int) atoi(pvalue));
         free(pvalue);
       }
       else {
@@ -518,7 +513,7 @@ tMEM::parseOptions()
 void
 tMEM::parseFeatures(int nFeatures)
 {
-    fprintf(fstatus, "[%d features] ", nFeatures);
+    LOG(logAppl, INFO, "[" << nFeatures << " features] ");
 
     _weights.resize(nFeatures);
 
@@ -548,8 +543,7 @@ tMEM::parseFeature(int n)
 {
     char *tmp;
 
-    if(verbosity > 9)
-        fprintf(fstatus, "\n[%d]", n);
+    LOG(logSM, DEBUG, "[" << n << "]");
 
     match(T_LBRACKET, "begin of feature vector", true);
 
@@ -563,8 +557,7 @@ tMEM::parseFeature(int n)
         {
             // This can be an integer or an identifier.
             tmp = match(T_ID, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " %s", tmp);
+            LOG(logSM, DEBUG, " " << tmp);
 
             char *endptr;
             int t = strtol(tmp, &endptr, 10);
@@ -581,9 +574,9 @@ tMEM::parseFeature(int n)
                 
                 if(t == -1)
                 {
-                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
-                            tmp, n);
-                    good = false;
+                  LOG(logSM, WARN, "Unknown type/instance `" << tmp
+                      << "' in feature #" << n);
+                  good = false;
                 }
                 else
                 {
@@ -603,8 +596,7 @@ tMEM::parseFeature(int n)
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " \"%s\"", tmp);
+            LOG(logSM, DEBUG, " \"" << tmp << "\"");
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
@@ -625,14 +617,12 @@ tMEM::parseFeature(int n)
     // check syntax of number
     double w = strtod(tmp, NULL);
     free(tmp);
-    if(verbosity > 9)
-        fprintf(fstatus, ": %g", w);
+    LOG(logSM, DEBUG, ": " << w);
 
     if(good)
     {
         int code = map()->featureToCode(v);
-        if(verbosity > 9)
-            fprintf(fstatus, " (code %d)\n", code);
+        LOG(logSM, DEBUG, " (code " << code << ")");
         assert(code >= 0);
         if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;
@@ -644,8 +634,7 @@ void
 tMEM::parseFeature2(int n)
 {
     char *tmp;
-    if(verbosity > 9)
-        fprintf(fstatus, "\n[%d]", n);
+    LOG(logSM, DEBUG, "[" << n << "]");
 
     match(T_LPAREN, "begin of feature", true);
     match(T_ID, "feature index", true);
@@ -662,8 +651,7 @@ tMEM::parseFeature2(int n)
         {
             // This can be an integer or an identifier.
             tmp = match(T_ID, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " %s", tmp);
+            LOG(logSM, DEBUG, " " << tmp);
 
             char *endptr;
             int t = strtol(tmp, &endptr, 10);
@@ -680,9 +668,9 @@ tMEM::parseFeature2(int n)
                 
                 if(t == -1)
                 {
-                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
-                            tmp, n);
-                    good = false;
+                  LOG(logSM, WARN, "Unknown type/instance `" << tmp
+                      << "' in feature #" << n);
+                  good = false;
                 }
                 else
                 {
@@ -699,8 +687,7 @@ tMEM::parseFeature2(int n)
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " \"%s\"", tmp);
+            LOG(logSM, DEBUG, " \"" << tmp << "\"");
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
@@ -730,14 +717,12 @@ tMEM::parseFeature2(int n)
     // check syntax of number
     double w = strtod(tmp, NULL);
     free(tmp);
-    if(verbosity > 9)
-        fprintf(fstatus, ": %g", w);
+    LOG(logSM, DEBUG, ": " << w);
 
     if(good)
     {
         int code = map()->featureToCode(v);
-        if(verbosity > 9)
-            fprintf(fstatus, " (code %d)\n", code);
+        LOG(logSM, DEBUG, " (code " << code << ")");
         assert(code >= 0);
         if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;
@@ -764,8 +749,7 @@ tMEM::parseFeature_lexpred(int n)
 {
     char *tmp;
 
-    if(verbosity > 9)
-        fprintf(fstatus, "\n[%d]", n);
+    LOG(logSM, NOTICE, "\n[" << n << "]");
 
     match(T_LBRACKET, "begin of feature vector", true);
 
@@ -779,8 +763,7 @@ tMEM::parseFeature_lexpred(int n)
         {
             // This can be an integer or an identifier.
             tmp = match(T_ID, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " %s", tmp);
+            LOG(logSM, NOTICE, " " << tmp);
 
             char *endptr;
             int t = strtol(tmp, &endptr, 10);
@@ -797,8 +780,8 @@ tMEM::parseFeature_lexpred(int n)
                 
                 if(t == -1)
                 {
-                    fprintf(ferr, "Unknown type/instance `%s' in feature #%d\n",
-                            tmp, n);
+                    LOG(logSM, ERROR, "Unknown type/instance `" << tmp
+                        << "' in feature #" << n);
                     good = false;
                 }
                 else
@@ -816,8 +799,7 @@ tMEM::parseFeature_lexpred(int n)
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
-            if(verbosity > 9)
-                fprintf(fstatus, " \"%s\"", tmp);
+            LOG(logSM, NOTICE, " \"" << tmp << "\"");
             v.push_back(map()->stringToSubfeature(string(tmp)));
             free(tmp);
         }
@@ -843,14 +825,12 @@ tMEM::parseFeature_lexpred(int n)
     // check syntax of number
     double w = strtod(tmp, NULL);
     free(tmp);
-    if(verbosity > 9)
-        fprintf(fstatus, ": %g", w);
+    LOG(logSM, NOTICE, ": " << w);
 
     if(good)
     {
         int code = map()->featureToCode(v);
-        if(verbosity > 9)
-            fprintf(fstatus, " (code %d)\n", code);
+        LOG(logSM, NOTICE, " (code " << code << ")");
         assert(code >= 0);
         if(code >= (int) _weights.size()) _weights.resize(code + 1);
         _weights[code] = w;

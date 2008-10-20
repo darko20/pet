@@ -28,12 +28,12 @@
 #include <limits.h>
 #include "list-int.h"
 #include "fs.h"
-#include "options.h"
 #include "grammar.h"
 #include "paths.h"
 #include "postags.h"
 #include "hashing.h"
 #include <functional>
+#include <ios>
 
 #include <list>
 #include <map>
@@ -488,7 +488,6 @@ protected:
    */
   virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit) = 0;
 
-
 private:
   // Internal function for packing/frosting
   void block(int mark);
@@ -496,6 +495,9 @@ private:
   static class item_owner *_default_owner;
 
   static int _next_id;
+
+  static bool opt_shaping, opt_lattice;
+  static bool init_item();
 
   int _id;
 
@@ -520,7 +522,7 @@ private:
 
   int _nfilled;
 
-  tLexItem *_key_item;
+  class tLexItem *_key_item;
 
   /** List of inflection rules that must be applied to get a valid lex item */
   list_int *_inflrs_todo;

@@ -27,6 +27,11 @@
 #include "cppbridge.h"
 #include "version.h"
 #include "item-printer.h"
+#include "sm.h"
+#include "settings.h"
+#include "configs.h"
+#include "logging.h"
+
 #ifdef YY
 # include "yy.h"
 #endif
@@ -36,6 +41,18 @@
 #include<fstream>
 
 using namespace std;
+
+static bool init();
+static bool tsdb_init = init();
+static bool init(){
+  managed_opt("opt_derivation",
+    "Store derivations in tsdb profile", true);
+  
+  managed_opt("opt_rulestatistics",
+    "dump the per-rule statistics to the tsdb database", false);
+  return true;
+}
+
 
 statistics stats;
 
@@ -135,6 +152,13 @@ statistics::print(FILE *f)
 char CHEAP_VERSION [4096];
 char CHEAP_PLATFORM [1024];
 
+// bool to char
+inline char btc(bool b) { return b ? '+' : '-'; }
+// bool opt to char
+inline char botc(const char *key) { return btc(get_opt_bool(key)); }
+// int opt to char
+inline char iotc(const char *key) { return btc(0 != get_opt_int(key)); }
+
 void
 initialize_version()
 {
@@ -158,9 +182,9 @@ initialize_version()
     char da[ABSBS]="unknown";
 #endif
     
-    char *qcsu = cheap_settings->value("qc-structure-unif");
+    const char *qcsu = cheap_settings->value("qc-structure-unif");
     if(qcsu == NULL) qcsu = "";
-    char *qcss = cheap_settings->value("qc-structure-subs");
+    const char *qcss = cheap_settings->value("qc-structure-subs");
     if(qcss == NULL) qcss = "";
     
     string sts("");
@@ -175,28 +199,28 @@ initialize_version()
         }                 
     }
     
+    const char *keypos[] = { "key", "l-r", "r-l", "head", "unknown" };
+    int packing;
+    get_opt("opt_packing", packing);
     sprintf(CHEAP_VERSION,
-            "PET(%s cheap v%s) [%d] %sPA(%d) %sSM(%s) RI[%s] %s(%d) %s "
-            "%s[%d(%s)] %s[%d(%s)]"
-            " %s[%d] %s %s {ns %d} (%s/%s) <%s>",
+            "PET(%s cheap v%s) [%d] %cPA(%d) %cSM(%s) RI[%s] %cHA(%d) %cFI "
+            "%cQCU[%d(%s)] %cQCS[%d(%s)]"
+            " %cOS[%d] %cSM %cSH {ns %d} (%s/%s) <%s>",
             da,
             version_string,
-            opt_pedgelimit,
-            opt_packing ? "+" : "-",
-            opt_packing,
-            Grammar->sm() ? "+" : "-",
-            Grammar->sm() ? Grammar->sm()->description().c_str() : "",
-            opt_key == 0 ? "key" : (opt_key == 1 ? "l-r"
-                                    : (opt_key == 2 ? "r-l"
-                                       : (opt_key == 3 ? "head" : "unknown"))),
-            opt_hyper ? "+HA" : "-HA",
-            Grammar->nhyperrules(),
-            opt_filter ? "+FI" : "-FI",
-            opt_nqc_unif != 0 ? "+QCU" : "-QCU", opt_nqc_unif, qcsu,
-            opt_nqc_subs != 0 ? "+QCS" : "-QCS", opt_nqc_subs, qcss,
-            ((opt_nsolutions != 0) ? "+OS" : "-OS"), opt_nsolutions, 
-            opt_shrink_mem ? "+SM" : "-SM", 
-            opt_shaping ? "+SH" : "-SH",
+            get_opt_int("opt_pedgelimit"),
+            btc(0 != packing),
+            packing,
+            btc(NULL != Grammar->sm()),
+            (NULL != Grammar->sm()) ? Grammar->sm()->description().c_str() : "",
+            keypos[max(get_opt_int("opt_key"), 4)],
+            botc("opt_hyper"), Grammar->nhyperrules(),
+            botc("opt_filter"),
+            iotc("opt_nqc_unif"), get_opt_int("opt_nqc_unif"), qcsu,
+            iotc("opt_nqc_subs"), get_opt_int("opt_nqc_subs"), qcss,
+            iotc("opt_nsolutions"), get_opt_int("opt_nsolutions"), 
+            botc("opt_shrink_mem"), 
+            botc("opt_shaping"),
             sizeof(dag_node),
             __DATE__, __TIME__,
             sts.c_str());
@@ -219,7 +243,7 @@ cheap_create_test_run(const char *data, int run_id, const char *comment,
                       char const *custom)
 {
     if(protocol_version > 0 && protocol_version <= 2)
-        opt_tsdb = protocol_version;
+      set_opt("opt_tsdb", protocol_version);
 
     cheap_tsdb_summarize_run();
     return 0;
@@ -264,8 +288,8 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
     {
         fs_alloc_state FSAS;
         
-        opt_pedgelimit = edges;
-        opt_nsolutions = nanalyses;
+        set_opt("opt_pedgelimit", edges);
+        set_opt("opt_nsolutions", nanalyses);
         
         gettimeofday(&tA, NULL);
 
@@ -320,17 +344,17 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
 int
 cheap_complete_test_run(int run_id, const char *custom)
 {
-    fprintf(ferr, "total elapsed parse time %.3fs; %d items;"
-            " avg time per item %.4fs\n",
-            TotalParseTime.elapsed_ts() / 10.,
-            nprocessed,
-            (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
+  LOG(logAppl, INFO,
+      "total elapsed parse time " << std::setprecision(3)
+      << TotalParseTime.elapsed_ts() / 10.<< "s; " 
+      << nprocessed << " items; avg time per item " << std::setprecision(4) 
+      << (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10. << "s");
 
-    if(opt_compute_qc)
+    if(get_opt_charp("opt_compute_qc") != NULL)
     {
-        fprintf(ferr, "computing quick check paths\n");
-        ofstream qc(opt_compute_qc);
-        compute_qc_paths(qc);
+        LOG(logAppl, INFO, "computing quick check paths");
+        ofstream qc(get_opt_charp("opt_compute_qc"));
+        compute_qc_paths(qc, get_opt_int("opt_packing"));
     }
 
     return 0;
@@ -339,7 +363,7 @@ cheap_complete_test_run(int run_id, const char *custom)
 int
 cheap_reconstruct_item(const char *derivation)
 {
-    fprintf(ferr, "cheap_reconstruct_item(%s)\n", derivation);
+    LOG(logTsdb, INFO, "cheap_reconstruct_item(" << derivation << ")");
     return 0;
 }
 
@@ -363,7 +387,7 @@ tsdb_result::capi_print()
     if(scored)
         capi_printf("(:score . %.g) ", score);
 
-    if(opt_tsdb == 1)
+    if(get_opt_int("opt_tsdb") == 1)
     {
         capi_printf("(:derivation . \"%s\") ", 
                     escape_string(derivation).c_str());
@@ -566,7 +590,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                           int treal, int nderivations, 
                           tsdb_parse &T)
 {
-    if(opt_derivation)
+    int tsdb_mode;
+    get_opt("opt_tsdb", tsdb_mode);
+    if(get_opt_bool("opt_derivation"))
     {
         int nres = 0;
         if(nderivations >= 0) // default case, report results
@@ -585,8 +611,8 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     R.scored = true;
                     R.score = (*iter)->score();
                 }
-                if(opt_tsdb == 1)
-                    R.derivation = tsdb_derivation(*iter, opt_tsdb);
+                if(tsdb_mode == 1)
+                    R.derivation = tsdb_derivation(*iter, tsdb_mode);
                 else
                 {
                     R.edge_id = (*iter)->id();
@@ -594,10 +620,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 }
                 
 #ifdef HAVE_MRS
-                if(opt_mrs)
+                if(get_opt_charp("opt_mrs"))
                 {
-                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag()
-                                                , opt_mrs);
+                  R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
+                            get_opt_charp("opt_mrs"));
                 }
 #endif
                 T.push_result(R);
@@ -613,7 +639,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_result R;
                     
                     R.result_id = nres;
-                    R.derivation = tsdb_derivation(it.current(), opt_tsdb);
+                    R.derivation = tsdb_derivation(it.current(), tsdb_mode);
                     
                     T.push_result(R);
                     nres++;
@@ -622,7 +648,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
         }
     }
 
-    if(opt_rulestatistics)
+    if(get_opt_bool("opt_rulestatistics"))
     {
       for(ruleiter rule = Grammar->rules().begin();
           rule != Grammar->rules().end(); rule++)

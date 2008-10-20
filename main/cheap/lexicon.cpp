@@ -24,6 +24,8 @@
 #include "utility.h"
 #include "grammar.h"
 #include "morph.h"
+#include "settings.h"
+#include "logging.h"
 
 using std::string;
 using std::list;
@@ -45,8 +47,8 @@ lex_stem::instantiate()
 
         if(!cheap_settings->lookup("lex-entries-can-fail"))
             throw tError(msg);
-        else if(verbosity > 4)
-            fprintf(stderr, "%s\n", msg.c_str());
+        else 
+            LOG(logGrammar, DEBUG, msg);
         return expanded;
     }
 
@@ -80,11 +82,9 @@ lex_stem::get_stems() {
     dag = dag_get_path_value(e.dag(),
                              cheap_settings->req_value("orth-path"));
   if(dag == FAIL) {
-    fprintf(ferr, "no orth-path in `%s'\n", type_name(_instance_type));
-    if(verbosity > 9) {
-      dag_print(stderr, e.dag());
-      fprintf(ferr, "\n");
-    }
+    LOG(logGrammar, WARN,
+        "no orth-path in `" << type_name(_instance_type) << "'");
+    LOG(logGrammar, DEBUG, e.dag());
         
     orth.push_back("");
     return orth;
@@ -109,7 +109,8 @@ lex_stem::get_stems() {
       }
     }
     else {
-      fprintf(ferr, "no valid stem in `%s'\n", type_name(_instance_type));
+      LOG(logGrammar, WARN, 
+          "no valid stem in `" << type_name(_instance_type) << "'") ;
     }
         
     return orth;
@@ -121,7 +122,8 @@ lex_stem::get_stems() {
       iter != stemlist.end(); ++iter) {
     dag = *iter;
     if(dag == FAIL) {
-      fprintf(ferr, "no stem %d in `%s'\n", n, type_name(_instance_type));
+      LOG(logGrammar, WARN,
+          "no stem "<< n << " in `" << type_name(_instance_type) << "'");
       return vector<string>();
     }
         
@@ -129,7 +131,8 @@ lex_stem::get_stems() {
       string s(type_name(dag_type(dag)));
       orth.push_back(s.substr(1,s.length()-2));
     } else {
-      fprintf(ferr, "no valid stem %d in `%s'\n",n,type_name(_instance_type));
+      LOG(logGrammar, WARN, "no valid stem " << n 
+          << " in `" << type_name(_instance_type) << "'");
       return vector<string>();
     }
     n++;
@@ -137,6 +140,13 @@ lex_stem::get_stems() {
     
   return orth;
 }
+
+void lex_stem::print(std::ostream &out) const {
+  out << printname() << ':';
+  for(int i = 0; i < _nwords; i++)
+    out << " \"" << _orth[i] << "\"";
+}
+
 
 lex_stem::lex_stem(type_t instance_type //, const modlist &mods
                    , type_t lex_type
@@ -179,9 +189,7 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
     }
   }
 
-  if(verbosity > 14) {
-    print(fstatus); fprintf(fstatus, "\n");
-  }
+  LOG(logGrammar, DEBUG, *this);
 }
 
 
@@ -193,10 +201,3 @@ lex_stem::~lex_stem()
     delete[] _orth;
 }
 
-void
-lex_stem::print(FILE *f) const
-{
-  fprintf(f, "%s:", printname());
-  for(int i = 0; i < _nwords; i++)
-    fprintf(f, " \"%s\"", _orth[i]);
-}

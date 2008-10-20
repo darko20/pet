@@ -30,6 +30,10 @@ inflrs: - "null" = do internal morph analysis
 #include "yy-tokenizer.h"
 #include "cheap.h"
 #include "hashing.h"
+#include "lex-tdl.h"
+#include "settings.h"
+#include "logging.h"
+
 #include <iostream>
 
 using namespace std;
@@ -253,8 +257,7 @@ tYYTokenizer::read_token()
 
   // skip empty tokens and punctuation
   if(stem.empty() || punctuationp(stem)) {
-    if(verbosity > 4)
-      fprintf(ferr, " - punctuation");
+    LOG(logLexproc, NOTICE, " - punctuation");
 
     token_class = SKIP_TOKEN_CLASS;
   } else {
@@ -323,9 +326,8 @@ tYYTokenizer::read_token()
        ) {
       infl_rules.push_back(infl_rule);
     } else {
-      if(verbosity > 4)
-        fprintf(ferr, "Ignoring token containing unknown "
-                "infl rule %s.\n", inflr.c_str());
+      LOG(logLexproc, WARN, 
+          "Ignoring token containing unknown infl rule " << inflr);
       return NULL;
     }
   } while (read_string(inflr, true)) ; 
@@ -361,12 +363,8 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
   _yyinput = s;
   _yypos = 0;
 
-  if(verbosity > 4)
-    {
-      std::cerr << "received YY tokens:" << std::endl << s 
-                << std::endl << std::endl;
-      fprintf(ferr, "[processing yy_tokenizer input]\n");
-    };
+  LOG(logLexproc, NOTICE, "received YY tokens: " << s 
+      << "[processing yy_tokenizer input]");
   
   tInputItem *tok = 0;
   read_ws();

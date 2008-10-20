@@ -55,11 +55,6 @@ int lookup(const string &s)
         return -1;
 }
 
-void indent (FILE *f, int nr)
-{
-  fprintf (f, "%*s", nr, "");
-}
-
 /** the constructor of the type struct */
 struct type *new_type(const string &name, bool is_inst, bool define)
 {

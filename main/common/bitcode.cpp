@@ -173,7 +173,7 @@ void bitcode::undump(dumper *f)
 
   if(s != (1 + sz/SIZE_OF_WORD))
   {
-    fprintf(ferr, "mismatch %d vs %d\n", s, 1+sz/SIZE_OF_WORD);
+    LOG(logAppl, WARN, "bitcode: mismatch " << s << "!=" << 1+sz/SIZE_OF_WORD);
   }
 
   for(CODEWORD *p = V; p < end(); p++)

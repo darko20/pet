@@ -1,3 +1,44 @@
++- make << operator for tItemPrinters to allow modifier stream like usage
+   - check if making the stream an argument of the print function decreases
+     performance, if not, remove the global pointer to the stream used and
+     replace it with a method argument 
+
+- options to set/configure printers for items/dags/chart
+
+- implement timelimit with signal-based alarm and check the intended
+  functionality (real time?, cpu time?)
+
+- do a uniform treatment of all the resource limits
+
+- More generally: which parts of the processing should be affected by the given
+  limits, especially since we ge a new preprocessing component which may be
+  computationally expensive
+
+- make all _fix_me_'s \todos (so that they are handled by doxygen) and try to
+  settle as many of them as possible
+
+- code/modules that might go away:
+  - unconditional (exhaustive) unpacking
+  - CHIC printing (flop)
+  - extdict??
+
++- finish proper distribution/handling of options, still missing:
+   - `sections' to group the options, e.g., for GUI
+   - default values for when they are set with command line options, but
+     without value, like, e.g., opt_packing
+   - recode options.cpp such that it makes better use of the nice new 
+     functionality, requires renaming of the options
+   - integrate management of settings files into the config system and get rid
+     of the old settings, this needs more elaborate values (maps and such)
+   - is there a way of turning the run-time type errors, at least for the 
+     static code, into compile-time or link-time errors?
+     1. transform the string keys into #define symbols. That at least prevents
+        the use of unknown keys (requires proper include file use, which isn't
+        such a bad idea anyway). That does not resolve the problem of 
+        key<->type correlation errors.
+
+-! fix the problem with multiple coreferences in one TDL conjunction in flop
+
 - check if the dumping of cyclic structures works correctly in flop
 
 - proper handling of upcase/lowercase handling in a) tokenizers and b) lexicon
@@ -9,8 +50,6 @@
   yy-tokenizer. This should be done in a common way and an option should be
   introduced that controls if conversion to lower case is done at all.
   (ticket #5) (The Ueber- bzw. Aegypten bug)  
-
-- reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
 
 - unpacking of edges does not terminate in some cases with unary rules
   fix: separate the local unary edges and do a fix point computation. This must
@@ -26,7 +65,7 @@
   - foreign character encoding input and output
   - automated tests for single modules ??
 
-- finish lexdb: lexical database (postgres) integration
+- finish lexdb: lexical database (sqlite instead of postgres?) integration
 
 - unreleased memory? (see valgrind-errors-15-apr-04)
   Memory leak seems to be not ignoreable (berthold et al. Jan 2006)
@@ -39,8 +78,6 @@
   Idea: Make sure that permanent dags avoid using one of the slots that are 
         used for unification and mark it with a special value. After some 
         thinking, i would say that this might not be feasible.
-
-- 64bit version does not work properly
 
 - remove all uses of negative values as `marker'-values, especially where casts
   from integers to pointers and back are involved. 
@@ -197,4 +234,12 @@ refactoring:
   represented by its type and no features, or all appropriate features are
   present. THOUGHT ABOUT THIS AND I DON'T THINK IT WILL WORK. Would require 
   quite complicated refilling using appropriate type fs's
-
++ reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
++- 64bit version does not work properly (current tests suggest that this seems
+  to be fixed)
++ all functionality for quick checks (opt_nqc...) into one place (fs.cpp/.h)
++ parsing of properties file for simple (built-in) logging
++ checked: config cheap does the same thing as main cheap. There seems to be a
+  reordering of tasks, which is why packed parses report different number of
+  passive items and parses that hit the limits report different numbers of 
+  tasks and items

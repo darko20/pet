@@ -25,6 +25,7 @@
 
 #include "eclpreprocessor.h"
 #include "cheap.h"
+#include "settings.h"
 
 #include "unicode.h"
 extern class EncodingConverter *Conv; // (bmw) why does this seem necessary?

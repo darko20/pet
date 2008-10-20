@@ -26,6 +26,7 @@
 #include "hashing.h"
 #include "utility.h"
 #include "settings.h"
+#include "logging.h"
 
 #ifdef FLOP
 #include "flop.h"
@@ -342,8 +343,13 @@ void dump_hierarchy(dumper *f)
         typecode[rleaftype_order[i]]->dump(f);
       }
     else
-      fprintf(ferr, "leaf type conception error a: `%s' (%d -> %d)\n", 
-              type_name(rleaftype_order[i]), i, rleaftype_order[i]);
+      {
+        ostringstream errmsg;
+        errmsg << "leaf type conception error a: `"
+               << type_name(rleaftype_order[i]) << "' (" << i << " -> "
+               << rleaftype_order[i] << ")";
+        throw tError(errmsg.str());
+      }
 
   // parents for all leaf types
   for(i = first_leaftype; i < nstatictypes; i++)
@@ -352,8 +358,13 @@ void dump_hierarchy(dumper *f)
         f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
       }
     else
-      fprintf(ferr, "leaf type conception error b: `%s' (%d -> %d)\n", 
-              type_name(rleaftype_order[i]), i, rleaftype_order[i]);
+      {
+        ostringstream errmsg;
+        errmsg << "leaf type conception error b: `"
+               << type_name(rleaftype_order[i]) << "' (" << i << " -> "
+               << rleaftype_order[i] << ")";
+        throw tError(errmsg.str());
+      }
 }
 
 #endif

@@ -26,8 +26,6 @@ using namespace std;
 using namespace XERCES_CPP_NAMESPACE;
 using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
 
-extern FILE *ferr;
-
 MRSHandler::MRSHandler(bool downcase) {
   _state_factory = new mrs::mrs_state_factory(this);
   _state_stack.push(new mrs::TOP_state(this));
@@ -94,10 +92,10 @@ characters(const XMLCh *const chars, const unsigned int len) {
 
 void MRSHandler::
 print_sax_exception(const char * errtype, const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e) {
-  fprintf(ferr, "SAX: %s %s:%d:%d: "
-          , errtype, XMLCh2Latin(e.getSystemId())
-          , (int) e.getLineNumber(), (int) e.getColumnNumber()) ;
-  fprintf(ferr, "%s\n", XMLCh2Latin(e.getMessage()));
+  LOG(logXML, WARN, 
+      XMLCh2Latin(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
+      << (int) e.getColumnNumber() << ": error: SAX: " << errtype << " "
+      << XMLCh2Latin(e.getMessage()) << endl);
 }
 
 string 

@@ -19,59 +19,21 @@
 
 /* command line options */
 
+#include "pet-config.h"
 #include "options.h"
-
+#include "settings.h"
+#include "parse.h"
+#include "yy.h"
 #include "getopt.h"
 #include "fs.h"
 #include "cheap.h"
 #include "utility.h"
 #include "version.h"
+#include "logging.h"
 #include <string>
 #include <unistd.h>
 
-char *grammar_file_name;
-char *opt_mrs;
-int opt_pg;
-int opt_tsdb;
-int opt_server;
-bool opt_interactive_morph;
-tokenizer_id opt_tok;
-int opt_comment_passthrough;
-bool opt_default_les;
-int opt_predict_les;
-int opt_packing;
-int opt_nsolutions;
-bool opt_shaping;
-bool opt_filter;
-bool opt_hyper;
-bool opt_chart_man;
-int opt_key;
-char *opt_compute_qc;
-bool opt_compute_qc_unif;
-bool opt_compute_qc_subs;
-int opt_nqc_unif;
-int opt_nqc_subs;
-long int opt_memlimit;
-int opt_timeout;
-int opt_pedgelimit;
-bool opt_shrink_mem;
-int verbosity;
-bool opt_print_failure;
-bool opt_derivation;
-bool opt_rulestatistics;
-int opt_nresults;
-bool opt_partial;
-std::string opt_tsdb_dir;
-bool opt_online_morph;
-bool opt_lattice;
-unsigned int opt_gplevel;
-std::string opt_jxchg_dir;
-bool opt_linebreaks;
-#ifdef YY
-bool opt_yy;
-int opt_nth_meaning;
-#endif
-
+extern int verbosity;
 
 void usage(FILE *f)
 {
@@ -105,8 +67,8 @@ void usage(FILE *f)
   fprintf(f, "  `-default-les' --- enable use of default lexical entries\n");
   fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
-  fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
 #ifdef YY
+  fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
   fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth]\n"
              "                         valid semantic formula\n");
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
@@ -174,56 +136,11 @@ void usage(FILE *f)
 #define OPTION_YY 101
 #endif
 
-
-void init_options()
-{
-  grammar_file_name = 0;
-  opt_mrs = 0;
-  opt_pg = 0;
-  opt_tsdb = 0;
-  opt_server = 0;
-  opt_interactive_morph = false;
-  opt_tok = TOKENIZER_STRING;
-  opt_comment_passthrough = 0;
-  opt_default_les = false;
-  opt_predict_les = 0;
-  opt_packing = 0;
-  opt_nsolutions = 0;
-  opt_shaping = true;
-  opt_filter = true;
-  opt_hyper = true;
-  opt_chart_man = true;
-  opt_key = 0;
-  opt_compute_qc = 0;
-  opt_compute_qc_unif = false;
-  opt_compute_qc_subs = false;
-  opt_nqc_unif = -1;
-  opt_nqc_subs = -1;
-  opt_memlimit = 0;
-  opt_timeout = 0;
-  opt_pedgelimit = 0;
-  opt_shrink_mem = true;
-  verbosity = 0;
-  opt_print_failure = false;
-  opt_derivation = true;
-  opt_rulestatistics = false;
-  opt_nresults = 0;
-  opt_partial = false;
-  opt_tsdb_dir = "";
-  opt_online_morph = true;
-  opt_lattice = false;
-  opt_gplevel = 0;
-  opt_jxchg_dir = "";
-  opt_linebreaks = false;
-
-#ifdef YY
-  opt_yy = false;
-  opt_nth_meaning = 0;
-#endif
-}
+//typedef T (*fromfunc)(const std::string &s);
+//typedef std::string (*tofunc)(const T &val);
 
 #ifndef __BORLANDC__
-bool parse_options(int argc, char* argv[])
+char* parse_options(int argc, char* argv[])
 {
   int c,  res;
 
@@ -273,107 +190,104 @@ bool parse_options(int argc, char* argv[])
     {0, 0, 0, 0}
   }; /* struct option */
 
-  init_options();
-
-  if(!argc) return true;
+  if(!argc) return NULL;
 
   while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
   {
       switch(c)
       {
       case '?':
-          return false;
-      case OPTION_TSDB:
+          return NULL;
+      case OPTION_TSDB: {
+          int opt_tsdb;
           if(optarg != NULL)
           {
               opt_tsdb = strtoint(optarg, "as argument to -tsdb");
               if(opt_tsdb < 0 || opt_tsdb > 2)
               {
-                  fprintf(ferr, "parse_options(): invalid tsdb++ protocol"
-                          " version\n");
-                  return false;
+                LOG(logAppl, FATAL, 
+                    "parse_options(): invalid tsdb++ protocol version");
+               return NULL;
               }
           }
           else
           {
               opt_tsdb = 1;
           }
+          set_opt("opt_tsdb", opt_tsdb);
+          }
           break;
       case OPTION_NSOLUTIONS:
           if(optarg != NULL)
-              opt_nsolutions = strtoint(optarg, "as argument to -nsolutions");
+            set_opt_from_string("opt_nsolutions", optarg);
           else
-              opt_nsolutions = 1;
+            set_opt("opt_nsolutions", 1);
           break;
       case OPTION_DEFAULT_LES:
-          opt_default_les = true;
+          set_opt("opt_default_les", true);
           break;
       case OPTION_NO_CHART_MAN:
-          opt_chart_man = false;
+          set_opt("opt_chart_man", false); 
           break;
       case OPTION_SERVER:
           if(optarg != NULL)
-              opt_server = strtoint(optarg, "as argument to `-server'");
+            set_opt_from_string("opt_server", optarg);
           else
-              opt_server = CHEAP_SERVER_PORT;
+            set_opt("opt_server", CHEAP_SERVER_PORT);
           break;
       case OPTION_NO_SHRINK_MEM:
-          opt_shrink_mem = false;
+          set_opt("opt_shrink_mem", false);
           break;
       case OPTION_NO_FILTER:
-          opt_filter = false;
+          set_opt("opt_filter", false);
           break;
       case OPTION_NO_HYPER:
-          opt_hyper = false;
+          set_opt("opt_hyper", false);
           break;
       case OPTION_NO_DERIVATION:
-          opt_derivation = false;
+          set_opt("opt_derivation", false);
           break;
       case OPTION_RULE_STATISTICS:
-          opt_rulestatistics = true;
+          set_opt("opt_rulestatistics", true);
           break;
       case OPTION_COMPUTE_QC:
-          if(optarg != NULL)
-            opt_compute_qc = strdup(optarg);
-          else
-            opt_compute_qc = strdup("/tmp/qc.tdl");
-          opt_compute_qc_unif = true;
-          opt_compute_qc_subs = true;
+        // TODO: this is maybe the first application for a callback option to
+        // handle the three cases
+          set_opt("opt_compute_qc",
+                  (optarg != NULL) ? optarg : "/tmp/qc.tdl");
+          set_opt("opt_compute_qc_unif", true);
+          set_opt("opt_compute_qc_subs", true);
           break;
       case OPTION_COMPUTE_QC_UNIF:
-          if(optarg != NULL)
-            opt_compute_qc = strdup(optarg);
-          else
-            opt_compute_qc = strdup("/tmp/qc.tdl");
-          opt_compute_qc_unif = true;
+          set_opt("opt_compute_qc",
+                  (optarg != NULL) ? optarg : "/tmp/qc.tdl");
+          set_opt("opt_compute_qc_unif", true);
           break;
       case OPTION_COMPUTE_QC_SUBS:
-          if(optarg != NULL)
-            opt_compute_qc = strdup(optarg);
-          else
-            opt_compute_qc = strdup("/tmp/qc.tdl");
-          opt_compute_qc_subs = true;
+          set_opt("opt_compute_qc",
+                        (optarg != NULL) ? optarg : "/tmp/qc.tdl");
+          set_opt("opt_compute_qc_subs", true);
           break;
       case OPTION_PRINT_FAILURE:
-          opt_print_failure = true;
+          set_opt("opt_print_failure", true);
           break;
       case OPTION_PG:
-        opt_pg = 1;
+        set_opt("opt_pg", 's');
         if(optarg != NULL) {
-          const char *what = "sgta";
-          char *pos = strchr(what, optarg[0]);
+          char *pos = strchr("sgta", optarg[0]);
           if(pos != NULL) {
-            opt_pg = 1 + (pos - what);
+            set_opt("opt_pg", optarg[0]);
           } else {
-            fprintf(ferr,"Invalid argument to -pg, printing only symbols\n");
+            LOG(logAppl, WARN,
+                "Invalid argument to -pg, printing only symbols\n");
           }
         }
         break;
       case OPTION_INTERACTIVE_MORPH:
-          opt_interactive_morph = true;
+          set_opt("opt_interactive_morph", true);
           break;
       case OPTION_LATTICE:
-          opt_lattice = true;
+          set_opt("opt_lattice", true);
           break;
       case OPTION_VERBOSE:
           if(optarg != NULL)
@@ -383,27 +297,31 @@ bool parse_options(int argc, char* argv[])
           break;
       case OPTION_NQC_UNIF:
           if(optarg != NULL)
-              opt_nqc_unif = strtoint(optarg, "as argument to `-qc-unif'");
+              set_opt_from_string("opt_nqc_unif", optarg);
           break;
       case OPTION_NQC_SUBS:
           if(optarg != NULL)
-              opt_nqc_subs = strtoint(optarg, "as argument to `-qc-subs'");
+              set_opt_from_string("opt_nqc_subs", optarg);
           break;
       case OPTION_KEY:
           if(optarg != NULL)
-              opt_key = strtoint(optarg, "as argument to `-key'");
+            set_opt_from_string("opt_key", optarg);
           break;
       case OPTION_LIMIT:
           if(optarg != NULL)
-              opt_pedgelimit = strtoint(optarg, "as argument to -limit");
+            set_opt_from_string("opt_pedgelimit", optarg);
           break;
       case OPTION_MEMLIMIT:
           if(optarg != NULL)
-              opt_memlimit = 1024 * 1024 * strtoint(optarg, "as argument to -memlimit");
+            set_opt_from_string("opt_memlimit", optarg);
           break;
       case OPTION_TIMEOUT:
+        // \todo the option should store the raw value and leave the details to 
+        // the implementation
           if(optarg != NULL)
-              opt_timeout = sysconf(_SC_CLK_TCK) * strtoint(optarg, "as argument to -timeout");
+            set_opt("opt_timeout",
+                        (int)(sysconf(_SC_CLK_TCK) *
+                              strtoint(optarg, "as argument to -timeout")));
           break;
       case OPTION_LOG:
           if(optarg != NULL)
@@ -411,85 +329,64 @@ bool parse_options(int argc, char* argv[])
               else flog = fopen(optarg, "w");
           break;
       case OPTION_NO_ONLINE_MORPH:
-          opt_online_morph = false;
+          set_opt("opt_online_morph", false);
           break;
       case OPTION_PACKING:
-          if(optarg != NULL)
-              opt_packing = strtoint(optarg, "as argument to `-packing'");
-          else
-              opt_packing
-                = PACKING_EQUI|PACKING_PRO|PACKING_RETRO|PACKING_SELUNPACK;
-          break;
+        if(optarg != NULL)
+          set_opt_from_string("opt_packing", optarg);
+        else
+          set_opt("opt_packing", 
+                      (int)(PACKING_EQUI | PACKING_PRO |
+                            PACKING_RETRO | PACKING_SELUNPACK));
+        break;
       case OPTION_MRS:
-          if(optarg != NULL)
-            opt_mrs = strdup(optarg);
-          else
-            opt_mrs = strdup("simple");
-          break;
+        // either this way or the like in the next option. too bad there's no
+        // automatic casting here
+        set_opt("opt_mrs", std::string((optarg != NULL) ? optarg : "simple"));
+        break;
       case OPTION_TSDB_DUMP:
-          opt_tsdb_dir = optarg;
-          break;
+        set_opt<std::string>("opt_tsdb_dir", optarg);
+        break;
       case OPTION_PARTIAL:
-          opt_partial = true;
+          set_opt("opt_partial", true);
           break;
       case OPTION_NRESULTS:
           if(optarg != NULL)
-              opt_nresults = strtoint(optarg, "as argument to -results");
+            set_opt_from_string("opt_nresults", optarg);
           break;
-      case OPTION_TOK:
-          opt_tok = TOKENIZER_STRING; //todo: make FSR the default
-          if (optarg != NULL) {
-            if (strcasecmp(optarg, "string") == 0) opt_tok = TOKENIZER_STRING;
-            else if (strcasecmp(optarg, "fsr") == 0) opt_tok = TOKENIZER_FSR;
-            else if (strcasecmp(optarg, "yy") == 0) opt_tok = TOKENIZER_YY;
-            else if (strcasecmp(optarg, "yy_counts") == 0) opt_tok = TOKENIZER_YY_COUNTS;
-            else if (strcasecmp(optarg, "pic") == 0) opt_tok = TOKENIZER_PIC;
-            else if (strcasecmp(optarg, "pic_counts") == 0) opt_tok = TOKENIZER_PIC_COUNTS;
-            else if (strcasecmp(optarg, "smaf") == 0) opt_tok = TOKENIZER_SMAF;
-            else if (strcasecmp(optarg, "xml") == 0) {
-              fprintf(ferr, "WARNING: deprecated command-line option "
-                  "-tok=xml, use -tok=pic instead\n");
-              opt_tok = TOKENIZER_PIC;
-            }
-            else if (strcasecmp(optarg, "xml_counts") == 0) {
-              fprintf(ferr, "WARNING: deprecated command-line option "
-                  "-tok=xml_counts, use -tok=pic_counts instead\n");
-              opt_tok = TOKENIZER_PIC;
-            }
-            else fprintf(ferr, "WARNING: unknown tokenizer mode \"%s\": using 'tok=string'\n", optarg);
-          }
+      case OPTION_TOK: 
+          set_opt_from_string("opt_tok", optarg);
           break;
       case OPTION_JXCHG_DUMP:
-          opt_jxchg_dir = optarg;
-          if (*(opt_jxchg_dir.end()--) != '/')
-            opt_jxchg_dir += '/';
-          break;
-
+        if (optarg[strlen(optarg) - 1] != '/')
+          set_opt("opt_jxchg_dir", std::string(optarg) + "/");
+        else
+          set_opt("opt_jxchg_dir", std::string(optarg));
+        break;
       case OPTION_COMMENT_PASSTHROUGH:
           if(optarg != NULL)
-            opt_comment_passthrough =
-              strtoint(optarg, "as argument to -comment-passthrough");
+            set_opt_from_string("opt_comment_passthrough", optarg);
           else
-              opt_comment_passthrough = 1;
+            set_opt("opt_comment_passthrough", true);
           break;
 
       case OPTION_PREDICT_LES:
-          if (optarg != NULL)
-            opt_predict_les = strtoint(optarg, "as argument to -predict-les");
-          else
-            opt_predict_les = 1;
-          break;
+        if (optarg != NULL)
+          set_opt_from_string("opt_predict_les", optarg);
+        else 
+          set_opt("opt_predict_les", (int) 1);
+        break;
 
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
-              opt_nth_meaning = strtoint(optarg, "as argument to -one-meaning");
+            set_opt_from_string("opt_nth_meaning", optarg);
           else
-              opt_nth_meaning = 1;
+            set_opt("opt_nth_meaning", 1);
           break;
       case OPTION_YY:
-          opt_yy = true;
-          opt_tok = TOKENIZER_YY;
+          set_opt("opt_yy", true);
+          set_opt_from_string("opt_tok", "yy");
           break;
 #endif
         }
@@ -497,19 +394,19 @@ bool parse_options(int argc, char* argv[])
 
   if(optind != argc - 1)
     {
-      fprintf(ferr, "parse_options(): expecting name of grammar to load\n");
-      return false;
+      LOG(logAppl, FATAL, "parse_options(): expecting name of grammar to load");
+      return NULL;
     }
-  grammar_file_name = argv[optind];
 
-  if(opt_hyper && opt_compute_qc)
+  if( get_opt_bool("opt_hyper") &&
+      get_opt_charp("opt_compute_qc") != NULL)
   {
-      fprintf(ferr, "quickcheck computation doesn't work "
-              "in hyperactive mode, disabling hyperactive mode.\n");
-      opt_hyper = false;
+    LOG(logAppl, WARN,"quickcheck computation doesn't work "
+        "in hyperactive mode, disabling.");
+      set_opt("opt_hyper", false);
   }
 
-  return true;
+  return argv[optind];
 }
 #endif
 
@@ -534,23 +431,17 @@ int int_setting(settings *set, const char *s)
 
 void options_from_settings(settings *set)
 {
-  init_options();
   if(bool_setting(set, "one-solution"))
-      opt_nsolutions = 1;
+      set_opt("opt_nsolutions", 1);
   else
-      opt_nsolutions = 0;
+      set_opt("opt_nsolutions", 0);
   verbosity = int_setting(set, "verbose");
-  opt_pedgelimit = int_setting(set, "limit");
-  opt_memlimit = 1024 * 1024 * int_setting(set, "memlimit");
-  opt_timeout = sysconf(_SC_CLK_TCK) * int_setting(set, "timeout");
-  opt_hyper = bool_setting(set, "hyper");
-  opt_default_les = bool_setting(set, "default-les");
-  opt_predict_les = int_setting(set, "predict-les");
+  set_opt("pedgelimit", int_setting(set, "limit"));
+  set_opt("memlimit", int_setting(set, "memlimit"));
+  set_opt("opt_hyper", bool_setting(set, "hyper"));
+  set_opt("opt_default_les", bool_setting(set, "default-les"));
+  set_opt("opt_predict_les", int_setting(set, "predict-les"));
 #ifdef YY
-  opt_yy = bool_setting(set, "yy");
-  if(bool_setting(set, "one-meaning"))
-    opt_nth_meaning = 1;
-  else
-    opt_nth_meaning = 0;
+  set_opt("opt_nth_meaning", (bool_setting(set, "one-meaning")) ? 1 : 0);
 #endif
 }

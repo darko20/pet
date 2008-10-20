@@ -28,6 +28,8 @@
 #ifndef _YY_H_
 #define _YY_H_
 
+#define CHEAP_SERVER_PORT 4711
+
 extern int cheap_server_initialize(int);
 extern void cheap_server(int);
 extern int cheap_server_child(int);

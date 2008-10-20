@@ -18,7 +18,7 @@
 #ifndef _GETOPT_H
 #define _GETOPT_H 1
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -55,9 +55,9 @@ extern int opterr;
    zero.
 
    The field `has_arg' is:
-   no_argument		(or 0) if the option does not take an argument,
-   required_argument	(or 1) if the option requires an argument,
-   optional_argument 	(or 2) if the option takes an optional argument.
+   no_argument          (or 0) if the option does not take an argument,
+   required_argument    (or 1) if the option requires an argument,
+   optional_argument    (or 2) if the option takes an optional argument.
 
    If the field `flag' is not NULL, it points to a variable that is set
    to the value given in the field `val' when the option is found, but
@@ -72,7 +72,7 @@ extern int opterr;
 
 struct option
 {
-#if	__STDC__
+#if __STDC__
   const char *name;
 #else
   char *name;
@@ -86,9 +86,9 @@ struct option
 
 /* Names for the values of the `has_arg' field of `struct option'.  */
 
-#define	no_argument		0
-#define required_argument	1
-#define optional_argument	2
+#define no_argument             0
+#define required_argument       1
+#define optional_argument       2
 
 #if __STDC__
 #if 0
@@ -121,7 +121,7 @@ extern int getopt_long_only ();
 extern int _getopt_internal ();
 #endif /* not __STDC__ */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

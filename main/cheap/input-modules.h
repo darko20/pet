@@ -39,7 +39,6 @@ public:
    *  number means higher level, the highest level modules should return 1.
    */
   virtual int level() const { return 1; }
-
 };
 
 /** function object to compare two modules according to their priority (level)
@@ -52,6 +51,12 @@ struct less_than_module
 };
 
 enum position_map { NO_POSITION_MAP = 0, STANDOFF_POINTS, STANDOFF_COUNTS};
+
+enum tokenizer_id {
+  TOKENIZER_STRING, TOKENIZER_YY, TOKENIZER_YY_COUNTS
+  , TOKENIZER_PIC, TOKENIZER_PIC_COUNTS
+  , TOKENIZER_FSR, TOKENIZER_SMAF, TOKENIZER_INVALID
+};
 
 /** Tokenize the input (not necessarily unambiguous)
  *

@@ -26,20 +26,45 @@
 #include "item-printer.h"
 #include "cheap.h"
 #include "hashing.h"
+#include "sm.h"
+#include "settings.h"
+#include "configs.h"
+#include "logging.h"
 
 #include <iostream>
 
 using namespace std;
 using namespace HASH_SPACE;
 
+static lex_parser &init();
+
 lex_parser global_lexparser;
-lex_parser &Lexparser = global_lexparser;
+lex_parser &Lexparser = init();
 extern chart *Chart;
 extern tAgenda *Agenda;
 
+static lex_parser &init() {
+  /** @name Unknown word handling */
+  //@{
+  managed_opt("opt_default_les",
+    "Try to use default (generic) lexical entries if no regular entries could "
+    "be found. Uses POS annotation, if available.", false);
+
+  managed_opt("opt_predict_les",
+    "Try to use lexical type predictor if no regular entries could "
+    "be found. Use at most the number of entries specified", 0);
+  //@}
+
+  managed_opt("opt_chart_man",
+    "allow/disallow chart manipulation (currently only dependency filter)",
+    true);
+  
+  return global_lexparser;
+} 
+
 // functions from parse.cpp
 extern void add_item(tItem *it);
-extern void parse_loop(fs_alloc_state &FSAS, list<tError> &errors);
+extern void parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout);
 extern void postulate(tItem *passive);
 
 /** Perform lexparser initializations.
@@ -48,6 +73,16 @@ extern void postulate(tItem *passive);
 // _fix_me_
 void lex_parser::init() {
   _carg_path = cheap_settings->value("mrs-carg-path");
+}
+
+void debug_tokenize(string desc, string input, inp_list &tokens) {
+  ostringstream cdeb;
+  cdeb << "tokenizer = " << desc << endl
+       << "tokenizer input:" << endl << input << endl << endl
+       << "tokenizer output:" << endl;
+  for(inp_iterator r = tokens.begin(); r != tokens.end(); ++r)
+    cdeb << (*r);
+  LOG(logLexproc, DEBUG, cdeb.str());
 }
 
 /** Use the registered tokenizer(s) to tokenize the input string and put the
@@ -61,21 +96,11 @@ void lex_parser::tokenize(string input, inp_list &tokens) {
   if (_tokenizers.empty())
     throw tError("No tokenizer registered");
 
-  // trace output
-  if(verbosity > 4) {
-    cerr << "tokenizer = " << _tokenizers.front()->description() << endl;
-    cerr << "tokenizer input:" << endl << input << endl << endl;
-  }
-
   _tokenizers.front()->tokenize(input, tokens);
   
   // trace output
-  if(verbosity > 4) {
-    cerr << "tokenizer output:" << endl;
-    for(inp_iterator r = tokens.begin(); r != tokens.end(); ++r)
-      cerr << **r << endl;
-  }
- 
+  if(LOG_ENABLED(logLexproc, DEBUG))
+    debug_tokenize(_tokenizers.front()->description(), input, tokens);
 }
 
 /** Call the registered taggers which add their results to the individual
@@ -184,11 +209,10 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   newfs.modify_eagerly(mods);
 
   if (newfs.valid()) {
-    //fprintf(ferr, "combine() succeeded in creating valid fs\n");
+    // LOG(logParse, DEBUG, "combine() succeeded in creating valid fs");
     add(new tLexItem(stem, i_item, newfs, infl_rules));
   }
-  else if(verbosity > 4)
-    fprintf(ferr, "ERROR: combine() failed in creating valid fs\n");
+  else LOG(logParse, DEBUG, "combine() failed in creating valid fs!");
 }
 
 
@@ -310,7 +334,7 @@ int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
 void
 lex_parser::dependency_filter(struct setting *deps, bool unidirectional
                               , bool lex_exhaustive) {
-  if(deps == 0 || opt_chart_man == false)
+  if(deps == 0 || !get_opt_bool("opt_chart_man"))
     return;
 
   vector<set <int> > satisfied(deps->n);
@@ -328,20 +352,18 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
         && (!lex_exhaustive || lex->inflrs_complete_p())) {
       f = lex->get_fs();
     
-      if(verbosity > 4)
-        fprintf(fstatus, "dependency information for %s:\n",
-                lex->printname());
+      LOG(logLexproc, DEBUG, "dependency information for " << 
+          lex->printname() << ":");
     
       for(int j = 0; j < deps->n; j++) {
         fs v = f.get_path_value(deps->values[j]);
         if(v.valid()) {
-          if(verbosity > 4)
-            fprintf(fstatus, "  %s : %s\n", deps->values[j], v.name());
+          LOG(logLexproc, DEBUG, "  " << deps->values[j] << " : " << v.name());
 
           if(!unidirectional || j % 2 != 0) {
             satisfied[j].insert(v.type());
           }
-        
+          
           if(!unidirectional || j % 2 == 0) {
             requires.insert(make_pair(lex,
                                       make_pair((j % 2 == 0)
@@ -369,18 +391,15 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
           ok && dep != eq.second; ++dep) {
         // we have to resolve a required dependency
         pair<int, int> req = dep->second;
-        if(verbosity > 4)
-          fprintf(fstatus, "`%s' requires %s at %d -> ",
-                  lex->printname(),
-                  type_name(req.second), req.first);
+        LOG(logLexproc, DEBUG, "`" << lex->printname() << "' requires "
+            << type_name(req.second) << " at " << req.first << " -> ");
        
         bool found = false;
         for(set<int>::iterator it2 = satisfied[req.first].begin();
             it2 != satisfied[req.first].end(); ++it2) {
           if(glb(*it2, req.second) != -1)
             {
-              if(verbosity > 4)
-                fprintf(fstatus, "[%s]", type_name(*it2));
+              LOG(logLexproc, DEBUG, "[" << type_name(*it2) << "]");
               found = true;
               break;
             }
@@ -391,8 +410,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
           stats.words_pruned++;
         }
 
-        if(verbosity > 4)
-          fprintf(fstatus, "%s satisfied\n", ok ? "" : "not");
+        LOG(logLexproc, DEBUG, (ok ? "" : "not") << " satisfied");
       }
     
       if(!ok)
@@ -502,16 +520,13 @@ void
 lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   list< lex_stem * > gens;
 
-  if(verbosity > 4)
-    fprintf(ferr, "adding generic les\n");
-
+  LOG(logLexproc, DEBUG, "adding generic les");
+ 
   for(inp_iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
 
     // debug messages
-    if(verbosity > 4) {
-      cerr << "  token " << *it << endl;
-    }
+    LOG(logLexproc, DEBUG, "  token " << (*it) << endl);
 
     // instantiate gens
     if ((! (*it)->parents.empty())
@@ -521,17 +536,13 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       postags missing((*it)->get_in_postags());
 
       // debug messages
-      if(verbosity > 4) {
-        cerr << "    token provides tags:" << missing << endl
-             << "    already supplied:" << postags((*it)->parents) << endl;
-      }
+      LOG(logLexproc, DEBUG, "    token provides tags:" << missing << endl
+          << "    already supplied:" << postags((*it)->parents) << endl);
 
       missing.remove(postags((*it)->parents));
 
       // debug messages
-      if(verbosity > 4) {
-        cerr << "    -> missing tags:" << missing << endl;
-      }
+      LOG(logLexproc, DEBUG, "    -> missing tags:" << missing << endl);
             
       if(!missing.empty())
         gens = (*it)->generics(missing);
@@ -617,19 +628,25 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
   return results; 
 }
 
+
+void debug_predictions(inp_list &unexpanded) {
+  ostringstream cdeb;
+  cdeb << "adding prediction les" << endl;
+  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
+    cdeb << "  token " << *it << endl;
+  }
+  LOG(logLexproc, DEBUG, cdeb.str());
+}
+
 void 
-lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens) {
+lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
+                         int nr_predicts) {
   list<lex_stem*> predicts;
   
-  if (verbosity > 4)
-    cerr << "adding prediction les" << endl;
+  if(LOG_ENABLED(logLexproc, DEBUG)) debug_predictions(unexpanded);
   
   for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
-    if (verbosity > 4) {
-      cerr << "  token " << *it << endl;
-    }
-    
-    predicts = predict_les(*it, inp_tokens, opt_predict_les);
+    predicts = predict_les(*it, inp_tokens, nr_predicts);
     list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
     for (list<lex_stem*>::iterator ls = predicts.begin();
          ls != predicts.end(); ls ++) {
@@ -714,7 +731,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
 
   // exhaustively apply lexical and inflection rules
   if (lex_exhaustive) {
-    parse_loop(FSAS, errors);
+    parse_loop(FSAS, errors, 0);
   }
 }
 
@@ -751,39 +768,37 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     unexpanded = find_unexpanded(Chart, *valid) ;
   }
 
+  int opt_predict_les;
+  bool opt_default_les;
+  get_opt("opt_default_les", opt_default_les);
   // This may in principle lead to new lexical parsing, but only if generics
   // may be multi word entries.
-  if(opt_default_les && ! unexpanded.empty()) {
-    add_generics(unexpanded);
-    unexpanded.clear();
-    
-    while (! _agenda.empty()) {
-      _agenda.front()->execute(*this);
-      _agenda.pop();
+  if(! unexpanded.empty()) {
+    if (opt_default_les) {
+      add_generics(unexpanded);
+    } else {
+      get_opt("opt_predict_les", opt_predict_les);
+      // Lexical type predictor will only be used when there is
+      // unexpanded inps and the `-default-les' is not used.
+      if (opt_predict_les != 0) {
+        add_predicts(unexpanded, inp_tokens, opt_predict_les);
+      }
     }
-    
-    if (lex_exhaustive) {
-      parse_loop(FSAS, errors);
-    }
-    if (! Chart->connected(*valid)) {
-      unexpanded = find_unexpanded(Chart, *valid);
-    }
-  }
-  // Lexical type predictor will only be used when there is
-  // unexpanded inps and the `-default-les' is not used.
-  else if (opt_predict_les && ! unexpanded.empty()) {
-    add_predicts(unexpanded, inp_tokens);
-    unexpanded.clear();
-    while (! _agenda.empty()) {
-      _agenda.front()->execute(*this);
-      _agenda.pop();
-    }
-  
-    if (lex_exhaustive) {
-      parse_loop(FSAS, errors);
-    }
-    if (! Chart->connected(*valid)) {
-      unexpanded = find_unexpanded(Chart, *valid);
+
+    if (opt_default_les || (0 != opt_predict_les)) {
+      unexpanded.clear();
+      
+      while (! _agenda.empty()) {
+        _agenda.front()->execute(*this);
+        _agenda.pop();
+      }
+      
+      if (lex_exhaustive) {
+        parse_loop(FSAS, errors, 0);
+      }
+      if (! Chart->connected(*valid)) {
+        unexpanded = find_unexpanded(Chart, *valid);
+      }
     }
   }
 

@@ -17,7 +17,7 @@
 */
 
 /* Revision History:
-   01/10/05	UC	created
+   01/10/05  UC  created
 */
 
 // Error conditions are communicated to the caller by throwing an exception

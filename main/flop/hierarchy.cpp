@@ -27,8 +27,10 @@
 #include "list-int.h"
 #include "options.h"
 #include "utility.h"
+#include "logging.h"
 
 #include <boost/graph/topological_sort.hpp>
+#include <sstream>
 
 using std::list;
 using std::map;
@@ -65,8 +67,8 @@ void subtype_constraint(int sub, int super)
 {
     if(sub == super)
     {
-        fprintf(ferr, "warning: `%s' is declared subtype of itself.\n",
-                types.name(sub).c_str());
+        LOG(logSemantic, WARN,
+            "`" << types.name(sub) << "' is declared subtype of itself.");
     }
     else
     {
@@ -88,10 +90,10 @@ bool is_simple(tHierarchy g) {
     tHierarchy::adjacency_iterator a, aend;
     tHierarchy::out_edge_iterator e, eend;
     for(boost::tie(i, iend) = boost::vertices(g); i != iend; ++i) {
-		boost::tie(a, aend) = boost::adjacent_vertices(*i, g);
-		boost::tie(e, eend) = boost::out_edges(*i, g);
-		if ((aend - a) != (eend - e)) return false;
-	}
+        boost::tie(a, aend) = boost::adjacent_vertices(*i, g);
+        boost::tie(e, eend) = boost::out_edges(*i, g);
+        if ((aend - a) != (eend - e)) return false;
+    }
     return true;
 }
 
@@ -175,8 +177,8 @@ void compute_code_topo()
             // check if this has already been visited - cannot happen
             // if iterator works as expected
             if(types[current_type]->bcode != NULL)
-                fprintf(ferr, "conception error: %s already visited...\n",
-                        types.name(current_type).c_str());
+              throw tError("conception error: " + types.name(current_type)
+                           + " already visited...");
             
             // create a new bitcode, it's initialized to all zeroes
             types[current_type]->bcode = new bitcode(codesize);
@@ -194,8 +196,8 @@ void compute_code_topo()
                 // check that this has already a code assigned - if not,
                 // there's a horrible flaw somewhere
                 if(types[c]->bcode == NULL)
-                    fprintf(ferr, "conception error: %s not yet computed...\n",
-                            types.name(c).c_str());
+                  throw tError("conception error: " + types.name(c) 
+                               + " not yet computed...");
                 
                 // combine with subtypes bitcode using binary or
                 *types[current_type]->bcode |= *types[c]->bcode;
@@ -205,18 +207,15 @@ void compute_code_topo()
 }
 
 /** Print all subtypes of bitcode \a b for debugging */
-void debug_print_subtypes(bitcode *b)
-{
+std::string debug_print_subtypes(bitcode *b) {
   list_int *l = b->get_elements();
-  list_int *c = l;
-           
-  while(c)
-  {
-    fprintf(fstatus, " %s", types.name(idbit_type[first(c)]).c_str());
-    c = rest(c);
+  std::ostringstream out;
+  for(list_int *c = l; c != NULL; c = rest(c)) {
+    out << " " << types.name(idbit_type[first(c)]);
   }
            
   free_list(l);
+  return out.str();
 }
 
 /*@}*/
@@ -271,8 +270,7 @@ void make_semilattice()
 
   bool changed;
 
-  if(verbosity > 4)
-    fprintf(fstatus, " (%ld)", clock());
+  LOG(logSemantic, DEBUG, "make_semilattice(1) at " << clock());
 
   // nr of synthesized glb types so far, old (total) number of types
   int glbtypes = 0, oldntypes = types.number();
@@ -280,7 +278,7 @@ void make_semilattice()
   // scratch bitcode
   bitcode *temp = new bitcode(codesize);
 
-  fprintf(fstatus, "glbs ");
+  LOG(logApplC, INFO, "glbs ");
 
   low = 0; high = types.number();
 
@@ -315,18 +313,14 @@ void make_semilattice()
               glbtype->def = new_location("synthesized", 0, 0);
               glbtype->bcode = temp;
 
-	          if(opt_glbdebug)
-	          {
-	            fprintf(fstatus, "Introducing %s for %s and %s:\n",
-	                    name, types.name(i).c_str(), types.name(j).c_str());
-	            fprintf(fstatus, "  [%s]:", types.name(i).c_str());
-	            debug_print_subtypes(types[i]->bcode);
-	            fprintf(fstatus, "\n  [%s]:", types.name(j).c_str());
-	            debug_print_subtypes(types[j]->bcode);
-	            fprintf(fstatus, "\n  [%s]:", name);
-	            debug_print_subtypes(temp);
-	            fprintf(fstatus, "\n");
-	          }
+             LOG(logSemantic, DEBUG,
+                 "Introducing " << name << " for " << types.name(i)
+                 << " and " << types.name(j) << ":" << std::endl
+                 << "[" << types.name(i) << "]:"
+                 << debug_print_subtypes(types[i]->bcode) << std::endl
+                 << "[" << types.name(j) << "]:"
+                 << debug_print_subtypes(types[j]->bcode) << std::endl
+                 << "[" << name << "]:" <<debug_print_subtypes(temp));
 
               // register the new type's bitcode in the hash table
               register_codetype(*temp, glbtype->id);
@@ -346,7 +340,7 @@ void make_semilattice()
 
   } while(changed);
 
-  fprintf(fstatus, "[%d], ", glbtypes);
+  LOG(logApplC, INFO, "[" << glbtypes << "], ");
 
   // register the codes corresponding to non-leaf types
   resize_codes(types.number());
@@ -361,10 +355,9 @@ void make_semilattice()
   // now we have to recompute the graph representation of the
   // hierarchy - there are two ways of doing this:
 
-  if(verbosity > 4)
-    fprintf(fstatus, " (%ld)", clock());
+  LOG(logApplC, DEBUG, " (" << clock() << "), ");
 
-  fprintf(fstatus, "recomputing");
+  LOG(logApplC, INFO, "recomputing");
 
 #ifdef NAIVE_RECOMPUTATION
 
@@ -411,8 +404,7 @@ void make_semilattice()
   // sanity check: is the new hierarchy still acyclic
   if(!isAcyclic<tHierarchy>(hierarchy))
     {
-      fprintf(ferr, "conception error: new type hierarchy is cyclic...\n");
-      exit(1);
+      throw tError("conception error: new type hierarchy is cyclic...");
     }
 
   // now we have to remove the redundant links - this is just
@@ -420,26 +412,22 @@ void make_semilattice()
 
   acyclicTransitiveReduction(hierarchy);
 
-  if(verbosity > 4)
-    fprintf(fstatus, " (%ld)", clock());
+  LOG(logSemantic, DEBUG, " (" << clock() << ")");
 
   // do a few sanity checks:
   
   if(!is_simple(hierarchy)) {
-    fprintf(ferr, "conception error - making hierarchy simple\n");
-    assert(false);
-    // Make_Simple(hierarchy);
+    throw tError("conception error - making hierarchy simple");
   }
 
 #if 0
   if(!Is_Loopfree(hierarchy))
     {
-      fprintf(ferr, "conception error - making hierarchy loopfree\n");
+      LOG(logSemantic, ERROR, "conception error - making hierarchy loopfree");
       Delete_Loops(hierarchy);
     }
 
-  if(verbosity > 4)
-    fprintf(fstatus, " (%ld)", clock());
+  LOG(logSemantic, DEBUG, " (%ld)", clock());
 #endif
 }
 
@@ -454,9 +442,7 @@ inline void mark_leaftype(int i)
 // mark `i' as a leaftype
 {
   leaftypeparent[i] = immediate_supertypes(i).front();
-
-  //if(verbosity > 4)
-  //  fprintf(stderr, "LT: %d [%d]\n", i, leaftypeparent[i]);
+  // LOG(logSemantic, DEBUG, "LT: " << i << " [" << leaftypeparent[i] << "]");
 
   nstaticleaftypes++;
 }
@@ -521,33 +507,33 @@ void find_leaftypes()
 
 /** Recursively print all subtypes of a given type t */
 void
-print_subtypes(FILE *f, int t, HASH_SPACE::hash_set<int> &visited)
+print_subtypes(std::ostream &out, int t, HASH_SPACE::hash_set<int> &visited)
 {
     if(visited.find(t) != visited.end())
         return;
     
     visited.insert(t);
-    fprintf(f, " %s", types.name(t).c_str());
+    out << " " << types.name(t);
 
     list<int> children = immediate_subtypes(t);
     for(list<int>::iterator child = children.begin();
         child != children.end(); ++child)
     {
-        print_subtypes(f, *child, visited);
+        print_subtypes(out, *child, visited);
     }
 }
 
 
 void
-print_hierarchy(FILE *f)
+print_hierarchy(std::ostream &out)
 {
     HASH_SPACE::hash_set<int> visited;
     for(int i = 1; i < types.number() ; i++)
     {
         visited.clear();
-        fprintf(f, "%s:", types.name(i).c_str());
-        print_subtypes(f, i, visited);
-        fprintf(f, "\n");
+        out << types.name(i) << ":";
+        print_subtypes(out, i, visited);
+        out << std::endl;
     }
 }
 
@@ -556,7 +542,7 @@ void propagate_status()
 {
     struct type *t, *chld;
     
-    fprintf(fstatus, "- status values\n");
+    LOG(logSemantic, INFO, "- status values");
     
     vector<int> topo;
     boost::topological_sort(hierarchy, std::back_inserter(topo));
@@ -579,12 +565,14 @@ void propagate_status()
                            chld->status != t->status &&
                            !flop_settings->member("weak-status-values", statustable.name(chld->status).c_str()))
                         {
-                            fprintf(ferr, "`%s': status `%s' from `%s' overwrites old status `%s' from `%s'...\n",
-                                    types.name(chld->id).c_str(),
-                                    statustable.name(t->status).c_str(),
-                                    types.name(t->id).c_str(),
-                                    statustable.name(chld->status).c_str(),
-                                    types.name(chld->status_giver).c_str());
+                            LOG(logSemantic, INFO,
+                                "`" << types.name(chld->id)
+                                << "': status `" << statustable.name(t->status)
+                                << "' from `" << types.name(t->id)
+                                << "' overwrites old status `"
+                                << statustable.name(chld->status)
+                                << "' from `" << types.name(chld->status_giver)
+                                << "'...");
                         }
                         
                         chld->status_giver = t->id;
@@ -600,12 +588,13 @@ bool process_hierarchy(bool propagate_status_p)
 {
   int i;
 
-  fprintf(fstatus, "- type hierarchy (");
+  LOG(logApplC, INFO, "- type hierarchy (");
 
   // sanity check: is the hierarchy simple (contains no parallel edges)
   if(!is_simple(hierarchy))
     {
-      fprintf(ferr, "type hierarchy is not simple (should not happen)\n");
+      LOG(logSemantic, WARN,
+          "type hierarchy is not simple (should not happen)");
       assert(false);
       //Make_Simple(hierarchy);
     }
@@ -613,7 +602,7 @@ bool process_hierarchy(bool propagate_status_p)
   // check for cyclicity:
   if(!isAcyclic(hierarchy))
   {
-      fprintf(ferr, "type hierarchy is cyclic.\n");
+      LOG(logSemantic, WARN, "type hierarchy is cyclic.");
       return false;
   }
   
@@ -626,16 +615,16 @@ bool process_hierarchy(bool propagate_status_p)
       }
   }
 
-  fprintf(fstatus, "leaf types ");
+  LOG(logApplC, INFO, "leaf types ");
 
   // for each type t, leaftypeparent[t] is -1 if t is not a leaftype,
   // and the id of the parent type otherwise
   
   find_leaftypes();
   
-  fprintf(fstatus, "[%d], ", nstaticleaftypes); 
+  LOG(logApplC, INFO, "[" << nstaticleaftypes << "], "); 
   
-  fprintf(fstatus, "bitcodes, ");
+  LOG(logApplC, INFO, "bitcodes, ");
 
   // codesize is number of non-leaf types
   codesize = types.number() - nstaticleaftypes;
@@ -648,7 +637,7 @@ bool process_hierarchy(bool propagate_status_p)
 
   make_semilattice();
 
-  fprintf(fstatus, ")\n");
+  LOG(logAppl, INFO, ")");
 
   if(propagate_status_p) propagate_status();
 

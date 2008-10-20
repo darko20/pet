@@ -92,11 +92,6 @@ extern char *global_inflrs;
  */
 extern int allow_redefinitions;
 
-/** Output for status messages. */
-extern FILE *fstatus;
-/** Output for error messages. */
-extern FILE *ferr;
-
 /*@{*/
 /** Tables containing a reordering function for types, from the old type id to
  *  the new one and the inverse .
@@ -438,13 +433,14 @@ extern std::map<std::string, std::string> grammar_properties;
 /* global functions - the interface between the modules */
 /********************************************************/
 
+/** prints \a nr blanks on \a f */
+inline void indent (FILE *f, int nr) { fprintf (f, "%*s", nr, ""); }
+
 /** @name util.cc */
 /*@{*/
 int strcount(char *s, char c);
 /** counts occurences of \a c in \a s - \a c must be != 0. */
 
-void indent (FILE *f, int nr);
-/** prints \a nr blanks on \a f */
 
 struct type *new_type(const std::string &name, bool is_inst, bool define = true);
 /** allocates memory for new type - returns pointer to initialized struct */

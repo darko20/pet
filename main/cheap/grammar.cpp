@@ -32,6 +32,9 @@
 #include "tsdb++.h"
 #include "sm.h"
 #include "restrictor.h"
+#include "settings.h"
+#include "configs.h"
+#include "logging.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
@@ -39,6 +42,20 @@
 #include "item-printer.h"
 #include "dagprinter.h"
 #include <fstream>
+
+static int init();
+static bool static_init = init();
+static int init() {
+  managed_opt("opt_filter", 
+              "Use the static rule filter (see Kiefer et al 1999)", true);
+  managed_opt("opt_key",
+              "What is the key daughter used in parsing?"
+              "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", (int) 0);
+  return true;
+}
+
+// defined in parse.cpp
+extern int opt_packing;
 
 bool
 lexentry_status(type_t t)
@@ -157,8 +174,9 @@ grammar_rule::grammar_rule(type_t t)
     {
         if(keyarg != -1)
         {
-            fprintf(ferr, "warning: both keyarg-marker-path and rule-keyargs "
-                    "supply information on key argument...\n");
+          LOG(logGrammar, WARN,
+              "warning: both keyarg-marker-path and rule-keyargs "
+              "supply information on key argument...");
         }
         char *s = cheap_settings->assoc("rule-keyargs", type_name(t));
         if(s && strtoint(s, "in `rule-keyargs'"))
@@ -179,12 +197,14 @@ grammar_rule::grammar_rule(type_t t)
     // this is wrong for more than binary branching rules, 
     // since adjacency is not guarantueed.
     
-    if(opt_key == 0)
+    int opt_key;
+    get_opt("opt_key", opt_key);
+    if(opt_key == 0) // take key arg specified in fs
     {
         if(keyarg != -1) 
             _tofill = append(_tofill, keyarg);
     }
-    else if(opt_key == 3)
+    else if(opt_key == 3) // take head daughter
     {
         if(head != -1) 
             _tofill = append(_tofill, head);
@@ -192,7 +212,7 @@ grammar_rule::grammar_rule(type_t t)
             _tofill = append(_tofill, keyarg);
     }
     
-    if(opt_key != 2)
+    if(opt_key != 2) // right to left, 2 is left to right
     {
         for(int i = 1; i <= _arity; i++)
             if(!contains(_tofill, i)) _tofill = append(_tofill, i);
@@ -222,8 +242,7 @@ grammar_rule::grammar_rule(type_t t)
         _spanningonly = true;
     }
     
-    // \todo this sucks and goes into another (debugging) method
-    // if(verbosity > 14) cerr << *this << endl;
+    LOG(logGrammar, DEBUG, *this);
 
 }
 
@@ -239,20 +258,17 @@ grammar_rule::make_grammar_rule(type_t t) {
     return new grammar_rule(t);
   }
   catch (tError e) {
-    fprintf(ferr, "%s\n", e.getMessage().c_str());
+    LOG(logGrammar, ERROR, e.getMessage());
   }
   return NULL;
 }
 
 void
-grammar_rule::print(ostream &out) {
-  out << print_name(_type) << "/" << _arity
-      << (_hyper == false ? "[-HA]" : "") ;
-    
-  list_int *l = _tofill;
-  while(l) {
+grammar_rule::print(ostream &out) const {
+  out << print_name(_type) << "/" << _arity;
+  if (_hyper == false) out << "[-HA]" ;
+  for (list_int *l = _tofill; l != NULL; l = rest(l)) 
     out << " " << first(l);
-  }    
   out << ")";
 } 
 
@@ -260,18 +276,18 @@ void
 grammar_rule::lui_dump(const char *path) {
 
   if(chdir(path)) {
-    fprintf(ferr, 
-            "grammar_rule::lui_dump(): invalid target directory `%s'.\n",
-            path);
+    LOG(logGrammar, ERROR,
+        "grammar_rule::lui_dump(): invalid target directory `"
+        << path << "'.)");
     return;
   } // if
   char name[MAXPATHLEN + 1];
   sprintf(name, "rule.%d.lui", _id);
   ofstream stream(name);
-  if(! stream) {
-    fprintf(ferr, 
-            "grammar_rule::lui_dump(): unable to open `%s' (in `%s').\n",
-            name, path);
+  if(! stream) { //(stream = fopen(name, "w")) == NULL) {
+    LOG(logGrammar, ERROR,
+        "grammar_rule::lui_dump(): unable to open `" << name 
+        << "' (in `" << path << "').");
     return;
   } // if
   stream << "avm -" << _id << " ";
@@ -303,7 +319,7 @@ grammar_rule::init_qc_vector_unif() {
 
 /** pass T_BOTTOM for an invalid/unavailable qc structure */
 void
-undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
+undump_dags(dumper *f) {
   struct dag_node *dag;
   // allocate an array holding nstatictypes pointers to the typedags
   initialize_dags(nstatictypes);
@@ -313,20 +329,36 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
   init_constraint_cache(nstatictypes);
 #endif
 
-  qc_node *qc_paths_unif = NULL, *qc_paths_subs = NULL;
-  int qc_len_unif = 0, qc_len_subs = 0;
+  char *v;
+  type_t qc_inst_unif = T_BOTTOM;
+  if((v = cheap_settings->value("qc-structure-unif")) != 0
+     || (v = cheap_settings->value("qc-structure")) != 0)
+    qc_inst_unif = lookup_type(v);
+  if(get_opt_int("opt_nqc_unif") != 0 && qc_inst_unif == T_BOTTOM) {
+    LOG(logAppl, INFO, "[ disabling unification quickcheck ] ");
+    set_opt("opt_nqc_unif", 0);
+  }
+ 
+  type_t qc_inst_subs = T_BOTTOM;
+  if((v = cheap_settings->value("qc-structure-subs")) != 0
+     || (v = cheap_settings->value("qc-structure")) != 0)
+    qc_inst_subs = lookup_type(v);
+  if(get_opt_int("opt_nqc_subs") != 0 && qc_inst_subs == T_BOTTOM) {
+    LOG(logAppl, INFO, "[ disabling subsumption quickcheck ] ");
+    set_opt("opt_nqc_subs", 0);
+  }
 
   for(int i = 0; i < nstatictypes; i++) {
-    if(qc_inst_unif != 0 && i == qc_inst_unif) {
-      if(verbosity > 4) fprintf(fstatus, "[qc unif structure `%s'] ",
-                                print_name(qc_inst_unif));
-      qc_paths_unif = dag_read_qc_paths(f, opt_nqc_unif, qc_len_unif);
+    if(i == qc_inst_unif) {
+      LOG(logGrammar, DEBUG,
+          "[qc unif structure `" << print_name(qc_inst_unif) << "'] ");
+      fs::init_qc_unif(f, i == qc_inst_subs);
       dag = 0;
     }
-    else if(qc_inst_subs && i == qc_inst_subs) {
-      if(verbosity > 4) fprintf(fstatus, "[qc subs structure `%s'] ",
-                                print_name(qc_inst_subs));
-      qc_paths_subs = dag_read_qc_paths(f, opt_nqc_subs, qc_len_subs);
+    else if(i == qc_inst_subs) {
+      LOG(logGrammar, DEBUG,
+          "[qc subs structure `" << print_name(qc_inst_subs) << "'] ");
+      fs::init_qc_subs(f);
       dag = 0;
     }
     else
@@ -334,19 +366,6 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
         
     register_dag(i, dag);
   }
-
-  if(qc_inst_unif != 0 && qc_inst_unif == qc_inst_subs) {
-    qc_paths_subs = qc_paths_unif;
-    qc_len_subs = qc_len_unif;
-  }
-  
-  if(opt_nqc_unif > 0 && opt_nqc_unif < qc_len_unif)
-    qc_len_unif = opt_nqc_unif;
-  
-  if(opt_nqc_subs > 0 && opt_nqc_subs < qc_len_subs)
-    qc_len_subs = opt_nqc_subs;
-
-  fs::init_qc(qc_paths_unif, qc_len_unif, qc_paths_subs, qc_len_subs);
 }
 
 // Construct a grammar object from binary representation in a file
@@ -370,7 +389,7 @@ tGrammar::tGrammar(const char * filename)
     
     int version;
     char *s = undump_header(&dmp, version);
-    if(s) fprintf(fstatus, "(%s) ", s);
+    if(s) LOG(logApplC, INFO, "(" << s << ") ");
     delete[] s;
     
     dump_toc toc(&dmp);
@@ -401,30 +420,10 @@ tGrammar::tGrammar(const char * filename)
     
     init_parameters();
 
-    char *v;
-    type_t qc_inst_unif = T_BOTTOM;
-    if((v = cheap_settings->value("qc-structure-unif")) != 0
-       || (v = cheap_settings->value("qc-structure")) != 0)
-        qc_inst_unif = lookup_type(v);
-
-    type_t qc_inst_subs = T_BOTTOM;
-    if((v = cheap_settings->value("qc-structure-subs")) != 0
-       || (v = cheap_settings->value("qc-structure")) != 0)
-      qc_inst_subs = lookup_type(v);
-
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
-    undump_dags(&dmp, qc_inst_unif, qc_inst_subs);
+    undump_dags(&dmp);
     initialize_maxapp();
-
-    if(opt_nqc_unif && qc_inst_unif == T_BOTTOM) {
-      fprintf(fstatus, "[ disabling unification quickcheck ] ");
-      opt_nqc_unif = 0;
-    }
-    if(opt_nqc_subs && qc_inst_subs == T_BOTTOM) {
-      fprintf(fstatus, "[ disabling subsumption quickcheck ] ");
-      opt_nqc_subs = 0;
-    }
 
     // Tell unifier that all dags created from now an are not considered to
     // be part of the grammar. This is needed for the smart copying algorithm.
@@ -442,7 +441,7 @@ tGrammar::tGrammar(const char * filename)
             _lexicon[i] = st;
             _stemlexicon.insert(make_pair(st->orth(st->inflpos()), st));
 #if defined(YY)
-            if(opt_yy && st->length() > 1) 
+            if(get_opt_bool("opt_yy") && st->length() > 1) 
                 // for multiwords, insert additional index entry
             {
                 string full = st->orth(0);
@@ -500,14 +499,15 @@ tGrammar::tGrammar(const char * filename)
     activate_all_rules();
     // The number of all rules for the unification and subsumption rule
     // filtering
-    if(verbosity > 4) fprintf(fstatus, "%d+%d stems, %d rules", nstems(), 
-                              length(_generics), _rules.size());
+    LOG(logGrammar, DEBUG, nstems() << "+" << length(_generics)
+        << " stems, " << _rules.size() << " rules");
 
-    if(opt_nqc_unif != 0)
-      for(ruleiter ri = _rules.begin(); ri != _rules.end(); ++ri)
-        (*ri)->init_qc_vector_unif();
 
-    if(opt_filter) {
+    for(ruleiter ri = _rules.begin(); ri != _rules.end(); ++ri)
+      (*ri)->init_qc_vector_unif();
+
+    // _filter.valid() will be false if not initialized
+    if(get_opt_bool("opt_filter")) {
       initialize_filter();
     }
 
@@ -520,7 +520,7 @@ tGrammar::tGrammar(const char * filename)
       try { _sm = new tMEM(this, sm_file, filename); }
       catch(tError &e)
       {
-        fprintf(ferr, "\n%s", e.getMessage().c_str());
+        LOG(logGrammar, ERROR, e.getMessage());
         _sm = 0;
       }
     }
@@ -528,7 +528,7 @@ tGrammar::tGrammar(const char * filename)
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
       catch(tError &e) {
-        fprintf(ferr, "\n%s", e.getMessage().c_str());
+        LOG(logGrammar, ERROR, e.getMessage());
         _lexsm = 0;
       }
     }
@@ -549,14 +549,13 @@ tGrammar::tGrammar(const char * filename)
         char *mappath = cheap_settings->value("extdict-mapping");
         if(extdictpath != 0 && mappath)
         {
-            fprintf(fstatus, "\n");
             _extDict = new extDictionary(extdictpath, mappath);
         }
     }
     catch(tError &e)
     {
-        fprintf(fstatus, "EXTDICT disabled: %s\n", e.msg().c_str());
-        _extDict = 0;
+      LOG(logAppl, WARN, "EXTDICT disabled: " << e.msg());
+      _extDict = 0;
     }
 #endif
 
@@ -564,9 +563,9 @@ tGrammar::tGrammar(const char * filename)
 
     if(property("unfilling") == "true" && opt_packing)
     {
-        fprintf(ferr, "warning: cannot using packing on unfilled grammar -"
-                " packing disabled\n");
-        opt_packing = 0;
+      LOG(logGrammar, WARN,
+            "cannot use packing on unfilled grammar - packing disabled");
+      opt_packing = 0;
     }
 
 #ifdef LUI
@@ -578,9 +577,7 @@ tGrammar::tGrammar(const char * filename)
 void
 tGrammar::undump_properties(dumper *f)
 {
-    if(verbosity > 4)
-        fprintf(fstatus, " [");
-
+    LOG(logGrammar, DEBUG, '[');
     int nproperties = f->undump_int();
     for(int i = 0; i < nproperties; i++)
     {
@@ -588,14 +585,12 @@ tGrammar::undump_properties(dumper *f)
         key = f->undump_string();
         val = f->undump_string();
         _properties[key] = val;
-        if(verbosity > 4)
-            fprintf(fstatus, "%s%s=%s", i ? ", " : "", key, val);
+        LOG(logGrammar, DEBUG, (i ? ", " : "") << key << '=' << val);
         delete[] key;
         delete[] val;
     }
 
-    if(verbosity > 4)
-        fprintf(fstatus, "]");
+    LOG(logGrammar, DEBUG, "]");
 }
 
 string
@@ -640,10 +635,8 @@ tGrammar::init_parameters()
             if((a = lookup_attr(set->values[i])) != -1)
                 _deleted_daughters = cons(a, _deleted_daughters);
             else
-            {
-                fprintf(ferr, "ignoring unknown attribute `%s' in deleted_daughters.\n",
-                        set->values[i]);
-            }
+              LOG(logGrammar, WARN, "ignoring unknown attribute `"
+                  << set->values[i] << "' in deleted_daughters.");
         }
     }
 
@@ -664,9 +657,8 @@ tGrammar::init_parameters()
             del_paths.push_front(del_attrs);
           }
           else {
-            fprintf(ferr, "ignoring path with unknown attribute `%s' "
-                    "in packing_restrictor.\n",
-                    set->values[i]);
+            LOG(logGrammar, WARN, "ignoring path with unknown attribute `"
+                << set->values[i] << "' in packing_restrictor.");
           }
         }
       if (extended) {
@@ -698,8 +690,8 @@ tGrammar::init_parameters()
       }
     }
     if(opt_packing && (_packing_restrictor == NULL)) {
-      fprintf(ferr, "\nWarning: packing enabled but no packing restrictor: "
-              "packing disabled\n");
+      LOG(logGrammar, WARN,
+          "packing enabled but no restrictor - packing disabled");
       opt_packing = 0;
     }
 }
@@ -861,24 +853,20 @@ tGrammar::lookup_stem(string s)
     list<extDictMapEntry> extDictMapped;
     _extDict->getMapped(s, extDictMapped);
 
-    if(verbosity > 2)
-        fprintf(fstatus, "[EXTDICT] %s:", s.c_str());
+    LOG(logGrammar, DEBUG, "[EXTDICT] " << s);
 
-    for(list<extDictMapEntry>::iterator it = extDictMapped.begin(); it != extDictMapped.end(); ++it)
+    for(list<extDictMapEntry>::iterator it = extDictMapped.begin();
+        it != extDictMapped.end(); ++it)
     {
         type_t t = it->type();
 
         // Create stem if not blocked by entry from native lexicon.
-        if(native_types.find(_extDict->equiv_rep(t)) != native_types.end())
-        {
-            if(verbosity > 2)
-                fprintf(fstatus, " (%s)", type_name(t));
-            continue;
+        if(native_types.find(_extDict->equiv_rep(t)) != native_types.end()) {
+          LOG(logGrammar, DEBUG, " (" << type_name(t) << ")");
+          continue;
         }
-        else
-        {
-            if(verbosity > 2)
-                fprintf(fstatus, " %s", type_name(t));
+        else {
+          LOG(logGrammar, DEBUG, " " << type_name(t));
         }
 
         modlist mods;
@@ -898,8 +886,7 @@ tGrammar::lookup_stem(string s)
         results.push_back(st);
     }
 
-    if(verbosity > 2)
-        fprintf(fstatus, "\n");
+    LOG(logGrammar, DEBUG, "\n");
 #endif
 
     return results;
