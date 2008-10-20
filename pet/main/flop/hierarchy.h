@@ -11,6 +11,7 @@
 #define _HIERARCHY_H_
 
 #include <boost/graph/adjacency_list.hpp>
+#include <iosfwd>
 
 /** typedef for boost graph implementation */
 typedef boost::adjacency_list
@@ -45,7 +46,7 @@ std::list<int> immediate_subtypes(int t);
 std::list<int> immediate_supertypes(int t);
 
 /** Print the hierarchy readably for debugging purposes */
-void print_hierarchy(FILE *f);
+void print_hierarchy(std::ostream &out);
 /*@}*/
 
 #endif

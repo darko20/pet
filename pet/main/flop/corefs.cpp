@@ -21,6 +21,7 @@
    (eg. [ #1 & #2 ] is converted to [ #1_2 ]) */
 
 #include "flop.h"
+#include "logging.h"
 #include "utility.h"
 
 int add_coref(struct coref_table *co, char *name)
@@ -109,7 +110,8 @@ void find_coref_term (struct term *T, struct coref_table *coref)
       assert(!"this cannot happen");
       break;
     default:
-      fprintf(ferr, "unknown kind of term: %d\n", T -> tag);
+      LOG(logSyntax, ERROR, "unknown kind of term: " << T -> tag);
+      assert(false);
       break;
     }
 }

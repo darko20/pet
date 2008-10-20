@@ -194,11 +194,17 @@ class fs
 
 
   /** Initialize the static variables for quick check appropriately */
-  static void
-  init_qc(qc_node *unif, int unif_len, qc_node *subs, int subs_len){
-    _qc_paths_unif = unif; _qc_len_unif = unif_len;
-    _qc_paths_subs = subs; _qc_len_subs = subs_len;
-  }
+  //static void
+  //init_qc(qc_node *unif, int unif_len, qc_node *subs, int subs_len){
+  //  _qc_paths_unif = unif; _qc_len_unif = unif_len;
+  //  _qc_paths_subs = subs; _qc_len_subs = subs_len;
+  //}
+  /* initialize the qc structure for unification from the dumper stream \a f.
+     if \a subs_too is true, the same structure is used for subsumption quick
+     check */
+  static void init_qc_unif(class dumper *f, bool subs_too);
+  /* initialize the qc structure for subsumption from the dumper stream \a f. */
+  static void init_qc_subs(class dumper *f);
 
   static int get_unif_qc_length() { return _qc_len_unif; }
   static int get_subs_qc_length() { return _qc_len_subs; }
@@ -206,6 +212,12 @@ class fs
   /** Return the unification quick check vector of a feature structure. */
   inline qc_vec get_unif_qc_vector() const {
     return get_qc_vector(_qc_paths_unif, _qc_len_unif);
+  }
+
+  /** Return the unification quick check vector of the n'th arg of a
+      feature structure. */
+  inline qc_vec get_unif_qc_vector(int nextarg) const {
+    return nth_arg(nextarg).get_qc_vector(_qc_paths_unif, _qc_len_unif);
   }
 
   /** Return the subsumption quick check vector of a feature structure. */
@@ -216,7 +228,19 @@ class fs
   /** \brief Check to quick check vectors \a a and \a b for compatibility with
    *  respect to unification. \a qc_len is the length of the vectors.
    */
-  static bool qc_compatible_unif(const qc_vec &a, const qc_vec &b);
+  inline static bool qc_compatible_unif(const qc_vec &a, const qc_vec &b) {
+    for(int i = 0; i < _qc_len_unif; i++) {
+      if(glb(a[i], b[i]) == T_BOTTOM) {
+#ifdef PETDEBUG
+        LOG(logAppl, DEBUG, "quickcheck fails for path " << i
+            << " with `" << print_name(a[i]) 
+            << "' vs. `" << print_name(b[i]) << "'");
+#endif
+        return false;
+      }
+    } 
+    return true;
+  }
 
   /** Check to quick check vectors \a a and \a b for compatibility with respect
    *  to subsumption in both directions. \a qc_len is the length of the
@@ -225,9 +249,18 @@ class fs
    *  \attention \a forward and \a backward must be \c true when calling this
    *  function.
    */
-  static void
+  inline static void
   qc_compatible_subs(const qc_vec &a, const qc_vec &b,
-                     bool &forward, bool &backward);
+                     bool &forward, bool &backward){
+    bool st_a_b, st_b_a;
+    for(int i = 0; i < _qc_len_subs; i++) {
+      if(a[i] != b[i]) {
+        subtype_bidir(a[i], b[i], st_a_b, st_b_a);
+        if(st_a_b == false) { backward = false; if (forward == false) return; }
+        if(st_b_a == false) { forward = false; if (backward == false) return; }
+      }
+    }
+  }
 
  private:
 

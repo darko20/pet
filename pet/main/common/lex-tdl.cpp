@@ -21,12 +21,14 @@
 
 #include "lex-tdl.h"
 #include "errors.h"
+#include "logging.h"
 
 #ifdef FLOP
 #include "flop.h"
 #endif
 
 #include <cassert>
+#include <iomanip>
 
 const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
@@ -42,7 +44,7 @@ int is_idchar(int c)
 
 int lisp_mode = 0; // shall lexer recognize lisp expressions 
 
-void print_token(struct lex_token *t);
+void print_token(std::ostream &out, struct lex_token *t);
 
 struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
     int rlen = -1)
@@ -168,9 +170,8 @@ struct lex_token *get_next_token()
       
       if(LLA(i) == EOF)
       { // runaway comment
-          fprintf(ferr, "runaway block comment starting in %s:%d.%d\n",
-                  curr_fname(), curr_line(), curr_col());
-          throw tError("runaway block comment");
+        throw tError("runaway block comment", curr_fname(),
+                     curr_line(), curr_col());
       }
       
       i += 2;
@@ -197,9 +198,7 @@ struct lex_token *get_next_token()
 
       if(LLA(i) == EOF)
         { // runaway string
-          fprintf(ferr, "runaway string starting in %s:%d.%d\n",
-                  curr_fname(), curr_line(), curr_col());
-          throw tError("runaway string");
+          throw tError("runaway string", curr_fname(), curr_line(), curr_col());
         }
 
       i += 1;
@@ -222,11 +221,10 @@ struct lex_token *get_next_token()
         }
 
       if(LLA(i) == EOF)
-        { // runaway LISP expression
-          fprintf(ferr, "runaway LISP expression starting in %s:%d.%d\n",
-                  curr_fname(), curr_line(), curr_col());
-          throw tError("runaway LISP expression");
-        }
+       { // runaway LISP expression
+         throw tError("runaway LISP expression", curr_fname(),
+                      curr_line(), curr_col());
+       }
       
       t = make_token(T_LISP, start, i);
       LConsume(i);
@@ -276,10 +274,9 @@ struct lex_token *get_next_token()
           while(is_idchar(LLA(i)) || LLA(i) == '!') i++;
           
           if(i == 0)
-          {
-            fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
-                    (char) c, curr_fname(), curr_line(), curr_col());
-            throw tError("unexpected character in input");
+          { char str[3] = { (char) c, '\'', '\0' };
+            throw tError("unexpected character '" + std::string(str),
+                         curr_fname(), curr_line(), curr_col());
           }
       }
           
@@ -394,10 +391,9 @@ struct lex_token *get_next_token()
           tag = T_RANGLE;
           break;
         default:
-          {
-            fprintf(ferr, "unexpected character '%c' in %s:%d.%d\n",
-                    (char) c, curr_fname(), curr_line(), curr_col());
-            throw tError("unexpected character in input");
+          { char str[3] = { (char) c, '\'', '\0' };
+            throw tError("unexpected character '" + std::string(str),
+                         curr_fname(), curr_line(), curr_col());
           }
         }
       txt[0] = (char) c;
@@ -408,18 +404,20 @@ struct lex_token *get_next_token()
   return t;
 }
 
-void print_token(struct lex_token *t)
+void print(std::ostream &out, const lex_token &t)
 {
-  assert(t != NULL);
-  
-  if(t->tag == T_EOF)
+  if(t.tag == T_EOF)
     {
-      fprintf(fstatus, "*EOF*\n");
+      out << "*EOF*" << std::endl;
     }
   else
     {
-      fprintf(fstatus, "[%d]<%s>\n", t->tag, t->text);
+      out << "[" << t.tag << "]<" << t.text << ">" << std::endl;
     }
+}
+
+inline std::ostream &operator<<(std::ostream &o, const lex_token &tok) {
+  print(o, tok); return o;
 }
 
 int tokensdelivered = 0;
@@ -436,16 +434,16 @@ get_token()
         {
             if(t->tag != T_WS && t->tag != T_COMM)
             {
-#ifdef DEBUG
-                fprintf(fstatus, "delivering "); print_token(t);
+#ifdef PETDEBUG
+              LOG(logSyntax, DEBUG, "delivering " << t) ;
 #endif
                 tokensdelivered++;
                 return t;
             }
-#ifdef DEBUG
+#ifdef PETDEBUG
             else
             {
-                fprintf(fstatus, "not delivering "); print_token(t);
+              LOG(logSyntax, DEBUG, "not delivering " << t);
             }
 #endif
             free(t);
@@ -453,8 +451,8 @@ get_token()
         if(!pop_file()) hope = 0;
     }
 
-#ifdef DEBUG
-    fprintf(fstatus, "delivering "); print_token(t);
+#ifdef PETDEBUG
+  LOG(logSyntax, DEBUG, "delivering " << t);
 #endif
     
     tokensdelivered++;
@@ -503,7 +501,7 @@ void consume1()
 
   if(LA_BUF[0] == NULL)
     {
-      fprintf(ferr, "warning: consuming tokens not looked at yet\n");
+      LOG(logSyntax, WARN, "consuming tokens not looked at yet");
       get_token();
     }
   else
@@ -536,18 +534,18 @@ void syntax_error(const char *msg, struct lex_token *t)
   syntax_errors ++;
   if(t->tag == T_EOF)
     {
-      fprintf(ferr, "syntax error at end of input: %s\n", msg);
+      LOG(logSyntax, ERROR, "error: syntax error at end of input: " << msg);
     }
   else if(t->loc == NULL)
     {
-      fprintf(ferr, "syntax error - got `%.20s', %s\n",
-              t->text, msg);
+      LOG(logSyntax, ERROR, "error: syntax error - got `" << std::setw(20)
+          << t->text << "', " << msg);
     }
   else
     {
-      fprintf(ferr, "syntax error in %s:%d.%d - got `%.20s', %s\n",
-              t->loc->fname, t->loc->linenr, t->loc->colnr,
-              t->text, msg);
+      LOG(logSyntax, ERROR, t->loc->fname << ":" << t->loc->linenr << ":"
+          << t->loc->colnr << ": error: (syntax) - got `" << std::setw(20)
+          << t->text << "', " << msg);
     }
 }
 
@@ -559,8 +557,7 @@ void recover(enum TOKEN_TAG tag)
 
   if(LA(0) ->tag == T_EOF)
     {
-      fprintf(ferr, "confused by previous errors, bailing out...\n");
-      throw tError("confused");
+      throw tError("confused by previous errors, bailing out...\n");
     }
   
   if(LA(0) == last_t) consume(1);

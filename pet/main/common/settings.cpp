@@ -26,35 +26,20 @@
 #include "errors.h"
 #include "list-int.h"
 
+#include "logging.h"
+
 using std::string;
 
-settings::settings(const char *name, const char *base, const char *message)
+settings::settings(string name, string base_dir, const char *message)
   : _li_cache() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
-  if(base) {
-    // determine the full pathname for the settings file from the directory
-    // in "base" and the basename in "name"
-    _prefix = dir_name(base);
+  _fname = find_set_file(name, SET_EXT, base_dir);
 
-    // fname contains the full pathname to the settings file, except for the
-    // extension, first in the directory the base path points to
-    _fname = _prefix + name + SET_EXT;
+  _prefix = dir_name(_fname);
 
-    if(! file_exists_p(_fname.c_str())) {
-      // We could not find the settings file there, so try it in the
-      // subdirectory predefined for settings
-      _prefix = _prefix + SET_SUBDIRECTORY + PATH_SEP;
-      _fname = _prefix + name + SET_EXT;
-    }
-  }
-  else {
-    // The full pathname is in "name"
-    _fname = name;
-  }
-
-  if(file_exists_p(_fname.c_str())) {
+  if(! _fname.empty()) {
     push_file(_fname, message);
     const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
@@ -122,7 +107,6 @@ char *settings::req_value(const char *name)
   char *v = value(name);
   if(v == 0)
     {
-      fprintf(ferr, "\nno definition for required parameter `%s'\n", name);
       throw tError("no definition for required parameter `" + string(name) + "'");
     }
   return v;
@@ -183,8 +167,8 @@ std::set<std::string> settings::smap(const char *name, int key_type)
     {
       if(i+2 > set->n)
         {
-          fprintf(ferr, "warning: incomplete last entry in "
-                  "`%s' mapping - ignored\n", name);
+          LOG(logAppl, WARN, "warning: incomplete last entry in `" << name
+              << "' mapping - ignored");
           break;
         }
 
@@ -196,8 +180,8 @@ std::set<std::string> settings::smap(const char *name, int key_type)
             res.insert(rhs);
         }
       else
-        fprintf(ferr, "warning: unknown type `%s' in "
-                "`%s' mapping - ignored\n", name, lhs);
+        LOG(logAppl, WARN, "unknown type `" << name << "' in `"
+            << lhs << "' mapping - ignored");
 
     }
 
@@ -224,8 +208,8 @@ bool settings::statusmember(const char *name, type_t key)
               int v = lookup_status(set->values[i]);
               if(v == -1)
                 {
-                  fprintf(ferr, "ignoring unknown status `%s' in setting "
-                          "`%s'\n", set->values[i], name);
+                  LOG(logAppl, WARN, "ignoring unknown status `"
+                      << set->values[i] << "' in setting `" << name << "'");
                 }
               else
                 l = cons(v, l);
@@ -246,7 +230,8 @@ void settings::parse_one()
   set = lookup(option);
   if(set)
     {
-      fprintf(ferr, "warning: more than one definition for setting `%s'...\n", option);
+      LOG(logAppl, WARN,
+          "more than one definition for setting `" << option << "'...");
     }
   else
     {
@@ -278,8 +263,9 @@ void settings::parse_one()
             }
           else
             {
-              fprintf(ferr, "ignoring `%s' at %s:%d...\n", LA(0)->text,
-                      LA(0)->loc->fname, LA(0)->loc->linenr);
+              LOG(logSyntax, WARN, LA(0)->loc->fname << ":"
+                  << LA(0)->loc->linenr << ": warning: ignoring "
+                  << LA(0)->text);
             }
 
           consume(1);
@@ -301,8 +287,8 @@ void settings::parse() {
       consume(1);
 
       if(LA(0)->tag != T_STRING) {
-        fprintf(ferr, "expecting include file name at %s:%d...\n",
-                LA(0)->loc->fname, LA(0)->loc->linenr);
+        LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+            << ": warning: expecting include file name");
       }
       else {
         string ofname = _prefix + LA(0)->text + SET_EXT;
@@ -313,7 +299,7 @@ void settings::parse() {
         if(file_exists_p(ofname.c_str())) {
           push_file(ofname, "including");
         } else {
-          fprintf(ferr, "file `%s' not found. skipping...\n", ofname.c_str());
+          LOG(logAppl, WARN, "file `" << ofname << "' not found. skipping...");
         }
       }
     }

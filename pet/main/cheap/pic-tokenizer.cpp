@@ -20,6 +20,7 @@
 
 #include "pic-tokenizer.h"
 #include "cheap.h"
+#include "logging.h"
 
 using std::string;
 using std::list;
@@ -57,11 +58,7 @@ void tPICTokenizer::tokenize(string input, inp_list &result) {
 /** Produce a set of tInputItem tokens from the given XML input on stdin. */
 void tPICTokenizer::tokenize_from_stream(string input, inp_list &result) {
   string buffer = input;
-  if(verbosity > 4)
-    {
-      //cerr << "received from :pic preprocessor:" << endl << buffer << endl << endl;
-      fprintf(ferr, "[processing PIC XML input]\n");
-    };
+  LOG(logXML, DEBUG, "[processing PIC XML input]");
   
   PICHandler picreader(true, _translate_iso_chars);
   MemBufInputSource xmlinput((const XMLByte *) buffer.c_str()

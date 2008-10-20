@@ -26,6 +26,7 @@
 #include "partition.h"
 #include "settings.h"
 #include "dag.h"
+#include "logging.h"
 
 #include <set>
 #include <boost/graph/topological_sort.hpp>
@@ -39,8 +40,7 @@ using namespace std;
  * These types have to be specified in the \c flop.set file by means of the \c
  * pseudo-types setting.
  */
-bool pseudo_type(type_t i)
-{
+bool pseudo_type(type_t i) {
   return flop_settings->member("pseudo-types", types.name(i).c_str());
 }
 
@@ -48,8 +48,7 @@ bool pseudo_type(type_t i)
  * \return \c true if \i is an instance with a status that is mentioned in the
  * 'dont-expand' setting in 'flop.set'
  */
-bool dont_expand(type_t i)
-{
+bool dont_expand(type_t i) {
   return types[i]->tdl_instance &&
     flop_settings->statusmember("dont-expand", types[i]->status);
 }
@@ -61,19 +60,18 @@ bool dont_expand(type_t i)
  * array \c apptype is filled with the maximally appropriate types, i.e., \c
  * apptype[j] is the first subtype of \c *top* that introduces feature \c j.
  */
-bool compute_appropriateness()
-{
+bool compute_appropriateness() {
   int i, attr;
 
   bool fail = false;
 
-  fprintf(fstatus, "- computing appropriateness\n");
+  LOG(logAppl, INFO, "- computing appropriateness");
 
   apptype = new int[attributes.number()];
-  
+
   for(i = 0; i < attributes.number(); i++)
     apptype[i] = BI_TOP;
-    
+
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
@@ -92,10 +90,9 @@ bool compute_appropriateness()
                 {
                   if(!subtype(i, apptype[attr]))
                     {
-                      fprintf(ferr, "error: feature `%s' introduced at"
-                              " `%s' and `%s'.\n", attrname[attr],
-                              type_name(i),
-                              type_name(apptype[attr]));
+                      LOG(logSemantic, ERROR, "feature `" << attrname[attr]
+                          << "' introduced at `" << type_name(i) << "' and `"
+                          << type_name(apptype[attr]) << "'." << endl);
                       fail = true;
                     }
                 }
@@ -108,6 +105,10 @@ bool compute_appropriateness()
         }
     }
 
+  attr_t sem_attr = T_BOTTOM;
+  if(get_opt_bool("opt_no_sem"))
+    sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
+
   for(i = 0; i < attributes.number(); i++)
     {
       if(apptype[i] == BI_TOP)
@@ -117,14 +118,13 @@ bool compute_appropriateness()
           // removed from the hierarchy definitions and the feature itself is
           // ignored in all computation concering features, such as appropriate
           // type computation.
-          if(opt_no_sem 
-             && i == attributes.id(flop_settings->req_value("sem-attr")))
+          if(i == sem_attr)
             apptype[i] = types.id(flop_settings->req_value("grammar-info"));
           else
             // This attribute did not appear on the top level of a type
             // definition, so maybe it was not introduced correctly
-            fprintf(ferr, "warning: attribute `%s' introduced on top (?)\n",
-                    attributes.name(i).c_str());
+            LOG(logSemantic, WARN, "attribute `"
+                << attributes.name(i) << "' introduced on top (?)");
         }
     }
 
@@ -138,17 +138,16 @@ bool compute_appropriateness()
  * \return \c true if the dag is consistent with the appropriateness
  * conditions required by the features, \c false otherwise
  */
-bool apply_appropriateness_rec(struct dag_node *dag)
-{
+bool apply_appropriateness_rec(struct dag_node *dag) {
   dag = dag_deref(dag);
 
-  if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) // not yet visited
-    { 
-      int new_type, old_type;
-      struct dag_arc *arc;
+  if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) { // not yet visited
 
-      new_type = dag->type;
-      arc = dag->arcs;
+    int new_type, old_type;
+    struct dag_arc *arc;
+
+    new_type = dag->type;
+    arc = dag->arcs;
 
       while(arc)
         {
@@ -157,11 +156,12 @@ bool apply_appropriateness_rec(struct dag_node *dag)
           
           if(new_type == -1)
             {
-              fprintf(ferr, "feature `%s' on type `%s' (refined to `%s' from other features) not appropriate "
-                      "(appropriate type is `%s')\n",
-                      attrname[arc->attr], type_name(dag->type),
-                      type_name(old_type),
-                      type_name(apptype[arc->attr]));
+              LOG(logSemantic, WARN, "feature `" << attrname[arc->attr]
+                  << "' on type `" << type_name(dag->type)
+                  << "' (refined to `" << type_name(old_type) 
+                  << "' from other features) not appropriate " 
+                  << "(appropriate type is `"
+                  << type_name(apptype[arc->attr]) << "')");
               return false;
             }
 
@@ -171,8 +171,8 @@ bool apply_appropriateness_rec(struct dag_node *dag)
           arc = arc->next;
         }
 
-      dag->type = new_type;
-    }
+    dag->type = new_type;
+  }
 
   return true;
 }
@@ -180,21 +180,21 @@ bool apply_appropriateness_rec(struct dag_node *dag)
 /** Apply the appropriateness conditions on each dag in the hierarchy.
  * \see apply_appropriateness_rec
  */
-bool apply_appropriateness()
-{
+bool apply_appropriateness() {
   int i;
 
   bool fail = false;
 
-  fprintf(fstatus, "- applying appropriateness constraints for types\n");
+  LOG(logAppl, INFO, "- applying appropriateness constraints for types");
 
   for(i = 0; i < types.number(); i++)
     {
       if(!pseudo_type(i) && !apply_appropriateness_rec(types[i]->thedag))
         {
-          fprintf(ferr, "when applying appropriateness constraints on type `%s'\n",
-                  types.name(i).c_str());
-          fail = true;;
+          LOG(logSemantic, ERROR,
+              "when applying appropriateness constraints on type `"
+              << types.name(i) << "'");
+          fail = true;
         }
 
       dag_invalidate_visited();
@@ -209,13 +209,14 @@ bool apply_appropriateness()
  * are only expanded if either the option 'expand-all-instances' is active or
  * the instance does not have a status that is mentioned in the 'dont-expand'
  * setting in 'flop.set'.
- * \return \c true, if there were no inconsistent type definitions found, 
- *         \c false otherwise. 
+ * \return \c true, if there were no inconsistent type definitions found,
+ *         \c false otherwise.
  */
-bool delta_expand_types()
-{
+bool delta_expand_types() {
   int i, e;
   list<int> l;
+  bool opt_expand_all_instances =
+    get_opt_bool("opt_expand_all_instances");
 
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));
@@ -230,8 +231,9 @@ bool delta_expand_types()
             {
               if(dag_unify3(types[e]->thedag, types[i]->thedag) == FAIL)
                 {
-                  fprintf(ferr, "`%s' incompatible with parent constraints"
-                          " (`%s')\n", type_name(i), type_name(e));
+                  LOG(logSemantic, ERROR, "`" << type_name(i) <<
+                      "' incompatible with parent constraints (`" 
+                      << type_name(e) << "')");
                   return false;
                 }
             }
@@ -244,17 +246,15 @@ bool delta_expand_types()
 /**
  * Recursively collect the types found in a feature structure into a set
  * \param dag A pointer to the feature structure where the used types are
- *        collected 
+ *        collected
  * \param cs Reference to a set that will contain the result
  * \return A set of all types occuring in #dag collected in #cs
  */
-void critical_types(struct dag_node *dag, set<int> &cs)
-{
+void critical_types(struct dag_node *dag, set<int> &cs) {
   dag = dag_deref(dag);
 
-  if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) // not yet visited
-    { 
-      struct dag_arc *arc;
+  if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) { // not yet visited
+    struct dag_arc *arc;
 
       if(dag->type < types.number() /* && dag->arcs */ )
         cs.insert(dag->type);
@@ -265,7 +265,7 @@ void critical_types(struct dag_node *dag, set<int> &cs)
           critical_types(arc->val, cs);
           arc = arc->next;
         }
-    }
+  }
 }
 
 /** Limit the depth of full expansion to MAX_EXP_DEPTH.
@@ -282,21 +282,20 @@ void critical_types(struct dag_node *dag, set<int> &cs)
  * \param full If \c true, expand subdags without arcs too
  * \result A path to the failure point, if one occured, NULL otherwise
  */
-list_int *fully_expand(struct dag_node *dag, bool full)
-{
+list_int *fully_expand(struct dag_node *dag, bool full) {
   static int depth = 0;
 
   dag = dag_deref(dag);
-  
-  if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) // not yet visited
-    { 
-      struct dag_arc *arc;
-      depth++;
+
+  if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) { // not yet visited
+
+    struct dag_arc *arc;
+    depth++;
 
       if(depth > MAX_EXP_DEPTH)
         {
-          fprintf(ferr, "expansion [cycle with `%s'] for",
-                  type_name(dag->type));
+          LOG(logSemantic, ERROR, "expansion [cycle with `"
+              << type_name(dag->type) << "'] for");
           depth--;
           return cons(T_BOTTOM, NULL);
         }
@@ -305,8 +304,8 @@ list_int *fully_expand(struct dag_node *dag, bool full)
         {
           if(dag_unify3(types[dag->type]->thedag, dag) == FAIL)
             {
-              fprintf(ferr, "full expansion with `%s' for",
-                      type_name(dag->type));
+              LOG(logSemantic, ERROR, "full expansion with `"
+                  << type_name(dag->type) << "' for");
               depth--;
               return cons(T_BOTTOM, NULL);
             }
@@ -324,19 +323,34 @@ list_int *fully_expand(struct dag_node *dag, bool full)
           arc = arc->next;
         }
 
-      depth --;
-    }
+    depth --;
+  }
   return NULL;
+}
+
+std::string attrlist2string(list_int *l, std::string sep) {
+  ostringstream out;
+  list_int *start = l;
+  while (true) {
+    out << attrname[first(start)];
+    start = rest(start);
+    // last element may be invalid
+    if (start != NULL && first(start) != T_BOTTOM)
+      out << sep;
+    else
+      break;
+  }
+  return out.str();
 }
 
 /**
  * Expand the feature structure constraints of each type after delta expansion.
- * 
+ *
  * The algorithm is as follows: Build a graph of types such that a link
- * from type t to type s exists if the feature structure skeleton of type 
+ * from type t to type s exists if the feature structure skeleton of type
  * s uses type t in some substructure. If this graph is acyclic, expand the
  * feature structure constraints fully in topological order over this graph.
- * Otherwise, there are illegal cyclic type dependencies in the definitions 
+ * Otherwise, there are illegal cyclic type dependencies in the definitions
  *
  * \return true if the definitions are all OK, false otherwise
  */
@@ -349,31 +363,28 @@ bool fully_expand_types(bool full_expansion)
   tHierarchy G;
   
   bool fail = false;
-  
-  for(i = 0; i < types.number(); ++i)
-    {
-      int v = boost::add_vertex(G);
-      assert(v == i);
+
+  for(i = 0; i < types.number(); ++i) {
+    int v = boost::add_vertex(G);
+    assert(v == i);
+  }
+
+  for(i = 0; i < types.number(); ++i) {
+    cs.clear();
+    critical_types(types[i]->thedag, cs);
+
+    dag_invalidate_visited();
+
+    for(set<int>::iterator it = cs.begin(); it != cs.end(); ++it) {
+      if(i != *it && *it < types.number())
+        boost::add_edge(i, *it, G);
     }
-
-  for(i = 0; i < types.number(); ++i)
-    {
-      cs.clear();
-      critical_types(types[i]->thedag, cs);
-
-      dag_invalidate_visited();
-
-      for(set<int>::iterator it = cs.begin(); it != cs.end(); ++it)
-        {
-          if(i != *it && *it < types.number())
-            boost::add_edge(i, *it, G);
-        }
-    }
+  }
 
   initialize_dags(nstatictypes);
 
   unify_reset_visited = true;
-   
+
   vector<int> topo;
   boost::topological_sort(G, std::back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
@@ -386,23 +397,19 @@ bool fully_expand_types(bool full_expansion)
 
           if(path != NULL)
             {
-              fprintf(ferr, " `%s' failed under path (", type_name(i));
-              list_int *start = path;
-              while (rest(start) != NULL) { // last element is invalid
-                fprintf(ferr, "%s", attrname[first(start)]);
-                start = rest(start);
-                if (rest(start) != NULL) fprintf(ferr, "|");
-              }
-              fprintf(ferr, ")\n");
-              fail = true;
+              LOG(logSemantic, ERROR,
+                  " `" << type_name(i) << "' failed under path (" 
+                  << attrlist2string(path,"|") << ")");
               free_list(path);
+              fail = true;
             }
           
           dag_invalidate_visited();
 
           if(!fail && dag_cyclic(types[i]->thedag))
             {
-              fprintf(ferr, " `%s' failed (cyclic structure)\n", type_name(i));
+              LOG(logSemantic, ERROR,
+                  " `" << type_name(i) << "' failed (cyclic structure)");
               fail = true;
             }
         }
@@ -420,7 +427,7 @@ bool fully_expand_types(bool full_expansion)
 //
 
 extern int *maxapp;
-map<int, int> nintro; // no of introduced features 
+map<int, int> nintro; // no of introduced features
 
 /** Compute the number of features introduced by each type and the maximal
  * appropriate type per feature.
@@ -429,12 +436,11 @@ map<int, int> nintro; // no of introduced features
  * supertype of every dag \c f points to. It is defined by the type of the
  * subdag \c f points to where \c f is introduced.
  */
-void compute_maxapp()
-{
+void compute_maxapp() {
   int i;
 
   maxapp = new int[attributes.number()];
-  
+
   // initialize nintro array to number of features introduced by that type
   for(i = 0; i < types.number(); i++)
     for(int j = 0; j < attributes.number(); j++)
@@ -448,19 +454,16 @@ void compute_maxapp()
       if(cval && cval != FAIL)
         maxapp[i] = dag_type(cval);
       
-      if(verbosity > 7)
-        {
-          fprintf(fstatus, "feature `%s': value: %s `%s', introduced by `%s'\n",
-                  attributes.name(i).c_str(),
-                  maxapp[i] > types.number() ? "symbol" : "type",
-                  type_name(maxapp[i]),
-                  types.name(apptype[i]).c_str());
-        }
+      LOG(logSemantic, DEBUG,
+          "feature `" << attributes.name(i)
+          << "': value: " << (maxapp[i] > types.number() ? "symbol" : "type")
+          << " `" << type_name(maxapp[i]) << "', introduced by `" 
+          << types.name(apptype[i]) << "'");
     }
 }
 
 /** @name Unfilling */
-/*@{*/ 
+/*@{*/
 
 static int total_nodes = 0;
 
@@ -468,7 +471,7 @@ static int total_nodes = 0;
  * \return the number of deleted dag nodes
  *
  * Remove all features that are not introduced by \a root and where the subdag
- * they point to 
+ * they point to
  * - has no arcs (which may be due to recursive unfilling)
  * - is not coreferenced
  * - its type is the maximally appropriate type for the feature
@@ -480,19 +483,16 @@ static int total_nodes = 0;
  * edges that are appropriate for the node's type. There are in fact partially
  * unfilled fs nodes.
  */
-int unfill_dag_rec(struct dag_node *dag, int root)
-{
+int unfill_dag_rec(struct dag_node *dag, int root) {
   int nunfilled = 0;
   int coref = dag_get_visit(dag) - 1;
 
-  if(coref < 0) // dag is coreferenced, already visited
-    {
-      return 0;
-    }
-  else if(coref > 0) // dag is coreferenced, not yet visited
-    {
-      dag_set_visit(dag, -1);
-    }
+  if(coref < 0) { // dag is coreferenced, already visited
+    return 0;
+  }
+  else if(coref > 0) { // dag is coreferenced, not yet visited
+    dag_set_visit(dag, -1);
+  }
 
   total_nodes++;
 
@@ -526,7 +526,7 @@ int unfill_dag_rec(struct dag_node *dag, int root)
           keep = tmparc;
         }
     }
-  
+
   dag->arcs = keep;
 
   return nunfilled;
@@ -535,24 +535,20 @@ int unfill_dag_rec(struct dag_node *dag, int root)
 /** Unfill ALL type dags in the hierarchy.
  * For which arcs and nodes in the dags are removed, \see unfill_dag_rec.
  */
-void unfill_types()
-{
+void unfill_types() {
   int i, n = 0;
 
-  fprintf(fstatus, "- unfilling ");
-  
-  for(i = 0; i < types.number(); i++)
-    {
-      struct dag_node *curr = dag_deref(types[i]->thedag);
+  LOG(logApplC, INFO, "- unfilling ");
 
-      dag_mark_coreferences(curr);
-      n += unfill_dag_rec(curr, i);
-      dag_invalidate_visited();
+  for(i = 0; i < types.number(); i++) {
+    struct dag_node *curr = dag_deref(types[i]->thedag);
 
-    }
+    dag_mark_coreferences(curr);
+    n += unfill_dag_rec(curr, i);
+    dag_invalidate_visited();
+  }
 
-  fprintf(fstatus, "(%d total nodes, %d removed)\n",
-          total_nodes, n);
+  LOG(logApplC, INFO, "(" << total_nodes << " total nodes, " << n << " removed)");
 }
 /*@}*/
 
@@ -569,71 +565,60 @@ map<int, int> nfeat;
 /** prefix ok if in map and >= 0, gives length of prefix */
 map<int, int> prefixl;
 
-void prefix_down(int t, int l)
-{
+void prefix_down(int t, int l) {
   prefixl[t] = l + nintro[t];
-  if(verbosity > 7)
-    fprintf(fstatus, "prefix length of `%s' = %d\n",
-            types.name(t).c_str(), prefixl[t]);
-    
+  LOG(logSemantic, DEBUG,
+      "prefix length of `" << types.name(t) << "' = " << prefixl[t]);
+
   if(boost::out_degree(t, hierarchy) != 1)
     return;
-  
+
   list<int> children = immediate_subtypes(t);
-  for(list<int>::iterator it = children.begin(); it != children.end(); ++it)
-    {
-      prefix_down(*it, l + nintro[*it]);
-    }
+  for(list<int>::iterator it = children.begin(); it != children.end(); ++it) {
+    prefix_down(*it, l + nintro[*it]);
+  }
 }
 
 //
 // merge all types without features into one partition, top-down
 //
-void merge_top_down(int t, int p, tPartition &P)
-{
-  if(nfeat[t] > 0)
-    {
+void merge_top_down(int t, int p, tPartition &P) {
+  if(nfeat[t] > 0) {
 #ifdef PREFIX_PARTITIONS
-      prefix_down(t, 0);
+    prefix_down(t, 0);
 #endif
-      return;
-    }
+    return;
+  }
   prefixl[t] = 0;
 
-    P.union_sets(t, p);
-  
-    list<int> children = immediate_subtypes(t);
-    for(list<int>::iterator it = children.begin(); it != children.end(); ++it)
-    {
-        if(!P.same_set(*it, p))
-            merge_top_down(*it, p, P);
-    }
+  P.union_sets(t, p);
+
+  list<int> children = immediate_subtypes(t);
+  for(list<int>::iterator it = children.begin(); it != children.end(); ++it) {
+    if(!P.same_set(*it, p))
+      merge_top_down(*it, p, P);
+  }
 }
 
-void merge_partitions(int t, int p, tPartition &P, int s)
-{
-  if(nfeat[t] == 0 || prefixl.find(t) != prefixl.end() && prefixl[t] >= 0) return;
-  
+void merge_partitions(int t, int p, tPartition &P, int s) {
+  if(nfeat[t] == 0 || prefixl.find(t) != prefixl.end() && prefixl[t] >= 0)
+    return;
+
   P.union_sets(t, p);
-  
+
   if(subtype(P(t), t))
     P.make_rep(t);
-  else
-    {
-      if(verbosity > 7)
-        fprintf(fstatus, "merging %s into %s partition (from %s)\n",
-                types.name(t).c_str(),
-                types.name(P(t)).c_str(),
-                types.name(s).c_str());
-    }
-  
+  else {
+    LOG(logSemantic, DEBUG, "merging " << types.name(t) << " into "
+        << types.name(P(t)) << " partition (from " << types.name(s) << ")");
+  }
+
   list<int> parents = immediate_supertypes(t);
-  
-  for(list<int>::iterator it = parents.begin(); it != parents.end(); ++it)
-    {
-      if(!P.same_set(*it, p))
-        merge_partitions(*it, p, P, t);
-    }
+
+  for(list<int>::iterator it = parents.begin(); it != parents.end(); ++it) {
+    if(!P.same_set(*it, p))
+      merge_partitions(*it, p, P, t);
+  }
 }
 
 int *featconf; /* minimal feature configuration id for each type */
@@ -641,40 +626,34 @@ int *featconf; /* minimal feature configuration id for each type */
 map<int, list_int *> theconf;
 map<int, list_int *> theset;
 
-void bottom_up_partitions()
-{
+void bottom_up_partitions() {
   assert(types.number() == (int) boost::num_vertices(hierarchy));
   tPartition part(types.number());
-  
-  fprintf(fstatus, "- partitioning hierarchy ");
+
+  LOG(logApplC, INFO, "- partitioning hierarchy ");
 
   merge_top_down(0, part(0), part);
-  
-  for(int i = 0; i < types.number(); i++)
-    {
-      if(boost::out_degree(i, hierarchy) == 0)
-        merge_partitions(i, part(i), part, 0);
-    }
-  
+
+  for(int i = 0; i < types.number(); i++) {
+    if(boost::out_degree(i, hierarchy) == 0)
+      merge_partitions(i, part(i), part, 0);
+  }
+
   map<int, bool> reached;
-  
+
   nfeatsets = 0;
   for(int i = 0; i < types.number(); i++)
-    if(!reached[i])
-      {
+    if(!reached[i]) {
         list_int *feats = 0;
-        if(verbosity > 4)
-          fprintf(fstatus, "partition %d (`%s'):\n",
-                  nfeatsets,
-                  types.name(part(i)).c_str());
+        LOG(logSemantic, DEBUG, 
+            "partition " << nfeatsets << " (`" << types.name(part(i)) << "'):");
 
         for(int j = 0; j < types.number(); j++)
           if(!reached[j] && part.same_set(i, j))
             {
               featset[j] = nfeatsets;
               reached[j] = true;
-              if(verbosity > 4)
-                fprintf(fstatus, "  %s\n", types.name(j).c_str());
+              LOG(logSemantic, DEBUG, "  " << types.name(j) << "");
                 
               list_int *l = theconf[featconf[j]];
               while(l)
@@ -683,63 +662,47 @@ void bottom_up_partitions()
                   l = rest(l);
                 }
             }
-        
-        if(verbosity > 4)
-          {
-            fprintf(fstatus, "features (%d):", length(feats));
-        
-            list_int *l = feats;
-            while(l)
-              {
-                fprintf(fstatus, " %s", attributes.name(first(l)).c_str()); 
-                l = rest(l);
-              }
-            fprintf(fstatus, "\n");
-          }
+
+        LOG(logSemantic, DEBUG, "features (" << length(feats) << "):"
+            << attrlist2string(feats, " "));
 
         theset[nfeatsets] = feats;
 
         nfeatsets++;
       }
 
-  fprintf(fstatus, "(%d partitions)\n", nfeatsets);
-
+  LOG(logAppl, INFO, "(" << nfeatsets << " partitions)");
 }
 
 // featconf and featset computation
 
-int si_compare(const void *a, const void *b)
-{
+int si_compare(const void *a, const void *b) {
   return *((short int *) a) - *((short int *) b);
 }
 
-void generate_featsetdescs(int nconfs, map<int, list_int*> &conf)
-{
+void generate_featsetdescs(int nconfs, map<int, list_int*> &conf) {
   // generate feature table descriptors
 
   featsetdesc = new featsetdescriptor[nconfs];
 
-  for(int i = 0; i < nconfs; i++)
-    {
-      list_int *l = conf[i];
-      int n = length(l);
-      featsetdesc[i].n = n;
-      featsetdesc[i].attr = n > 0 ? new short int [n] : 0;
+  for(int i = 0; i < nconfs; i++) {
+    list_int *l = conf[i];
+    int n = length(l);
+    featsetdesc[i].n = n;
+    featsetdesc[i].attr = n > 0 ? new short int [n] : 0;
 
-      int j = 0;
-      while(l)
-        {
-          featsetdesc[i].attr[j++] = first(l);
-          l = rest(l);
-        }
-      
-      if(n > 0)
-        qsort(featsetdesc[i].attr, n, sizeof(short int), si_compare);
+    int j = 0;
+    while(l) {
+      featsetdesc[i].attr[j++] = first(l);
+      l = rest(l);
     }
+
+    if(n > 0)
+      qsort(featsetdesc[i].attr, n, sizeof(short int), si_compare);
+  }
 }
 
-void compute_feat_sets(bool minimal)
-{
+void compute_feat_sets(bool minimal) {
   map<list_int *, int> feature_confs;
   int feature_conf_id = 0;
   int i;
@@ -747,87 +710,76 @@ void compute_feat_sets(bool minimal)
   featconf = new int[types.number()];
   featset = new int[types.number()];
 
-  for(i = 0; i < types.number(); i++)
-    {
-      int nf = 0;
-      list_int *feats = 0;
+  for(i = 0; i < types.number(); i++) {
+    int nf = 0;
+    list_int *feats = 0;
+
+    for(int j = 0; j < attributes.number(); j++) {
+      if(subtype(i, apptype[j])) {
+        nf++;
+        feats = cons(j, feats);
+      }
+    }
+
+    if(feats) {
+      if((featconf[i] = feature_confs[feats]) == 0) {
+        featconf[i] = (feature_confs[feats] = ++feature_conf_id);
+        theconf[feature_conf_id] = feats;
+      }
+    }
+    else
+      featconf[i] = 0;
+
+    nfeat[i] = nf;
+
+    if(LOG_ENABLED(logSemantic, DEBUG) && nintro[i] > 0) {
+#if 0
+      int nsub = DFS(hierarchy, i, reached).length();
+
+      fprintf(fstatus, "type `%s': nsub: %d nfeat: %d fconf: %d nintro: %d",
+              types.name(i).c_str(),
+              nsub,
+              nf,
+              featconf[i],
+              nintro[i]);
+
+      int sumintro = 0;
+      for(int j = 0; j < types.number(); j++)
+        if(reached[j]) sumintro += nintro[j];
+
+      fprintf(fstatus, " sumintro: %d", sumintro);
 
       for(int j = 0; j < attributes.number(); j++)
-        {
-          if(subtype(i, apptype[j]))
-            {
-              nf++;
-              feats = cons(j, feats);
-            }
-        }
-          
-      if(feats)
-        {
-          if((featconf[i] = feature_confs[feats]) == 0)
-            {
-              featconf[i] = (feature_confs[feats] = ++feature_conf_id);
-              theconf[feature_conf_id] = feats;
-            }
-        }
-      else
-        featconf[i] = 0;
+        if(apptype[j] == i)
+          fprintf(fstatus, " %s", attributes.name(j).c_str());
 
-      nfeat[i] = nf;
-
-      if(verbosity > 7 && nintro[i] > 0)
-        {
-#if 0
-          int nsub = DFS(hierarchy, i, reached).length();
-
-          fprintf(fstatus, "type `%s': nsub: %d nfeat: %d fconf: %d nintro: %d",
-                  types.name(i).c_str(),
-                  nsub, 
-                  nf,
-                  featconf[i],
-                  nintro[i]);
-          
-          int sumintro = 0;
-          for(int j = 0; j < types.number(); j++)
-            if(reached[j]) sumintro += nintro[j];
-          
-          fprintf(fstatus, " sumintro: %d", sumintro);
-
-          for(int j = 0; j < attributes.number(); j++)
-            if(apptype[j] == i)
-              fprintf(fstatus, " %s", attributes.name(j).c_str());
-          
-          fprintf(fstatus, "\n");
-#endif
-        }
-    }
-
-  for(i = 0; verbosity > 7 && i < feature_conf_id; i++)
-    {
-      fprintf(fstatus, "feature configuration %d:", i);
-      
-      list_int *l = theconf[i];
-      while(l)
-        {
-          fprintf(fstatus, " %s", attributes.name(first(l)).c_str()); 
-          l = rest(l);
-        }
       fprintf(fstatus, "\n");
+#endif
+    }
+  }
+
+  if (LOG_ENABLED(logSemantic, DEBUG)) {
+    ostringstream sdeb;
+    for(i = 0; i < feature_conf_id; i++) {
+      sdeb << "feature configuration " << i << ":";
+      for(list_int *l = theconf[i]; l != NULL; l = rest(l))
+        sdeb << " " << attributes.name(first(l));
+      sdeb << std::endl;
+    }
+    LOG(logSemantic, DEBUG, sdeb.str());
+  }
+
+  if(!minimal) {
+    bottom_up_partitions();
+    generate_featsetdescs(nfeatsets, theset);
+  }
+  else {
+    nfeatsets = feature_conf_id + 1;
+
+    for(int i = 0; i < types.number(); i++) {
+      featset[i] = featconf[i];
     }
 
-  if(!minimal)
-    {
-      bottom_up_partitions();
-      generate_featsetdescs(nfeatsets, theset);
-    }
-  else
-    {
-      nfeatsets = feature_conf_id + 1;
-
-      for(int i = 0; i < types.number(); i++)
-        {
-          featset[i] = featconf[i];
-        }
-
-      generate_featsetdescs(nfeatsets, theconf);
-    }
+    generate_featsetdescs(nfeatsets, theconf);
+  }
 }

@@ -10,7 +10,6 @@
 #include <list>
 #include <queue>
 #include <string>
-#include "fs.h"
 #include "input-modules.h"
 #include "morph.h"
 
@@ -196,10 +195,11 @@ private:
   void add_generics(inp_list &unexpanded);
 
   /** Add predicted entries for uncovered input items.  
-   * This is only applied if the option \c opt_predict_les is \c
+   * This is only applied if the option \a nr_predicts is 
    * non-zero and \opt_default_les is false.
    */
-  void add_predicts(inp_list &unexpanded, inp_list &inp_tokens);
+  void add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
+                    int nr_predicts);
 
   /** Use the registered tokenizer(s) to tokenize the input string and put the
    *  result into \a tokens.

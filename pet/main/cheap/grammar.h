@@ -31,13 +31,13 @@
 #include "utility.h"
 #include "types.h"
 #include "fs.h"
-#include "sm.h"
 #include "lexicon.h"
 
 #include <string>
 #include <list>
 #include <map>
 #include <ostream>
+#include <cassert>
 
 /** The different traits of rules and items:
     -- INPUT_TRAIT an input item, still without feature structure
@@ -83,7 +83,7 @@ class grammar_rule
   inline void trait(rule_trait t) { _trait = t; }
 
   /** Print in readable form for debugging purposes */
-  void print(std::ostream &out);
+  void print(std::ostream &out) const;
 
   /** Dump grammar in a format feasible for LUI (?) into \a directory */
   // \todo should go in favor of the print method above
@@ -154,6 +154,10 @@ class grammar_rule
   friend class tGrammar;
 };
 
+inline std::ostream &operator<<(std::ostream &o, const grammar_rule &g) {
+  g.print(o); return o;
+}
+
 typedef std::list<grammar_rule *> rulelist;
 typedef std::list<grammar_rule *>::const_iterator ruleiter;
 
@@ -163,6 +167,7 @@ private:
   char * _filtermatrix;
     
   inline char * access(grammar_rule *mother, grammar_rule *daughter) {
+    assert(valid() && daughter->id() < _nrules && mother->id() < _nrules);
     return _filtermatrix + daughter->id() + _nrules * mother->id();
   }
     
@@ -179,16 +184,19 @@ public:
 
   ~rulefilter() { delete[] _filtermatrix; }
 
+  /** \return \c true only if this filter is initialized properly */
+  inline bool valid() { return (_filtermatrix != NULL); }
+
   /** is \a daughter compatible with \a mother in the \a arg'th (1..8)
    *  argument position
    */
   inline bool get(grammar_rule * mother, grammar_rule * daughter, int arg) {
-    return *access(mother, daughter) & (1 << (arg - 1)) ;
+    return ! valid() || (0 != (*access(mother, daughter) & (1 << (arg - 1)))) ;
   }
 
   /** is \a daughter compatible with \a mother */
   inline bool get(grammar_rule * mother, grammar_rule * daughter) {
-    return *access(mother, daughter)  ;
+    return ! valid() || (0 != *access(mother, daughter)) ;
   }
 
   /** specify that \a daughter is compatible with \a mother in the \a arg'th
@@ -251,6 +259,9 @@ public:
     return *_packing_restrictor;
   }
 
+  /** Is the static rule filter useable? */
+  inline bool filter() { return _filter.valid(); }
+
   /** Is successful unification of \a daughter as \a arg th argument of \a
    *  mother possible?
    * This is a precomputed table containing all the possible rule combinations,
@@ -258,7 +269,8 @@ public:
    */
   inline bool filter_compatible(grammar_rule *mother, int arg,
                                 grammar_rule *daughter) {
-    return ((daughter == NULL) || _filter.get(mother, daughter, arg));
+    return ! _filter.valid() 
+      || (daughter == NULL) || _filter.get(mother, daughter, arg);
   }
 
   /** Is rule \a a more general than \a b or vice versa?
@@ -268,7 +280,7 @@ public:
    */
   inline void subsumption_filter_compatible(grammar_rule *a, grammar_rule *b,
                                             bool &forward, bool &backward) {
-      if(a == 0 || b == 0) {
+      if(!_subsumption_filter.valid() || a == 0 || b == 0) {
           forward = backward = true;
       } else {
         forward = _subsumption_filter.get(b, a);
@@ -311,10 +323,10 @@ public:
   bool punctuationp(const std::string &s);
 
   /** Return the statistic maxent model of this grammar */
-  inline tSM *sm() { return _sm; }
+  inline class tSM *sm() { return _sm; }
 
   /** Return the lexical type predictor ME model */
-  inline tSM *lexsm() { return _lexsm; }
+  inline class tSM *lexsm() { return _lexsm; }
 
   /** deactivate all rules */
   void deactivate_all_rules() {

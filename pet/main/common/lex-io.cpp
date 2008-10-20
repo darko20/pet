@@ -34,6 +34,7 @@
 #include "lex-io.h"
 #include "errors.h"
 #include "options.h"
+#include "logging.h"
 
 #include <cassert>
 #include <errno.h>
@@ -168,23 +169,21 @@ int LConsume(int n)
 
   if(CURR->pos + n > CURR->len)
     {
-      fprintf(ferr, "nothing to consume...\n");
+      LOG(logSyntax, ERROR, "nothing to consume...");
       return 0;
     }
 
   if(CURR->info)
     {
-      if(opt_linebreaks)
-        {
-          fprintf(fstatus, "\n%s `%s' ", CURR->info, CURR->fname);
+      {
+        if(last_info != CURR->info) {
+          LOG(logApplC, INFO, 
+              CURR->info << " `" << CURR->fname << "'... ");
         }
-      else
-        {
-          if(last_info != CURR->info)
-            fprintf(fstatus, "%s `%s'... ", CURR->info, CURR->fname);
-          else
-            fprintf(fstatus, "`%s'... ", CURR->fname);
+        else {
+          LOG(logApplC, INFO, "`" << CURR->fname << "'... ");
         }
+      }
 
       last_info = CURR->info;
       CURR->info = NULL;

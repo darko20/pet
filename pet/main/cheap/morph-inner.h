@@ -76,7 +76,7 @@ public:
 
   const std::string &name() const { return _name; }
   
-  void print(FILE *f) const;
+  void print(std::ostream &) const;
 
 private:
   std::string _name;
@@ -95,7 +95,7 @@ public:
 
   void undo_bindings();
 
-  void print(FILE *f) const;
+  void print(std::ostream &out) const;
 
 private:
   typedef HASH_SPACE::hash_map<std::string, morph_letterset>::iterator
@@ -131,7 +131,7 @@ public:
   bool base_form(MString matched, MString rest,
                  MString &result);
 
-  void print(FILE *f);
+  void print(std::ostream &) const;
 
 private:
   tMorphAnalyzer *_analyzer;
@@ -166,7 +166,7 @@ public:
   bool has_rules() const { return ! _rules.empty(); }
   const std::vector<morph_subrule *> &rules() const { return _rules; }
 
-  void print(FILE *f, int depth = 0) const;
+  void print(std::ostream &, int depth = 0) const;
   
 private:
   inline trie_node * request_node(MChar c) {
@@ -191,7 +191,7 @@ public:
 
   std::list<tMorphAnalysis> analyze(tMorphAnalysis a);
 
-  void print(FILE *f);
+  void print(std::ostream &) const;
 
 private:
   tMorphAnalyzer *_analyzer;
@@ -199,6 +199,20 @@ private:
   trie_node _root;
 };
 
+inline std::ostream &operator<<(std::ostream &out, const morph_lettersets &ml) {
+  ml.print(out); return out;
+}
 
+inline std::ostream &operator<<(std::ostream &out, const morph_letterset &ml) {
+  ml.print(out); return out;
+}
+
+inline std::ostream &operator<<(std::ostream &out, const morph_trie &mt) {
+  mt.print(out); return out;
+}
+
+inline std::ostream &operator<<(std::ostream &out, const trie_node &tn) {
+  tn.print(out); return out;
+}
 
 #endif

@@ -51,6 +51,7 @@
 #include "typecache.h"
 #include "tsdb++.h"
 #include "yy.h"
+#include "configs.h"
 #ifdef HAVE_ICU
 #include "unicode.h"
 #define massageUTF8(str) Conv->convert(ConvUTF8->convert(str))
@@ -126,13 +127,11 @@ int cheap_server_initialize(int port) {
 
   int i;
   if((i = fork()) < 0) {
-    fprintf(ferr,
-            "server_initialize(): unable to fork(2) server [%d].\n",
-            errno);
-    fprintf(flog,
-            "server_initialize(): "
-            "unable to change process group [%d].\n",
-            errno);
+    LOG(logAppl, ERROR,
+        "server_initialize(): unable to fork(2) server [" << errno << "].");
+    LOG(logServer, ERROR,
+        "server_initialize(): unable to change process group ["
+        << errno << "].");
     fflush(flog)
     return -1;
   } /* if */
@@ -142,13 +141,10 @@ int cheap_server_initialize(int port) {
 
 #if defined(__SUNOS__)
   if(setpgrp(0, getpid()) == -1) {
-    fprintf(ferr,
-            "server_initialize(): "
-            "unable to change process group [%d].\n",
-            errno);
-    fprintf(flog,
-            "server_initialize(): "
-            "unable to change process group [%d].\n", errno);
+    LOG(logAppl, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].");
+    LOG(logServer, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].");
     fflush(flog);
     return -1;
   } /* if */
@@ -158,23 +154,17 @@ int cheap_server_initialize(int port) {
   } /* if */
 #else
   if(setsid() == -1) {
-    fprintf(ferr,
-            "server_initialize(): "
-            "unable to change process group [%d].\n", errno);
-    fprintf(flog,
-            "server_initialize(): "
-            "unable to change process group [%d].\n", errno);
-    fflush(flog);
+    LOG(logAppl, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].", errno);
+    LOG(logServer, ERROR, "server_initialize(): "
+        "unable to change process group [" << errno << "].", errno);
     return -1;
   } /* if */
   if((i = fork()) < 0) {
-    fprintf(ferr,
-            "server_initialize(): unable to fork(2) server [%d].\n",
-            errno);
-    fprintf(flog,
-            "server_initialize(): unable to fork(2) server [%d].\n",
-            errno);
-    fflush(flog);
+    LOG(logAppl, ERROR,
+        "server_initialize(): unable to fork(2) server [" << errno << "].");
+    LOG(logServer, ERROR,
+        "server_initialize(): unable to fork(2) server [" << errno << "].");
     return -1;
   } /* if */
   else if(i > 0) {
@@ -394,7 +384,7 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 
-      if(opt_yy
+      if(get_opt_bool("opt_yy")
          && (yy_stream = getenv("CHEAP_YY_STREAM")) != NULL
          && (yy_output = fopen(yy_stream, "a")) != NULL) {
         fprintf(yy_output, "%s\f\n", foo.c_str());
@@ -422,7 +412,7 @@ int cheap_server_child(int socket) {
                 "[%d] server_child(): "
                 "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                 getpid(),
-                stats.id, opt_pedgelimit, stats.readings, 
+                stats.id, get_opt_int("opt_pedgelimit"), stats.readings, 
                 stats.first / 1000., stats.tcpu / 1000.,
                 stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
         fflush(*log);
@@ -461,7 +451,8 @@ int cheap_server_child(int socket) {
           log != _log_channels.end();
           log++) {
           fprintf(*log, "[%d] server_child(): (%d) [%d] --- error `%s'",
-                  stats.id, opt_pedgelimit, getpid(), e.getMessage().c_str());
+                  stats.id, get_opt_int("opt_pedgelimit"),
+                  getpid(), e.getMessage().c_str());
           fprintf(*log, " (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                   stats.first / 1000., stats.tcpu / 1000.,
                   stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
@@ -469,7 +460,7 @@ int cheap_server_child(int socket) {
       } /* for */
 
 #ifdef TSDBAPI
-      if(opt_tsdb) 
+      if(get_opt_int("opt_tsdb")) 
         yy_tsdb_summarize_error(input, Chart->rightmost(), e);
 #endif
     } /* catch */
@@ -502,7 +493,7 @@ int cheap_server_child(int socket) {
     else {
       string foo = massageUTF8(string(input));
 
-      if(opt_yy && yy_output != NULL) {
+      if(get_opt_bool("opt_yy") && yy_output != NULL) {
         fprintf(yy_output, "%s\f\n", foo.c_str());
         fclose(yy_output);
       } /* if */
@@ -520,7 +511,7 @@ int cheap_server_child(int socket) {
         fflush(*log);
       } /* for */
 #ifdef TSDBAPI
-      if(!errorp && opt_tsdb && Chart != NULL) {
+      if(!errorp && get_opt_int("opt_tsdb") && Chart != NULL) {
         yy_tsdb_summarize_item(*Chart, tsdbitem, Chart->rightmost(), 
                                treal, foo.c_str());
       } /* if */
@@ -576,13 +567,13 @@ int socket_readline(int socket, char *string, int length) {
       (void)read(socket, &c, 1);
     } /* if */
     if(c == '\n') {
-      if(!opt_yy) {
+      if(!get_opt_bool("opt_yy")) {
         string[n] = (char)0;
         return n + 1;
       } /* if */
     } /* if */
     else if(c == '\f') {
-      if(opt_yy) {
+      if(get_opt_bool("opt_yy")) {
         string[n] = (char)0;
         return n + 1;
       } /* if */

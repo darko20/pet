@@ -29,7 +29,6 @@
 #include <set>
 #include <map>
 
-#define SET_SUBDIRECTORY "pet"
 #define SET_EXT ".set"
 #define SET_TABLE_SIZE 1024
 
@@ -47,7 +46,7 @@ struct setting
 class settings
 {
  public:
-  settings(const char *name, const char *base, const char *message = 0);
+  settings(std::string name, std::string base, const char *message = 0);
   ~settings();
 
   setting *lookup(const char *name);

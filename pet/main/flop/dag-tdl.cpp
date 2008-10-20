@@ -24,6 +24,7 @@
 #include "dag-arced.h"
 #include "settings.h"
 #include "utility.h"
+#include "logging.h"
 
 using std::string;
 
@@ -103,6 +104,10 @@ struct dag_node *dagify_avm(struct avm *A)
 
   result = new_dag(BI_TOP);
 
+  attr_t sem_attr = T_BOTTOM;
+  if (get_opt_bool("opt_no_sem"))
+    sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
+  
   for(i = 0; i < A->n; i++)
     {
       struct dag_arc *arc;
@@ -117,8 +122,7 @@ struct dag_node *dagify_avm(struct avm *A)
       // removed from the hierarchy definitions and the feature itself is
       // ignored in all computation concering features, such as appropriate
       // type computation.
-      if(opt_no_sem 
-         && attr == attributes.id(flop_settings->req_value("sem-attr")))
+      if(attr == sem_attr)
         continue;
 
       if((val = dagify_conjunction(A->av[i]->val, BI_TOP)) == FAIL)
@@ -128,8 +132,9 @@ struct dag_node *dagify_avm(struct avm *A)
         {
           if(dag_unify1(arc->val, val) == FAIL)
             {
-              fprintf(ferr, "type `%s': unification under `%s' failed\n",
-                      type_name(current_toplevel_type), attrname[attr]);
+              LOG(logSemantic, WARN,
+                  "type `" << type_name(current_toplevel_type) 
+                  << "': unification under `" << attrname[attr] << "' failed");
               return FAIL;
             }
         }
@@ -156,8 +161,9 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
             {
               if(dag_unify1(last, result) == FAIL)
                 {
-                  fprintf(ferr, "type `%s': unification of `LAST' failed\n",
-                          type_name(current_toplevel_type));
+                  LOG(logSemantic, WARN,
+                      "type `" << type_name(current_toplevel_type)
+                      << "': unification of `LAST' failed");
                   return FAIL;
                 }
             }
@@ -221,10 +227,11 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
         newtype = glb(type, C->term[i]->type);
         if(newtype == -1)
           {
-            fprintf(ferr, "type `%s': inconsistent term detected: `%s' & `%s' have no glb...\n",
-                    type_name(current_toplevel_type),
-                    type_name(type),
-                    type_name(C->term[i]->type));
+            LOG(logSemantic, WARN,
+                "type `" << type_name(current_toplevel_type)
+                << "': inconsistent term detected: `" << type_name(type)
+                << "' & `" << type_name(C->term[i]->type)
+                << "' have no glb...");
             return FAIL;
           }
         type = newtype;
@@ -233,9 +240,10 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
       {
         if(cref != -1 && cref != C->term[i]->coidx)
           {
-            fprintf(ferr, "type `%s': term specifies two coreference indices: %d & %d...\n",
-                    type_name(current_toplevel_type),
-                    cref, C->term[i]->coidx);
+            LOG(logSemantic, WARN,
+                "type `" << type_name(current_toplevel_type)
+                << "': term specifies two coreference indices: " << cref
+                << " & " << C->term[i]->coidx << "..." << std::endl);
             return FAIL;
           }
         else
@@ -256,8 +264,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              fprintf(ferr, "type `%s': feature term unification failed\n",
-                      type_name(current_toplevel_type));
+              LOG(logSemantic, WARN,
+                  "type `" << type_name(current_toplevel_type) 
+                  << "': feature term unification failed");
               return FAIL;
             }
         }
@@ -267,8 +276,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
             return FAIL;
           if(dag_unify1(result, tmp) == FAIL)
             {
-              fprintf(ferr, "type `%s': list term unification failed\n",
-                      type_name(current_toplevel_type));
+              LOG(logSemantic, WARN,
+                  "type `" << type_name(current_toplevel_type)
+                  << "': list term unification failed" << std::endl);
               return FAIL;
             }
         }
@@ -281,8 +291,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
         {
           if(dag_unify1(dagify_corefs[cref], result) == FAIL)
             {
-              fprintf(ferr, "type `%s': coreference unification failed\n",
-                      type_name(current_toplevel_type));
+              LOG(logSemantic, WARN,
+                  "type `" << type_name(current_toplevel_type)
+                  << "': coreference unification failed" << std::endl);
               return FAIL;
             }
         }

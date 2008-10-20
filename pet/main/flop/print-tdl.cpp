@@ -22,6 +22,8 @@
 #include "flop.h"
 #include "lex-io.h"
 #include "list-int.h"
+#include "logging.h"
+#include "errors.h"
 
 int tdl_save_lines = 1;
 
@@ -150,11 +152,11 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
           break;
         case TEMPL_PAR:
         case TEMPL_CALL:
-          fprintf(ferr, "internal error: unresolved template call/parameter\n");
-          exit(1);
+          throw tError("internal error: unresolved template call/parameter");
           break;
         default:
-          fprintf(ferr, "unknown term tag `%d'\n", C -> term[i] -> tag); 
+          LOG(logSyntax, ERROR,
+              "unknown term tag `" << C -> term[i] -> tag << "'"); 
           break;
         }
     }

@@ -100,7 +100,7 @@ pet_cpp_type_valid_p(int t);
  * The available \a mode values depend on the Lisp code.
  */
 std::string
-ecl_cpp_extract_mrs(dag_node *d, char *mode);
+ecl_cpp_extract_mrs(dag_node *d, const char *mode);
 
 }
 
