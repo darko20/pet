@@ -303,13 +303,13 @@ tChartUtil::initialize()
   if (!init_lpath(_lexicon_tokens_path, "lexicon-tokens-path", e))
     w += " [ no input fs in lexical items ] ";
   if (!init_lpath(_context_path, "chart-mapping-context-path", e))
-    e += "Setting `mapping-context-path' required for chart mapping.\n";
+    e += "Setting `chart-mapping-context-path' required for chart mapping.\n";
   if (!init_lpath(_input_path, "chart-mapping-input-path", e))
-    e += "Setting `mapping-input-path' required for chart mapping.\n";
+    e += "Setting `chart-mapping-input-path' required for chart mapping.\n";
   if (!init_lpath(_output_path, "chart-mapping-output-path", e))
-    e += "Setting `mapping-output-path' required for chart mapping.\n";
+    e += "Setting `chart-mapping-output-path' required for chart mapping.\n";
   if (!init_lpath(_poscons_path, "chart-mapping-position-path", e))
-    e += "Setting `mapping-position-path' required for chart mapping.\n";
+    e += "Setting `chart-mapping-position-path' required for chart mapping.\n";
 
   if (!m.empty() && verbosity > 4) {
     m.erase(m.end()-2, m.end()); // erase last ", " from list of missing tags
