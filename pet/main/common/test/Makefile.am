@@ -2,7 +2,8 @@
 
 # FLOPCPPFLAGS = @FLOPCPPFLAGS@
 
-bin_PROGRAMS = ConfigurationTest loggingTest
+#uncommented since this is dysfunctional right now.... (pead01)
+#bin_PROGRAMS = ConfigurationTest loggingTest
 
 # -DNew=new removed
 AM_CPPFLAGS = -I$(top_srcdir)/common
@@ -15,7 +16,7 @@ LIBS += @CPPUNIT_LIBS@
 check_PROGRAMS = ConfigurationTest loggingTest
 
 ConfigurationTest_SOURCES = ConfigurationTest.cpp
-nodist_ConfigurationTest_SOURCES = $(top_srcdir)/common/config.cpp
+nodist_ConfigurationTest_SOURCES = $(top_srcdir)/common/configs.cpp
 
 loggingTest_SOURCES = loggingTest.cpp
 nodist_loggingTest_SOURCES = $(top_srcdir)/common/logging.cpp
