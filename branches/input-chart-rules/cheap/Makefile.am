@@ -61,7 +61,6 @@ libcheap_a_SOURCES = \
 	cheaptimer.h \
 	fs.cpp fs.h \
 	fs-chart.cpp fs-chart.h \
-	fsc-tokenizer.cpp fsc-tokenizer.h \
 	grammar.cpp grammar.h \
 	input-modules.cpp input-modules.h \
 	item-printer.cpp item-printer.h \
@@ -150,7 +149,8 @@ if XML
 libcheap_a_SOURCES += pic-handler.cpp pic-handler.h pic-states.h \
                       pic-tokenizer.h pic-tokenizer.cpp \
                       xmlparser.cpp xmlparser.h \
-                      smaf-tokenizer.h smaf-tokenizer.cpp
+                      smaf-tokenizer.h smaf-tokenizer.cpp \
+                      fsc-tokenizer.cpp fsc-tokenizer.h
 endif
 
 if ICU

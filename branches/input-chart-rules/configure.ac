@@ -263,7 +263,7 @@ if test "$boost" = "yes" ; then
   CHEAPLDFLAGS="${BOOST_LDFLAGS} ${CHEAPLDFLAGS}"
   CHEAPLIBS="${CHEAPLIBS} ${BOOST_REGEX_LIB}"
 else
-  AC_MSG_ERROR([boost graph library required to build flop and cheap])
+  AC_MSG_ERROR([required Boost libraries are missing or incomplete])
 fi
 
 

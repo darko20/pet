@@ -21,6 +21,9 @@
 #
 # LAST MODIFICATION
 #
+#   2008-11-03 by Peter Adolphs
+#              - simplified header and library checks using standard
+#                autoconf macros
 #   2008-02-25 by Peter Adolphs
 #              - fixed broken indentation (tabs/spaces)
 #              - added ACTION-IF-FOUND and ACTION-IF-NOT-FOUND
@@ -39,6 +42,7 @@
 
 AC_DEFUN([AX_BOOST_REGEX],
 [
+  ax_boost_regex_default_libname="boost_regex"
   AC_ARG_WITH([boost-regex],
     [ AS_HELP_STRING(
         [--with-boost-regex@<:@=ARG@:>@],
@@ -48,19 +52,20 @@ AC_DEFUN([AX_BOOST_REGEX],
          @<:@ARG=yes@:>@ ]) ],
     [
       if test "$withval" = "no"; then
-        want_boost="no"
+        ax_boost_regex_wanted="no"
       elif test "$withval" = "yes"; then
-        want_boost="yes"
-        ax_boost_user_regex_lib=""
+        ax_boost_regex_wanted="yes"
+        ax_boost_regex_libname="${ax_boost_regex_default_libname}"
       else
-        want_boost="yes"
-        ax_boost_user_regex_lib="$withval"
+        ax_boost_regex_wanted="yes"
+        ax_boost_regex_libname="$withval"
       fi
     ],
-    [want_boost="yes"]
+    [ax_boost_regex_wanted="yes"
+     ax_boost_regex_libname="${ax_boost_regex_default_libname}"]
   )
   
-  if test "x$want_boost" = "xyes"; then
+  if test "x$ax_boost_regex_wanted" = "xyes"; then
     AC_REQUIRE([AX_BOOST_BASE])
     CPPFLAGS_SAVED="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
@@ -70,46 +75,28 @@ AC_DEFUN([AX_BOOST_REGEX],
     LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
     export LDFLAGS
     
-    AC_CACHE_CHECK([whether the Boost::Regex library is available],
-      [ax_cv_boost_regex],
-      [
-        AC_LANG_PUSH([C++])
-        AC_COMPILE_IFELSE(AC_LANG_PROGRAM([[@%:@include <boost/regex.hpp>
-          ]],
-          [[boost::regex r(); return 0;]]),
-        [ax_cv_boost_regex=yes],
-        [ax_cv_boost_regex=no])
-        AC_LANG_POP([C++])
-      ]
-    )
-    if test "x$ax_cv_boost_regex" = "xyes"; then
-      AC_DEFINE(HAVE_BOOST_REGEX,,[define if the Boost::Regex library is available])
-      BN_BOOST_REGEX=boost_regex
-      BOOSTLIBDIR=`echo $BOOST_LDFLAGS | sed -e 's/@<:@^\/@:>@*//'`
-      if test "x$ax_boost_user_regex_lib" = "x"; then
-        for libextension in `ls $BOOSTLIBDIR/libboost_regex*.{so,a}* | sed 's,.*/,,' | sed -e 's;^libboost_regex\(.*\)\.so.*$;\1;' -e 's;^libboost_regex\(.*\)\.a*$;\1;'` ; do
-          ax_lib=${BN_BOOST_REGEX}${libextension}
-          AC_CHECK_LIB($ax_lib, exit,
-                 [BOOST_REGEX_LIB="-l$ax_lib"; AC_SUBST(BOOST_REGEX_LIB) link_regex="yes"; break],
-                 [link_regex="no"])
-        done
-      else
-        for ax_lib in $ax_boost_user_regex_lib $BN_BOOST_REGEX-$ax_boost_user_regex_lib; do
-          AC_CHECK_LIB($ax_lib, main,
-                 [BOOST_REGEX_LIB="-l$ax_lib"; AC_SUBST(BOOST_REGEX_LIB) link_regex="yes"; break],
-                 [link_regex="no"])
-        done
-      fi
-      if test "x$link_regex" = "xyes"; then
-        # execute ACTION-IF-FOUND (if present):
-        ifelse([$1], , :, [$1])
-      else
-        AC_MSG_NOTICE(Could not link against $ax_lib !)
-        # execute ACTION-IF-NOT-FOUND (if present):
-        ifelse([$2], , :, [$2])
-      fi
+    AC_LANG_PUSH([C++])
+    AC_CHECK_HEADER([boost/regex.hpp],
+                    [ax_boost_regex_headers=yes],
+                    [ax_boost_regex_headers=no
+                     AC_MSG_WARN([Could not find header files for Boost.Regex])])
+    if test "x${ax_boost_regex_headers}" = "xyes"; then
+      AC_CHECK_LIB([$ax_boost_regex_libname], [main],
+                   [ax_boost_regex_links=yes],
+                   [ax_boost_regex_links=no
+                    AC_MSG_WARN([Could not link Boost.Regex])])
     fi
-
+    AC_LANG_POP([C++])
+    
+    if test "x$ax_boost_regex_headers" = "xyes" -a "x$ax_boost_regex_links" = "xyes"; then
+      AC_DEFINE(HAVE_BOOST_REGEX,,[define if the Boost.Regex library is available])
+      # execute ACTION-IF-FOUND (if present):
+      ifelse([$1], , :, [$1])
+    else
+      # execute ACTION-IF-NOT-FOUND (if present):
+      ifelse([$2], , :, [$2])
+    fi
+    
     CPPFLAGS="$CPPFLAGS_SAVED"
     LDFLAGS="$LDFLAGS_SAVED"
   fi
