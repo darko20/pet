@@ -13,7 +13,7 @@
 #
 #   This macro calls:
 #
-#     AC_SUBST(BOOST_REGEX_LIB)
+#     AC_SUBST(BOOST_REGEX_LIBS)
 #
 #   And sets:
 #
@@ -90,6 +90,7 @@ AC_DEFUN([AX_BOOST_REGEX],
     
     if test "x$ax_boost_regex_headers" = "xyes" -a "x$ax_boost_regex_links" = "xyes"; then
       AC_DEFINE(HAVE_BOOST_REGEX,,[define if the Boost.Regex library is available])
+      AC_SUBST(BOOST_REGEX_LIBS, ["-l${ax_boost_regex_libname}"])
       # execute ACTION-IF-FOUND (if present):
       ifelse([$1], , :, [$1])
     else
