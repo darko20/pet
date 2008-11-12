@@ -449,7 +449,7 @@ tChartMappingRule::tChartMappingRule(type_t type,
     re = "[ \t\r\n]*(([CIO][0-9]+|<|<<|=|,)*)";
     poscons_s = boost::regex_replace(poscons_s, re, "$1");
     // check format:
-    re ="(([CIO][0-9]+)([<=][CIO][0-9]+)*)?"
+    re ="(([CIO][0-9]+)((<|<<|=)[CIO][0-9]+)*)?"
         "(,([CIO][0-9]+)((<|<<|=)[CIO][0-9]+)*)*";
     if (!boost::regex_match(poscons_s, re)) {
       throw tError("ill-formed positional constraints for chart mapping rule "
