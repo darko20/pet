@@ -561,18 +561,19 @@ find_unexpanded(chart *ch, item_predicate &valid_item) {
       // for now, make this dependent on whether or not chart mapping is used,
       // but probably it should be a more general option.      (25-sep-08; oe)
       //
-      if (opt_chart_mapping) {
-        
-        chart_iter_span_passive 
-          coverage(ch, it->first->start(), it->first->end());
-        while(coverage.valid()) {
-          if (valid_item(coverage.current())) {
-            covered = true;
-            break;
-          }
-          coverage++;
-        } // while
-      } // if
+      // after emailing the PET co-developers about this, they all nodded their
+      // heads in perfect silence.  hence, i now think we always want the more
+      // restrictive (aka focused) reporting.                  (10-nov-08; oe)
+      //
+      chart_iter_span_passive 
+        coverage(ch, it->first->start(), it->first->end());
+      while(coverage.valid()) {
+        if (valid_item(coverage.current())) {
+          covered = true;
+          break;
+        }
+        coverage++;
+      } // while
       if (!covered) result_list.push_back(it->first);
     } // if
   }
@@ -624,6 +625,20 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
     // the input tokens which lead to generics must be considered a word_token,
     // because otherwise, the precomputed stem would not lead to a lexicon
     // entry (bad) or the precomputed type name would not exist (even worse)
+    //
+    // _fix_me_
+    // why would it be bad for a generic entry to have a stem for which there
+    // is no lexical entry?  in a sense, that is exactly what a generic entry
+    // is meant to provide.  for the SRG, there is an external morphology that
+    // does lemmatization and inflectional analysis.  hence, all input tokens
+    // carry a list of orthographemic rules (the infamous `_inflrs_todo').  it
+    // may be the case that, for a given stem, there is no lexical entry.  in
+    // that case, we want to activate generic entries (in theory that could be
+    // based on additional PoS tags), and those entries should be expected to
+    // go through the orthographemic rules required on the token.  hence, the
+    // invocation of morph_analyze() is now restricted to `word' tokens.
+    //                                                          (12-sep-08; oe)
+    //
     if (!gens.empty()) {
       // TODO: is it sensible here to apply the (guessed) inflection rules here
       // to the generics??
@@ -634,7 +649,9 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       // but that messes up the whole failed stem token thing and all
 
       // get morphs
-      list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
+      list<tMorphAnalysis> morphs;
+      if((*it)->is_word_token()) morphs = morph_analyze((*it)->form());
+
       // iterate thru gens
       for(list<lex_stem *>::iterator ls = gens.begin()
             ; ls != gens.end(); ls++) {
