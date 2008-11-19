@@ -361,7 +361,7 @@ tsdb_result::capi_print()
     capi_printf("(:result-id . %d) ", result_id);
 
     if(scored)
-        capi_printf("(:score . %.g) ", score);
+        capi_printf("(:score . %.4g) ", score);
 
     if(opt_tsdb == 1)
     {
