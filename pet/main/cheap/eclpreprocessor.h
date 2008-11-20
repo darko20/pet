@@ -37,7 +37,7 @@ private:
   tYYTokenizer _stage_two;
   position_map _position_mapping;
 
-  char *_format;
+  const char *_format;
   
 };
 

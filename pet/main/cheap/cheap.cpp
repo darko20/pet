@@ -154,7 +154,6 @@ void interactive() {
       if(verbosity > 0) stats.print(fstatus);
 
       tsdb_dump.finish(Chart, surface);
-      dump_jxchg(surface, Chart);
       
       //ofstream out("/tmp/final-chart-bernie");
       //tTclChartPrinter chp(out, 0);
