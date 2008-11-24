@@ -242,6 +242,7 @@ class Config {
 
 private:
   template <class T> option<T> &get_option_checked(const std::string& key) {
+
     KeyValueMap::iterator i = _keyValue.find(key);
     if (i == _keyValue.end())
       throw NoSuchOptionException(key);
@@ -251,7 +252,6 @@ private:
     }
     catch(std::bad_cast) {
       std::cerr << key << std::endl;
-      assert(false);
       throw WrongTypeException(key);
     }
   }
