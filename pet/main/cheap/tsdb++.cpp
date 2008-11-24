@@ -620,10 +620,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 }
                 
 #ifdef HAVE_MRS
-                if(get_opt_charp("opt_mrs"))
+                if(! get_opt_string("opt_mrs").empty())
                 {
                   R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-                            get_opt_charp("opt_mrs"));
+					      get_opt_string("opt_mrs").c_str());
                 }
 #endif
                 T.push_result(R);
