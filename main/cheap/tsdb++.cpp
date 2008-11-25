@@ -888,7 +888,7 @@ void tTsdbDump::start() {
 void tTsdbDump::finish(chart *Chart, const string &input) {
   if (_current != NULL) {
     _current->set_input(input);
-    _current->set_i_length(Chart->length());
+    _current->set_i_length(Chart->length()-1);
     cheap_tsdb_summarize_item(*Chart, Chart->rightmost(), -1, 0, *_current);
     dump_current();
   }
@@ -899,7 +899,7 @@ void tTsdbDump::error(class chart *Chart, const string &input,
   if (_current != NULL) {
     if(Chart) {
       _current->set_input(input);
-      _current->set_i_length(Chart->length());
+      _current->set_i_length(Chart->length()-1);
     }
     list<tError> errors;
     errors.push_back(e);
