@@ -626,7 +626,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
     }
 
     Chart->readings() = collect_readings(FSAS, errors, 
-                                         opt_nsolutions, pedgelimit,
+                                         pedgelimit, opt_nsolutions, 
                                          Chart->trees());
     stats.readings = Chart->readings().size();
 

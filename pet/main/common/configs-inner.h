@@ -251,7 +251,7 @@ private:
       return result;
     }
     catch(std::bad_cast) {
-      std::cerr << key << std::endl;
+      // std::cerr << key << std::endl; assert(false);
       throw WrongTypeException(key);
     }
   }
