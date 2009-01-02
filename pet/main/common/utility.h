@@ -25,6 +25,7 @@
 #ifndef _UTILITY_H_
 #define _UTILITY_H_
 
+#include <cstring>
 #include <list> 
 #include <string>
 

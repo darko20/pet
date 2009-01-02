@@ -27,8 +27,10 @@
 
 #include "item.h"
 #include "hashing.h"
+
 #include <string>
 #include <list>
+#include <memory>
 #include <queue>
 
 /** Chart data structure for parsing, aka dynamic programming */

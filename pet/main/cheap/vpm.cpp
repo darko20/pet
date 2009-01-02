@@ -1,5 +1,7 @@
 #include "vpm.h"
 
+#include <cstring>
+
 extern FILE* ferr;
 
 tVPM::~tVPM() {

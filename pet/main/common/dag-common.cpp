@@ -19,9 +19,12 @@
 
 /* operations on dags that are shared between different unifiers */
 
+#include "dag-common.h"
 #include "grammar-dump.h"
 #include "dag.h"
 #include "types.h"
+
+#include <cstring>
 
 /* global variables */
 
