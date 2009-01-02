@@ -19,11 +19,15 @@
 
 /* printing of internal representation in TDL syntax */
 
+#include "pet-config.h"
 #include "flop.h"
 #include "lex-io.h"
 #include "list-int.h"
 #include "logging.h"
 #include "errors.h"
+
+#include <cstdio>
+#include <cstring>
 
 int tdl_save_lines = 1;
 

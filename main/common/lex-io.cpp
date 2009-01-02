@@ -37,6 +37,7 @@
 #include "logging.h"
 
 #include <cassert>
+#include <cstring>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>

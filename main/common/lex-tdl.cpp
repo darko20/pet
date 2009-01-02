@@ -28,6 +28,8 @@
 #endif
 
 #include <cassert>
+#include <cstdlib>
+#include <cstring>
 #include <iomanip>
 
 const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",

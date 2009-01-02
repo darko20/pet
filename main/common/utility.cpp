@@ -23,6 +23,8 @@
 #include "utility.h"
 #include "errors.h"
 
+#include <cstdlib>
+
 //#include <iostream>  // only for debugging
 #include <sys/stat.h>
 

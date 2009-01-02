@@ -29,6 +29,7 @@
 #include "configs.h"
 #include "logging.h"
 
+#include <cstring>
 #include <iostream>
 
 using namespace std;
