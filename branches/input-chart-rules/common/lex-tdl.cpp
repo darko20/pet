@@ -150,7 +150,7 @@ struct lex_token *get_next_token()
       LConsume(i);
     }
   else if(c == '#' && LLA(1) == '|')
-  { /* block comment */
+    { /* block comment */
       char *start;
 
       start = LMark();
@@ -176,7 +176,7 @@ struct lex_token *get_next_token()
       i += 2;
       t = make_token(T_COMM, start, i);
       LConsume(i);
-  }
+    }
   else if(c == '"')
     { // string
       char *start;
@@ -204,6 +204,36 @@ struct lex_token *get_next_token()
 
       i += 1;
       t = make_token(T_STRING, start + 1, i - 2, l);
+      LConsume(i);
+    }
+  else if(c == '/')
+    { // regular expression
+      // we store regular expressions as strings, padded by slashes, for now
+      char *start;
+      int i;
+      int l; // length of the resolved regex (without escape backslashes)
+
+      start = LMark();
+      i = 1;
+      l = 2;
+
+      while(LLA(i) != EOF && LLA(i) != '/')
+        {
+          if (LLA(i) == '\\')
+            i++; // skip
+          i++;
+          l++;
+        }
+
+      if(LLA(i) == EOF)
+        {
+          fprintf(ferr, "runaway regular expression starting in %s:%d.%d\n",
+                  curr_fname(), curr_line(), curr_col());
+          throw tError("runaway regular expression");
+        }
+
+      i += 1;
+      t = make_token(T_STRING, start, i, l);
       LConsume(i);
     }
   else if(c == '(' && lisp_mode)
