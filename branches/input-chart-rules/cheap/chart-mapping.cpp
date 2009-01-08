@@ -1023,6 +1023,8 @@ tChartMappingMatch::get_arg_fs(const tChartMappingRuleArg *arg) {
     case tChartMappingRuleArg::OUTPUT_ARG:
       path = tChartUtil::output_path();
       break;
+    default:
+      path = 0; // just to avoid complaints by the compiler
   }  
   return _fs.nth_value(path, arg->get_nr());
 }
