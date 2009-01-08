@@ -26,14 +26,21 @@
 #include "grammar.h"
 #include "hashing.h"
 
-#include <stdio.h>
+#include <algorithm>
+#include <cassert>
+#include <climits>
 #include <iostream>
-
 #include <deque>
 #include <map>
 #include <string>
 
+#include <boost/format.hpp>
+#include <boost/graph/topological_sort.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+#include <boost/regex.hpp>
+#include <boost/regex/icu.hpp>
 
 #ifdef HAVE_ICU
 #include "unicode.h"
@@ -42,11 +49,12 @@
 using namespace std;
 using HASH_SPACE::hash_map;
 using boost::lexical_cast;
+using boost::format;
 
 
 
 // =====================================================
-// class tChartMappingEngine
+// helpers
 // =====================================================
 
 class not_contained_in_list
@@ -63,6 +71,12 @@ public:
   }
 };
 
+
+
+// =====================================================
+// class tChartMappingEngine
+// =====================================================
+
 /**
  * A signature for a chart mapping match. The first element in the quadruple
  * is the rule of the match, the second is the previous match, the third is
@@ -75,8 +89,7 @@ typedef boost::tuple<const tChartMappingRule*,
                      const tChartMappingRuleArg*> tChartMappingMatchSig;
 
 struct sig_hash {
-  inline size_t operator() (const tChartMappingMatchSig &s) const
-  {
+  inline size_t operator() (const tChartMappingMatchSig &s) const {
     return reinterpret_cast<size_t>(s.get<0>()) +
            reinterpret_cast<size_t>(s.get<1>()) +
            reinterpret_cast<size_t>(s.get<2>()) +
@@ -87,78 +100,37 @@ struct sig_hash {
 typedef hash_map<tChartMappingMatchSig, tChartMappingMatch*, sig_hash>
   tChartMappingMatchCache;
 
-/**
- * Find all items from the chart that could serve as an item for the next
- * match by evaluating the positional constraints of the next rule argument
- * \a next_arg and the current match \a match.
- */
-static inline item_list
-get_suitable_items(tChart &chart, tChartMappingMatch *match,
-    const tChartMappingRuleArg *next_arg)
-{
-  // matched items shall not be matched twice:
-  item_list skip = match->matched_items();
-
-  // select all items from the chart that have not been matched already:
-  item_list items = chart.items(true, true, skip);
-
-  // weed out all items that don't fulfil the positional constraints:
-  typedef std::list<tChartMappingPosCons> tPosConsList;
-  tPosConsList poscons = next_arg->_poscons;
-  for (tPosConsList::iterator cons_it = poscons.begin();
-       cons_it != poscons.end();
-       cons_it++)
-  {
-    tItem* matched_item = match->matched_item((*cons_it).arg->name());
-    if (!matched_item) {
-      throw tError((string)"Positional constraint in rule " +
-        match->get_rule()->printname()+" refers to an unmatched item.");
-    }
-    item_list restr; // restrictor set
-    switch ((*cons_it).rel) {
-      case tChartMappingPosCons::same_cell:
-        restr = chart.same_cell_items(matched_item, true, true, skip); break;
-      case tChartMappingPosCons::succeeding:
-        restr = chart.succeeding_items(matched_item, true, true, skip); break;
-      case tChartMappingPosCons::all_succeeding:
-        restr = chart.all_succeeding_items(matched_item, true, true, skip); break;
-    }
-    items.remove_if(not_contained_in_list(restr));
-  }
-
-  return items;
-}
-
 static tChartMappingMatch*
 get_new_completed_match(tChart &chart, tChartMappingMatch *match,
-    tChartMappingMatchCache &cache)
-{
+    tChartMappingMatchCache &cache) {
   assert(!match->is_complete());
 
   // loop over all suitable items for the next match:
   const tChartMappingRule *rule = match->get_rule();
-  const tChartMappingRuleArg *arg = match->get_next_arg();
-  item_list suitable_items = get_suitable_items(chart, match, arg);
+  const tChartMappingRuleArg *arg = match->get_next_matching_arg();
+  item_list suitable_items = match->get_suitable_items(chart, arg);
   for (item_iter it = suitable_items.begin(); it!=suitable_items.end(); it++) {
     tItem *item = *it;
     tChartMappingMatch *next_match;
     bool new_match;
-
+    
     // build the next match with item and arg or retrieve it from the cache:
+    // TODO invalidate cached matches with items anchored at ^ or $
+    //      if chart start and end are affected by this rule
     tChartMappingMatchSig sig(rule, match, item, arg);
     new_match = (cache.find(sig) == cache.end());
     next_match = new_match ? (cache[sig]=match->match(item, arg)) : cache[sig];
-
+    
     // logging:
     if ((opt_chart_mapping & 256) && new_match) {
       // TODO implement tItem::to_string() or tItem::printname()??
       string itemstr = "chart item " + lexical_cast<string>(item->id());
       tInputItem* inp_item = dynamic_cast<tInputItem*>(item);
       if (inp_item)
-        itemstr += " (input item `" + inp_item->form() + "')";
-      fprintf(stderr, "[cm] %s %s, arg %s with %s\n",
-              (next_match ? "MATCHED" : "checked"), rule->printname(),
-              arg->name().c_str(), itemstr.c_str());
+        itemstr += " (`" + inp_item->form() + "')";
+      cerr << format("[cm] %s %s, arg %s with %s\n")
+              % (next_match ? "MATCHED" : "checked") % rule->get_printname()
+              % arg->get_name() % itemstr;
     }
 
     // base case and recursion:
@@ -178,117 +150,15 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
   return 0; // there were no suitable items or no further completed match
 }
 
-/**
- * Modifies the chart as specified by the rule for the completed item
- * \a match.
- * \pre match.is_complete() == \c true
- * \return \c true if the chart has been changed
- */
-static inline bool
-build_output(tChart &chart, tChartMappingMatch &match)
+tChartMappingEngine::tChartMappingEngine(
+    const std::list<tChartMappingRule*> &rules)
+: _rules(rules)
 {
-  assert(match.is_complete());
-
-  bool chart_changed = false;
-
-  tChartVertex *first_v = 0;
-  tChartVertex *last_v = 0;
-  tChartMappingRuleTrait trait = match.get_rule()->trait();
-
-  // determine first and last vertex from INPUT or CONTEXT items:
-  item_list inps = match.matched_input_items();
-  item_list cons = match.matched_context_items();
-  if (inps.size() > 0) {
-    first_v = inps.front()->prec_vertex();
-    last_v = inps.back()->succ_vertex();
-  } else {
-    assert(cons.size() > 0);
-    first_v = cons.front()->prec_vertex();
-    last_v = cons.back()->succ_vertex();
-  }
-
-  // add all OUTPUT items:
-  std::vector<tItem*> outs; // needed for book-keeping
-  std::list<fs> out_fss = match.output_fss();
-  tChartVertex *prec = first_v;
-  tChartVertex *succ = 0;
-  bool same_cell_output = match.get_rule()->_same_cell_output; // TODO generalize!!! ugly!!!
-  for (std::list<fs>::iterator it = out_fss.begin(); it!=out_fss.end(); it++) {
-    fs out_fs = *it;
-    tItem *out_item = 0;
-    succ = (same_cell_output || (*it == out_fss.back())) ?
-        last_v : chart.add_vertex(tChartVertex::create());
-    // try to find an existing identical item for reuse:
-    list<tItem*> items = prec->starting_items();
-    list<tItem*>::iterator item_it;
-    for (item_it = items.begin(); item_it != items.end(); item_it++) {
-      if (((*item_it)->succ_vertex() == succ) && !(*item_it)->blocked()) {
-        fs item_fs = (*item_it)->get_fs();
-        bool forward = true, backward = true;
-        subsumes(out_fs, item_fs, forward, backward);
-        if (forward && backward) { // identical item
-          out_item = *item_it;
-          inps.remove(out_item); // don't remove this identical items later
-        }
-      }
-    }
-    // if output item is not reused, create a new one and add it:
-    if (out_item == 0) {
-      if (trait == CM_INPUT_TRAIT) {
-        out_item = tChartUtil::create_input_item(out_fs);
-      } else if (trait == CM_LEX_TRAIT) {
-        throw tError("tChartMappingEngine: Construction of lexical items not "
-            "allowed.");
-      }
-      chart.add_item(out_item, prec, succ);
-      chart_changed = true;
-    }
-    // book-keeping:
-    outs.push_back(out_item);
-    // set the next preceding vertex:
-    if (!same_cell_output)
-      prec = succ;
-  }
-
-  // freeze all INPUT items in the chart:
-  for (item_iter it = inps.begin(); it != inps.end(); it++)
-    (*it)->freeze(false);
-  chart_changed = chart_changed || !inps.empty();
-
-  // logging:
-  if (opt_chart_mapping & 1 || opt_chart_mapping & 16) {
-    std::string item_ids = "";
-    std::vector<tChartMappingRuleArg*> args = match.get_rule()->args();
-    std::vector<tChartMappingRuleArg*>::iterator arg_it;
-    for (arg_it = args.begin(); arg_it != args.end(); arg_it++) {
-      string name = (*arg_it)->name();
-      int id = match.matched_item(name)->id();
-      item_ids += name + ":" + lexical_cast<string>(id) + " ";
-    }
-    int i;
-    std::vector<tItem*>::iterator item_it;
-    for (item_it = outs.begin(), i = 1; item_it != outs.end(); item_it++, i++) {
-      item_ids += "O" + lexical_cast<string>(i) + ":"
-                  + lexical_cast<string>((*item_it)->id()) + " "; // TODO make OUTPUT rule item name accessible
-    }
-    fprintf(stderr, "[cm] `%s' fired: %s\n",
-        match.get_rule()->printname(), item_ids.c_str());
-
-    if(opt_chart_mapping & 16) {
-      tItemPrinter ip(cerr, false, true);
-      for(std::vector<tItem *>::iterator item = outs.begin();
-          item != outs.end();
-          ++item) {
-        ip.print(*item); cerr << endl;
-      } // for
-    } // if
-  } // if
-
-  return chart_changed;
+  // nothing to do
 }
-
+   
 void
-tChartMappingEngine::apply_rules(tChart &chart)
+tChartMappingEngine::process(tChart &chart)
 {
   // logging:
   if (verbosity >= 4 || opt_chart_mapping & 1) {
@@ -302,8 +172,7 @@ tChartMappingEngine::apply_rules(tChart &chart)
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)
         max_id = (*it)->id();
-    fprintf(stderr, "[cm] greatest item id before chart mapping: "
-        "%d\n", max_id);
+    cerr << format("[cm] greatest item id before chart mapping: %d\n") % max_id;
   }
 
   // cache storing each match we've created:
@@ -318,12 +187,13 @@ tChartMappingEngine::apply_rules(tChart &chart)
       tChartMappingRule *rule = *rule_it;
       tChartMappingMatchSig rule_sig(rule, 0, 0, 0);
       tChartMappingMatch *empty_match = (cache.find(rule_sig) == cache.end()) ?
-        (cache[rule_sig] = tChartMappingMatch::create(rule)) : cache[rule_sig];
+          (cache[rule_sig] = tChartMappingMatch::create(rule, chart))
+        : cache[rule_sig];
       tChartMappingMatch *completed = 0;
       do {
         completed = get_new_completed_match(chart, empty_match, cache);
         if (completed) // 0 if there is no further completed match
-          chart_changed = build_output(chart, *completed) || chart_changed;
+          chart_changed = completed->fire(chart) || chart_changed;
       } while (completed);
     } // for each rule
   } while (false); // quit after the first round of rule applications
@@ -346,9 +216,449 @@ tChartMappingEngine::apply_rules(tChart &chart)
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)
         max_id = (*it)->id();
-    fprintf(stderr, "[cm] greatest item id after chart mapping: "
-        "%d\n", max_id);
+    cerr << format("[cm] greatest item id after chart mapping: %d\n") % max_id;
   }
+}
+
+
+
+// =====================================================
+// class tChartMappingRuleArg
+// =====================================================
+
+tChartMappingRuleArg::tChartMappingRuleArg(const std::string &name,
+    tChartMappingRuleArg::Trait trait, int nr, tPathRegexMap &regexs)
+: _name(name),
+  _start_anchor(name + ":s"),
+  _end_anchor(name + ":e"),
+  _trait(trait),
+  _nr(nr),
+  _regexs(regexs) {
+  // done
+}
+
+
+tChartMappingRuleArg::~tChartMappingRuleArg() {
+  for (tPathRegexMap::iterator it = _regexs.begin(); it != _regexs.end(); it++)
+    free_list(it->first);
+}
+
+tChartMappingRuleArg*
+tChartMappingRuleArg::create(const std::string &name,
+    tChartMappingRuleArg::Trait trait, int nr, tPathRegexMap &regexs) {
+  return new tChartMappingRuleArg(name, trait, nr, regexs);
+}
+
+const std::string&
+tChartMappingRuleArg::get_name() const {
+  return _name;
+}
+
+const std::string&
+tChartMappingRuleArg::get_start_anchor() const {
+  return _start_anchor;
+}
+
+const std::string&
+tChartMappingRuleArg::get_end_anchor() const {
+  return _end_anchor;
+}
+
+tChartMappingRuleArg::Trait
+tChartMappingRuleArg::get_trait() const {
+  return _trait;
+}
+
+int
+tChartMappingRuleArg::get_nr() const {
+  return _nr;
+}
+
+const tPathRegexMap&
+tChartMappingRuleArg::get_regexs() const {
+  return _regexs;
+}
+
+
+
+// =====================================================
+// class tChartMappingAnchoringGraph
+// =====================================================
+
+tChartMappingAnchoringGraph::tChartMappingAnchoringGraph() {
+  _vs = add_vertex("^");
+  _ve = add_vertex("$");
+  accomodate_edge(_vs, _ve, 0, INT_MAX);
+}
+  
+void
+tChartMappingAnchoringGraph::add_arg(const tChartMappingRuleArg *arg) {
+  _arg_names.push_back(arg->get_name());
+  
+  tVertex v1 = add_vertex(arg->get_start_anchor());
+  tVertex v2 = add_vertex(arg->get_end_anchor());
+  tChartMappingAnchoringGraph::tEdgeProp::tType t = (arg->get_trait()
+      == tChartMappingRuleArg::OUTPUT_ARG) ? tEdgeProp::OUTPUT
+      : tEdgeProp::MATCHING;
+  accomodate_edge(v1, v2, 1, 1, t);
+  
+  // matching arguments are connected to the chart start and end
+  if (t == tEdgeProp::MATCHING) {
+    accomodate_edge(_vs, v1, 0, INT_MAX);
+    accomodate_edge(v2, _ve, 0, INT_MAX);
+  }
+}
+
+tChartMappingAnchoringGraph::tVertex
+tChartMappingAnchoringGraph::add_vertex(std::string a) {
+  assert(_vertices.find(a) == _vertices.end());
+  tVertex v = boost::add_vertex(_graph);
+  _vertices[a] = v;
+  _anchors[v].push_back(a);
+  return v;
+}
+
+void
+tChartMappingAnchoringGraph::merge_vertices(std::string a1, std::string a2) {
+  assert(_vertices.find(a1) != _vertices.end());
+  assert(_vertices.find(a2) != _vertices.end());
+  tVertex v1 = _vertices[a1];
+  tVertex v2 = _vertices[a2];
+  merge_vertices(v1, v2);
+}
+  
+void
+tChartMappingAnchoringGraph::merge_vertices(tVertex v1, tVertex v2) {
+  assert(v1 != v2);
+  
+  // delete all edges between v1 and v2 or vice versa
+  {
+    tOutEdgeIt ei, ei_end, ei_next;
+    for (int i = 0; i < 2; i++) {
+      boost::tie(ei, ei_end) = boost::edge_range(v1, v2, _graph);
+      for (ei_next = ei; ei != ei_end; ei = ei_next) {
+        ++ei_next; // remains stable if graph is altered
+        tEdge edge = *ei;
+        if (_graph[edge].min == 0) {
+          boost::remove_edge(edge, _graph);
+        } else {
+          throw tError("Cannot merge vertices " + get_anchors_string(v1) + 
+              " and " + get_anchors_string(v2) + " since a path of minimal "
+              "length " + boost::lexical_cast<string>(_graph[edge].min) +
+              " is required here.");
+        }
+      }
+      std::swap(v1, v2);
+    }
+  }
+  
+  // bend all in-edges of v2 such that they end in v1:
+  // We need to store the next iterator since deleting the item of the
+  // current iterator invalidates the iterator itself.
+  {
+    tInEdgeIt ei, ei_end, ei_next;
+    boost::tie(ei, ei_end) = boost::in_edges(v2, _graph);
+    for (ei_next = ei; ei != ei_end; ei = ei_next) {
+      ++ei_next; // remains stable if graph is altered
+      tEdge edge = *ei;
+      tVertex v0 = boost::source(edge, _graph);
+      int min = _graph[edge].min;
+      int max = _graph[edge].max;
+      tEdgeProp::tType type = _graph[edge].type;
+      boost::remove_edge(edge, _graph);
+      accomodate_edge(v0, v1, min, max, type);
+    }
+  }
+  
+  // bend all out-edges of v2 such that they start in v1:
+  // We need to store the next iterator since deleting the item of the
+  // current iterator invalidates the iterator itself.
+  {
+    tOutEdgeIt ei, ei_end, ei_next;
+    boost::tie(ei, ei_end) = boost::out_edges(v2, _graph);
+    for (ei_next = ei; ei != ei_end; ei = ei_next) {
+      ++ei_next; // remains stable if graph is altered
+      tEdge edge = *ei;
+      tVertex v3 = boost::target(edge, _graph);
+      int min = _graph[edge].min;
+      int max = _graph[edge].max;
+      tEdgeProp::tType type = _graph[edge].type;
+      boost::remove_edge(edge, _graph);
+      accomodate_edge(v1, v3, min, max, type);
+    }
+  }
+  
+  // adapt _vertices and _anchors:
+  for (tStringsIt it = _anchors[v2].begin(); it != _anchors[v2].end(); it++) {
+    _vertices[*it] = v1;
+    _anchors[v1].push_back(*it);
+  }
+  _anchors.erase(v2);
+  
+  boost::remove_vertex(v2, _graph);
+}
+  
+void
+tChartMappingAnchoringGraph::accomodate_edge(std::string a1, std::string a2,
+    int min, int max, tEdgeProp::tType t) {
+  if (_vertices.find(a1) == _vertices.end())
+      throw tError("Anchor `" + a1 + "' unknown.");
+  if (_vertices.find(a2) == _vertices.end())
+    throw tError("Anchor `" + a2 + "' unknown.");
+  tVertex v1 = _vertices[a1];
+  tVertex v2 = _vertices[a2];
+  accomodate_edge(v1, v2, min, max, t);
+}
+  
+void
+tChartMappingAnchoringGraph::accomodate_edge(tVertex v1, tVertex v2,
+    int min, int max, tEdgeProp::tType t) {
+  
+  assert(v1 != v2);
+  
+  // try to find an edge to restrict:
+  if ((t == tEdgeProp::PATH) || (t == tEdgeProp::TENTATIVE)) {
+    tOutEdgeIt ei, ei_end, ei_next;
+    boost::tie(ei, ei_end) = boost::edge_range(v1, v2, _graph);
+    for (ei_next = ei; ei != ei_end; ei = ei_next) {
+      ++ei_next; // remains stable if graph is altered
+      tEdge e = *ei;
+      if (t == tEdgeProp::PATH) {
+        int new_min = std::max(min, _graph[e].min);
+        int new_max = std::min(max, _graph[e].max);
+        if (new_min <= new_max) {
+          _graph[e].min = new_min;
+          _graph[e].max = new_max;
+          return;
+        }
+      } else if (_graph[e].type == tEdgeProp::TENTATIVE) { // == t
+        return;
+      }
+    }
+  }
+  
+  // add new edge (unless an edge was restricted before):
+  boost::add_edge(v1, v2, tEdgeProp(min, max, t), _graph);
+}
+  
+void
+tChartMappingAnchoringGraph::index() {
+  boost::property_map<tGraph, boost::vertex_index_t>::type
+      index_map = boost::get(boost::vertex_index, _graph);
+  int max_vertex_index = 0;
+  tVertexIt vi, vi_end;
+  for (boost::tie(vi, vi_end) = boost::vertices(_graph); vi != vi_end; vi++)
+    boost::put(index_map, *vi, max_vertex_index++);
+}
+  
+void
+tChartMappingAnchoringGraph::realize_tentative_edges(tVertices &v_order) {
+  // TODO detect that "O1@I1,O1@I2" is not allowed
+  
+  // iterate over all arguments:
+  for (tStringsIt it = _arg_names.begin(); it != _arg_names.end(); it++) {
+    tVertex v[2];
+    v[0] = _vertices[*it + ":s"];
+    v[1] = _vertices[*it + ":e"];
+    
+    // realize tentative edges of v1 and v2:
+    for (int i = 0; i < 2; i++) {
+      tVertex outer_v = boost::graph_traits<tGraph>::null_vertex();
+      tInEdgeIt ei, ei_end, ei_next;
+      boost::tie(ei, ei_end) = boost::in_edges(v[i], _graph);
+      for (ei_next = ei; ei != ei_end; ei = ei_next) {
+        ++ei_next; // remains stable if graph is altered
+        tEdge e = *ei;
+        if (_graph[e].type == tEdgeProp::TENTATIVE) { // tentative edge
+          tVertex v0 = boost::source(e, _graph);
+          tVerticesIt vo_it, vo_end;
+          if (i == 0) { // v[i] is start node of argument
+            vo_it = v_order.end() - 1;
+            vo_end = v_order.begin() - 1;
+          } else { // v[i] is end node of argument
+            vo_it = v_order.begin();
+            vo_end = v_order.end();
+          }
+          for ( ; vo_it != vo_end; std::advance(vo_it, i*2 - 1)) {
+            if ((*vo_it == outer_v) || (*vo_it == v0)) {
+              outer_v = *vo_it;
+              break;
+            }
+          }
+          boost::remove_edge(e, _graph);
+        }
+      }
+      if (outer_v != boost::graph_traits<tGraph>::null_vertex()) {
+        merge_vertices(outer_v, v[i]);
+        v_order.erase(std::find(v_order.begin(), v_order.end(), v[i]));
+      }
+    }
+  }
+}
+
+void
+tChartMappingAnchoringGraph::transitive_closure(tVertices &v_order) {
+  // The only (min,max)-constraints that are specified in the rules are
+  // (0,0) and (0,*)-constraints; the rest are (1,1)-contraints for the items
+  // to be matched and (min,max)-constraints computed by transitive closure
+  // by an "upwards"-propagation of (min,max)-constraints. It is in particular
+  // not allowed (yet?) to posit arbitrary (min,max)-constraints between
+  // arbitrary arguments. This would require a propagation of
+  // (min,max)-constraints "downwards".
+  
+  tVerticesRevIt v1_it, v2_it;
+  for (v1_it = v_order.rbegin(); v1_it != v_order.rend(); v1_it++) {
+    for (v2_it = v1_it + 1; v2_it != v_order.rend(); v2_it++) {
+      tVertex v1 = *v1_it;
+      tVertex v2 = *v2_it;
+      
+      // accomodate edge (v1, v2) if there is an edge (v1, v) and (v, v2)
+      tInEdgeIt e2i, e2i_end;
+      boost::tie(e2i, e2i_end) = boost::in_edges(v2, _graph);
+      for ( ; e2i != e2i_end; e2i++) {
+        tEdge e2 = *e2i;
+        if (_graph[e2].type == tEdgeProp::OUTPUT)
+          continue;
+        tVertex v = boost::source(e2, _graph);
+        
+        // it seems that the end iterator returned by edge_range is
+        // invalidated once the edge set of the graph is changed. therefore
+        // storing the edges to be accomodated in the graph temporarily
+        typedef boost::tuple<tVertex, tVertex, int, int> tStoredEdge;
+        typedef std::vector<tStoredEdge> tStoredEdges;
+        tStoredEdges s;
+        
+        tOutEdgeIt e1i, e1i_end;
+        boost::tie(e1i, e1i_end) = boost::edge_range(v1, v, _graph);
+        for ( ; e1i != e1i_end; e1i++) {
+          tEdge e1 = *e1i;
+          if (_graph[e1].type == tEdgeProp::OUTPUT)
+            continue;
+          int min = _graph[e1].min + _graph[e2].min;
+          int max = ((_graph[e1].max==INT_MAX)||(_graph[e2].max==INT_MAX)) ?
+              INT_MAX : _graph[e1].max + _graph[e2].max;
+          s.push_back(tStoredEdge(v1, v2, min, max));
+        }
+        
+        // accomodate the stored edges (since adding them in the loop before
+        // would invalidate e1i_end
+        for (tStoredEdges::iterator i = s.begin(); i != s.end(); i++) {
+          tStoredEdge se = *i;
+          accomodate_edge(se.get<0>(), se.get<1>(), se.get<2>(), se.get<3>());
+        }
+      }
+    }
+  }
+}
+
+/**
+ * A visitor class for counting the number of components of a graph and
+ * checking whether it is acyclic.
+ */
+struct tGraphChecker: public boost::dfs_visitor<>
+{
+  tGraphChecker(bool &has_cycle, int &component_count)
+  : _has_cycle(has_cycle), _component_count(component_count) {
+    assert(_has_cycle == false);
+    assert(_component_count == 0);
+  }
+  
+  template<class Vertex, class Graph>
+  void start_vertex(Vertex, Graph&) {
+    _component_count++;
+  }
+  
+  template <class Edge, class Graph>
+  void back_edge(Edge, Graph&) {
+    _has_cycle = true;
+  }
+  
+protected:
+  bool &_has_cycle;
+  int &_component_count;
+};
+
+bool
+tChartMappingAnchoringGraph::check_consistency() {
+  index();
+  bool has_cycle = false;
+  int nr_components = 0;
+  class tGraphChecker checker(has_cycle, nr_components);
+  boost::depth_first_search(_graph, boost::visitor(checker));
+  if (has_cycle)
+    throw tError("Contradicting requirements.");
+  if (nr_components != 1)
+    throw tError("Some arguments are not anchored.");
+  return true;
+}
+
+void
+tChartMappingAnchoringGraph::finalize() {
+  index();
+  tVertices v_order; // edge (u,v) in the graph --> v before u
+  try {
+    boost::topological_sort(_graph, std::back_inserter(v_order));
+  } catch (boost::not_a_dag e) {
+    throw tError("Contradicting requirements.");
+  }
+  realize_tentative_edges(v_order);
+  transitive_closure(v_order);
+  check_consistency();
+}
+
+const tChartMappingAnchoringGraph::tVertex
+tChartMappingAnchoringGraph::get_vertex(std::string anchor) const {
+  return _vertices.find(anchor)->second;
+}
+
+void
+tChartMappingAnchoringGraph::print() const {
+  cerr << "nodes:" << endl;
+  tVertexIt vi, vend;
+  for (boost::tie(vi, vend) = boost::vertices(_graph); vi != vend; ++vi)
+    cerr << get_anchors_string(*vi) << endl;
+  
+  cerr << endl;
+  
+  cerr << "edges:" << endl;
+  tEdgeIt ei, ei_end;
+  for (boost::tie(ei, ei_end) = boost::edges(_graph); ei != ei_end; ++ei) {
+    tEdge edge = *ei;
+    string src_anchors = get_anchors_string(boost::source(edge, _graph));
+    string tgt_anchors = get_anchors_string(boost::target(edge, _graph));
+    string type;
+    switch (_graph[edge].type) {
+      case tEdgeProp::MATCHING:
+        type = "matching"; break;
+      case tEdgeProp::OUTPUT:
+        type = "output"; break;
+      case tEdgeProp::PATH:
+        type = "path"; break;
+      case tEdgeProp::TENTATIVE:
+        type = "tentative"; break;
+    }
+    cerr << boost::format("(%s, %s, %d, %d, %s)") % src_anchors % tgt_anchors
+        % _graph[edge].min % _graph[edge].max
+        % type
+        << endl;
+  }
+}
+
+std::string
+tChartMappingAnchoringGraph::get_anchors_string(tVertex v) const {
+  string result = "(";
+  tVertexStringsMap::const_iterator it1 = _anchors.find(v);
+  if (it1 != _anchors.end()) {
+    const tStrings &anchors = it1->second;
+    tStrings::const_iterator it2;
+    for (it2 = anchors.begin(); it2 != anchors.end(); it2++) {
+      result.append(*it2);
+      if (*it2 != anchors.back())
+        result.append(",");
+    }
+  }
+  result.append(")");
+  return result;
 }
 
 
@@ -372,8 +682,7 @@ modify_arg_fs(fs arg_fs, tPathRegexMap &regexs)
   // BI_STRING to allow for unification with any string literal:
   std::list<list_int*> regex_paths = arg_fs.find_paths(BI_STRING);
   std::list<list_int*>::iterator it;
-  for (it = regex_paths.begin(); it != regex_paths.end(); it++)
-  {
+  for (it = regex_paths.begin(); it != regex_paths.end(); it++) {
     list_int *regex_path = *it;
     string arg_val = get_typename(arg_fs.get_path_value(regex_path).type());
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
@@ -391,8 +700,7 @@ modify_arg_fs(fs arg_fs, tPathRegexMap &regexs)
     string::iterator begin = arg_val.begin();
     string::iterator end = arg_val.end();
     if ((*(begin++) == '"') && (*(begin++) == '/') &&
-        (*(--end)   == '"') && (*(--end)   == '/'))
-    {
+        (*(--end)   == '"') && (*(--end)   == '/')) {
       arg_val.assign(begin, end); // use the regex string only
       regexs[regex_path] = boost::regex(arg_val);
       arg_fs.get_path_value(regex_path).set_type(BI_STRING);
@@ -403,114 +711,244 @@ modify_arg_fs(fs arg_fs, tPathRegexMap &regexs)
   }
 }
 
-tChartMappingRule::tChartMappingRule(type_t type,
-    tChartMappingRuleTrait trait)
-: _type(type), _trait(trait), _same_cell_output(false)
-{
+tChartMappingRule::tChartMappingRule(type_t type, Trait trait)
+: _type(type), _trait(trait) {
   // get the feature structure representation of this rule. this must
   // be a deep copy of the type's feature structure since we need to
   // modify this structure:
   _fs = copy(fs(_type));
 
-  // get arguments (context and input items of this rule):
-  list<fs> cons = _fs.get_path_value(tChartUtil::context_path()).get_list();
-  list<fs> inps = _fs.get_path_value(tChartUtil::input_path()).get_list();
-
   // create argument representations for this rule:
-  try {
+  typedef boost::tuple<const list_int*,tChartMappingRuleArg::Trait,string> tSig;
+  list<tSig> sigs;
+  sigs.push_back(tSig(tChartUtil::context_path(),
+      tChartMappingRuleArg::CONTEXT_ARG, "C"));
+  sigs.push_back(tSig(tChartUtil::input_path(),
+      tChartMappingRuleArg::INPUT_ARG, "I"));
+  sigs.push_back(tSig(tChartUtil::output_path(),
+      tChartMappingRuleArg::OUTPUT_ARG, "O"));
+  for (list<tSig>::iterator it = sigs.begin(); it != sigs.end(); it++) {
+    list<fs> arg_fss = _fs.get_path_value((*it).get<0>()).get_list();
+    tChartMappingRuleArg::Trait trait = (*it).get<1>();
+    string prefix = (*it).get<2>();
     int i;
-    std::list<fs>::iterator arg_it;
-    for (arg_it = cons.begin(), i = 1; arg_it != cons.end(); arg_it++, i++)
-    {
-      tPathRegexMap regexs;
-      modify_arg_fs(*arg_it, regexs);
-      string name = "C" + lexical_cast<std::string>(i);
-      _args.push_back(tChartMappingRuleArg::create(name, false, i, regexs));
+    std::list<fs>::iterator fs_it;
+    for (fs_it = arg_fss.begin(), i = 1; fs_it != arg_fss.end(); fs_it++, i++) {
+      try {
+        tPathRegexMap regexs;
+        modify_arg_fs(*fs_it, regexs);
+        string name = prefix + lexical_cast<std::string> (i);
+        tChartMappingRuleArg *arg = tChartMappingRuleArg::create(name, trait,
+            i, regexs);
+        _args.push_back(arg);
+        if (trait == tChartMappingRuleArg::OUTPUT_ARG)
+          _output_args.push_back(arg);
+        else
+          _matching_args.push_back(arg);
+      } catch (boost::regex_error e) {
+        throw tError("Could not compile regex for rule " + get_typename(type)
+            + ".");
+      }
     }
-    for (arg_it = inps.begin(), i = 1; arg_it != inps.end(); arg_it++, i++)
-    {
-      tPathRegexMap regexs;
-      modify_arg_fs(*arg_it, regexs);
-      string name = "I" + lexical_cast<std::string>(i);
-      _args.push_back(tChartMappingRuleArg::create(name, true, i, regexs));
-    }
-  } catch (boost::regex_error e) {
-    throw tError("Could not compile regex for rule "+get_typename(type)+".");
   }
-
-  // evaluate positional constraints:
-  std::vector<tChartMappingRuleArg*> ro_args; // reordered arguments
+  
+  // parse positional constraints specification:
+  string poscons_s;
   fs poscons_fs = _fs.get_path_value(tChartUtil::poscons_path());
   if (poscons_fs.type() != BI_STRING) // there are positional constraints
-  {
-    string poscons_s = poscons_fs.printname();
-    boost::regex re;
-    // strip whitespace where it is allowed to appear:
-    re = "[ \t\r\n]*(([CIO][0-9]+|<|<<|=|,)*)";
-    poscons_s = boost::regex_replace(poscons_s, re, "$1");
-    // check format:
-    re ="(([CIO][0-9]+)((<|<<|=)[CIO][0-9]+)*)?"
-        "(,([CIO][0-9]+)((<|<<|=)[CIO][0-9]+)*)*";
-    if (!boost::regex_match(poscons_s, re)) {
-      throw tError("ill-formed positional constraints for chart mapping rule "
-          + get_typename(type));
-    }
-    // evaluate current constraint (consuming poscons_s):
-    boost::smatch m;
-    re = "([CIO][0-9]+)((<|<<|=)([CIO][0-9]+))?(,?)(.*)";
-    while (boost::regex_match(poscons_s, m, re)) {
-      string ri1_name = m[1].str();
-      string ri2_name = m[4].str();
-      string rel_name = m[3].str();
-      // store extracted constraint:
-      tChartMappingRuleArg *arg1 = arg(ri1_name);
-      tChartMappingRuleArg *arg2 = arg(ri2_name);
-      if (arg1 && arg2) { // arguments referred to are not required to exist
-        tChartMappingPosCons cons;
-        cons.arg = arg1;
-        if (rel_name == "=")
-          cons.rel = tChartMappingPosCons::same_cell;
-        else if (rel_name == "<")
-          cons.rel = tChartMappingPosCons::succeeding;
-        else if (rel_name == "<<")
-          cons.rel =  tChartMappingPosCons::all_succeeding;
-        else // prevent compiler warning
-          throw tError("Unknown positional relation.");
-        arg2->_poscons.push_back(cons);
-      } else if ((ri1_name[0] == 'O') && (ri2_name[0] == 'O') && (rel_name[0] == '=')) { // TODO evaluate this properly
-        _same_cell_output = true;
-      }
-      if (arg1 && (find(ro_args.begin(), ro_args.end(), arg1) == ro_args.end()))
-        ro_args.push_back(arg1);
-      if (arg2 && (find(ro_args.begin(), ro_args.end(), arg2) == ro_args.end()))
-        ro_args.push_back(arg2);
-      // consume current poscons, reusing 3rd match if sth but a comma follows:
-      poscons_s = (((m[5].length()==0) && (m[6].length()>0)) ? m[4].str() : "")
-          + m[6].str();
-    }
-  }
-
-  // ro_args now contains all args referred to in the positional constraints.
-  // add all missing args, and set args to the reordered args:
-  vector<tChartMappingRuleArg*>::iterator it;
-  for (it = _args.begin(); it != _args.end(); it++)
-    if (find(ro_args.begin(), ro_args.end(), *it) == ro_args.end())
-      ro_args.push_back(*it);
-  _args = ro_args;
-
-  // TODO assert that INPUT items are contiguous
+    poscons_s = poscons_fs.printname();
+  evaluate_poscons(poscons_s);
 }
 
-tChartMappingRuleArg*
-tChartMappingRule::arg(std::string name)
+tChartMappingRule*
+tChartMappingRule::create(type_t type, tChartMappingRule::Trait trait)
 {
-  typedef std::vector<tChartMappingRuleArg*>::iterator tArgIter;
+  try {
+    return new tChartMappingRule(type, trait);
+  } catch (tError error) {
+    cerr << error.getMessage() << endl;
+  }
+  return 0;
+}
+
+type_t
+tChartMappingRule::get_type() const
+{
+  return _type;
+}
+
+tChartMappingRule::Trait
+tChartMappingRule::get_trait() const
+{
+  return _trait;
+}
+
+const char*
+tChartMappingRule::get_printname() const
+{
+  return print_name(_type);
+}
+
+fs
+tChartMappingRule::instantiate() const
+{
+  return copy(_fs);
+}
+
+const tChartMappingRuleArg*
+tChartMappingRule::get_arg(std::string name) const
+{
+  typedef std::vector<const tChartMappingRuleArg*>::const_iterator tArgIter;
   for (tArgIter it = _args.begin(); it != _args.end(); it++) {
-    if ((*it)->name() == name)
+    if ((*it)->get_name() == name)
       return *it;
   }
   return 0;
 }
+
+const std::vector<const tChartMappingRuleArg*> &
+tChartMappingRule::get_args() const
+{
+  return _args;
+}
+
+const std::vector<const tChartMappingRuleArg*>
+tChartMappingRule::get_args(tChartMappingRuleArg::Trait trait) const
+{
+  std::vector<const tChartMappingRuleArg*> args;
+  std::vector<const tChartMappingRuleArg*>::const_iterator arg_it;
+  for (arg_it = _args.begin(); arg_it != _args.end(); arg_it++) {
+    if ((*arg_it)->get_trait() == trait)
+      args.push_back(*arg_it);
+  }
+  return args;
+}
+
+const std::vector<const tChartMappingRuleArg*> &
+tChartMappingRule::get_matching_args() const
+{
+  return _matching_args;
+}
+
+const std::vector<const tChartMappingRuleArg*> &
+tChartMappingRule::get_output_args() const
+{
+  return _output_args;
+}
+
+const tChartMappingAnchoringGraph &
+tChartMappingRule::get_anchoring_graph() const {
+  return _anch_graph;
+}
+
+void
+tChartMappingRule::evaluate_poscons(string poscons_s) {
+  // type for positional constraints:
+  // <arg1, arg2, min_distance, max_distance, parallels, original spec>
+  typedef boost::tuple<string, string, int, int, bool, string> tPosConstraint;
+  typedef std::list<tPosConstraint> tPosConstraints;
+  tPosConstraints poscons;
+  
+  // parse positional constraints specification (consuming poscons_s):
+  poscons_s.append(",");
+  boost::smatch m;
+  boost::regex re("[ \t\r\n]*"   // optional white space
+      "(?:"                      // begin optional term chain
+      "(\\^|\\$|[CIO][0-9]+)"    // arg1_name ($1)
+      "[ \t\r\n]*"               // optional white space
+      "(?:"                      // begin optional rel_name arg2_name 
+      "(<|<<|>|>>|@)"            // rel_name ($2)
+      "[ \t\r\n]*"               // optional white space
+      "(\\^|\\$|[CIO][0-9]+)"    // arg2_name ($3)
+      "[ \t\r\n]*"               // optional white space
+      "([^,]*)"                  // optional term chain tail ($4)
+      ")?"                       // end optional rel_name arg2_name
+      ")?"                       // end optional arg1_name rel_name arg2_name
+      ","                        // comma is required
+      "[ \t\r\n]*"               // optional white space
+      "(.*)");                   // optional rest ($5)
+  while (boost::regex_match(poscons_s, m, re)) {
+    string a1 = m[1].str();
+    string a2 = m[3].str();
+    string rel = m[2].str();
+    string tail = m[4].str();
+    string rest = m[5].str();
+    string spec = a1+rel+a2;
+    if (!a1.empty() && !get_arg(a1) && (a1 != "^") && (a1 != "$")) {
+      throw tError("Unknown argument `" + a1 + "' in positional constraints"
+          " of chart mapping rule `" + get_printname() + "'.");
+    }
+    if (!a2.empty() && !get_arg(a2) && (a2 != "^") && (a2 != "$")) {
+      throw tError("Unknown argument `" + a2 + "' in positional constraints"
+          " of chart mapping rule `" + get_printname() + "'.");
+    }
+    if (!a1.empty() && !a2.empty()) {
+      if (rel == "@") {
+        poscons.push_back(tPosConstraint(a1, a2, 0, 0, true, spec));
+      } else if (rel == "<") {
+        poscons.push_back(tPosConstraint(a1, a2, 0, 0, false, spec));
+      } else if (rel == ">") {
+        poscons.push_back(tPosConstraint(a2, a1, 0, 0, false, spec));
+      } else if (rel == "<<") {
+        poscons.push_back(tPosConstraint(a1, a2, 0, INT_MAX, false, spec));
+      } else if (rel == ">>") {
+        poscons.push_back(tPosConstraint(a2, a1, 0, INT_MAX, false, spec));
+      }
+    }
+    // consume current constraint:
+    poscons_s = (tail.empty() ? "" : a2 + tail + ",") + rest;
+  }
+  if (!poscons_s.empty()) {
+    poscons_s.erase(poscons_s.find(","));
+    throw tError("Ill-formed positional constraints for chart mapping rule `"
+        + std::string(get_printname()) + "': " + poscons_s);
+  }
+  
+  // initialize anchoring graph by adding all arguments:
+  tRuleArgs::iterator ra_it;
+  for (ra_it = _args.begin(); ra_it != _args.end(); ra_it++)
+    _anch_graph.add_arg(*ra_it);
+  
+  // add positional constraints to anchoring graph
+  string spec;
+  try {
+    while (!poscons.empty()) {
+      tPosConstraint constraint = poscons.front();
+      poscons.pop_front();
+      string a1 = constraint.get<0>();
+      string a2 = constraint.get<1>();
+      int min = constraint.get<2>();
+      int max = constraint.get<3>();
+      bool parallels = constraint.get<4>();
+      spec = constraint.get<5>();
+      assert((min >= 0) && (max >= 0));
+      if (max > 0) {                  // => succeeds-relation
+        _anch_graph.accomodate_edge(a1 + (a1.size() > 1 ? ":e" : ""),
+            a2 + (a2.size() > 1 ? ":s" : ""), min, max);
+      } else if (!parallels) {        // => vertex identity
+        _anch_graph.merge_vertices(a1 + (a1.size() > 1 ? ":e" : ""),
+            a2 + (a2.size() > 1 ? ":s" : ""));
+      } else {                        // => parallels-relation (min==max==0)
+        if ((a1.size() == 1) || (a2.size() == 1))
+          throw tError("Cannot anchor `^' and `$' with parallels-relation.");
+        _anch_graph.accomodate_edge(a2 + ":s", a1 + ":s", 0, 0,
+            tChartMappingAnchoringGraph::tEdgeProp::TENTATIVE);
+        _anch_graph.accomodate_edge(a2 + ":e", a1 + ":e", 0, 0,
+            tChartMappingAnchoringGraph::tEdgeProp::TENTATIVE);
+      }
+    }
+    spec = "";
+    _anch_graph.finalize();
+  } catch (tError e) {
+    ostringstream os;
+    os << boost::format("Error in chart mapping rule `%s'%s: %s")
+                        % get_printname()
+                        % (spec.empty() ? "" : (":" + spec))
+                        % e.getMessage();
+    throw tError(os.str());
+  }
+}
+
 
 
 
@@ -518,37 +956,197 @@ tChartMappingRule::arg(std::string name)
 // class tChartMappingMatch
 // =====================================================
 
-/**
- * Tries to match the specified item \a item with the argument \a arg.
- * Returns \c 0 if such a match is not possible.
- * This function uses a regex-enabled unification. Matched (sub-)strings
- * are added to the \a captures map, using "${" + \a get_next_arg().name() +
- * ":" + the path whose value has been matched + ":" + the number of the
- * matched substring + "}" as the key. For example, if the argument's name
- * is "I2" and contains a regular expression "/(bar)rks/" in path "FORM",
- * then the matched substring "bar" is stored under key "${I2:FORM:1}".
- */
-tChartMappingMatch*
-tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg)
+tChartMappingMatch::tChartMappingMatch(const tChartMappingRule *rule,
+    const tChartMappingMatch *previous,
+    const fs &f,
+    const tArgItemMap &arg_item_map,
+    const std::map<std::string, std::string> &captures,
+    const tAnchoringToChartVertexMap &vertex_binding,
+    unsigned int next_arg_idx)
+: _rule(rule),
+  _anch_graph(rule->get_anchoring_graph()),
+  _previous(previous),
+  _fs(f),
+  _arg_item_map(arg_item_map),
+  _captures(captures),
+  _vertex_binding(vertex_binding),
+  _next_arg_idx(next_arg_idx)
 {
+  // done
+}
+
+tChartMappingMatch*
+tChartMappingMatch::create(const tChartMappingRule *rule, const tChart &chart) {
+  tAnchoringToChartVertexMap vertex_binding;
+  const tChartMappingAnchoringGraph &anch_graph = rule->get_anchoring_graph();
+  vertex_binding[anch_graph.get_vertex("^")] = chart.start_vertices().front();
+  vertex_binding[anch_graph.get_vertex("$")] = chart.end_vertices().front();
+  return new tChartMappingMatch(rule, 0, rule->instantiate(), tArgItemMap(),
+      std::map<std::string, std::string>(), vertex_binding, 0);
+}
+
+tChartMappingMatch*
+tChartMappingMatch::create(const fs &f,
+    const tArgItemMap &arg_item_map,
+    const std::map<std::string, std::string> &captures,
+    const tAnchoringToChartVertexMap &vertex_binding,
+    unsigned int next_arg_idx) {
+  return new tChartMappingMatch(_rule, this, f, arg_item_map, captures,
+      vertex_binding, next_arg_idx);
+}
+
+bool
+tChartMappingMatch::is_complete() const {
+  return (_next_arg_idx == _rule->get_matching_args().size());
+}
+
+const tChartMappingRule*
+tChartMappingMatch::get_rule() const {
+  return _rule; 
+}
+
+fs
+tChartMappingMatch::get_fs() {
+  return _fs;
+}
+
+fs
+tChartMappingMatch::get_arg_fs(const tChartMappingRuleArg *arg) {
+  const list_int *path;
+  switch (arg->get_trait()) {
+    case tChartMappingRuleArg::CONTEXT_ARG:
+      path = tChartUtil::context_path();
+      break;
+    case tChartMappingRuleArg::INPUT_ARG:
+      path = tChartUtil::input_path();
+      break;
+    case tChartMappingRuleArg::OUTPUT_ARG:
+      path = tChartUtil::output_path();
+      break;
+  }  
+  return _fs.nth_value(path, arg->get_nr());
+}
+
+
+const tChartMappingRuleArg*
+tChartMappingMatch::get_next_matching_arg() const {
+  return is_complete() ? 0 : _rule->get_matching_args()[_next_arg_idx];
+}
+
+tItem*
+tChartMappingMatch::get_item(const tChartMappingRuleArg* arg) {
+  tItem *item = 0;
+  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous) {
+    item = curr->_arg_item_map.find(arg)->second;
+    if (item)
+      break;
+  }
+  return item;
+}
+
+item_list
+tChartMappingMatch::get_items() {
+  item_list items;
+  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous) {
+    for (tArgItemMap::const_iterator it = curr->_arg_item_map.begin();
+        it != curr->_arg_item_map.end(); it++) {
+      items.push_back(it->second);
+    }
+  }
+  return items;
+}
+
+item_list
+tChartMappingMatch::get_items(tChartMappingRuleArg::Trait trait) {
+  item_list items;
+  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous) {
+    for (tArgItemMap::const_iterator it = curr->_arg_item_map.begin();
+        it != curr->_arg_item_map.end(); it++) {
+      if ((*it).first->get_trait() == trait)
+        items.push_back(it->second);
+    }
+  }
+  return items;
+}
+
+item_list
+tChartMappingMatch::get_suitable_items(tChart &chart,
+    const tChartMappingRuleArg *arg) {
+  
+  assert(arg != 0);
+  
+  // matched items shall not be matched twice:
+  item_list skip = get_items();
+  
+  // start and end anchoring graph vertices and corresponding chart vertices: 
+  tChartMappingAnchoringGraph::tVertex av_arg_s, av_arg_e, av_next;
+  tChartVertex *cv_arg_s, *cv_arg_e, *cv_next;
+  av_arg_s = _anch_graph.get_vertex(arg->get_start_anchor());
+  av_arg_e = _anch_graph.get_vertex(arg->get_end_anchor());
+  cv_arg_s = _vertex_binding[av_arg_s]; // sets 0 if not found
+  cv_arg_e = _vertex_binding[av_arg_e]; // sets 0 if not found
+  
+  // TODO make this much more efficient!!! (intersecting item lists is not good)
+  item_list items = chart.items(cv_arg_s, cv_arg_e, true, true, skip);
+  if (!cv_arg_s) {
+    tChartMappingAnchoringGraph::tInEdgeIt in_it, in_it_end;
+    boost::tie(in_it, in_it_end) = boost::in_edges(av_arg_s, _anch_graph._graph);
+    for (; (in_it != in_it_end) && !items.empty(); in_it++) {
+      tChartMappingAnchoringGraph::tEdge edge = *in_it;
+      if (_anch_graph._graph[edge].type
+          != tChartMappingAnchoringGraph::tEdgeProp::OUTPUT) {
+        av_next = boost::source(edge,_anch_graph._graph);
+        cv_next = _vertex_binding[av_next];
+        if (cv_next) { // there is an edge to a bound vertex
+          int min = _anch_graph._graph[edge].min;
+          int max = _anch_graph._graph[edge].max;
+          item_list restr = chart.succeeding_items(cv_next, min, max);
+          items.remove_if(not_contained_in_list(restr));
+        }
+      }
+    }
+  }
+  if (!cv_arg_e) {
+    tChartMappingAnchoringGraph::tOutEdgeIt out_it, out_it_end;
+    boost::tie(out_it, out_it_end) = boost::out_edges(av_arg_e, _anch_graph._graph);
+    for (; (out_it != out_it_end) && !items.empty(); out_it++) {
+      tChartMappingAnchoringGraph::tEdge edge = *out_it;
+      if (_anch_graph._graph[edge].type
+          != tChartMappingAnchoringGraph::tEdgeProp::OUTPUT) {
+        av_next = boost::target(edge,_anch_graph._graph);
+        cv_next = _vertex_binding[av_next];
+        if (cv_next) { // there is an edge to a bound vertex
+          int min = _anch_graph._graph[edge].min;
+          int max = _anch_graph._graph[edge].max;
+          item_list restr = chart.preceding_items(cv_next, min, max);
+          items.remove_if(not_contained_in_list(restr));
+        }
+      }
+    }
+  }
+  
+  return items;
+}
+
+tChartMappingMatch*
+tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg) {
   assert(!is_complete());
 
   fs root_fs = get_fs();
   fs arg_fs = get_arg_fs(arg);
   fs item_fs = item->get_fs();
-
+  
   // 1. try to unify argument with item (ignoring regexs for now):
   fs result_fs = unify(root_fs, arg_fs, item_fs);
   if (!result_fs.valid())
     return 0;
-
+  
   // 2. check for each regex path whether it matches in item:
-  const tPathRegexMap &regexs = arg->regexs();
-  std::map<std::string, std::string> captures;
+  const tPathRegexMap &regexs = arg->get_regexs();
+  std::map<std::string, std::string> captures(_captures);
   for (tPathRegexMap::const_iterator it = regexs.begin();
        it != regexs.end();
-       it++)
-  {
+       it++) {
     // get string:
     list_int *regex_path = it->first;
     fs value_fs = item_fs.get_path_value(regex_path);
@@ -556,7 +1154,7 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg)
       return 0;
     type_t t = value_fs.type();
     string str = get_printname(t);
-
+    
     // get regex and match string with regex (if any):
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
     boost::u32regex regex = it->second;
@@ -570,7 +1168,7 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg)
     if ((t == BI_STRING) || !boost::regex_match(str, regex_matches, regex))
       return 0;
 #endif
-
+    
     // get string representation of regex_path:
     std::string str_path;
     while (regex_path) {
@@ -579,11 +1177,11 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg)
       if (regex_path)
         str_path += ".";
     }
-
-    // store matched strings:
+    
+    // store new regex captures:
     for (unsigned int i = 1; i < regex_matches.size(); i++) {
       // store vanilla string:
-      string capture_name = arg->name() + ":" + str_path + ":" +
+      string capture_name = arg->get_name() + ":" + str_path + ":" +
         boost::lexical_cast<std::string>(i);
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
       string att = Conv->convert(Conv->convert("${"+capture_name+"}"));
@@ -615,56 +1213,145 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg)
 #else
       string rex_str = regex.str();
 #endif
-      fprintf(stderr, "[cm] regex_match(/%s/, \"%s\")\n",
-          rex_str.c_str(), str.c_str());
+      cerr << format("[cm] regex_match(/%s/, \"%s\")\n") % rex_str % str;
     }
   }
-
-  return create(result_fs, item, arg, captures, _next_arg_idx + 1);
+  
+  // add current arg/item-binding:
+  tArgItemMap arg_item_map(_arg_item_map);
+  arg_item_map[arg] = item;
+  
+  // add current anchoring-graph/chart vertex bindings:
+  tAnchoringToChartVertexMap vertex_binding(_vertex_binding);
+  tChartMappingAnchoringGraph::tVertex av_s, av_e;
+  av_s = _anch_graph.get_vertex(arg->get_start_anchor());
+  av_e = _anch_graph.get_vertex(arg->get_end_anchor());
+  assert(!vertex_binding[av_s] || (vertex_binding[av_s]==item->prec_vertex()));
+  assert(!vertex_binding[av_e] || (vertex_binding[av_e]==item->succ_vertex()));
+  vertex_binding[av_s] = item->prec_vertex();
+  vertex_binding[av_e] = item->succ_vertex();
+  
+  return create(result_fs, arg_item_map, captures, vertex_binding,
+      _next_arg_idx + 1);
 }
 
-std::list<fs>
-tChartMappingMatch::output_fss()
-{
-  // determine map of all captures:
-  typedef hash_map<std::string, std::string, standard_string_hash> string_map_t;
-  string_map_t captures;
-  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous) {
-    captures.insert(curr->_captures.begin(), curr->_captures.end());
-  }
-
-  // get list of OUTPUT fs
-  list<fs> outs = _fs.get_path_value(tChartUtil::output_path()).get_list();
-
-  // replace regex captures in each OUTPUT fs:
-  std::list<fs>::iterator fs_it;
-  int i;
-  for (fs_it = outs.begin(), i = 0; fs_it != outs.end(); fs_it++, i++) {
-    // since we want to replace the regex reference with the string capture,
-    // we need a deep copy here (otherwise problems with fs structure sharing):
-    fs out = *fs_it = copy(*fs_it);
-    std::list<list_int*> paths = out.find_paths(BI_STRING);
-    for (std::list<list_int*>::iterator path_it = paths.begin();
-         path_it != paths.end();
-         path_it++)
-    {
-      list_int *path = *path_it;
-      string str = type_name(out.get_path_value(path).type());
-      for (string_map_t::iterator anchor_it = captures.begin();
-           anchor_it != captures.end();
-           anchor_it++)
-      {
-        string anchor = (*anchor_it).first;
-        string replacement = (*anchor_it).second;
-        int pos = str.find(anchor);
-        if (pos >= 0)
-          str.replace(pos, anchor.length(), replacement);
+bool
+tChartMappingMatch::fire(tChart &chart) {
+  assert(is_complete());
+  
+  bool chart_changed = false;
+  tChartMappingRule::Trait rule_trait = get_rule()->get_trait();
+  item_list inps = get_items(tChartMappingRuleArg::INPUT_ARG);
+  item_list cons = get_items(tChartMappingRuleArg::CONTEXT_ARG);
+  
+  // add all OUTPUT items:
+  tRuleArgs out_args = get_rule()->get_args(tChartMappingRuleArg::OUTPUT_ARG);
+  tRuleArgs::iterator oa_it;
+  for (oa_it = out_args.begin(); oa_it != out_args.end(); oa_it++) {
+    const tChartMappingRuleArg *out_arg = *oa_it;
+    fs out_fs = build_output_fs(out_arg);
+    tChartMappingAnchoringGraph::tVertex av_s, av_e;
+    av_s = _anch_graph.get_vertex(out_arg->get_start_anchor());
+    av_e = _anch_graph.get_vertex(out_arg->get_end_anchor());
+    tChartVertex *cv_s = _vertex_binding[av_s];
+    tChartVertex *cv_e = _vertex_binding[av_e];
+    tItem *out_item = 0;
+    
+    // try to find an existing identical item for reuse:
+    if (cv_s && cv_e) { // prec and succ are existing chart vertices
+      item_list items = chart.items(cv_s, cv_e, true);
+      for (item_iter i_it = items.begin(); i_it != items.end(); i_it++) {
+        fs item_fs = (*i_it)->get_fs();
+        bool forward = true, backward = true;
+        subsumes(out_fs, item_fs, forward, backward);
+        if (forward && backward) { // identical item
+          out_item = *i_it;
+          inps.remove(out_item); // don't remove this identical item later
+        }
       }
-      out.get_path_value(path).set_type(retrieve_type(str));
-      free_list(path);
+    } else { // create chart vertices for prec and/or succ 
+      if (!cv_s) {
+        cv_s = chart.add_vertex(tChartVertex::create());
+        _vertex_binding[av_s] = cv_s;
+      }
+      if (!cv_e) {
+        cv_e = chart.add_vertex(tChartVertex::create());
+        _vertex_binding[av_e] = cv_e;
+      }
     }
-    assert(out.valid());
-  }
+    
+    // if output item is not reused, create a new one and add it:
+    if (out_item == 0) {
+      if (rule_trait == tChartMappingRule::TMR_TRAIT) {
+        out_item = tChartUtil::create_input_item(out_fs);
+      } else if (rule_trait == tChartMappingRule::LFR_TRAIT) {
+        throw tError("tChartMappingEngine: Construction of lexical items not "
+            "allowed.");
+      }
+      chart.add_item(out_item, cv_s, cv_e);
+      chart_changed = true;
+    }
+    
+    // remember arg/item binding:
+    _arg_item_map[out_arg] = out_item;
+    
+  } // for all out_args
+  
+  // freeze all INPUT items in the chart:
+  for (item_iter it = inps.begin(); it != inps.end(); it++)
+    (*it)->freeze(false);
+  chart_changed = chart_changed || !inps.empty();
+  
+  // logging:
+  if (opt_chart_mapping & 1 || opt_chart_mapping & 16) {
+    ostringstream item_ids_os;
+    std::vector<const tChartMappingRuleArg*> args = get_rule()->get_args();
+    std::vector<const tChartMappingRuleArg*>::iterator arg_it;
+    for (arg_it = args.begin(); arg_it != args.end(); arg_it++) {
+      const tChartMappingRuleArg *arg = *arg_it;
+      tItem *item = get_item(arg);
+      int id = item->id();
+      item_ids_os << arg->get_name() << ":" << lexical_cast<string>(id) << " ";
+    }
+    cerr << format("[cm] %s fired: %s\n") % get_rule()->get_printname()
+        % item_ids_os.str();
+    if(opt_chart_mapping & 16) {
+      args = get_rule()->get_args(tChartMappingRuleArg::OUTPUT_ARG);
+      tItemPrinter ip(cerr, false, true);
+      for (arg_it = args.begin(); arg_it != args.end(); arg_it++) {
+        ip.print(get_item(*arg_it)); cerr << endl;
+      } // for
+    } // if
+  } // if
+  
+  return chart_changed;
+}
 
-  return outs;
+fs
+tChartMappingMatch::build_output_fs(const tChartMappingRuleArg *arg) {
+  // since we want to replace the substitution varialbes with the regex
+  // string capture, we need a deep copy here (otherwise problems with fs
+  // structure sharing):
+  fs out_fs = copy(get_arg_fs(arg));
+  
+  // replace regex substitution variables:
+  std::list<list_int*> paths = out_fs.find_paths(BI_STRING);
+  std::list<list_int*>::iterator path_it;
+  for (path_it = paths.begin(); path_it != paths.end(); path_it++) {
+    list_int *path = *path_it;
+    string str = type_name(out_fs.get_path_value(path).type());
+    map<std::string, std::string>::iterator it;
+    for (it = _captures.begin(); it != _captures.end(); it++) {
+      string variable = (*it).first;
+      string replacement = (*it).second;
+      int pos = str.find(variable);
+      if (pos >= 0)
+        str.replace(pos, variable.length(), replacement);
+    }
+    out_fs.get_path_value(path).set_type(retrieve_type(str));
+    free_list(path);
+  }
+  assert(out_fs.valid());
+  
+  return out_fs;
 }

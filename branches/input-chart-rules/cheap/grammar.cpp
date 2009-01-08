@@ -486,16 +486,18 @@ tGrammar::tGrammar(const char * filename)
         }
         else if (inpmap_rule_status(i) && opt_chart_mapping)
         {
-            tChartMappingRule *R = tChartMappingRule::create(i, CM_INPUT_TRAIT);
+            tChartMappingRule *R = tChartMappingRule::create(i,
+                tChartMappingRule::TMR_TRAIT);
             if (R != NULL) {
-              _inpmap_rules.push_front(R);
+              _tokmap_rules.push_front(R);
             }
         }
         else if (lexmap_rule_status(i) && opt_chart_mapping)
         {
-            tChartMappingRule *R = tChartMappingRule::create(i, CM_LEX_TRAIT);
+            tChartMappingRule *R = tChartMappingRule::create(i,
+                tChartMappingRule::LFR_TRAIT);
             if (R != NULL) {
-              _lexmap_rules.push_front(R);
+              _lexfil_rules.push_front(R);
             }
         }
         else if(genle_status(i))

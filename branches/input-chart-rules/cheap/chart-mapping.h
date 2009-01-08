@@ -30,20 +30,26 @@
 #include "fs.h"
 #include "fs-chart.h"
 #include "list-int.h"
+#include "types.h"
 
 #include <list>
+#include <map>
+#include <set>
+#include <vector>
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_traits.hpp>
 #include <boost/regex.hpp>
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
 #include <boost/regex/icu.hpp>
 #endif
-#include <boost/tuple/tuple.hpp>
-#include "boost/tuple/tuple_comparison.hpp"
 
 
 // forward declarations:
 class tChartMappingEngine;
-class tChartMappingRule;
 class tChartMappingRuleArg;
+class tChartMappingRule;
+class tChartMappingAnchoringGraph;
 class tChartMappingMatch;
 
 
@@ -58,19 +64,12 @@ typedef std::map<list_int*, boost::regex> tPathRegexMap;
 #endif
 
 
+
 /**
  * Class that executes chart mapping rules.
  */
 class tChartMappingEngine
 {
-private:
-  
-  /**
-   * The chart mapping rules to be used in this instance of
-   * tChartMappingEngine.
-   */
-  const std::list<tChartMappingRule*> & _rules;
-  
 public:
   /**
    * Construct a new object, using the specified chart mapping rules.
@@ -83,13 +82,358 @@ public:
    *
    * \param[in,out] chart    the chart to operate on
    */
-  void apply_rules(class tChart &chart);
+  void
+  process(class tChart &chart);
+  
+private:
+  
+  /**
+   * The chart mapping rules to be used in this instance of
+   * tChartMappingEngine.
+   */
+  const std::list<tChartMappingRule*> & _rules;
   
 };
 
 
 
-enum tChartMappingRuleTrait { CM_INPUT_TRAIT, CM_LEX_TRAIT };
+/**
+ * Representation of a chart mapping rule argument. This is an element
+ * of the CONTEXT, INPUT or OUTPUT lists of the rule.
+ */
+class tChartMappingRuleArg
+{
+  
+public:
+  
+  /**
+   * The different kinds of arguments. 
+   */
+  enum Trait { CONTEXT_ARG, INPUT_ARG, OUTPUT_ARG };
+  
+  /**
+   * Destructor. 
+   */
+  virtual
+  ~tChartMappingRuleArg();
+  
+  /**
+   * Factory method that returns a new tChartMappingRuleArg object.
+   * Enforces the creation of these object on the heap. The caller
+   * (tChartMappingRule) is responsible for deleting the object.
+   */
+  static tChartMappingRuleArg*
+  create(const std::string &name, tChartMappingRuleArg::Trait trait, int nr,
+      tPathRegexMap &regexs);
+  
+  /**
+   * The name of this rule argument. Argument's names are used to
+   * refer to the relative position to other arguments and to refer
+   * to regex captures.
+   */
+  const std::string&
+  get_name() const;
+  
+  /**
+   * Returns the start anchor of this argument, i.e. its name + ":s".
+   */
+  const std::string&
+  get_start_anchor() const;
+  
+  /**
+   * Returns the end anchor of this argument, i.e. its name + ":e".
+   */
+  const std::string&
+  get_end_anchor() const;
+  
+  /**
+   * Returns the trait of this chart mapping rule argument.
+   * \see tChartMappingRuleArg::Trait
+   */
+  tChartMappingRuleArg::Trait
+  get_trait() const;
+  
+  /**
+   * Returns the number of this item within its list (see get_trait()).
+   */
+  int
+  get_nr() const;
+  
+  /**
+   * Returns a container mapping paths in the feature structure of this
+   * argument to regular expression objects.
+   */
+  const tPathRegexMap&
+  get_regexs() const;
+  
+private:
+  
+  /**
+   * Constructor.
+   * \see create()
+   */
+  tChartMappingRuleArg(const std::string &name,
+      tChartMappingRuleArg::Trait trait, int nr, tPathRegexMap &regexs);
+  
+  /** No default copy constructor. */
+  tChartMappingRuleArg(const tChartMappingRuleArg& arg);
+  
+  /** \see get_name() */
+  std::string _name;
+  
+  /** \see get_start_anchor() */
+  std::string _start_anchor;
+  
+  /** \see get_end_anchor() */
+  std::string _end_anchor;
+  
+  /** \see get_trait() */
+  tChartMappingRuleArg::Trait _trait;
+  
+  /** \see get_nr() */
+  int _nr;
+  
+  /** \see get_regexs() */
+  tPathRegexMap _regexs;
+  
+};
+
+
+
+/**
+ * A collection of chart mapping rule arguments.
+ */
+typedef std::vector<const tChartMappingRuleArg *> tRuleArgs;
+
+
+
+/**
+ * An anchoring graph describes positional dependencies of the arguments of a
+ * chart-mapping rule in the chart. It can be thought of as a regular graph
+ * pattern that a chart has to fit in when the chart-mapping rule fires.
+ * 
+ * Vertices in the anchoring graph bidirectionally correspond to vertices in the
+ * chart (but not every vertex in the chart corresponds to a vertex in the
+ * anchoring graph). Edges correspond to items or paths of items in the chart.
+ * 
+ * The start and end vertices of an argument (both in the anchoring graph and in
+ * the chart) can be referred to by `anchors'. The start and end anchors of an
+ * argument are named by the argument's name + ":s" or ":e", respectively.
+ * Anchors are equivalence classes of vertices, so anchors of different
+ * arguments may refer to the same vertex. There are two special anchors,
+ * "^" and "$", which refer to the chart start and chart end during matching
+ * (the chart start and end can be altered by a chart-mapping rule).
+ *  
+ * Edges are annotated with the minimal and maximal distance between their two
+ * vertices. That is, if there is an edge between \a v1 and \a v2 with
+ * \a min == \a a and \a max == \a b, written as (\a a, \a b), then there exists
+ * a path of minimally \a a and maximally \a b items between \a v1 and \a v2.
+ * Edges are directed and thus encode the linear order between vertices.
+ * Multiple paths of different distances between two vertices are allowed and
+ * are encoded by multiple edges.
+ *   
+ * There are three special edge types besides normal path edges: edges for
+ * matching arguments, edges for output arguments, and tentative egdes. Edges
+ * for matching arguments and output arguments are always annotated with (1,1).
+ * Edges for output arguments are treated a bit differently than path edges and
+ * matching argument edges since they describe a situation after all matching
+ * arguments have been matched.
+ * 
+ * Tentative edges are always annotated with (0,0). They signal a potential
+ * vertex identity. Tentative edges are needed for realizing parallels-relations
+ * between rule arguments. The vertices of those tentative edges that lead to a
+ * maximal span of an argument will be merged by realize_tentative_edges(),
+ * other tentative edges will be removed.
+ */
+class tChartMappingAnchoringGraph {
+  
+  friend class tChartMappingMatch; // TODO public interface would be better
+  
+public:
+  
+  /**
+   * The only internal vertex property, the vertex index. Some algorithms
+   * require the use of vertex indices, which are only available
+   * in std::vector-based vertex containers. Since we want to have a
+   * std::list-based container, we have to declare the vertex indices
+   * explicitely.
+   * \see index()
+   */
+  typedef boost::property<boost::vertex_index_t, std::size_t> tVertexProp;
+  
+  /**
+   * An edge indicates an item path in the chart of the specified minimal and
+   * maximal length between the two anchors.
+   */
+  struct tEdgeProp {
+    int min;
+    int max;
+    enum tType { PATH, MATCHING, OUTPUT, TENTATIVE } type; 
+    tEdgeProp(int mi, int ma, tType t) : min(mi), max(ma), type(t)
+    { }
+  };
+  
+  // Only descriptors in listS or setS remain stable under all conditions!
+  typedef boost::adjacency_list<boost::multisetS, boost::listS,
+      boost::bidirectionalS, tVertexProp, tEdgeProp> tGraph;
+  typedef boost::graph_traits<tGraph>::vertex_descriptor tVertex;
+  typedef boost::graph_traits<tGraph>::vertex_iterator tVertexIt;
+  typedef boost::graph_traits<tGraph>::edge_descriptor tEdge;
+  typedef boost::graph_traits<tGraph>::edge_iterator tEdgeIt;
+  typedef boost::graph_traits<tGraph>::in_edge_iterator tInEdgeIt;
+  typedef boost::graph_traits<tGraph>::out_edge_iterator tOutEdgeIt;
+  
+  typedef std::vector<tVertex> tVertices;
+  typedef tVertices::iterator tVerticesIt;
+  typedef tVertices::reverse_iterator tVerticesRevIt;
+  
+  typedef std::list<std::string> tStrings;
+  typedef tStrings::iterator tStringsIt;
+  typedef std::map<std::string, tVertex> tStringVertexMap;
+  typedef std::map<tVertex, tStrings > tVertexStringsMap;
+  
+  
+  /**
+   * Construct an anchoring graph, initialising the chart start and end
+   * vertices.
+   */
+  tChartMappingAnchoringGraph();
+  
+  /**
+   * Adds the argument to this anchoring graph. Matching arguments are
+   * connected to the chart start and end.
+   */
+  void
+  add_arg(const tChartMappingRuleArg *arg);
+  
+  /**
+   * Merges the vertices identified by anchor \c a1 and \c a2.
+   * \see merge_vertices(tVertex, tVertex)
+   */
+  void
+  merge_vertices(std::string a1, std::string a2);
+  
+  /**
+   * Ensures that there is an edge with the specified min and max values
+   * between the vertices identified by the two anchors.
+   * \see accomodate_edge(tVertex, tVertex, int, int, tEdgeProp::tType)
+   */
+  void
+  accomodate_edge(std::string a1, std::string a2, int min, int max,
+      tEdgeProp::tType t = tEdgeProp::PATH);
+  
+  /**
+   * This function should be called after all arguments have been added
+   * to the graph and all constraints have been accomodated. The function
+   * realizes tenative edges, computes the transitive closure and finally
+   * checks the consistency of the graph.
+   */
+  void
+  finalize();
+  
+  /**
+   * Returns the anchoring graph vertex for the specified anchor.
+   */
+  const tVertex
+  get_vertex(std::string anchor) const;
+  
+  /**
+   * Creates a debug print of the anchoring graph on the standard error stream.
+   */
+  void
+  print() const;
+  
+private:
+  
+  /**
+   * Copy constructor is forbidden.
+   */
+  tChartMappingAnchoringGraph(const tChartMappingAnchoringGraph&);
+  
+  /**
+   * Adds a vertex for the specified anchor.
+   */
+  tVertex
+  add_vertex(std::string a);
+  
+  /**
+   * Merge vertex \c v2 into \c v1, bending all in-edges of \c v2 so that they
+   * end in \c v1, and all out-edges of \c v2 so that they start in \c v1, and
+   * updating the anchor references.
+   */
+  void
+  merge_vertices(tVertex v1, tVertex v2);
+  
+  /**
+   * Ensures that there is an edge with the specified min and max values
+   * between the two vertices, if it doesn't contradict the current graph.
+   * If an edge already exists and the new min and max values restrict the
+   * values of the edge or vice versa, refines the min and max values of
+   * that edge. Adds a new edge otherwise.
+   * \throw tError if an edge shall be added that contradicts the current graph,
+   *               i.e. where there is already a path in the opposite direction
+   */
+  void
+  accomodate_edge(tVertex v1, tVertex v2, int min, int max,
+      tEdgeProp::tType t = tEdgeProp::PATH);
+  
+  /**
+   * (Re-) Indexes the graph. Some algorithms such as BGL's depth-first search
+   * and topological sort require that an index between [0, number_vertices) is
+   * provided for each vertex. The index property for each vertex is not
+   * kept up-to-date when altering the vertex set, so make sure to call this
+   * method before using one of these algorithms.
+   */  
+  void
+  index();
+  
+  /**
+   * Anchors tentative vertex-identity edges resulting from parallels-relations. 
+   */
+  void
+  realize_tentative_edges(tVertices &v_order);
+  
+  /**
+   * Computes the transitive closure of this graph, by either adding edges
+   * or updating the weights of existing edges.
+   */
+  void
+  transitive_closure(tVertices &v_order);
+  
+  /**
+   * Checks whether the graph is acyclic and connected. Returns \c true if
+   * the graph is consistent, otherwise an error is thrown.
+   */
+  bool
+  check_consistency();
+  
+  /**
+   * Gets a string representation of the specified vertex \a v.
+   */
+  std::string
+  get_anchors_string(tVertex v) const;
+  
+  /** The internal graph representation. */
+  tGraph _graph;
+  
+  /** Chart start vertex. */
+  tVertex _vs;
+  
+  /** Chart end vertex. */
+  tVertex _ve;
+  
+  /** A dictionary mapping anchors to vertices. */
+  tStringVertexMap _vertices;
+  
+  /** A dictionary mapping vertices to anchors. */
+  tVertexStringsMap _anchors;
+  
+  /** All argument names. */
+  tStrings _arg_names;
+  
+};
+
+
 
 /**
  * Representation of a chart mapping rule of the grammar.
@@ -97,187 +441,147 @@ enum tChartMappingRuleTrait { CM_INPUT_TRAIT, CM_LEX_TRAIT };
 class tChartMappingRule
 {
   
-  friend class tChartMappingMatch;
+public:
+  
+  /**
+   * Chart mapping rules come in two traits: token mapping rules (TMR) or
+   * lexical filtering rules (LFR). TMRs operate on tokens, i.e. input
+   * items; LFRs operate on lexical items.
+   */
+  enum Trait { TMR_TRAIT, LFR_TRAIT };
+  
+  /** 
+   * Factory method that returns a new tChartMappingRule object for the
+   * specified type. If the feature structure of the given type is not
+   * a valid chart mapping rule, 0 is returned.
+   * \param[in] type
+   * \param[in] trait
+   * \return a tChartMappingRule for type \a type or 0
+   */
+  static tChartMappingRule*
+  create(type_t type, tChartMappingRule::Trait trait);
+  
+  /**
+   * Gets the type of this rule instance.
+   */
+  type_t
+  get_type() const;
+  
+  /**
+   * Gets the trait of this rule, namely whether it is a token mapping rule
+   * (TMR) or a lexical filtering rule (LFR).
+   */
+  tChartMappingRule::Trait
+  get_trait() const;
+  
+  /**
+   * Gets the print name of this rule.
+   * \see print_name(type_t)
+   */
+  const char*
+  get_printname() const;
+  
+  /**
+   * Returns a feature structure associated with this rule. 
+   */
+  fs
+  instantiate() const;
+  
+  /**
+   * Returns an argument by its name or 0 if it is not found.
+   */
+  const tChartMappingRuleArg*
+  get_arg(std::string name) const;
+  
+  /**
+   * Returns all arguments of this rule (i.e., all CONTEXT, INPUT and
+   * OUTPUT items).
+   */
+  const tRuleArgs &
+  get_args() const;
+  
+  /**
+   * Returns all arguments of this rule with the specified trait.
+   */
+  const tRuleArgs
+  get_args(tChartMappingRuleArg::Trait trait) const;
+  
+  /**
+   * Returns all matching arguments of this rule, in the order as they
+   * should be matched.
+   */
+  const tRuleArgs &
+  get_matching_args() const;
+  
+  /**
+   * Returns all OUTPUT arguments of this rule, in the order as they
+   * should be instantiated.
+   * This rule manages the memory for these items.
+   */
+  const tRuleArgs &
+  get_output_args() const;
+  
+  /**
+   * Returns the anchoring graph.
+   */
+  const tChartMappingAnchoringGraph &
+  get_anchoring_graph() const;
   
 private:
+  
+  /**
+   * Constructs a new tChartMappingRule object for the specified \c trait.
+   * \param[in] type the type code of this rule in the type hierarchy
+   * \param[in] trait determines in which phase this rule will be applied 
+   * \see create()
+   */
+  tChartMappingRule(type_t type, tChartMappingRule::Trait trait);
+  
+  /**
+   * Evaluates the positional constraints specification.
+   */
+  void
+  evaluate_poscons(std::string poscons_s);
   
   /** Identifier of the rule's type in PET's type system. */
   type_t _type;
   
-  /** Signals which type of items we're operating on. */
-  tChartMappingRuleTrait _trait;
+  /** Signals which kind of items we're operating on. */
+  tChartMappingRule::Trait _trait;
   
   /**
    * Feature structure representation of this rule. This fs is not
    * necessarily equal to the type's fs since we replace string literals
    * containing regular expressions with the general string type in order
-   * to allow for successful unification. The alternative would be to
-   * make every string literal a subtype of the string type and every
-   * regular expression that matches this string literal.
+   * to allow for successful unification.
    */
   fs _fs;
   
   /**
-   * The list of all arguments of this rule. This rule is manages the
-   * memory for these items.
+   * All arguments of this rule (CONTEXT, INPUT, OUTPUT).
+   * This rule manages the memory for these items.
    */
-  std::vector<tChartMappingRuleArg*> _args;
+  tRuleArgs _args;
   
   /**
-   * Constructs a new tChartMappingRule object for the specified \c type.
-   * \param[in] type
-   * \see create()
+   * All matching arguments of this rule, in the order as they
+   * should be matched.
+   * This rule manages the memory for these items.
    */
-  tChartMappingRule(type_t type, tChartMappingRuleTrait trait);
-  
-public:
-  
-  /** 
-   * Set to \c true if all output items shall be created in the same cell.
-   */
-  bool _same_cell_output; // TODO remove!!! this is a pretty ugly hack
-  
-  /** 
-   * Factory method that returns a new tChartMappingRule object for the
-   * specified type. If the feature structure of the given type is not
-   * a valid chart mapping rule, \c NULL is returned.
-   * \param[in] type
-   * \param[in] trait
-   * \return a tChartMappingRule for type \a type or \c NULL
-   */
-  static tChartMappingRule* create(type_t type, tChartMappingRuleTrait trait);
-
-  /**
-   * Gets the type of this rule instance.
-   */
-  type_t type() const;
+  tRuleArgs _matching_args;
   
   /**
-   * Gets the trait of this rule, namely whether it is an input or lexical
-   * chart mapping rule.
+   * All OUTPUT arguments of this rule, in the order as they
+   * should be instantiated.
+   * This rule manages the memory for these items.
    */
-  tChartMappingRuleTrait trait() const;
-
-  /**
-   * Gets the print name of this rule.
-   * \see print_name(type_t)
-   */
-  const char* printname() const;
+  tRuleArgs _output_args;
   
   /**
-   * Returns the feature structure associated with this rule. 
+   * The anchoring graph, describing the positional constraints on the
+   * rule arguments.
    */
-  fs instantiate() const;
-  
-  /**
-   * Returns a list of arguments of this rule (i.e., all CONTEXT and
-   * INPUT items) in the order of how they should be matched.
-   */
-  const std::vector<tChartMappingRuleArg*> args() const;
-  
-  /**
-   * Returns an argument by its name or 0 if it is not found.
-   */
-  tChartMappingRuleArg* arg(std::string name);
-  
-};
-
-
-
-/**
- * Representation of a positional constraint on chart mapping rule arguments.
- */
-class tChartMappingPosCons
-{
-public:
-  
-  /** Relation of this constraint. */
-  enum tChartMappingPosConsRel { same_cell, succeeding, all_succeeding } rel;
-  
-  /**
-   * Second argument of the relation (the first being the argument holding
-   * the constraint).
-   */ 
-  class tChartMappingRuleArg *arg;
-};
-
-
-
-/**
- * Representation of a chart mapping rule argument.
- */
-class tChartMappingRuleArg
-{
-  
-private:
-  
-  /** \see name() */
-  std::string _name;
-  
-  /** \see is_input_arg() is_context_arg() */
-  bool _is_input;
-  
-  /** \see nr() */
-  int _nr;
-  
-  /** \see regexs() */
-  tPathRegexMap _regexs;
-  
-  /**
-   * Constructor.
-   * \see create()
-   */
-  tChartMappingRuleArg(const std::string &name,
-      bool is_input, int nr, tPathRegexMap &regexs);
-  
-  /** No default copy constructor. */
-  tChartMappingRuleArg(const tChartMappingRuleArg& arg);
-  
-public:
-  
-  std::list<tChartMappingPosCons> _poscons;
-  
-  /**
-   * Destructor. 
-   */
-  virtual ~tChartMappingRuleArg();
-  
-  /**
-   * Factory method that returns a new tChartMappingRuleArg object.
-   * Enforces the creation of these object on the heap. The caller
-   * (tChartMappingRule) is responsible for deleting the object.
-   */
-  static tChartMappingRuleArg* create(const std::string &name,
-      bool is_input, int nr, tPathRegexMap &regexs);
-  
-  /**
-   * The name of this rule argument. Argument's names are used to
-   * refer to the relative position to other arguments and to refer
-   * to regex captures.
-   */
-  const std::string& name() const;
-  
-  /**
-   * Checks whether this argument is from the rule's INPUT list.
-   */
-  bool is_input_arg() const;
-  
-  /**
-   * Checks whether this argument is from the rule's CONTEXT list.
-   */
-  bool is_context_arg() const;
-  
-  /**
-   * Returns the number of this item within its list (either the INPUT or
-   * CONTEXT list).
-   */
-  int nr() const;
-  
-  /**
-   * Returns a container mapping paths in feature structures to regular
-   * expression objects.
-   */
-  const tPathRegexMap& regexs() const;
+  tChartMappingAnchoringGraph _anch_graph;
   
 };
 
@@ -296,27 +600,108 @@ public:
 class tChartMappingMatch
 {
   
+public:
+  
+  /**
+   * Create a (completely unmatched) tChartMappingMatch instance for the
+   * specified \a rule.
+   * The returned object is owned by the caller of this method.
+   */
+  static tChartMappingMatch*
+  create(const tChartMappingRule *rule, const tChart &chart);
+  
+  /** Is this rule match complete? */
+  bool
+  is_complete() const;
+  
+  /** Returns the rule for this rule match. */
+  const tChartMappingRule*
+  get_rule() const;
+  
+  /**
+   * Returns the feature structure representation of this match.
+   */
+  fs 
+  get_fs();
+  
+  /**
+   * Returns the feature structure for the specified argument within the
+   * feature structure representation of this match.
+   */
+  fs
+  get_arg_fs(const tChartMappingRuleArg *arg);
+  
+  /**
+   * Returns the next argument that should be matched or \c 0 if the there
+   * is no such argument.
+   */
+  const tChartMappingRuleArg*
+  get_next_matching_arg() const;
+  
+  /**
+   * Returns the item bound to the specified argument \c arg.
+   */
+  tItem* 
+  get_item(const tChartMappingRuleArg* arg);
+  
+  /**
+   * Returns all items bound to the arguments of this rule.
+   */
+  item_list 
+  get_items();
+  
+  /**
+   * Returns all items bound to the arguments with the specified \c trait.
+   */
+  item_list
+  get_items(tChartMappingRuleArg::Trait trait);
+  
+  /**
+   * Find all items from the chart that could serve as an item for the next
+   * match by evaluating the positional constraints of the next rule argument
+   * \a arg and this match.
+   */
+  item_list
+  get_suitable_items(tChart &chart, const tChartMappingRuleArg *arg);
+  
+  /**
+   * Tries to match the specified item \a item with the argument \a arg of
+   * this match. Returns \c 0 if such a match is not possible.
+   * This function uses a regex-enabled unification. Matched (sub-)strings
+   * are added to the \c captures map, using
+   *     "${"
+   *   + \c get_next_matching_arg().name()
+   *   + ":"
+   *   + the path whose value has been matched
+   *   + ":"
+   *   + the number of the matched substring
+   *   + "}"
+   * as the key. For example, if the argument's name
+   * is "I2" and contains a regular expression "/(bar)rks/" in path "FORM",
+   * then the matched substring "bar" is stored under key "${I2:FORM:1}".
+   */
+  tChartMappingMatch*
+  match(tItem *item, const tChartMappingRuleArg *arg);
+  
+  /**
+   * Applies the rule of this completed match to the chart, that is
+   * INPUT items are deleted and OUTPUT items are created. Created OUTPUT
+   * items can be retrieved by get_item() and get_items() once this method
+   * has been called.
+   * \pre this match is completed
+   * \return \c true iff the chart has changed by applying this rule
+   */
+  bool
+  fire(tChart &chart);
+  
 private:
-  /** The rule which is used for building this rule match. */
-  const tChartMappingRule *_rule;
   
-  /** The previous rule match (0 if this is the empty match). */
-  const tChartMappingMatch * const _previous;
+  /** Map that maps arguments to items. */
+  typedef std::map<const tChartMappingRuleArg*, tItem*> tArgItemMap;
   
-  /** The current instantiation of the rule match. */
-  fs _fs; // TODO const?
-  
-  /** The tItem that was matched by \a _previous to form this object.  */
-  tItem * const _item;
-  
-  /** The argument that was used to match _item . */
-  const tChartMappingRuleArg * const _arg;
-  
-  /** The string captures of _item . */
-  std::map<std::string, std::string> _captures;
-  
-  /** Index (in the rule's _args list) of the next argument to be matched. */
-  unsigned int _next_arg_idx;
+  /** Map that maps anchoring graph vertices to chart vertices. */
+  typedef std::map<tChartMappingAnchoringGraph::tVertex, tChartVertex*>
+    tAnchoringToChartVertexMap;
   
   /**
    * Constructor.
@@ -325,8 +710,10 @@ private:
    */
   tChartMappingMatch(const tChartMappingRule *rule,
       const tChartMappingMatch *previous,
-      const fs &f, tItem *item, const tChartMappingRuleArg * arg,
-      std::map<std::string, std::string> captures,
+      const fs &f,
+      const tArgItemMap &arg_item_map,
+      const std::map<std::string, std::string> &captures,
+      const tAnchoringToChartVertexMap &vertex_binding,
       unsigned int next_arg_idx);
   
   /**
@@ -336,308 +723,54 @@ private:
    * \see match()
    */
   tChartMappingMatch*
-  create(const fs &f, tItem *item, const tChartMappingRuleArg *arg,
-      std::map<std::string, std::string> captures, unsigned int next_arg_idx);
-  
-public:
-  
-  /**
-   * Create a (completely unmatched) tChartMappingMatch instance for the
-   * specified \a rule.
-   * The returned object is owned by the caller of this method.
-   */
-  static tChartMappingMatch* create(const tChartMappingRule *rule);
-                       
-  /** Is this rule match complete? */
-  bool is_complete() const;
-  
-  /** Returns the rule for this rule match. */
-  const tChartMappingRule* get_rule() const;
+  create(const fs &f,
+      const tArgItemMap &arg_item_map,
+      const std::map<std::string, std::string> &captures,
+      const tAnchoringToChartVertexMap &vertex_binding,
+      unsigned int next_arg_idx);
   
   /**
-   * Returns the feature structure representation of this match.
+   * Return the OUTPUT fs for the specified OUTPUT argument \c arg,
+   * replacing all substitution variables in the strings of the fs.
+   * TODO if we replace substitution variables when constructing a
+   *      tChartMappingMatch, then this method becomes useless.
    */
-  fs get_fs();
+  fs
+  build_output_fs(const tChartMappingRuleArg *arg);
+  
+  /** The rule which is used for building this rule match. */
+  const tChartMappingRule *_rule;
+  
+  /** The anchoring graph of the rule. */
+  const tChartMappingAnchoringGraph &_anch_graph;
+  
+  /** The previous match (0 if this is an empty match). */
+  const tChartMappingMatch * const _previous;
+  
+  /** The current instantiation of the rule match. */
+  fs _fs;
   
   /**
-   * Returns the feature structure for the specified argument within the
-   * feature structure representation of this match.
+   * A map mapping arguments to corresponding items in the chart. With
+   * every new match retrieved by match(), this list map increases by
+   * the last matched argument/item pair. This list also contains the
+   * OUTPUT argument/item pairs for completed matches, provided that
+   * the rule has already fired (\see fire()).
    */
-  fs get_arg_fs(const tChartMappingRuleArg *arg);
+  tArgItemMap _arg_item_map;
+  
+  /** The string captures registered so far. */
+  std::map<std::string, std::string> _captures;
   
   /**
-   * Returns the next argument that should be matched or \c 0 if the there
-   * is no such argument.
+   * Map that maps anchoring graph vertices to chart vertices.
    */
-  const tChartMappingRuleArg* get_next_arg() const;
+  tAnchoringToChartVertexMap _vertex_binding;
   
-  /**
-   * Tries to match the specified item \a item with the argument \a arg of
-   * this match. Returns \c 0 if such a match is not possible.
-   * This function uses a regex-enabled unification. Matched (sub-)strings
-   * are added to the \a captures map, using "${" + \a get_next_arg().name() +
-   * ":" + the path whose value has been matched + ":" + the number of the
-   * matched substring + "}" as the key. For example, if the argument's name
-   * is "I2" and contains a regular expression "/(bar)rks/" in path "FORM",
-   * then the matched substring "bar" is stored under key "${I2:FORM:1}".
-   */
-  tChartMappingMatch* match(tItem *item, const tChartMappingRuleArg *arg);
-  
-  /**
-   * Returns a matched item by its argument name.
-   */
-  tItem* matched_item(std::string argname);
-  
-  /**
-   * Returns all INPUT and CONTEXT items that have been matched so far.
-   */
-  item_list matched_items();
-  
-  /**
-   * Returns all INPUT items that have been matched so far.
-   */
-  item_list matched_input_items();
-  
-  /**
-   * Returns all INPUT items that have been matched so far.
-   */
-  item_list matched_context_items();
-  
-  /**
-   * Returns the feature structures of all OUTPUT items.
-   */
-  std::list<fs> output_fss();
+  /** Index (in the rule's _matching_args list) of the next argument to be
+   * matched. */
+  unsigned int _next_arg_idx;
   
 };
-
-
-
-// ========================================================================
-// INLINE DEFINITIONS
-// ========================================================================
-
-// =====================================================
-// class tChartMappingEngine
-// =====================================================
-
-inline
-tChartMappingEngine::tChartMappingEngine(
-    const std::list<tChartMappingRule*> &rules)
-: _rules(rules)
-{
-  // nothing to do
-}
-
-
-
-// =====================================================
-// class tChartMappingRule
-// =====================================================
-
-inline tChartMappingRule*
-tChartMappingRule::create(type_t type, tChartMappingRuleTrait trait)
-{
-  try {
-    return new tChartMappingRule(type, trait);
-  } catch (tError error) {
-    fprintf(stderr, "%s\n", error.getMessage().c_str()); // ferr not in scope
-  }
-  return NULL;
-}
-
-inline type_t
-tChartMappingRule::type() const
-{
-  return _type;
-}
-
-inline tChartMappingRuleTrait
-tChartMappingRule::trait() const
-{
-  return _trait;
-}
-
-inline const char*
-tChartMappingRule::printname() const
-{
-  return print_name(_type);
-}
-
-inline fs
-tChartMappingRule::instantiate() const
-{
-  return copy(_fs);
-}
-
-inline const std::vector<tChartMappingRuleArg*>
-tChartMappingRule::args() const
-{
-  return _args;
-}
-
-
-
-// =====================================================
-// class tChartMappingRuleArg
-// =====================================================
-
-inline
-tChartMappingRuleArg::tChartMappingRuleArg(const std::string &name,
-    bool is_input, int nr, tPathRegexMap &regexs)
-: _name(name), _is_input(is_input), _nr(nr), _regexs(regexs)
-{
-  // done
-}
-
-inline
-tChartMappingRuleArg::~tChartMappingRuleArg()
-{
-  for (tPathRegexMap::iterator it = _regexs.begin(); it != _regexs.end(); it++)
-    free_list(it->first);
-}
-
-inline tChartMappingRuleArg*
-tChartMappingRuleArg::create(const std::string &name,
-    bool is_input, int nr, tPathRegexMap &regexs)
-{
-  return new tChartMappingRuleArg(name, is_input, nr, regexs);
-}
-
-inline const std::string&
-tChartMappingRuleArg::name() const
-{
-  return _name;
-}
-
-inline bool
-tChartMappingRuleArg::is_input_arg() const
-{
-  return _is_input; 
-}
-
-inline bool
-tChartMappingRuleArg::is_context_arg() const
-{
-  return !_is_input;
-}
-
-inline int
-tChartMappingRuleArg::nr() const
-{
-  return _nr;
-}
-
-inline const tPathRegexMap&
-tChartMappingRuleArg::regexs() const
-{
-  return _regexs;
-}
-
-
-
-// =====================================================
-// class tChartMappingMatch
-// =====================================================
-
-inline
-tChartMappingMatch::tChartMappingMatch(const tChartMappingRule *rule,
-    const tChartMappingMatch *previous, 
-    const fs &f, tItem *item, const tChartMappingRuleArg *arg,
-    std::map<std::string, std::string> captures, unsigned int next_arg_idx)
-: _rule(rule), _previous(previous), _fs(f), _item(item), _arg(arg),
-  _captures(captures), _next_arg_idx(next_arg_idx)
-{
-  // done
-}
-
-inline tChartMappingMatch*
-tChartMappingMatch::create(const tChartMappingRule *rule)
-{
-  return new tChartMappingMatch(rule, 0, rule->instantiate(), 0, 0,
-      std::map<std::string, std::string>(), 0);
-}
-
-inline tChartMappingMatch*
-tChartMappingMatch::create(const fs &f,
-    tItem *item,
-    const tChartMappingRuleArg *arg,
-    std::map<std::string, std::string> captures,
-    unsigned int next_arg_idx)
-{
-  return new tChartMappingMatch(_rule, this, f, item, arg, captures,
-      next_arg_idx);
-}
-
-inline bool
-tChartMappingMatch::is_complete() const
-{
-  return (_next_arg_idx == _rule->_args.size());
-}
-
-inline const tChartMappingRule*
-tChartMappingMatch::get_rule() const
-{
-  return _rule; 
-}
-
-inline fs
-tChartMappingMatch::get_fs()
-{
-  return _fs;
-}
-
-inline fs
-tChartMappingMatch::get_arg_fs(const tChartMappingRuleArg *arg)
-{
-  const list_int *path = arg->is_input_arg() ?
-      tChartUtil::input_path() : tChartUtil::context_path();
-  return _fs.nth_value(path, arg->nr());
-}
-
-
-inline const tChartMappingRuleArg*
-tChartMappingMatch::get_next_arg() const
-{
-  return is_complete() ? 0 : _rule->_args[_next_arg_idx];
-}
-
-inline tItem*
-tChartMappingMatch::matched_item(std::string argname)
-{
-  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous)
-    if (curr->_arg && curr->_arg->name() == argname)
-      return curr->_item;
-  return 0;
-}
-
-inline item_list
-tChartMappingMatch::matched_items()
-{
-  item_list items;
-  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous)
-    if (curr->_arg)
-      items.push_front(curr->_item);
-  return items;
-}
-
-inline item_list
-tChartMappingMatch::matched_input_items()
-{
-  item_list items;
-  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous)
-    if (curr->_arg && curr->_arg->is_input_arg())
-      items.push_front(curr->_item);
-  return items;
-}
-
-inline item_list
-tChartMappingMatch::matched_context_items()
-{
-  item_list items;
-  for (const tChartMappingMatch *curr = this; curr; curr = curr->_previous)
-    if (curr->_arg && curr->_arg->is_context_arg())
-      items.push_front(curr->_item);
-  return items;
-}
 
 #endif /*_CHART_MAPPING_H_*/

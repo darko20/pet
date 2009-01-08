@@ -51,6 +51,13 @@ struct pointer_hash {
   }
 };
 
+/* function object: hash function for pointers */
+struct const_pointer_hash {
+  inline size_t operator() (const void* p) const {
+    return reinterpret_cast<size_t>(p);
+  }
+};
+
 /* function object: standard hash function for std::string */
 struct standard_string_hash {
   inline size_t operator() (const std::string& s) const

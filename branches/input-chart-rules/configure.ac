@@ -235,12 +235,12 @@ unset CHEAPCPPFLAGS CHEAPCXXFLAGS CHEAPLDFLAGS CHEAPLIBS
 # Boost libraries
 # --------------------------------------------------------------------
 
-# Boost.Graph:
 AX_BOOST_BASE([], [boost="yes"], [boost="no"])
 AX_BOOST_REGEX([], [boost=no])
 if test "$boost" = "yes" ; then
   CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
-  AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp \
+  AC_CHECK_HEADERS([boost/format.hpp \
+                    boost/graph/adjacency_list.hpp \
                     boost/graph/topological_sort.hpp \
                     boost/lambda/lambda.hpp \
                     boost/lexical_cast.hpp \

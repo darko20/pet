@@ -108,7 +108,8 @@ head-second := binary-rule &
 ;;; -----------------------------------------------------------
 
 lex-item := sign &
-[ ORTH [ LIST [ REST #rest ], LAST #rest ] ].
+[ ORTH [ LIST [ REST #rest ], LAST #rest ],
+  TOKENS *list* ].
 
 lexeme := lex-item.
 
@@ -185,11 +186,11 @@ prep-lxm := const-lxm &
 
 
 ;;; ===========================================================
-;;; input feature structures
+;;; token feature structures
 ;;; ===========================================================
 
 +tok := *top* &
-  [ +IDS   strlist,
+  [ +ID    strlist,
     +FORM  string,
     +STEM  string,
     +INFLR string,
@@ -228,14 +229,14 @@ inpmap-rule := chart-mapping-rule &
 
 inpmap-x11-rule := inpmap-rule &
   [ +CONTEXT inplist,
-    +INPUT   < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] >,
-    +OUTPUT  < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] > ].
+    +INPUT   < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] >,
+    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] > ].
 
 inpmap-x12-rule := inpmap-rule &
   [ +CONTEXT inplist,
-    +INPUT   < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ] >,
-    +OUTPUT  < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ],
-               +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ] > ].
+    +INPUT   < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] >,
+    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ],
+               +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ].
 
 inpmap-x21-rule := inpmap-rule &
   [ +CONTEXT inplist,
@@ -245,20 +246,20 @@ inpmap-x21-rule := inpmap-rule &
 
 inpmap-012-rule := inpmap-rule &
   [ +CONTEXT < >,
-    +INPUT   < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ] > ,
-    +OUTPUT  < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ],
-               +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ] > ].
+    +INPUT   < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ,
+    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ],
+               +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ].
 
 inpmap-101-rule := inpmap-rule &
-  [ +CONTEXT < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] >,
+  [ +CONTEXT < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] >,
     +INPUT   < > ,
-    +OUTPUT  < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] > ].
+    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] > ].
 
 inpmap-102-rule := inpmap-rule &
-  [ +CONTEXT < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ] >,
+  [ +CONTEXT < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] >,
     +INPUT   < > ,
-    +OUTPUT  < +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ],
-               +tok & [ +IDS #ids, +CFROM #cfrom, +CTO #cto ] > ].
+    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ],
+               +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ].
 
 ;;; lexical mapping rules:
 
