@@ -4,7 +4,7 @@
 
 ; split off 's (possessive 's vs contracted auxiliary):
 split-contracted-s-rule := inpmap-102-rule &
-  [ +CONTEXT < [ +FORM "/([A-Z][a-z]+)('s)/"  , +TNT #tnt ] > ,
+  [ +CONTEXT < [ +FORM /([A-Z][a-z]+)('s)/  , +TNT #tnt ] > ,
     +OUTPUT  < [ +FORM "${C1:+FORM:1}" , +TNT #tnt ],
                [ +FORM "${C1:+FORM:2}" , +TNT <> ] >,
     +POSITION "O1<O2, C1@O1, C1@O2" ].
@@ -12,7 +12,7 @@ split-contracted-s-rule := inpmap-102-rule &
 ; split contracted compounds:
 split-compounds-rule := inpmap-x12-rule &
   [ +CONTEXT < > ,
-    +INPUT   < [ +FORM "/(cat)(dog)/" ] > ,
+    +INPUT   < [ +FORM /(cat)(dog)/ ] > ,
     +OUTPUT  < [ +FORM "${I1:+FORM:1}" ], [ +FORM "${I1:+FORM:2}" ] >,
     +POSITION "O1<O2, I1@O1, I1@O2" ].
 
@@ -39,29 +39,29 @@ block-sth-rule := inpmap-rule &
 ; map dates:
 dates-rule := inpmap-x11-rule &
   [ +CONTEXT < > ,
-    +INPUT   < [ +FORM "/[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4}/" , +TNT #tnt ] >,
+    +INPUT   < [ +FORM /[0-9]{1,2}[\/-][0-9]{1,2}[\/-][0-9]{4}/ , +TNT #tnt ] >,
     +OUTPUT  < [ +FORM "DateErsatz" , +TNT #tnt ] >,
     +POSITION "O1@I1" ].
 
 ; replace HTML entities:
 xml-mdash-rule := inpmap-x11-rule &
   [ +CONTEXT < > ,
-    +INPUT   < [ +FORM "/([A-Za-z0-9]+)(&mdash;)([A-Za-z0-9]*)/" , +TNT #tnt ] >,
+    +INPUT   < [ +FORM /([A-Za-z0-9]+)(&mdash;)([A-Za-z0-9]*)/ , +TNT #tnt ] >,
     +OUTPUT  < [ +FORM "${I1:+FORM:1}-${I1:+FORM:3}" , +TNT #tnt ] >,
     +POSITION "O1@I1" ].
 
 ; fix broken tokenization
 tokenization-rule := inpmap-x21-rule &
   [ +CONTEXT < > ,
-    +INPUT   < [ +FORM  "/(.*)/" , +TNT #tnt ],
-               [ +FORM  "/([.,;?!])/" ] > ,
+    +INPUT   < [ +FORM  /(.*)/ , +TNT #tnt ],
+               [ +FORM  /([.,;?!])/ ] > ,
     +OUTPUT  < [ +FORM "${I1:+FORM:1}${I2:+FORM:1}" , +TNT #tnt ] > ,
     +POSITION "I1<I2, O1@I1, O1@I2" ].
 
 ; make everything lower case:
 lower-case-rule := inpmap-x11-rule &
   [ +CONTEXT < > ,
-    +INPUT   < [ +FORM "/(.*[A-ZÄÜÖ].*)/" , +TNT #tnt ] > ,
+    +INPUT   < [ +FORM /(.*[A-ZÄÜÖ].*)/ , +TNT #tnt ] > ,
     +OUTPUT  < [ +FORM "${lc(I1:+FORM:1)}" , +TNT #tnt ] > ,
     +POSITION "O1@I1" ].
 
