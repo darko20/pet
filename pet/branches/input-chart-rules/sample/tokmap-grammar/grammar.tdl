@@ -4,14 +4,16 @@
 :include "types.tdl".
 :end :type.
 
-;; chart mapping rules for manipulating the input chart
-:begin :instance :status inpmap-rule.
-:include "inpmap-rules.tdl".
+;; token mapping:
+;; chart mapping rules for manipulating the tokens in the input chart
+:begin :instance :status tokmap-rule.
+:include "tokmap-rules.tdl".
 :end :instance.
 
+;; lexical filtering:
 ;; chart mapping rules for manipulating the chart after lexical instantiation
-:begin :instance :status lexmap-rule.
-:include "lexmap-rules.tdl".
+:begin :instance :status lexflt-rule.
+:include "lexflt-rules.tdl".
 :end :instance.
 
 ;; syntactic rules

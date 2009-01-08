@@ -794,9 +794,9 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
       chart.print(cerr, &ip, true, false, false);
     } // if
     // apply chart mapping rules:
-    std::list<class tChartMappingRule*> rules = Grammar->inpmap_rules();
+    std::list<class tChartMappingRule*> rules = Grammar->tokmap_rules();
     tChartMappingEngine mapper(rules);
-    mapper.apply_rules(chart);
+    mapper.process(chart);
     // map back:
     _maxpos = tChartUtil::map_chart(chart, inp_tokens);
     // chart and chart vertices memory is released by ~tChart 
@@ -857,9 +857,9 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
       chart.print(cerr, &ip, true, false, false);
     } // if
     // apply chart mapping rules:
-    std::list<class tChartMappingRule*> rules = Grammar->lexmap_rules();
+    std::list<class tChartMappingRule*> rules = Grammar->lexflt_rules();
     tChartMappingEngine mapper(rules);
-    mapper.apply_rules(chart);
+    mapper.process(chart);
     // map back:
     _maxpos = tChartUtil::map_chart(chart, *Chart);
     // chart and chart vertices memory is released by ~tChart 

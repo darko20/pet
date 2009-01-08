@@ -158,25 +158,18 @@ public:
     expected_items.clear();
     expected_items.push_back(_i2);
     expected_items.push_back(_i3);
-    CPPUNIT_ASSERT(_chart.succeeding_items(_i1) == expected_items);
+    CPPUNIT_ASSERT(_chart.succeeding_items(_v2, 0, 0) == expected_items);
+    CPPUNIT_ASSERT(_chart.succeeding_items(_v2, 0, 42) == expected_items);
     
     expected_items.clear();
-    CPPUNIT_ASSERT(_chart.succeeding_items(_i2) == expected_items);
-    CPPUNIT_ASSERT(_chart.succeeding_items(_i3) == expected_items);
-    CPPUNIT_ASSERT(_chart.succeeding_items(_i4) == expected_items);
-    
-    expected_items.clear();
-    expected_items.push_back(_i2);
-    expected_items.push_back(_i3);
-    CPPUNIT_ASSERT(_chart.same_cell_items(_i2) == expected_items);
-    CPPUNIT_ASSERT(_chart.same_cell_items(_i3) == expected_items);
+    CPPUNIT_ASSERT(_chart.succeeding_items(_v3, 0, 42) == expected_items);
     
     expected_items.clear();
     expected_items.push_back(_i1);
     expected_items.push_back(_i4);
     expected_items.push_back(_i2);
     expected_items.push_back(_i3);
-    CPPUNIT_ASSERT(_chart.all_succeeding_items(_i0) == expected_items);
+    CPPUNIT_ASSERT(_chart.succeeding_items(_v1, 0, 42) == expected_items);
   }
   
 };

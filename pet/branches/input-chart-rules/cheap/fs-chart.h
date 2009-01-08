@@ -127,14 +127,14 @@ public:
    * are vertices without any preceding items. If \a connected is set to
    * \c true, only vertices with succeeding items are returned.
    */
-  std::list<tChartVertex*> start_vertices(bool connected = true);
+  std::list<tChartVertex*> start_vertices(bool connected = true) const;
 
   /**
    * Returns a list of all end vertices in this chart. End vertices
    * are vertices without any succeeding items. If \a connected is set to
    * \c true, only vertices with preceding items are returned.
    */
-  std::list<tChartVertex*> end_vertices(bool connected = true);
+  std::list<tChartVertex*> end_vertices(bool connected = true) const;
 
   /**
    * Adds the specified item to the chart, placed between the specified
@@ -169,37 +169,47 @@ public:
       item_list skip = item_list());
 
   /**
-   * Returns a list of all items that are in the same chart cell as
-   * the specified item (including the specified item).
+   * Returns a list of all items between vertex \a prec and \a succ.
+   * \a prec or \a succ might be left unspecified (\c 0).
+   * @param prec preceding vertex of all returned items
+   * @param succ succeeding vertex of all returned items
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip_pending_inflrs if \c true, items with pending inflectional
    *                            rules are not returned
    * @param skip list of items to be skipped
    */
   item_list
-  same_cell_items(tItem *item, bool skip_blocked = false,
+  items(tChartVertex *prec, tChartVertex *succ, bool skip_blocked = false,
       bool skip_pending_inflrs = false, item_list skip = item_list());
 
   /**
-   * Returns a list of all items immediately succeeding the specified item.
+   * Returns a list of all items succeeding the specified vertex with a
+   * minimal distance of \a min and a maximal distance of \a max.
+   * @param v the vertex which all returned items succeed
+   * @param min minimal distance of \a v to the start vertex of each item  
+   * @param max maximal distance of \a v to the start vertex of each item  
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip_pending_inflrs if \c true, items with pending inflectional
    *                            rules are not returned
    * @param skip list of items to be skipped
    */
   item_list
-  succeeding_items(tItem *item, bool skip_blocked = false,
+  succeeding_items(tChartVertex *v, int min, int max, bool skip_blocked = false,
       bool skip_pending_inflrs = false, item_list skip = item_list());
 
   /**
-   * Returns a list of all items succeeding the specified item.
+   * Returns a list of all items preceding the specified vertex with a
+   * minimal distance of \a min and a maximal distance of \a max.
+   * @param v the vertex which all returned items precede
+   * @param min minimal distance of \a v to the end vertex of each item  
+   * @param max maximal distance of \a v to the end vertex of each item  
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip_pending_inflrs if \c true, items with pending inflectional
    *                            rules are not returned
    * @param skip list of items to be skipped
    */
   item_list
-  all_succeeding_items(tItem *item, bool skip_blocked = false,
+  preceding_items(tChartVertex *v, int min, int max, bool skip_blocked = false,
       bool skip_pending_inflrs = false, item_list skip = item_list());
 
   /**

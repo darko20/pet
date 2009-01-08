@@ -351,13 +351,15 @@ public:
     }
   }
 
-  /** Return the list of all loaded input mapping rules. */
-  std::list<class tChartMappingRule*> inpmap_rules() {
-    return _inpmap_rules;
+  /** Return the list of all loaded token mapping rules.
+   * \see chart-mapping.h */
+  std::list<class tChartMappingRule*> tokmap_rules() {
+    return _tokmap_rules;
   }
-  /** Return the list of all loaded lexical mapping rules. */
-  std::list<class tChartMappingRule*> lexmap_rules() {
-    return _lexmap_rules;
+  /** Return the list of all loaded lexical filtering rules.
+   * \see chart-mapping.h*/
+  std::list<class tChartMappingRule*> lexflt_rules() {
+    return _lexfil_rules;
   }
 
  private:
@@ -388,9 +390,9 @@ public:
   std::map<type_t, grammar_rule *> _rule_dict;
 
   /** The set of input mapping rules */
-  std::list<class tChartMappingRule*> _inpmap_rules;
+  std::list<class tChartMappingRule*> _tokmap_rules;
   /** The set of lexical mapping rules */
-  std::list<class tChartMappingRule*> _lexmap_rules;
+  std::list<class tChartMappingRule*> _lexfil_rules;
 
   list_int *_root_insts;
 

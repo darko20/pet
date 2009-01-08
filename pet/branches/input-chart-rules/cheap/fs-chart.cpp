@@ -51,14 +51,11 @@ filter_items(const item_list &items,
     item_list &skip,
     item_list &result)
 {
-  for (item_list::const_iterator it = items.begin();
-       it != items.end();
-       it++)
-  {
+  item_list::const_iterator it;
+  for (it = items.begin(); it != items.end(); it++) {
     if (!(skip_blocked && (*it)->blocked())
         && !(skip_pending_inflrs && !(*it)->inflrs_complete_p())
-        && (find(skip.begin(), skip.end(), *it) == skip.end()))
-    {
+        && (find(skip.begin(), skip.end(), *it) == skip.end())) {
       result.push_back(*it);
     }
   }
@@ -80,10 +77,10 @@ tChart::clear()
 }
 
 std::list<tChartVertex*>
-tChart::start_vertices(bool connected)
+tChart::start_vertices(bool connected) const
 {
   std::list<tChartVertex*> vertices;
-  for (std::list<tChartVertex*>::iterator it = _vertices.begin();
+  for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
        it++)
   {
@@ -97,10 +94,10 @@ tChart::start_vertices(bool connected)
 }
 
 std::list<tChartVertex*>
-tChart::end_vertices(bool connected)
+tChart::end_vertices(bool connected) const
 {
   std::list<tChartVertex*> vertices;
-  for (std::list<tChartVertex*>::iterator it = _vertices.begin();
+  for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
        it++)
   {
@@ -165,46 +162,88 @@ tChart::items(bool skip_blocked, bool skip_pending_inflrs, item_list skip)
 }
 
 item_list
-tChart::same_cell_items(tItem *item, bool skip_blocked,
-    bool skip_pending_inflrs, item_list skip)
-{
+tChart::items(tChartVertex *prec, tChartVertex *succ, bool skip_blocked,
+              bool skip_pending_inflrs, item_list skip) {
   item_list result;
-  filter_items(item->prec_vertex()->starting_items(), skip_blocked,
-      skip_pending_inflrs, skip, result);
-  return result;
-}
-
-item_list
-tChart::succeeding_items(tItem *item, bool skip_blocked,
-    bool skip_pending_inflrs, item_list skip)
-{
-  item_list result;
-  filter_items(item->succ_vertex()->starting_items(), skip_blocked,
-      skip_pending_inflrs, skip, result);
-  return result;
-}
-
-item_list
-tChart::all_succeeding_items(tItem *item, bool skip_blocked,
-    bool skip_pending_inflrs, item_list skip)
-{
-  item_list result;
-  std::list<tChartVertex*> vertices;
-  vertices.push_back(item->succ_vertex());
-  for (std::list<tChartVertex*>::iterator vit = vertices.begin();
-       vit != vertices.end();
-       vit++)
-  {
-    item_list succ_items = (*vit)->starting_items();
-    // schedule processing of all vertices not processed before:
-    for (item_iter iit = succ_items.begin(); iit != succ_items.end(); iit++) {
-      tChartVertex *succ = (*iit)->succ_vertex();
-      if (find(vertices.begin(), vertices.end(), succ) == vertices.end())
-        vertices.push_back(succ);
-    }
-    // add filtered succeeding items to the result list:
-    filter_items(succ_items, skip_blocked, skip_pending_inflrs, skip, result);
+  if (prec) {
+    item_list candidates;
+    filter_items(_vertex_to_starting_items[prec], skip_blocked,
+        skip_pending_inflrs, skip, candidates);
+    for (item_iter it = candidates.begin(); it != candidates.end(); it++)
+      if (!succ || ((*it)->succ_vertex() == succ))
+        result.push_back(*it);
+  } else if (succ) {
+    item_list candidates;
+    filter_items(_vertex_to_ending_items[succ], skip_blocked,
+        skip_pending_inflrs, skip, candidates);
+    for (item_iter it = candidates.begin(); it != candidates.end(); it++)
+      if (!prec || ((*it)->prec_vertex() == prec))
+        result.push_back(*it);
+  } else {
+    filter_items(_items, skip_blocked, skip_pending_inflrs, skip, result);
   }
+  return result;
+}
+
+static void
+succeeding_items(tChartVertex *v, int min, int max,
+              bool skip_blocked, bool skip_pending_inflrs, item_list skip,
+              int dist, item_list &result, std::list<tChartVertex*> &vertices) {
+  vertices.push_back(v);
+  if (dist > max)
+    return;
+  item_list items = v->starting_items();
+  // add filtered succeeding items to the result list:
+  if ((min <= dist) && (dist <= max))
+    filter_items(items, skip_blocked, skip_pending_inflrs, skip, result);
+  // schedule processing of all vertices not processed before:
+  for (item_iter iit = items.begin(); iit != items.end(); iit++) {
+    tChartVertex *next = (*iit)->succ_vertex();
+    if (find(vertices.begin(), vertices.end(), next) == vertices.end()) {
+      succeeding_items(next, min, max, skip_blocked, skip_pending_inflrs, skip,
+          dist+1, result, vertices);
+    }
+  }
+}
+
+item_list
+tChart::succeeding_items(tChartVertex *v, int min, int max, bool skip_blocked,
+                         bool skip_pending_inflrs, item_list skip) {
+  item_list result;
+  std::list<tChartVertex*> vertices; // processed vertices
+  ::succeeding_items(v, min, max, skip_blocked, skip_pending_inflrs, skip, 0,
+      result, vertices);
+  return result;
+}
+
+static void
+preceding_items(tChartVertex *v, int min, int max,
+              bool skip_blocked, bool skip_pending_inflrs, item_list skip,
+              int dist, item_list &result, std::list<tChartVertex*> &vertices) {
+  vertices.push_back(v);
+  if (dist > max)
+    return;
+  item_list items = v->ending_items();
+  // add filtered preceding items to the result list:
+  if ((min <= dist) && (dist <= max))
+    filter_items(items, skip_blocked, skip_pending_inflrs, skip, result);
+  // schedule processing of all vertices not processed before:
+  for (item_iter iit = items.begin(); iit != items.end(); iit++) {
+    tChartVertex *next = (*iit)->prec_vertex();
+    if (find(vertices.begin(), vertices.end(), next) == vertices.end()) {
+      preceding_items(next, min, max, skip_blocked, skip_pending_inflrs, skip,
+          dist+1, result, vertices);
+    }
+  }
+}
+
+item_list
+tChart::preceding_items(tChartVertex *v, int min, int max, bool skip_blocked,
+                         bool skip_pending_inflrs, item_list skip) {
+  item_list result;
+  std::list<tChartVertex*> vertices; // processed vertices
+  ::preceding_items(v, min, max, skip_blocked, skip_pending_inflrs, skip, 0,
+      result, vertices);
   return result;
 }
 
