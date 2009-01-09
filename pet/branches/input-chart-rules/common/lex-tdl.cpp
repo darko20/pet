@@ -45,7 +45,7 @@ int lisp_mode = 0; // shall lexer recognize lisp expressions
 void print_token(struct lex_token *t);
 
 struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
-    int rlen = -1)
+    int rlen = -1, bool regex = false)
 {
   struct lex_token *t;
 
@@ -78,7 +78,7 @@ struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
           int j = 0;
           for (int i = 0; i < len; i++)
             {
-              if (s[i] == '\\')
+              if ((s[i] == '\\') && (!regex || s[i+1] == '/'))
                 i++; // skip, copy following character
               dest[j++] = s[i];
             }
@@ -86,7 +86,7 @@ struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
         }
       dest[rlen] = '\0';
     }
-
+  
   return t;
 }
 
@@ -219,7 +219,7 @@ struct lex_token *get_next_token()
 
       while(LLA(i) != EOF && LLA(i) != '/')
         {
-          if (LLA(i) == '\\')
+          if ((LLA(i) == '\\') && (LLA(i+1) == '/'))
             i++; // skip
           i++;
           l++;
@@ -233,7 +233,7 @@ struct lex_token *get_next_token()
         }
 
       i += 1;
-      t = make_token(T_STRING, start, i, l);
+      t = make_token(T_STRING, start, i, l, true);
       LConsume(i);
     }
   else if(c == '(' && lisp_mode)
