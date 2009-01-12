@@ -289,12 +289,13 @@ struct lex_token *get_next_token()
   }
   else if(c == ':')
     {
-      if(LLA(1) == '<')
-        {
-          t = make_token(T_ISA, ":<", 2);
-          LConsume(2);
-        }
-      else if(LLA(1) == '=')
+      //
+      // in november 2008, following an email discussion on the `developers' 
+      // list, we decided to treat `:<' (originally a sub-type definition
+      // without local constraints) as a syntactic variant of `:='.  i apply
+      // the corresponding change to the LKB today.            (29-nov-08; oe)
+      //
+      if(LLA(1) == '=' || LLA(1) == '<')
         {
           t = make_token(T_ISEQ, ":=", 2);
           LConsume(2);
