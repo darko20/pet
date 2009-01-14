@@ -701,7 +701,8 @@ modify_arg_fs(fs arg_fs, tPathRegexMap &regexs)
 #else
     string::iterator begin = arg_val.begin();
     string::iterator end = arg_val.end();
-    if ((*(begin++) == '"') && (*(begin++) == '/') &&
+    if ((arg_val.length() >= 4) &&
+        (*(begin++) == '"') && (*(begin++) == '/') &&
         (*(--end)   == '"') && (*(--end)   == '/')) {
       arg_val.assign(begin, end); // use the regex string only
       regexs[regex_path] = boost::regex(arg_val);
