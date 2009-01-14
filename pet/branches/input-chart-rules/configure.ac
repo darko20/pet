@@ -232,6 +232,21 @@ unset CHEAPCPPFLAGS CHEAPCXXFLAGS CHEAPLDFLAGS CHEAPLIBS
 
 
 # --------------------------------------------------------------------
+# IBM ICU library.
+# --------------------------------------------------------------------
+
+AX_LIB_ICU([],
+  [
+    icu=yes
+    export CHEAPCPPFLAGS="$ICU_CPPFLAGS_SEARCHPATH $CHEAPCPPFLAGS"
+    export CHEAPLDFLAGS="$ICU_LDFLAGS_SEARCHPATH $CHEAPLDFLAGS"
+    export CHEAPLIBS="$ICU_LIBS $CHEAPLIBS"
+  ],
+  [icu=no])
+AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
+
+
+# --------------------------------------------------------------------
 # Boost libraries
 # --------------------------------------------------------------------
 
@@ -249,11 +264,13 @@ if test "$boost" = "yes" ; then
                     boost/tuple/tuple_comparison.hpp ],
                    [],
                    [ boost="no" ])
-  AC_CHECK_HEADERS([boost/regex/icu.hpp],
-                   [],
-                   [AC_MSG_WARN([Boost::Regex is not configured for ICU.
-                                 No Unicode-support in regular expressions.])],
-                   [])
+  if test "x$icu" = "xyes" ; then
+    AC_CHECK_HEADERS([boost/regex/icu.hpp],
+                     [],
+                     [AC_MSG_WARN([Boost::Regex is not configured for ICU.
+                                   No Unicode-support in regular expressions.])],
+                     [])
+  fi
   CPPFLAGS="${savedCPPFLAGS}"
 fi
 if test "$boost" = "yes" ; then
@@ -265,21 +282,6 @@ if test "$boost" = "yes" ; then
 else
   AC_MSG_ERROR([required Boost libraries are missing or incomplete])
 fi
-
-
-# --------------------------------------------------------------------
-# IBM ICU library.
-# --------------------------------------------------------------------
-
-AX_LIB_ICU([],
-  [
-    icu=yes
-    export CHEAPCPPFLAGS="$ICU_CPPFLAGS_SEARCHPATH $CHEAPCPPFLAGS"
-    export CHEAPLDFLAGS="$ICU_LDFLAGS_SEARCHPATH $CHEAPLDFLAGS"
-    export CHEAPLIBS="$ICU_LIBS $CHEAPLIBS"
-  ],
-  [icu=no])
-AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
 
 
 # --------------------------------------------------------------------
