@@ -689,8 +689,10 @@ modify_arg_fs(fs arg_fs, tPathRegexMap &regexs)
     UnicodeString uc_arg_val = Conv->convert(arg_val);
     static UnicodeString rex_start("\"/", -1, US_INV);
     static UnicodeString rex_end  ("/\"", -1, US_INV);
-    if (uc_arg_val.startsWith(rex_start) && uc_arg_val.endsWith(rex_end)) {
-      uc_arg_val.setTo(uc_arg_val, 2, uc_arg_val.length() - 4);
+    int32_t len = uc_arg_val.length(); 
+    if ((len >= 4) && uc_arg_val.startsWith(rex_start)
+        && uc_arg_val.endsWith(rex_end)) {
+      uc_arg_val.setTo(uc_arg_val, 2, len - 4);
       regexs[regex_path] = boost::make_u32regex(uc_arg_val);
       arg_fs.get_path_value(regex_path).set_type(BI_STRING);
     } else {
