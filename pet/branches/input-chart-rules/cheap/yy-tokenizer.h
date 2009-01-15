@@ -30,7 +30,9 @@ public:
   /** Return \c true if the position in the returned tokens are counts instead
    *  of positions.
    */
-  virtual position_map position_mapping() { return _position_mapping ; }
+  virtual position_map position_mapping() { 
+    return (_inhibit_position_mapping ? NO_POSITION_MAP : _position_mapping);
+  }
 
 private:
   /** Is the tokenizer at the end of the file? */
@@ -65,6 +67,7 @@ private:
   /** Get the next token */
   class tInputItem *read_token();
 
+  bool _inhibit_position_mapping;
   position_map _position_mapping;
   std::string _yyinput;
   std::string::size_type _yypos;
