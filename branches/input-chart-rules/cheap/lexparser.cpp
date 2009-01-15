@@ -130,7 +130,7 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
 // _fix_me_
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
-  if (!opt_chart_mapping &&_carg_path != NULL) {
+  if (!opt_chart_mapping && _carg_path != NULL) {
     mods.push_back(pair<string, int>(_carg_path
                                      , retrieve_string_instance(carg)));
   }

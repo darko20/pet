@@ -75,14 +75,16 @@ static bool charz_use = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
-  char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
-  char *cto_path = cheap_settings->value("mrs-cto-path");
-  if ((cfrom_path != NULL) && (cto_path != NULL)) {
-    cfrom.set(cfrom_path);
-    cto.set(cto_path);
-    charz_init = true;
-    charz_use = opt_mrs; //(Config::get<char*>("opt_mrs") != 0);
-  }
+  if(!opt_chart_mapping) {
+    char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
+    char *cto_path = cheap_settings->value("mrs-cto-path");
+    if ((cfrom_path != NULL) && (cto_path != NULL)) {
+      cfrom.set(cfrom_path);
+      cto.set(cto_path);
+      charz_init = true;
+      charz_use = opt_mrs; //(Config::get<char*>("opt_mrs") != 0);
+    }
+  } // if
 }
 
 void finalize_characterization() {
@@ -90,7 +92,7 @@ void finalize_characterization() {
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
-  if(charz_use) {
+  if(!opt_chart_mapping && charz_use) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
                               , retrieve_string_instance(from))
