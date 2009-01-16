@@ -303,7 +303,7 @@ inline fs unify(fs &root, const fs &a, fs &b) {
  */
 extern fs unify_np(fs &root, const fs &a, fs &b);
 
-/** Do a bidirectional check for subsumtion
+/** Do a bidirectional check for subsumption
  * \a forward is  \c true if \a a subsumes \a b, \a backward is \c true if
  * \a b subsumes \a a.
  * \attention this function does not reset forward and backward on entry.
