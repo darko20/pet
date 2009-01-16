@@ -148,7 +148,7 @@ lex_parser::add(tLexItem *lex) {
     add_item(lex);  // from parse.cpp
     stats.words++;  // we count these for compatibility, not the ones after
                     // lexical processing
-    // _fix_me_ Berthold says, this is not the right number
+                    // _fix_me_ Berthold says, this is not the right number
   } else {
     // put the lex item onto the lex_parser's private "chart" of active entries
     // in principle, the chart is not necessary because all input items are on
@@ -187,31 +187,43 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   // Add modifications coming from the input
   newfs.modify_eagerly(mods);
   
-  // unify input feature structure into the path 
-  if (tChartUtil::lexicon_tokens_path()) {
-    // build an ARGS list of the right arity:
-    fs args_fs(BI_LIST);
+  //
+  // _fix_me_
+  // for non-MWE lexical entries, unify the input feature structure into the
+  // `tokens' path.  this may fail, e.g. for generic lexical entries that put
+  // constraints on their tokens.  for MWEs, however, we let the creation of
+  // lexical items run its course, until lexical parsing has fully instantiated
+  // the argument slots of the lexical entry.  regrettably, something similar
+  // to the code below is then applied in lex_and_inp_task::execute().  i find
+  // it tricky to identify the right time and place for this unification to be
+  // attempted: we need all the pieces, but it must happen prior to invoking
+  // the tLexItem constructor on the passive item.              (16-jan-09; oe)
+  //
+  if (stem->length() == 1 
+      && tChartUtil::lexicon_tokens_path()
+      && tChartUtil::lexicon_last_token_path()) {
     fs cons_fs(BI_CONS);
     fs nil_fs(BI_NIL);
     fs input_fs = i_item->get_fs();
-    list_int *lpath = 0;
-    for (int i = 0; i < stem->length(); i++) {
-      args_fs = unify(args_fs, args_fs.get_path_value(lpath), cons_fs);
-      lpath = append(lpath, BIA_REST);
-    }
-    args_fs = unify(args_fs, args_fs.get_path_value(lpath), nil_fs);
-    args_fs = unify(args_fs, args_fs.get_attr_value(BIA_FIRST), input_fs);
-    free_list(lpath);
-    
-    // unify ARGS into newfs:
+    cons_fs = unify(cons_fs, cons_fs.get_attr_value(BIA_FIRST), input_fs);
+    cons_fs = unify(cons_fs, cons_fs.get_attr_value(BIA_REST), nil_fs);
     fs anchor_fs = newfs.get_path_value(tChartUtil::lexicon_tokens_path());
     if (!anchor_fs.valid())
       throw tError((std::string)"Failed to get a value for the specified "
         "`lexicon-tokens-path' setting in lexical item of type `" +
         newfs.printname() + "'.");
-    newfs = unify(newfs, anchor_fs, args_fs);
+    newfs = unify(newfs, anchor_fs, cons_fs);
+    if (newfs.valid()) {
+      anchor_fs = newfs.get_path_value(tChartUtil::lexicon_last_token_path());
+      if (!anchor_fs.valid())
+        throw tError((std::string)"Failed to get a value for the specified "
+                     "`lexicon-last-token-path' setting in lexical item of "
+                     "type `" + newfs.printname() + "'.");
+      newfs = unify(newfs, anchor_fs, input_fs);
+    } // if
   }
-  
+
+
   if (newfs.valid()) {
     add(new tLexItem(stem, i_item, newfs, infl_rules));
   } else if(verbosity > 4) {
@@ -255,6 +267,10 @@ lex_parser::add(tInputItem *inp) {
   
   // do a morphological analysis if necessary:
   list<tMorphAnalysis> morphs;
+  //
+  // _fix_me_/
+  // why does DEFAULT_LES_ALL force morphological analysis?    (16-jan-09; oe)
+  //
   if (opt_default_les == DEFAULT_LES_ALL || inp->is_word_token()) {
     morphs = morph_analyze(inp->form());
   }
@@ -974,3 +990,73 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   }
 
 }
+
+
+void lex_and_inp_task::execute(class lex_parser &parser) {
+
+  // the lex item already has its infl position filled (as long as the
+  // MW extension infl AND keypos is not done)
+  // check if the current orthography matches the one of the input item
+  // and that the same combination was not executed before
+  if (_lex_item->compatible(_inp_item)) {
+    //
+    // in case we have found all arguments for this lexical entry, including
+    // MWEs, unify all input feature structures into the `tokens' path.  it is
+    // necessary to do this now, before we create a new (passive) lexical item,
+    // because lexical instantiation can fail at this point, specifically for
+    // generic lexical items that carry constraints that are incompatible with
+    // the token information.
+    //
+    if (_lex_item->near_passive() && tChartUtil::lexicon_tokens_path()) {
+      //
+      // first, build a list of the right arity, containing the token FSs
+      //
+      fs list_fs(BI_LIST);
+      fs nil_fs(BI_NIL);
+      list_int *lpath = 0;
+      list<tItem *> daughters(_lex_item->daughters());
+      if(_lex_item->left_extending())
+        daughters.push_front(_inp_item);
+      else
+        daughters.push_back(_inp_item);
+      for(item_citer daughter = daughters.begin();
+          daughter != daughters.end();
+          ++daughter) {
+        fs token_fs = dynamic_cast<tInputItem *>(*daughter)->get_fs();
+        fs cons_fs(BI_CONS);
+        cons_fs = unify(cons_fs, cons_fs.get_attr_value(BIA_FIRST), token_fs);
+        list_fs = unify(list_fs, list_fs.get_path_value(lpath), cons_fs);
+        lpath = append(lpath, BIA_REST);
+      } // for
+      list_fs = unify(list_fs, list_fs.get_path_value(lpath), nil_fs);
+      free_list(lpath);
+
+      fs item_fs = _lex_item->get_fs(true);
+      fs anchor_fs = item_fs.get_path_value(tChartUtil::lexicon_tokens_path());
+      if (!anchor_fs.valid())
+        throw tError((std::string)"Failed to get a value for the specified "
+                     "`lexicon-tokens-path' setting in lexical item of type `" 
+                     + get_printname(_lex_item->type()) + "'.");
+      item_fs = unify(item_fs, anchor_fs, list_fs);
+      anchor_fs 
+        = item_fs.get_path_value(tChartUtil::lexicon_last_token_path());
+      if (!anchor_fs.valid())
+        throw tError((std::string)"Failed to get a value for the specified "
+                     "`lexicon-last-token-path' setting in lexical item of "
+                     "type `" + get_printname(_lex_item->type()) + "'.");
+      fs token_fs = dynamic_cast<tInputItem *>(daughters.back())->get_fs();
+      item_fs = unify(item_fs, anchor_fs, token_fs);
+      //
+      // only create (and add()) a new lexical item when unification succeeded
+      // 
+      if(item_fs.valid()) {
+        add(parser, new tLexItem(_lex_item, _inp_item, item_fs));
+      } // if
+    } // if
+    else {
+      // add the lex item to the chart and create appropriate tasks
+      add(parser, new tLexItem(_lex_item, _inp_item));
+    } // else
+  }
+
+} // lex_and_inp_task::execute()
