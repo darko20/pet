@@ -310,6 +310,7 @@ list_int* tChartUtil::_token_inflr_path = 0;
 list_int* tChartUtil::_token_postags_path = 0;
 list_int* tChartUtil::_token_posprobs_path = 0;
 list_int* tChartUtil::_lexicon_tokens_path = 0;
+list_int* tChartUtil::_lexicon_last_token_path = 0;
 list_int* tChartUtil::_context_path = 0;
 list_int* tChartUtil::_input_path = 0;
 list_int* tChartUtil::_output_path = 0;
@@ -340,6 +341,8 @@ tChartUtil::initialize()
       || !init_lpath(_token_posprobs_path, "token-posprobs-path", e))
     m += "parts of speech, ";
   if (!init_lpath(_lexicon_tokens_path, "lexicon-tokens-path", e))
+    w += " [ no input fs in lexical items ] ";
+  if (!init_lpath(_lexicon_last_token_path, "lexicon-last-token-path", e))
     w += " [ no input fs in lexical items ] ";
   if (!init_lpath(_context_path, "chart-mapping-context-path", e))
     e += "Setting `chart-mapping-context-path' required for chart mapping.\n";
