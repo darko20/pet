@@ -857,6 +857,11 @@ class tLexItem : public tItem
    */
   tLexItem(tLexItem *from, tInputItem *new_dtr);
 
+  /** Build a new tLexItem from an active tLexItem and another tInputItem (a
+   *  new daughter), plus the fs of unifying in input item feature structures.
+   */
+  tLexItem(tLexItem *from, tInputItem *new_dtr, fs &f);
+
   ~tLexItem() {
     free_list(_inflrs_todo);
 
@@ -901,6 +906,11 @@ class tLexItem : public tItem
   /** Is this item passive or not? */
   bool passive() const {
     return (_ldot == 0) && (_rdot == _stem->length());
+  }
+
+  // *Is this item almost passive, i.e. missing exactly one argument */
+  bool near_passive() const {
+    return (_ldot == 1 || _rdot == _stem->length() - 1);
   }
 
   /** Is this item active and extends to the left? */
