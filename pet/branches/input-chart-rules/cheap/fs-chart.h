@@ -304,7 +304,7 @@ private:
   static list_int* _token_posprobs_path;
   /** path within lexical items into which the list of input fss is unified */
   static list_int* _lexicon_tokens_path;
-  /** last element of the list of input fss is unified */
+  /** path within lexical items into which the rightmost input fs is unified */
   static list_int* _lexicon_last_token_path;
   /** CONTEXT path within the rule's feature structure representation. */
   static list_int* _context_path;
@@ -329,8 +329,10 @@ public:
    */
   static void initialize();
 
-  /** Get the path in lexical items into which input items should be unified. */
+  /** Get the paths in lexical items into which input items or the rightmost
+      token should be unified. */
   static const list_int* lexicon_tokens_path();
+  static const list_int* lexicon_last_token_path();
   /** Get the CONTEXT path for chart mapping rules. */
   static const list_int* context_path();
   /** Get the INPUT path for chart mapping rules. */
@@ -516,6 +518,12 @@ inline const list_int*
 tChartUtil::lexicon_tokens_path()
 {
   return _lexicon_tokens_path;
+}
+
+inline const list_int*
+tChartUtil::lexicon_last_token_path()
+{
+  return _lexicon_last_token_path;
 }
 
 inline const list_int*
