@@ -319,16 +319,7 @@ public:
     : _lex_item(lex), _inp_item(inp) {};
 
   /** Combine a tInputItem with an active tLexItem. Create new tasks. */
-  virtual void execute(class lex_parser &parser) {
-    // the lex item already has its infl position filled (as long as the
-    // MW extension infl AND keypos is not done)
-    // check if the current orthography matches the one of the input item
-    // and that the same combination was not executed before
-    if (_lex_item->compatible(_inp_item)) {
-      // add the lex item to the chart and create appropriate tasks
-      add(parser, new tLexItem(_lex_item, _inp_item));
-    }
-  }
+  virtual void execute(class lex_parser &parser);
 
 private:
   tLexItem *_lex_item;
