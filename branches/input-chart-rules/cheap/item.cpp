@@ -359,13 +359,23 @@ void tLexItem::init() {
 #endif
 }
 
+//
+// _fix_me_
+// i doubt the _ldot and _rdot logic here.  currently, lex_stem has hardwired
+// inflpos() to the last position, i.e. for an MWE with two tokens (Palo Alto),
+// inflpos() will be 1; for non-MWEs, it will be 0.  hence, all active lexical
+// items are effectively left-extending, and _rdot never gets to play a role.
+// yet, i believe it should be initialized to 1, for right-extending items, not
+// inflpos() + 1, as it used to be.                             (16-jan-09; oe)
+//
 tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
                    , fs &f, const list_int *inflrs_todo)
   : tItem(i_item->start(), i_item->end(), i_item->paths()
           , f, stem->printname())
-  , _ldot(stem->inflpos()), _rdot(stem->inflpos() + 1)
+  , _ldot(stem->inflpos())
   , _stem(stem), _fs_full(f), _hypo(NULL)
 {
+  _rdot = (_ldot ? stem->length() : 1);
   _startposition = i_item->startposition();
   _endposition = i_item->endposition();
   _inflrs_todo = copy_list(inflrs_todo);
@@ -378,6 +388,37 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
 tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
   : tItem(-1, -1, from->paths().common(newdtr->paths())
           , from->get_fs(), from->printname())
+    , _ldot(from->_ldot), _rdot(from->_rdot)
+    , _keydaughter(from->_keydaughter)
+  , _stem(from->_stem), _fs_full(from->get_fs()), _hypo(NULL)
+{
+  _daughters = from->_daughters;
+  _inflrs_todo = copy_list(from->_inflrs_todo);
+  _key_item = this;
+  if(from->left_extending()) {
+    _start = newdtr->start();
+    _startposition = newdtr->startposition();
+    _end = from->end();
+    _endposition = from->endposition();
+    _daughters.push_front(newdtr);
+    _ldot--;
+    // register this expansion to avoid duplicates
+    from->_expanded.push_back(_start);
+  } else {
+    _start = from->start();
+    _startposition = from->startposition();
+    _end = newdtr->end();
+    _endposition = newdtr->endposition();
+    _daughters.push_back(newdtr);
+    _rdot++;
+    from->_expanded.push_back(_end);
+  }
+  init();
+}
+
+tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr, fs &f)
+  : tItem(-1, -1, from->paths().common(newdtr->paths())
+          , f, from->printname())
     , _ldot(from->_ldot), _rdot(from->_rdot)
     , _keydaughter(from->_keydaughter)
   , _stem(from->_stem), _fs_full(from->get_fs()), _hypo(NULL)
