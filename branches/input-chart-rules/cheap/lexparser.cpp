@@ -1007,7 +1007,9 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
     // generic lexical items that carry constraints that are incompatible with
     // the token information.
     //
-    if (_lex_item->near_passive() && tChartUtil::lexicon_tokens_path()) {
+    if (_lex_item->near_passive() 
+        && tChartUtil::lexicon_tokens_path()
+        && tChartUtil::lexicon_last_token_path()) {
       //
       // first, build a list of the right arity, containing the token FSs
       //
@@ -1038,14 +1040,16 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
                      "`lexicon-tokens-path' setting in lexical item of type `" 
                      + get_printname(_lex_item->type()) + "'.");
       item_fs = unify(item_fs, anchor_fs, list_fs);
-      anchor_fs 
-        = item_fs.get_path_value(tChartUtil::lexicon_last_token_path());
-      if (!anchor_fs.valid())
-        throw tError((std::string)"Failed to get a value for the specified "
-                     "`lexicon-last-token-path' setting in lexical item of "
-                     "type `" + get_printname(_lex_item->type()) + "'.");
-      fs token_fs = dynamic_cast<tInputItem *>(daughters.back())->get_fs();
-      item_fs = unify(item_fs, anchor_fs, token_fs);
+      if(item_fs.valid()) {
+        anchor_fs 
+          = item_fs.get_path_value(tChartUtil::lexicon_last_token_path());
+        if (!anchor_fs.valid())
+          throw tError((std::string)"Failed to get a value for the specified "
+                       "`lexicon-last-token-path' setting in lexical item of "
+                       "type `" + get_printname(_lex_item->type()) + "'.");
+        fs token_fs = dynamic_cast<tInputItem *>(daughters.back())->get_fs();
+        item_fs = unify(item_fs, anchor_fs, token_fs);
+      } // if
       //
       // only create (and add()) a new lexical item when unification succeeded
       // 

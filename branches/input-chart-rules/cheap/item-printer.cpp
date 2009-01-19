@@ -217,9 +217,9 @@ tCompactDerivationPrinter::real_print(const tInputItem *item) {
        << item->orth()
        << (_quoted ? "\\\" " : "\" ")
        << std::setprecision(4) << item->score() << " "
-       << item->start() << " " << item->end() << " "
-       << item->startposition() << " " << item->endposition()
-       << ")";
+       << item->start() << " " << item->end() << " <"
+       << item->startposition() << ":" << item->endposition()
+       << ">)";
 }
 
 void 
