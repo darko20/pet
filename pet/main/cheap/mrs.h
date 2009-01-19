@@ -51,11 +51,10 @@ public:
   tBaseVar() {
   }
   
-  tBaseVar(char t) : type(t) {
+  tBaseVar(std::string t) : type(t) {
   }
-  char type;
+  std::string type;
   std::map<std::string,std::string> extra; // extra agreements
-  
 };
 
 class tVar : public tBaseVar {
@@ -66,7 +65,7 @@ public:
   tVar(int vid) : id(vid) {
   }
 
-  tVar(int vid, char t) : tBaseVar(t), id(vid) {
+  tVar(int vid, std::string t) : tBaseVar(t), id(vid) {
   } 
 
   tVar(int vid, dag_node* dag, bool indexing);
@@ -206,9 +205,9 @@ public:
    * if the variable is not registered
    * a new variable will be created, registered and returned 
    */
-  tVar* request_var(int vid, char type);
+  tVar* request_var(int vid, std::string type);
   tVar* request_var(int vid);
-  tVar* request_var(char type);
+  tVar* request_var(std::string type);
   tVar* request_var(struct dag_node* dag);
 
   /**
@@ -268,7 +267,7 @@ void create_index_property_list(struct dag_node* dag, std::string path, std::map
   /* check the the compatibility of two types
    * returns true if type1 is compatible with type2
    */
-bool compatible_var_types(char type1, char type2);
+  bool compatible_var_types(std::string type1, std::string type2);
   
 }
 
