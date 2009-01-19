@@ -22,10 +22,11 @@ public:
   virtual ~tVPM();
 
   string id;
-  // what is this tms?
-  //list<class tm*> tms;
 
-  // parameter mapping rules
+  /** variable type mappings */
+  list<class tMR*> tms;
+
+  /** parameter mapping rules*/
   list<class tPM*> pms;
 
   bool read_vpm(const string &filename, string id="default");
@@ -38,6 +39,7 @@ private:
   
 };
 
+/** Parameter mapping */
 class tPM {
 public:
 
@@ -48,12 +50,13 @@ public:
   
   list<string> lhs;
   list<string> rhs;
-  list<class tPMR*> pmrs;
+  list<class tMR*> pmrs;
 };
 
-class tPMR {
+/** Mapping rule, being it for parameters or types */
+class tMR {
 public:
-  tPMR() : forward(false), backward(false), eqtest(false) {
+  tMR() : forward(false), backward(false), eqtest(false) {
   }
 
   list<string> left;
@@ -62,7 +65,7 @@ public:
   bool backward;
   bool eqtest;
   
-  bool test(char type, list<string> values, bool forwardp);
+  bool test(string type, list<string> values, bool forwardp);
 };
 
 
