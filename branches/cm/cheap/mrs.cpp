@@ -129,11 +129,11 @@ tPSOA::tPSOA(struct dag_node* dag) {
 
   // extract top-h
   struct dag_node* d = FAIL;
-  char* psoa_top_h_path = cheap_settings->req_value("mrs-psoa-top-h-path");
-  if (strcmp(psoa_top_h_path, "") == 0) 
+  char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
+  if (!psoa_top_h_path || strcmp(psoa_top_h_path, "") == 0) 
     top_h = request_var("h");
   else { 
-    d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-top-h-path"));
+    d = dag_get_path_value(init_sem_dag, psoa_top_h_path);
     if (d == FAIL) {
       _valid = false;
       fprintf(ferr, "no mrs-psoa-top-h-path found.\n");
