@@ -64,7 +64,7 @@ register_var(tVar *var) {
 }
 
 tVar* tBaseMRS::
-request_var(int vid, char type) {
+request_var(int vid, std::string type) {
   tVar* var;
   if (_vars_map.find(vid) != _vars_map.end()) {
     var = _vars_map[vid];
@@ -90,7 +90,7 @@ request_var(int vid) {
 }
 
 tVar* tBaseMRS::
-request_var(char type) {
+request_var(std::string type) {
   tVar* var = new tVar(_vid_generator++, type);
   register_var(var);
   return var;
@@ -131,7 +131,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
   struct dag_node* d = FAIL;
   char* psoa_top_h_path = cheap_settings->req_value("mrs-psoa-top-h-path");
   if (strcmp(psoa_top_h_path, "") == 0) 
-    top_h = request_var('h');
+    top_h = request_var("h");
   else { 
     d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-top-h-path"));
     if (d == FAIL) {
@@ -378,7 +378,9 @@ print_full(FILE* f) {
 tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
   if (dag != FAIL) {
 
-    // determine variable type
+    /* 
+       this has been deprecated by variable type mapping in the VPM  (yi jan-09)
+    //   determine variable type
     type_t t = dag_type(dag);
     
     type_t event_type = lookup_type(cheap_settings->req_value("mrs-event-type"));
@@ -389,15 +391,18 @@ tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
     type_t ref_ind_type = lookup_type(cheap_settings->req_value("mrs-ref-ind-type"));
     type_t non_event_type = lookup_type(cheap_settings->req_value("mrs-non-event-type"));
 
-    if (subtype(t, event_type)) type = 'e';
-    else if (event_type != -1 && subtype(t, ref_ind_type)) type = 'x';
-    else if (non_expl_ind_type != -1 && subtype(t, non_expl_ind_type)) type = 'i';
-    else if (deg_ind_type != -1 && subtype(t, deg_ind_type)) type = 'd';
-    else if (handle_type != -1 && subtype(t, handle_type)) type = 'h';
-    else if (non_event_type != -1 && subtype(t, non_event_type)) type = 'p';
-    else if (event_or_index_type != -1 && subtype(t, event_or_index_type)) type = 'i';
-    else type = 'u';
+    if (subtype(t, event_type)) type = "e";
+    else if (event_type != -1 && subtype(t, ref_ind_type)) type = "x";
+    else if (non_expl_ind_type != -1 && subtype(t, non_expl_ind_type)) type = "i";
+    else if (deg_ind_type != -1 && subtype(t, deg_ind_type)) type = "d";
+    else if (handle_type != -1 && subtype(t, handle_type)) type = "h";
+    else if (non_event_type != -1 && subtype(t, non_event_type)) type = "p";
+    else if (event_or_index_type != -1 && subtype(t, event_or_index_type)) type = "i";
+    else type = "u"; 
+    */
 
+    type = typenames[dag_type(dag)];
+    
     // create index property list
     create_index_property_list(dag, "", extra);
 
@@ -407,12 +412,12 @@ tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
 
 void tVar::
 print(FILE* f) {
-  fprintf(f, "<var vid='%d' sort='%c'></var>", id, type);
+  fprintf(f, "<var vid='%d' sort='%s'></var>", id, type.c_str());
 }
 
 void tVar::
 print_full(FILE* f) {
-  fprintf(f, "<var vid='%d' sort='%c'>", id, type);
+  fprintf(f, "<var vid='%d' sort='%s'>", id, type.c_str());
   // _todo_ this should be adapted to handle the feature priority
   std::list<std::string> feats;
   for (std::map<std::string,std::string>::iterator extrapair = extra.begin();
@@ -448,16 +453,18 @@ create_index_property_list(dag_node* dag, std::string path, std::map<std::string
   }
 }
 
-bool compatible_var_types(char type1, char type2) {
+  /* this was from the LKB implementation, and is now largely
+    deprecated by the extension of variable type mapping in VPM */
+  bool compatible_var_types(std::string type1, std::string type2) {
   if (type1 == type2)
     return true;
-  if (type1 == 'u' || type2 == 'u')
+  if (type1 == "u" || type2 == "u")
     return true;
-  if ((type1 == 'e' && type2 == 'i') ||
-      (type1 == 'i' && type2 == 'e'))
+  if ((type1 == "e" && type2 == "i") ||
+      (type1 == "i" && type2 == "e"))
     return true;
-  if ((type1 == 'x' && type2 == 'i') ||
-      (type1 == 'i' && type2 == 'x'))
+  if ((type1 == "x" && type2 == "i") ||
+      (type1 == "i" && type2 == "x"))
     return true;
   return false;
 }

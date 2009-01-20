@@ -40,8 +40,8 @@ read_vpm(const string &filename, string id) {
         tok = strtok(NULL, " \t\n");
       }
     } else if (strpbrk(line, "<>=") != NULL) {
-      // a line of pmr
-      tPMR* pmr = new tPMR();
+      // a line of mapping rule, being it for types or parameters
+      tMR* mr = new tMR();
       char* tok = strtok(line, " \t\n");
       bool onleft = true;
       while (tok != NULL) {
@@ -52,15 +52,15 @@ read_vpm(const string &filename, string id) {
             return false;
           }
           if (strcmp(tok, "==") == 0) {
-            pmr->forward = true;
-            pmr->backward = true;
+            mr->forward = true;
+            mr->backward = true;
           }
           if (strchr(tok, '>') != NULL)
-            pmr->forward = true;
+            mr->forward = true;
           if (strchr(tok, '<') != NULL)
-            pmr->backward = true;
+            mr->backward = true;
           if (strchr(tok, '=') != NULL)
-            pmr->eqtest = true;
+            mr->eqtest = true;
           if (strspn(tok, "<>=") != strlen(tok)) {
             fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", tok);
             return false;
@@ -68,22 +68,23 @@ read_vpm(const string &filename, string id) {
           onleft = false;
         } else {
           if (onleft) 
-            pmr->left.push_back(tok);
+            mr->left.push_back(tok);
           else 
-            pmr->right.push_back(tok);
+            mr->right.push_back(tok);
         }
         tok = strtok(NULL, " \t\n");
       }
-      if (pm == NULL) {
-        fprintf(ferr, "Invalid line while reading vpm.\n");
+      if (pm == NULL && mr->left.size() == 1 && mr->right.size() == 1)
+        // it's a variable type mapping
+        tms.push_back(mr);
+      else if (mr->left.size() == pm->lhs.size() ||
+               mr->right.size() == pm->rhs.size())
+        pm->pmrs.push_back(mr);
+      else {
+        // a bad mapping rule with unmatched lhs or rhs
+        fprintf(ferr, "The pm rule is not valid.\n");
         return false;
       }
-      if (pmr->left.size() != pm->lhs.size() ||
-          pmr->right.size() != pm->rhs.size()) {
-        fprintf(ferr, "The pm rule size does not match.\n");
-        return false;
-      }
-      pm->pmrs.push_back(pmr);
     }
   }
   if (pm != NULL)
@@ -141,10 +142,28 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
   if (_vv_map.find(var_in) != _vv_map.end()) // already mapped
     return _vv_map[var_in];
 
-  tVar* var_new = mrs->request_var(var_in->id, var_in->type);
+  // map variable type
+  string new_type = var_in->type;
+  for (list<tMR*>::iterator tm = tms.begin();
+       tm != tms.end(); tm ++) { // for each TM
+    if (forwardp && !(*tm)->forward)
+      continue;
+    if (!forwardp && !(*tm)->backward)
+      continue;
+    string ltname = forwardp ? (*tm)->left.front() : (*tm)->right.front();
+    string rtname = forwardp ? (*tm)->right.front() : (*tm)->left.front();
+    type_t lt = lookup_type(ltname.c_str());
+    type_t vt = lookup_type(var_in->type.c_str());
+    if ((lt != -1 && vt != -1 && subtype(vt, lt)) || 
+        ltname == "*" ) {
+      new_type = rtname;
+      break;
+    }
+  }
+  tVar* var_new = mrs->request_var(var_in->id, new_type);
   // map properties
   for (list<tPM*>::iterator pm = pms.begin();
-       pm != pms.end(); pm ++) { // for each PM
+       pm != pms.end(); pm ++) { // for each PM set
     list<string> lhs = forwardp ? (*pm)->lhs : (*pm)->rhs;
     list<string> rhs = forwardp ? (*pm)->rhs : (*pm)->lhs;
     list<string> values;
@@ -155,9 +174,9 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
       else
         values.push_back(var_in->extra[*property]);
     }
-    for (list<tPMR*>::iterator pmr = (*pm)->pmrs.begin();
-         pmr != (*pm)->pmrs.end(); pmr ++) { // for each PM-rule
-      if ((*pmr)->test(var_new->type, values, forwardp)) {
+    for (list<tMR*>::iterator pmr = (*pm)->pmrs.begin();
+         pmr != (*pm)->pmrs.end(); pmr ++) { // for each mapping-rule
+      if ((*pmr)->test(var_in->type, values, forwardp)) {
         list<string> right = forwardp ? (*pmr)->right : (*pmr)->left;
         for (list<string>::iterator property = rhs.begin(), 
                newval = right.begin();
@@ -180,13 +199,13 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
 }
 
 tPM::~tPM() {
-  for (list<class tPMR*>::iterator pmr = pmrs.begin();
+  for (list<class tMR*>::iterator pmr = pmrs.begin();
        pmr != pmrs.end(); pmr ++) 
     delete *pmr;
 }
 
-bool tPMR::
-test(char type, list<string> values, bool forwardp) {
+bool tMR::
+test(string type, list<string> values, bool forwardp) {
   if (forwardp && !forward)
     return false;
   if (!forwardp && !backward)
@@ -197,28 +216,32 @@ test(char type, list<string> values, bool forwardp) {
     return false;
   for (list<string>::iterator match = matches.begin(), value = values.begin();
        match != matches.end() && value != values.end(); match ++, value ++) {
-    if ((*match).c_str()[0] == '[' && (*match).c_str()[1] == type) {
-      if (compatible_var_types(type, (*match).c_str()[1]))
+    if ((*match).c_str()[0] == '[' && 
+        strncmp((*match).c_str()+1,type.c_str(),type.length()) &&
+        (*match).c_str()[(*match).length()-1] == ']') {
+      if (compatible_var_types(type, *match))
         continue;
       else 
         return false;
     }
-    if (*match == "*")
+    if (*match == "*") {
       if (*value == "")
         return false;
       else
         continue;
-    if (*match == "!")
+    }
+    if (*match == "!") {
       if (*value == "") 
         continue;
       else
         return false;
+    }
     if (eqtest) {
       if (*match == *value)
         continue;
       else
         return false;
-    } else {
+    } else { // grammar internal types
       type_t t_value = lookup_type((*value).c_str());
       type_t t_match = lookup_type((*match).c_str());
       if (t_value != -1 && t_match != -1 &&
