@@ -212,7 +212,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
 // former tInputItem::print_derivation
 void
 tCompactDerivationPrinter::real_print(const tInputItem *item) {
-  _out << "(" 
+  _out << "(" << item->id() << " "
        << (_quoted ? "\\\"" : "\"")
        << item->orth()
        << (_quoted ? "\\\" " : "\" ")
