@@ -850,6 +850,25 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
       add(*it);
   }
 
+  //
+  // when in chart mapping mode, we do not want packing during lexical parsing
+  // for two reasons: (a) lexical filtering can only apply once we have reached
+  // a fix-point in lexical parsing, and if there were packed edges alrady, the
+  // filtering becomes unpredictable; (b) in the current code, at least, there
+  // is a provision to map vertices from the token to the `real' chart (where
+  // for example two adjacent tokens may have been combined, such that 0:2 in
+  // the token chart corresponds to 0:1 in the syntax chart).  this code fails
+  // to adjust vertices in packed items, leading to inconsistent derivations.
+  // with common DELPH-IN grammars, we hardly expect packing in lexical parsing
+  // anyway, so in principle we may even save time here (fewer subsumptions);
+  // with the ERG at least, the problem only became visible due to a bug in
+  // multi-word lexical entries.  i only wonder about one thing: as we leave
+  // lexical filtering, will someone attempt to pack those edges, i.e. before
+  // they start deriving larger phrases?                        (24-jan-09; oe)
+  //
+  int packing = opt_packing;
+  if (opt_chart_mapping) opt_packing = 0;
+
   while (! _agenda.empty()) {
     _agenda.front()->execute(*this);
     _agenda.pop();
@@ -860,6 +879,8 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
     parse_loop(FSAS, errors);
   }
   
+  opt_packing = packing;
+
   // Lexical chart mapping (a.k.a. lexical filtering):
   if (opt_chart_mapping) {
     if (opt_chart_mapping & 1)
