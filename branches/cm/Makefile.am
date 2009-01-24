@@ -41,6 +41,7 @@ cheapdoc:
 	$(DOXYGEN) doxyconfig.cheap
 
 logon:
+	strip flop/flop cheap/cheap 
 	/bin/cp flop/flop $$LOGONROOT/uio/bin/linux.x86.32/tflop
 	/bin/cp cheap/cheap $$LOGONROOT/uio/bin/linux.x86.32/tcheap
 
