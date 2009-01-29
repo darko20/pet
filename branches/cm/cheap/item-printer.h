@@ -484,6 +484,19 @@ private:
   string _path;
 };
 
+/** 
+ *  For function descriptions, \see tAbstractItemPrinter.
+ */
+class tItsdbPrinter : public tAbstractItemPrinter {
+public:
+  tItsdbPrinter(ostream &stream) : _dagprinter(), _stream(stream) {}
+  virtual ~tItsdbPrinter() {}
+  virtual void print(const tItem *arg) ;
+
+private:
+  ItsdbDagPrinter _dagprinter;
+  ostream &_stream;
+};
 
 /** default printing for chart items: use a tItemPrinter */
 std::ostream &operator<<(std::ostream &out, const tItem &item);

@@ -168,6 +168,7 @@ void interactive() {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
           tCompactDerivationPrinter deriv(std::cerr);
+          //tTSDBDerivationPrinter deriv(std::cerr, 1);
           tItem *it = *iter;
 
           nres++;

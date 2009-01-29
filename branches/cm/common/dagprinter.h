@@ -6,6 +6,7 @@
 #include "hashing.h"
 #include <ostream>
 #include "dag.h"
+#include "utility.h"
 
 using namespace std;
 
@@ -81,7 +82,7 @@ private:
 };
 
 
-/** superclass for printing dags in machine-readable formats,like LUI,
+/** superclass for printing dags in machine-readable formats, like LUI,
  *  Fegramed, JXCHG
  * 
  *  \todo maybe check if template metaprogramming could increase efficiency by
@@ -128,7 +129,7 @@ class LUIDagPrinter : public CompactDagPrinter {
 protected:
   virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
     out << " " << attrname[arc->attr] << ": ";
-    print_dag_rec(out, arc->val, temp) ;
+    print_dag_rec(out, arc->val, temp);
   }
 
   virtual void print_coref_reference(ostream &out, int coref_nr) {
@@ -136,19 +137,29 @@ protected:
   }
   
   virtual void print_coref_definition(ostream &out, int coref_nr) {
-    out << "<" << coref_nr << ">=" ;
+    out << "<" << coref_nr << ">=";
   }
 
   virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
-    if (dag->arcs != NULL) out << "#D[" ;
-    out << type_name(dag->type) ;
+    if (dag->arcs != NULL) out << "#D[";
+    out << type_name(dag->type);
     out << " [";
   }
 
   virtual void print_dag_node_end(ostream &out, const dag_node *dag) {
     out << " ]";
-    if (dag->arcs != NULL) out << " ]" ;
+    if (dag->arcs != NULL) out << " ]";
   }
+};
+
+
+class ItsdbDagPrinter : public CompactDagPrinter {
+protected:
+  virtual void print_arc(ostream &out, const dag_arc *arc, bool temp);
+  virtual void print_coref_reference(ostream &out, int coref_nr);
+  virtual void print_coref_definition(ostream &out, int coref_nr);
+  virtual void print_dag_node_start(ostream &out, const dag_node *dag);
+  virtual void print_dag_node_end(ostream &out, const dag_node *dag);
 };
 
 
