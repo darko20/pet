@@ -28,6 +28,8 @@
 
 #include <cassert>
 
+TDL_MODE tdl_mode = STANDARD_TDL;
+
 const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
 "end", "end!", "errorp", "expand-all-instances", "include", "leval",
@@ -72,13 +74,15 @@ struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
         rlen = len;
       char *dest = t->text = (char *) malloc(rlen + 1);
       if (rlen == len)
-        strncpy(dest, s, len);
+        {
+          strncpy(dest, s, len);
+        }
       else // s contains a string with escaped characters
         {
           int j = 0;
           for (int i = 0; i < len; i++)
             {
-              if ((s[i] == '\\') && (!regex || s[i+1] == '/'))
+              if (s[i] == '\\')
                 i++; // skip, copy following character
               dest[j++] = s[i];
             }
@@ -206,23 +210,16 @@ struct lex_token *get_next_token()
       t = make_token(T_STRING, start + 1, i - 2, l);
       LConsume(i);
     }
-  else if(c == '/')
+  else if((c == '^') && (tdl_mode == STANDARD_TDL))
     { // regular expression
-      // we store regular expressions as strings, padded by slashes, for now
-      char *start;
-      int i;
-      int l; // length of the resolved regex (without escape backslashes)
+      char *start = LMark();
+      int i = 1;
 
-      start = LMark();
-      i = 1;
-      l = 2;
-
-      while(LLA(i) != EOF && LLA(i) != '/')
+      while(LLA(i) != EOF && LLA(i) != '$')
         {
-          if ((LLA(i) == '\\') && (LLA(i+1) == '/'))
-            i++; // skip
+          if (LLA(i) == '\\') // skip escaped character
+            i++;
           i++;
-          l++;
         }
 
       if(LLA(i) == EOF)
@@ -232,8 +229,8 @@ struct lex_token *get_next_token()
           throw tError("runaway regular expression");
         }
 
-      i += 1;
-      t = make_token(T_STRING, start, i, l, true);
+      i += 1; // for '$'
+      t = make_token(T_STRING, start, i);
       LConsume(i);
     }
   else if(c == '(' && lisp_mode)
@@ -395,6 +392,7 @@ struct lex_token *get_next_token()
           tag = T_AT;
           break;
         case '^':
+          assert(tdl_mode == SM_TDL);
           tag = T_CAP;
           break;
         case '$':

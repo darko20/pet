@@ -397,10 +397,13 @@ void
 tMEM::readModel(const string &fileName)
 {
     push_file(fileName, "reading ME model");
+    TDL_MODE saved_tdl_mode = tdl_mode;
+    tdl_mode = SM_TDL;
     const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
     parseModel();
     lexer_idchars = sv;
+    tdl_mode = saved_tdl_mode;
 }
 
 void

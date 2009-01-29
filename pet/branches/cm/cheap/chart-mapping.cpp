@@ -17,6 +17,7 @@
  */
 
 #include "chart-mapping.h"
+#include "pet-config.h"
 
 #include "builtins.h"
 #include "cheap.h"
@@ -687,8 +688,8 @@ modify_arg_fs(fs arg_fs, tPathRegexMap &regexs)
     string arg_val = get_typename(arg_fs.get_path_value(regex_path).type());
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
     UnicodeString uc_arg_val = Conv->convert(arg_val);
-    static UnicodeString rex_start("\"/", -1, US_INV);
-    static UnicodeString rex_end  ("/\"", -1, US_INV);
+    static UnicodeString rex_start("\"^", -1, US_INV);
+    static UnicodeString rex_end  ("$\"", -1, US_INV);
     int32_t len = uc_arg_val.length(); 
     if ((len >= 4) && uc_arg_val.startsWith(rex_start)
         && uc_arg_val.endsWith(rex_end)) {
@@ -702,8 +703,8 @@ modify_arg_fs(fs arg_fs, tPathRegexMap &regexs)
     string::iterator begin = arg_val.begin();
     string::iterator end = arg_val.end();
     if ((arg_val.length() >= 4) &&
-        (*(begin++) == '"') && (*(begin++) == '/') &&
-        (*(--end)   == '"') && (*(--end)   == '/')) {
+        (*(begin++) == '"') && (*(begin++) == '^') &&
+        (*(--end)   == '"') && (*(--end)   == '$')) {
       arg_val.assign(begin, end); // use the regex string only
       regexs[regex_path] = boost::regex(arg_val);
       arg_fs.get_path_value(regex_path).set_type(BI_STRING);
