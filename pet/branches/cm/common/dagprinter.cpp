@@ -175,4 +175,36 @@ print_dag_rec(ostream &out, const dag_node *dag, bool temp) {
 }
 
 
+void 
+ItsdbDagPrinter::print_arc(ostream &out, const dag_arc *arc, bool temp) {
+  out << " " << attrname[arc->attr] << " ";
+  print_dag_rec(out, arc->val, temp);
+} // ItsdbDagPrinter::print_arc()
 
+void 
+ItsdbDagPrinter::print_coref_reference(ostream &out, int coref_nr) {
+  out << "#" << coref_nr;
+} // ItsdbDagPrinter::print_coref_reference()
+
+void 
+ItsdbDagPrinter::print_coref_definition(ostream &out, int coref_nr) {
+  out << "#" << coref_nr << "=";
+} // ItsdbDagPrinter::print_coref_definition()
+
+void
+ItsdbDagPrinter::print_dag_node_start(ostream &out, const dag_node *dag) {
+  const char *type = type_name(dag->type);
+  int n = strlen(type);
+  if(n >= 2 && type[0] == '"' && type[n - 1] == '"') {
+    
+    out << "\"" << escape_string(string(type).substr(1, n - 2)) << "\"";
+  } // if
+  else
+    out << type;
+  if (dag->arcs != NULL) out << " [";
+} // ItsdbDagPrinter::print_dag_node_start()
+
+void
+ItsdbDagPrinter::print_dag_node_end(ostream &out, const dag_node *dag) {
+  if (dag->arcs != NULL) out << " ]";
+} // ItsdbDagPrinter::print_dag_node_end()

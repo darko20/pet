@@ -860,6 +860,12 @@ class tLexItem : public tItem
   /** Build a new tLexItem from an active tLexItem and another tInputItem (a
    *  new daughter), plus the fs of unifying in input item feature structures.
    */
+  //
+  // _fix_me_
+  // this constructor essentially is a duplicate of the preceding one, with the
+  // only addition of the fs argument; we should be able to fold these two into
+  // just one, e.g. with a default argument.                    (27-jan-09; oe)
+  //
   tLexItem(tLexItem *from, tInputItem *new_dtr, fs &f);
 
   ~tLexItem() {

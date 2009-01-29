@@ -219,7 +219,7 @@ tCompactDerivationPrinter::real_print(const tInputItem *item) {
        << std::setprecision(4) << item->score() << " "
        << item->start() << " " << item->end() << " <"
        << item->startposition() << ":" << item->endposition()
-       << ">)";
+       << ">";
 }
 
 void 
@@ -306,8 +306,18 @@ void tTSDBDerivationPrinter::real_print(const tInputItem *item) {
 void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
   _out << "(" << item->id() << " " << item->stem()->printname()
        << " " << item->score() << " " << item->start() <<  " " << item->end()
-       << " " << "(\"" << escape_string(item->orth()) << "\" "
-       << item->start() << " " << item->end() << "))" << flush; 
+       << " (\"" << escape_string(item->orth()) << "\"";
+
+  for(item_citer token = item->daughters().begin();
+      token != item->daughters().end();
+      ++token) {
+    ostringstream buffer;
+    tItsdbPrinter ip(buffer);
+    ip.print(*token);
+    _out << " " << (*token)->id() 
+         << " \"" << escape_string(buffer.str()) << "\"";
+  } // for
+  _out << "))" << flush; 
 }
 
 void tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
@@ -452,9 +462,15 @@ tLUIPrinter::print(const tItem *item) {
   ostringstream fn;
   fn << _path << item->id() << ".lui";
   ofstream stream(fn.str().c_str());
-  stream << "avm " << item->id() << " ";
   if (! stream) throw tError("File open error for file " + fn.str());
+  stream << "avm " << item->id() << " ";
   get_fs(item).print(stream, _dagprinter);
   stream << " \"Edge # " << item->id() << "\"\f\n" ;
   stream.close();
+}
+
+
+void 
+tItsdbPrinter::print(const tItem *item) {
+  get_fs(item).print(_stream, _dagprinter);
 }
