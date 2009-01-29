@@ -469,6 +469,7 @@ int process(char *ofname) {
       
     mem_checkpoint("before parsing TDL files");
 
+    tdl_mode = STANDARD_TDL;
     tdl_start(1);
     fprintf(fstatus, "\n");
 
