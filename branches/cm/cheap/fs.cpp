@@ -27,6 +27,7 @@
 #include "restrictor.h"
 #include "dagprinter.h"
 
+#include <cstring>
 #include <iostream>
 
 using namespace std;

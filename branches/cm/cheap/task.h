@@ -27,6 +27,7 @@
 
 #include "agenda.h"
 #include <functional>
+#include <iosfwd>
 
 /** Parser agenda: a queue of prioritized tasks */
 typedef agenda< class basic_task, class task_priority_less > tAgenda;

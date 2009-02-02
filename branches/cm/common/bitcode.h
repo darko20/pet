@@ -32,6 +32,7 @@
 #define _BITCODE_H_
 
 #include <cassert>
+#include <cstdio>
 #include <iosfwd>
 
 /** \c CODEWORD should be an unsigned numeric type that fits best into a CPU

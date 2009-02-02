@@ -11,10 +11,19 @@
 #include "pet-config.h"
 #include "hash.h"
 
+// TODO switch to <tr1/unordered_map> and <tr1/unordered_set>
+// cf. http://gcc.gnu.org/gcc-4.3/changes.html
 #ifdef HAVE_HASH_MAP
-#define HASH_SPACE std
 #include <hash_map>
 #include <hash_set>
+
+// gcc 4.3 declared ext/hash_map and ext/hash_set as obsolete, moving the
+// header files to the default include path backwards
+#if ((__GNUC__ == 4) && ( __GNUC_MINOR__ >= 3)) || (__GNUC__ > 4)
+#define HASH_SPACE __gnu_cxx
+#else
+#define HASH_SPACE std
+#endif
 #endif
 
 #ifdef HAVE_EXT_HASH_MAP

@@ -24,6 +24,8 @@
 #include "byteorder.h"
 #include "dumper.h"
 
+#include <cstring>
+
 #define DUMP_LITTLE_ENDIAN true
 
 #define BUFF_SIZE (128 * 1024)
