@@ -9,6 +9,7 @@ using namespace std;
 #include <iostream>
 #include <iomanip>   // format manipulation
 #include <string>
+#include <climits>
 #include <fspp.h>
 //#include <ecl.h>
 

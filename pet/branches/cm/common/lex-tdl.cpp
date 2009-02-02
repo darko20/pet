@@ -27,6 +27,10 @@
 #endif
 
 #include <cassert>
+#include <cstdlib>
+#include <cstring>
+#include <iomanip>
+
 
 TDL_MODE tdl_mode = STANDARD_TDL;
 
