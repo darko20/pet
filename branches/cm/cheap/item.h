@@ -796,7 +796,7 @@ public:
   /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const { return _class; }
 
-  /** \brief Since a tInputItem do not have a feature structure, and can thus
+  /** \brief Since a tInputItem does not have a feature structure, and can thus
    * have no other items packed into them, they need not be unpacked. Unpacking
    * does not proceed past tLexItem.
    */
@@ -853,20 +853,10 @@ class tLexItem : public tItem
            , fs &f, const list_int *inflrs_todo);
 
   /** Build a new tLexItem from an active tLexItem and another tInputItem (a
-   *  new daughter).
+   *  new daughter), plus (optionally) the fs for the new item, typically the
+   *  result of unifying in input item feature structures.
    */
-  tLexItem(tLexItem *from, tInputItem *new_dtr);
-
-  /** Build a new tLexItem from an active tLexItem and another tInputItem (a
-   *  new daughter), plus the fs of unifying in input item feature structures.
-   */
-  //
-  // _fix_me_
-  // this constructor essentially is a duplicate of the preceding one, with the
-  // only addition of the fs argument; we should be able to fold these two into
-  // just one, e.g. with a default argument.                    (27-jan-09; oe)
-  //
-  tLexItem(tLexItem *from, tInputItem *new_dtr, fs &f);
+  tLexItem(tLexItem *from, tInputItem *new_dtr, fs f = fs());
 
   ~tLexItem() {
     free_list(_inflrs_todo);

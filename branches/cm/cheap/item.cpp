@@ -385,43 +385,11 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
   init();
 }
 
-tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
-  : tItem(-1, -1, from->paths().common(newdtr->paths())
-          , from->get_fs(), from->printname())
-    , _ldot(from->_ldot), _rdot(from->_rdot)
-    , _keydaughter(from->_keydaughter)
-  , _stem(from->_stem), _fs_full(from->get_fs()), _hypo(NULL)
-{
-  _daughters = from->_daughters;
-  _inflrs_todo = copy_list(from->_inflrs_todo);
-  _key_item = this;
-  if(from->left_extending()) {
-    _start = newdtr->start();
-    _startposition = newdtr->startposition();
-    _end = from->end();
-    _endposition = from->endposition();
-    _daughters.push_front(newdtr);
-    _ldot--;
-    // register this expansion to avoid duplicates
-    from->_expanded.push_back(_start);
-  } else {
-    _start = from->start();
-    _startposition = from->startposition();
-    _end = newdtr->end();
-    _endposition = newdtr->endposition();
-    _daughters.push_back(newdtr);
-    _rdot++;
-    from->_expanded.push_back(_end);
-  }
-  init();
-}
-
-tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr, fs &f)
-  : tItem(-1, -1, from->paths().common(newdtr->paths())
-          , f, from->printname())
-    , _ldot(from->_ldot), _rdot(from->_rdot)
-    , _keydaughter(from->_keydaughter)
-  , _stem(from->_stem), _fs_full(from->get_fs()), _hypo(NULL)
+tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr, fs f)
+  : tItem(-1, -1, from->paths().common(newdtr->paths()), 
+          (f.valid() ? f : from->get_fs()), from->printname()),
+  _ldot(from->_ldot), _rdot(from->_rdot), _keydaughter(from->_keydaughter),
+  _stem(from->_stem), _fs_full(f.valid() ? f : from->get_fs()), _hypo(NULL)
 {
   _daughters = from->_daughters;
   _inflrs_todo = copy_list(from->_inflrs_todo);
