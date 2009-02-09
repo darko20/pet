@@ -31,7 +31,7 @@ extern int capi_printf(const char *format, ...);
 extern int capi_register(int (*)(const char *, int, const char *,
                                  int, int, const char *),
                          int (*)(int, const char *, int, int, 
-                                 int, int, int),
+                                 int, int, int, const char *),
                          int (*)(const char *),
                          int (*)(int, const char *));
 extern int slave(void);
