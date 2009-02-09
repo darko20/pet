@@ -485,8 +485,10 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
         << ((float) UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
         << "): " << endl);
     // \todo this must be changed
-    cdp.print(*res); cerr << endl;
-    //}
+    if(!get_opt_int("opt_tsdb")) {
+      cdp.print(*res); 
+      cerr << endl;
+    }
   }
   return nres;
 }
