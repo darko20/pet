@@ -263,6 +263,8 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
     try
     {
         fs_alloc_state FSAS;
+        std::string foo(custom);
+        tGrammarUpdate update(Grammar, foo);
         
         opt_pedgelimit = edges;
         opt_nsolutions = nanalyses;

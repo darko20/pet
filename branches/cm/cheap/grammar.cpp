@@ -961,3 +961,37 @@ tGrammar::clear_dynamic_stems()
 }
 #endif
 
+
+tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input) 
+  : _grammar(grammar), _original_roots(grammar->_root_insts)
+{
+
+  if(input.length()) {
+    settings foo(input);
+    struct setting *set;
+    if((set = foo.lookup("start-symbols")) != 0) {
+      grammar->_root_insts = 0;
+      for(int i = set->n-1; i >= 0; --i) {
+        grammar->_root_insts 
+          = cons(lookup_type(set->values[i]), grammar->_root_insts);
+        if(first(grammar->_root_insts) == -1)
+          throw tError(string("undefined start symbol `")
+                       + string(set->values[i]) + string("'"));
+      } // for
+    } // if
+    else 
+      _original_roots = NULL;
+  } // if
+  else
+    _original_roots = NULL;
+  
+} // tGrammarUpdate::tGrammarUpdate()
+
+tGrammarUpdate::~tGrammarUpdate() {
+
+  if(_original_roots != NULL) {
+    free_list(_grammar->_root_insts);
+    _grammar->_root_insts = _original_roots;
+  } // if
+
+} // tGrammarUpdate::~tGrammarUpdate()

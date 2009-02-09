@@ -69,6 +69,12 @@ extern FILE *ferr, *fstatus;
  *  which context the function is used.
  */
 void push_file(const std::string &fname, const char *info);
+
+/** Push contents of string \a input onto include stack, where \a info provides
+ * a hint in which context the function is used.
+ */
+void push_string(const std::string &input, const char *info);
+
 /** Pop file from include stack
  *  \return nonzero if there are still open files, zero otherwise.
  */
