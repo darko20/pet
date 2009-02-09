@@ -117,6 +117,28 @@ void push_file(const string &fname, const char *info) {
   CURR = &(file_stack[file_nest-1]);
 }
 
+void push_string(const string &input, const char *info) {
+  lex_file f;
+
+  if(file_nest >= MAX_LEX_NEST)
+    throw tError("too many nested includes (in string) - giving up");
+
+  f.buff = strdup(input.c_str());
+  if(f.buff == 0)
+    throw tError("couldn't strdup for string include: " 
+                 + string(strerror(errno)));
+  
+  f.len = strlen(f.buff);
+  f.fname = NULL;
+  f.pos = 0;
+  f.linenr = 1; f.colnr = 1;
+  f.info = (info != NULL ? strdup(info) : NULL);
+
+  file_stack[file_nest++] = f;
+
+  CURR = &(file_stack[file_nest-1]);
+} // push_string()
+
 int pop_file() {
   lex_file f;
 
@@ -129,15 +151,27 @@ int pop_file() {
     CURR = NULL;
 
 #ifdef HAVE_MMAP
-  if(munmap(f.buff, f.len) != 0)
-    throw tError("couldn't munmap `" + string(f.fname) + "': " + string(strerror(errno)));
+  if(f.fname) {
+    if(munmap(f.buff, f.len) != 0)
+      throw tError("couldn't munmap `" + string(f.fname) 
+                   + "': " + string(strerror(errno)));
+  } // if
+  else {
+    //
+    // even when mmap() is in use, includes from strings were directly copied
+    // into the input buffer.
+    //
+    free(f.buff);
+  } // else
 #else
   free(f.buff);
 #endif
   
-  if(close(f.fd) != 0)
-    throw tError("couldn't close from `" + string(f.fname) + "': " + string(strerror(errno)));
-  
+  if(f.fname) {
+    if(close(f.fd) != 0)
+      throw tError("couldn't close from `" + string(f.fname) 
+                   + "': " + string(strerror(errno)));
+  } // if
   return 1;
 }
 

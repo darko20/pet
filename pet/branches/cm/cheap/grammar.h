@@ -422,6 +422,19 @@ public:
   void undump_properties(dumper *f);
   void init_parameters();
 
+  friend class tGrammarUpdate;
+
 };
+
+class tGrammarUpdate {
+public:
+  tGrammarUpdate(tGrammar *, std::string &);
+  ~tGrammarUpdate();
+
+private:
+  tGrammar *_grammar;
+  list_int *_original_roots;
+  
+}; // class tGrammarUpdate
 
 #endif
