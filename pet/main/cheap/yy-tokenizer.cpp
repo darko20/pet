@@ -20,10 +20,17 @@
 
 /*
 
-YY input format: (id, start, end, path, "stem" "surface", inflpos, inflrs, postags?)*
+YY input format: 
 
-inflrs: - "null" = do internal morph analysis
-        - stems and inflrules
+  (id, start, end, [lnk,] path, 
+   "stem" ["surface"], inflpos, inflrs
+   [, postags])*
+
+  where .lnk. is a surface link, currently restricted to <i:j>, as character
+  start and end positions.
+
+  inflrs: - "null" = do internal morph analysis
+          - stems and inflrules
 
 */
 
@@ -41,6 +48,7 @@ using namespace HASH_SPACE;
 
 tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
   : tTokenizer()
+    , _inhibit_position_mapping(false)
     , _position_mapping(position_mapping)
     , _class_name_char(classchar) { }
 
@@ -222,7 +230,7 @@ int max(int a, int b)
 tInputItem *
 tYYTokenizer::read_token()
 {
-  int id, start, end, path, inflpos;
+  int id, start, end, from, to, path, inflpos;
   // we usually supply the inflection information, only perform lexicon lookup
   int token_class = STEM_TOKEN_CLASS;
 
@@ -237,11 +245,35 @@ tYYTokenizer::read_token()
     throw tError("yy_tokenizer: ill-formed token (expected id)");
   
   if(!read_int(start) || !read_special(','))
-    throw tError("yy_tokenizer: ill-formed token (expected start pos)");
+    throw tError("yy_tokenizer: ill-formed token (expected start vertex)");
   
   if(!read_int(end) || !read_special(','))
-    throw tError("yy_tokenizer: ill-formed token (expected end pos)");
- 
+    throw tError("yy_tokenizer: ill-formed token (expected end vertex)");
+
+  //
+  // in January 2009, we extend the YY input format to make room for optional
+  // character positions (or other stand-off start and end markers); these are
+  // a pair of start and end position, enclosed in angle brackets, immediately
+  // following the start and end vertices.  we half-jokingly refer to this
+  // extended format as YY 2.0, but i hope we can move beyond this before too
+  // long :-).  the ultimate goal, it seems just now, is yet another input
+  // format, non-XML and line-oriented, but able to specify lattices of token
+  // feature structures, possibly blending YY and TDL syntax.
+  //
+  // _fix_me_
+  // conceptually, these so-called external positions should be strings, but at
+  // present tInputItems only allow integers.                   (15-jan-09; oe)
+  //
+  from = to = -1;
+  if(read_special('<')) {
+    if(!read_int(from) || !read_special(':') 
+       || !read_int(to) || !read_special('>') || !read_special(','))
+      throw tError("yy_tokenizer: ill-formed token (expected surface link)");
+    _inhibit_position_mapping = true;
+  } // if
+  else 
+    _inhibit_position_mapping = false;
+
   while(read_int(path))
     paths.push_back(path);
   
@@ -286,8 +318,9 @@ tYYTokenizer::read_token()
   modlist fsmods = modlist() ;
   char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
 
-  if ((ersatz_carg_path != NULL) and
-    (stem.substr(max(0,stem.length()-ersatz_suffix.length())) == ersatz_suffix))
+  if ((ersatz_carg_path != NULL) &&
+      (stem.substr(max(0,stem.length()-ersatz_suffix.length())) 
+       == ersatz_suffix))
   {
     fsmods.push_back(pair<string, type_t>(ersatz_carg_path,
                                           retrieve_string_instance(surface)));
@@ -346,8 +379,23 @@ tYYTokenizer::read_token()
 
   char idstrbuf[6];
   sprintf(idstrbuf, "%d", id);
-  tInputItem *res =
-    new tInputItem(idstrbuf, start, end, surface, stem, paths, token_class);
+
+  tInputItem *res;
+  if(from >= 0 && to >= from)
+    res = new tInputItem(idstrbuf, start, end, from, to,
+                         surface, stem, paths, token_class);
+  else
+    //
+    // _fix_me_
+    // originally, the start and end vertex in YY format really were vertices,
+    // not (external) positions; but it seems these got re-interpreted over
+    // time, and at present (unless a surface link is specified too, in YY 2.0)
+    // they are treated as character positions.  which should always give the
+    // correct results in terms of chart topology, of course, but is not really
+    // what was originally intended.                            (15-jan-09; oe)
+    //
+    res = new tInputItem(idstrbuf, start, end, 
+                         surface, stem, paths, token_class);
   
   // Set the inflection rules and POS tags of the new item
   res->set_inflrs(infl_rules) ;

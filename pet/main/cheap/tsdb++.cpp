@@ -279,7 +279,7 @@ static int nprocessed = 0;
 int
 cheap_process_item(int i_id, const char *i_input, int parse_id, 
                    int edges, int nanalyses, 
-                   int nderivations, int interactive)
+                   int nderivations, int interactive, const char *custom)
 {
     struct timeval tA, tB; int treal = 0;
     chart *Chart = 0;
