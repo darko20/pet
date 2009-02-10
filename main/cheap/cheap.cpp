@@ -154,6 +154,7 @@ void interactive() {
       if(verbosity > 0) stats.print(fstatus);
 
       tsdb_dump.finish(Chart, surface);
+      dump_jxchg(surface, Chart);
       
       //ofstream out("/tmp/final-chart-bernie");
       //tTclChartPrinter chp(out, 0);
@@ -292,7 +293,7 @@ void interactive_morphology() {
 
 
 void print_grammar(int what, ostream &out) {
-  if(what == 1 || what == 4) {
+  if(what == 's' || what == 'a') {
     out << ";; TYPE NAMES (PRINT NAMES) ==========================" << endl;
     for(int i = 0; i < nstatictypes; i++) {
       out << i << "\t" << type_name(i) << " (" << print_name(i) << ")" << endl;
@@ -305,7 +306,7 @@ void print_grammar(int what, ostream &out) {
   }
   
   out << ";; GLBs ================================================" << endl;
-  if(what == 2 || what == 4) {
+  if(what == 'g' || what == 'a') {
     int i, j;
     for(i = 0; i < nstatictypes; i++) {
       prune_glbcache();
@@ -314,7 +315,7 @@ void print_grammar(int what, ostream &out) {
     }
   }
 
-  if(what == 3 || what == 4) {
+  if(what == 't' || what == 'a') {
     out << endl << " ;; TYPE DAGS ================================" << endl;
     ReadableDagPrinter dp;
     for(int i = 0; i < nstatictypes; i++) {
