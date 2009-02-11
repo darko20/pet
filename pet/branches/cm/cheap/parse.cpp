@@ -474,12 +474,13 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit
     // the checking is moved into selectively_unpack()
     readings.push_back(*res);
     if(verbosity > 2) {
-      cerr << "unpacked[" << nres++ << "] (" << setprecision(1)
+      cerr << "unpacked[" << nres << "] (" << setprecision(1)
            << ((float) UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
            << "): ";
       cdp.print(*res);
       cerr << endl;
     }
+    nres ++;
     //}
   }
   return nres;

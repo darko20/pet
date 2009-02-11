@@ -44,7 +44,9 @@ statistics::reset()
 {
   id = 0;
   trees = 0;
+  ptrees = 0;
   readings = 0;
+  preadings = 0;
   words = 0;
   words_pruned = 0;
   mtcpu = 0;
@@ -96,7 +98,8 @@ void
 statistics::print(FILE *f)
 {
   fprintf (f,
-           "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
+           "id: %d\ntrees: %d\nptrees: %d\nreadings: %d\npreadings: %d\n"
+           "words: %d\nwords_pruned: %d\n"
            "mtcpu: %d\nfirst: %d\ntcpu: %d\nutcpu: %d\n"
            "ftasks_fi: %d\nftasks_qc: %d\n"
            "fsubs_fi: %d\nfsubs_qc: %d\n"
@@ -112,7 +115,8 @@ statistics::print(FILE *f)
            "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\nhypotheses: %d\n",
-           id, trees, readings, words, words_pruned,
+           id, trees, ptrees, readings, preadings, 
+           words, words_pruned,
            mtcpu, first, tcpu, p_utcpu,
            ftasks_fi, ftasks_qc,
            fsubs_fi, fsubs_qc,

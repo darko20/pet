@@ -68,8 +68,12 @@ class statistics
   int id;
   /** nr of trees (packed readings) */
   int trees;
+  /** nr of pseudo-trees (packed pseudo-readings) */
+  int ptrees;
   /** nr of readings */
   int readings;
+  /** nr of pseudo-readings */
+  int preadings;
   /** nr of words */
   int words;
   /** nr of words pruned by chart manipulation */

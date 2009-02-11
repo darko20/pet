@@ -90,6 +90,7 @@ extern int opt_predict_les;
 #define PACKING_PRO   (1 << 1)
 #define PACKING_RETRO (1 << 2)
 #define PACKING_SELUNPACK (1 << 3)
+#define PACKING_PCFGEQUI (1 << 4)
 #define PACKING_NOUNPACK (1 << 7)
 //@}
 
@@ -153,6 +154,8 @@ extern bool opt_rulestatistics;
 extern int opt_nresults;
 /** print partial results in case of parse failure */
 extern bool opt_partial;
+/** print robust PCFG parsing result in case of full parse failure */
+extern int opt_robust;
 /** dump [incr tsdb()] profiles to this directory */
 extern std::string opt_tsdb_dir;
 //@}

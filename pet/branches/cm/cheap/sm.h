@@ -23,9 +23,11 @@
 #ifndef _SM_H_
 #define _SM_H_
 
+#include "types.h"
 #include <list>
 #include <vector>
 #include <string>
+#include <map>
 
 #define SM_EXT ".sm"
 
@@ -187,6 +189,77 @@ class tMEM : public tSM
 
     /** Handler for lexical type prediction model */
     void parseFeature_lexpred(int);
+};
+
+
+
+/** Probablistic Context Free Grammar */
+class tPCFG : public tSM
+{
+ public:
+    // _fix_me_
+    // We'd prefer not to have to pass fileName and basePath here.
+    // There should be a central placed to to this sort of thing.
+    tPCFG(class tGrammar *G, const char *fileName, const char *basePath);
+    virtual ~tPCFG();
+
+    virtual double
+    score(const tSMFeature &);
+
+    virtual double
+    neutralScore() // TODO: this should not be used
+    { return 0.0; }
+
+    virtual double
+    combineScores(double a, double b);
+
+    /** Return a description string suitable for printing.*/
+    virtual std::string
+    description();
+    
+    virtual double
+    scoreLocalTree(class grammar_rule *, std::list<class tItem *>);
+
+    virtual double
+    scoreLeaf(class tLexItem *);
+  
+    /** Return the score for the hypothesis */
+    virtual double 
+    score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path, int gplevel);
+    
+
+ private:
+    
+    bool _include_leafs;
+    bool _use_preterminal_types;
+    double _laplace_smoothing;
+    double _min_logprob;
+
+    std::vector<double> _weights;
+    std::map<type_t,int> _lhs_freq_counts;
+    std::map<type_t,int> _lhs_rule_counts;
+
+    void
+    readModel(const std::string &fileName);
+
+    void
+    parseModel();
+
+    void
+    parseOptions();
+
+    void
+    parseFeatures(int);
+
+    void
+    parseFeature(int);
+  
+    void
+    adjustWeights();
+
+    double
+    score(std::vector<type_t> rule);
+
 };
 
 #endif
