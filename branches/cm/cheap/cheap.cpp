@@ -42,6 +42,7 @@
 #include "mrs.h"
 #include "vpm.h"
 #include "qc.h"
+#include "pcfg.h"
 
 #ifdef YY
 #include "yy.h"
@@ -233,6 +234,37 @@ void interactive() {
           else fprintf(fstatus, "EOM\n");
         }
 #endif
+        if(opt_robust != 0 && (Chart->readings().empty())) {
+          analyze_pcfg(Chart, FSAS, errors);
+          list<tItem*> partials(Chart->readings().begin(),
+                                Chart->readings().end());
+          for (list<tItem*>::iterator iter = partials.begin();
+               (iter != partials.end()) && ((opt_nresults == 0) || (opt_nresults > nres));
+               iter ++) {
+            tCompactDerivationPrinter deriv(std::cerr);
+            tItem *it = *iter;
+            // TODO
+            fprintf(fstatus, "Pseudo-derivation:");
+            deriv.print(it);
+            fprintf(fstatus, "\n");
+            /*
+            if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
+              fs f = instantiate_robust(it);
+              mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+              if (mrs->valid()) {
+                mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+                if (mapped_mrs->valid()) {
+                  fprintf(fstatus, "\n");
+                  mapped_mrs->print(fstatus);
+                  fprintf(fstatus, "\n");
+                }
+                delete mapped_mrs;
+              }
+              delete mrs;
+            }
+            */
+          }
+        }
       }
     } /* try */
 

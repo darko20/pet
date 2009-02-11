@@ -81,6 +81,7 @@ libcheap_a_SOURCES = \
 	tsdb++.h tsdb++.cpp \
 	mrs.h mrs.cpp \
 	vpm.h vpm.cpp \
+	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \

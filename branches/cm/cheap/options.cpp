@@ -62,6 +62,7 @@ bool opt_derivation;
 bool opt_rulestatistics;
 int opt_nresults;
 bool opt_partial;
+int opt_robust;
 std::string opt_tsdb_dir;
 bool opt_online_morph;
 std::string opt_sm;
@@ -129,6 +130,8 @@ void usage(FILE *f)
              "write jxchg/approximation chart files to `directory'\n");
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");
+  fprintf(f, "  `-robust[=1]' --- "
+             "print robust PCFG parsing result in case of full parse failure\n");
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");
   fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
              "select input method (default `string')\n");
@@ -176,6 +179,7 @@ void usage(FILE *f)
 #define OPTION_TIMEOUT 38
 #define OPTION_CHART_MAPPING 39
 #define OPTION_SM 40
+#define OPTION_ROBUST 41
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -218,6 +222,7 @@ void init_options()
   opt_rulestatistics = false;
   opt_nresults = 0;
   opt_partial = false;
+  opt_robust = 0;
   opt_tsdb_dir = "";
   opt_online_morph = true;
   opt_sm = "";
@@ -273,6 +278,7 @@ bool parse_options(int argc, char* argv[])
     {"mrs", optional_argument, 0, OPTION_MRS},
     {"tsdbdump", required_argument, 0, OPTION_TSDB_DUMP},
     {"partial", no_argument, 0, OPTION_PARTIAL},
+    {"robust", optional_argument, 0, OPTION_ROBUST},
     {"results", required_argument, 0, OPTION_NRESULTS},
     {"tok", optional_argument, 0, OPTION_TOK},
     {"compute-qc-unif", optional_argument, 0, OPTION_COMPUTE_QC_UNIF},
@@ -449,6 +455,11 @@ bool parse_options(int argc, char* argv[])
       case OPTION_PARTIAL:
           opt_partial = true;
           break;
+      case OPTION_ROBUST:
+          if (optarg != NULL)
+            opt_robust = strtoint(optarg, "as argument to -robust");
+          else
+            opt_robust = 1;
       case OPTION_NRESULTS:
           if(optarg != NULL)
               opt_nresults = strtoint(optarg, "as argument to -results");

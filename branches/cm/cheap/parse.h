@@ -24,10 +24,12 @@
 #ifndef _PARSE_H_
 #define _PARSE_H_
 
+#include "item.h"
 #include "errors.h"
 #include "cheaptimer.h"
 #include <string>
 #include <list>
+#include <vector>
 
 /** Gives the total time spent in parsing (more specifically: in the function
  *  parse_loop).
@@ -49,5 +51,15 @@ extern clock_t timestamp;
  */
 void analyze(std::string input, class chart *&C, class fs_alloc_state &FSAS,
              std::list<tError> &errors, int id = 0);
+
+/** selective unpacking */
+// int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit, int nsolutions
+//                        ,timer *UnpackTime , std::vector<tItem *> &readings);
+int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
+                       timer *UnpackTime , std::vector<tItem *> &readings);
+
+/** exhaustive unpacking */
+int unpack_exhaustively(std::vector<tItem*> &trees, int upedgelimit,
+                        timer *UnpackTime, std::vector<tItem *> &readings);
 
 #endif

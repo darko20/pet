@@ -243,10 +243,36 @@ grammar_rule::grammar_rule(type_t t)
 
 }
 
+// PCFG rule constructor
+grammar_rule::grammar_rule(std::vector<type_t> v)
+  : _tofill(0), _hyper(true), _spanningonly(false) {
+
+  _type = v[0];
+  _trait = PCFG_TRAIT;
+  
+  //
+  // Determine arity, determine head and key daughters.
+  // 
+    
+  _arity = v.size() - 1;
+  
+  if(_arity == 0) {
+    throw tError("Rule " + string(type_name(v[0])) + " has arity zero");
+  }
+  
+  for(int i = 1; i <= _arity; i++) {
+    _tofill = append(_tofill, i);
+    _pcfg_args.push_back(v[i]);
+  }
+  
+}
+
 grammar_rule::~grammar_rule() {
   free_list(_tofill);
-  for (int i = 0; i < _arity; ++i) delete[] _qc_vector_unif[i];
-  delete[] _qc_vector_unif;
+  if (_trait != PCFG_TRAIT) {
+    for (int i = 0; i < _arity; ++i) delete[] _qc_vector_unif[i];
+    delete[] _qc_vector_unif;
+  }
 }
 
 grammar_rule *
@@ -256,6 +282,18 @@ grammar_rule::make_grammar_rule(type_t t) {
   }
   catch (tError e) {
     fprintf(ferr, "%s\n", e.getMessage().c_str());
+  }
+  return NULL;
+}
+
+grammar_rule *
+grammar_rule::make_pcfg_grammar_rule(std::vector<type_t> v) {
+  try {
+    return new grammar_rule(v);
+  }
+  catch (tError e) {
+    fprintf(ferr, "%s\n", e.getMessage().c_str());
+    // LOG(logGrammar, ERROR, e.getMessage());
   }
   return NULL;
 }
@@ -563,6 +601,17 @@ tGrammar::tGrammar(const char * filename)
         }
       }
     } // if
+    char *pcfg_file;
+    if ((pcfg_file = cheap_settings->value("pcfg")) != 0) {
+      try { 
+        _pcfgsm = new tPCFG(this, pcfg_file, filename); 
+        // delete pcfgsm; // only pcfg rules are loaded, not their weights TODO: what was happening here?
+      } catch (tError &e) {
+        fprintf(ferr, "\n%s", e.getMessage().c_str());
+        // LOG(logGrammar, ERROR, e.getMessage());
+        _pcfgsm = 0;
+      }
+    }
     char *lexsm_file;
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
@@ -818,10 +867,16 @@ tGrammar::~tGrammar()
       grammar_rule *r = *pos;
       delete r;
     }
+    
+    for(ruleiter pos = _pcfg_rules.begin(); pos != _pcfg_rules.end(); ++pos) {
+      grammar_rule *r = *pos;
+      delete r;
+    }
 
     dag_qc_free();
 
     delete _sm;
+    delete _pcfgsm;
     delete _lexsm;
 
 #ifdef CONSTRAINT_CACHE

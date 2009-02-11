@@ -143,6 +143,15 @@ public:
   tItem(int start, int end, const tPaths &paths, const fs &f,
         const char *printname);
 
+  /** Base constructor without feature structure
+   * \param start start position in the chart
+   * \param end start position in the chart
+   * \param paths the set of word graph paths this item belongs to
+   * \param printname a readable representation of this item
+   */
+  tItem(int start, int end, const tPaths &paths, 
+        const char *printname);
+
   virtual ~tItem();
 
   INHIBIT_COPY_ASSIGN(tItem);
@@ -277,6 +286,27 @@ public:
     return true;
   }
 
+  /** Compatibility test of a passive item and a PCFG rules */
+  inline bool compatible_pcfg(grammar_rule *pcfg_rule, int length) {
+    int arity = pcfg_rule->arity();
+    if (pcfg_rule->nth_pcfg_arg(1) != identity()) 
+        return false;
+    return _end + arity - 1 <= length;
+  }
+  
+  /** Compatibility test of a passive and an active item */
+  inline bool compatible_pcfg(tItem* active, int length) {
+    
+    if ((_trait == INPUT_TRAIT) || !inflrs_complete_p())
+      return false;
+
+    // TODO more tricks to be done here?
+    if (active->nextarg_pcfg() != identity())
+      return false;
+    int arity = active->arity();
+    return _end + arity - 1 <= length;
+  }
+  
   /** Does this active item extend to the left or right?
    *  \pre assumes \c this is an active item.
    *  \todo Remove the current restriction to binary rules.
@@ -338,6 +368,9 @@ public:
    *  the next argument to be filled.
    */
   inline fs nextarg(fs &f) const { return f.nth_arg(nextarg()); }
+  /** Return the next PCFG argument */
+  inline type_t nextarg_pcfg() { return rule()->nth_pcfg_arg(first(_tofill)); }
+
   /** Return the yet to fill arguments of this item, except for the current
    *  one
    */
@@ -460,6 +493,10 @@ public:
 
   /** Return true if the given edge is a descendent of current edge */
   bool contains_p(const tItem *) const ;
+
+  /** Return true if packing current item into \a it will create a
+      cycle in the packed forest */
+  bool cyclic_p(const tItem *it) const ;
 
   /** compare two items for linear precendece; used to sort YY tokens */
   struct precedes
@@ -1017,6 +1054,13 @@ class tPhrasalItem : public tItem {
    *  structure \a newfs.
    */
   tPhrasalItem(tPhrasalItem *representative, std::vector<tItem *> &dtrs, fs &newfs);
+
+  /*@{*/
+  /** Constructors for PCFG items */
+  tPhrasalItem(grammar_rule *rule, class tItem *passive);
+  tPhrasalItem(tPhrasalItem *active, class tItem *passive);
+  tPhrasalItem(tPhrasalItem *representative, std::vector<tItem *> &dtrs);
+  /*@}*/
 
   virtual ~tPhrasalItem() {
     // clear the hypotheses cache

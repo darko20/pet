@@ -45,8 +45,9 @@
                   inflection rules to get complete
     -- LEX_TRAIT a lexical item with all inflection rules applied
     -- SYNTAX_TRAIT a phrasal item
+    -- PCFG_TRAIT a pcfg item or rule
  */
-enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT, INPUT_TRAIT };
+enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT, INPUT_TRAIT, PCFG_TRAIT };
 
 /** A rule from the HPSG grammar */
 class grammar_rule
@@ -58,6 +59,9 @@ class grammar_rule
    *  for the given type otherwise.
    */
   static grammar_rule* make_grammar_rule(type_t t);
+
+  /** Contstructor for PCFG rules */
+  static grammar_rule* make_pcfg_grammar_rule(std::vector<type_t> v);
 
   /** destructor */
   ~grammar_rule();
@@ -97,6 +101,9 @@ class grammar_rule
   /** Return the feature structure corresponding to the next argument */
   inline fs nextarg(const fs &f) const { return f.nth_arg(first(_tofill)); }
 
+  /** Return the type of the next argument in PCFG rule */
+  inline type_t nextarg_pcfg() { return _pcfg_args[first(_tofill) - 1]; }
+  
   /** Return all of the arguments but the current one in the order in which
    *  they should be filled.
    */
@@ -123,6 +130,9 @@ class grammar_rule
    *  chart 
    */
   inline bool spanningonly() { return _spanningonly; }
+  
+  /** Return the type of the nth argument in the pcfg rule */
+  inline type_t nth_pcfg_arg(int n) { return _pcfg_args[n - 1]; }
 
   /** @name Rule Statistics
    * How many active (incomplete) and passive (complete)
@@ -134,6 +144,7 @@ class grammar_rule
 
  private:
   grammar_rule(type_t t);
+  grammar_rule(std::vector<type_t> v);
   grammar_rule() { }
 
   int _id;
@@ -141,7 +152,8 @@ class grammar_rule
   rule_trait _trait;
   int _arity;
   list_int *_tofill;
-  
+  std::vector<type_t> _pcfg_args;
+
   fs _f_restriced;  // The feature structure corresponding to this rule
                     // with the packing restrictor applied.
   
@@ -281,6 +293,9 @@ public:
   /** Return list of lexical rules in this grammar */
   inline const rulelist &lexrules() { return _lex_rules; }
 
+  /** Return list of PCFG rubust parsing rules in this grammar */
+  inline rulelist &pcfg_rules() { return _pcfg_rules; }  
+
   /** Return the number of hyperactive rules in this grammar */
   int nhyperrules();
   
@@ -312,9 +327,14 @@ public:
 
   /** Return the statistic maxent model of this grammar */
   inline tSM *sm() { return _sm; }
+  
+  inline void sm(tSM* m) { _sm = m; }
 
   /** Return the lexical type predictor ME model */
   inline tSM *lexsm() { return _lexsm; }
+
+  /** Return the PCFG scoring model for robust parsing */
+  inline class tSM *pcfgsm() { return _pcfgsm; }
 
   /** deactivate all rules */
   void deactivate_all_rules() {
@@ -386,6 +406,9 @@ public:
   /** The set of lexical rules */
   rulelist _lex_rules;
 
+  /** The list of pcfg robust rules */
+  rulelist _pcfg_rules;
+
   /** Map the rule type back to the rule structure */
   std::map<type_t, grammar_rule *> _rule_dict;
 
@@ -418,6 +441,9 @@ public:
 
   // Lexical type predictor model.
   class tSM *_lexsm;
+
+  // Robust PCFG parsing model.
+  class tSM *_pcfgsm;
 
   void undump_properties(dumper *f);
   void init_parameters();

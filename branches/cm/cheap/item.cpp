@@ -108,13 +108,25 @@ inline bool characterize(fs &thefs, int from, int to) {
 item_owner *tItem::_default_owner = NULL;
 int tItem::_next_id = 1;
 
-
 tItem::tItem(int start, int end, const tPaths &paths,
              const fs &f, const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _startposition(-1), _endposition(-1),
       _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
+      _result_root(-1), _result_contrib(false),
+      _qc_vector_unif(0), _qc_vector_subs(0),
+      _score(0.0), _printname(printname),
+      _blocked(0), _unpack_cache(0), parents(), packed(), _chart(0)
+{
+    if(_default_owner) _default_owner->add(this);
+}
+
+tItem::tItem(int start, int end, const tPaths &paths,
+             const char *printname)
+    : _id(_next_id++),
+      _start(start), _end(end), _spanningonly(false), _paths(paths),
+      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _printname(printname),
@@ -558,6 +570,62 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     _result_root = sponsor->result_root();
 }
 
+
+tPhrasalItem::tPhrasalItem(grammar_rule *rule, tItem *pasv) 
+  : tItem(pasv->_start, pasv->_end, pasv->_paths, rule->printname()),
+    _adaughter(0), _rule(rule) {
+  _startposition = pasv->startposition();
+  _endposition = pasv->endposition();
+  _tofill = rule->restargs();
+  _nfilled = 1;
+  _daughters.push_back(pasv);
+  _key_item = pasv->_key_item;
+
+  _trait = PCFG_TRAIT;
+  
+  _spanningonly = rule->spanningonly();
+  
+  pasv->parents.push_back(this);
+  if (passive()) {
+    rule->passives++;
+  }
+}
+
+tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv)
+  : tItem(-1, -1, active->_paths.common(pasv->_paths), active->printname()),
+    _adaughter(active), _rule(active->_rule) {
+  _daughters = active->_daughters;
+  _start = active->_start;
+  _startposition = active->startposition();
+  _end = pasv->_end;
+  _endposition = pasv->endposition();
+  _daughters.push_back(pasv);
+  
+  pasv->parents.push_back(this);
+  active->parents.push_back(this);
+  
+  _tofill = active->restargs();
+  _nfilled = active->nfilled() + 1;
+
+  _trait = PCFG_TRAIT;
+  
+  if (passive()) {
+    active->rule()->passives++;
+  } else {
+    active->rule()->actives++;
+  }
+}
+
+tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, std::vector<tItem *> &dtrs)
+  : tItem(sponsor->start(), sponsor->end(), sponsor->_paths, sponsor->printname()),
+    _adaughter(0), _rule(sponsor->rule()) {
+  for(vector<tItem *>::iterator it = dtrs.begin(); it != dtrs.end(); it ++)
+    _daughters.push_back(*it);
+  _trait = PCFG_TRAIT;
+  _nfilled = dtrs.size();
+  _result_root = sponsor->result_root();
+}
+
 void
 tPhrasalItem::set_result_root(type_t rule)
 {
@@ -720,6 +788,35 @@ tItem::contains_p(const tItem *it) const
     else
       pit = pit->daughters().front();
   }
+}
+
+
+/** check if packing current item into \a it 
+    will create a cycle in the packed forest */
+bool
+tItem::cyclic_p(const tItem *it) const {
+  list<const tItem*> ilist;
+  const tItem *pit = this;
+  ilist.push_back(pit);
+  while (!ilist.empty()) {
+    pit = ilist.front();
+    ilist.pop_front();
+    if (it->startposition() != pit->startposition() ||
+        it->endposition() != pit->endposition() ||
+        pit->_daughters.size() != 1)
+      continue;
+    else if (it->id() == pit->id())
+      return true;
+    else {
+      pit = pit->daughters().front();
+      ilist.push_back(pit);
+      for (item_citer iter = pit->packed.begin();
+           iter != pit->packed.end();
+           iter ++)
+        ilist.push_back(*iter);
+    }
+  }
+  return false;
 }
 
 //
@@ -1296,7 +1393,8 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
       return results;
     }
     type_t rule;
-    if (result && result->root(Grammar, end, rule)) {
+    if (result && 
+        (result->trait() == PCFG_TRAIT || result->root(Grammar, end, rule))) {
       results.push_back(result);
       n --;
       if (n == 0) {
@@ -1304,6 +1402,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
         break;
       }
     }
+  
     hypo = aitem->edge->hypothesize_edge(path, aitem->indices[0]+1);
     if (hypo) {
       //Grammar->sm()->score_hypothesis(hypo);
@@ -1375,46 +1474,52 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
       return NULL;
     }
   }
-
-  // Replay the unification.
-  fs res = rule()->instantiate(true);
-  list_int *tofill = rule()->allargs();
-  while (res.valid() && tofill && !unpacking_resources_exhausted()) {
-    fs arg = res.nth_arg(first(tofill));
-    if (res.temp())
-      unify_generation = res.temp();
-    if (rest(tofill)) {
-      res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
-    } else {
-      res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
-                           arg,
-                           Grammar->deleted_daughters());
+  
+  tPhrasalItem *result;
+  if (trait() != PCFG_TRAIT) {
+    // Replay the unification.
+    fs res = rule()->instantiate(true);
+    list_int *tofill = rule()->allargs();
+    while (res.valid() && tofill && !unpacking_resources_exhausted()) {
+      fs arg = res.nth_arg(first(tofill));
+      if (res.temp())
+        unify_generation = res.temp();
+      if (rest(tofill)) {
+        res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
+      } else {
+        res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
+                             arg,
+                             Grammar->deleted_daughters());
+      }
+      tofill = rest(tofill);
     }
-    tofill = rest(tofill);
-  }
-
-  if (unpacking_resources_exhausted()) {
-    ostringstream s;
-    s << "memory limit exhausted (" << opt_memlimit / (1024 * 1024)
-      << " MB)";
-    throw tError(s.str());
-  }
-
-  if (!res.valid()) {
-    //    FSAS.release();
-    //hypo->inst_failed = true;//
+  
+    if (unpacking_resources_exhausted()) {
+      ostringstream s;
+      s << "memory limit exhausted (" << opt_memlimit / (1024 * 1024)
+        << " MB)";
+      throw tError(s.str());
+    }
+    
+    if (!res.valid()) {
+      //    FSAS.release();
+      //hypo->inst_failed = true;//
 #ifdef INSTFC
-    propagate_failure(hypo);
+      propagate_failure(hypo);
 #endif
-    stats.p_failures ++;
-    return NULL;
-  }
-  if (passive()) {
-    characterize(res, _startposition, _endposition);
+      stats.p_failures ++;
+      return NULL;
+    }
+    if (passive()) {
+      characterize(res, _startposition, _endposition);
+    }
+    
+    result = new tPhrasalItem(this, daughters, res);
+  } else {
+    result = new tPhrasalItem(this, daughters);
   }
 
   stats.p_upedges++;
-  tPhrasalItem *result = new tPhrasalItem(this, daughters, res);
   result->score(hypo->scores[path]);
   hypo->inst_edge = result;
   return result;
