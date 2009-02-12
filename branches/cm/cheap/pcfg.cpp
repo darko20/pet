@@ -226,8 +226,8 @@ pcfg_rule_and_passive_task::pcfg_rule_and_passive_task(chart *C, tAgenda *A,
   if (Grammar->pcfgsm()) {
     list<tItem *> daughters;
     daughters.push_back(passive);
-    if (! (opt_packing & PACKING_PCFGEQUI))
-      priority(Grammar->pcfgsm()->scoreLocalTree(rule, daughters));
+    //if (! (opt_packing & PACKING_PCFGEQUI))
+    priority(Grammar->pcfgsm()->scoreLocalTree(rule, daughters));
   }
 }
 
@@ -238,7 +238,8 @@ pcfg_rule_and_passive_task::execute()
     return 0;
   
   tItem *result = build_pcfg_rule_item(_Chart, _A, _rule, _passive);
-  if ((opt_packing & PACKING_PCFGEQUI) == 0 && result) 
+  //if ((opt_packing & PACKING_PCFGEQUI) == 0 && result) 
+  if (result)
     result->score(priority());
   return result;
 }
@@ -251,8 +252,8 @@ pcfg_active_and_passive_task::pcfg_active_and_passive_task(chart *C, tAgenda *A,
     tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act);
     list<tItem *> daughters(active->daughters());
     daughters.push_back(passive);
-    if (! (opt_packing & PACKING_PCFGEQUI))
-      priority(Grammar->pcfgsm()->scoreLocalTree(active->rule(), daughters));
+    //    if (! (opt_packing & PACKING_PCFGEQUI))
+    priority(Grammar->pcfgsm()->scoreLocalTree(active->rule(), daughters));
   }
 }
 
@@ -262,7 +263,8 @@ pcfg_active_and_passive_task::execute() {
     return 0;
 
   tItem *result = build_pcfg_combined_item(_Chart, _active, _passive);
-  if ((opt_packing & PACKING_PCFGEQUI) == 0 && result)
+  //  if ((opt_packing & PACKING_PCFGEQUI) == 0 && result)
+  if (result)
     result->score(priority());
   return result;
 }
@@ -353,16 +355,26 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
   Grammar->sm(Grammar->pcfgsm());
   opt_gplevel = 0; 
   list<tItem*> uroots;
+  tItem* maxtree;
+  double maxs = 1;
   for (vector<tItem*>::iterator tree = trees.begin();
        tree != trees.end(); ++ tree) {
     if (! (*tree)->blocked()) {
+      if (maxs == 1 || (*tree)->score() > maxs) {
+        maxs = (*tree)->score();
+        maxtree = *tree;
+      }
       stats.ptrees ++;
       uroots.push_back(*tree);
     }
   }
-  list<tItem*> results = tItem::selectively_unpack(uroots, opt_nsolutions,
+  list<tItem*> results;
+  if (opt_nsolutions == 1) {
+    results.push_back(maxtree);
+  } else {
+    results = tItem::selectively_unpack(uroots, opt_nsolutions,
                                                    Chart->rightmost(), upedgelimit);
-  
+  }
   tCompactDerivationPrinter cdp(cerr, false);
   for (list<tItem*>::iterator res = results.begin();
        res != results.end(); res ++) {
@@ -382,6 +394,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
 
   return nres;
 }
+
 
 void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
   // _todo_ modify so that proper unpacking routines are invoked
@@ -456,7 +469,6 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
   Chart->readings() = readings;
   stats.preadings = Chart->readings().size();
 }
-
 
 void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors) {
   Agenda = new tAgenda;
