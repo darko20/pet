@@ -252,6 +252,7 @@ public:
    * return the type of this root node in \a rule.
    */
   bool root(const fs &f, type_t &rule) const;
+  bool root(int type) const;
 
   /** Return the list of attributes that should be deleted in the root dags of
    *  passive items.

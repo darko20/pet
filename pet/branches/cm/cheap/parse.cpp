@@ -21,6 +21,7 @@
 
 #include "parse.h"
 #include "cheap.h"
+#include "pcfg.h"
 #include "fs.h"
 #include "item.h"
 #include "item-printer.h"
@@ -662,7 +663,12 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
     parse_finish(FSAS, errors);
 
+    if(opt_robust != 0 && (Chart->readings().empty()))
+      analyze_pcfg(Chart, FSAS, errors);
+
     Lexparser.reset();
     // clear_dynamic_types(); // too early
+
     delete Agenda;
+
 }

@@ -250,7 +250,8 @@ tCompactDerivationPrinter::print_daughters_same_line(const tItem* item) {
 // former tLexItem::print_derivation
 void 
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
-  _out << "(" << item->id() << " " << stem(item)->printname() << "/"
+  _out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
+       << item->id() << " " << stem(item)->printname() << "/"
        << print_name(item->type()) << " "
        << std::setprecision(4) << item->score() << " "
        << item->start() << " " << item->end();
@@ -268,7 +269,8 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 // former tPhrasalItem::print_derivation
 void 
 tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
-  _out << "(" << item->id() << " " << item->printname() << " "
+  _out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
+       << item->id() << " " << item->printname() << " "
        << std::setprecision(4) << item->score() << " "
        << item->start() << " " << item->end();
   if(item->packed.size() > 0) {
@@ -289,9 +291,6 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
     print_inflrs(item);
   }
  
-  if(item->trait() == PCFG_TRAIT)
-    _out << " *";
-
   print_daughters(item);
   
   _out << ")";
@@ -307,7 +306,8 @@ void tTSDBDerivationPrinter::real_print(const tInputItem *item) {
 }
 
 void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
-  _out << "(" << item->id() << " " << item->stem()->printname()
+  _out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
+       << item->id() << " " << item->stem()->printname()
        << " " << item->score() << " " << item->start() <<  " " << item->end()
        << " (\"" << escape_string(item->orth()) << "\"";
 
@@ -325,9 +325,11 @@ void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
 
 void tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
   if(item->result_root() > -1) 
-    _out << "(" << print_name(item->result_root()) << " ";
+    _out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
+         << print_name(item->result_root()) << " ";
   
-  _out << "(" << item->id() << " " << item->printname() << " " << item->score()
+  _out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
+       << item->id() << " " << item->printname() << " " << item->score()
        << " " << item->start() << " " << item->end();
   
   const item_list &daughters = item->daughters();

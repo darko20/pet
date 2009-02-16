@@ -44,9 +44,9 @@ statistics::reset()
 {
   id = 0;
   trees = 0;
-  ptrees = 0;
+  rtrees = 0;
   readings = 0;
-  preadings = 0;
+  rreadings = 0;
   words = 0;
   words_pruned = 0;
   mtcpu = 0;
@@ -98,7 +98,7 @@ void
 statistics::print(FILE *f)
 {
   fprintf (f,
-           "id: %d\ntrees: %d\nptrees: %d\nreadings: %d\npreadings: %d\n"
+           "id: %d\ntrees: %d\nrtrees: %d\nreadings: %d\nrreadings: %d\n"
            "words: %d\nwords_pruned: %d\n"
            "mtcpu: %d\nfirst: %d\ntcpu: %d\nutcpu: %d\n"
            "ftasks_fi: %d\nftasks_qc: %d\n"
@@ -115,7 +115,7 @@ statistics::print(FILE *f)
            "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\nhypotheses: %d\n",
-           id, trees, ptrees, readings, preadings, 
+           id, trees, rtrees, readings, rreadings, 
            words, words_pruned,
            mtcpu, first, tcpu, p_utcpu,
            ftasks_fi, ftasks_qc,
@@ -511,6 +511,8 @@ tsdb_parse::capi_print()
                 "(:upedges . %d) " 
                 "(:failures . %d) "
                 "(:hypotheses . %d) "
+                "(:rtrees . %d) "
+                "(:rreadings . %d) "
                 "\")",
                 nmeanings, 
                 mtcpu,
@@ -525,7 +527,8 @@ tsdb_parse::capi_print()
                 p_utcpu,
                 p_upedges,
                 p_failures,
-                p_hypotheses);
+                p_hypotheses,
+                rtrees, rreadings);
 }
 
 #endif
@@ -688,6 +691,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
     T.p_hypotheses = stats.p_hypotheses;
+
+    T.rtrees = stats.rtrees;
+    T.rreadings = stats.rreadings;
 }
 
 void

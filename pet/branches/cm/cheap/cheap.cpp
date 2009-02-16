@@ -139,8 +139,9 @@ void interactive() {
       string surface = Chart->get_surface_string();
 
       fprintf(fstatus,
-              "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-              stats.id, surface.c_str(), opt_pedgelimit, stats.readings,
+              "(%d) `%s' [%d] --- %s%d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
+              stats.id, surface.c_str(), opt_pedgelimit, 
+              (stats.readings && stats.rreadings ? "*" : ""), stats.readings,
               stats.first/1000., stats.tcpu / 1000.,
               stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
               TotalParseTime.elapsed_ts() / 10.);
@@ -183,7 +184,8 @@ void interactive() {
 #ifdef HAVE_MRS
           if (opt_mrs && (strcmp(opt_mrs, "new") != 0)) {
             string mrs;
-            mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
+            if(it->trait() != PCFG_TRAIT)
+              mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
               if (strcmp(opt_mrs, "xml") == 0)
                 fprintf(fstatus, "\n<rmrs cfrom='-2' cto='-2'>\n"
@@ -196,7 +198,9 @@ void interactive() {
           }
 #endif
           if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
-            mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
+            fs f = it->get_fs();
+            // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
+            mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
             if (mrs->valid()) {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
               if (mapped_mrs->valid()) {
@@ -234,37 +238,6 @@ void interactive() {
           else fprintf(fstatus, "EOM\n");
         }
 #endif
-        if(opt_robust != 0 && (Chart->readings().empty())) {
-          analyze_pcfg(Chart, FSAS, errors);
-          list<tItem*> partials(Chart->readings().begin(),
-                                Chart->readings().end());
-          for (list<tItem*>::iterator iter = partials.begin();
-               (iter != partials.end()) && ((opt_nresults == 0) || (opt_nresults > nres));
-               iter ++) {
-            tCompactDerivationPrinter deriv(std::cerr);
-            tItem *it = *iter;
-            // TODO
-            fprintf(fstatus, "Pseudo-derivation:");
-            deriv.print(it);
-            fprintf(fstatus, "\n");
-            /*
-            if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
-              fs f = instantiate_robust(it);
-              mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
-              if (mrs->valid()) {
-                mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
-                if (mapped_mrs->valid()) {
-                  fprintf(fstatus, "\n");
-                  mapped_mrs->print(fstatus);
-                  fprintf(fstatus, "\n");
-                }
-                delete mapped_mrs;
-              }
-              delete mrs;
-            }
-            */
-          }
-        }
       }
     } /* try */
 

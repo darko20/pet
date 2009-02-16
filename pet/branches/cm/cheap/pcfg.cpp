@@ -71,17 +71,14 @@ pcfg_resources_exhausted(int pedgelimit, long memlimit, int timeout, int timesta
 inline bool pcfg_result_limits() {
   // in no-unpacking mode (aiming to determine parseability only), have we
   // found at least one tree?
-  if ((opt_packing & PACKING_NOUNPACK) != 0 && stats.ptrees > 0) return true;
+  if ((opt_packing & PACKING_NOUNPACK) != 0 && stats.rtrees > 0) return true;
   
   // in (non-packing) best-first mode, is the number of trees found equal to
   // the number of requested solutions?
   // opt_packing w/unpacking implies exhaustive parsing
   if ((! opt_packing
-       && opt_nsolutions != 0 && stats.ptrees >= opt_nsolutions)
-#ifdef YY
-      || (opt_nth_meaning != 0 && stats.nmeanings >= opt_nth_meaning)
-#endif
-      ) return true;
+       && opt_nsolutions != 0 && stats.rtrees >= opt_nsolutions)) 
+    return true;
   return false;
 }
 
@@ -276,15 +273,24 @@ add_item_pcfg(tItem *it) {
     if ((opt_packing & PACKING_PCFGEQUI) && packed_edge_pcfg(it))
       return false;
     Chart->add(it);
-    if (it->start() == 0 && it->end() == (int)Chart->rightmost()) { 
-      // it's a full spanning edge
-      Chart->trees().push_back(it);
-      stats.ptrees ++;
+    type_t root;
+    if (it->root(Grammar, Chart->rightmost(), root)) { 
+      //
+      // a complete result; because we simulate the actual HPSG start symbols
+      // as pseudo PCFG rules, ditch the top node, recording its category as a
+      // start symbol instead.
+      //
+      tItem *result = it->daughters().front();
+      result->set_result_root(root);
+      Chart->trees().push_back(result);
+      stats.rtrees ++;
       if (pcfg_result_limits())
         return true;
-    }
-    postulate_pcfg(it);
-    fundamental_for_passive_pcfg(it);
+    } // if
+    else {
+      postulate_pcfg(it);
+      fundamental_for_passive_pcfg(it);
+    } // else
   } else {
     Chart->add(it);
     fundamental_for_active_pcfg(dynamic_cast<tPhrasalItem *> (it));
@@ -355,7 +361,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
   Grammar->sm(Grammar->pcfgsm());
   opt_gplevel = 0; 
   list<tItem*> uroots;
-  tItem* maxtree;
+  tItem* maxtree = NULL;
   double maxs = 1;
   for (vector<tItem*>::iterator tree = trees.begin();
        tree != trees.end(); ++ tree) {
@@ -364,12 +370,12 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
         maxs = (*tree)->score();
         maxtree = *tree;
       }
-      stats.ptrees ++;
+      stats.rtrees ++;
       uroots.push_back(*tree);
     }
   }
   list<tItem*> results;
-  if (opt_nsolutions == 1) {
+  if (opt_nsolutions == 1 && maxtree) {
     results.push_back(maxtree);
   } else {
     results = tItem::selectively_unpack(uroots, opt_nsolutions,
@@ -423,42 +429,36 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
 
   vector<tItem*> readings;
 
-  if (opt_packing && !(opt_packing & PACKING_NOUNPACK)) {
-    if (pedgelimit == 0 || Chart->pedges() < pedgelimit) {
-      timer *UnpackTime = new timer();
-      int nres = 0;
-      stats.ptrees = 0;
-      int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+  if ((opt_packing & PACKING_PCFGEQUI) && !(opt_packing & PACKING_NOUNPACK)
+      && Grammar->pcfgsm()
+      && (pedgelimit == 0 || Chart->pedges() < pedgelimit)) {
+    timer *UnpackTime = new timer();
+    int nres = 0;
+    stats.rtrees = 0;
+    int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
 
-      if ((opt_packing & PACKING_SELUNPACK)
-          && opt_nsolutions > 0
-          && Grammar->pcfgsm()) {
-        // nres = unpack_selectively(Chart->trees(), upedgelimit, opt_nsolutions, UnpackTime, readings);
-        nres = unpack_selectively_pcfg(Chart->trees(), upedgelimit, UnpackTime, readings);
-      } else {
-        nres = unpack_exhaustively(Chart->trees(), upedgelimit, UnpackTime, readings);
-      }
+    nres = unpack_selectively_pcfg(Chart->trees(), upedgelimit,
+                                   UnpackTime, readings);
       
-      if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
-        ostringstream s;
-        s << "unpack edge limit exhausted (" << upedgelimit 
-          << " pedges)";
-        errors.push_back(s.str());
-      }
-
-      if (opt_timeout > 0 && timestamp >= timeout) {
-	ostringstream s;
-	s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
-	  << " s)";
-	errors.push_back(s.str());
-      }
-      
-      stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
-      stats.p_dyn_bytes = FSAS.dynamic_usage();
-      stats.p_stat_bytes = FSAS.static_usage();
-      FSAS.clear_stats();
-      delete UnpackTime;
+    if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
+      ostringstream s;
+      s << "unpack edge limit exhausted (" << upedgelimit 
+        << " pedges)";
+      errors.push_back(s.str());
     }
+
+    if (opt_timeout > 0 && timestamp >= timeout) {
+      ostringstream s;
+      s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+        << " s)";
+      errors.push_back(s.str());
+    }
+      
+    stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
+    stats.p_dyn_bytes = FSAS.dynamic_usage();
+    stats.p_stat_bytes = FSAS.static_usage();
+    FSAS.clear_stats();
+    delete UnpackTime;
   } else {
     readings = Chart->trees();
   }
@@ -467,23 +467,13 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
     sort(readings.begin(), readings.end(), item_greater_than_score());
   
   Chart->readings() = readings;
-  stats.preadings = Chart->readings().size();
+  stats.rreadings = stats.readings = Chart->readings().size();
 }
 
 void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors) {
-  Agenda = new tAgenda;
-  
-  // copy chart
-//   int len = Chart->length()-1;
-//   auto_ptr<item_owner> owner(tItem::default_owner());
-//   C = CN = new chart(len, owner);
-//   chart_iter ci1(Chart);
-//   while (ci1.valid()) {
-//     if (ci1.current()->passive() && (ci1.current()->trait() != INPUT_TRAIT)) {
-//       CN->add(ci1.current());
-//     }
-//     ci1 ++;
-//   }
+
+  int nsolutions = opt_nsolutions;
+  if(opt_nsolutions <= 0) opt_nsolutions = 1;
 
   // initialize agenda
   chart_iter ci1(Chart);
@@ -507,12 +497,6 @@ void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors) {
 
   parse_finish_pcfg(FSAS, errors);
 
-  
-//   fprintf(fstatus, "agenda:%d\n",Agenda->size());
-//   for (std::map<type_t,int>::iterator iter=rule_count.begin();
-//        iter != rule_count.end(); iter++) {
-//     fprintf(fstatus, "%s:%d\n", printnames[(*iter).first].c_str(), (*iter).second);
-//   }
-  delete Agenda;
+  opt_nsolutions = nsolutions;
 }
 

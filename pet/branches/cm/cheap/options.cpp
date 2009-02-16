@@ -131,7 +131,7 @@ void usage(FILE *f)
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");
   fprintf(f, "  `-robust[=1]' --- "
-             "print robust PCFG parsing result in case of full parse failure\n");
+             "try robust PCFG parsing, in case of full parse failure\n");
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");
   fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
              "select input method (default `string')\n");
@@ -460,6 +460,7 @@ bool parse_options(int argc, char* argv[])
             opt_robust = strtoint(optarg, "as argument to -robust");
           else
             opt_robust = 1;
+          break;
       case OPTION_NRESULTS:
           if(optarg != NULL)
               opt_nresults = strtoint(optarg, "as argument to -results");

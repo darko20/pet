@@ -337,7 +337,13 @@ public:
       return false;
 
     if(_start == 0 && _end == length)
-      return G->root(_fs, rule);
+      if(_trait == PCFG_TRAIT) {
+        bool result = G->root(identity());
+        if(result) rule = identity();
+        return result;
+      }
+      else
+        return G->root(_fs, rule);
     else
       return false;
   }

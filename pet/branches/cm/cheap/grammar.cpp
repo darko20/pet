@@ -919,6 +919,16 @@ tGrammar::root(const fs &candidate, type_t &rule) const
     return false;
 }
 
+bool
+tGrammar::root(int type) const
+{
+  list_int *roots;
+  for(roots = _root_insts; roots != 0; roots = rest(roots)) {
+    if(first(roots) == type) return true;
+  } // for
+  return false;
+} // tGrammar::root()
+
 lex_stem *
 tGrammar::find_stem(type_t inst_key)
 {
