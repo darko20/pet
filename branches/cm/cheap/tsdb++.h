@@ -69,11 +69,11 @@ class statistics
   /** nr of trees (packed readings) */
   int trees;
   /** nr of pseudo-trees (packed pseudo-readings) */
-  int ptrees;
+  int rtrees;
   /** nr of readings */
   int readings;
   /** nr of pseudo-readings */
-  int preadings;
+  int rreadings;
   /** nr of words */
   int words;
   /** nr of words pruned by chart manipulation */
@@ -391,7 +391,12 @@ class tsdb_parse
   int p_hypotheses;
   /** passive items in unpacking  */
   int p_upedges;
-    
+
+  //
+  // statistics from the second, robust parsing phase
+  //
+  int rtrees;
+  int rreadings;
  private:
     
   std::list<tsdb_result> results;

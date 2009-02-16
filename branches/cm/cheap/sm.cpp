@@ -1329,9 +1329,14 @@ tPCFG::parseFeature(int n) {
 	}
 	else {
 	  v.push_back(map()->typeToSubfeature(t));
-          // we do not accept inflectional rules as lhs of pcfg rules, for the moment
-          if (rule.size() == 0 &&
-              !cheap_settings->statusmember("rule-status-values", typestatus[t]))
+          //
+          // ignore unary rules that are not syntactic rules, for the moment;
+          // except for pseudo-rules corresponding to grammar start symbols.
+          //
+          if (rule.size() == 0
+              && !cheap_settings->statusmember("rule-status-values",
+                                               typestatus[t])
+              && !Grammar->root(t))
             goodrule = false;
           rule.push_back(t);
 	}
