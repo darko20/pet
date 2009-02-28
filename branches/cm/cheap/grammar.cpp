@@ -407,7 +407,7 @@ undump_dags(dumper *f, int qc_inst_unif, int qc_inst_subs) {
 tGrammar::tGrammar(const char * filename)
     : _properties(), _root_insts(0), _generics(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0), _lexsm(0)
+      _sm(0), _pcfgsm(0), _lexsm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
