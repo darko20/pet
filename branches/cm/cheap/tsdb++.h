@@ -267,7 +267,7 @@ class tsdb_parse
 {
  public:
     tsdb_parse()
-        : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
+      : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
         mtcpu(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), 
         words(-1),
         l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
@@ -277,7 +277,7 @@ class tsdb_parse
         date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
         subsumptions(-1), p_equivalent(-1), p_proactive(-1),
         p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
-        p_hypotheses(-1), p_upedges(-1),
+        p_hypotheses(-1), p_upedges(-1), rtrees(-1), rreadings(-1),
         results(), edges(), rule_stats(), i_input(), i_length(-1)
         {
         }
