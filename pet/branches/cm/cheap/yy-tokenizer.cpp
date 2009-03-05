@@ -345,7 +345,9 @@ tYYTokenizer::read_token()
         surface = stem;
         break;
       } 
-      else if(!token_class == SKIP_TOKEN_CLASS)
+      else if(token_class == SKIP_TOKEN_CLASS)
+	break;
+      else
         throw tError("yy_tokenizer: illegal \"null\" spec");
     }
     
