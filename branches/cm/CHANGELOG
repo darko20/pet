@@ -1,4 +1,6 @@
 specific to input-chart-rules branch:
+  - activate all rules after lex-exhaustive parsing (not just syntactic rules)
+    for compatibility with LKB
   - regular expression literals introduced with slashes in TDL
   - assert that fss in unify(), unify_restrict() and unify_np() are valid
   - added preliminary XML-RPC server mode

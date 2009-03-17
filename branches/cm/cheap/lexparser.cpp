@@ -989,11 +989,10 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     throw tError("no lexicon entries for:" + missing) ;
   }
   
-  if (lex_exhaustive) {
-    Grammar->activate_syn_rules();
-  } else {
-    Grammar->activate_all_rules();
-  }
+  // activate all rules (regardless of whether we did lex-exhaustive parsing
+  // before, since lexical rules are allowed to happen after syntactic rules
+  // in LKB)
+  Grammar->activate_all_rules();
 
   // Now we have to create the appropriate tasks for passive items on the chart
   chart_iter ci(Chart);
