@@ -5,6 +5,7 @@
 
 /* unit tests for tPaths class */
 
+#include <cstdlib>
 #include <cppunit/extensions/HelperMacros.h>
 
 using namespace std;
