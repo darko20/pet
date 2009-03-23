@@ -296,13 +296,19 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
   
   // _todo_ ignore cfrom/cto for the moment
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-cfrom-feature"));
-  if (d != FAIL)
-    cfrom = strtoint(type_name(d->type), "Invalid CFROM value", true);
-  
+  if (d != FAIL) {
+    if (d->type == BI_TOP)
+      cfrom = -1;
+    else
+      cfrom = strtoint(type_name(d->type), "Invalid CFROM value", true);
+  }
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-cto-feature"));
-  if (d != FAIL)
-    cto = strtoint(type_name(d->type), "Invalid CTO value", true);
-  
+  if (d != FAIL) {
+    if (d->type == BI_TOP)
+      cto = -1;
+    else
+      cto = strtoint(type_name(d->type), "Invalid CTO value", true);
+  }
 }
 
 void tRel::
