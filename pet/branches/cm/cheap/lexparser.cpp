@@ -988,13 +988,19 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     }
     throw tError("no lexicon entries for:" + missing) ;
   }
-  
-  // activate all rules (regardless of whether we did lex-exhaustive parsing
-  // before, since lexical rules are allowed to happen after syntactic rules
-  // in LKB)
-  Grammar->activate_all_rules();
 
-  // Now we have to create the appropriate tasks for passive items on the chart
+
+  //
+  // finally, we need to create new tasks for the second parsing phase.  in
+  // case there was a full `lexical' parsing phase already, make sure to not
+  // tasks that would lead to duplicate, i.e. do not use lexical rules for the
+  // creation of new tasks.  otherwise, use all rules.
+  //
+  if (lex_exhaustive)
+    Grammar->activate_syn_rules();
+  else
+    Grammar->activate_all_rules();
+
   chart_iter ci(Chart);
   while (ci.valid()) {
     if (ci.current()->passive() && (ci.current()->trait() != INPUT_TRAIT)) {
@@ -1008,7 +1014,12 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     }
     ci++;
   }
-
+  //
+  // from here on, lexical as well as non-lexical rules should be active.  in
+  // principle at least, we have bought into the LKB point of view that allows
+  // `lexical' rules to apply to phrases too.
+  //
+  Grammar->activate_all_rules();
 }
 
 
