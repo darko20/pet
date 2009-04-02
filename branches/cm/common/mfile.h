@@ -26,8 +26,8 @@
 
 #include <stdarg.h>
 
-#define MFILE_BUFF_SIZE 65536
-#define MFILE_MAX_LINE 31744
+#define MFILE_BUFF_SIZE 1048576
+#define MFILE_MAX_LINE 524288
 
 #ifdef __cplusplus
 extern "C" {

@@ -326,20 +326,20 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
 int
 cheap_complete_test_run(int run_id, const char *custom)
 {
+  if(nprocessed)
     fprintf(ferr, "total elapsed parse time %.3fs; %d items;"
             " avg time per item %.4fs\n",
             TotalParseTime.elapsed_ts() / 10.,
             nprocessed,
             (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10.);
+  
+  if(opt_compute_qc) {
+    fprintf(ferr, "computing quick check paths\n");
+    ofstream qc(opt_compute_qc);
+    compute_qc_paths(qc);
+  } // if
 
-    if(opt_compute_qc)
-    {
-        fprintf(ferr, "computing quick check paths\n");
-        ofstream qc(opt_compute_qc);
-        compute_qc_paths(qc);
-    }
-
-    return 0;
+  return 0;
 }
 
 int
