@@ -138,7 +138,7 @@ void usage(FILE *f)
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
   fprintf(f, "  `-chart-mapping' --- "
-          "enable token mapping and lexical mapping\n");
+          "enable token mapping and lexical filtering\n");
 }
 
 #define OPTION_TSDB 0
