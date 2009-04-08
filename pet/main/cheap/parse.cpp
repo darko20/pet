@@ -487,7 +487,7 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
     LOG(logParse, DEBUG,
         "unpacked[" << nres << "] (" << setprecision(1)
         << (float) (UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-        << "): " << *res << endl);
+        << "): " << endl << *res << endl);
     nres++;
   }
   return nres;
@@ -525,7 +525,7 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
           LOG(logParse, DEBUG,
               "unpacked[" << nres << "] (" << setprecision(1)
               << (float)(UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-              << "): " << *res);
+              << "): " << endl << *res << endl);
           nres++;
         }
       }
