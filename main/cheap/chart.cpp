@@ -111,18 +111,23 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
-void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
+void chart::print(tAbstractItemPrinter *pr,
                   bool passives, bool actives) const {
-  tItemPrinter def_print(out, verbosity > 2, verbosity > 10);
-  if (pr == NULL) {
-    pr = &def_print;
-  }
   for(chart_iter pos(this); pos.valid(); pos++) {
     tItem *curr = pos.current();
     if ((curr->passive() && passives) || (! curr->passive() && actives)) {
       pr->print(curr);// out << endl;
     }
   }
+}
+
+void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
+                  bool passives, bool actives) const {
+  tItemPrinter def_print(out, verbosity > 2, verbosity > 10);
+  if (pr == NULL) {
+    pr = &def_print;
+  }
+  print(pr, passives, actives);
 }
 
 void chart::get_statistics()

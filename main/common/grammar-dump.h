@@ -78,7 +78,7 @@ char *undump_header(dumper *f, int &version);
 /** section type identifiers */
 enum sectiontype { SEC_NOSECTION, SEC_SYMTAB, SEC_PRINTNAMES, SEC_HIERARCHY,
                    SEC_FEATTABS, SEC_FULLFORMS, SEC_INFLR, SEC_CONSTRAINTS,
-                   SEC_IRREGS, SEC_PROPERTIES, SEC_SUPERTYPES };
+                   SEC_IRREGS, SEC_PROPERTIES, SEC_SUPERTYPES, SEC_CHART };
 
 /** The table of contents structure for reading. */
 class dump_toc

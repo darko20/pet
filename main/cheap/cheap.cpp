@@ -89,7 +89,90 @@ struct passive_weights : public unary_function< tItem *, unsigned int > {
   }
 };
 
-void dump_jxchg(string surface, chart *current) {
+/** Dump \a dag onto \a f (external binary representation) */
+extern bool dag_dump(dumper *f, dag_node *dag);
+
+class ChartDumper : public tAbstractItemPrinter {
+private:
+  dumper *_dmp;
+
+  virtual void print_common(const tItem * item, const std::string &name, dag_node *dag) {
+    _dmp->dump_int(item->id());
+    _dmp->dump_int(item->start());
+    _dmp->dump_int(item->end());    
+    _dmp->dump_string(name.c_str());
+    item_list dtrs = item->daughters();
+    _dmp->dump_short(dtrs.size());
+    for(item_citer it = dtrs.begin(); it != dtrs.end(); ++it) {
+      _dmp->dump_int((*it)->id());
+    }
+    dag_dump(_dmp, dag);
+  }
+
+public:
+  ChartDumper(dumper *dmp) : _dmp(dmp) {}
+
+  virtual ~ChartDumper() {}
+
+  /** The top level function called by the user */
+  virtual void print(const tItem *arg) { arg->print_gen(this); } 
+
+  /** Base printer function for a tInputItem */
+  virtual void real_print(const tInputItem *item) {
+    print_common((const tItem *)item, (string) "\"" + item->form() + "\"",
+                 type_dag(BI_TOP));
+  }
+  /** Base printer function for a tLexItem */
+  virtual void real_print(const tLexItem *item) {
+    print_common((const tItem *)item,
+                 (item->rule() != NULL
+                  ? item->rule()->printname() 
+                  : ((string) "\"" + item->printname() + "\"")),
+                 get_fs(item).dag());
+  }
+
+  /** Base printer function for a tPhrasalItem */
+  virtual void real_print(const tPhrasalItem *item) {
+    print_common((const tItem *)item, item->rule()->printname(),
+                 get_fs(item).dag());
+  }
+};
+
+/** Dump the chart to a binary data file.
+ * \param surface the supposed surface string that was parsed
+ * \param ch the current chart
+ */
+void dump_jxchg(string &surface, chart *ch) {
+  if (! get_opt_string("opt_jxchg_dir").empty()) {
+    string yieldname = surface;
+    replace(yieldname.begin(), yieldname.end(), ' ', '_');
+    yieldname = get_opt_string("opt_jxchg_dir") + yieldname;
+    try {
+      dumper dmp(yieldname.c_str(), true);
+      
+      dump_header(&dmp, surface.c_str());
+      
+      dump_toc_maker toc(&dmp);
+      toc.add_section(SEC_CHART);
+      toc.close();
+      
+      toc.start_section(SEC_CHART);
+      dmp.dump_int(0);
+      dmp.dump_int(ch->rightmost());
+      ChartDumper chdmp(&dmp);
+      ch->print(&chdmp, true, false);
+      // logkb("edges", f);
+      dmp.dump_int(0);
+      dmp.dump_int(0);
+      dmp.dump_int(0);
+    }
+    catch (tError err) {
+      LOG(logAppl, WARN, "Can not open file " << yieldname);
+    }
+  }
+}
+
+void dump_jxchg_string(string surface, chart *current) {
   if (! get_opt_string("opt_jxchg_dir").empty()) {
     string yieldname = surface;
     replace(yieldname.begin(), yieldname.end(), ' ', '_');
@@ -623,3 +706,4 @@ int main(int argc, char* argv[])
   if(flog != NULL) fclose(flog);
   return 0;
 }
+

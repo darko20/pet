@@ -501,6 +501,10 @@ dag_unify_arcs(dag_node *dag1, dag_node *dag2) {
   // What is the reason that an arc can not appear in the arcs and in the
   // comp_arcs of a dag? If that would be the case, two arcs with the same
   // feature could be in new_arcs1
+  // Answer: only arcs that are not in the first, but in the second arc list
+  // are added to the comp_arcs of the first dag. The common arcs are
+  // represented by the unified subnode, that the arc of the first dag points
+  // to (with the dereferencing!).
   if(! recfail<record_failure>::
      unify_arcs1(dag2->arcs, arcs1, comp_arcs1, &new_arcs1))
     return false;
