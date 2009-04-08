@@ -370,8 +370,8 @@ inline ptr2int_t dag_get_visit(dag_node *dag)
  */
 inline ptr2int_t dag_set_visit(dag_node *dag, ptr2int_t visit)
 {
-  dag->generation = unify_generation;
-  return (ptr2int_t) (dag->copy = (dag_node *) visit);
+  dag_set_copy(dag, (dag_node *) visit);
+  return visit;
 }
 
 /** Invalidate all `visited' marks */

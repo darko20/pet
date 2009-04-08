@@ -53,11 +53,11 @@ public:
    */
   /*@{*/
   /** Base printer function for a tInputItem */
-  virtual void real_print(const tInputItem *item) {};
+  virtual void real_print(const tInputItem *item) {}
   /** Base printer function for a tLexItem */
-  virtual void real_print(const tLexItem *item) {};
+  virtual void real_print(const tLexItem *item) {}
   /** Base printer function for a tPhrasalItem */
-  virtual void real_print(const tPhrasalItem *item) {};
+  virtual void real_print(const tPhrasalItem *item) {}
   /*@}*/
 
 protected:
@@ -97,7 +97,7 @@ public:
   virtual ~tItemPrinter();
   
   /** The top level function called by the user */
-  virtual void print(const tItem *arg) { arg->print_gen(this); } 
+  virtual void print(const tItem *arg) { arg->print_gen(this); }
 
   /** @name Base print functions
    * Concrete print functions for every subclass of tItem to implement the

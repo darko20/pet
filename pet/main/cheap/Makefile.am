@@ -29,7 +29,7 @@ DEFS += -DDYNAMIC_SYMBOLS
 # See README.
 
 # This is always used! <-> documentation
-AM_CXXFLAGS = -Wall
+AM_CXXFLAGS = -Wall -Wno-deprecated
 
 bin_PROGRAMS = cheap
 #bin_PROGRAMS += dumpgram
