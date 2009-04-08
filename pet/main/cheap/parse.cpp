@@ -450,6 +450,10 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
   }
 }
 
+/**
+ * Unpacks the parse forest selectively (using the max-ent model).
+ * \return number of unpacked trees
+ */
 int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
                        ,timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
@@ -474,27 +478,27 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
     = tItem::selectively_unpack(uroots, nsolutions
                                 , Chart->rightmost(), upedgelimit);
 
-  tCompactDerivationPrinter cdp(cerr, false);
   for (list<tItem*>::iterator res = results.begin();
        res != results.end(); res++) {
     //type_t rule;
     //if((*res)->root(Grammar, Chart->rightmost(), rule)) {
     // the checking is moved into selectively_unpack()
     readings.push_back(*res);
-    LOG(logParse, DEBUG, "unpacked[" << nres++ << "] (" << setprecision(1)
-        << ((float) UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-        << "): " << endl);
-    // \todo this must be changed
-    if(!get_opt_int("opt_tsdb")) {
-      cdp.print(*res); 
-      cerr << endl;
-    }
+    LOG(logParse, DEBUG,
+        "unpacked[" << nres << "] (" << setprecision(1)
+        << (float) (UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
+        << "): " << *res << endl);
+    nres++;
   }
   return nres;
 }
 
 
-// \todo why is opt_nsolutions not honored here
+/**
+ * Unpacks the parse forest exhaustively.
+ * \return number of unpacked trees
+ * \todo why is opt_nsolutions not honored here
+ */
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
                         , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
@@ -513,17 +517,16 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
 
       results = (*tree)->unpack(upedgelimit);
 
-      // this has to be changed
-      //tCompactDerivationPrinter cdp(cerr, false);
       for(list<tItem *>::iterator res = results.begin();
           res != results.end(); ++res) {
         type_t rule;
         if((*res)->root(Grammar, Chart->rightmost(), rule)) {
           readings.push_back(*res);
-          LOG(logParse, NOTICE,
-              "unpacked[" << nres++ << "] (" << setprecision(1)
-              << (float) (UnpackTime->convert2ms(UnpackTime->elapsed())
-                          / 1000.0) << "): " << *res);
+          LOG(logParse, DEBUG,
+              "unpacked[" << nres << "] (" << setprecision(1)
+              << (float)(UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
+              << "): " << *res);
+          nres++;
         }
       }
     }
