@@ -480,9 +480,6 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
 
   for (list<tItem*>::iterator res = results.begin();
        res != results.end(); res++) {
-    //type_t rule;
-    //if((*res)->root(Grammar, Chart->rightmost(), rule)) {
-    // the checking is moved into selectively_unpack()
     readings.push_back(*res);
     LOG(logParse, DEBUG,
         "unpacked[" << nres << "] (" << setprecision(1)
