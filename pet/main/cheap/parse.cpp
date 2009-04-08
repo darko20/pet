@@ -478,13 +478,16 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
     = tItem::selectively_unpack(uroots, nsolutions
                                 , Chart->rightmost(), upedgelimit);
 
+  static tCompactDerivationPrinter cdp;
   for (list<tItem*>::iterator res = results.begin();
        res != results.end(); res++) {
     readings.push_back(*res);
     LOG(logParse, DEBUG,
         "unpacked[" << nres << "] (" << setprecision(1)
         << (float) (UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-        << "): " << endl << *res << endl);
+        << "): " << endl 
+        << (std::pair<tAbstractItemPrinter *, const tItem *>(&cdp, *res))
+        << endl);
     nres++;
   }
   return nres;
@@ -514,6 +517,7 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
 
       results = (*tree)->unpack(upedgelimit);
 
+      static tCompactDerivationPrinter cdp;
       for(list<tItem *>::iterator res = results.begin();
           res != results.end(); ++res) {
         type_t rule;
@@ -522,7 +526,9 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
           LOG(logParse, DEBUG,
               "unpacked[" << nres << "] (" << setprecision(1)
               << (float)(UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-              << "): " << endl << *res << endl);
+              << "): " << endl 
+              << (std::pair<tAbstractItemPrinter *, const tItem *>(&cdp, *res))
+              << endl);
           nres++;
         }
       }
