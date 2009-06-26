@@ -21,6 +21,56 @@
 #include "pet-config.h"
 #include "input-modules.h"
 #include "settings.h"
+#include "configs.h"
+
+extern FILE *fstatus;
+
+/** @name Tokenization options */
+//@{
+static std::string init();
+/** choose tokenizer */
+std::string tokenizer_names[] = { 
+  "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "smaf", "fsr", init()
+} ;
+//@}
+
+tokenizer_id string2tokenizerid(const std::string &s) {
+  tokenizer_id id = TOKENIZER_STRING;
+  while (id < TOKENIZER_INVALID && s.compare(tokenizer_names[id]) != 0)
+    id = (tokenizer_id) (id + 1);
+  return id;
+}
+
+std::string tokenizerid2string(const tokenizer_id &val) {
+  return tokenizer_names[val];
+}
+
+
+class TokenizerIDConverter : public AbstractConverter<tokenizer_id> {
+  virtual ~TokenizerIDConverter() {}
+  virtual std::string toString(const tokenizer_id& id) {
+    return tokenizer_names[id];
+  }
+  virtual tokenizer_id fromString(const std::string& s) {
+    tokenizer_id id = TOKENIZER_STRING;
+    while (id < TOKENIZER_INVALID && s.compare(tokenizer_names[id]) != 0)
+      id = (tokenizer_id) (id + 1);
+    return id;
+  }
+};
+
+/** Initialize all the options for the input modules.
+    \todo maybe we should split that into init()s for the modules, but it's
+    ok for now.
+*/
+static std::string init() {
+  managed_opt<tokenizer_id>("opt_tok", "", TOKENIZER_STRING,
+                            //string2tokenizerid, tokenizerid2string
+                            new TokenizerIDConverter()
+                            );
+  return std::string("INVALID");
+}
+
 
 using std::string;
 using std::list;

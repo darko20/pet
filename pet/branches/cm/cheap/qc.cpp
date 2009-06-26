@@ -22,14 +22,14 @@
 #include "pet-config.h"
 
 #include "qc.h"
-#include "parse.h"
-#include "grammar.h"
 #include "fs.h"
 #include "tsdb++.h"
-#include "settings.h"
 #include "cheap.h"
+#include "grammar.h"
 #include "failure.h"
+#include "logging.h"
 
+#include <set>
 #include <queue>
 #include <set>
 #include <vector>
@@ -88,10 +88,8 @@ choose_paths(ostream &out,
    depth (number of sets), n the total number of sets
  */
 {
-    if(verbosity > 1)
-    {
-        fprintf(ferr, "%*s> (%d) (%d): ", d/10, "", d, covered.size());
-    }
+    LOG(logAppl, DEBUG, std::setw(d/10) << "" 
+        << "> (" << d << ") (" << covered.size() << ")");
 
     if(d == n)
     {
@@ -102,9 +100,7 @@ choose_paths(ostream &out,
             min_sol = selected;
             min_sol_cost = selected.size();
 
-            if(verbosity > 1)
-                fprintf(ferr, "new solution (cost %d)\n",
-                        min_sol_cost);
+            LOG(logAppl, DEBUG, "new solution (cost " << min_sol_cost << ")");
             
             out << "; found solution with " << min_sol_cost << " paths on "
                 << ctime(&t)
@@ -112,10 +108,7 @@ choose_paths(ostream &out,
                 << searchspace << endl;
         }
         else
-        {
-            if(verbosity > 1)
-                fprintf(ferr, "too expensive\n");
-        }
+          LOG(logAppl, DEBUG, "too expensive");
 
         if(t > timeout)
         {
@@ -129,8 +122,7 @@ choose_paths(ostream &out,
     
     if(selected.size() > min_sol_cost)
     {
-        if(verbosity > 1)
-            fprintf(ferr, "too expensive\n");
+        LOG(logAppl, DEBUG, "too expensive");
         return true;
     }
     
@@ -139,9 +131,8 @@ choose_paths(ostream &out,
     {   
         // Set is not yet covered.
 
-        if(verbosity > 1)
-            fprintf(ferr, "not covered, %d candidates\n",
-                    fail_sets[d].size());
+        LOG(logAppl, DEBUG,
+            "not covered, " << fail_sets[d].size() << " candidates");
 
         // Pursue a greedy strategy: Choose the path that covers the largest
         // number of remaining sets which are not yet covered.
@@ -166,9 +157,9 @@ choose_paths(ostream &out,
             pq_item<int, int> top = candidates.top();
             searchspace *= candidates.size();
             
-            if(verbosity > 1)
-                fprintf(ferr, "%*s- (%d): trying %d (covers %d more sets)\n",
-                        d/10, "", d, top.inf, top.prio);
+            LOG(logAppl, DEBUG, std::setw(d/10) << ""
+                << "- (" << d << "): trying " << top.inf 
+                << " (covers " << top.prio << " more sets)");
 
             selected.insert(top.inf);
             for(list<int>::iterator it = path_covers[top.inf].begin(); 
@@ -191,8 +182,7 @@ choose_paths(ostream &out,
     }
     else
     {
-        if(verbosity > 1)
-            fprintf(ferr, "already covered\n");
+        LOG(logAppl, DEBUG, "already covered");
 
         if(!choose_paths(out, fail_sets, path_covers, selected, covered,
                          d+1, n, timeout))
@@ -407,7 +397,7 @@ compute_qc_traditional(ostream &out, const char *tname,
 }
 
 void
-compute_qc_paths(ostream &out) {
+compute_qc_paths(ostream &out, int packing_type) {
   time_t t = time(NULL);
   out << ";;;\n;;; Quickcheck paths for " << Grammar->property("version")
       << ", generated on " << stats.id << " items on " << ctime(&t)
@@ -422,14 +412,14 @@ compute_qc_paths(ostream &out) {
   out << endl;
 
   out << ";;\n;; quickcheck paths (unification)\n;;" << endl << endl;
-  compute_qc_traditional(out,
-                         (opt_packing ? "qc_unif_trad_pack" : "qc_unif_trad"),
+  compute_qc_traditional(out, 
+                         (packing_type ? "qc_unif_trad_pack" : "qc_unif_trad"),
                          failing_paths_unif, 10000);
 
-  compute_qc_sets(out, opt_packing ? "qc_unif_set_pack" : "qc_unif_set",
+  compute_qc_sets(out, packing_type ? "qc_unif_set_pack" : "qc_unif_set",
                   failing_sets_unif, 99.0);
   
-  if(opt_packing) {
+  if(packing_type) {
     out << ";;\n;; quickcheck paths (subsumption)\n;;" << endl << endl;
     compute_qc_traditional(out, "qc_subs_trad_pack",
                            failing_paths_subs, 10000);

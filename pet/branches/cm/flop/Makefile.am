@@ -41,6 +41,7 @@ flop_SOURCES = corefs.cpp \
 	util.cpp \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
+	$(top_srcdir)/common/configs.cpp \
 	$(top_srcdir)/common/dag-alloc.cpp \
 	$(top_srcdir)/common/dag-arced.cpp  \
 	$(top_srcdir)/common/dag-common.cpp \
@@ -50,7 +51,8 @@ flop_SOURCES = corefs.cpp \
 	$(top_srcdir)/common/grammar-dump.cpp \
 	$(top_srcdir)/common/lex-io.cpp \
 	$(top_srcdir)/common/lex-tdl.cpp \
-	$(top_srcdir)/common/settings.cpp  \
+	$(top_srcdir)/common/logging.cpp \
+	$(top_srcdir)/common/settings.cpp \
 	$(top_srcdir)/common/types.cpp \
 	$(top_srcdir)/common/utility.cpp
 

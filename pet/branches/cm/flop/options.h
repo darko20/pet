@@ -24,19 +24,15 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-#include <cstdio>
+#include <iosfwd>
 
-extern bool opt_pre, opt_chic, opt_expand, opt_expand_all_instances,
-  opt_full_expansion, opt_unfill, opt_minimal, opt_no_sem,
-  opt_propagate_status, opt_linebreaks, opt_glbdebug;
+#include "pet-config.h"
+#include "configs.h"
 
-extern int opt_cmi;
-extern int verbosity;
-extern int errors_to;
+//extern int verbosity;
+//extern int errors_to;
 
-extern char *grammar_file_name;
-
-void usage(FILE *f);
-bool parse_options(int argc, char* argv[]);
+void usage(std::ostream &);
+char *parse_options(int argc, char* argv[]);
 
 #endif

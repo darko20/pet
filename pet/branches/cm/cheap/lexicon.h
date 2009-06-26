@@ -90,7 +90,7 @@ class lex_stem
   }
   
   /** Print readable representation for debugging purposes */
-  void print(FILE *f) const;
+  void print(std::ostream &out) const;
 
  private:
   /** Inhibited copy constructor */
@@ -118,5 +118,9 @@ class lex_stem
 
   friend class tGrammar;
 };
+
+inline std::ostream &operator<<(std::ostream &out, const lex_stem &ls){
+  ls.print(out); return out;
+}
 
 #endif

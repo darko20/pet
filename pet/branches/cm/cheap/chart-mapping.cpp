@@ -21,11 +21,13 @@
 
 #include "builtins.h"
 #include "cheap.h"
+#include "configs.h"
 #include "errors.h"
 #include "item.h"
 #include "item-printer.h"
 #include "grammar.h"
 #include "hashing.h"
+#include "logging.h"
 
 #include <algorithm>
 #include <cassert>
@@ -51,6 +53,28 @@ using namespace std;
 using HASH_SPACE::hash_map;
 using boost::lexical_cast;
 using boost::format;
+
+
+
+// =====================================================
+// Module initialization
+// =====================================================
+
+/**
+ * Initializes the option(s) for this module.
+ */
+static bool init() {
+  managed_opt("opt_chart_mapping",
+              "token mapping and lexical filtering",
+              0);
+  return true;
+}
+
+/**
+ * Variable that enforces that init() is executed when the class is loaded.
+ * (Workaround for missing static blocks in C++.) 
+ */
+static bool initialized = init();
 
 
 
@@ -103,7 +127,7 @@ typedef hash_map<tChartMappingMatchSig, tChartMappingMatch*, sig_hash>
 
 static tChartMappingMatch*
 get_new_completed_match(tChart &chart, tChartMappingMatch *match,
-    tChartMappingMatchCache &cache) {
+    tChartMappingMatchCache &cache, int loglevel) {
   assert(!match->is_complete());
 
   // loop over all suitable items for the next match:
@@ -120,10 +144,10 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
     //      if chart start and end are affected by this rule
     tChartMappingMatchSig sig(rule, match, item, arg);
     new_match = (cache.find(sig) == cache.end());
-    next_match = new_match ? (cache[sig]=match->match(item, arg)) : cache[sig];
+    next_match = new_match ? (cache[sig]=match->match(item, arg, loglevel)) : cache[sig];
     
     // logging:
-    if ((opt_chart_mapping & 256) && new_match) {
+    if ((loglevel & 256) && new_match) {
       // TODO implement tItem::to_string() or tItem::printname()??
       string itemstr = "chart item " + lexical_cast<string>(item->id());
       tInputItem* inp_item = dynamic_cast<tInputItem*>(item);
@@ -141,7 +165,7 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
           return next_match;
       } else {
         tChartMappingMatch *next_completed_match =
-          get_new_completed_match(chart, next_match, cache);
+          get_new_completed_match(chart, next_match, cache, loglevel);
         if (next_completed_match)
           return next_completed_match;
       }
@@ -161,8 +185,11 @@ tChartMappingEngine::tChartMappingEngine(
 void
 tChartMappingEngine::process(tChart &chart)
 {
+  // TODO loglevel should be configured with logging system
+  int loglevel = get_opt_int("opt_chart_mapping");
+  
   // logging:
-  if (verbosity >= 4 || opt_chart_mapping & 1) {
+  if (LOG_ENABLED(logChartMapping, INFO) || loglevel & 1) {
     // get max id for items in the chart:
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
@@ -192,9 +219,9 @@ tChartMappingEngine::process(tChart &chart)
         : cache[rule_sig];
       tChartMappingMatch *completed = 0;
       do {
-        completed = get_new_completed_match(chart, empty_match, cache);
+        completed = get_new_completed_match(chart, empty_match, cache, loglevel);
         if (completed) // 0 if there is no further completed match
-          chart_changed = completed->fire(chart) || chart_changed;
+          chart_changed = completed->fire(chart, loglevel) || chart_changed;
       } while (completed);
     } // for each rule
   } while (false); // quit after the first round of rule applications
@@ -207,7 +234,7 @@ tChartMappingEngine::process(tChart &chart)
     delete match_it->second; // delete 0 is safe according C++ Standard
 
   // logging:
-  if (verbosity >= 4 || opt_chart_mapping & 1) {
+  if (LOG_ENABLED(logChartMapping, INFO) || loglevel & 1) {
     // get max id for items in the chart:
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
@@ -1135,7 +1162,7 @@ tChartMappingMatch::get_suitable_items(tChart &chart,
 }
 
 tChartMappingMatch*
-tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg) {
+tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg, int loglevel) {
   assert(!is_complete());
 
   fs root_fs = get_fs();
@@ -1213,7 +1240,7 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg) {
       captures[att_lc] = val_lc;
       captures[att_uc] = val_uc;
     }
-    if (verbosity >= 10 || opt_chart_mapping & 2) {
+    if (LOG_ENABLED(logChartMapping, DEBUG) || loglevel & 2) {
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
       string rex_str = Conv->convert(regex.str().c_str()); // UChar32* -> string
 #else
@@ -1242,7 +1269,7 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg) {
 }
 
 bool
-tChartMappingMatch::fire(tChart &chart) {
+tChartMappingMatch::fire(tChart &chart, int loglevel) {
   assert(is_complete());
   
   bool chart_changed = false;
@@ -1309,7 +1336,7 @@ tChartMappingMatch::fire(tChart &chart) {
   chart_changed = chart_changed || !inps.empty();
   
   // logging:
-  if (opt_chart_mapping & 1 || opt_chart_mapping & 16) {
+  if (loglevel & 1 || loglevel & 16) {
     ostringstream item_ids_os;
     std::vector<const tChartMappingRuleArg*> args = get_rule()->get_args();
     std::vector<const tChartMappingRuleArg*>::iterator arg_it;
@@ -1321,7 +1348,7 @@ tChartMappingMatch::fire(tChart &chart) {
     }
     cerr << format("[cm] %s fired: %s\n") % get_rule()->get_printname()
         % item_ids_os.str();
-    if(opt_chart_mapping & 16) {
+    if (loglevel & 16) {
       args = get_rule()->get_args(tChartMappingRuleArg::OUTPUT_ARG);
       tItemPrinter ip(cerr, false, true);
       for (arg_it = args.begin(); arg_it != args.end(); arg_it++) {

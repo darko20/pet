@@ -35,6 +35,7 @@
 #include "postags.h"
 #include "hashing.h"
 #include <functional>
+#include <ios>
 
 #include <list>
 #include <map>
@@ -489,7 +490,8 @@ public:
    *
    *  \return the list of items represented by the list of \a roots
    */
-  static item_list selectively_unpack(item_list roots, int n, int end, int upedgelimit);
+  static item_list selectively_unpack(item_list roots, int n, int end,
+      int upedgelimit, long memlimit);
 
   /** Return a meaningful external name. */
   inline const char *printname() const { return _printname.c_str(); }
@@ -533,8 +535,7 @@ protected:
    *
    *  \return the instantiated item from the hypothesis
    */
-  virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit) = 0;
-
+  virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit, long memlimit) = 0;
 
 private:
   /**
@@ -547,6 +548,9 @@ private:
   static class item_owner *_default_owner;
 
   static int _next_id;
+
+  static bool opt_shaping, opt_lattice;
+  static bool init_item();
 
   int _id;
 
@@ -571,7 +575,7 @@ private:
 
   int _nfilled;
 
-  tLexItem *_key_item;
+  class tLexItem *_key_item;
 
   /** List of inflection rules that must be applied to get a valid lex item */
   list_int *_inflrs_todo;
@@ -848,7 +852,7 @@ public:
   /** \brief tInputItem will not have items packed into them. They
       need not be unpacked. */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
   /** Return the external id associated with this item */
@@ -1010,7 +1014,7 @@ class tLexItem : public tItem
    *   is always only one hypothesis, for a given \a path .
    */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
  private:
@@ -1174,7 +1178,7 @@ class tPhrasalItem : public tItem {
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
 
   /** Instantiatve the hypothesis */
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
 
   /** Decompose edge and return the number of decompositions
    * All the decompositions are recorded in this->decompositions .

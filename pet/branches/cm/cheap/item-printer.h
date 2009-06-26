@@ -10,6 +10,7 @@
 #include "errors.h"
 #include "dagprinter.h"
 #include "hashing.h"
+#include <iostream>
 #include <fstream>
 #include <iomanip> 
 
@@ -29,10 +30,22 @@
  */
 class tAbstractItemPrinter {
 public:
+  tAbstractItemPrinter() : _out(NULL) {}
+  tAbstractItemPrinter(std::ostream &out) : _out(&out) {}
   virtual ~tAbstractItemPrinter() {}
+
+  std::pair<tAbstractItemPrinter *, const tItem *>
+  set(const tItem &item) {
+    return std::pair<tAbstractItemPrinter *, const tItem *>(this, &item);
+  }
 
   /** The top level function called by the user */
   virtual void print(const tItem *arg) = 0;
+
+  /** The top level function called by the user */
+  virtual void print(std::ostream &out, const tItem *arg) {
+    _out = &out; print(arg);
+  }
 
   /** @name Base print functions
    * Concrete print functions for every subclass of tItem to implement the
@@ -69,6 +82,7 @@ protected:
   const tPaths & get_paths(const tItem *item) { return item->_paths; }
   /*@}*/
 
+  std::ostream *_out;
 };
 
 /** The default printer that mimics the old functionality of item.print()
@@ -78,8 +92,10 @@ public:
   tItemPrinter(std::ostream &out, bool print_derivation = false,
                bool print_fs = false);
 
-  virtual ~tItemPrinter();
+  tItemPrinter(bool print_derivation = false, bool print_fs = false);
 
+  virtual ~tItemPrinter();
+  
   /** The top level function called by the user */
   virtual void print(const tItem *arg) { arg->print_gen(this); } 
 
@@ -119,7 +135,6 @@ private:
   // Printing the embedded fs, if required
   void print_fs(std::ostream &out, const fs &f);
 
-  std::ostream &_out;
   class tAbstractItemPrinter* _derivation_printer;
   class AbstractDagPrinter* _dag_printer;
 };
@@ -134,7 +149,7 @@ public:
    *  distinguished by the chart display.
    */
   tTclChartPrinter(std::ostream &out, int chart_id = 0)
-    : _out(out), _chart_id(chart_id) {}
+    : tAbstractItemPrinter(out), _chart_id(chart_id) {}
   
   virtual ~tTclChartPrinter() {}
 
@@ -156,7 +171,6 @@ private:
   void print_it(const tItem *item, bool passive, bool left_ext);
 
   item_map _items;
-  std::ostream &_out;
   int _chart_id, _item_id;
 };
 
@@ -167,7 +181,10 @@ private:
 class tAbstractDerivationPrinter : public tAbstractItemPrinter {
 public:
   tAbstractDerivationPrinter(std::ostream &out, int indent = 2) 
-    : _out(out), _indentation(-indent), _indent_delta(indent) {}
+    : tAbstractItemPrinter(out), _indentation(-indent), _indent_delta(indent) {}
+
+  tAbstractDerivationPrinter(int indent = 2) 
+    : tAbstractItemPrinter(), _indentation(-indent), _indent_delta(indent) {}
 
   virtual ~tAbstractDerivationPrinter() {}
 
@@ -185,14 +202,13 @@ public:
 protected:
   /** Print a newline, followed by an appropriate indentation */
   virtual void newline() { 
-    _out << std::endl ; _out << std::setw(_indentation) << "";
+    *_out << std::endl ; *_out << std::setw(_indentation) << "";
   };
   /** Increase the indentation level */
   inline void next_level(){ _indentation += _indent_delta; }
   /** Decrease the indentation level */
   inline void prev_level(){ _indentation -= _indent_delta; }
 
-  std::ostream &_out;
   int _indentation;
   int _indent_delta;
 };
@@ -202,6 +218,9 @@ protected:
  */
 class tCompactDerivationPrinter : public tAbstractDerivationPrinter {
 public:
+  tCompactDerivationPrinter(bool quoted = false, int indent = 2) 
+    : tAbstractDerivationPrinter(indent), _quoted(quoted) {}
+
   tCompactDerivationPrinter(std::ostream &out, bool quoted = false, int indent = 2) 
     : tAbstractDerivationPrinter(out, indent), _quoted(quoted) {}
 
@@ -225,8 +244,8 @@ private:
  */
 class tTSDBDerivationPrinter : public tAbstractItemPrinter {
 public:
-  tTSDBDerivationPrinter(std::ostream &outstr, int protocolversion)
-    : _out(outstr), _protocolversion(protocolversion) {}
+  tTSDBDerivationPrinter(std::ostream &out, int protocolversion)
+    : tAbstractItemPrinter(out), _protocolversion(protocolversion) {}
 
   virtual ~tTSDBDerivationPrinter() {}
 
@@ -237,7 +256,6 @@ public:
   virtual void real_print(const tPhrasalItem *item);
 
 private:
-  ostream &_out;
   bool _protocolversion;
 };
 
@@ -261,7 +279,7 @@ public:
 
 private:
   virtual void newline() {
-    if (_indent_delta > 0) _out << std::setw(_indentation) << "-";
+    if (_indent_delta > 0) *_out << std::setw(_indentation) << "-";
   }
 
   bool _do_indentation;
@@ -274,7 +292,7 @@ private:
 class tFSPrinter : public tAbstractItemPrinter {
 public:
   tFSPrinter(std::ostream &out, AbstractDagPrinter &printer): 
-    _out(out), _dag_printer(printer) {}
+    tAbstractItemPrinter(out), _dag_printer(printer) {}
 
   virtual ~tFSPrinter() {}
 
@@ -284,7 +302,6 @@ public:
   virtual void print(const tItem *arg);
 
 private:
-  std::ostream &_out;
   AbstractDagPrinter &_dag_printer;
 };
 
@@ -448,7 +465,8 @@ private:
 class tJxchgPrinter : public tAbstractItemPrinter {
 public:
   /** Print items onto stream \a out. */
-  tJxchgPrinter(std::ostream &out) : jxchgprinter(), _out(out) {}
+  tJxchgPrinter(std::ostream &out)
+  : tAbstractItemPrinter(out), jxchgprinter() {}
   
   virtual ~tJxchgPrinter() {}
 
@@ -462,7 +480,6 @@ private:
   void print_yield(const tInputItem *item);
 
   JxchgDagPrinter jxchgprinter;
-  std::ostream &_out;
 };
 
 
@@ -498,7 +515,17 @@ private:
   ostream &_stream;
 };
 
+/** use an item_printer like a modifier */
+inline std::ostream &
+operator<<(std::ostream &out,
+           const std::pair<tAbstractItemPrinter *, const tItem *> &p) {
+  p.first->print(out, p.second);
+  return out;
+}
+
 /** default printing for chart items: use a tItemPrinter */
-std::ostream &operator<<(std::ostream &out, const tItem &item);
+inline std::ostream &operator<<(std::ostream &out, const tItem &item) {
+  return out << tItemPrinter().set(item);
+}
 
 #endif

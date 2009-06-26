@@ -24,8 +24,14 @@
 #include "chart.h"
 #include "cheap.h"
 #include "tsdb++.h"
+#include "sm.h"
+#include <iomanip>
 
 using namespace std;
+
+// defined in parse.cpp
+extern bool opt_hyper;
+extern int  opt_packing;
 
 int basic_task::next_id = 0;
 
@@ -43,11 +49,7 @@ build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
     fs rule = R->instantiate();
     fs arg = R->nextarg(rule);
     
-    if(!arg.valid())
-    {
-        fprintf(ferr, "trouble getting arg of rule\n");
-        return 0;
-    }
+    assert(arg.valid());
     
     if(!opt_hyper || R->hyperactive() == false)
     {
@@ -115,11 +117,7 @@ build_combined_item(chart *C, tItem *active, tItem *passive)
     
     fs arg = active->nextarg(combined);
     
-    if(!arg.valid())
-    {
-        fprintf(ferr, "trouble getting arg of active item\n");
-        return 0;
-    }
+    assert(arg.valid());
     
     if(!opt_hyper || active->rule()->hyperactive() == false)
     {
@@ -249,27 +247,21 @@ active_and_passive_task::execute()
 }
 
 void
-basic_task::print(FILE *f)
+basic_task::print(std::ostream &out)
 {
-    fprintf(f, "task #%d (%.2f)", _id, _p);
+  out << "task #" << _id << " (" << std::setprecision(2) << _p << ")";
 }
 
 void
-rule_and_passive_task::print(FILE *f)
+rule_and_passive_task::print(std::ostream &out)
 {
-    fprintf(f,
-            "task #%d {%s + %d} (%.2f)",
-            _id,
-            _R->printname(), _passive->id(),
-            _p);
+  out << "task #" << _id << " {" << _R->printname() << " + "
+      << _passive->id() << "} (" << std::setprecision(2) << _p << ")";
 }
 
 void
-active_and_passive_task::print(FILE *f)
+active_and_passive_task::print(std::ostream &out)
 {
-    fprintf(f,
-            "task #%d {%d + %d} (%.2f)",
-            _id,
-            _active->id(), _passive->id(),
-            _p);
+  out << "task #" << _id << " {" << _active->id() << " + " << _passive->id() 
+      << "} (" << std::setprecision(2) << _p << ")";
 }

@@ -47,7 +47,7 @@ class tSMFeature
     hash() const;
 
     void
-    print(FILE *f) const;
+    print(std::ostream &) const;
     
  private:
     std::vector<int> _v;
@@ -59,6 +59,10 @@ class tSMFeature
     friend bool
     operator==(const tSMFeature &, const tSMFeature&);
 };
+
+inline std::ostream &operator<<(std::ostream &o, const tSMFeature &f) {
+  f.print(o); return o;
+}
 
 /** A stochastic model.
  *  This class represents an abstract stochastic model. A model can be

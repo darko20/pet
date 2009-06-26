@@ -127,9 +127,10 @@ struct analyze_method : public xmlrpc_c::method
         reading_helper["derivation"] = xmlrpc_c::value_string(osstream.str());
         
         // get MRS:
-        if (opt_mrs) {
+        string opt_mrs = get_opt_string("opt_mrs");
+        if (!opt_mrs.empty()) {
           string mrs;
-          if (strcmp(opt_mrs, "new") == 0)
+          if (opt_mrs == "new")
             mrs = "mrs=new not supported"; // TODO get string from native MRS code 
 #ifdef HAVE_MRS
           else

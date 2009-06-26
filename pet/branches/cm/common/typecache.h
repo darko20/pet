@@ -214,8 +214,11 @@ class typecache
   inline void prune()
     {
 #ifdef CACHESTATS
-      fprintf(ferr, "typecache: %d entries, %d overflows, %d buckets, %ld searches, %ld fast path, avg chain %g, max chain %d\n",
-              _size, _overflows, _nbuckets, _totalsearches, _totalfp, double(_totalcl) / _totalsearches, _maxcl);
+      LOG(logAppl, DEBUG, "typecache: " << _size << " entries, "
+          << _overflows << " overflows, " << _nbuckets << " buckets, "
+          << _totalsearches << " searches, " << _totalfp 
+          << " fast path, avg chain " << double(_totalcl) / _totalsearches
+          << ", max chain " << _maxcl);
 
 #ifdef PRUNING
       int _prune_poss = 0, _prune_done = 0;
@@ -233,7 +236,8 @@ class typecache
                 }
             }
         }
-      fprintf(ferr, "pruning: poss %d, done %d\n", _prune_poss, _prune_done);
+      LOG(logAppl, DEBUG,
+          "pruning: poss " << _prune_poss << ", done " << _prune_done << "");
 #endif
 
       map<int, int> distr;
@@ -244,13 +248,13 @@ class typecache
 
 
       int sum = 0;
-      for(map<int,int>::iterator iter = distr.begin(); iter != distr.end(); ++iter)
+      for(map<int,int>::iterator it = distr.begin(); it != distr.end(); ++it)
         {
-          sum += iter->second;
-          if(iter->second > 50)
-            fprintf(ferr, "  %d : %d\n", iter->first, iter->second);
+          sum += it->second;
+          if(it->second > 50)
+            LOG(logAppl, DEBUG, "  " << it->first << " : " << it->second);
         }
-      fprintf(ferr, "  total : %d\n", sum);
+      LOG(logAppl, DEBUG, "  total : " << sum);
 #endif
     }
 };
