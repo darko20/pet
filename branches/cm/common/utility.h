@@ -29,6 +29,8 @@
 #include <list> 
 #include <string>
 
+#define SET_SUBDIRECTORY "pet"
+
 // define the path separator char with the configure utility
 #ifdef WINDOWS
 #define strcasecmp stricmp
@@ -77,19 +79,19 @@ std::string escape_string(const std::string &s);
 const char *current_time(void);
 
 /** Return \c true if \a filename exists and is not a directory */
-bool file_exists_p(const char *filename);
+bool file_exists_p(const std::string &filename);
 
 /** Extract the directory component of a pathname and return it.
  *  \return an empty string, if \a pathname did not contain a path separator
  *          character, the appropriate substring otherwise
  *          (with the path separator at the end)
  */
-std::string dir_name(const char *pathname);
+std::string dir_name(const std::string &pathname);
 
 /** Extract only the filename part from a pathname, i.e., without directory and
  *  extension components.
  */
-std::string raw_name(const char *pathname);
+std::string raw_name(const std::string &pathname);
 
 /** \brief Check if \a name , with or without extension \a ext, is the name of
  *  a readable file. If \base is given in addition, take the directory part of
@@ -103,7 +105,18 @@ std::string raw_name(const char *pathname);
  *         extension, an empty string otherwise.
  */
 std::string 
-find_file(const char *name, const char *extension, const char *base = NULL);
+find_file(const std::string &name, const std::string &extension,
+          const std::string &base = std::string());
+
+/** \brief look for the file with \a name (dot) \a ext first in \a base_dir,
+ *  then in \a base_dir + SET_DIRECTORY. \a base_dir must be a directory
+ *  specification only.
+ *  
+ *  \return the name of the file, if it exists, an empty string otherwise.
+ */
+std::string
+find_set_file(const std::string &name, const std::string &ext,
+              const std::string &base_dir);
 
 /** Produce an output file name from an input file name \a in by replacing the 
  *  \a oldextension (if existent) by \a newextension or appending the 
@@ -111,7 +124,8 @@ find_file(const char *name, const char *extension, const char *base = NULL);
  *  \return the new string
  */
 std::string
-output_name(const std::string &name, const char *oldextension, const char *newextension);
+output_name(const std::string &name, const char *oldextension,
+            const char *newextension);
 
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.

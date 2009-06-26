@@ -24,13 +24,14 @@
 #include "tsdb++.h"
 #include "item-printer.h"
 #include "hashing.h"
-
+#include "logging.h"
+#include "options.h" // for verbosity
 #include <ostream>
 
 using namespace std;
 using namespace HASH_SPACE;
 
-//#define DEBUG
+//#define PETDEBUG
 
 chart::chart(int len, auto_ptr<item_owner> owner)
     : _Chart(), _trees(), _readings(), _pedges(0),
@@ -66,7 +67,7 @@ void chart::reset(int len)
 
 void chart::add(tItem *it)
 {
-#ifdef DEBUG
+#ifdef PETDEBUG
   it->print(DEBUGLOGGER); DEBUGLOGGER << endl;
 #endif
 
@@ -104,7 +105,7 @@ void chart::remove(hash_set<tItem *> &to_delete)
                  , _Chart.end());
     for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
           ; hit != to_delete.end(); hit++) {
-#ifdef DEBUG
+#ifdef PETDEBUG
       it->print(DEBUGLOGGER); DEBUGLOGGER << "removed " << endl;
 #endif
       
@@ -127,8 +128,9 @@ void chart::remove(hash_set<tItem *> &to_delete)
 }
 
 void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
-                  bool passives, bool actives, bool blocked) {
-  tItemPrinter def_print(out, verbosity > 2, verbosity > 10);
+                  bool passives, bool actives, bool blocked) const {
+  tItemPrinter def_print(out, LOG_ENABLED(logChart, INFO),
+      LOG_ENABLED(logChart, DEBUG));
   if (pr == NULL) {
     pr = &def_print;
   }
@@ -227,4 +229,9 @@ chart::connected(item_predicate &valid) {
     }
   }
   return reached[rightmost()];
+}
+
+std::ostream &operator<<(std::ostream &out, const chart &ch) {
+  ch.print(out);
+  return out;
 }

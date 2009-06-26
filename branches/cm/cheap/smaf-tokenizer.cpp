@@ -21,6 +21,7 @@
 
 #include "smaf-tokenizer.h"
 #include "cheap.h"
+#include "settings.h"
 
 #include <fstream>
 using namespace std;

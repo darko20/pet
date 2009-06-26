@@ -10,7 +10,6 @@
 #include <list>
 #include <queue>
 #include <string>
-#include "fs.h"
 #include "input-modules.h"
 #include "morph.h"
 
@@ -92,7 +91,7 @@ public:
    *  \return The rightmost position of the parsing chart that has to be
    *  created. 
    */
-  int process_input(std::string input, inp_list &inp_tokens);
+  int process_input(std::string input, inp_list &inp_tokens, bool chart_mapping);
 
   /** \brief Perform lexical processing. 
    *
@@ -108,7 +107,8 @@ public:
    * \param FSAS the allocation state for the whole parse
    * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
    */
-  void lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
+  void lexical_processing(inp_list &inp_tokens
+                          , bool chart_mapping, bool lex_exhaustive
                           , fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** Do a morphological analysis of \a form and return the results.
@@ -170,7 +170,8 @@ private:
    * \param FSAS the allocation state for the whole parse
    * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
    */
-  void lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
+  void lexical_parsing(inp_list &inp_tokens,
+                       bool chart_mapping, bool lex_exhaustive, 
                        fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** Check the chart dependencies.
@@ -206,10 +207,11 @@ private:
   void add_generics(inp_list &unexpanded);
 
   /** Add predicted entries for uncovered input items.  
-   * This is only applied if the option \c opt_predict_les is \c
+   * This is only applied if the option \a nr_predicts is 
    * non-zero and \opt_default_les is false.
    */
-  void add_predicts(inp_list &unexpanded, inp_list &inp_tokens);
+  void add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
+                    int nr_predicts);
 
   /** Use the registered tokenizer(s) to tokenize the input string and put the
    *  result into \a tokens.
@@ -328,5 +330,16 @@ private:
 
 /** Global lex_parser instance for input lexicon processing */
 extern lex_parser &Lexparser;
+
+/**
+ * Different strategies for instantiating default lexical entries
+ * (aka generics).
+ */
+enum default_les_strategy { 
+  NO_DEFAULT_LES = 0,
+  DEFAULT_LES_POSMAP_LEXGAPS,
+  DEFAULT_LES_ALL,
+  DEFAULT_LES_INVALID
+};
 
 #endif

@@ -28,6 +28,7 @@
 #include "grammar.h"
 #include "chart.h"
 #include "lexparser.h"
+#include "logging.h"
 #include "task.h"
 #include "tsdb++.h"
 #include "sm.h"
@@ -55,6 +56,24 @@ extern clock_t timeout;
 #ifdef YY
 extern int opt_nth_meaning;
 #endif
+
+
+/**
+ * Initializes the option(s) for this module.
+ */
+static bool init() {
+  managed_opt("opt_robust",
+              "try robust PCFG parsing, in case of full parse failure",
+              0);
+  return true;
+}
+
+/**
+ * Variable that enforces that init() is executed when the class is loaded.
+ * (Workaround for missing static blocks in C++.) 
+ */
+static bool initialized = init();
+
 
 inline bool
 pcfg_resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
@@ -156,6 +175,7 @@ void fundamental_for_active_pcfg(tItem *active) {
 
 inline bool
 passive_item_exists(chart *C, int start, int end, type_t type, list<tItem*> dtrs) {
+  int opt_robust = get_opt_int("opt_robust");
   if (opt_robust == 1) 
     return false;
   chart_iter_span_passive ci(C, start, end);
@@ -301,10 +321,10 @@ add_item_pcfg(tItem *it) {
 
 void
 parse_loop_pcfg() {
-  //  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
-  //  int pedgelimit = get_opt_int("opt_pedgelimit");
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  int pedgelimit = get_opt_int("opt_pedgelimit");
   while (!Agenda->empty() &&
-         ! pcfg_resources_exhausted(opt_pedgelimit, opt_memlimit, timeout, timestamp)) {
+         ! pcfg_resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
     basic_task *t = Agenda->pop();
     tItem *it = t->execute();
     delete t;
@@ -351,15 +371,16 @@ fs instantiate_robust(tItem* root) {
 */
 
 int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
+                            long memlimit,
                             timer *UnpackTime, vector<tItem*> &readings) {
   int nres = 0;
-  if (opt_timeout > 0)
+  if (get_opt_int("opt_timeout") > 0)
     timestamp = times(NULL);
 
-  int oldgplevel = opt_gplevel;
+  int oldgplevel = get_opt_int("opt_gplevel");
   tSM* oldsm = Grammar->sm();
   Grammar->sm(Grammar->pcfgsm());
-  opt_gplevel = 0; 
+  set_opt("opt_gplevel", 0);
   list<tItem*> uroots;
   tItem* maxtree = NULL;
   double maxs = 1;
@@ -379,13 +400,15 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
     results.push_back(maxtree);
   } else {
     results = tItem::selectively_unpack(uroots, opt_nsolutions,
-                                                   Chart->rightmost(), upedgelimit);
+                                        Chart->rightmost(),
+                                        upedgelimit, memlimit);
   }
   tCompactDerivationPrinter cdp(cerr, false);
   for (list<tItem*>::iterator res = results.begin();
        res != results.end(); res ++) {
     readings.push_back(*res);
-    if (verbosity > 2) {
+    if(LOG_ENABLED(logLexproc, INFO)) {
+      // TODO also use logging for this code
       cerr << "unpacked[" << nres << "] (" << setprecision(1)
            << ((float) UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
            << "): ";
@@ -395,7 +418,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
     nres ++;
   }
 
-  opt_gplevel = oldgplevel;
+  set_opt("opt_gplevel", oldgplevel);
   Grammar->sm(oldsm);
 
   return nres;
@@ -404,10 +427,8 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
 
 void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
   // _todo_ modify so that proper unpacking routines are invoked
-  //long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
-  //int pedgelimit = get_opt_int("opt_pedgelimit");
-  long memlimit = opt_memlimit * 1024 * 1024;
-  int pedgelimit = opt_pedgelimit;
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  int pedgelimit = get_opt_int("opt_pedgelimit");
   clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
 
   FSAS.clear_stats();
@@ -422,7 +443,7 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
       s << "edge limit exhausted (" << pedgelimit 
         << " pedges)";
     else 
-      s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
               << " s)";
     errors.push_back(s.str());
   }
@@ -437,7 +458,7 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
     stats.rtrees = 0;
     int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
 
-    nres = unpack_selectively_pcfg(Chart->trees(), upedgelimit,
+    nres = unpack_selectively_pcfg(Chart->trees(), upedgelimit, memlimit,
                                    UnpackTime, readings);
       
     if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
@@ -447,9 +468,9 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
       errors.push_back(s.str());
     }
 
-    if (opt_timeout > 0 && timestamp >= timeout) {
+    if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
       ostringstream s;
-      s << "timed out (" << opt_timeout / sysconf(_SC_CLK_TCK) 
+      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
         << " s)";
       errors.push_back(s.str());
     }

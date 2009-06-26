@@ -411,7 +411,7 @@ void GoofyWindow::preprocess_grammar(const char *fn)
       flop_err_stream = new QTextStream(file_err);
 
       //      if(::waitpid(pid, &status, 0) == pid)
-      //	fprintf(stderr, "got child exit status\n");
+      //        fprintf(stderr, "got child exit status\n");
     }
 }
 

@@ -65,7 +65,7 @@ public:
    */
   void print(std::ostream &out, tAbstractItemPrinter *aip = NULL,
              bool passives = true, bool actives = true,
-             bool blocked = true);
+             bool blocked = true) const;
 
   /** Get statistics from the chart, like nr. of active/passive edges, average
    *  feature structure size, items contributing to a reading etc.
@@ -135,6 +135,7 @@ private:
   friend class chart_iter_adj_passive;
 };
 
+std::ostream &operator<<(std::ostream &out, const chart &ch) ;
 
 /** Return all items from the chart.
  * \attention iterators must return items in order of `stamp', so the
@@ -143,12 +144,12 @@ private:
 class chart_iter {
 public:
   /** Create a new iterator for \a C */
-  inline chart_iter(chart *C) : _LI(C->_Chart) {
+  inline chart_iter(const chart *C) : _LI(C->_Chart) {
     _curr = _LI.begin();
   }
 
   /** Create a new iterator for \a C */
-  inline chart_iter(chart &C) : _LI(C._Chart) {
+  inline chart_iter(const chart &C) : _LI(C._Chart) {
     _curr = _LI.begin();
   }
 
@@ -174,8 +175,8 @@ public:
 private:
   friend class chart;
 
-  std::vector<class tItem *> &_LI;
-  std::vector<class tItem *>::iterator _curr;
+  const std::vector<class tItem *> &_LI;
+  std::vector<class tItem *>::const_iterator _curr;
 };
 
 /** Return all passive items having a specified span.

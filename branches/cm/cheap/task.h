@@ -61,7 +61,7 @@ public:
   { _p = p; }
 
   /** Print task readably to \a f for debugging purposes */
-  virtual void print(FILE *f);
+  virtual void print(std::ostream &out);
 
 protected:
   /** Unique task id */
@@ -93,7 +93,7 @@ class rule_and_passive_task : public basic_task
     /** See basic_task::execute() */
     virtual class tItem *execute();
     /** See basic_task::print() */
-    virtual void print(FILE *f);
+    virtual void print(std::ostream &out);
     
  private:
     grammar_rule *_R;
@@ -115,7 +115,7 @@ class active_and_passive_task : public basic_task
     /** See basic_task::execute() */
     virtual tItem *execute();
     /** See basic_task::print() */
-    virtual void print(FILE *f);
+    virtual void print(std::ostream &out);
 
  private:
     class tItem *_active;
@@ -134,5 +134,9 @@ class task_priority_less
         return x->priority() < y->priority();
     }
 };
+
+inline std::ostream & operator<<(std::ostream &out, basic_task *t) {
+  t->print(out); return out;
+}
 
 #endif

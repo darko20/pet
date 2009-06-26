@@ -4,6 +4,7 @@
 #include <xercesc/framework/MemBufFormatTarget.hpp>
 #include "xmlparser.h"
 #include "cheap.h"
+#include "logging.h"
 
 using namespace XERCES_CPP_NAMESPACE;
 
@@ -62,8 +63,8 @@ bool parse_file(InputSource &inp, HandlerBase *docHandler){
     parser.parse(inp);
   }
   catch (const XMLException& toCatch) {
-    fprintf(ferr, "SAX: XMLException line %d: %s\n"
-            , toCatch.getSrcLine(), XMLCh2Latin(toCatch.getMessage()));
+    LOG(logXML, WARN, "unknown:" << toCatch.getSrcLine()
+        << ": error: SAX: " << XMLCh2Latin(toCatch.getMessage()));
     return false;
   }
   catch (const SAXParseException& toCatch) {
@@ -83,7 +84,7 @@ bool xml_initialize() {
   }
   catch (const XMLException& toCatch) {
     // we don't know if we have an encoder available
-    fprintf(ferr, "SAX: Error during XML initialization!\n");
+    LOG(logXML, ERROR, "SAX: Error during XML initialization!");
     return false;
   }
   return true;

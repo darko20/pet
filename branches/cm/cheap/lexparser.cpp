@@ -29,20 +29,73 @@
 #include "cheap.h"
 #include "list-int.h"
 #include "hashing.h"
+#include "sm.h"
+#include "settings.h"
+#include "configs.h"
+#include "logging.h"
 
 #include <iostream>
 
 using namespace std;
 using namespace HASH_SPACE;
 
+static lex_parser &init();
+
 lex_parser global_lexparser;
-lex_parser &Lexparser = global_lexparser;
+lex_parser &Lexparser = init();
 extern chart *Chart;
 extern tAgenda *Agenda;
 
+static std::string default_les_strategy_names[] = { 
+  "no", "traditional", "all"
+};
+
+class DefaultLesStrategyConverter : public AbstractConverter<default_les_strategy> {
+  /** Names for the corresponding strategies in enum default_les_strategy. */
+  virtual ~DefaultLesStrategyConverter() {}
+  virtual std::string toString(const default_les_strategy& id) {
+    return default_les_strategy_names[id];
+  }
+  virtual default_les_strategy fromString(const std::string& s) {
+    default_les_strategy id = NO_DEFAULT_LES;
+    while (id < DEFAULT_LES_INVALID &&
+           s.compare(default_les_strategy_names[id]) != 0) {
+      id = (default_les_strategy) (id + 1);
+    }
+    if (id == DEFAULT_LES_INVALID) {
+      LOG(logAppl, WARN, "Unknown default les strategy \"" << optarg
+          <<"\". Ignoring.");
+      id = NO_DEFAULT_LES;
+    }
+    return id;
+  }
+};
+
+static lex_parser &init() {
+  
+  /** @name Unknown word handling */
+  //@{
+  managed_opt<default_les_strategy>("opt_default_les",
+    "Try to use default (generic) lexical entries if no regular entries could "
+    "be found. Uses POS annotation, if available.",
+    NO_DEFAULT_LES,
+    new DefaultLesStrategyConverter());
+
+  managed_opt("opt_predict_les",
+    "Try to use lexical type predictor if no regular entries could "
+    "be found. Use at most the number of entries specified", 0);
+  //@}
+
+  managed_opt("opt_chart_man",
+    "allow/disallow chart manipulation (currently only dependency filter)",
+    true);
+  
+  return global_lexparser;
+} 
+
 // functions from parse.cpp
 extern void add_item(tItem *it);
-extern void parse_loop(fs_alloc_state &FSAS, list<tError> &errors);
+extern void parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout);
 extern void postulate(tItem *passive);
 
 /** Perform lexparser initializations.
@@ -51,6 +104,16 @@ extern void postulate(tItem *passive);
 // _fix_me_
 void lex_parser::init() {
   _carg_path = cheap_settings->value("mrs-carg-path");
+}
+
+void debug_tokenize(string desc, string input, inp_list &tokens) {
+  ostringstream cdeb;
+  cdeb << "tokenizer = " << desc << endl
+       << "tokenizer input:" << endl << input << endl << endl
+       << "tokenizer output:" << endl;
+  for(inp_iterator r = tokens.begin(); r != tokens.end(); ++r)
+    cdeb << (*r);
+  LOG(logLexproc, DEBUG, cdeb.str());
 }
 
 /** Use the registered tokenizer(s) to tokenize the input string and put the
@@ -64,21 +127,11 @@ void lex_parser::tokenize(string input, inp_list &tokens) {
   if (_tokenizers.empty())
     throw tError("No tokenizer registered");
 
-  // trace output
-  if(verbosity > 4) {
-    cerr << "tokenizer = " << _tokenizers.front()->description() << endl;
-    cerr << "tokenizer input:" << endl << input << endl << endl;
-  }
-
   _tokenizers.front()->tokenize(input, tokens);
   
   // trace output
-  if(verbosity > 4) {
-    cerr << "tokenizer output:" << endl;
-    for(inp_iterator r = tokens.begin(); r != tokens.end(); ++r)
-      cerr << **r << endl;
-  }
- 
+  if(LOG_ENABLED(logLexproc, DEBUG))
+    debug_tokenize(_tokenizers.front()->description(), input, tokens);
 }
 
 /** Call the registered taggers which add their results to the individual
@@ -130,7 +183,7 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
 // _fix_me_
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
-  if (!opt_chart_mapping && _carg_path != NULL) {
+  if (!get_opt_int("opt_chart_mapping") && _carg_path != NULL) {
     mods.push_back(pair<string, int>(_carg_path
                                      , retrieve_string_instance(carg)));
   }
@@ -172,6 +225,26 @@ lex_parser::add(tLexItem *lex) {
   }
 }
 
+/**
+ * Helper function for printing debug logs for lex_parser::combine().
+ */
+void
+debug_combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules) {
+  ostringstream cdeb;
+  cdeb << "ERROR: combine("
+       << stem->printname()
+       << ", id:" << i_item->id()
+       << " form:" << i_item->form();
+  cdeb << " infl_rules:[";
+  for(const list_int *l = infl_rules; l != 0; l = rest(l)) {
+    cdeb << print_name(first(l));
+    if (rest(l) != 0)
+      cdeb << " ";
+  }
+  cdeb << "]";
+  cdeb << ", mods) failed in creating valid fs";
+  LOG(logLexproc, DEBUG, cdeb.str());
+}
 
 /** This function creates new tLexItems based on an input item, its
  *  corresponding lex_stem (lexicon entry) and morphological information.
@@ -225,15 +298,10 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
 
 
   if (newfs.valid()) {
+    // LOG(logParse, DEBUG, "combine() succeeded in creating valid fs");
     add(new tLexItem(stem, i_item, newfs, infl_rules));
-  } else if(verbosity > 4) {
-    fprintf(ferr, "ERROR: combine(%s, id:%d form:%s, infl_rules:",
-        stem->printname(), i_item->id(), i_item->form().c_str());
-    fprintf(ferr, "[");
-    for(const list_int *l = infl_rules; l != 0; l = rest(l))
-      fprintf(ferr, "%s%s", print_name(first(l)), rest(l) == 0 ? "" : " ");
-    fprintf(ferr, "]");
-    fprintf(ferr, ", mods) failed in creating valid fs\n");
+  } else if (LOG_ENABLED(logLexproc, DEBUG)) {
+      debug_combine(stem, i_item, infl_rules);
   }
 }
 
@@ -271,6 +339,8 @@ lex_parser::add(tInputItem *inp) {
   // _fix_me_/
   // why does DEFAULT_LES_ALL force morphological analysis?    (16-jan-09; oe)
   //
+  default_les_strategy opt_default_les;
+  get_opt("opt_default_les", opt_default_les);
   if (opt_default_les == DEFAULT_LES_ALL || inp->is_word_token()) {
     morphs = morph_analyze(inp->form());
   }
@@ -385,7 +455,7 @@ int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
 void
 lex_parser::dependency_filter(struct setting *deps, bool unidirectional
                               , bool lex_exhaustive) {
-  if(deps == 0 || opt_chart_man == false)
+  if(deps == 0 || !get_opt_bool("opt_chart_man"))
     return;
 
   vector<set <int> > satisfied(deps->n);
@@ -403,20 +473,18 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
         && (!lex_exhaustive || lex->inflrs_complete_p())) {
       f = lex->get_fs();
     
-      if(verbosity > 4)
-        fprintf(fstatus, "dependency information for %s:\n",
-                lex->printname());
+      LOG(logLexproc, DEBUG, "dependency information for " << 
+          lex->printname() << ":");
     
       for(int j = 0; j < deps->n; j++) {
         fs v = f.get_path_value(deps->values[j]);
         if(v.valid()) {
-          if(verbosity > 4)
-            fprintf(fstatus, "  %s : %s\n", deps->values[j], v.name());
+          LOG(logLexproc, DEBUG, "  " << deps->values[j] << " : " << v.name());
 
           if(!unidirectional || j % 2 != 0) {
             satisfied[j].insert(v.type());
           }
-        
+          
           if(!unidirectional || j % 2 == 0) {
             requires.insert(make_pair(lex,
                                       make_pair((j % 2 == 0)
@@ -444,18 +512,15 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
           ok && dep != eq.second; ++dep) {
         // we have to resolve a required dependency
         pair<int, int> req = dep->second;
-        if(verbosity > 4)
-          fprintf(fstatus, "`%s' requires %s at %d -> ",
-                  lex->printname(),
-                  type_name(req.second), req.first);
+        LOG(logLexproc, DEBUG, "`" << lex->printname() << "' requires "
+            << type_name(req.second) << " at " << req.first << " -> ");
        
         bool found = false;
         for(set<int>::iterator it2 = satisfied[req.first].begin();
             it2 != satisfied[req.first].end(); ++it2) {
           if(glb(*it2, req.second) != -1)
             {
-              if(verbosity > 4)
-                fprintf(fstatus, "[%s]", type_name(*it2));
+              LOG(logLexproc, DEBUG, "[" << type_name(*it2) << "]");
               found = true;
               break;
             }
@@ -466,8 +531,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
           stats.words_pruned++;
         }
 
-        if(verbosity > 4)
-          fprintf(fstatus, "%s satisfied\n", ok ? "" : "not");
+        LOG(logLexproc, DEBUG, (ok ? "" : "not") << " satisfied");
       }
     
       if(!ok)
@@ -600,16 +664,13 @@ void
 lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   list< lex_stem * > gens;
 
-  if(verbosity > 4)
-    fprintf(ferr, "adding generic les\n");
-
+  LOG(logLexproc, DEBUG, "adding generic les");
+ 
   for(inp_iterator it = unexpanded.begin()
         ; it != unexpanded.end(); it++) {
 
     // debug messages
-    if(verbosity > 4) {
-      cerr << "  token " << *it << endl;
-    }
+    LOG(logLexproc, DEBUG, "  token " << (*it) << endl);
 
     // instantiate gens
     if ((! (*it)->parents.empty())
@@ -619,17 +680,13 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       postags missing((*it)->get_in_postags());
 
       // debug messages
-      if(verbosity > 4) {
-        cerr << "    token provides tags:" << missing << endl
-             << "    already supplied:" << postags((*it)->parents) << endl;
-      }
+      LOG(logLexproc, DEBUG, "    token provides tags:" << missing << endl
+          << "    already supplied:" << postags((*it)->parents) << endl);
 
       missing.remove(postags((*it)->parents));
 
       // debug messages
-      if(verbosity > 4) {
-        cerr << "    -> missing tags:" << missing << endl;
-      }
+      LOG(logLexproc, DEBUG, "    -> missing tags:" << missing << endl);
             
       if(!missing.empty())
         gens = (*it)->generics(missing);
@@ -731,19 +788,25 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
   return results; 
 }
 
+
+void debug_predictions(inp_list &unexpanded) {
+  ostringstream cdeb;
+  cdeb << "adding prediction les" << endl;
+  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
+    cdeb << "  token " << *it << endl;
+  }
+  LOG(logLexproc, DEBUG, cdeb.str());
+}
+
 void 
-lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens) {
+lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
+                         int nr_predicts) {
   list<lex_stem*> predicts;
   
-  if (verbosity > 4)
-    cerr << "adding prediction les" << endl;
+  if(LOG_ENABLED(logLexproc, DEBUG)) debug_predictions(unexpanded);
   
   for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
-    if (verbosity > 4) {
-      cerr << "  token " << *it << endl;
-    }
-    
-    predicts = predict_les(*it, inp_tokens, opt_predict_les);
+    predicts = predict_les(*it, inp_tokens, nr_predicts);
     list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
     for (list<lex_stem*>::iterator ls = predicts.begin();
          ls != predicts.end(); ls ++) {
@@ -783,7 +846,10 @@ bool lex_parser::next_input(std::istream &in, std::string &result) {
 }
 
 int
-lex_parser::process_input(string input, inp_list &inp_tokens) {
+lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping) {
+  // TODO get rid of this logging control; use proper logging instead
+  int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
+  
   // Tokenize the input
   tokenize(input, inp_tokens);
   
@@ -798,14 +864,15 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
   _maxpos = map_positions(inp_tokens, position_mapping);
   
   // input chart mapping:
-  if (opt_chart_mapping) {
-    if (opt_chart_mapping & 1)
+  if (chart_mapping) {
+    if (chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping starts\n");
+    }
     // map to tChart:
     tChart chart;
     tItemPrinter ip(cerr, false, true);
     tChartUtil::map_chart(inp_tokens, chart);
-    if (opt_chart_mapping & 4) {
+    if (chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] initial token chart:\n");
       chart.print(cerr, &ip, true, false, false);
     } // if
@@ -817,20 +884,25 @@ lex_parser::process_input(string input, inp_list &inp_tokens) {
     _maxpos = tChartUtil::map_chart(chart, inp_tokens);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (opt_chart_mapping & 4) {
+    if (chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] final token chart:\n");
       chart.print(cerr, &ip, true, false, false);
     } // if
-    if (opt_chart_mapping & 1)
+    if (chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping ends\n");
+    }
   }
   
   return _maxpos;
 }
 
 void
-lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
+lex_parser::lexical_parsing(inp_list &inp_tokens,
+                            bool chart_mapping, bool lex_exhaustive, 
                             fs_alloc_state &FSAS, list<tError> &errors){
+  // TODO get rid of this logging control; use proper logging instead
+  int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
+  
   // if lex_exhaustive, process inflectional and lexical rules first and
   // exhaustively before applying syntactic rules
   // This allows more elaborate checking of gaps and chart dependencies
@@ -866,8 +938,9 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
   // lexical filtering, will someone attempt to pack those edges, i.e. before
   // they start deriving larger phrases?                        (24-jan-09; oe)
   //
-  int packing = opt_packing;
-  if (opt_chart_mapping) opt_packing = 0;
+  int opt_packing_backup = get_opt_int("opt_packing");
+  if (chart_mapping)
+    set_opt("opt_packing", 0);
 
   while (! _agenda.empty()) {
     _agenda.front()->execute(*this);
@@ -876,20 +949,20 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
 
   // exhaustively apply lexical and inflection rules
   if (lex_exhaustive) {
-    parse_loop(FSAS, errors);
+    parse_loop(FSAS, errors, 0);
   }
   
-  opt_packing = packing;
-
+  set_opt("opt_packing", opt_packing_backup);
+  
   // Lexical chart mapping (a.k.a. lexical filtering):
-  if (opt_chart_mapping) {
-    if (opt_chart_mapping & 1)
+  if (chart_mapping) {
+    if (chart_mapping_loglevel & 1)
       fprintf(stderr, "[cm] lexical filtering starts\n");
     // map to tChart:
     tChart chart;
     tItemPrinter ip(cerr, false, true);
     tChartUtil::map_chart(*Chart, chart);
-    if (opt_chart_mapping & 8) {
+    if (chart_mapping & 8) {
       fprintf(stderr, "[cm] initial lexical chart:\n");
       chart.print(cerr, &ip, true, false, false);
     } // if
@@ -901,21 +974,22 @@ lex_parser::lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive,
     _maxpos = tChartUtil::map_chart(chart, *Chart);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (opt_chart_mapping & 8) {
+    if (chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] final lexical chart:\n");
       chart.print(cerr, &ip, true, false, false);
     } // if
-    if (opt_chart_mapping & 1)
+    if (chart_mapping_loglevel & 1)
       fprintf(stderr, "[cm] lexical filtering ends\n");
   }
 }
 
 
 void
-lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
+lex_parser::lexical_processing(inp_list &inp_tokens
+                               , bool chart_mapping, bool lex_exhaustive
                                , fs_alloc_state &FSAS, list<tError> &errors) {
 
-  lexical_parsing(inp_tokens, lex_exhaustive, FSAS, errors);
+  lexical_parsing(inp_tokens, chart_mapping, lex_exhaustive, FSAS, errors);
   
   // dependency filtering is done on the chart itself
   dependency_filter(cheap_settings->lookup("chart-dependencies"),
@@ -946,6 +1020,12 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     unexpanded = find_unexpanded(Chart, *valid) ;
   }
   
+  int opt_predict_les;
+  get_opt("opt_predict_les", opt_predict_les);
+  
+  default_les_strategy opt_default_les;
+  get_opt("opt_default_les", opt_default_les);
+  
   // Add generic or predicted lexical types for unexpanded input items.
   // Generic lexical entries will only be added here if
   // `-default-les=traditional' is set (not if -default-les=all is set).
@@ -956,7 +1036,7 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
     if (opt_default_les == DEFAULT_LES_POSMAP_LEXGAPS) { 
       add_generics(unexpanded);
     } else if (opt_predict_les) {
-      add_predicts(unexpanded, inp_tokens);
+      add_predicts(unexpanded, inp_tokens, opt_predict_les);
     }
     unexpanded.clear();
     
@@ -966,15 +1046,16 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
       _agenda.front()->execute(*this);
       _agenda.pop();
     }
+    
     if (lex_exhaustive) {
-      parse_loop(FSAS, errors);
+      parse_loop(FSAS, errors, 0);
     }
     if (! Chart->connected(*valid)) {
       unexpanded = find_unexpanded(Chart, *valid);
     }
   }
   
-  // throw an error if there are still unexpanded input items
+  // throw an error if there are unexpanded input items
   if (! unexpanded.empty()) {
     string missing = "";
     for (inp_iterator inp = unexpanded.begin(); inp != unexpanded.end(); inp++)

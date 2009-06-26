@@ -22,11 +22,8 @@
 #include "pet-config.h"
 #include "utility.h"
 #include "errors.h"
-
 #include <cstdlib>
-
 //#include <iostream>  // only for debugging
-
 #include <sys/stat.h>
 
 using std::string;
@@ -222,7 +219,8 @@ const char *current_time(void)
 
 
 /** Return \c true if \a filename exists and is not a directory */
-bool file_exists_p(const char *filename) {
+bool file_exists_p(const std::string &fn) {
+  const char *filename = fn.c_str();
   struct stat sb;
   return ((access(filename, R_OK) == 0) && (stat(filename, &sb) != -1)
           && ((sb.st_mode & S_IFDIR) == 0));
@@ -239,41 +237,70 @@ bool file_exists_p(const char *filename) {
  * \return the full pathname of the file, if it exists with or without
  *         extension, an empty string otherwise.
  */
-string find_file(const char *name, const char *ext, const char *base) {
-  if (name == NULL) return string();
+string
+find_file(const std::string &name, const std::string &ext,
+          const std::string &base) {
 
-  string newname = (base != NULL) ? (dir_name(base) + name) : string(name);
+  string newname = dir_name(base) + name;
 
-  if (file_exists_p(newname.c_str())) return newname;
+  if (file_exists_p(newname)) return newname;
 
   newname += ext;
+  //std::cerr << name << " " << ext << " " << base << ">" << newname
+  //          << std::endl;
   return file_exists_p(newname.c_str()) ? newname : string();
 }
 
+
+/** look for the file with \a name (dot) \a ext first in \a base_dir, then in 
+ *  \a base_dir + SET_DIRECTORY.
+ *  \return the name of the file, if it exists, an empty string otherwise.
+ */
+string 
+find_set_file(const std::string &name, const std::string &ext,
+              const std::string &base){
+  string fname;
+  string base_dir = dir_name(base);
+
+  // fname contains the full pathname to the settings file, except for the
+  // extension, first in the directory the base path points to
+  fname = base_dir + name + ext;
+
+  if(! file_exists_p(fname.c_str())) {
+    // We could not find the settings file there, so try it in the
+    // subdirectory predefined for settings
+    fname = base_dir + SET_SUBDIRECTORY + PATH_SEP + name + ext;
+  }
+  //std::cerr << name << " " << ext << " " << base_dir << ">" << fname
+  //          << std::endl;
+  return ((file_exists_p(fname.c_str())) ? fname : "");
+}
 
 /** Extract the directory component of a pathname and return it.
  *  \return an empty string, if \a pathname did not contain a path separator
  *          character, the appropriate substring otherwise
  *          (with the path separator at the end)
  */
-string dir_name(const char *pathname) {
-  char *slash = strrchr(pathname, PATH_SEP[0]);
+string dir_name(const std::string &pathname) {
+  string::size_type lastslash = pathname.rfind(PATH_SEP[0]);
   // _prefix gets the dirname of the path encoded in base
-  return slash == NULL ? string() : string(pathname, slash - pathname + 1);
+  string result =
+    (string::npos == lastslash) ? string() : pathname.substr(0, lastslash + 1);
+  return result;
 }
 
 
 /** Extract only the filename part from a pathname, i.e., without directory and
  *  extension components.
  */
-string raw_name(const char *pathname) {
+string raw_name(const std::string &pathname) {
   // return part between last slash and first dot after that
-  const char *slash = strrchr((char *) pathname, PATH_SEP[0]);
-  if(slash == 0) slash = (char *) pathname; else slash++;
-  const char *dot = strchr(slash, '.');
-  if(dot == 0) dot = slash + strlen(slash);;
-  
-  return string(slash, dot - slash);
+  string::size_type lastslash = pathname.rfind(PATH_SEP[0]);
+  if(string::npos == lastslash) lastslash = 0; else lastslash++;
+  string::size_type dot = pathname.find('.', lastslash);
+
+  string result = pathname.substr(lastslash, dot - lastslash);
+  return result;
 }
 
 

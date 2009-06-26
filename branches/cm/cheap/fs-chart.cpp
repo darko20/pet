@@ -21,9 +21,12 @@
 
 #include "chart.h"
 #include "cheap.h"
+#include "configs.h"
 #include "errors.h"
 #include "item.h"
 #include "item-printer.h"
+#include "logging.h"
+#include "settings.h"
 
 #include <list>
 #include <iostream>
@@ -251,7 +254,8 @@ void
 tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
               bool passives, bool actives, bool blocked)
 {
-  tItemPrinter default_printer(out, verbosity > 2, verbosity > 10);
+  tItemPrinter default_printer(out, LOG_ENABLED(logChart, INFO),
+      LOG_ENABLED(logChart, DEBUG));
   if (printer == NULL) {
     printer = &default_printer;
   }
@@ -353,12 +357,12 @@ tChartUtil::initialize()
   if (!init_lpath(_poscons_path, "chart-mapping-position-path", e))
     e += "Setting `chart-mapping-position-path' required for chart mapping.\n";
 
-  if (!m.empty() && verbosity > 4) {
+  if (!m.empty()) {
     m.erase(m.end()-2, m.end()); // erase last ", " from list of missing tags
     w += " [ no input fs mapping for " + m + " ] ";
   }
   if (!w.empty())
-    fprintf(ferr, "%s", w.c_str());
+    LOG(logAppl, WARN, w);
   if (!e.empty())
     throw tError(e);
 }
@@ -615,7 +619,8 @@ tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
   processed.clear();
   std::list<tChartVertex*> vertices = chart.start_vertices();
   if (vertices.size() > 1) // TODO how do we deal with several start vertices?
-    fprintf(ferr, "warning: only using the first start vertex.\n");
+    LOG(logChart, WARN,
+        "Several start vertices present. Only using the first start vertex.");
   int max_value = -1; // will be set accordingly by topological_order()
   map<tChartVertex*, int, greater<void*> > order;
   list<tChartVertex*> ordered;

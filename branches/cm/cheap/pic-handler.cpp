@@ -1,6 +1,7 @@
 #include "pic-states.h"
 #include "fs.h"
 #include "hashing.h"
+#include "logging.h"
 #include <xercesc/framework/MemBufFormatTarget.hpp>
 #ifdef HAVE_ICU
 #include "unicode.h"
@@ -11,8 +12,6 @@ using namespace std;
 using namespace HASH_SPACE;
 using namespace XERCES_CPP_NAMESPACE;
 using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
-
-extern FILE *ferr;
 
 namespace pic {
 
@@ -236,10 +235,10 @@ PICHandler::~PICHandler() {
 
 void PICHandler::
 print_sax_exception(const char * errtype, const SAXParseException& e) {
-  fprintf(ferr, "SAX: %s %s:%d:%d: "
-          , errtype, XMLCh2Latin(e.getSystemId())
-          , (int) e.getLineNumber(), (int) e.getColumnNumber()) ;
-  fprintf(ferr, "%s\n", XMLCh2Latin(e.getMessage()));
+  LOG(logXML, WARN, 
+      XMLCh2Latin(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
+      << (int) e.getColumnNumber() << ": error: SAX: " << errtype << " "
+      << XMLCh2Latin(e.getMessage()) << endl);
 }
 
 void

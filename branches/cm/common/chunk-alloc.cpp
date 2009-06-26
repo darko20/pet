@@ -95,7 +95,7 @@ void chunk_allocator::may_shrink() {
   // not above average
 
   if(_nchunks > avg_chunks * 2 && _curr_chunk <= avg_chunks + 1) {
-#ifdef DEBUG
+#ifdef PETDEBUG
     fprintf(stderr, "shrink (avg: %d, used: %d, allocated: %d) -> ",
             avg_chunks, _curr_chunk, _nchunks);
 #endif
@@ -104,11 +104,11 @@ void chunk_allocator::may_shrink() {
       _core_free(_chunk[--_nchunks], _chunk_size);
     }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
     fprintf(stderr, "%d\n", _nchunks);
 #endif
   }
-#ifdef DEBUG
+#ifdef PETDEBUG
   else {
     fprintf(stderr, "noshrink (avg: %d, used: %d, allocated: %d)\n",
             avg_chunks, _curr_chunk, _nchunks);
@@ -205,7 +205,7 @@ inline void *mmap_mmap(void *addr, int size) {
 #endif
 }
 
-#ifdef DEBUG
+#ifdef PETDEBUG
 void mmap_scan(int pagesize) {
   char *p_mem;
   bool success, last_success = false;
@@ -246,7 +246,7 @@ void chunk_allocator::_init_core(bool down, int chunk_size) {
   }
   
   _chunk_size = (((chunk_size-1)/_pagesize)+1)*_pagesize;
-#ifdef DEBUG
+#ifdef PETDEBUG
   printf("Up: %x   Down: %x   Chunks: %x[%x]  %s\n"
          , (ptr_to_uint_t) _mmap_up_mark, (ptr_to_uint_t) _mmap_down_mark
          , _chunk_size, chunk_size
@@ -293,7 +293,7 @@ void *chunk_allocator::_core_alloc(int size) {
   else
     _mmap_up_mark = (char *) p + size;
 
-#ifdef DEBUG
+#ifdef PETDEBUG
   char *s = (char *)p;
   if(_core_down) {
     printf("New Block Down:   %x-%x\n"

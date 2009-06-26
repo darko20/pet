@@ -681,7 +681,7 @@ public:
    * then the matched substring "bar" is stored under key "${I2:FORM:1}".
    */
   tChartMappingMatch*
-  match(tItem *item, const tChartMappingRuleArg *arg);
+  match(tItem *item, const tChartMappingRuleArg *arg, int loglevel);
   
   /**
    * Applies the rule of this completed match to the chart, that is
@@ -692,7 +692,7 @@ public:
    * \return \c true iff the chart has changed by applying this rule
    */
   bool
-  fire(tChart &chart);
+  fire(tChart &chart, int loglevel);
   
 private:
   

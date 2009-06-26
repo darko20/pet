@@ -31,6 +31,16 @@
 #include <list>
 #include <vector>
 
+/** @name Ambiguity packing modes */
+//@{
+#define PACKING_EQUI  (1 << 0)
+#define PACKING_PRO   (1 << 1)
+#define PACKING_RETRO (1 << 2)
+#define PACKING_SELUNPACK (1 << 3)
+#define PACKING_PCFGEQUI (1 << 4)
+#define PACKING_NOUNPACK (1 << 7)
+//@}
+
 /** Gives the total time spent in parsing (more specifically: in the function
  *  parse_loop).
  */
@@ -56,10 +66,12 @@ void analyze(std::string input, class chart *&C, class fs_alloc_state &FSAS,
 // int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit, int nsolutions
 //                        ,timer *UnpackTime , std::vector<tItem *> &readings);
 int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
+                       long memlimit,
                        timer *UnpackTime , std::vector<tItem *> &readings);
 
 /** exhaustive unpacking */
 int unpack_exhaustively(std::vector<tItem*> &trees, int upedgelimit,
+                        long memlimit,
                         timer *UnpackTime, std::vector<tItem *> &readings);
 
 #endif

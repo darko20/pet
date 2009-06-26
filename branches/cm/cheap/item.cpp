@@ -32,6 +32,9 @@
 #include "types.h"
 #include "utility.h"
 #include "dagprinter.h"
+#include "settings.h"
+#include "configs.h"
+#include "logging.h"
 
 #include <sstream>
 #include <iostream>
@@ -39,8 +42,37 @@
 
 using namespace std;
 
-//#define DEBUG
-//#define DEBUGPOS
+//#define PETDEBUG
+//#define PETDEBUGPOS
+
+// 2006/10/01 Yi Zhang <yzhang@coli.uni-sb.de>:
+// option for grand-parenting level in MEM-based parse selection
+unsigned int opt_gplevel;
+
+// defined in parse.cpp
+extern int opt_packing;
+
+bool tItem::init_item() {
+  tItem::opt_shaping = true;
+  reference_opt("opt_shaping", 
+                "Filter items that would reach beyond the chart",
+                tItem::opt_shaping);
+  /** word lattice parsing (permissible token paths, cf tPath class) */
+  tItem::opt_lattice = false;
+  reference_opt("opt_lattice", 
+                "use the lattice structure specified in the input "
+                "to restrict the search space in parsing",
+                tItem::opt_lattice);
+  opt_gplevel = 0;
+  reference_opt("opt_gplevel",
+                "determine the level of grandparenting "
+                "used in the models for selective unpacking",
+                opt_gplevel);
+  return opt_lattice;
+}
+
+// options managed by the configuration system
+bool tItem::opt_shaping, tItem::opt_lattice = tItem::init_item();
 
 // this is a hoax to get the cfrom and cto values into the mrs
 #ifdef DYNAMIC_SYMBOLS
@@ -75,16 +107,16 @@ static bool charz_use = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
-  if(!opt_chart_mapping) {
+  if(!get_opt_int("opt_chart_mapping")) {
     char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
     char *cto_path = cheap_settings->value("mrs-cto-path");
     if ((cfrom_path != NULL) && (cto_path != NULL)) {
       cfrom.set(cfrom_path);
       cto.set(cto_path);
       charz_init = true;
-      charz_use = opt_mrs; //(Config::get<char*>("opt_mrs") != 0);
+      charz_use = ! get_opt_string("opt_mrs").empty();
     }
-  } // if
+  }
 }
 
 void finalize_characterization() {
@@ -92,7 +124,7 @@ void finalize_characterization() {
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
-  if(!opt_chart_mapping && charz_use) {
+  if(!get_opt_int("opt_chart_mapping") && charz_use) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
                               , retrieve_string_instance(from))
@@ -277,9 +309,9 @@ tInputItem::generics(postags onlyfor)
     if(!gens)
         return result;
 
-    if(verbosity > 4)
-        fprintf(ferr, "using generics for [%d - %d] `%s':\n",
-                _start, _end, _surface.c_str());
+    LOG(logGenerics, DEBUG,
+        "using generics for [" << _start << " - " << _end << "] `"
+        << _surface << "':");
 
     for(; gens != 0; gens = rest(gens))
     {
@@ -296,9 +328,9 @@ tInputItem::generics(postags onlyfor)
 
         if(_postags.license(gen) && (onlyfor.empty() || onlyfor.contains(gen)))
         {
-          if(verbosity > 4)
-              fprintf(ferr, "  ==> %s [%s]\n", print_name(gen),
-                      suffix == 0 ? "*" : suffix);
+          LOG(logGenerics, DEBUG,
+              "  ==> " << print_name(gen) 
+              << " [" << (suffix == 0 ? "*" : suffix)<< "]");
 
           result.push_back(Grammar->find_stem(gen));
         }
@@ -351,11 +383,8 @@ void tLexItem::init() {
     // \todo Berthold says, this is the right number. Settle this
     // stats.words++;
 
-    if(opt_nqc_unif != 0)
-      _qc_vector_unif = _fs_full.get_unif_qc_vector();
-
-    if(opt_nqc_subs != 0)
-      _qc_vector_subs = _fs_full.get_subs_qc_vector();
+    _qc_vector_unif = _fs_full.get_unif_qc_vector();
+    _qc_vector_subs = _fs_full.get_subs_qc_vector();
 
     // compute _score score for lexical items
     if(Grammar->sm())
@@ -364,10 +393,8 @@ void tLexItem::init() {
     characterize(_fs, _startposition, _endposition);
   }
 
-#ifdef DEBUG
-  fprintf(ferr, "new lexical item (`%s'):", printname());
-  print(ferr);
-  fprintf(ferr, "\n");
+#ifdef PETDEBUG
+  LOG(logParse, DEBUG, "new lexical item (`" << printname() << "'):" << *this);
 #endif
 }
 
@@ -462,35 +489,25 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
 
   _spanningonly = R->spanningonly();
 
-#ifdef DEBUG
-  fprintf(stderr, "A %d < %d\n", pasv->id(), id());
+#ifdef PETDEBUG
+  LOG(logParse, DEBUG, "A " << pasv->id() << " < " << id());
 #endif
   pasv->parents.push_back(this);
 
-  if(opt_nqc_unif != 0) {
-    if(passive())
-      _qc_vector_unif = f.get_unif_qc_vector();
-    else
-      _qc_vector_unif = nextarg(f).get_unif_qc_vector();
-  }
-
-  if(opt_nqc_subs != 0)
-    if(passive())
-      _qc_vector_subs = f.get_subs_qc_vector();
-
   // rule stuff + characterization
   if(passive()) {
+    _qc_vector_unif = f.get_unif_qc_vector();
+    _qc_vector_subs = f.get_subs_qc_vector();
     R->passives++;
     characterize(_fs, _startposition, _endposition);
   } else {
+    _qc_vector_unif = f.get_unif_qc_vector(nextarg());
     R->actives++;
   }
 
-#ifdef DEBUG
-  fprintf(ferr, "new rule tItem (`%s' + %d@%d):",
-          R->printname(), pasv->id(), R->nextarg());
-  print(ferr);
-  fprintf(ferr, "\n");
+#ifdef PETDEBUG
+  LOG(logParse, DEBUG, "new rule tItem (`" << R->printname() << "' + "
+      << pasv->id() << "@" << R->nextarg() << "):" << *this);
 #endif
 }
 
@@ -517,8 +534,9 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
       _daughters.push_back(pasv);
     }
 
-#ifdef DEBUG
-    fprintf(stderr, "A %d %d < %d\n", pasv->id(), active->id(), id());
+#ifdef PETDEBUG
+    LOG(logParse, DEBUG, 
+        "A " << pasv->id() << " " <<  active->id() << " < " << id());
 #endif
     pasv->parents.push_back(this);
     active->parents.push_back(this);
@@ -528,30 +546,20 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
 
     _trait = SYNTAX_TRAIT;
 
-    if(opt_nqc_unif != 0)
-    {
-        if(passive())
-          _qc_vector_unif = f.get_unif_qc_vector();
-        else
-          _qc_vector_unif = nextarg(f).get_unif_qc_vector();
-    }
-
-    if((opt_nqc_subs != 0) && passive())
-      _qc_vector_subs = f.get_subs_qc_vector();
-
     // rule stuff
     if(passive()) {
+      _qc_vector_unif = f.get_unif_qc_vector();
+      _qc_vector_subs = f.get_subs_qc_vector();
       characterize(_fs, _startposition, _endposition);
       active->rule()->passives++;
     } else {
+      _qc_vector_unif = f.get_unif_qc_vector(nextarg());
       active->rule()->actives++;
     }
 
-#ifdef DEBUG
-    fprintf(ferr, "new combined item (%d + %d@%d):",
-            active->id(), pasv->id(), active->nextarg());
-    print(ferr);
-    fprintf(ferr, "\n");
+#ifdef PETDEBUG
+    LOG(logParse, DEBUG, "new combined item (" << active->id() << " + "
+        << pasv->id() << "@" << active->nextarg() << "):" << *this);
 #endif
 }
 
@@ -763,12 +771,10 @@ void tPhrasalItem::recreate_fs()
     {
         throw tError("won't rebuild passive item");
     }
-#ifdef DEBUG
+#ifdef PETDEBUG
     {
         temporary_generation t(_fs.temp());
-        fprintf(ferr, "recreated fs of ");
-        print(ferr, false);
-        fprintf(ferr, "\n");
+        LOG(logParse, DEBUG, "recreated fs of " << *this)
     }
 #endif
 }
@@ -826,9 +832,8 @@ tItem::cyclic_p(const tItem *it) const {
 void
 tItem::block(int mark, bool freeze_parents)
 {
-  if (verbosity > 4) {
-    cerr << (mark == 1 ? "frost" : "freez") << "ing " << *this << endl;
-  }
+  LOG(logPack, DEBUG,
+      (mark == 1 ? "frost" : "freez") << "ing" << endl << *this) ;
   if (!blocked() || mark == 2) {
     if (mark == 2)
       stats.p_frozen++;
@@ -849,9 +854,9 @@ tItem::block(int mark, bool freeze_parents)
 // for printing debugging output
 int unpacking_level;
 
-inline bool unpacking_resources_exhausted() {
+inline bool unpacking_resources_exhausted(long memlimit) {
   // TODO add other limits
-  return opt_memlimit > 0 && t_alloc.max_usage() >= opt_memlimit;
+  return memlimit > 0 && t_alloc.max_usage() >= memlimit;
 }
 
 list<tItem *>
@@ -860,14 +865,14 @@ tItem::unpack(int upedgelimit)
     list<tItem *> res;
 
     unpacking_level++;
-    if(verbosity > 3)
-        fprintf(stderr, "%*s> unpack [%d]\n", unpacking_level * 2, "", id());
+    LOG(logUnpack, DEBUG, std::setw(unpacking_level * 2) << ""
+        << "> unpack [" << id() << "]" );
 
     // Ignore frozen items.
     if(frozen())
     {
-        if(verbosity > 3)
-            fprintf(stderr, "%*s< unpack [%d] ( )\n", unpacking_level * 2, "", id());
+        LOG(logUnpack, DEBUG, std::setw(unpacking_level * 2) << ""
+            << "> unpack [" << id() << "] ( )" );
         unpacking_level--;
         return res;
     }
@@ -886,7 +891,7 @@ tItem::unpack(int upedgelimit)
 
     // Check if we reached timeout. Caller is responsible for checking
     // this to verify completeness of results.
-    if (opt_timeout > 0) {
+    if (get_opt_int("opt_timeout") > 0) {
       timestamp = times(NULL);
       if (timestamp >= timeout)
         return res;
@@ -904,12 +909,15 @@ tItem::unpack(int upedgelimit)
     list<tItem *> tmp = unpack1(upedgelimit);
     res.splice(res.begin(), tmp);
 
-    if(verbosity > 3)
+    if(LOG_ENABLED(logUnpack, DEBUG))
     {
-        fprintf(stderr, "%*s< unpack [%d] ( ", unpacking_level * 2, "", id());
+        ostringstream updeb;
+        updeb << std::setw(unpacking_level * 2) << ""
+              << "> unpack [" << id() << "] (";
         for(item_citer i = res.begin(); i != res.end(); ++i)
-            fprintf(stderr, "%d ", (*i)->id());
-        fprintf(stderr, ")\n");
+          updeb << (*i)->id() << " ";
+        updeb << ")";
+        LOG(logUnpack, DEBUG, updeb.str());
     }
 
     _unpack_cache = new list<tItem *>(res);
@@ -947,13 +955,26 @@ tPhrasalItem::unpack1(int upedgelimit)
 }
 
 void
-print_config(ostream &out, int motherid, vector<tItem *> &config) {
-  out << motherid << "[";
+debug_unpack(tItem *combined, int motherid, vector<tItem *> &config) {
+  ostringstream cdeb;
+  cdeb << setw(unpacking_level * 2) << "" ;
+  if (combined != NULL) {
+    cdeb << "created edge " << combined->id() << " from " ;
+  } else {
+    cdeb << "failure instantiating ";
+  }
+  cdeb << motherid << "[";
   vector<tItem *>::iterator it = config.begin();
-  if (it != config.end()) { out << (*it)->id(); ++it; }
+  if (it != config.end()) { cdeb << (*it)->id(); ++it; }
   for(; it != config.end(); ++it)
-    out << " " << (*it)->id();
-  out << "]";
+    cdeb << " " << (*it)->id();
+  cdeb << "]" << endl;
+  if (combined != NULL) { 
+    cdeb << *combined << endl;
+    if(LOG_ENABLED(logUnpack, DEBUG))
+      cdeb << combined->get_fs().dag();
+  }
+  LOG(logUnpack, INFO, cdeb.str());
 }
 
 // Recursively compute all configurations of dtrs, and accumulate valid
@@ -966,29 +987,14 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
     if(index >= rule()->arity())
     {
         tItem *combined = unpack_combine(config);
+        if (LOG_ENABLED(logUnpack, INFO)) debug_unpack(combined, id(), config);
         if(combined)
         {
-            if(verbosity > 9)
-            {
-              cerr << setw(unpacking_level * 2) << ""
-                   << "created edge " << combined->id() << " from " ;
-              print_config(cerr, id(), config);
-              cerr << endl << *combined << endl;
-              if(verbosity > 14)
-                dag_print(stderr, combined->get_fs().dag());
-            }
-            res.push_back(combined);
+          res.push_back(combined);
         }
         else
         {
-            stats.p_failures++;
-            if(verbosity > 9)
-            {
-              cerr << setw(unpacking_level * 2) << ""
-                   << "failure instantiating ";
-              print_config(cerr, id(), config);
-              cerr << endl;
-            }
+          stats.p_failures++;
         }
         return;
     }
@@ -1006,13 +1012,15 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
 // should be factored out.
 tItem *
 tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  
   fs_alloc_state FSAS(false);
 
   fs res = rule()->instantiate(true);
 
   list_int *tofill = rule()->allargs();
 
-  while (res.valid() && tofill && !unpacking_resources_exhausted()) {
+  while (res.valid() && tofill && !unpacking_resources_exhausted(memlimit)) {
     fs arg = res.nth_arg(first(tofill));
     if(res.temp())
       unify_generation = res.temp();
@@ -1029,9 +1037,9 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
     tofill = rest(tofill);
   }
 
-  if (unpacking_resources_exhausted()) {
+  if (unpacking_resources_exhausted(memlimit)) {
     ostringstream s;
-    s << "memory limit exhausted (" << opt_memlimit / (1024 * 1024)
+    s << "memory limit exhausted (" << memlimit / (1024 * 1024)
       << " MB)";
     throw tError(s.str());
   }
@@ -1079,7 +1087,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   tHypothesis *hypo = NULL;
 
   // check whether timeout has passed.
-  if (opt_timeout > 0) {
+  if (get_opt_int("opt_timeout") > 0) {
     timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
     if (timestamp >= timeout)
       return hypo;
@@ -1345,7 +1353,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
  * \return a list of the best, at most \a n unpacked trees
  */
 list<tItem *>
-tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
+tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, long memlimit)
 {
   item_list results;
   if (n <= 0)
@@ -1388,7 +1396,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
   while (!ragenda.empty() && n > 0) {
     aitem = ragenda.front();
     ragenda.pop_front();
-    tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit);
+    tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit, memlimit);
     if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
       return results;
     }
@@ -1422,19 +1430,19 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
 }
 
 tItem*
-tInputItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit) {
+tInputItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit) {
   score(hypo->scores[path]);
   return this;
 }
 
 tItem *
-tLexItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit) {
+tLexItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit) {
   score(hypo->scores[path]);
   return this;
 }
 
 tItem *
-tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit)
+tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit)
 {
 
   // Check if we reached the unpack edge limit. Caller is responsible for
@@ -1466,7 +1474,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   // Instantiate all the sub hypotheses.
   for (list<tHypothesis*>::iterator subhypo = hypo->hypo_dtrs.begin();
        subhypo != hypo->hypo_dtrs.end(); subhypo++) {
-    tItem* dtr = (*subhypo)->edge->instantiate_hypothesis(newpath, *subhypo, upedgelimit);
+    tItem* dtr = (*subhypo)->edge->instantiate_hypothesis(newpath, *subhypo, upedgelimit, memlimit);
     if (dtr)
       daughters.push_back(dtr);
     else {
@@ -1480,7 +1488,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
     // Replay the unification.
     fs res = rule()->instantiate(true);
     list_int *tofill = rule()->allargs();
-    while (res.valid() && tofill && !unpacking_resources_exhausted()) {
+    while (res.valid() && tofill && !unpacking_resources_exhausted(memlimit)) {
       fs arg = res.nth_arg(first(tofill));
       if (res.temp())
         unify_generation = res.temp();
@@ -1494,9 +1502,9 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
       tofill = rest(tofill);
     }
   
-    if (unpacking_resources_exhausted()) {
+    if (unpacking_resources_exhausted(memlimit)) {
       ostringstream s;
-      s << "memory limit exhausted (" << opt_memlimit / (1024 * 1024)
+      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
         << " MB)";
       throw tError(s.str());
     }
