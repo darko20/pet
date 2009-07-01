@@ -629,10 +629,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 }
                 
 #ifdef HAVE_MRS
-                if(get_opt_charp("opt_mrs"))
+                if(! get_opt_string("opt_mrs").empty())
                 {
                   R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-                            get_opt_charp("opt_mrs"));
+					      get_opt_string("opt_mrs").c_str());
                 }
 #endif
                 T.push_result(R);
@@ -900,7 +900,7 @@ void tTsdbDump::start() {
 void tTsdbDump::finish(chart *Chart, const string &input) {
   if (_current != NULL) {
     _current->set_input(input);
-    _current->set_i_length(Chart->length());
+    _current->set_i_length(Chart->length()-1);
     cheap_tsdb_summarize_item(*Chart, Chart->rightmost(), -1, 0, *_current);
     dump_current();
   }
@@ -911,7 +911,7 @@ void tTsdbDump::error(class chart *Chart, const string &input,
   if (_current != NULL) {
     if(Chart) {
       _current->set_input(input);
-      _current->set_i_length(Chart->length());
+      _current->set_i_length(Chart->length()-1);
     }
     list<tError> errors;
     errors.push_back(e);

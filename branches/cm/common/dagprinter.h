@@ -196,19 +196,24 @@ protected:
   virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
     out << " " << arc->attr ;
     print_dag_rec(out, arc->val, temp) ;
-    out << " )";
+    out << " ";
   }
 
   virtual void print_coref_reference(ostream &out, int coref_nr) {
-    out << " #" << coref_nr ;
+    out << " # " << coref_nr ;
   }
   
   virtual void print_coref_definition(ostream &out, int coref_nr) {
-    out << " #" << coref_nr ;
+    out << " # " << coref_nr ;
   }
 
   virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
-    out << " [ " << dag->type ;
+    out << " [ " ;
+    if (is_dynamic_type(dag->type)) {
+      out << type_name(dag->type) ;
+    } else {
+      out << dag->type ;
+    }
   }
 
   virtual void print_dag_node_end(ostream &out, const dag_node *dag) {
