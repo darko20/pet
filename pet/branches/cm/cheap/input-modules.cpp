@@ -27,10 +27,12 @@ extern FILE *fstatus;
 
 /** @name Tokenization options */
 //@{
-static std::string init();
+static bool init();
+static bool statics_initialized = init();
+
 /** choose tokenizer */
 std::string tokenizer_names[] = { 
-  "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "smaf", "fsr", init()
+  "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "fsr", "smaf", "INVALID"
 } ;
 //@}
 
@@ -63,12 +65,12 @@ class TokenizerIDConverter : public AbstractConverter<tokenizer_id> {
     \todo maybe we should split that into init()s for the modules, but it's
     ok for now.
 */
-static std::string init() {
+static bool init() {
   managed_opt<tokenizer_id>("opt_tok", "", TOKENIZER_STRING,
                             //string2tokenizerid, tokenizerid2string
                             new TokenizerIDConverter()
                             );
-  return std::string("INVALID");
+  return true;
 }
 
 

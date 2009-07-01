@@ -127,6 +127,17 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
+void chart::print(tAbstractItemPrinter *pr,
+    bool passives, bool actives, bool blocked) const {
+  for(chart_iter pos(this); pos.valid(); pos++) {
+    tItem *curr = pos.current();
+    if ((blocked || !curr->blocked())
+        && ((curr->passive() && passives) || (! curr->passive() && actives))) {
+      pr->print(curr);// out << endl;
+    }
+  }
+}
+
 void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
                   bool passives, bool actives, bool blocked) const {
   tItemPrinter def_print(out, LOG_ENABLED(logChart, INFO),
@@ -134,13 +145,7 @@ void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
   if (pr == NULL) {
     pr = &def_print;
   }
-  for(chart_iter pos(this); pos.valid(); pos++) {
-    tItem *curr = pos.current();
-    if ((blocked || !curr->blocked())
-        && ((curr->passive() && passives) || (! curr->passive() && actives))) {
-      pr->print(curr); out << endl;
-    }
-  }
+  print(pr, passives, actives, blocked);
 }
 
 void chart::get_statistics()

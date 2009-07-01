@@ -110,7 +110,7 @@ AC_PROG_RANLIB
 # Check for doxygen to generate documentation
 AC_PATH_PROG([DOXYGEN],[doxygen])
 AM_CONDITIONAL([DOCBUILDERS], [ test "$DOXYGEN" != "" ])
-if test "$DOXYGEN" == "" ; then
+if test "$DOXYGEN" = "" ; then
     AC_WARN([Cannot find doxygen. Disabling API doc targets.])
 fi
 

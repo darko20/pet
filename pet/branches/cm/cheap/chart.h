@@ -63,6 +63,12 @@ public:
   /** Print chart items to stream \a out using \a aip, select active and
    *  passive items with \a passives and \a actives.
    */
+  void print(tAbstractItemPrinter *aip,
+             bool passives = true, bool actives = true, bool blocked = true) const;
+
+  /** Print chart items to stream \a out using \a aip, select active and
+   *  passive items with \a passives and \a actives.
+   */
   void print(std::ostream &out, tAbstractItemPrinter *aip = NULL,
              bool passives = true, bool actives = true,
              bool blocked = true) const;
