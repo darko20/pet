@@ -134,7 +134,7 @@ struct analyze_method : public xmlrpc_c::method
             mrs = "mrs=new not supported"; // TODO get string from native MRS code 
 #ifdef HAVE_MRS
           else
-            mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs);
+            mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs.c_str());
 #endif
           reading_helper["mrs"] = xmlrpc_c::value_string(mrs);
         }
