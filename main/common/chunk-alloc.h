@@ -78,6 +78,8 @@ class chunk_allocator
       if((_chunk_pos + n) > _chunk_size) _overflow(n);
       void *p = (void *) (_chunk[_curr_chunk] + _chunk_pos);
       _chunk_pos += n;
+      if(allocated() > _max)
+        _max = allocated();
       return p;
     }
 
@@ -110,7 +112,6 @@ class chunk_allocator
   /** Release all memory allocated since this alloc state was marked */
   inline void release(chunk_alloc_state &s)
     { 
-      if(allocated() > _max) _max = allocated();
       _curr_chunk = s.c; _chunk_pos = s.p;
     }
   /*@}*/
@@ -123,26 +124,38 @@ class chunk_allocator
   /** Release all memory and reset all statistics */
   void reset();
 
-  /** Maximum size of allocated memory */
+  /** The maximum amount of memory (in bytes) allocated so far */
   inline long int max_usage()
     { return _max; }
   
-  /** Reset maximum allocated size counter */
+  /** Reset maximum allocated size counter.
+   * Calling this method only makes sense after the total allocated memory
+   * may have shrunk. 
+   */
   inline void reset_max_usage()
     { _max = 0; }
 
   void print_check() ;
 
  private:
-  int _chunk_pos;  /** number of bytes allocated in current chunk */
-  int _chunk_size; /** size of each chunk */
 
-  int _curr_chunk; /** index of chunk currently allocated from */
-  int _nchunks;    /** nr of currently allocated chunks */
+  /** number of bytes allocated in current chunk */
+  int _chunk_pos;
 
-  char **_chunk;   /** vector of chunks of length MAX_CHUNKS */
+  /** size of each chunk */
+  int _chunk_size;
 
-  long int _max;   /** max nr of bytes allocated so far */
+  /** index of chunk currently allocated from */
+  int _curr_chunk;
+
+  /** nr of currently allocated chunks */
+  int _nchunks;
+
+  /** vector of chunks of length MAX_CHUNKS */
+  char **_chunk;
+
+  /** max nr of bytes allocated so far */
+  long int _max;
 
 
   void _overflow(int n);
@@ -179,7 +192,11 @@ class chunk_allocator
 
 #define t_alloc _t_alloc
 
-extern chunk_allocator t_alloc, p_alloc;
+/** Chunk allocator for temporarily needed memory. */
+extern chunk_allocator t_alloc;
+
+/** Chunk allocator for permanently needed memory. */
+extern chunk_allocator p_alloc;
 
 #if defined(HAVE_MMAP)
 inline bool is_p_addr(void *p)
