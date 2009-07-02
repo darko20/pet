@@ -3,9 +3,12 @@
 #ifndef _DAGPRINTER_H
 #define _DAGPRINTER_H
 
-#include "hashing.h"
-#include <ostream>
+#include "pet-config.h"
+
 #include "dag.h"
+#include "hashing.h"
+
+#include <ostream>
 
 using namespace std;
 
@@ -81,7 +84,7 @@ private:
 };
 
 
-/** superclass for printing dags in machine-readable formats,like LUI,
+/** superclass for printing dags in machine-readable formats, like LUI,
  *  Fegramed, JXCHG
  * 
  *  \todo maybe check if template metaprogramming could increase efficiency by
@@ -128,7 +131,7 @@ class LUIDagPrinter : public CompactDagPrinter {
 protected:
   virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
     out << " " << attrname[arc->attr] << ": ";
-    print_dag_rec(out, arc->val, temp) ;
+    print_dag_rec(out, arc->val, temp);
   }
 
   virtual void print_coref_reference(ostream &out, int coref_nr) {
@@ -136,18 +139,18 @@ protected:
   }
   
   virtual void print_coref_definition(ostream &out, int coref_nr) {
-    out << "<" << coref_nr << ">=" ;
+    out << "<" << coref_nr << ">=";
   }
 
   virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
-    if (dag->arcs != NULL) out << "#D[" ;
-    out << type_name(dag->type) ;
+    if (dag->arcs != NULL) out << "#D[";
+    out << type_name(dag->type);
     out << " [";
   }
 
   virtual void print_dag_node_end(ostream &out, const dag_node *dag) {
     out << " ]";
-    if (dag->arcs != NULL) out << " ]" ;
+    if (dag->arcs != NULL) out << " ]";
   }
 };
 
@@ -157,17 +160,17 @@ protected:
   virtual void print_null_dag(ostream &out) { out << "NIL"; }
 
   virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
-    out << " (" << attrname[arc->attr] ;
-    print_dag_rec(out, arc->val, temp) ;
+    out << " (" << attrname[arc->attr];
+    print_dag_rec(out, arc->val, temp);
     out << " )";
   }
 
   virtual void print_coref_reference(ostream &out, int coref_nr) {
-    out << " #" << coref_nr ;
+    out << " #" << coref_nr;
   }
   
   virtual void print_coref_definition(ostream &out, int coref_nr) {
-    out << " #" << coref_nr << "=" ;
+    out << " #" << coref_nr << "=";
   }
 
   virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
@@ -183,25 +186,25 @@ protected:
   virtual void print_null_dag(ostream &out) { out << 0; }
 
   virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
-    out << " " << arc->attr ;
-    print_dag_rec(out, arc->val, temp) ;
+    out << " " << arc->attr;
+    print_dag_rec(out, arc->val, temp);
     out << " ";
   }
 
   virtual void print_coref_reference(ostream &out, int coref_nr) {
-    out << " # " << coref_nr ;
+    out << " # " << coref_nr;
   }
   
   virtual void print_coref_definition(ostream &out, int coref_nr) {
-    out << " # " << coref_nr ;
+    out << " # " << coref_nr;
   }
 
   virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
-    out << " [ " ;
+    out << " [ ";
     if (is_dynamic_type(dag->type)) {
-      out << type_name(dag->type) ;
+      out << type_name(dag->type);
     } else {
-      out << dag->type ;
+      out << dag->type;
     }
   }
 

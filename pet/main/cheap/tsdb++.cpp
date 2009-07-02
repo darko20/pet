@@ -344,12 +344,12 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
 int
 cheap_complete_test_run(int run_id, const char *custom)
 {
-  LOG(logAppl, INFO,
-      "total elapsed parse time " << std::setprecision(3)
-      << TotalParseTime.elapsed_ts() / 10.<< "s; " 
-      << nprocessed << " items; avg time per item " << std::setprecision(4) 
-      << (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10. << "s");
-
+    LOG(logAppl, INFO,
+        "total elapsed parse time " << std::setprecision(3)
+        << TotalParseTime.elapsed_ts() / 10.<< "s; " 
+        << nprocessed << " items; avg time per item " << std::setprecision(4) 
+        << (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10. << "s");
+  
     if(get_opt_charp("opt_compute_qc") != NULL)
     {
         LOG(logAppl, INFO, "computing quick check paths");

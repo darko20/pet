@@ -154,7 +154,7 @@ struct lex_token *get_next_token()
       LConsume(i);
     }
   else if(c == '#' && LLA(1) == '|')
-  { /* block comment */
+    { /* block comment */
       char *start;
 
       start = LMark();
@@ -179,7 +179,7 @@ struct lex_token *get_next_token()
       i += 2;
       t = make_token(T_COMM, start, i);
       LConsume(i);
-  }
+    }
   else if(c == '"')
     { // string
       char *start;
@@ -223,10 +223,10 @@ struct lex_token *get_next_token()
         }
 
       if(LLA(i) == EOF)
-       { // runaway LISP expression
-         throw tError("runaway LISP expression", curr_fname(),
-                      curr_line(), curr_col());
-       }
+        { // runaway LISP expression
+          throw tError("runaway LISP expression", curr_fname(),
+                       curr_line(), curr_col());
+        }
       
       t = make_token(T_LISP, start, i);
       LConsume(i);
@@ -455,7 +455,7 @@ get_token()
     }
 
 #ifdef PETDEBUG
-  LOG(logSyntax, DEBUG, "delivering " << t);
+    LOG(logSyntax, DEBUG, "delivering " << t);
 #endif
     
     tokensdelivered++;
