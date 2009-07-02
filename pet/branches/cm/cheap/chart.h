@@ -60,14 +60,15 @@ public:
   /** Remove the item in the set from the chart */
   void remove(HASH_SPACE::hash_set<tItem *> &to_delete);
 
-  /** Print chart items to stream \a out using \a aip, select active and
-   *  passive items with \a passives and \a actives.
+  /** Print chart items using \a aip.
+   *  Enable/disable printing of passive, active and blocked items.
    */
   void print(tAbstractItemPrinter *aip,
-             bool passives = true, bool actives = true, bool blocked = true) const;
+             bool passives = true, bool actives = true,
+             bool blocked = true) const;
 
-  /** Print chart items to stream \a out using \a aip, select active and
-   *  passive items with \a passives and \a actives.
+  /** Print chart items to stream \a out using \a aip.
+   *  Enable/disable printing of passive, active and blocked items.
    */
   void print(std::ostream &out, tAbstractItemPrinter *aip = NULL,
              bool passives = true, bool actives = true,

@@ -1023,8 +1023,8 @@ tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
   : _grammar(grammar), _original_roots(grammar->_root_insts)
 {
 
-  if(input.length()) {
-    settings foo(input);
+  if(!input.empty()) {
+    settings foo(raw_name(input), input);
     struct setting *set;
     if((set = foo.lookup("start-symbols")) != 0) {
       grammar->_root_insts = 0;

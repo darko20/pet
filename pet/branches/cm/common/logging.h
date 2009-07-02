@@ -34,9 +34,24 @@ inline std::ostream &get_stringstream() { return *(new std::ostringstream()); }
 //  os << s.c_str(); return os;
 //}
 
-extern class log4cpp::Category &logAppl, &logApplC, &logGenerics, &logGrammar,
-  &logLexproc, &logMorph, &logPack, &logParse, &logSM, &logSemantic,
-  &logSyntax, &logTsdb, &logUnpack, &logXML, &root;
+extern class log4cpp::Category
+  &logAppl,
+  &logApplC,
+  &logChart,
+  &logChartMapping,
+  &logGenerics,
+  &logGrammar,
+  &logLexproc,
+  &logMorph,
+  &logPack,
+  &logParse,
+  &logSM,
+  &logSemantic,
+  &logSyntax,
+  &logTsdb,
+  &logUnpack,
+  &logXML,
+  &root;
 
 void init_logging(const std::string &base_dir);
 void shutdown_logging();

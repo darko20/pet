@@ -20,6 +20,9 @@
 /** Generic printer for arced dags */
 
 #include "dagprinter.h"
+
+#include "utility.h"
+
 #include <iomanip>
 
 // ============================================================================

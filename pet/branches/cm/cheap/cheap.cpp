@@ -104,7 +104,7 @@ private:
   virtual void print_common(const tItem * item, const std::string &name, dag_node *dag) {
     _dmp->dump_int(item->id());
     _dmp->dump_int(item->start());
-    _dmp->dump_int(item->end());    
+    _dmp->dump_int(item->end());
     _dmp->dump_string(name.c_str());
     item_list dtrs = item->daughters();
     _dmp->dump_short(dtrs.size());
@@ -120,7 +120,7 @@ public:
   virtual ~ChartDumper() {}
 
   /** The top level function called by the user */
-  virtual void print(const tItem *arg) { arg->print_gen(this); } 
+  virtual void print(const tItem *arg) { arg->print_gen(this); }
 
   /** Base printer function for a tInputItem */
   virtual void real_print(const tInputItem *item) {
@@ -131,7 +131,7 @@ public:
   virtual void real_print(const tLexItem *item) {
     print_common((const tItem *)item,
                  (item->rule() != NULL
-                  ? item->rule()->printname() 
+                  ? item->rule()->printname()
                   : ((string) "\"" + item->printname() + "\"")),
                  get_fs(item).dag());
   }
@@ -154,13 +154,13 @@ void dump_jxchg(string &surface, chart *ch) {
     yieldname = get_opt_string("opt_jxchg_dir") + yieldname;
     try {
       dumper dmp(yieldname.c_str(), true);
-      
+
       dump_header(&dmp, surface.c_str());
-      
+
       dump_toc_maker toc(&dmp);
       toc.add_section(SEC_CHART);
       toc.close();
-      
+
       toc.start_section(SEC_CHART);
       dmp.dump_int(0);
       dmp.dump_int(ch->rightmost());
@@ -233,8 +233,8 @@ void interactive() {
 
       fprintf(fstatus,
               "(%d) `%s' [%d] --- %s%d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-              stats.id, surface.c_str(), 
-              get_opt_int("opt_pedgelimit"), 
+              stats.id, surface.c_str(),
+              get_opt_int("opt_pedgelimit"),
               (stats.readings && stats.rreadings ? "*" : ""), stats.readings,
               stats.first/1000., stats.tcpu / 1000.,
               stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
@@ -244,7 +244,7 @@ void interactive() {
 
       tsdb_dump.finish(Chart, surface);
       dump_jxchg(surface, Chart);
-      
+
       //ofstream out("/tmp/final-chart-bernie");
       //tTclChartPrinter chp(out, 0);
       //tFegramedPrinter chp("/tmp/fed-");
@@ -267,8 +267,8 @@ void interactive() {
               ; ++iter) {
           //tFegramedPrinter fedprint("/tmp/fed-");
           //tDelegateDerivationPrinter deriv(fstatus, fedprint);
-          tCompactDerivationPrinter deriv(std::cerr);
           //tTSDBDerivationPrinter deriv(std::cerr, 1);
+          tCompactDerivationPrinter deriv(std::cerr);
           tItem *it = *iter;
 
           nres++;
@@ -551,10 +551,10 @@ void process(const char *s) {
       exit(1);
 #endif
 
-    case TOKENIZER_INVALID: 
+    case TOKENIZER_INVALID:
       LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
           <<"\": using 'tok=string'");
-    case TOKENIZER_STRING: 
+    case TOKENIZER_STRING:
     default:
       tok = new tLingoTokenizer(); break;
     }
@@ -591,7 +591,7 @@ void process(const char *s) {
   ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
 #endif // HAVE_ECL
 
-  LOG(logAppl, INFO, nstatictypes << " types in " << std::setprecision(2) 
+  LOG(logAppl, INFO, nstatictypes << " types in " << std::setprecision(2)
       << t_start.convert2ms(t_start.elapsed()) / 1000. << " s" << endl);
   fflush(fstatus);
 
@@ -653,10 +653,10 @@ void main_init() {
   managed_opt("opt_interactive_morph",
      "make cheap only run interactive morphology (only morphological rules, "
      "without lexicon)", false);
-  
-  managed_opt("opt_online_morph", 
+
+  managed_opt("opt_online_morph",
     "use the internal morphology (the regular expression style one)", true);
-  
+
   managed_opt("opt_tsdb_dir",
      "write [incr tsdb()] item, result and parse files to this directory",
      ((std::string) ""));
@@ -682,7 +682,7 @@ void main_init() {
 
   // \todo should go to yy.cpp, but this produces no code and the call is
   // optimized away
-  managed_opt("opt_yy", 
+  managed_opt("opt_yy",
      "old shit that should be thrown out or properly reengineered and renamed.",
      false);
 }
@@ -696,15 +696,15 @@ int main(int argc, char* argv[])
   ferr = stderr;
   fstatus = stderr;
   flog = (FILE *)NULL;
-  try { 
+  try {
     setlocale(LC_ALL, "C" );
-    
+
     // initialization of logging
     init_logging(argv[argc-1]);
 
     // Initialize global options
     main_init();
-    
+
     char *grammar_file_name;
 #ifndef __BORLANDC__
     if((grammar_file_name = parse_options(argc, argv)) == NULL) {
@@ -716,13 +716,13 @@ int main(int argc, char* argv[])
     if(argc > 1)
       grammar_file_name = argv[1];
 #endif
-    
+
     string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
     if(grammar_name.empty()) {
       throw tError("Grammar not found");
     }
-    
-    process(grammar_name.c_str()); 
+
+    process(grammar_name.c_str());
   } catch(tError &e) {
     LOG(logAppl, FATAL, e.getMessage() << endl);
     exit(1);

@@ -249,8 +249,8 @@ struct lex_token *get_next_token()
 
       if(LLA(i) == EOF)
         { // runaway LISP expression
-         throw tError("runaway LISP expression", curr_fname(),
-                      curr_line(), curr_col());
+          throw tError("runaway LISP expression", curr_fname(),
+                       curr_line(), curr_col());
         }
       
       t = make_token(T_LISP, start, i);

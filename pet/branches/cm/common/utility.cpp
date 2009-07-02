@@ -22,8 +22,8 @@
 #include "pet-config.h"
 #include "utility.h"
 #include "errors.h"
+
 #include <cstdlib>
-//#include <iostream>  // only for debugging
 #include <sys/stat.h>
 
 using std::string;
@@ -336,7 +336,7 @@ string read_line(FILE *f, int commentp)
   // allow pass-through of comment lines in input: ignore any line starting
   // with either `#' or `//'; optionally repeat it back on the output stream.
   //
-  if(commentp && (buff[0] == '#' || buff[0] == '/' && buff[1] == '/')) {
+  if(commentp && ((buff[0] == '#') || ((buff[0] == '/') && (buff[1] == '/')))) {
     if(commentp > 0) fprintf(stderr, "%s\n", buff);
     return read_line(f, commentp);
   } // if

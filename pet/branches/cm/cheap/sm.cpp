@@ -37,7 +37,6 @@
 
 using namespace std;
 using namespace HASH_SPACE;
-using namespace HASH_SPACE;
 
 int
 tSMFeature::hash() const

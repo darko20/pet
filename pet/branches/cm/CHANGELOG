@@ -15,13 +15,13 @@ specific to input-chart-rules branch:
   - input fs can optionally be unified into a lexical item's fs
   - input items can now be described by input feature structures
   - case-sensitive string and YY tokenizer
-  - added dag_find_paths(), fs::find_paths()
-  - renamed pop_rest() to pop_first(), added pop_last()
   - memory limit is respected during unpacking
-  - error message if resources are exhausted during parsing
   - added unit tests for types
 
 v0.99.??
+  - clear memory and stats before rather than after analysis
+  - added dag_find_paths(), fs::find_paths()
+  - renamed pop_rest() to pop_first(), added pop_last()
   - remerge of configuration branch
   - crash when disabling rule filter fixed (morph.cpp)
   - clean up of settings file name handling

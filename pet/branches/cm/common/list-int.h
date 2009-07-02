@@ -61,6 +61,21 @@ inline list_int *rest(const list_int *l)
 }
 
 /**
+ * Deletes the first cell of the list \a l and returns the rest of the list.
+ * If the list is empty, NULL is returned.
+ */
+inline list_int *pop_first(list_int *l)
+{
+  list_int *res;
+
+  if(!l) return 0;
+
+  res = rest(l);
+  delete l;
+  return res;
+}
+
+/**
  * Deletes the last cell of the list \a l and returns \a l itself or NULL
  * if the last cell was the only cell in \a l.
  * If the list is empty, NULL is returned.
@@ -80,21 +95,6 @@ inline list_int * pop_last(list_int *l)
   else
     l = NULL;
   return l;
-}
-
-/**
- * Deletes the first cell of the list \a l and returns the rest of the list.
- * If the list is empty, NULL is returned.
- */
-inline list_int *pop_first(list_int *l)
-{
-  list_int *res;
-
-  if(!l) return 0;
-
-  res = rest(l);
-  delete l;
-  return res;
 }
 
 /** Free all cons cells of \a l */
