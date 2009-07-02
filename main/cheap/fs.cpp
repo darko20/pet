@@ -58,25 +58,25 @@ static bool fs_init() {
     "Activate code that collects unification/subsumption failures "
     "for quick check computation, contains filename to write results to",
     (const char *) NULL);
-  
+
   managed_opt("opt_nqc_unif",
               "use only top n quickcheck paths (unification)", (int) -1);
   managed_opt("opt_nqc_subs",
               "use only top n quickcheck paths (subsumption)", (int) -1);
-  
+
   opt_compute_qc_unif = false;
   reference_opt("opt_compute_qc_unif",
                 "Activate failure registration for unification",
                 opt_compute_qc_unif);
-  
+
   opt_compute_qc_subs = false;
   reference_opt ("opt_compute_qc_subs",
                  "Activate failure registration for subsumption",
                  opt_compute_qc_subs);
-  
+
   opt_print_failure = false;
   reference_opt
-    ("opt_print_failure", 
+    ("opt_print_failure",
      "Log unification/subsumption failures "
      "(should be replaced by logging or new/different API functionality)",
      opt_print_failure);
@@ -488,9 +488,7 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
     }
 
     if(opt_compute_qc_unif || opt_print_failure) {
-      list<failure *> fails =
-        dag_unify_get_failures(a._dag, b._dag, true);
-
+      list<failure *> fails = dag_unify_get_failures(a._dag, b._dag, true);
       if (opt_compute_qc_unif)
         record_failures(fails, true, a._dag, b._dag);
       // \todo replace cerr by a stream that is dedicated to the printing of
@@ -686,7 +684,7 @@ fs::init_qc_unif(dumper *f, bool subs_too) {
   if(nqc_unif > 0 && nqc_unif < _qc_len_unif)
     _qc_len_unif = nqc_unif;
 }
-  
+
 void
 fs::init_qc_subs(dumper *f) {
   int nqc_subs = get_opt_int("opt_nqc_subs");
@@ -694,4 +692,4 @@ fs::init_qc_subs(dumper *f) {
   if(nqc_subs > 0 && nqc_subs < _qc_len_subs)
     _qc_len_subs = nqc_subs;
 }
-  
+

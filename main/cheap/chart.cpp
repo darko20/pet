@@ -24,7 +24,7 @@
 #include "tsdb++.h"
 #include "item-printer.h"
 #include "hashing.h"
-#include "options.h" // for verbosity
+#include "logging.h"
 #include <ostream>
 
 using namespace std;
@@ -112,22 +112,24 @@ void chart::remove(hash_set<tItem *> &to_delete)
 }
 
 void chart::print(tAbstractItemPrinter *pr,
-                  bool passives, bool actives) const {
+                  bool passives, bool actives, bool blocked) const {
   for(chart_iter pos(this); pos.valid(); pos++) {
     tItem *curr = pos.current();
-    if ((curr->passive() && passives) || (! curr->passive() && actives)) {
+    if ((blocked || !curr->blocked())
+        && ((curr->passive() && passives) || (! curr->passive() && actives))) {
       pr->print(curr);// out << endl;
     }
   }
 }
 
 void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
-                  bool passives, bool actives) const {
-  tItemPrinter def_print(out, verbosity > 2, verbosity > 10);
+                  bool passives, bool actives, bool blocked) const {
+  tItemPrinter def_print(out, LOG_ENABLED(logChart, INFO),
+      LOG_ENABLED(logChart, DEBUG));
   if (pr == NULL) {
     pr = &def_print;
   }
-  print(pr, passives, actives);
+  print(pr, passives, actives, blocked);
 }
 
 void chart::get_statistics()
