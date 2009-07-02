@@ -1,4 +1,5 @@
 v0.99.??
+  - renamed pop_rest() to pop_first(), added pop_last()
   - remerge of configuration branch
   - crash when disabling rule filter fixed (morph.cpp)
   - clean up of settings file name handling
