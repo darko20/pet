@@ -24,12 +24,12 @@ main(int argc, char **argv)
   CppUnit::TestResult controller;
   CppUnit::TestRunner runner;
   controller.addListener(&result);
-  controller.addListener(&progress);      
+  controller.addListener(&progress);
   runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
-  
+
   // run tests:
   runner.run(controller);
-  outputter.write();    
-  
+  outputter.write();
+
   return result.wasSuccessful() ? 0 : 1;
 }

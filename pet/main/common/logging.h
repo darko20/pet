@@ -37,6 +37,7 @@ inline std::ostream &get_stringstream() { return *(new std::ostringstream()); }
 extern class log4cpp::Category
   &logAppl,
   &logApplC,
+  &logChart,
   &logGenerics,
   &logGrammar,
   &logLexproc,
@@ -75,6 +76,7 @@ typedef enum {EMERG  = 0,
 extern class Category
   &logAppl,
   &logApplC,
+  &logChart,
   &logGenerics,
   &logGrammar,
   &logLexproc,
