@@ -58,7 +58,7 @@ class fs
    */
   fs(char *path, type_t type);
   /** Construct minimal fs containing \a path ending in typedag for \a type.
-   *  \attention there are no checks whether the resulting fs is valid!
+   *  \attention there are no checks whether the resulting fs is valid! 
    */
   fs(const list_int *path, type_t type);
 
@@ -97,7 +97,7 @@ class fs
       exists in the fs. */
   fs get_path_value(const list_int *path) const;
   /** Return a new fs representing the subdag under \a path, if this Path
-      exists in the fs. */
+      exists in the fs. */  
   fs get_path_value(const char *path) const;
 
   /** Return the \a n th subdag in the \c ARGS list */
@@ -122,9 +122,17 @@ class fs
     else
       return fs(dag_nth_element(_dag, const_cast<list_int*>(path), n));
   }
+  
+  /**
+   * Find all paths that end in a type that is a subtype of \a maxapp.
+   * The paths must be freed by the caller.
+   */
+  inline std::list<list_int*> find_paths(type_t maxapp = BI_TOP) {
+    return dag_find_paths(dag(), maxapp);
+  }
 
   /**
-   * Converts the list that is represented by this feature structure
+   * Converts the list that is represented by this feature structure 
    * into an STL list of feature structures. If this fs does not
    * represent a list, an empty STL list will be returned.
    */
@@ -407,7 +415,7 @@ class fs_alloc_state
     {
         return dag_alloc_dynamic_mem();
     }
-
+    
     /**
      * Reports how much memory (in bytes) is currently allocated for storing
      * temporary fs's. The value can be reset by clear_stats(), which

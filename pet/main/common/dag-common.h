@@ -240,6 +240,12 @@ dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n);
  */
 dag_node *dag_nth_arg(dag_node *dag, int n);
 
+/**
+ * Find all paths in \a dag that end in a type that is a subtype of \a maxapp.
+ * The paths must be freed by the caller.
+ */
+std::list<list_int*> dag_find_paths(dag_node* dag, type_t maxapp = BI_TOP);
+
 /** \brief Set the \c visit field of every dag node in \a dag to the number of
  *  incoming arcs. Any node with a \c visit field of more than one is 
  *  `coreferenced'.
