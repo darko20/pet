@@ -151,6 +151,30 @@ struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
   return dag_nth_element(dag, BIA_ARGS, n); // inline call
 }
 
+static void
+dag_find_paths_recursion(dag_node* dag, type_t maxapp,
+    list_int *lpath, std::list<list_int*> &result)
+{
+  assert(dag != NULL);
+  if ((lpath != NULL) && (subtype(dag_type(dag), maxapp))) {
+    list_int *copy = copy_list(lpath);
+    result.push_back(copy);
+  }
+  for (dag_arc *arc = dag->arcs; arc != NULL; arc = arc->next) {
+    lpath = append(lpath, arc->attr);
+    dag_find_paths_recursion(arc->val, maxapp, lpath, result);
+    lpath = pop_last(lpath);
+  }
+}
+
+std::list<list_int*>
+dag_find_paths(dag_node* dag, type_t maxapp)
+{
+  std::list<list_int*> result;
+  dag_find_paths_recursion(dag, maxapp, NULL, result);
+  return result;
+}
+
 struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
   while(path) {
     if(dag == FAIL) return FAIL;
