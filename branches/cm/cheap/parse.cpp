@@ -449,22 +449,6 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
     // been reached
     if ((it != 0) && add_item(it)) break;
   }
-
-  if(resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
-    ostringstream s;
-
-    if(memlimit > 0 && t_alloc.max_usage() >= memlimit)
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
-        << " MB)";
-    else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit)
-      s << "edge limit exhausted (" << pedgelimit
-        << " pedges)";
-    else
-      s << "timed out (" << timeout / sysconf(_SC_CLK_TCK)
-        << " s)";
-
-    errors.push_back(s.str());
-  }
 }
 
 /**
@@ -630,20 +614,28 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
   clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
   
   stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
-
+  
   stats.dyn_bytes = FSAS.dynamic_usage();
   stats.stat_bytes = FSAS.static_usage();
-  FSAS.clear_stats();
-
+  
   get_unifier_stats();
   Chart->get_statistics();
-
-  if(get_opt_bool("opt_shrink_mem"))
-  {
-      FSAS.may_shrink();
-      prune_glbcache();
+  
+  if(resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
+    ostringstream s;
+    if (memlimit > 0 && t_alloc.max_usage() >= memlimit) {
+      s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
+    }
+    else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit) {
+      s << "edge limit exhausted (" << pedgelimit << " pedges)";
+    }
+    else {
+      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
+          << " s)";
+    }
+    errors.push_back(s.str());
   }
-
+  
   LOG(logParse, DEBUG, *Chart);
 
   Chart->readings() = collect_readings(FSAS, errors, 
@@ -659,56 +651,61 @@ void
 analyze(string input, chart *&C, fs_alloc_state &FSAS
         , list<tError> &errors, int id)
 {
-    FSAS.clear_stats();
-    stats.reset();
-    stats.id = id;
+  // optionally clearing memory before rather than after analyzing since
+  // we want to allow for lazy output of parse results in a server mode
+  if (get_opt_bool("opt_shrink_mem")) {
+    FSAS.may_shrink();
+    prune_glbcache();
+  }
+  
+  FSAS.clear_stats();
+  stats.reset();
+  stats.id = id;
 
-    auto_ptr<item_owner> owner(new item_owner);
-    tItem::default_owner(owner.get());
+  auto_ptr<item_owner> owner(new item_owner);
+  tItem::default_owner(owner.get());
 
-    unify_wellformed = true;
+  unify_wellformed = true;
 
-    bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
-    
-    inp_list input_items;
-    int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
+  bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
+  
+  inp_list input_items;
+  int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
-    Agenda = new tAgenda;
-    C = Chart = new chart(max_pos, owner);
+  Agenda = new tAgenda;
+  C = Chart = new chart(max_pos, owner);
 
-    //
-    // really, start timing here.  for JaCY (as of jan-05), input processing
-    // takes significant time.                               (10-feb-05; oe)
-    //
+  //
+  // really, start timing here.  for JaCY (as of jan-05), input processing
+  // takes significant time.                               (10-feb-05; oe)
+  //
 
-    TotalParseTime.start();
-    ParseTime.reset(); ParseTime.start();
-    if (get_opt_int("opt_timeout") > 0) {
-      timestamp = times(NULL);
-      timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
-    }
+  TotalParseTime.start();
+  ParseTime.reset(); ParseTime.start();
+  if (get_opt_int("opt_timeout") > 0) {
+    timestamp = times(NULL);
+    timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
+  }
 
-    Lexparser.lexical_processing(input_items,
-                                 (chart_mapping
-                                  || cheap_settings->lookup("lex-exhaustive")),
-                                 chart_mapping,
-                                 FSAS, errors);
+  Lexparser.lexical_processing(input_items,
+                               (chart_mapping
+                                || cheap_settings->lookup("lex-exhaustive")),
+                               chart_mapping,
+                               FSAS, errors);
 
-    // during lexical processing, the appropriate tasks for the syntactic stage
-    // are already created
-    parse_loop(FSAS, errors, timeout);
+  // during lexical processing, the appropriate tasks for the syntactic stage
+  // are already created
+  parse_loop(FSAS, errors, timeout);
 
-    ParseTime.stop();
-    TotalParseTime.stop();
+  ParseTime.stop();
+  TotalParseTime.stop();
 
-    parse_finish(FSAS, errors, timeout);
+  parse_finish(FSAS, errors, timeout);
 
-    if(get_opt_int("opt_robust") != 0 && (Chart->readings().empty()))
-      analyze_pcfg(Chart, FSAS, errors);
+  if(get_opt_int("opt_robust") != 0 && (Chart->readings().empty()))
+    analyze_pcfg(Chart, FSAS, errors);
 
-    Lexparser.reset();
-    // clear_dynamic_types(); // too early
-
-    delete Agenda;
-
+  Lexparser.reset();
+  // clear_dynamic_types(); // too early
+  delete Agenda;
 }

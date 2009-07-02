@@ -78,6 +78,8 @@ class chunk_allocator
       if((_chunk_pos + n) > _chunk_size) _overflow(n);
       void *p = (void *) (_chunk[_curr_chunk] + _chunk_pos);
       _chunk_pos += n;
+      if(allocated() > _max)
+        _max = allocated();
       return p;
     }
 
@@ -122,12 +124,9 @@ class chunk_allocator
   /** Release all memory and reset all statistics */
   void reset();
 
-  /** The maximum amount of memory allocated so far */
+  /** The maximum amount of memory (in bytes) allocated so far */
   inline long int max_usage()
-    {
-      if(allocated() > _max) _max = allocated();
-      return _max;
-    }
+    { return _max; }
   
   /** Reset maximum allocated size counter.
    * Calling this method only makes sense after the total allocated memory
@@ -139,16 +138,22 @@ class chunk_allocator
   void print_check() ;
 
  private:
+
   /** number of bytes allocated in current chunk */
   int _chunk_pos;
+
   /** size of each chunk */
   int _chunk_size;
+
   /** index of chunk currently allocated from */
   int _curr_chunk;
+
   /** nr of currently allocated chunks */
   int _nchunks;
+
   /** vector of chunks of length MAX_CHUNKS */
   char **_chunk;
+
   /** max nr of bytes allocated so far */
   long int _max;
 
@@ -189,6 +194,7 @@ class chunk_allocator
 
 /** Chunk allocator for temporarily needed memory. */
 extern chunk_allocator t_alloc;
+
 /** Chunk allocator for permanently needed memory. */
 extern chunk_allocator p_alloc;
 

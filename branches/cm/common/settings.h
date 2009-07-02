@@ -47,7 +47,6 @@ class settings
 {
  public:
   settings(std::string name, std::string base, const char *message = 0);
-  settings(const std::string &input, const char *message = 0);
   ~settings();
 
   setting *lookup(const char *name);

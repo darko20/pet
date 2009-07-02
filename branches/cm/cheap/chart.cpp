@@ -25,7 +25,6 @@
 #include "item-printer.h"
 #include "hashing.h"
 #include "logging.h"
-#include "options.h" // for verbosity
 #include <ostream>
 
 using namespace std;
@@ -128,7 +127,7 @@ void chart::remove(hash_set<tItem *> &to_delete)
 }
 
 void chart::print(tAbstractItemPrinter *pr,
-    bool passives, bool actives, bool blocked) const {
+                  bool passives, bool actives, bool blocked) const {
   for(chart_iter pos(this); pos.valid(); pos++) {
     tItem *curr = pos.current();
     if ((blocked || !curr->blocked())

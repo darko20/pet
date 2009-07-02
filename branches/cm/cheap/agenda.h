@@ -45,8 +45,10 @@ public:
 
   /** Test if agenda is empty */
   bool empty() { return _A.empty(); }
-  
+
+  /** Return the number of tasks in the agenda */
   int size() { return _A.size();}
+
 private:
 
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;

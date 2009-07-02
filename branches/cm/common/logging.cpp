@@ -42,6 +42,7 @@ namespace log4cpp {
 Category &root = log4cpp::Category::getRoot(),
   &logAppl = log4cpp::Category::getInstance(std::string("logAppl")),
   &logApplC = log4cpp::Category::getInstance(std::string("logApplC")),
+  &logChart = log4cpp::Category::getInstance(std::string("logChart")),
   &logGenerics = log4cpp::Category::getInstance(std::string("logGenerics")),
   &logGrammar = log4cpp::Category::getInstance(std::string("logGrammar")),
   &logLexproc = log4cpp::Category::getInstance(std::string("logLexproc")),

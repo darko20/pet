@@ -58,7 +58,7 @@ class fs
    */
   fs(char *path, type_t type);
   /** Construct minimal fs containing \a path ending in typedag for \a type.
-   *  \attention there are no checks whether the resulting fs is valid! 
+   *  \attention there are no checks whether the resulting fs is valid!
    */
   fs(const list_int *path, type_t type);
 
@@ -97,7 +97,7 @@ class fs
       exists in the fs. */
   fs get_path_value(const list_int *path) const;
   /** Return a new fs representing the subdag under \a path, if this Path
-      exists in the fs. */  
+      exists in the fs. */
   fs get_path_value(const char *path) const;
 
   /** Return the \a n th subdag in the \c ARGS list */
