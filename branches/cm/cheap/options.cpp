@@ -30,6 +30,7 @@
 #include "utility.h"
 #include "version.h"
 #include "logging.h"
+#include "lexparser.h"
 #include <string>
 #include <unistd.h>
 
@@ -235,7 +236,10 @@ char* parse_options(int argc, char* argv[])
             set_opt("opt_nsolutions", 1);
           break;
       case OPTION_DEFAULT_LES:
-        set_opt_from_string("opt_default_les", optarg);
+        if(optarg != NULL)
+          set_opt_from_string("opt_default_les", optarg);
+        else
+          set_opt("opt_default_les", DEFAULT_LES_POSMAP_LEXGAPS);
         break;
       case OPTION_NO_CHART_MAN:
           set_opt("opt_chart_man", false); 
