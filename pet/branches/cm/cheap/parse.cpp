@@ -455,8 +455,8 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
  * Unpacks the parse forest selectively (using the max-ent model).
  * \return number of unpacked trees
  */
-int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions,
-                       long memlimit,
+int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
+                       long memlimit, int nsolutions, 
                        timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0)
@@ -502,8 +502,7 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions,
  * \todo why is opt_nsolutions not honored here
  */
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit,
-                        long memlimit
-                        , timer *UnpackTime, vector<tItem *> &readings) {
+                        timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0) 
     timestamp = times(NULL);
@@ -567,8 +566,7 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
         }
       } else { // unpack exhaustively
         try {
-          nres = unpack_exhaustively(trees, upedgelimit, memlimit,
-                                     UnpackTime, readings);
+          nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
         } catch(tError e) {
           errors.push_back(e);
         }

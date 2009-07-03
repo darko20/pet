@@ -63,15 +63,12 @@ void analyze(std::string input, class chart *&C, class fs_alloc_state &FSAS,
              std::list<tError> &errors, int id = 0);
 
 /** selective unpacking */
-// int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit, int nsolutions
-//                        ,timer *UnpackTime , std::vector<tItem *> &readings);
 int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
-                       long memlimit,
+                       long memlimit, int nsolutions, 
                        timer *UnpackTime , std::vector<tItem *> &readings);
 
 /** exhaustive unpacking */
 int unpack_exhaustively(std::vector<tItem*> &trees, int upedgelimit,
-                        long memlimit,
                         timer *UnpackTime, std::vector<tItem *> &readings);
 
 #endif
