@@ -53,7 +53,7 @@ static int init() {
               "0: key-driven, 1: l-r, 2: r-l, 3: head-driven", (int) 0);
   managed_opt("opt_sm",
               "parse selection model (`null' for none)",
-              std::string("null"));
+              std::string(""));
   return true;
 }
 
@@ -521,7 +521,7 @@ tGrammar::tGrammar(const char * filename)
     // virtue of a special `null' model.
     //
     const std::string opt_sm = get_opt_string("opt_sm");
-    if (!opt_sm.size() || opt_sm != "null") {
+    if (opt_sm.empty() || opt_sm != "null") {
       const char *sm_file 
         = (opt_sm.size() ? opt_sm.c_str() : cheap_settings->value("sm"));
       if(sm_file != 0) {
