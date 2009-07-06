@@ -167,6 +167,8 @@ void dump_jxchg(string &surface, chart *ch) {
       dmp.dump_int(0);
       dmp.dump_int(0);
       dmp.dump_int(0);
+
+      toc.dump();
     }
     catch (tError err) {
       LOG(logAppl, WARN, "Can not open file " << yieldname);

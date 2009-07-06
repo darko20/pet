@@ -139,7 +139,8 @@ dump_toc_maker::start_section(sectiontype s)
     _dump -> dump_int(s);
 }
 
-dump_toc_maker::~dump_toc_maker()
+void
+dump_toc_maker::dump()
 {
     if(_open)
         throw tError("TOC still open");
