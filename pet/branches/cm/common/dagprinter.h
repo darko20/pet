@@ -10,8 +10,6 @@
 
 #include <ostream>
 
-using namespace std;
-
 #ifdef HASH_SPACE
 namespace HASH_SPACE {
   template<> struct hash<const struct ::dag_node *> {
@@ -28,7 +26,8 @@ public:
 
   virtual ~AbstractDagPrinter() {}
 
-  virtual void print(ostream &out, const dag_node *dag, bool temp = false) = 0;
+  virtual void
+  print(std::ostream &out, const dag_node *dag, bool temp = false) = 0;
 
 protected:
   inline int get_coref_nr(const dag_node *dag) {
@@ -64,7 +63,8 @@ public:
   virtual ~ReadableDagPrinter() {}
 
   /** \a temp determines if temporary dag information will be printed */
-  virtual void print(ostream &out, const dag_node *dag, bool temp = false) {
+  virtual void
+  print(std::ostream &out, const dag_node *dag, bool temp = false) {
     if (dag == NULL) { out << type_name(0); return; }
     if (dag == FAIL) { out << "fail"; return; }
     init_coreference_marks(dag, temp);
@@ -74,10 +74,10 @@ public:
 protected:
 
   virtual void 
-  print_arcs(ostream &out, const dag_arc *arc, bool temp, int indent);
+  print_arcs(std::ostream &out, const dag_arc *arc, bool temp, int indent);
 
   virtual void 
-  print_dag_rec(ostream &out, const dag_node *dag, bool temp, int indent);  
+  print_dag_rec(std::ostream &out, const dag_node *dag, bool temp, int indent);  
   
 private:
   bool _print_pointer;
@@ -95,27 +95,28 @@ class CompactDagPrinter : public AbstractDagPrinter {
 protected:
   bool honor_temporary_dags;
 
-  virtual void print_null_dag(ostream &out) { out << type_name(0); }
-  virtual void print_fail_dag(ostream &out) { out << "fail"; }
+  virtual void print_null_dag(std::ostream &out) { out << type_name(0); }
+  virtual void print_fail_dag(std::ostream &out) { out << "fail"; }
 
-  virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) = 0;
+  virtual void print_arc(std::ostream &out, const dag_arc *arc, bool temp) = 0;
 
-  virtual void print_coref_reference(ostream &out, int coref_nr) = 0;
+  virtual void print_coref_reference(std::ostream &out, int coref_nr) = 0;
 
-  virtual void print_coref_definition(ostream &out, int coref_nr) = 0;
+  virtual void print_coref_definition(std::ostream &out, int coref_nr) = 0;
 
-  virtual void print_dag_node_start(ostream &out, const dag_node *dag) = 0;
+  virtual void print_dag_node_start(std::ostream &out, const dag_node *dag) = 0;
 
-  virtual void print_dag_node_end(ostream &out, const dag_node *dag) = 0;
+  virtual void print_dag_node_end(std::ostream &out, const dag_node *dag) = 0;
 
-  void print_dag_rec(ostream &out, const struct dag_node *dag, bool temp);
+  void print_dag_rec(std::ostream &out, const struct dag_node *dag, bool temp);
 
 public:
   CompactDagPrinter() : honor_temporary_dags(false) {}
 
   virtual ~CompactDagPrinter() {}
 
-  virtual void print(ostream &out, const dag_node *dag, bool temp = false) {
+  virtual void
+  print(std::ostream &out, const dag_node *dag, bool temp = false) {
     if (dag == NULL) { print_null_dag(out); return; }
     if (dag == FAIL) { print_fail_dag(out); return; }
 
@@ -129,26 +130,26 @@ public:
 
 class LUIDagPrinter : public CompactDagPrinter {
 protected:
-  virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
+  virtual void print_arc(std::ostream &out, const dag_arc *arc, bool temp) {
     out << " " << attrname[arc->attr] << ": ";
     print_dag_rec(out, arc->val, temp);
   }
 
-  virtual void print_coref_reference(ostream &out, int coref_nr) {
+  virtual void print_coref_reference(std::ostream &out, int coref_nr) {
     out << "<" << coref_nr << ">";
   }
   
-  virtual void print_coref_definition(ostream &out, int coref_nr) {
+  virtual void print_coref_definition(std::ostream &out, int coref_nr) {
     out << "<" << coref_nr << ">=";
   }
 
-  virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
+  virtual void print_dag_node_start(std::ostream &out, const dag_node *dag) {
     if (dag->arcs != NULL) out << "#D[";
     out << type_name(dag->type);
     out << " [";
   }
 
-  virtual void print_dag_node_end(ostream &out, const dag_node *dag) {
+  virtual void print_dag_node_end(std::ostream &out, const dag_node *dag) {
     out << " ]";
     if (dag->arcs != NULL) out << " ]";
   }
@@ -157,59 +158,59 @@ protected:
 
 class ItsdbDagPrinter : public CompactDagPrinter {
 protected:
-  virtual void print_arc(ostream &out, const dag_arc *arc, bool temp);
-  virtual void print_coref_reference(ostream &out, int coref_nr);
-  virtual void print_coref_definition(ostream &out, int coref_nr);
-  virtual void print_dag_node_start(ostream &out, const dag_node *dag);
-  virtual void print_dag_node_end(ostream &out, const dag_node *dag);
+  virtual void print_arc(std::ostream &out, const dag_arc *arc, bool temp);
+  virtual void print_coref_reference(std::ostream &out, int coref_nr);
+  virtual void print_coref_definition(std::ostream &out, int coref_nr);
+  virtual void print_dag_node_start(std::ostream &out, const dag_node *dag);
+  virtual void print_dag_node_end(std::ostream &out, const dag_node *dag);
 };
 
 
 class FegramedDagPrinter : public CompactDagPrinter {
 protected:
-  virtual void print_null_dag(ostream &out) { out << "NIL"; }
+  virtual void print_null_dag(std::ostream &out) { out << "NIL"; }
 
-  virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
+  virtual void print_arc(std::ostream &out, const dag_arc *arc, bool temp) {
     out << " (" << attrname[arc->attr];
     print_dag_rec(out, arc->val, temp);
     out << " )";
   }
 
-  virtual void print_coref_reference(ostream &out, int coref_nr) {
+  virtual void print_coref_reference(std::ostream &out, int coref_nr) {
     out << " #" << coref_nr;
   }
   
-  virtual void print_coref_definition(ostream &out, int coref_nr) {
+  virtual void print_coref_definition(std::ostream &out, int coref_nr) {
     out << " #" << coref_nr << "=";
   }
 
-  virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
+  virtual void print_dag_node_start(std::ostream &out, const dag_node *dag) {
     out << " [ (%%TYPE " << type_name(dag->type) << " #T )";
   }
 
-  virtual void print_dag_node_end(ostream &out, const dag_node *dag) {}
+  virtual void print_dag_node_end(std::ostream &out, const dag_node *dag) {}
 };
 
 
 class JxchgDagPrinter : public CompactDagPrinter {
 protected:
-  virtual void print_null_dag(ostream &out) { out << 0; }
+  virtual void print_null_dag(std::ostream &out) { out << 0; }
 
-  virtual void print_arc(ostream &out, const dag_arc *arc, bool temp) {
+  virtual void print_arc(std::ostream &out, const dag_arc *arc, bool temp) {
     out << " " << arc->attr;
     print_dag_rec(out, arc->val, temp);
     out << " ";
   }
 
-  virtual void print_coref_reference(ostream &out, int coref_nr) {
+  virtual void print_coref_reference(std::ostream &out, int coref_nr) {
     out << " # " << coref_nr;
   }
   
-  virtual void print_coref_definition(ostream &out, int coref_nr) {
+  virtual void print_coref_definition(std::ostream &out, int coref_nr) {
     out << " # " << coref_nr;
   }
 
-  virtual void print_dag_node_start(ostream &out, const dag_node *dag) {
+  virtual void print_dag_node_start(std::ostream &out, const dag_node *dag) {
     out << " [ ";
     if (is_dynamic_type(dag->type)) {
       out << type_name(dag->type);
@@ -218,7 +219,7 @@ protected:
     }
   }
 
-  virtual void print_dag_node_end(ostream &out, const dag_node *dag) {
+  virtual void print_dag_node_end(std::ostream &out, const dag_node *dag) {
     out << " ]";
   }
 };
