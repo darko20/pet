@@ -285,4 +285,6 @@ dump_grammar(dumper *f, const char *desc)
     dag_dump(f, types[rleaftype_order[i]]->thedag);
   logkb(", types", f);
 
+  toc.dump();
+
 }
