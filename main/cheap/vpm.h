@@ -10,7 +10,6 @@
 
 #define MAXVPMLINE 1024
 
-using namespace std;
 using namespace mrs;
 
 class tVPM {
@@ -21,21 +20,21 @@ public:
   
   virtual ~tVPM();
 
-  string id;
+  std::string id;
 
   /** variable type mappings */
-  list<class tMR*> tms;
+  std::list<class tMR*> tms;
 
   /** parameter mapping rules*/
-  list<class tPM*> pms;
+  std::list<class tPM*> pms;
 
-  bool read_vpm(const string &filename, string id="default");
+  bool read_vpm(const std::string &filename, std::string id="default");
   
   tPSOA* map_mrs(tPSOA* mrs_in, bool forwardp=true);
   tVar* map_variable(tVar* var_in, tPSOA* mrs, bool forwardp=true);
 
 private:
-  map<tVar*,tVar*> _vv_map;
+  std::map<tVar*,tVar*> _vv_map;
   
 };
 
@@ -48,9 +47,9 @@ public:
 
   virtual ~tPM();
   
-  list<string> lhs;
-  list<string> rhs;
-  list<class tMR*> pmrs;
+  std::list<std::string> lhs;
+  std::list<std::string> rhs;
+  std::list<class tMR*> pmrs;
 };
 
 /** Mapping rule, being it for parameters or types */
@@ -59,13 +58,13 @@ public:
   tMR() : forward(false), backward(false), eqtest(false) {
   }
 
-  list<string> left;
-  list<string> right;
+  std::list<std::string> left;
+  std::list<std::string> right;
   bool forward;
   bool backward;
   bool eqtest;
   
-  bool test(string type, list<string> values, bool forwardp);
+  bool test(std::string type, std::list<std::string> values, bool forwardp);
 };
 
 

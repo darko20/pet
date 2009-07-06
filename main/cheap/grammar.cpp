@@ -43,6 +43,8 @@
 #include "dagprinter.h"
 #include <fstream>
 
+using namespace std;
+
 static int init();
 static bool static_init = init();
 static int init() {

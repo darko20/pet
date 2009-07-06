@@ -438,7 +438,7 @@ private:
       strcpy(unique + strlen(_filename_prefix) + strlen(name), "XXXXXX");
       int fildes = mkstemp(unique);
       if ((fildes == -1) || (_out.open(unique) , ! _out.good())) {
-        throw(tError((string) "could not open file" + unique));
+        throw(tError((std::string) "could not open file" + unique));
       }
       delete[] unique;
     }
@@ -452,7 +452,7 @@ private:
     if (_out.is_open()) _out.close();
   }
 
-  ofstream _out;
+  std::ofstream _out;
   FegramedDagPrinter fp;
   char *_filename_prefix;
 };
@@ -498,7 +498,7 @@ public:
 
 private:
   LUIDagPrinter _dagprinter;
-  string _path;
+  std::string _path;
 };
 
 /** use an item_printer like a modifier */

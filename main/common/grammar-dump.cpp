@@ -21,6 +21,8 @@
 
 #include "grammar-dump.h"
 
+using namespace std;
+
 void
 dump_header(dumper *f, const char *desc)
 {
