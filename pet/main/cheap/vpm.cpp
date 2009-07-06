@@ -4,6 +4,8 @@
 
 extern FILE* ferr;
 
+using namespace std;
+
 tVPM::~tVPM() {
   for (list<tPM*>::iterator pm = pms.begin();
        pm != pms.end(); pm ++) 

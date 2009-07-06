@@ -22,6 +22,8 @@
 #include "dagprinter.h"
 #include <iomanip>
 
+using namespace std;
+
 // ============================================================================
 // AbstractDagPrinter implementation
 // ============================================================================

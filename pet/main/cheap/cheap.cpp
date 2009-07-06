@@ -65,6 +65,8 @@
 
 #include "logging.h"
 
+using namespace std;
+
 const char * version_string = VERSION ;
 const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
