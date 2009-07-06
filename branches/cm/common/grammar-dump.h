@@ -55,8 +55,6 @@
 #include <dumper.h>
 #include <map>
 
-using namespace std;
-
 /** Default file extension for binary grammar files */
 #define GRAMMAR_EXT ".grm"
 
@@ -95,7 +93,7 @@ class dump_toc
  private:
   dumper *_dump;
   
-  map<sectiontype, long int> _toc;
+  std::map<sectiontype, long int> _toc;
 };
 
 /** The table of contents structure for writing/creating a TOC. */
@@ -104,7 +102,6 @@ class dump_toc_maker
  public:
   /** establish a table of contents for dumper \a dump */
   dump_toc_maker(dumper *dump);
-  ~dump_toc_maker();
 
   /** \brief Add the section with type \a s to the table of contents. All
    *  sections have to be added before dumping of the data starts, because the
@@ -120,13 +117,16 @@ class dump_toc_maker
    *  dumper, and write this position to the table of contents.
    */
   void start_section(sectiontype s);
+
+  /** Dump the toc. To be executed after all sections have been dumped. */
+  void dump();
     
  private:
   dumper *_dump;
   bool _open;
     
-  map<sectiontype, long int> _toc;
-  map<sectiontype, long int> _where;
+  std::map<sectiontype, long int> _toc;
+  std::map<sectiontype, long int> _where;
 };
 
 #endif

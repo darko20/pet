@@ -70,6 +70,8 @@
 
 #include "logging.h"
 
+using namespace std;
+
 const char * version_string = VERSION ;
 const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
@@ -170,6 +172,8 @@ void dump_jxchg(string &surface, chart *ch) {
       dmp.dump_int(0);
       dmp.dump_int(0);
       dmp.dump_int(0);
+
+      toc.dump();
     }
     catch (tError err) {
       LOG(logAppl, WARN, "Can not open file " << yieldname);

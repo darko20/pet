@@ -33,6 +33,7 @@
 //#include <boost/graph/graph_utility.hpp>
 #include <iomanip>
 
+using namespace std;
 
 #ifndef HAVE_ICU
 

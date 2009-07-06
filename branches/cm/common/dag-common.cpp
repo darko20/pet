@@ -26,6 +26,8 @@
 
 #include <cstring>
 
+using namespace std;
+
 /* global variables */
 
 dag_node *FAIL = (dag_node *) -1;
