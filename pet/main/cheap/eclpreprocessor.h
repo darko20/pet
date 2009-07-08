@@ -30,7 +30,7 @@ public:
     return _position_mapping;
   }
 
-  virtual string description() {
+  virtual std::string description() {
     return "ecl/Lisp based tokenizer/preprocessor modules with FSR rules";
   }
 private:
