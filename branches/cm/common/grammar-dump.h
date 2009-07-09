@@ -47,6 +47,8 @@
  * - 14 -> 15 : remove lexicon and rule section; list of rules and lexicon is
  *               now constructed in the parser using status values 
  * - 15 -> 16: add new section containing grammar properties
+ * - 16 -> 17: stable type order: proper types and leaf types are ordered
+ *             as defined in TDL
  */
 
 #ifndef _GRAMMAR_DUMP_H_
@@ -61,7 +63,7 @@
 /** Magic Number of binary grammar files */
 #define DUMP_MAGIC 0x03422711
 /** Current binary grammar file version */
-#define DUMP_VERSION 16
+#define DUMP_VERSION 17
 
 /** @name Header Dump
  * Dump/Undump the header of the grammar file.

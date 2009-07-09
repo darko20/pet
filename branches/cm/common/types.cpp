@@ -35,6 +35,8 @@
 #undef SUBTYPECACHE
 #endif
 
+#include <cassert>
+
 using namespace std;
 using namespace HASH_SPACE;
 
@@ -337,34 +339,16 @@ void dump_hierarchy(dumper *f)
   f->dump_int(codesize);
 
   // bitcodes for all proper types
-  for(i = 0; i < first_leaftype; i++)
-    if(leaftypeparent[rleaftype_order[i]] == -1)
-      {
-        typecode[rleaftype_order[i]]->dump(f);
-      }
-    else
-      {
-        ostringstream errmsg;
-        errmsg << "leaf type conception error a: `"
-               << type_name(rleaftype_order[i]) << "' (" << i << " -> "
-               << rleaftype_order[i] << ")";
-        throw tError(errmsg.str());
-      }
+  for(i = 0; i < first_leaftype; i++) {
+    assert(leaftypeparent[leaftype_order[i]] == -1);
+    typecode[leaftype_order[i]]->dump(f);
+  }
 
   // parents for all leaf types
-  for(i = first_leaftype; i < nstatictypes; i++)
-    if(leaftypeparent[rleaftype_order[i]] != -1)
-      {
-        f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
-      }
-    else
-      {
-        ostringstream errmsg;
-        errmsg << "leaf type conception error b: `"
-               << type_name(rleaftype_order[i]) << "' (" << i << " -> "
-               << rleaftype_order[i] << ")";
-        throw tError(errmsg.str());
-      }
+  for(i = first_leaftype; i < nstatictypes; i++) {
+    assert(leaftypeparent[leaftype_order[i]] != -1);
+    f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
+  }
 }
 
 #endif
