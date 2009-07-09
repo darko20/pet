@@ -386,12 +386,12 @@ public:
 
   /** Return the list of all loaded token mapping rules.
    * \see chart-mapping.h */
-  std::list<class tChartMappingRule*> tokmap_rules() {
+  const std::list<class tChartMappingRule*> &tokmap_rules() {
     return _tokmap_rules;
   }
   /** Return the list of all loaded lexical filtering rules.
    * \see chart-mapping.h*/
-  std::list<class tChartMappingRule*> lexflt_rules() {
+  const std::list<class tChartMappingRule*> &lexflt_rules() {
     return _lexfil_rules;
   }
 

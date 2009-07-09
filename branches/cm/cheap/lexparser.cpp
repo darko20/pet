@@ -877,7 +877,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
       chart.print(cerr, &ip, true, false, false);
     } // if
     // apply chart mapping rules:
-    std::list<class tChartMappingRule*> rules = Grammar->tokmap_rules();
+    const std::list<class tChartMappingRule*> &rules = Grammar->tokmap_rules();
     tChartMappingEngine mapper(rules);
     mapper.process(chart);
     // map back:
@@ -967,7 +967,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
       chart.print(cerr, &ip, true, false, false);
     } // if
     // apply chart mapping rules:
-    std::list<class tChartMappingRule*> rules = Grammar->lexflt_rules();
+    const std::list<class tChartMappingRule*> &rules = Grammar->lexflt_rules();
     tChartMappingEngine mapper(rules);
     mapper.process(chart);
     // map back:
