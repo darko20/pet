@@ -514,7 +514,7 @@ tGrammar::tGrammar(const char * filename)
         {
             grammar_rule *R = grammar_rule::make_grammar_rule(i);
             if (R != NULL) {
-              _syn_rules.push_front(R);
+              _syn_rules.push_back(R);
               _rule_dict[i] = R;
             }
         }
@@ -522,7 +522,7 @@ tGrammar::tGrammar(const char * filename)
         {
             grammar_rule *R = grammar_rule::make_grammar_rule(i);
             if (R != NULL) {
-              _lex_rules.push_front(R);
+              _lex_rules.push_back(R);
               _rule_dict[i] = R;
             }
         }
@@ -531,7 +531,7 @@ tGrammar::tGrammar(const char * filename)
             tChartMappingRule *R = tChartMappingRule::create(i,
                 tChartMappingRule::TMR_TRAIT);
             if (R != NULL) {
-              _tokmap_rules.push_front(R);
+              _tokmap_rules.push_back(R);
             }
         }
         else if (lexmap_rule_status(i) && (get_opt_int("opt_chart_mapping") > 0))
@@ -539,7 +539,7 @@ tGrammar::tGrammar(const char * filename)
             tChartMappingRule *R = tChartMappingRule::create(i,
                 tChartMappingRule::LFR_TRAIT);
             if (R != NULL) {
-              _lexfil_rules.push_front(R);
+              _lexfil_rules.push_back(R);
             }
         }
         else if(genle_status(i))

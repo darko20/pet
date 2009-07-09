@@ -1,4 +1,6 @@
-specific to input-chart-rules branch:
+specific to chart-mapping branch:
+  - stable type order: proper types and leaf types are ordered as defined in TDL
+    & grammar dump version increased to 17
   - activate all rules after lex-exhaustive parsing (not just syntactic rules)
     for compatibility with LKB
   - regular expression literals introduced with slashes in TDL
