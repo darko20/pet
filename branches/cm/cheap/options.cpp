@@ -404,7 +404,7 @@ char* parse_options(int argc, char* argv[])
           break;
       case OPTION_SM:
           if (optarg != NULL)
-            set_opt("opt_sm", optarg);
+            set_opt("opt_sm", std::string(optarg));
           else 
             set_opt("opt_sm", std::string("null"));
           break;
