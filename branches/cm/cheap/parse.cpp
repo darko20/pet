@@ -524,6 +524,7 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit,
           res != results.end(); ++res) {
         type_t rule;
         if((*res)->root(Grammar, Chart->rightmost(), rule)) {
+          (*res)->set_result_root(rule);
           readings.push_back(*res);
           LOG(logParse, DEBUG,
               "unpacked[" << nres << "] (" << setprecision(1)
