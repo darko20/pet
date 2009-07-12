@@ -107,15 +107,13 @@ static bool charz_use = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
-  if(!get_opt_int("opt_chart_mapping")) {
-    char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
-    char *cto_path = cheap_settings->value("mrs-cto-path");
-    if ((cfrom_path != NULL) && (cto_path != NULL)) {
-      cfrom.set(cfrom_path);
-      cto.set(cto_path);
-      charz_init = true;
-      charz_use = ! get_opt_string("opt_mrs").empty();
-    }
+  char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
+  char *cto_path = cheap_settings->value("mrs-cto-path");
+  if ((cfrom_path != NULL) && (cto_path != NULL)) {
+    cfrom.set(cfrom_path);
+    cto.set(cto_path);
+    charz_init = true;
+    charz_use = ! get_opt_string("opt_mrs").empty();
   }
 }
 
@@ -124,7 +122,7 @@ void finalize_characterization() {
 }
 
 inline bool characterize(fs &thefs, int from, int to) {
-  if(!get_opt_int("opt_chart_mapping") && charz_use) {
+  if(charz_use) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
                               , retrieve_string_instance(from))
@@ -238,8 +236,8 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
 }
 
 void
-tInputItem::print_gen(class tAbstractItemPrinter *ip) const {
-  ip->real_print(this);
+tInputItem::print_gen(class tAbstractItemPrinter *ip, int level) const {
+  ip->real_print(this, level);
 }
 
 std::string tInputItem::get_yield() {
@@ -654,9 +652,9 @@ tPhrasalItem::set_result_root(type_t rule)
 
 
 void
-tLexItem::print_gen(class tAbstractItemPrinter *ip) const
+tLexItem::print_gen(class tAbstractItemPrinter *ip, int level) const
 {
-  ip->real_print(this);
+  ip->real_print(this, level);
 }
 
 string
@@ -678,8 +676,8 @@ tLexItem::orth() const
 }
 
 void
-tPhrasalItem::print_gen(class tAbstractItemPrinter *ip) const {
-  ip->real_print(this);
+tPhrasalItem::print_gen(class tAbstractItemPrinter *ip, int level) const {
+  ip->real_print(this, level);
 }
 
 std::string tLexItem::get_yield() {
@@ -1403,6 +1401,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
     type_t rule;
     if (result && 
         (result->trait() == PCFG_TRAIT || result->root(Grammar, end, rule))) {
+      result->set_result_root(rule);
       results.push_back(result);
       n --;
       if (n == 0) {
