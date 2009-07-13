@@ -295,9 +295,9 @@ private:
   /** path within input items holding the stem of the item */
   static list_int* _token_stem_path;
   /** path within input items holding the inflectional rules to apply */
-  static list_int* _token_lexid_path;
+  static list_int* _token_entry_path;
   /** path within input items holding the name of the lexical entry */
-  static list_int* _token_inflr_path;
+  static list_int* _token_rules_path;
   /** path within input items holding part-of-speech tags information */
   static list_int* _token_postags_path;
   /** path within input items holding part-of-speech probs information */
