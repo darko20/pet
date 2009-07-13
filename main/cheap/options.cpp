@@ -44,6 +44,7 @@ void usage(FILE *f)
           "enable [incr tsdb()] slave mode (protocol version = n)\n");
 #endif
   fprintf(f, "  `-nsolutions[=n]' --- find best n only, 1 if n is not given\n");
+  fprintf(f, "  `-sm[=string]' --- parse selection model (`null' for none)\n");
   fprintf(f, "  `-verbose[=n]' --- set verbosity level to n\n");
   fprintf(f, "  `-limit=n' --- maximum number of passive edges\n");
   fprintf(f, "  `-memlimit=n' --- maximum amount of fs memory (in MB)\n");
@@ -89,7 +90,6 @@ void usage(FILE *f)
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");
   fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
              "select input method (default `string')\n");
-
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
 }
@@ -130,6 +130,7 @@ void usage(FILE *f)
 #define OPTION_COMMENT_PASSTHROUGH 36
 #define OPTION_PREDICT_LES 37
 #define OPTION_TIMEOUT 38
+#define OPTION_SM 40
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -186,7 +187,7 @@ char* parse_options(int argc, char* argv[])
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
-
+    {"sm", optional_argument, 0, OPTION_SM},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -369,14 +370,18 @@ char* parse_options(int argc, char* argv[])
           else
             set_opt("opt_comment_passthrough", true);
           break;
-
       case OPTION_PREDICT_LES:
         if (optarg != NULL)
           set_opt_from_string("opt_predict_les", optarg);
         else 
           set_opt("opt_predict_les", (int) 1);
         break;
-
+      case OPTION_SM:
+          if (optarg != NULL)
+            set_opt("opt_sm", std::string(optarg));
+          else 
+            set_opt("opt_sm", std::string("null"));
+          break;
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
