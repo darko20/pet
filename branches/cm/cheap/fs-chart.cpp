@@ -309,8 +309,8 @@ list_int* tChartUtil::_token_id_path = 0;
 list_int* tChartUtil::_token_from_path = 0;
 list_int* tChartUtil::_token_to_path = 0;
 list_int* tChartUtil::_token_stem_path = 0;
-list_int* tChartUtil::_token_lexid_path = 0;
-list_int* tChartUtil::_token_inflr_path = 0;
+list_int* tChartUtil::_token_entry_path = 0;
+list_int* tChartUtil::_token_rules_path = 0;
 list_int* tChartUtil::_token_postags_path = 0;
 list_int* tChartUtil::_token_posprobs_path = 0;
 list_int* tChartUtil::_lexicon_tokens_path = 0;
@@ -335,12 +335,14 @@ tChartUtil::initialize()
     m += "surface start positions, ";
   if (!init_lpath(_token_to_path, "token-to-path", e))
     m += "surface end positions, ";
-  if (!init_lpath(_token_stem_path, "token-stem-path", e))
-    m += "stems, ";
-  if (!init_lpath(_token_lexid_path, "token-lexid-path", e))
-    m += "lexical ids, ";
-  if (!init_lpath(_token_inflr_path, "token-inflr-path", e))
-    m += "inflectional rules, ";
+  // TODO decide whether we want to be able to instantiate les by
+  //      stem or entry and orthographemic rules
+//  if (!init_lpath(_token_stem_path, "token-stem-path", e))
+//    m += "stems, ";
+//  if (!init_lpath(_token_entry_path, "token-entry-path", e))
+//    m += "lexical ids, ";
+//  if (!init_lpath(_token_rules_path, "token-rules-path", e))
+//    m += "orthographemic rules, ";
   if (   !init_lpath(_token_postags_path, "token-postags-path", e)
       || !init_lpath(_token_posprobs_path, "token-posprobs-path", e))
     m += "parts of speech, ";
@@ -421,8 +423,8 @@ tChartUtil::create_input_item(const fs &input_fs)
       token_class = STEM_TOKEN_CLASS;
     }
   }
-  if (_token_lexid_path) {
-    type_t t = input_fs.get_path_value(_token_lexid_path).type();
+  if (_token_entry_path) {
+    type_t t = input_fs.get_path_value(_token_entry_path).type();
     if (t != BI_STRING) { // if the lexid is set to a string literal
       string lexid = get_printname(t);
       if (token_class != WORD_TOKEN_CLASS)
@@ -432,8 +434,8 @@ tChartUtil::create_input_item(const fs &input_fs)
         throw tError((std::string) "Unknown lex-id '" + lexid + "'");
     }
   }
-  if (_token_inflr_path) {
-    type_t t = input_fs.get_path_value(_token_inflr_path).type();
+  if (_token_rules_path) {
+    type_t t = input_fs.get_path_value(_token_rules_path).type();
     if (t != BI_STRING) { // for now, comma-separated list of typenames
       std::istringstream iss(get_printname(t));
       std::string rulename;
@@ -520,14 +522,14 @@ tChartUtil::create_input_fs(tInputItem* item)
       input_fs = unify(input_fs, input_fs.get_path_value(_token_stem_path),f);
     }
   }
-  if (_token_lexid_path) {
+  if (_token_entry_path) {
     type_t t = item->tclass();
     if ((t != WORD_TOKEN_CLASS) && (t != STEM_TOKEN_CLASS)) {
       fs f = retrieve_string_instance(get_typename(t));
-      input_fs = unify(input_fs,input_fs.get_path_value(_token_lexid_path),f);
+      input_fs = unify(input_fs,input_fs.get_path_value(_token_entry_path),f);
     }
   }
-  if (_token_inflr_path) {
+  if (_token_rules_path) {
     list_int *infl_l = item->inflrs();
     string infl_s;
     while (infl_l) {
@@ -536,7 +538,7 @@ tChartUtil::create_input_fs(tInputItem* item)
     }
     if (!infl_s.empty()) {
       fs f = retrieve_string_instance(infl_s);
-      input_fs = unify(input_fs,input_fs.get_path_value(_token_inflr_path),f);
+      input_fs = unify(input_fs,input_fs.get_path_value(_token_rules_path),f);
     }
   }
   if (_token_postags_path && _token_posprobs_path) {
