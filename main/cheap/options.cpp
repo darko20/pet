@@ -275,7 +275,7 @@ char* parse_options(int argc, char* argv[])
       case OPTION_PG:
         set_opt("opt_pg", 's');
         if(optarg != NULL) {
-          char *pos = strchr("sgta", optarg[0]);
+          const char *pos = strchr("sgta", optarg[0]);
           if(pos != NULL) {
             set_opt("opt_pg", optarg[0]);
           } else {

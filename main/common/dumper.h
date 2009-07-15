@@ -26,6 +26,7 @@
 #define _DUMPER_H_
 
 #include "errors.h"
+#include <cstdio>
 
 /** This class implements binary serialization of some basic data structures.
  * It dumps multi-byte data such as shorts or ints always in little endian
