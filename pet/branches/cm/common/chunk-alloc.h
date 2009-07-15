@@ -25,6 +25,7 @@
 #define _CHUNK_ALLOC_H_
 
 #include <sys/types.h>
+#include <cstdio>
 
 /** The maximum number of chunks to allocate */
 #define MAX_CHUNKS 16000
