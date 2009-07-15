@@ -27,6 +27,7 @@
 #include "symtab.h"
 #include "types.h"
 #include <list>
+#include <cstdio>
 
 /***************************/
 /* compile time parameters */
