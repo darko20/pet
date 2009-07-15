@@ -1194,8 +1194,8 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
       } else // every thing fine, create the new hypothesis
         new_hypothesis(hypo->decomposition, dtrs, indices);
     }
-    if (!hypo->inst_failed)
-      _hypotheses_path[path].push_back(hypo);
+    //    if (!hypo->inst_failed) // this will cause missing readings when used with grandparenting
+    _hypotheses_path[path].push_back(hypo);
   }
   if (i < _hypotheses_path[path].size()){
     if (_hypo_agendas[path].size() == 0)

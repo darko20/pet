@@ -28,6 +28,7 @@
 #include <cstring>
 #include <list> 
 #include <string>
+#include <cstdio>
 
 #define SET_SUBDIRECTORY "pet"
 
