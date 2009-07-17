@@ -236,7 +236,7 @@ tCompactDerivationPrinter::real_print(const tInputItem *item, int level) {
        << std::setprecision(4) << item->score() << " "
        << item->start() << " " << item->end() << " <"
        << item->startposition() << ":" << item->endposition()
-       << ">";
+       << ">" << ")";
 }
 
 void 
