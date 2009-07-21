@@ -97,8 +97,8 @@ void usage(FILE *f)
              "select input method (default `string')\n");
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
-  fprintf(f, "  `-chart-mapping' --- "
-          "enable token mapping and lexical filtering\n");
+  fprintf(f, "  `-cm' --- "
+          "enable chart mapping (token mapping and lexical filtering)\n");
 }
 
 #define OPTION_TSDB 0
@@ -197,7 +197,7 @@ char* parse_options(int argc, char* argv[])
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
-    {"chart-mapping", optional_argument, 0, OPTION_CHART_MAPPING},
+    {"cm", optional_argument, 0, OPTION_CHART_MAPPING},
     {"sm", optional_argument, 0, OPTION_SM},
     {0, 0, 0, 0}
   }; /* struct option */
