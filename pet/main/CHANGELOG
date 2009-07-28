@@ -1,4 +1,6 @@
 v0.99.??
+  - stable type order: proper types and leaf types are ordered as defined in TDL
+    & grammar dump version increased to 17
   - added option -sm
   - clear memory and stats before rather than after analysis
   - added dag_find_paths(), fs::find_paths()

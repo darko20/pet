@@ -72,8 +72,8 @@ dump_symbol_tables(dumper *f)
   // type names and status
   for(int i = 0; i < nstatictypes; i++)
     {
-      f->dump_string(type_name(rleaftype_order[i]));
-      f->dump_int(typestatus[rleaftype_order[i]]);
+      f->dump_string(type_name(leaftype_order[i]));
+      f->dump_int(typestatus[leaftype_order[i]]);
     }
 
   // attribute names
@@ -97,7 +97,7 @@ dump_tables(dumper *f)
   // _fix_doc_ Why only for non-leaftypes ??
   for(int i = 0; i < first_leaftype; i++)
     {
-      f->dump_int(featset[rleaftype_order[i]]);
+      f->dump_int(featset[leaftype_order[i]]);
     }
 
   f->dump_int(nfeatsets);
@@ -121,7 +121,7 @@ dump_supertypes(dumper *f)
 {
   for(int i = 0; i < first_leaftype; i++)
   {
-      list<int> supertypes = immediate_supertypes(rleaftype_order[i]);
+      list<int> supertypes = immediate_supertypes(leaftype_order[i]);
       f->dump_short(supertypes.size());
       for(list<int>::iterator it = supertypes.begin(); it != supertypes.end();
           ++it)
@@ -139,8 +139,8 @@ dump_print_names(dumper *f)
   // print names
   for(int i = 0; i < nstatictypes; i++)
     {
-      if(get_printname(rleaftype_order[i]) != get_typename(rleaftype_order[i]))
-        f->dump_string(print_name(rleaftype_order[i]));
+      if(get_printname(leaftype_order[i]) != get_typename(leaftype_order[i]))
+        f->dump_string(print_name(leaftype_order[i]));
       else
         f->dump_string(0);
     }
@@ -187,7 +187,7 @@ dump_inflrs(dumper *f)
       if(types[i]->inflr != 0)
         {
           ninflr++;
-          dump_inflr(f, leaftype_order[i], types[i]->inflr);
+          dump_inflr(f, rleaftype_order[i], types[i]->inflr);
         }
     }
   
@@ -282,7 +282,7 @@ dump_grammar(dumper *f, const char *desc)
   toc.start_section(SEC_CONSTRAINTS);
 
   for(int i = 0; i < types.number(); i++)
-    dag_dump(f, types[rleaftype_order[i]]->thedag);
+    dag_dump(f, types[leaftype_order[i]]->thedag);
   logkb(", types", f);
 
   toc.dump();

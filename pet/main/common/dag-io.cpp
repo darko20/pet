@@ -171,7 +171,7 @@ void dag_mark_dump_nodes(struct dag_node *dag)
 }
 
 #ifdef FLOP
-extern int *leaftype_order;
+extern int *rleaftype_order;
 #endif
 
 int dump_index = 0;
@@ -208,7 +208,7 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
       type = dag->type;
 
 #ifdef FLOP
-      type = leaftype_order[type];
+      type = rleaftype_order[type];
 #endif
 
       dump_n.type = type;
