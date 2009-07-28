@@ -10,7 +10,7 @@
 
 #ifdef HAVE_LOG4CPP
 #include <log4cpp/Category.hh>
-#include "log4cpp/Priority.hh"
+#include <log4cpp/Priority.hh>
 using log4cpp::Category;
 
 #define EMERG  log4cpp::Priority::EMERG
