@@ -294,7 +294,8 @@ AX_LIB_LOG4CPP([],
     export FLOPLIBS="$LOG4CPP_LIBS $FLOPLIBS"
     export CHEAPLIBS="$LOG4CPP_LIBS $CHEAPLIBS"
   ],
-  [log4cpp=no])
+  [log4cpp=no],
+  [no])
 AM_CONDITIONAL(LOG4CPP, [test "x$log4cpp" = "xyes"])
 
 
