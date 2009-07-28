@@ -1,6 +1,7 @@
 # SYNOPSIS
 #
-#   AX_LIB_LOG4CPP([minimum-version], [action-if-found], [action-if-not-found])
+#   AX_LIB_LOG4CPP([minimum-version], [action-if-found], [action-if-not-found]
+#                  [default-answer])
 #
 # DESCRIPTION
 #
@@ -15,9 +16,12 @@
 #
 #     HAVE_LOG4CPP
 #
-# LAST MODIFICATION
+# CHANGELOG
 #
-#   2008-09-19
+#   2009-07-28 by Peter Adolphs
+#              - added default-answer argument to macro
+#              - unset local variables
+#   2008-09-19 by Bernd Kiefer
 #
 # COPYLEFT
 #
@@ -29,14 +33,14 @@
 
 AC_DEFUN([AX_LIB_LOG4CPP], [
   # define configure parameter
-  unset ax_lib_icu_path ax_lib_icu_config
+  unset ax_lib_log4cpp ax_lib_log4cpp_config ax_lib_log4cpp_path
   AC_ARG_WITH([log4cpp],
     [AC_HELP_STRING(
       [--with-log4cpp@<:@=ARG@:>@], dnl
       [use log4cpp library from a standard location (ARG=yes),
-       from the specified location or icu-config binary (ARG=<path>),
+       from the specified location or log4cpp-config binary (ARG=<path>),
        or disable it (ARG=no)
-       @<:@ARG=yes@:>@ ])],
+       @<:@ARG=$4@:>@ ])],
     [case "${withval}" in
        yes) ax_lib_log4cpp="yes" ;;
        no)  ax_lib_log4cpp="no" ;;
@@ -50,7 +54,7 @@ AC_DEFUN([AX_LIB_LOG4CPP], [
               AC_MSG_ERROR([bad value ${withval} for --with-log4cpp ])
             fi ;;
      esac],
-    [ax_lib_log4cpp="yes"])
+    [ax_lib_log4cpp="$4"])
   if test "x$ax_lib_log4cpp_path" = "x" ; then
     ax_lib_log4cpp_path=$PATH
   fi
