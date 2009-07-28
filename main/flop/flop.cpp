@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -166,45 +167,29 @@ void process_multi_instances()
 int *leaftype_order = 0;
 int *rleaftype_order = 0;
 
-void reorder_leaftypes()
-// we want all leaftypes in one consecutive range after all nonleaftypes
-{
-  int i;
+/**
+ * Returns true iff type t is a proper type.
+ */
+inline bool
+is_proper(int t) {
+  return (leaftypeparent[t] == -1);
+}
 
+#include <stdio.h>
+/**
+ * Order all leaftypes in one consecutive range after all nonleaftypes.
+ */
+void reorder_leaftypes()
+{
   leaftype_order = (int *) malloc(nstatictypes * sizeof(int));
-  for(i = 0; i < nstatictypes; i++)
+  for(int i = 0; i < nstatictypes; i++)
     leaftype_order[i] = i;
 
-  int curr = nstatictypes - 1;
-
-  for(i = 0; i < nstatictypes && i < curr; i++)
-    {
-      // look for next non-leaftype starting downwards from curr
-      while(leaftypeparent[curr] != -1 && curr > i) curr--;
-
-      if(leaftypeparent[i] != -1)
-        {
-          leaftype_order[i] = curr;
-          leaftype_order[curr] = i;
-          curr --;
-        }
-    }
+  stable_partition(leaftype_order, leaftype_order + nstatictypes, is_proper);
 
   rleaftype_order = (int *) malloc(nstatictypes * sizeof(int));
-  for(i = 0; i < nstatictypes; i++) rleaftype_order[i] = -1;
-
-  for(i = 0; i < nstatictypes; i++) rleaftype_order[leaftype_order[i]] = i;
-
-  for(i = 0; i < nstatictypes; i++)
-    {
-      if(rleaftype_order[i] == -1)
-        {
-          fprintf(stderr, "conception error in leaftype reordering\n");
-          exit(1);
-        }
-      if(rleaftype_order[i] != leaftype_order[i])
-        fprintf(stderr, "gotcha: %d: %d <-> %d", i, leaftype_order[i], rleaftype_order[i]);
-    }
+  for(int i = 0; i < nstatictypes; i++)
+    rleaftype_order[leaftype_order[i]] = i;
 }
 
 void assign_printnames()

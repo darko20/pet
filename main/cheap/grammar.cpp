@@ -460,7 +460,7 @@ tGrammar::tGrammar(const char * filename)
         {
             grammar_rule *R = grammar_rule::make_grammar_rule(i);
             if (R != NULL) {
-              _syn_rules.push_front(R);
+              _syn_rules.push_back(R);
               _rule_dict[i] = R;
             }
         }
@@ -468,7 +468,7 @@ tGrammar::tGrammar(const char * filename)
         {
             grammar_rule *R = grammar_rule::make_grammar_rule(i);
             if (R != NULL) {
-              _lex_rules.push_front(R);
+              _lex_rules.push_back(R);
               _rule_dict[i] = R;
             }
         }
