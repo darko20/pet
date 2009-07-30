@@ -2,6 +2,7 @@
 #include <sstream>
 
 using namespace std;
+using namespace HASH_SPACE;
 
 // ----------------------------------------------------------------------
 // stream operators
@@ -102,7 +103,7 @@ inline void tItemPrinter::print_family(ostream &out, const tItem *item) {
 void tItemPrinter::print_common(ostream &out, const tItem *item) {
   out << "[" << item->id() 
        << " " << item->start() << "-" << item->end() << " " 
-       << get_fs(item).printname() << " (" << item->trait() << ") "
+       << item->printname() << " (" << item->trait() << ") "
        << std::setprecision(4) << item->score()
        << " {";
   print_tofill(out, item);
@@ -121,11 +122,10 @@ void tItemPrinter::print_common(ostream &out, const tItem *item) {
 
 // from tInputItem::print
 void tItemPrinter::real_print(const tInputItem *item) {
-  // [bmw] print also start/end nodes
-  *_out << "[n" << item->start() << " - n" << item->end() << "] ["
-       << item->startposition() << " - " << item->endposition() << "] ("
-       << item->external_id() << ") \"" 
-       << item->stem() << "\" \"" << item->form() << "\" ";
+  *_out << "I [" << item->id() << " (" << item->external_id() << ")"
+        << " " << item->start() << "-" << item->end()
+        << " <" << item->startposition() << ":" << item->endposition() << ">"
+        << " \"" << item->stem() << "\" \"" << item->form() << "\" ";
 
   *_out << "{";
   print_inflrs(*_out, item);
@@ -135,7 +135,7 @@ void tItemPrinter::real_print(const tInputItem *item) {
 
   *_out << "{";
   item->get_in_postags().print(*_out);
-  *_out << "}";
+  *_out << "}]";
 }
 
 inline void tItemPrinter::print_fs(ostream &out, const fs &f) {
@@ -224,12 +224,14 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
 void
 tCompactDerivationPrinter::real_print(const tInputItem *item) {
   *_out << "(" 
+       << item->id() << " "
        << (_quoted ? "\\\"" : "\"")
        << item->orth()
        << (_quoted ? "\\\" " : "\" ")
        << std::setprecision(4) << item->score() << " "
-       << item->start() << " " << item->end()
-       << ")";
+       << item->start() << " " << item->end() << " <"
+       << item->startposition() << ":" << item->endposition()
+       << ">" << ")";
 }
 
 void 
@@ -260,7 +262,9 @@ tCompactDerivationPrinter::print_daughters_same_line(const tItem* item) {
 // former tLexItem::print_derivation
 void 
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
-  *_out << "(" << item->id() << " " << stem(item)->printname() << "/"
+  *_out << "("
+       << item->id() << " "
+       << stem(item)->printname() << "/"
        << print_name(item->type()) << " "
        << std::setprecision(4) << item->score() << " "
        << item->start() << " " << item->end();
@@ -278,7 +282,9 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 // former tPhrasalItem::print_derivation
 void 
 tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
-  *_out << "(" << item->id() << " " << item->printname() << " "
+  *_out << "("
+       << item->id() << " "
+       << item->printname() << " "
        << std::setprecision(4) << item->score() << " "
        << item->start() << " " << item->end();
   if(item->packed.size() > 0) {
@@ -314,7 +320,9 @@ void tTSDBDerivationPrinter::real_print(const tInputItem *item) {
 }
 
 void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
-  *_out << "(" << item->id() << " " << item->stem()->printname()
+  *_out << "("
+       << item->id() << " "
+       << item->stem()->printname()
        << " " << item->score() << " " << item->start() <<  " " << item->end()
        << " " << "(\"" << escape_string(item->orth()) << "\" "
        << item->start() << " " << item->end() << "))" << flush; 
@@ -322,9 +330,11 @@ void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
 
 void tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
   if(item->result_root() > -1) 
-    *_out << "(" << print_name(item->result_root()) << " ";
+    *_out << "("
+         << print_name(item->result_root()) << " ";
   
-  *_out << "(" << item->id() << " " << item->printname() << " " << item->score()
+  *_out << "("
+       << item->id() << " " << item->printname() << " " << item->score()
        << " " << item->start() << " " << item->end();
   
   const item_list &daughters = item->daughters();
@@ -462,8 +472,8 @@ tLUIPrinter::print(const tItem *item) {
   ostringstream fn;
   fn << _path << item->id() << ".lui";
   ofstream stream(fn.str().c_str());
-  stream << "avm " << item->id() << " ";
   if (! stream) throw tError("File open error for file " + fn.str());
+  stream << "avm " << item->id() << " ";
   get_fs(item).print(stream, _dagprinter);
   stream << " \"Edge # " << item->id() << "\"\f\n" ;
   stream.close();
