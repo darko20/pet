@@ -462,7 +462,8 @@ tInputItem* tSMAFTokenizer::getInputItemFromSaf(const tSaf &saf){
   // create tInputItem
   tInputItem* item = new tInputItem(*id, source, target, start, end, surface, ""
                                     , tPaths()
-                                    , WORD_TOKEN_CLASS, fsmods);
+                                    , WORD_TOKEN_CLASS);
+  item->set_mods(fsmods);
 
   // POS
   string pos = getContentVal(saf.lContent,"pos");

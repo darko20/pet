@@ -137,7 +137,6 @@ inline bool characterize(fs &thefs, int from, int to) {
 item_owner *tItem::_default_owner = NULL;
 int tItem::_next_id = 1;
 
-
 tItem::tItem(int start, int end, const tPaths &paths,
              const fs &f, const char *printname)
     : _id(_next_id++),
@@ -176,36 +175,49 @@ tItem::set_result_root(type_t rule) {
 tInputItem::tInputItem(string id
                        , int start, int end, int startposition, int endposition
                        , string surface, string stem
-                       , const tPaths &paths, int token_class, modlist fsmods)
+                       , const tPaths &paths
+                       , int token_class
+                       , const std::list<int> &infl_rules
+                       , const postags &pos
+                       , modlist fsmods)
   : tItem(start, end, paths, fs(), surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
-    , _fsmods(fsmods)
+    , _fsmods(fsmods), _postags(pos)
 {
   _startposition = startposition;
   _endposition = endposition;
   _trait = INPUT_TRAIT;
+  _inflrs_todo = copy_list(infl_rules);
 }
 
 
 // constructor with external start/end positions only
 tInputItem::tInputItem(string id, int startposition, int endposition
                        , string surface, string stem
-                       , const tPaths &paths, int token_class, modlist fsmods)
-  : tItem(-1, -1, paths, fs(), surface.c_str()),
-    _input_id(id), _class(token_class), _surface(surface), _stem(stem),
-    _fsmods(fsmods)
+                       , const tPaths &paths
+                       , int token_class
+                       , const std::list<int> &infl_rules
+                       , const postags &pos
+                       , modlist fsmods)
+  : tItem(-1, -1, paths, fs(), surface.c_str())
+    , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
+    , _fsmods(fsmods), _postags(pos)
 {
   _startposition = startposition;
   _endposition = endposition;
   _trait = INPUT_TRAIT;
+  _inflrs_todo = copy_list(infl_rules);
 }
 
-
+// constructor for complex input items
 tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
-                       , string stem, int token_class, modlist fsmods)
+                       , string stem, int token_class
+                       , const std::list<int> &infl_rules
+                       , const postags &pos
+                       , modlist fsmods)
   : tItem(-1, -1, tPaths(), fs(), "")
     , _input_id(id), _class(token_class), _stem(stem)
-    , _fsmods(fsmods)
+    , _fsmods(fsmods), _postags(pos)
 {
   _daughters.insert(_daughters.begin(), dtrs.begin(), dtrs.end());
   _startposition = dtrs.front()->startposition();
@@ -217,6 +229,7 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
     _paths.intersect((*it)->_paths);
   }
   _trait = INPUT_TRAIT;
+  _inflrs_todo = copy_list(infl_rules);
 }
 
 void
@@ -313,7 +326,6 @@ tInputItem::generics(postags onlyfor)
           LOG(logGenerics, DEBUG,
               "  ==> " << print_name(gen) 
               << " [" << (suffix == 0 ? "*" : suffix)<< "]");
-          
           result.push_back(Grammar->find_stem(gen));
         }
     }
@@ -329,6 +341,10 @@ void tLexItem::init() {
       (*it)->parents.push_back(this);
     }
 
+    //
+    // _fix_me_
+    // `FIRST' and `REST' should not be hard-wired in the code. (14-sep-08; oe)
+    //
     string orth_path = cheap_settings->req_value("orth-path");
     for (int i = 0 ; i < _stem->inflpos(); i++) orth_path += ".REST";
     orth_path += ".FIRST";
@@ -350,13 +366,13 @@ void tLexItem::init() {
              , retrieve_string_instance(_stem->orth(_stem->inflpos()))));
 
     characterize(_fs_full, _startposition, _endposition);
-    
+
     // \todo Not nice to overwrite the _fs field.
     // A copy of _fs_full and the containing dag is made
    if(opt_packing)
      _fs = packing_partial_copy(_fs_full, Grammar->packing_restrictor(),
                                 false);
-   
+
     _trait = LEX_TRAIT;
     // \todo Berthold says, this is the right number. Settle this
     // stats.words++;
@@ -376,6 +392,15 @@ void tLexItem::init() {
 #endif
 }
 
+//
+// _fix_me_
+// i doubt the _ldot and _rdot logic here.  currently, lex_stem has hardwired
+// inflpos() to the last position, i.e. for an MWE with two tokens (Palo Alto),
+// inflpos() will be 1; for non-MWEs, it will be 0.  hence, all active lexical
+// items are effectively left-extending, and _rdot never gets to play a role.
+// yet, i believe it should be initialized to 1, for right-extending items, not
+// inflpos() + 1, as it used to be.                             (16-jan-09; oe)
+//
 tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
                    , fs &f, const list_int *inflrs_todo)
   : tItem(i_item->start(), i_item->end(), i_item->paths()
@@ -383,6 +408,7 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
   , _ldot(stem->inflpos()), _rdot(stem->inflpos() + 1)
   , _stem(stem), _fs_full(f), _hypo(NULL)
 {
+  _rdot = (_ldot ? stem->length() : 1);
   _startposition = i_item->startposition();
   _endposition = i_item->endposition();
   _inflrs_todo = copy_list(inflrs_todo);
@@ -432,7 +458,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   _nfilled = 1;
   _daughters.push_back(pasv);
   _key_item = pasv->_key_item;
-  
+
   if(R->trait() == INFL_TRAIT) {
     // We don't copy here, so only the tLexItem is responsible for deleting
     // the list
@@ -457,12 +483,12 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   }
 
   _spanningonly = R->spanningonly();
-  
+
 #ifdef PETDEBUG
   LOG(logParse, DEBUG, "A " << pasv->id() << " < " << id());
 #endif
   pasv->parents.push_back(this);
-  
+
   // rule stuff + characterization
   if(passive()) {
     _qc_vector_unif = f.get_unif_qc_vector();
@@ -502,7 +528,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
       _endposition = pasv->endposition();
       _daughters.push_back(pasv);
     }
-    
+
 #ifdef PETDEBUG
     LOG(logParse, DEBUG, 
         "A " << pasv->id() << " " <<  active->id() << " < " << id());
@@ -560,7 +586,7 @@ tPhrasalItem::set_result_root(type_t rule)
         if(_adaughter)
             _adaughter->set_result_contrib();
     }
-    
+
     set_result_contrib();
     _result_root = rule;
 }
@@ -644,7 +670,7 @@ tPhrasalItem::collect_children(item_list &result)
         return;
     frost();
     result.push_back(this);
-    
+
     for(item_iter pos = _daughters.begin(); pos != _daughters.end(); ++pos)
     {
         (*pos)->collect_children(result);
@@ -831,7 +857,7 @@ tPhrasalItem::unpack1(int upedgelimit)
     vector<tItem *> config(rule()->arity());
     item_list res;
     unpack_cross(dtrs, 0, config, res);
-    
+
     return res;
 }
 
@@ -915,7 +941,7 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
     }
     tofill = rest(tofill);
   }
-  
+
   if(!res.valid()) {
     FSAS.release();
     return 0;
@@ -947,7 +973,7 @@ tLexItem::hypothesize_edge(list<tItem*> path, unsigned int i) {
       stats.p_hypotheses ++;
     }
     Grammar->sm()->score_hypothesis(_hypo, path, opt_gplevel);
-    
+
     return _hypo;
   } else
     return NULL;
@@ -964,7 +990,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     if (timestamp >= timeout)
       return hypo;
   }
-  
+
   // Only check the path length no longer than the opt_gplevel
   while (path.size() > opt_gplevel)
     path.pop_front();
@@ -982,7 +1008,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     }
     _hypo_path_max[path] = UINT_MAX;
   }
-  
+
   // Check cached hypotheses
   if (i < _hypotheses_path[path].size() && _hypotheses_path[path][i])
     return _hypotheses_path[path][i];
@@ -996,7 +1022,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   newpath.push_back(this);
   if (newpath.size() > opt_gplevel)
     newpath.pop_front();
-  
+
   // Initialize the set of decompositions and pushing initial
   // hypotheses onto the local agenda when called on an edge for the
   // first time.  This initialization should only be done for the
@@ -1104,7 +1130,7 @@ tPhrasalItem::decompose_edge()
     }
     dnum *= dtr_items[i].size();
   }
-  
+
   for (int i = 0; i < dnum; i ++) {
     list<tItem*> rhs;
     int j = i;
@@ -1162,7 +1188,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 
   list<tHypothesis*> ragenda;
   tHypothesis* aitem;
-  
+
   tHypothesis* hypo = this->hypothesize_edge(0);
   if (hypo) {
     //Grammar->sm()->score_hypothesis(hypo);
@@ -1329,7 +1355,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   if (hypo->inst_failed)
     return NULL;
 #endif
-  
+
   vector<tItem*> daughters;
 
   // Only check the path length no longer than the opt_gplevel
