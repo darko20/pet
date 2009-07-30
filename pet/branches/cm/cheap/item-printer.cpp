@@ -162,7 +162,7 @@ inline void tItemPrinter::print_fs(ostream &out, const fs &f) {
 void tItemPrinter::real_print(const tLexItem *item, int level) {
   *_out << "L ";
   print_common(*_out, item);
-  if (_dag_printer != NULL) {
+  if (_dag_printer) {
     print_fs(*_out, get_fs(item));
   }
 }
@@ -170,7 +170,7 @@ void tItemPrinter::real_print(const tLexItem *item, int level) {
 void tItemPrinter::real_print(const tPhrasalItem *item, int level) {
   *_out << "P ";
   print_common(*_out, item);
-  if (_dag_printer != NULL) {
+  if (_dag_printer) {
     print_fs(*_out, get_fs(item));
   }
 }

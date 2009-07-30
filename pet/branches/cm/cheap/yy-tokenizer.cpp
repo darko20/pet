@@ -398,12 +398,8 @@ tYYTokenizer::read_token()
     // what was originally intended.                            (15-jan-09; oe)
     //
     res = new tInputItem(idstrbuf, start, end, 
-                         surface, stem, paths, token_class);
-  
-  // Set the inflection rules and POS tags of the new item
-  res->set_inflrs(infl_rules) ;
-  res->set_in_postags(poss) ;
-  res->set_mods(fsmods);
+                         surface, stem, paths, token_class,
+                         infl_rules, poss, fsmods);
       
   return res;
 }

@@ -19,6 +19,10 @@ specific to chart-mapping branch:
   - added unit tests for types
 
 v0.99.??
+  - made inflr_todo and part-of-speech tags part of tInputItem constructor
+  - normalize chart item printing for the different types of items: prefix with
+    "I", "L" or "P" (for input, lexical and phrasal items, respectively), print
+    id for each item, normalize start and end nodes and external positions
   - stable type order: proper types and leaf types are ordered as defined in TDL
     & grammar dump version increased to 17
   - added option -sm

@@ -469,7 +469,7 @@ tChartUtil::create_input_item(const fs &input_fs)
   }
 
   tInputItem *item = new tInputItem(id, vfrom, vto, cfrom, cto, form, stem,
-      tPaths(), token_class, modlist(), input_fs);
+      tPaths(), token_class, std::list<int>(), postags(), modlist(), input_fs);
 
   if (!infls.empty()) {
     if (token_class == WORD_TOKEN_CLASS) {
