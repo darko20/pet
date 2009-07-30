@@ -21,6 +21,7 @@
 
 #include "chart.h"
 #include "item-printer.h"
+#include "options.h"
 #include "parse.h"
 #include "tsdb++.h"
 

@@ -29,7 +29,6 @@
 #include "list-int.h"
 #include "fs.h"
 #include "fs-chart.h"
-#include "options.h"
 #include "grammar.h"
 #include "paths.h"
 #include "postags.h"
@@ -189,7 +188,7 @@ public:
   inline int start() const { return _start; }
   /** End position (node number) in the chart */
   inline int end() const { return _end; }
-  /** return end() - start() */ // TODO what if there are several paths?
+  /** return end() - start() */
   inline int span() const { return (_end - _start); }
 
   /** return the paths (ids) in the input graph this item belongs to */
@@ -686,12 +685,11 @@ public:
    *                    lexical lookup with \a token_class as the type).
    * \param fsmods A list of feature structure modifications which are applied
    *               to the feature structure of the lexical item (default: no
-   *               modifications).
-   * \param input_fs A feature structure describing the input item, as needed
-   *               for input chart mapping. (default: invalid feature structure)
-   *               If chart mapping is activated and an invalid feature
-   *               structure is provided, a new feature structure describing
-   *               the token will be created.
+   *               modifications). DEPRECATED
+   * \param token_fs A feature structure describing the input item, as needed
+   *               for token mapping. (default: invalid feature structure)
+   *               If an invalid token fs is provided, it will get recreated
+   *               from the item properties.
    */
   //@{
   /** Create a new input item with internal and external start/end positions. */
@@ -703,7 +701,7 @@ public:
              , const std::list<int> &infl_rules = std::list<int>()
              , const postags &pos = postags()
              , modlist fsmods = modlist()
-             , const fs &input_fs = fs());
+             , const fs &token_fs = fs());
   /** Create a new input item with external start/end positions only. */
   tInputItem(std::string id, int startposition, int endposition
              , std::string surface, std::string stem
@@ -711,20 +709,19 @@ public:
              , int token_class = WORD_TOKEN_CLASS
              , const std::list<int> &infl_rules = std::list<int>()
              , const postags &pos = postags()
-             , modlist fsmods = modlist()
-             , const fs &input_fs = fs());
+             , modlist fsmods = modlist());
   /**
    * Create a new complex input item (an input item with input item
    * daughters as it can be defined in PIC).
+   * \deprecated This feature is deprecated since additional structure are
+   *             better represented with token feature structures. 
    */
   tInputItem(std::string id, const inp_list &dtrs
              , std::string stem
              , int token_class = WORD_TOKEN_CLASS
              , const std::list<int> &infl_rules = std::list<int>()
              , const postags &pos = postags()
-             , modlist fsmods = modlist()
-             , const fs &input_fs = fs());
-  //@}
+             , modlist fsmods = modlist());
   //@}
 
   ~tInputItem() {
@@ -782,11 +779,29 @@ public:
   /** Return the list of feature structure modifications. */
   modlist &mods() { return _fsmods ; }
 
-  /** Set the list of feature structure modifications. */
-  void set_mods(modlist &mods) { _fsmods = mods; }
+  /**
+   * Set the list of feature structure modifications.
+   * This will recreate the token fs.
+   * \deprecated 1) Pass the fsmods to the constructor.
+   *             2) Use token feature structures in combination with chart
+   *                mapping to import information into lexical items.
+   */
+  void set_mods(modlist &mods) {
+    _fsmods = mods;
+    recreate_fs();
+  }
 
-  /** Set the postags coming from the input */
-  void set_in_postags(const postags &p) { _postags = p; }
+  /**
+   * Set the postags coming from the input
+   * This will recreate the token fs.
+   * \deprecated 1) Pass the pos tags to the constructor.
+   *             2) Use token feature structures in combination with chart
+   *                mapping to import information into lexical items.
+   */
+  void set_in_postags(const postags &p) {
+    _postags = p;
+    recreate_fs();
+  }
   /** Get the postags coming from the input */
   const postags & get_in_postags() const { return _postags; }
   /** I've got no clue.
@@ -797,10 +812,17 @@ public:
   /** Get the inflrs_todo (inflection rules <-> morphology) */
   list_int *inflrs() const { return _inflrs_todo; }
 
-  /** Set the inflrs_todo (inflection rules <-> morphology) */
+  /**
+   * Set the inflrs_todo (inflection rules <-> morphology) of the item.
+   * This will recreate the token fs.
+   * \deprecated 1) Pass the infl_rules to the constructor.
+   *             2) Use token feature structures in combination with chart
+   *                mapping to import information into lexical items.
+   */
   void set_inflrs(const std::list<int> &infl_rules) {
     free_list(_inflrs_todo);
     _inflrs_todo = copy_list(infl_rules);
+    recreate_fs();
   }
 
   /** The surface string (if available).
@@ -813,16 +835,8 @@ public:
    */
   std::string stem() const { return _stem; }
 
-  /** Return the feature structure of this item. If the item is not yet
-   * equipped with a valid input fs (because the tokenizer didn't provide any),
-   * construct an input fs from the item's properties.
-   * @see tInputItem::recreate_fs()
-   */
-  virtual fs get_fs(bool full = false) {
-    if (!_fs.valid())
-      recreate_fs();
-    return _fs;
-  }
+  /** Return the feature structure of this item. */
+  virtual fs get_fs(bool full = false) { return _fs; }
 
   /** Return generic lexical entries for this input token. If \a onlyfor is
    * non-empty, only those generic entries corresponding to one of those
@@ -852,9 +866,7 @@ protected:
   /**
    * (Re)creates an input feature structure from the properties of this item.
    * This is necessary if the tokenizer did not already provide an input fs.
-   * TODO A better place to initialize the input fs would be the tInputItem
-   *      constructor. However, since the inflrs and postags are not set in the
-   *      constructor, we cannot do the initialization there.
+   * In this case, this method will be called by the constructor of the item.
    */
   virtual void recreate_fs();
 

@@ -33,6 +33,7 @@
 #include "tsdb++.h"
 #include "sm.h"
 #include "settings.h"
+#include "options.h"
 //#include "dag-robust.h"
 
 #include <sstream>
