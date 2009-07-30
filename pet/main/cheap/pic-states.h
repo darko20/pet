@@ -247,8 +247,8 @@ public:
       tInputItem *new_item
         = new tInputItem(_id, _cstart, _cend, _surface, ""
                          , (_paths.empty() ? tPaths() : tPaths(_paths))
-                         , _constant ? SKIP_TOKEN_CLASS : WORD_TOKEN_CLASS);
-      new_item->set_in_postags(_pos);
+                         , _constant ? SKIP_TOKEN_CLASS : WORD_TOKEN_CLASS
+                         , std::list<int>(), _pos, modlist());
       _reader->add_item(new_item);
     }
     // previous->splice(_items);
@@ -276,10 +276,8 @@ public:
     tInputItem *new_item
       = new tInputItem(id, _cstart, _cend, _surface, stem
                        , (_paths.empty() ? tPaths() : tPaths(_paths))
-                       , tokenclass, mods);
+                       , tokenclass, infls, _pos, mods);
     new_item->score(prio);
-    new_item->set_inflrs(infls);
-    new_item->set_in_postags(_pos);
     _items++;
     _reader->add_item(new_item);
   }
@@ -358,10 +356,9 @@ public:
         throw Error((std::string) "unknown type in ne tag '" + stem + "'");
     }
 
-    tInputItem *new_item = new tInputItem(id, _dtrs, stem, tokenclass, mods);
+    tInputItem *new_item = new tInputItem(id, _dtrs, stem, tokenclass,
+        infls, _pos, mods);
     new_item->score(prio);
-    new_item->set_inflrs(infls);
-    new_item->set_in_postags(_pos);
     _items++;
     _reader->add_item(new_item);
     _dtrs.clear();

@@ -146,7 +146,7 @@ inline void tItemPrinter::print_fs(ostream &out, const fs &f) {
 void tItemPrinter::real_print(const tLexItem *item) {
   *_out << "L ";
   print_common(*_out, item);
-  if (_dag_printer != NULL) {
+  if (_dag_printer) {
     print_fs(*_out, get_fs(item));
   }
 }
@@ -154,7 +154,7 @@ void tItemPrinter::real_print(const tLexItem *item) {
 void tItemPrinter::real_print(const tPhrasalItem *item) {
   *_out << "P ";
   print_common(*_out, item);
-  if (_dag_printer != NULL) {
+  if (_dag_printer) {
     print_fs(*_out, get_fs(item));
   }
 }
@@ -223,7 +223,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
 // former tInputItem::print_derivation
 void
 tCompactDerivationPrinter::real_print(const tInputItem *item) {
-  *_out << "(" 
+  *_out << "("
        << item->id() << " "
        << (_quoted ? "\\\"" : "\"")
        << item->orth()
@@ -270,12 +270,10 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
        << item->start() << " " << item->end();
 
   print_inflrs(item);
-
   // \todo this was _keydaughter->print_derivation(f, quoted). Why?
   print_daughters(item);
   // this omits one newline, like the original ::print_derivation
   //print_daughters_same_line(item);
-
   *_out << ")";
 }
 
