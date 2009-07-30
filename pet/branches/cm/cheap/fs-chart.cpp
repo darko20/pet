@@ -369,9 +369,9 @@ tChartUtil::initialize()
 }
 
 tInputItem*
-tChartUtil::create_input_item(const fs &input_fs)
+tChartUtil::create_input_item(const fs &token_fs)
 {
-  if (!input_fs.valid())
+  if (!token_fs.valid())
     throw tError("Invalid token feature structure.");
 
   string id; // the external id (a concatenation of the ids from input_fs)
@@ -386,12 +386,12 @@ tChartUtil::create_input_item(const fs &input_fs)
   postags tagsnprobs; // part-of-speech tags and probabilities
 
   // extract information from input_fs:
-  type_t form_type = input_fs.get_path_value(_token_form_path).type();
+  type_t form_type = token_fs.get_path_value(_token_form_path).type();
   if (form_type != BI_STRING) {
     form = get_printname(form_type);
   }
   if (_token_id_path) {
-    list<fs> ids_list = input_fs.get_path_value(_token_id_path).get_list();
+    list<fs> ids_list = token_fs.get_path_value(_token_id_path).get_list();
     for (list<fs>::iterator it = ids_list.begin();
          it != ids_list.end();
          it++)
@@ -400,7 +400,7 @@ tChartUtil::create_input_item(const fs &input_fs)
   if (_token_from_path) {
     try {
       cfrom = boost::lexical_cast<int>(
-          input_fs.get_path_value(_token_from_path).printname());
+          token_fs.get_path_value(_token_from_path).printname());
     } catch(boost::bad_lexical_cast &error) {
       // should only happen if the value is not set. ignore!
     }
@@ -408,13 +408,13 @@ tChartUtil::create_input_item(const fs &input_fs)
   if (_token_to_path) {
     try {
       cto = boost::lexical_cast<int>(
-          input_fs.get_path_value(_token_to_path).printname());
+          token_fs.get_path_value(_token_to_path).printname());
     } catch(boost::bad_lexical_cast &error) {
       // should only happen if the value is not set. ignore!
     }
   }
   if (_token_stem_path) {
-    type_t t = input_fs.get_path_value(_token_stem_path).type();
+    type_t t = token_fs.get_path_value(_token_stem_path).type();
     if (t != BI_STRING) { // if the stem is set to a string literal
       stem = get_printname(t);
       if (token_class != WORD_TOKEN_CLASS)
@@ -424,7 +424,7 @@ tChartUtil::create_input_item(const fs &input_fs)
   }
   if (_token_entry_path) {
     // TODO deprecated! this only exists because of PIC
-    type_t t = input_fs.get_path_value(_token_entry_path).type();
+    type_t t = token_fs.get_path_value(_token_entry_path).type();
     if (t != BI_STRING) { // if the entry is set to a string literal
       string entry = get_printname(t);
       if (token_class != WORD_TOKEN_CLASS)
@@ -435,7 +435,7 @@ tChartUtil::create_input_item(const fs &input_fs)
     }
   }
   if (_token_rules_path) {
-    fs rules = input_fs.get_path_value(_token_rules_path);
+    fs rules = token_fs.get_path_value(_token_rules_path);
     std::list<fs> rules_list = rules.get_list();
     for (std::list<fs>::iterator rules_it = rules_list.begin();
         rules_it != rules_list.end(); rules_it++) {
@@ -443,8 +443,8 @@ tChartUtil::create_input_item(const fs &input_fs)
     }
   }
   if (_token_postags_path && _token_posprobs_path) {
-    list<fs> tags = input_fs.get_path_value(_token_postags_path).get_list();
-    list<fs> probs = input_fs.get_path_value(_token_posprobs_path).get_list();
+    list<fs> tags = token_fs.get_path_value(_token_postags_path).get_list();
+    list<fs> probs = token_fs.get_path_value(_token_posprobs_path).get_list();
     if (tags.size() != probs.size())
       throw tError("Part-of-speech tag and probability lists are not aligned.");
     list<fs>::iterator ti, pi;
@@ -468,16 +468,10 @@ tChartUtil::create_input_item(const fs &input_fs)
     }
   }
 
-  tInputItem *item = new tInputItem(id, vfrom, vto, cfrom, cto, form, stem,
-      tPaths(), token_class, std::list<int>(), postags(), modlist(), input_fs);
-
-  if (!infls.empty()) {
-    if (token_class == WORD_TOKEN_CLASS) {
+  if (!infls.empty() && (token_class == WORD_TOKEN_CLASS))
       throw tError("Encountered token with RULES but no STEM or ENTRY.");
-    }
-    item->set_inflrs(infls);
-  }
-  item->set_in_postags(tagsnprobs);
+  tInputItem *item = new tInputItem(id, vfrom, vto, cfrom, cto, form, stem,
+      tPaths(), token_class, infls, tagsnprobs, modlist(), token_fs);
 
   return item;
 }

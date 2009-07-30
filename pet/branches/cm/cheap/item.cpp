@@ -194,8 +194,8 @@ tInputItem::tInputItem(string id
                        , const std::list<int> &infl_rules
                        , const postags &pos
                        , modlist fsmods
-                       , const fs &input_fs)
-  : tItem(start, end, paths, input_fs, surface.c_str())
+                       , const fs &token_fs)
+  : tItem(start, end, paths, token_fs, surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods), _postags(pos)
 {
@@ -203,8 +203,9 @@ tInputItem::tInputItem(string id
   _endposition = endposition;
   _trait = INPUT_TRAIT;
   _inflrs_todo = copy_list(infl_rules);
+  if (!token_fs.valid()) // i.e. if no token fs has been specified
+    recreate_fs(); // create the token fs
 }
-
 
 // constructor with external start/end positions only
 tInputItem::tInputItem(string id, int startposition, int endposition
@@ -213,9 +214,8 @@ tInputItem::tInputItem(string id, int startposition, int endposition
                        , int token_class
                        , const std::list<int> &infl_rules
                        , const postags &pos
-                       , modlist fsmods
-                       , const fs &input_fs)
-  : tItem(-1, -1, paths, input_fs, surface.c_str())
+                       , modlist fsmods)
+  : tItem(-1, -1, paths, fs(), surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods), _postags(pos)
 {
@@ -223,6 +223,7 @@ tInputItem::tInputItem(string id, int startposition, int endposition
   _endposition = endposition;
   _trait = INPUT_TRAIT;
   _inflrs_todo = copy_list(infl_rules);
+  recreate_fs(); // create the token fs
 }
 
 // constructor for complex input items
@@ -230,9 +231,8 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
                        , string stem, int token_class
                        , const std::list<int> &infl_rules
                        , const postags &pos
-                       , modlist fsmods
-                       , const fs &input_fs)
-  : tItem(-1, -1, tPaths(), input_fs, "")
+                       , modlist fsmods)
+  : tItem(-1, -1, tPaths(), fs(), "")
     , _input_id(id), _class(token_class), _stem(stem)
     , _fsmods(fsmods), _postags(pos)
 {
@@ -247,6 +247,7 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   }
   _trait = INPUT_TRAIT;
   _inflrs_todo = copy_list(infl_rules);
+  recreate_fs(); // create the token fs
 }
 
 void

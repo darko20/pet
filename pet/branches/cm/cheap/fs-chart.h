@@ -349,7 +349,8 @@ public:
 
   /**
    * Create a token feature structure from an input item. Throws a tError
-   * if the feature structure is not valid.
+   * if the resulting feature structure is not valid. Returns the form as a
+   * string type if the token-fs form path is not set.
    */
   static fs create_input_fs(tInputItem* item);
 
