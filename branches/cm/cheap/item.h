@@ -349,16 +349,8 @@ public:
       return false;
   }
 
-  /** Return the feature structure of this item.
-   * \todo This function is only needed because some items may have temporary
-   * dags, which have not been copied after unification. This functionality is
-   * rather messy and should be cleaned up.
-   */
-  virtual fs get_fs(bool full = false) {
-    if(_fs.temp() && _fs.temp() != unify_generation)
-      recreate_fs();
-    return _fs;
-  }
+  /** Return the feature structure of this item. */
+  virtual fs get_fs(bool full = false) = 0;
 
   /** Return the root type of this item's feature structure */
   type_t type() const {
@@ -438,13 +430,6 @@ public:
    */
   virtual grammar_rule *rule() const = 0;
 
-  /** Return the complete fs for this item. This may be more than a simple
-   *  access, e.g. in cases of hyperactive parsing, temporary dags, or input
-   *  feature structures.
-   *  This function may only be called for input or phrasal items.
-   */
-  virtual void recreate_fs() = 0;
-
   /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const = 0;
 
@@ -516,6 +501,13 @@ public:
   };
 
 protected:
+  /** Return the complete fs for this item. This may be more than a simple
+   *  access, e.g. in cases of hyperactive parsing, temporary dags, or input
+   *  feature structures.
+   *  This function may only be called for input or phrasal items.
+   */
+  virtual void recreate_fs() = 0;
+
   /** \brief Base unpacking function called by unpack for each item. Stops
    *  unpacking when \a limit edges have been unpacked.
    *
@@ -708,6 +700,8 @@ public:
              , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
+             , const std::list<int> &infl_rules = std::list<int>()
+             , const postags &pos = postags()
              , modlist fsmods = modlist()
              , const fs &input_fs = fs());
   /** Create a new input item with external start/end positions only. */
@@ -715,6 +709,8 @@ public:
              , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
+             , const std::list<int> &infl_rules = std::list<int>()
+             , const postags &pos = postags()
              , modlist fsmods = modlist()
              , const fs &input_fs = fs());
   /**
@@ -724,6 +720,8 @@ public:
   tInputItem(std::string id, const inp_list &dtrs
              , std::string stem
              , int token_class = WORD_TOKEN_CLASS
+             , const std::list<int> &infl_rules = std::list<int>()
+             , const postags &pos = postags()
              , modlist fsmods = modlist()
              , const fs &input_fs = fs());
   //@}
@@ -753,15 +751,6 @@ public:
 
   /** Always returns \c NULL */
   virtual grammar_rule *rule() const;
-
-  /**
-   * Recreates an input feature structure from the properties of this item.
-   * This is necessary if the tokenizer did not already provide an input fs.
-   * TODO A better place to initialize the input fs would be the tInputItem
-   *      constructor. However, since the inflrs and postags are not set in the
-   *      constructor, we cannot do the initialization there.
-   */
-  virtual void recreate_fs();
 
   /** I've got no clue.
    * \todo i will fix this when i know what "description" ought to do
@@ -859,6 +848,16 @@ public:
   /** Return the external id associated with this item */
   const std::string &external_id() const { return _input_id; }
 
+protected:
+  /**
+   * (Re)creates an input feature structure from the properties of this item.
+   * This is necessary if the tokenizer did not already provide an input fs.
+   * TODO A better place to initialize the input fs would be the tInputItem
+   *      constructor. However, since the inflrs and postags are not set in the
+   *      constructor, we cannot do the initialization there.
+   */
+  virtual void recreate_fs();
+
 private:
   std::string _input_id; /// external ID
 
@@ -893,7 +892,7 @@ private:
  */
 class tLexItem : public tItem
 {
- public:
+public:
   /** Build a new tLexitem from \a stem and morph info in \a inflrs_todo,
    *  together with the first daughter \a first_dtr.
    */
@@ -938,9 +937,6 @@ class tLexItem : public tItem
   virtual fs get_fs(bool full = false) {
     return full ? _fs_full : _fs;
   }
-
-  /** Always throws an error */
-  virtual void recreate_fs();
 
   /** \todo what is this function good for? */
   std::string description() const;
@@ -1005,7 +1001,10 @@ class tLexItem : public tItem
     return (find(_expanded.begin(), _expanded.end(), pos) == _expanded.end());
   }
 
- protected:
+protected:
+  /** Always throws an error */
+  virtual void recreate_fs();
+
   /** \brief Return a list of items that is represented by this item. For this
    *  class of items, the list always contains only the item itself
    */
@@ -1018,7 +1017,7 @@ class tLexItem : public tItem
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
- private:
+private:
   void init();
 
   int _ldot, _rdot;
@@ -1051,7 +1050,7 @@ class tLexItem : public tItem
  *  May be active or passive.
  */
 class tPhrasalItem : public tItem {
- public:
+public:
   /** Build a new phrasal item from the (successful) combination of \a rule and
    *  \a passive, which already produced \a newfs
    */
@@ -1123,12 +1122,6 @@ class tPhrasalItem : public tItem {
     return _fs;
   }
 
-  /** Return the complete fs for this item. This may be more than a simple
-   *  access, e.g. in cases of hyperactive parsing and temporary dags.
-   *  This function may only be called for phrasal items.
-   */
-  virtual void recreate_fs();
-
   /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const {
     if(_rule)
@@ -1137,7 +1130,13 @@ class tPhrasalItem : public tItem {
       return 0;
   }
 
- protected:
+protected:
+  /** Return the complete fs for this item. This may be more than a simple
+   *  access, e.g. in cases of hyperactive parsing and temporary dags.
+   *  This function may only be called for phrasal items.
+   */
+  virtual void recreate_fs();
+
   /** @name Unpacking Functions
    * This is the complex case where daughter combinations have to be
    * considered.
@@ -1190,7 +1189,7 @@ class tPhrasalItem : public tItem {
   virtual void new_hypothesis(tDecomposition* decomposition, std::list<tHypothesis*> dtrs, std::vector<int> indices);
 
 
- private:
+private:
   /** The active item that created this item */
   tItem * _adaughter;
   grammar_rule *_rule;

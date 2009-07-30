@@ -189,39 +189,52 @@ tItem::set_result_root(type_t rule) {
 tInputItem::tInputItem(string id
                        , int start, int end, int startposition, int endposition
                        , string surface, string stem
-                       , const tPaths &paths, int token_class, modlist fsmods
+                       , const tPaths &paths
+                       , int token_class
+                       , const std::list<int> &infl_rules
+                       , const postags &pos
+                       , modlist fsmods
                        , const fs &input_fs)
   : tItem(start, end, paths, input_fs, surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
-    , _fsmods(fsmods)
+    , _fsmods(fsmods), _postags(pos)
 {
   _startposition = startposition;
   _endposition = endposition;
   _trait = INPUT_TRAIT;
+  _inflrs_todo = copy_list(infl_rules);
 }
 
 
 // constructor with external start/end positions only
 tInputItem::tInputItem(string id, int startposition, int endposition
                        , string surface, string stem
-                       , const tPaths &paths, int token_class, modlist fsmods
+                       , const tPaths &paths
+                       , int token_class
+                       , const std::list<int> &infl_rules
+                       , const postags &pos
+                       , modlist fsmods
                        , const fs &input_fs)
   : tItem(-1, -1, paths, input_fs, surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
-    , _fsmods(fsmods)
+    , _fsmods(fsmods), _postags(pos)
 {
   _startposition = startposition;
   _endposition = endposition;
   _trait = INPUT_TRAIT;
+  _inflrs_todo = copy_list(infl_rules);
 }
 
-
+// constructor for complex input items
 tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
-                       , string stem, int token_class, modlist fsmods
+                       , string stem, int token_class
+                       , const std::list<int> &infl_rules
+                       , const postags &pos
+                       , modlist fsmods
                        , const fs &input_fs)
   : tItem(-1, -1, tPaths(), input_fs, "")
     , _input_id(id), _class(token_class), _stem(stem)
-    , _fsmods(fsmods)
+    , _fsmods(fsmods), _postags(pos)
 {
   _daughters.insert(_daughters.begin(), dtrs.begin(), dtrs.end());
   _startposition = dtrs.front()->startposition();
@@ -233,6 +246,7 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
     _paths.intersect((*it)->_paths);
   }
   _trait = INPUT_TRAIT;
+  _inflrs_todo = copy_list(infl_rules);
 }
 
 void
