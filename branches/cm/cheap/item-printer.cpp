@@ -103,7 +103,7 @@ inline void tItemPrinter::print_family(ostream &out, const tItem *item) {
 void tItemPrinter::print_common(ostream &out, const tItem *item) {
   out << "[" << item->id() 
        << " " << item->start() << "-" << item->end() << " " 
-       << get_fs(item).printname() << " (" << item->trait() << ") "
+       << item->printname() << " (" << item->trait() << ") "
        << std::setprecision(4) << item->score()
        << " {";
   print_tofill(out, item);
@@ -122,10 +122,10 @@ void tItemPrinter::print_common(ostream &out, const tItem *item) {
 
 // from tInputItem::print
 void tItemPrinter::real_print(const tInputItem *item, int level) {
-  *_out << "[n" << item->start() << " - n" << item->end() << "] ["
-       << item->startposition() << " - " << item->endposition() << "] ("
-       << item->external_id() << ") \"" 
-       << item->stem() << "\" \"" << item->form() << "\" ";
+  *_out << "I [" << item->id() << " (" << item->external_id() << ")" 
+        << " " << item->start() << "-" << item->end()
+        << " <" << item->startposition() << ":" << item->endposition() << ">"
+        << " \"" << item->stem() << "\" \"" << item->form() << "\" ";
 
   *_out << "{";
   print_inflrs(*_out, item);
@@ -135,7 +135,7 @@ void tItemPrinter::real_print(const tInputItem *item, int level) {
 
   *_out << "{";
   item->get_in_postags().print(*_out);
-  *_out << "}";
+  *_out << "}]";
   if (_dag_printer) {
     // _fix_me_
     // as i understand it, one should in principle use the following here (not
@@ -144,6 +144,11 @@ void tItemPrinter::real_print(const tInputItem *item, int level) {
     // however, when doing so i seem to end up with completely underspecified
     // feature structures (`*top*'), possibly because the wrong virtual method
     // gets invoked?                                           (15-sep-08; oe)
+    // --- talking to peter, we worked out that the real problem whether or not
+    // the input item has a feature structure, i.e. depending on when printing
+    // is invoked, the FS associated to the item may not have been built yet.
+    // a crucial difference between tItemPrinter::get_fs() and tItem::get_fs()
+    // is that only the latter will create the FS if needed.    (30-jul-09; oe)
     //
     print_fs(*_out, const_cast<tInputItem *>(item)->get_fs());
   }
