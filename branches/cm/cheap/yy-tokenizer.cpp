@@ -386,7 +386,8 @@ tYYTokenizer::read_token()
   tInputItem *res;
   if(from >= 0 && to >= from)
     res = new tInputItem(idstrbuf, start, end, from, to,
-                         surface, stem, paths, token_class);
+                         surface, stem, paths, token_class,
+                         infl_rules, poss, fsmods);
   else
     //
     // _fix_me_
