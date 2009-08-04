@@ -146,7 +146,7 @@ inline void tItemPrinter::print_fs(ostream &out, const fs &f) {
 void tItemPrinter::real_print(const tLexItem *item) {
   *_out << "L ";
   print_common(*_out, item);
-  if (_dag_printer) {
+  if (_dag_printer != NULL) {
     print_fs(*_out, get_fs(item));
   }
 }
@@ -154,7 +154,7 @@ void tItemPrinter::real_print(const tLexItem *item) {
 void tItemPrinter::real_print(const tPhrasalItem *item) {
   *_out << "P ";
   print_common(*_out, item);
-  if (_dag_printer) {
+  if (_dag_printer != NULL) {
     print_fs(*_out, get_fs(item));
   }
 }
@@ -295,7 +295,7 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
     *_out << "}";
   }
 
-  if(result_root(item) != -1) {
+  if(_level > 0 && result_root(item) != -1) {
     *_out << " [" << print_name(result_root(item)) << "]";
   }
   
@@ -322,12 +322,12 @@ void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
        << item->id() << " "
        << item->stem()->printname()
        << " " << item->score() << " " << item->start() <<  " " << item->end()
-       << " " << "(\"" << escape_string(item->orth()) << "\" "
+       << " (\"" << escape_string(item->orth()) << "\" "
        << item->start() << " " << item->end() << "))" << flush; 
 }
 
 void tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
-  if(item->result_root() > -1) 
+  if(_level > 0 && item->result_root() > -1) 
     *_out << "("
          << print_name(item->result_root()) << " ";
   

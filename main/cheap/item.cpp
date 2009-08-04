@@ -468,9 +468,8 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
       // Modify the feature structure to contain the surface form in the
       // right place
       _fs.modify_eagerly(_key_item->_mod_form_fs);
+      // TODO: what's this? it has been set before?
       _trait = LEX_TRAIT;
-      // _fix_me_ Berthold says, this is the right number
-      // stats.words++;
     } else {
       // Modify the feature structure to contain the stem form in the right
       // place

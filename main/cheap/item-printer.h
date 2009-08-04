@@ -68,9 +68,9 @@ protected:
    */
   /*@{*/
   int get_id(const tItem *item) { return item->_id; }
-  const fs &get_fs(const tItem *item) {
+  template <class IClass> const fs &get_fs(const IClass *item) {
     // \todo cast is not nice, but the best we can do
-    return const_cast<tItem *>(item)->_fs;
+    return const_cast<IClass *>(item)->_fs;
   }
   const list_int *inflrs_todo(const tItem *item) { return item->_inflrs_todo; }
   const type_t result_root(const tItem *item) { return item->_result_root; }
@@ -181,10 +181,10 @@ private:
 class tAbstractDerivationPrinter : public tAbstractItemPrinter {
 public:
   tAbstractDerivationPrinter(std::ostream &out, int indent = 2) 
-    : tAbstractItemPrinter(out), _indentation(-indent), _indent_delta(indent) {}
+    : tAbstractItemPrinter(out), _level(-1), _indent_delta(indent) {}
 
   tAbstractDerivationPrinter(int indent = 2) 
-    : tAbstractItemPrinter(), _indentation(-indent), _indent_delta(indent) {}
+    : tAbstractItemPrinter(), _level(-1), _indent_delta(indent) {}
 
   virtual ~tAbstractDerivationPrinter() {}
 
@@ -202,14 +202,14 @@ public:
 protected:
   /** Print a newline, followed by an appropriate indentation */
   virtual void newline() { 
-    *_out << std::endl ; *_out << std::setw(_indentation) << "";
+    *_out << std::endl ; *_out << std::setw(_indent_delta * _level) << "";
   };
   /** Increase the indentation level */
-  inline void next_level(){ _indentation += _indent_delta; }
+  inline void next_level(){ ++_level; }
   /** Decrease the indentation level */
-  inline void prev_level(){ _indentation -= _indent_delta; }
+  inline void prev_level(){ --_level; }
 
-  int _indentation;
+  int _level;
   int _indent_delta;
 };
 
@@ -242,14 +242,12 @@ private:
  *  according to \a protocolversion.
  *  For function descriptions, \see tAbstractItemPrinter.
  */
-class tTSDBDerivationPrinter : public tAbstractItemPrinter {
+class tTSDBDerivationPrinter : public tAbstractDerivationPrinter {
 public:
   tTSDBDerivationPrinter(std::ostream &out, int protocolversion)
-    : tAbstractItemPrinter(out), _protocolversion(protocolversion) {}
+    : tAbstractDerivationPrinter(out), _protocolversion(protocolversion) {}
 
   virtual ~tTSDBDerivationPrinter() {}
-
-  virtual void print(const tItem *item) { item->print_gen(this); }
 
   virtual void real_print(const tInputItem *item);
   virtual void real_print(const tLexItem *item);
@@ -279,7 +277,7 @@ public:
 
 private:
   virtual void newline() {
-    if (_indent_delta > 0) *_out << std::setw(_indentation) << "-";
+    if (_indent_delta > 0) *_out << std::setw(_level * _indent_delta) << "-";
   }
 
   bool _do_indentation;
