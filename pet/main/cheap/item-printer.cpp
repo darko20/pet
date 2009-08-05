@@ -248,7 +248,6 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
        << item->start() << " " << item->end();
 
   print_inflrs(item);
-  // \todo this was _keydaughter->print_derivation(f, quoted). Why?
   print_daughters(item);
   *_out << ")";
 }
@@ -337,20 +336,14 @@ tDelegateDerivationPrinter::real_print(const tInputItem *item) {
 
 void 
 tDelegateDerivationPrinter::real_print(const tLexItem *item) {
-  //fprintf(*_out, "(");
   _itemprinter.print(item);
-  print(keydaughter(item));
-  // fprintf(*_out, ")");
+  print_daughters(item);
 }
 
 void 
 tDelegateDerivationPrinter::real_print(const tPhrasalItem *item) {
   _itemprinter.print(item);
-
-  for(item_citer pos = item->daughters().begin();
-      pos != item->daughters().end(); ++pos) {
-    print(*pos);
-  }
+  print_daughters(item);
 }
 
 /* ------------------------------------------------------------------------- */
