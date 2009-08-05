@@ -23,7 +23,7 @@
  * 
  * To implement this, we use the double dispatch technique: The user calls the
  * tAbstractItemPrinter print() method, which calls the virtual tItem method
- * print_gen(), passing itself as argument Thus, the subtype of tItem is
+ * print_gen(), passing itself as argument. Thus, the subtype of tItem is
  * determined, and print_gen() only calls the tAbstractItemPrinter virtual
  * function real_print() to do the concrete printing with the chosen
  * tAbstractItemPrinter.
@@ -208,6 +208,11 @@ protected:
   inline void next_level(){ ++_level; }
   /** Decrease the indentation level */
   inline void prev_level(){ --_level; }
+  void print_daughters(const tItem *item) {
+    for(item_citer pos = item->daughters().begin();
+        pos != item->daughters().end(); ++pos)
+      print(*pos);
+  }
 
   int _level;
   int _indent_delta;
@@ -232,13 +237,11 @@ public:
   
 private:
   void print_inflrs(const tItem *);
-  void print_daughters(const tItem *);
-  void print_daughters_same_line(const tItem *);
 
   bool _quoted;
 };
 
-/** Print the derivation of an item in incr[tsdb()] compatible form,
+/** Print the derivation of an item in [incr tsdb()] compatible form,
  *  according to \a protocolversion.
  *  For function descriptions, \see tAbstractItemPrinter.
  */

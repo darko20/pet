@@ -159,13 +159,6 @@ void tItemPrinter::real_print(const tPhrasalItem *item) {
   }
 }
 
-/** default printing for chart items: use a tItemPrinter */
-//std::ostream &operator<<(std::ostream &out, const tItem &item) {
-//  tItemPrinter printer(out);
-//  printer.print(&item);
-//  return out;
-//}
-
 // ---------------------------------------------------------------------- //
 // ----------------------- TCL chart item printer ----------------------- //
 // ---------------------------------------------------------------------- //
@@ -244,21 +237,6 @@ tCompactDerivationPrinter::print_inflrs(const tItem* item) {
   *_out << "]";
 }
 
-void 
-tCompactDerivationPrinter::print_daughters(const tItem* item) {
-  for(item_citer pos = item->daughters().begin();
-      pos != item->daughters().end(); ++pos)
-    print(*pos);
-}
-
-void 
-tCompactDerivationPrinter::print_daughters_same_line(const tItem* item) {
-  for(item_citer pos = item->daughters().begin();
-      pos != item->daughters().end(); ++pos) {
-    *_out << " "; (*pos)->print_gen(this);
-  }
-}
-
 // former tLexItem::print_derivation
 void 
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
@@ -272,8 +250,6 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
   print_inflrs(item);
   // \todo this was _keydaughter->print_derivation(f, quoted). Why?
   print_daughters(item);
-  // this omits one newline, like the original ::print_derivation
-  //print_daughters_same_line(item);
   *_out << ")";
 }
 
@@ -312,12 +288,14 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
 /* ------------------------ TSDBDerivationPrinter -------------------------- */
 /* ------------------------------------------------------------------------- */
 
-void tTSDBDerivationPrinter::real_print(const tInputItem *item) {
+void
+tTSDBDerivationPrinter::real_print(const tInputItem *item) {
   *_out << "(\"" << escape_string(item->orth()) 
        << "\" " << item->start() << " " << item->end() << "))" << flush;
 }
 
-void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
+void
+tTSDBDerivationPrinter::real_print(const tLexItem *item) {
   *_out << "("
        << item->id() << " "
        << item->stem()->printname()
@@ -326,7 +304,8 @@ void tTSDBDerivationPrinter::real_print(const tLexItem *item) {
        << item->start() << " " << item->end() << "))" << flush; 
 }
 
-void tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
+void
+tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
   if(_level > 0 && item->result_root() > -1) 
     *_out << "("
          << print_name(item->result_root()) << " ";
@@ -339,7 +318,7 @@ void tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
   for(item_citer pos = daughters.begin(); pos != daughters.end(); ++pos) {
     *_out << " ";
     if(_protocolversion == 1)
-      (*pos)->print_gen(this);
+      print(*pos);
     else
       *_out << (*pos)->id();
   }
