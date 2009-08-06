@@ -1299,6 +1299,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
     }
     type_t rule;
     if (result && result->root(Grammar, end, rule)) {
+      result->set_result_root(rule);
       results.push_back(result);
       n --;
       if (n == 0) {

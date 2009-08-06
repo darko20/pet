@@ -305,7 +305,7 @@ tTSDBDerivationPrinter::real_print(const tLexItem *item) {
 
 void
 tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
-  if(_level > 0 && item->result_root() > -1) 
+  if(_level == 0 && item->result_root() > -1) 
     *_out << "("
          << print_name(item->result_root()) << " ";
   
