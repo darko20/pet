@@ -180,17 +180,17 @@ private:
  */
 class tAbstractDerivationPrinter : public tAbstractItemPrinter {
 public:
-  tAbstractDerivationPrinter(std::ostream &out, int indent = 2) 
-    : tAbstractItemPrinter(out), _level(-1), _indent_delta(indent) {}
+  tAbstractDerivationPrinter(std::ostream &out) 
+    : tAbstractItemPrinter(out), _level(-1) {}
 
-  tAbstractDerivationPrinter(int indent = 2) 
-    : tAbstractItemPrinter(), _level(-1), _indent_delta(indent) {}
+  tAbstractDerivationPrinter() 
+    : tAbstractItemPrinter(), _level(-1) {}
 
   virtual ~tAbstractDerivationPrinter() {}
 
   virtual void print(const tItem *arg) {
     next_level();
-    newline();
+    print_separator();
     arg->print_gen(this);
     prev_level();
   };
@@ -200,10 +200,8 @@ public:
   virtual void real_print(const tPhrasalItem *item) = 0;
   
 protected:
-  /** Print a newline, followed by an appropriate indentation */
-  virtual void newline() { 
-    *_out << std::endl ; *_out << std::setw(_indent_delta * _level) << "";
-  };
+  /** Print a separator between the items of a derivation. */
+  virtual void print_separator() = 0;
   /** Increase the indentation level */
   inline void next_level(){ ++_level; }
   /** Decrease the indentation level */
@@ -215,7 +213,6 @@ protected:
   }
 
   int _level;
-  int _indent_delta;
 };
 
 /** Printer to replace the old tItem::print_derivation() method.
@@ -224,10 +221,11 @@ protected:
 class tCompactDerivationPrinter : public tAbstractDerivationPrinter {
 public:
   tCompactDerivationPrinter(bool quoted = false, int indent = 2) 
-    : tAbstractDerivationPrinter(indent), _quoted(quoted) {}
+    : tAbstractDerivationPrinter(), _quoted(quoted), _indent_delta(indent)
+  {}
 
   tCompactDerivationPrinter(std::ostream &out, bool quoted = false, int indent = 2) 
-    : tAbstractDerivationPrinter(out, indent), _quoted(quoted) {}
+    : tAbstractDerivationPrinter(out), _quoted(quoted), _indent_delta(indent) {}
 
   virtual ~tCompactDerivationPrinter() {}
 
@@ -236,9 +234,15 @@ public:
   virtual void real_print(const tPhrasalItem *item);
   
 private:
+  /** Print a newline, followed by an appropriate indentation */
+  virtual void print_separator() { 
+    *_out << std::endl ; *_out << std::setw(_indent_delta * _level) << "";
+  };
+  
   void print_inflrs(const tItem *);
 
   bool _quoted;
+  int _indent_delta;
 };
 
 /** Print the derivation of an item in [incr tsdb()] compatible form,
@@ -257,6 +261,8 @@ public:
   virtual void real_print(const tPhrasalItem *item);
 
 private:
+  virtual void print_separator() { };
+  
   bool _protocolversion;
 };
 
@@ -270,7 +276,8 @@ public:
   tDelegateDerivationPrinter(std::ostream &out,
                              tAbstractItemPrinter &itemprinter,
                              int indent = 0) 
-    : tAbstractDerivationPrinter(out, indent), _itemprinter(itemprinter) {}
+    : tAbstractDerivationPrinter(out), _itemprinter(itemprinter),
+      _indent_delta(indent) {}
 
   virtual ~tDelegateDerivationPrinter() {}
 
@@ -279,12 +286,12 @@ public:
   virtual void real_print(const tPhrasalItem *item);
 
 private:
-  virtual void newline() {
+  virtual void print_separator() {
     if (_indent_delta > 0) *_out << std::setw(_level * _indent_delta) << "-";
   }
 
-  bool _do_indentation;
   tAbstractItemPrinter &_itemprinter;
+  int _indent_delta;
 };
 
 /** Just print the feature structure of an item readably to a stream or file. 
