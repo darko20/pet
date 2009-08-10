@@ -389,8 +389,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip, 
-                         int level = 0) const = 0;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const = 0;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids) = 0;
@@ -736,7 +735,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip, int level = 0) const ;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -932,7 +931,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip, int level = 0) const ;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -1104,7 +1103,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip, int level = 0) const ;
+  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);

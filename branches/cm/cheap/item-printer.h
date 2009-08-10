@@ -23,7 +23,7 @@
  * 
  * To implement this, we use the double dispatch technique: The user calls the
  * tAbstractItemPrinter print() method, which calls the virtual tItem method
- * print_gen(), passing itself as argument Thus, the subtype of tItem is
+ * print_gen(), passing itself as argument. Thus, the subtype of tItem is
  * determined, and print_gen() only calls the tAbstractItemPrinter virtual
  * function real_print() to do the concrete printing with the chosen
  * tAbstractItemPrinter.
@@ -40,10 +40,10 @@ public:
   }
 
   /** The top level function called by the user */
-  virtual void print(const tItem *arg, int level = 0) = 0;
+  virtual void print(const tItem *arg) = 0;
 
   /** The top level function called by the user */
-  virtual void print(std::ostream &out, const tItem *arg, int level = 0) {
+  virtual void print(std::ostream &out, const tItem *arg) {
     _out = &out; print(arg);
   }
 
@@ -53,11 +53,11 @@ public:
    */
   /*@{*/
   /** Base printer function for a tInputItem */
-  virtual void real_print(const tInputItem *item, int level = 0) {}
+  virtual void real_print(const tInputItem *item) {}
   /** Base printer function for a tLexItem */
-  virtual void real_print(const tLexItem *item, int level = 0) {}
+  virtual void real_print(const tLexItem *item) {}
   /** Base printer function for a tPhrasalItem */
-  virtual void real_print(const tPhrasalItem *item, int level = 0) {}
+  virtual void real_print(const tPhrasalItem *item) {}
   /*@}*/
 
 protected:
@@ -68,9 +68,9 @@ protected:
    */
   /*@{*/
   int get_id(const tItem *item) { return item->_id; }
-  const fs &get_fs(const tItem *item) {
+  template <class IClass> const fs &get_fs(const IClass *item) {
     // \todo cast is not nice, but the best we can do
-    return const_cast<tItem *>(item)->_fs;
+    return const_cast<IClass *>(item)->_fs;
   }
   const list_int *inflrs_todo(const tItem *item) { return item->_inflrs_todo; }
   const type_t result_root(const tItem *item) { return item->_result_root; }
@@ -97,9 +97,7 @@ public:
   virtual ~tItemPrinter();
   
   /** The top level function called by the user */
-  virtual void print(const tItem *arg, int level = 0) { 
-    arg->print_gen(this, level); 
-  }
+  virtual void print(const tItem *arg) { arg->print_gen(this); }
 
   /** @name Base print functions
    * Concrete print functions for every subclass of tItem to implement the
@@ -107,11 +105,11 @@ public:
    */
   /*@{*/
   /** Base printer function for a tInputItem */
-  virtual void real_print(const tInputItem *item, int level = 0) ;
+  virtual void real_print(const tInputItem *item) ;
   /** Base printer function for a tLexItem */
-  virtual void real_print(const tLexItem *item, int level = 0) ;
+  virtual void real_print(const tLexItem *item) ;
   /** Base printer function for a tPhrasalItem */
-  virtual void real_print(const tPhrasalItem *item, int level = 0) ;
+  virtual void real_print(const tPhrasalItem *item) ;
   /*@}*/
   
 private:
@@ -155,20 +153,14 @@ public:
   
   virtual ~tTclChartPrinter() {}
 
-  virtual void print(const tItem *arg, int level = 0) { 
-    arg->print_gen(this, level); 
-  }
+  virtual void print(const tItem *arg) { arg->print_gen(this); }
 
   virtual void
-  real_print(const tInputItem *item, int level = 0) { 
-    print_it(item, true, false); 
-  }
+  real_print(const tInputItem *item) { print_it(item, true, false); }
   virtual void 
-  real_print(const tLexItem *item, int level = 0) { 
-    print_it(item, true, false);
-  }
+  real_print(const tLexItem *item) { print_it(item, true, false); }
   virtual void
-  real_print(const tPhrasalItem *item, int level = 0) {
+  real_print(const tPhrasalItem *item) {
     print_it(item, item->passive()
              , (! item->passive()) && item->left_extending());
   }
@@ -188,37 +180,39 @@ private:
  */
 class tAbstractDerivationPrinter : public tAbstractItemPrinter {
 public:
-  tAbstractDerivationPrinter(std::ostream &out, int indent = 2) 
-    : tAbstractItemPrinter(out), _indentation(-indent), _indent_delta(indent) {}
+  tAbstractDerivationPrinter(std::ostream &out) 
+    : tAbstractItemPrinter(out), _level(-1) {}
 
-  tAbstractDerivationPrinter(int indent = 2) 
-    : tAbstractItemPrinter(), _indentation(-indent), _indent_delta(indent) {}
+  tAbstractDerivationPrinter() 
+    : tAbstractItemPrinter(), _level(-1) {}
 
   virtual ~tAbstractDerivationPrinter() {}
 
-  virtual void print(const tItem *arg, int level = 0) {
+  virtual void print(const tItem *arg) {
     next_level();
-    newline();
-    arg->print_gen(this, level);
+    print_separator();
+    arg->print_gen(this);
     prev_level();
   };
 
-  virtual void real_print(const tInputItem *item, int level = 0) = 0;
-  virtual void real_print(const tLexItem *item, int level = 0) = 0;
-  virtual void real_print(const tPhrasalItem *item, int level = 0) = 0;
+  virtual void real_print(const tInputItem *item) = 0;
+  virtual void real_print(const tLexItem *item) = 0;
+  virtual void real_print(const tPhrasalItem *item) = 0;
   
 protected:
-  /** Print a newline, followed by an appropriate indentation */
-  virtual void newline() { 
-    *_out << std::endl ; *_out << std::setw(_indentation) << "";
-  };
+  /** Print a separator between the items of a derivation. */
+  virtual void print_separator() = 0;
   /** Increase the indentation level */
-  inline void next_level(){ _indentation += _indent_delta; }
+  inline void next_level(){ ++_level; }
   /** Decrease the indentation level */
-  inline void prev_level(){ _indentation -= _indent_delta; }
+  inline void prev_level(){ --_level; }
+  void print_daughters(const tItem *item) {
+    for(item_citer pos = item->daughters().begin();
+        pos != item->daughters().end(); ++pos)
+      print(*pos);
+  }
 
-  int _indentation;
-  int _indent_delta;
+  int _level;
 };
 
 /** Printer to replace the old tItem::print_derivation() method.
@@ -227,44 +221,48 @@ protected:
 class tCompactDerivationPrinter : public tAbstractDerivationPrinter {
 public:
   tCompactDerivationPrinter(bool quoted = false, int indent = 2) 
-    : tAbstractDerivationPrinter(indent), _quoted(quoted) {}
+    : tAbstractDerivationPrinter(), _quoted(quoted), _indent_delta(indent)
+  {}
 
   tCompactDerivationPrinter(std::ostream &out, bool quoted = false, int indent = 2) 
-    : tAbstractDerivationPrinter(out, indent), _quoted(quoted) {}
+    : tAbstractDerivationPrinter(out), _quoted(quoted), _indent_delta(indent) {}
 
   virtual ~tCompactDerivationPrinter() {}
 
-  virtual void real_print(const tInputItem *item, int level = 0);
-  virtual void real_print(const tLexItem *item, int level = 0);
-  virtual void real_print(const tPhrasalItem *item, int level = 0);
+  virtual void real_print(const tInputItem *item);
+  virtual void real_print(const tLexItem *item);
+  virtual void real_print(const tPhrasalItem *item);
   
 private:
+  /** Print a newline, followed by an appropriate indentation */
+  virtual void print_separator() { 
+    *_out << std::endl ; *_out << std::setw(_indent_delta * _level) << "";
+  };
+  
   void print_inflrs(const tItem *);
-  void print_daughters(const tItem *, int level = 0);
 
   bool _quoted;
+  int _indent_delta;
 };
 
 /** Print the derivation of an item in [incr tsdb()] compatible form,
  *  according to \a protocolversion.
  *  For function descriptions, \see tAbstractItemPrinter.
  */
-class tTSDBDerivationPrinter : public tAbstractItemPrinter {
+class tTSDBDerivationPrinter : public tAbstractDerivationPrinter {
 public:
   tTSDBDerivationPrinter(std::ostream &out, int protocolversion)
-    : tAbstractItemPrinter(out), _protocolversion(protocolversion) {}
+    : tAbstractDerivationPrinter(out), _protocolversion(protocolversion) {}
 
   virtual ~tTSDBDerivationPrinter() {}
 
-  virtual void print(const tItem *item, int level = 0) { 
-    item->print_gen(this, level);
-  }
-
-  virtual void real_print(const tInputItem *item, int level = 0);
-  virtual void real_print(const tLexItem *item, int level = 0);
-  virtual void real_print(const tPhrasalItem *item, int level = 0);
+  virtual void real_print(const tInputItem *item);
+  virtual void real_print(const tLexItem *item);
+  virtual void real_print(const tPhrasalItem *item);
 
 private:
+  virtual void print_separator() { };
+  
   bool _protocolversion;
 };
 
@@ -278,21 +276,22 @@ public:
   tDelegateDerivationPrinter(std::ostream &out,
                              tAbstractItemPrinter &itemprinter,
                              int indent = 0) 
-    : tAbstractDerivationPrinter(out, indent), _itemprinter(itemprinter) {}
+    : tAbstractDerivationPrinter(out), _itemprinter(itemprinter),
+      _indent_delta(indent) {}
 
   virtual ~tDelegateDerivationPrinter() {}
 
-  virtual void real_print(const tInputItem *item, int level = 0);
-  virtual void real_print(const tLexItem *item, int level = 0);
-  virtual void real_print(const tPhrasalItem *item, int level = 0);
+  virtual void real_print(const tInputItem *item);
+  virtual void real_print(const tLexItem *item);
+  virtual void real_print(const tPhrasalItem *item);
 
 private:
-  virtual void newline() {
-    if (_indent_delta > 0) *_out << std::setw(_indentation) << "-";
+  virtual void print_separator() {
+    if (_indent_delta > 0) *_out << std::setw(_level * _indent_delta) << "-";
   }
 
-  bool _do_indentation;
   tAbstractItemPrinter &_itemprinter;
+  int _indent_delta;
 };
 
 /** Just print the feature structure of an item readably to a stream or file. 
@@ -308,7 +307,7 @@ public:
   /** We don't need the second dispatch here because everything is available
    * using functions of the superclass and we don't need to differentiate.
    */
-  virtual void print(const tItem *arg, int level = 0);
+  virtual void print(const tItem *arg);
 
 private:
   AbstractDagPrinter &_dag_printer;
@@ -344,19 +343,17 @@ public:
   /** We don't need the second dispatch here because everything is available
    * using functions of the superclass and we don't need to differentiate.
    */
-  virtual void print(const tItem *arg, int level = 0) { 
-    print(arg, NULL, level); 
-  }
+  virtual void print(const tItem *arg) { print(arg, NULL); }
 
   /** We don't need the second dispatch here because everything is available
    * using functions of the superclass and we don't need to differentiate.
    */
-  void print(const tItem *arg, const char *name, int level = 0);
+  void print(const tItem *arg, const char *name);
 
   /** This is for convenience, this printer does not do anything beyond
    *  printing the dag, so we can safely use it for dags alone.
    */
-  void print(const dag_node *dag, const char *name = "fstruc", level = 0);
+  void print(const dag_node *dag, const char *name = "fstruc");
 
 private:
   /** This function is only useful when more than one item shall be printed
@@ -422,19 +419,17 @@ public:
   /** We don't need the second dispatch here because everything is available
    * using functions of the superclass and we don't need to differentiate.
    */
-  virtual void print(const tItem *arg, int level = 0) { 
-    print(arg, NULL, level); 
-  }
+  virtual void print(const tItem *arg) { print(arg, NULL); }
 
   /** We don't need the second dispatch here because everything is available
    * using functions of the superclass and we don't need to differentiate.
    */
-  void print(const tItem *arg, const char *name, int level = 0);
+  void print(const tItem *arg, const char *name);
 
   /** This is for convenience, this printer does not do anything beyond
    *  printing the dag, so we can safely use it for dags alone.
    */
-  void print(const dag_node *dag, const char *name = "fstruc", int level = 0);
+  void print(const dag_node *dag, const char *name = "fstruc");
 
 private:
   /** This function is only useful when more than one item shall be printed
@@ -483,11 +478,11 @@ public:
   
   virtual ~tJxchgPrinter() {}
 
-  virtual void print(const tItem *arg, int level = 0) ;
+  virtual void print(const tItem *arg) ;
 
-  virtual void real_print(const tInputItem *item, int level = 0) ;
-  virtual void real_print(const tLexItem *item, int level = 0) ;
-  virtual void real_print(const tPhrasalItem *item, int level = 0) ;
+  virtual void real_print(const tInputItem *item) ;
+  virtual void real_print(const tLexItem *item) ;
+  virtual void real_print(const tPhrasalItem *item) ;
   
 private:
   void print_yield(const tInputItem *item);
@@ -507,25 +502,11 @@ public:
   
   virtual ~tLUIPrinter() {}
 
-  virtual void print(const tItem *arg, int level = 0) ;
+  virtual void print(const tItem *arg) ;
 
 private:
   LUIDagPrinter _dagprinter;
   std::string _path;
-};
-
-/** 
- *  For function descriptions, \see tAbstractItemPrinter.
- */
-class tItsdbPrinter : public tAbstractItemPrinter {
-public:
-  tItsdbPrinter(std::ostream &stream) : _dagprinter(), _stream(stream) {}
-  virtual ~tItsdbPrinter() {}
-  virtual void print(const tItem *arg, int level = 0) ;
-
-private:
-  ItsdbDagPrinter _dagprinter;
-  std::ostream &_stream;
 };
 
 /** use an item_printer like a modifier */

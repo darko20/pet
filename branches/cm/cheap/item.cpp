@@ -251,8 +251,8 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
 }
 
 void
-tInputItem::print_gen(class tAbstractItemPrinter *ip, int level) const {
-  ip->real_print(this, level);
+tInputItem::print_gen(class tAbstractItemPrinter *ip) const {
+  ip->real_print(this);
 }
 
 std::string tInputItem::get_yield() {
@@ -486,9 +486,8 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
       // Modify the feature structure to contain the surface form in the
       // right place
       _fs.modify_eagerly(_key_item->_mod_form_fs);
+      // TODO: what's this? it has been set before?
       _trait = LEX_TRAIT;
-      // _fix_me_ Berthold says, this is the right number
-      // stats.words++;
     } else {
       // Modify the feature structure to contain the stem form in the right
       // place
@@ -667,9 +666,9 @@ tPhrasalItem::set_result_root(type_t rule)
 
 
 void
-tLexItem::print_gen(class tAbstractItemPrinter *ip, int level) const
+tLexItem::print_gen(class tAbstractItemPrinter *ip) const
 {
-  ip->real_print(this, level);
+  ip->real_print(this);
 }
 
 string
@@ -691,8 +690,8 @@ tLexItem::orth() const
 }
 
 void
-tPhrasalItem::print_gen(class tAbstractItemPrinter *ip, int level) const {
-  ip->real_print(this, level);
+tPhrasalItem::print_gen(class tAbstractItemPrinter *ip) const {
+  ip->real_print(this);
 }
 
 std::string tLexItem::get_yield() {

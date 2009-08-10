@@ -122,17 +122,17 @@ public:
   virtual ~ChartDumper() {}
 
   /** The top level function called by the user */
-  virtual void print(const tItem *arg, int level = 0) { 
-    arg->print_gen(this, level); 
+  virtual void print(const tItem *arg) { 
+    arg->print_gen(this); 
   }
 
   /** Base printer function for a tInputItem */
-  virtual void real_print(const tInputItem *item, int level = 0) {
+  virtual void real_print(const tInputItem *item) {
     print_common((const tItem *)item, (string) "\"" + item->form() + "\"",
                  type_dag(BI_TOP));
   }
   /** Base printer function for a tLexItem */
-  virtual void real_print(const tLexItem *item, int level = 0) {
+  virtual void real_print(const tLexItem *item) {
     print_common((const tItem *)item,
                  (item->rule() != NULL
                   ? item->rule()->printname()
@@ -141,7 +141,7 @@ public:
   }
 
   /** Base printer function for a tPhrasalItem */
-  virtual void real_print(const tPhrasalItem *item, int level = 0) {
+  virtual void real_print(const tPhrasalItem *item) {
     print_common((const tItem *)item, item->rule()->printname(),
                  get_fs(item).dag());
   }
