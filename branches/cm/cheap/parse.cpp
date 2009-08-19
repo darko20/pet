@@ -687,9 +687,9 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   }
 
   Lexparser.lexical_processing(input_items,
+                               chart_mapping,
                                (chart_mapping
                                 || cheap_settings->lookup("lex-exhaustive")),
-                               chart_mapping,
                                FSAS, errors);
 
   // during lexical processing, the appropriate tasks for the syntactic stage
