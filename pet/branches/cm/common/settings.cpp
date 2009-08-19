@@ -51,6 +51,20 @@ settings::settings(string name, string base_dir, const char *message)
 }
 
 
+settings::settings(const std::string &input)
+  : _li_cache() {
+  _n = 0;
+  _set = new setting*[SET_TABLE_SIZE];
+
+  push_string(input, NULL);
+  const char *sv = lexer_idchars;
+  lexer_idchars = "_+-*?$";
+  parse();
+  lexer_idchars = sv;
+  _lloc = 0;
+}
+
+
 settings::~settings() {
   for(int i = 0; i < _n; i++) {
     for(int j = 0; j < _set[i]->n; j++)
