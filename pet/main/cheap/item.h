@@ -160,10 +160,9 @@ public:
   inline int id() const { return _id; }
   /** Return the trait of this item, which may be:
       -- \c INPUT_TRAIT an input item, still without feature structure
-      -- \c INFL_TRAIT an incomplete lexical item that needs application of
-                    inflection rules to get complete
       -- \c LEX_TRAIT a lexical item with all inflection rules applied
       -- \c SYNTAX_TRAIT a phrasal item
+      \warning Note that \c INFL_TRAIT is not used in items. 
   */
   inline rule_trait trait() const { return _trait; }
 
@@ -210,13 +209,9 @@ public:
     if(R->trait() == INFL_TRAIT) {
       if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
         return false;
-    }
-    // incompatible to LKB treatment and therefore removed
-    //     else if(R->trait() == LEX_TRAIT) {
-    //       if(_trait == SYNTAX_TRAIT) return false;
-    //     }
-    else if(R->trait() == SYNTAX_TRAIT) {
-      if(! inflrs_complete_p()) return false;
+    } else if(R->trait() == SYNTAX_TRAIT) {
+      if(! inflrs_complete_p())
+        return false;
     }
       
     if(R->spanningonly()) {
@@ -257,7 +252,7 @@ public:
   {
     if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
-      
+    
     if(active->spanningonly()) {
       if(active->nextarg() == 1) {  // is it the first arg?
         if(_start != 0)
@@ -269,7 +264,7 @@ public:
             return false;
         }
     }
-  
+    
     if(opt_lattice && !_paths.compatible(active->_paths))
       return false;
     
@@ -302,10 +297,7 @@ public:
    * returned in \a rule.
    */
   inline bool root(class tGrammar *G, int length, type_t &rule) const {
-    if(_trait == INFL_TRAIT)
-      return false;
-    
-    if(_start == 0 && _end == length)
+    if(inflrs_complete_p() && (_start == 0) && (_end == length))
       return G->root(_fs, rule);
     else
       return false;

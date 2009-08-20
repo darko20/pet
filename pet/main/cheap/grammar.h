@@ -40,11 +40,13 @@
 #include <cassert>
 
 /** The different traits of rules and items:
-    -- INPUT_TRAIT an input item, still without feature structure
-    -- INFL_TRAIT an incomplete lexical item that needs application of
-                  inflection rules to get complete
-    -- LEX_TRAIT a lexical item with all inflection rules applied
-    -- SYNTAX_TRAIT a phrasal item
+    -- INPUT_TRAIT for items: an input item
+                   for rules: n/a
+    -- INFL_TRAIT  for items: n/a
+                   for rules: a lexical rule with morphographemic conditions
+    -- LEX_TRAIT   for items: a lexical item with all morphograph. rules applied
+                   for rules: a lexical rule without morphographemic conditions
+    -- SYNTAX_TRAIT a phrasal item or rule
  */
 enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT, INPUT_TRAIT };
 
