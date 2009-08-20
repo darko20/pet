@@ -100,11 +100,8 @@ grammar_rule::grammar_rule(type_t t)
 {
     _type = t;
     
-    /*
-    if(cheap_settings->statusmember("infl-rule-status-values", typestatus[t]))
-      _trait = INFL_TRAIT;
-    else
-    */ 
+    // _trait = INFL_TRAIT will be set by tLKBMorphology::undump_inflrs() later
+    
     if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
         _trait = LEX_TRAIT;
     else

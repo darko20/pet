@@ -463,20 +463,16 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
     // We don't copy here, so only the tLexItem is responsible for deleting
     // the list
     _inflrs_todo = rest(pasv->inflrs_todo());
+    // output of morphographemic rules (rules with INFL_TRAIT) gets LEX_TRAIT
     _trait = LEX_TRAIT;
+    // Modify the feature structure to contain the surface form in the
+    // right place
     if(inflrs_complete_p()) {
-      // Modify the feature structure to contain the surface form in the
-      // right place
       _fs.modify_eagerly(_key_item->_mod_form_fs);
-      // TODO: what's this? it has been set before?
-      _trait = LEX_TRAIT;
     } else {
-      // Modify the feature structure to contain the stem form in the right
-      // place
       _fs.modify_eagerly(_key_item->_mod_stem_fs);
     }
-  }
-  else {
+  } else {
     _inflrs_todo = pasv->_inflrs_todo;
     _trait = R->trait();
   }

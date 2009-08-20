@@ -143,7 +143,7 @@ void chart::get_statistics()
     {
         tItem *it = iter.current();
         
-        if(it->trait() == INFL_TRAIT)
+        if(!it->inflrs_complete_p())
         {
             stats.medges++;
         }
