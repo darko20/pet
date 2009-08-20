@@ -575,7 +575,7 @@ struct valid_lex_complete : public item_predicate {
   virtual ~valid_lex_complete() {}
 
   virtual bool operator()(tItem *item) {
-    return (item->trait() != INPUT_TRAIT) && (item->trait() != INFL_TRAIT);
+    return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
   }
 };
 
