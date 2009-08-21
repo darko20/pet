@@ -262,7 +262,19 @@ public:
   {
     if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
-    
+
+    if(active->spanningonly()) {
+      if(active->nextarg() == 1) {  // is it the first arg?
+        if(_start != 0)
+          return false;
+      } else
+        if(active->nextarg() == active->arity() + active->nfilled()) {
+          // or the last?
+          if(_end != length)
+            return false;
+        }
+    }
+
     if(opt_lattice && !_paths.compatible(active->_paths))
       return false;
 
