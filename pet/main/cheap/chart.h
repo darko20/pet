@@ -54,16 +54,13 @@ public:
   /** Print chart items using \a aip.
    *  Enable/disable printing of passive, active and blocked items.
    */
-  void print(tAbstractItemPrinter *aip,
-             bool passives = true, bool actives = true,
-             bool blocked = true) const;
+  void print(tAbstractItemPrinter *aip, item_predicate toprint = alltrue) const;
 
   /** Print chart items to stream \a out using \a aip.
    *  Enable/disable printing of passive, active and blocked items.
    */
   void print(std::ostream &out, tAbstractItemPrinter *aip = NULL,
-             bool passives = true, bool actives = true,
-             bool blocked = true) const;
+             item_predicate toprint = alltrue) const;
 
   /** Get statistics from the chart, like nr. of active/passive edges, average
    *  feature structure size, items contributing to a reading etc.
@@ -109,7 +106,7 @@ public:
   /** Return \c true if the chart is connected using only edges considered \a
    *  valid, i.e., there is a path from the first to the last node.
    */
-  bool connected(item_predicate &valid);
+  bool connected(item_predicate valid);
 
 private:
   static int _next_stamp;
@@ -131,6 +128,7 @@ private:
   friend class chart_iter_topo;
   friend class chart_iter_adj_active;
   friend class chart_iter_adj_passive;
+  friend class chart_iter_filtered;
 };
 
 std::ostream &operator<<(std::ostream &out, const chart &ch) ;
@@ -142,14 +140,10 @@ std::ostream &operator<<(std::ostream &out, const chart &ch) ;
 class chart_iter {
 public:
   /** Create a new iterator for \a C */
-  inline chart_iter(const chart *C) : _LI(C->_Chart) {
-    _curr = _LI.begin();
-  }
+  inline chart_iter(const chart *C) : _LI(C->_Chart), _curr(_LI.begin()) { }
 
   /** Create a new iterator for \a C */
-  inline chart_iter(const chart &C) : _LI(C._Chart) {
-    _curr = _LI.begin();
-  }
+  inline chart_iter(const chart &C) : _LI(C._Chart), _curr(_LI.begin()) { }
 
   /** Increase iterator */
   inline chart_iter &operator++(int) {
@@ -170,11 +164,40 @@ public:
       return 0;
   }
 
-private:
+protected:
   friend class chart;
 
   const std::vector<class tItem *> &_LI;
   std::vector<class tItem *>::const_iterator _curr;
+};
+
+
+class chart_iter_filtered : protected chart_iter {
+private:
+  item_predicate _to_include;
+
+  /** Move to the next possible item that is not filtered */
+  inline void proceed() {
+    while (valid() && ! _to_include(*_curr)) ++_curr;
+  }
+
+public:
+  /** create a new iterator for \a C, returning only those for which \a incl
+   *  return \c true
+   */
+  inline chart_iter_filtered(const chart *C, item_predicate incl)
+    : chart_iter(C), _to_include(incl) { proceed(); }
+
+  /** see above */
+  inline chart_iter_filtered(const chart &C, item_predicate incl)
+    : chart_iter(C), _to_include(incl) { proceed(); }
+  
+  /** Increase iterator */
+  inline chart_iter &operator++(int) {
+    ++_curr;
+    proceed();
+    return *this;
+  }
 };
 
 /** Return all passive items having a specified span.

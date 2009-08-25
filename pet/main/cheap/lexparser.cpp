@@ -438,25 +438,17 @@ namespace HASH_SPACE {
 /** \brief This predicate should be used in find_unexpanded if lexical
  *  processing is not exhaustive. All non-input items are valid.
  */
-struct valid_non_input : public item_predicate {
-  virtual ~valid_non_input() {}
-
-  virtual bool operator()(tItem *item) {
-    return item->trait() != INPUT_TRAIT;
-  }
-};
+inline bool non_input(const tItem *item) {
+  return item->trait() != INPUT_TRAIT;
+}
 
 /** \brief This predicate should be used in find_unexpanded if lexical
  *  processing is exhaustive. All items that are not input items and have
  *  satisified all inflection rules are valid.
  */
-struct valid_lex_complete : public item_predicate {
-  virtual ~valid_lex_complete() {}
-
-  virtual bool operator()(tItem *item) {
-    return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
-  }
-};
+inline bool lex_complete(const tItem *item) {
+  return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
+}
 
 void
 mark_recursive(tItem *item, hash_set< tItem * > &checked
@@ -483,7 +475,7 @@ mark_recursive(tItem *item, hash_set< tItem * > &checked
  * (in terms of chart positions).
  */
 list<tInputItem *>
-find_unexpanded(chart *ch, item_predicate &valid_item) {
+find_unexpanded(chart *ch, item_predicate valid_item) {
   hash_set< tItem * > checked;
   hash_map< tInputItem *, bool > expanded;
 
@@ -753,19 +745,14 @@ lex_parser::lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
   // would otherwise be impossible. As a consequence, it depends on whether
   // maximal robustness or fast parsing is desired.
 
-  item_predicate *valid;
-  if(lex_exhaustive) {
-    valid = new valid_lex_complete();
-  } else {
-    valid = new valid_non_input() ;
-  }
+  item_predicate valid = (lex_exhaustive ? lex_complete : non_input);
 
   //tTclChartPrinter chp("/tmp/lex-chart", 0);
   //Chart->print(&chp);
 
   list< tInputItem * > unexpanded;
-  if (! Chart->connected(*valid)) {
-    unexpanded = find_unexpanded(Chart, *valid) ;
+  if (! Chart->connected(valid)) {
+    unexpanded = find_unexpanded(Chart, valid) ;
   }
 
   int opt_predict_les;

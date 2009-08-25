@@ -47,8 +47,9 @@ void init_characterization();
 /** Inhibit assignment operator and copy constructor(always throws an error) */
 #define INHIBIT_COPY_ASSIGN(___Type) \
   virtual ___Type &operator=(const ___Type &i) { \
-    throw tError("unexpected call to copy constructor of ___Type"); } \
-  ___Type() { throw tError("unexpected call to copy constructor of ___Type"); }
+    throw tError("unexpected call to assignment of ___Type"); } \
+  ___Type() { \
+    throw tError("unexpected call to default constructor of ___Type"); }
 
 
 /* Some typedef abbreviations for commonly used item container types */
@@ -184,7 +185,8 @@ public:
   const tPaths &paths() const { return _paths; }
 
   /** return the list of still unsatisfied inflection rules (or \c NULL) */
-  const list_int *inflrs_todo() const { return _inflrs_todo; }
+  // THIS SHOULD REMAIN PRIVATE, IF POSSIBLE
+  //const list_int *inflrs_todo() const { return _inflrs_todo; }
 
   /** Set the start node number of this item. */
   void set_start(int pos) { _start = pos ; }
@@ -209,26 +211,24 @@ public:
     if(R->trait() == INFL_TRAIT) {
       if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
         return false;
-    } else if(R->trait() == SYNTAX_TRAIT) {
+    }
+#ifdef CFGAPPROX_LEXGEN
+    else if((R->trait() == SYNTAX_TRAIT) ||
+            ((R->trait() == LEX_TRAIT) && (inflrs_complete_p())))
+      return false;
+    }
+#endif
+    else if(R->trait() == SYNTAX_TRAIT) {
       if(! inflrs_complete_p())
         return false;
     }
       
     if(R->spanningonly()) {
-      /* This is checked by the next two tests, too.
-      if(R->arity() == 1) {
-        if(span() != length)
-          return false;
-      }
-      else */
-      if(R->nextarg() == 1) {
-        if(_start != 0)
-          return false;
-      }
-      else if(R->nextarg() == R->arity()) {
-        if(_end != length)
-          return false;
-      }
+      if(R->nextarg() == 1 && _start != 0)
+        return false;
+      
+      if(R->nextarg() == R->arity() && _end != length)
+        return false;
     }
       
     if(opt_shaping == false)
@@ -1141,11 +1141,14 @@ namespace HASH_SPACE {
   };
 }
 
-/** A virtual base class for predicates on items */
-struct item_predicate : public std::unary_function<bool, tItem *> {
-  virtual ~item_predicate() {}
-  virtual bool operator()(tItem *item) = 0;
-};
+/** a function type for functions returning true for wanted and false for
+ *  unwanted items
+ */
+typedef bool (*item_predicate)(const class tItem *);
+
+/** default predicate for the above */
+inline bool alltrue(const class tItem *it) { return true; }
+
 
 /** A function object comparing two items based on their score */
 struct item_greater_than_score :
