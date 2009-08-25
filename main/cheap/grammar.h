@@ -66,7 +66,9 @@ class grammar_rule
 
   /** Get the arity (length of right hand side) of the rule */
   inline int arity() const { return _arity; }
-  /** Get the next arg that should be filled */
+  /** Get the next arg that should be filled.
+   *  \attn Argument numbers start at one, not at zero.
+   */
   inline int nextarg() const { return first(_tofill); }
   /** Does the rule extend to the left or to the right?
    * \todo Remove the current restriction to binary rules. 

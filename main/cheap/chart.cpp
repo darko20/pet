@@ -19,13 +19,10 @@
 
 /* class `chart' */
 
-#include "cheap.h"
 #include "chart.h"
 #include "tsdb++.h"
 #include "item-printer.h"
-#include "hashing.h"
 #include "logging.h"
-#include <ostream>
 
 using namespace std;
 using namespace HASH_SPACE;
@@ -111,25 +108,20 @@ void chart::remove(hash_set<tItem *> &to_delete)
     }
 }
 
-void chart::print(tAbstractItemPrinter *pr,
-                  bool passives, bool actives, bool blocked) const {
-  for(chart_iter pos(this); pos.valid(); pos++) {
-    tItem *curr = pos.current();
-    if ((blocked || !curr->blocked())
-        && ((curr->passive() && passives) || (! curr->passive() && actives))) {
-      pr->print(curr);// out << endl;
-    }
+void chart::print(tAbstractItemPrinter *pr, item_predicate toprint) const {
+  for(chart_iter_filtered pos(this, toprint); pos.valid(); pos++) {
+    pr->print(pos.current());// out << endl;
   }
 }
 
 void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
-                  bool passives, bool actives, bool blocked) const {
+                  item_predicate toprint) const {
   tItemPrinter def_print(out, LOG_ENABLED(logChart, INFO),
       LOG_ENABLED(logChart, DEBUG));
   if (pr == NULL) {
     pr = &def_print;
   }
-  print(pr, passives, actives, blocked);
+  print(pr, toprint);
 }
 
 void chart::get_statistics()
@@ -200,7 +192,7 @@ chart::get_surface_string() {
 }
 
 bool
-chart::connected(item_predicate &valid) {
+chart::connected(item_predicate valid) {
   vector<bool> reached(rightmost() + 1, false);
   queue<int> current;
   int pos;
