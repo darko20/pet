@@ -609,7 +609,7 @@ void tdl_avm_constraints(type *t, bool is_instance, bool readonly) {
           struct attr_val *attrval = new_attr_val();
           attrval->val = new_conjunction();
           add_term(attrval->val, tdl_term(t->coref, readonly));
-          char *s = (char *) malloc(strlen("ARGS"));
+          char *s = (char *) malloc(strlen("ARGS") + 1);
           attrval->attr = strcpy(s, "ARGS");
           struct avm *A = new_avm();
           add_attr_val(A, attrval);
