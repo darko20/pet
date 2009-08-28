@@ -338,16 +338,16 @@ void dump_hierarchy(dumper *f)
   // bitcodesize in bits
   f->dump_int(codesize);
 
-  // bitcodes for all proper types
+  // bitcodes for all proper types (in cheap order)
   for(i = 0; i < first_leaftype; i++) {
-    assert(leaftypeparent[leaftype_order[i]] == -1);
-    typecode[leaftype_order[i]]->dump(f);
+    assert(leaftypeparent[cheap2flop[i]] == -1);
+    typecode[cheap2flop[i]]->dump(f);
   }
 
   // parents for all leaf types
   for(i = first_leaftype; i < nstatictypes; i++) {
-    assert(leaftypeparent[leaftype_order[i]] != -1);
-    f->dump_int(rleaftype_order[leaftypeparent[leaftype_order[i]]]);
+    assert(leaftypeparent[cheap2flop[i]] != -1);
+    f->dump_int(flop2cheap[leaftypeparent[cheap2flop[i]]]);
   }
 }
 

@@ -128,6 +128,8 @@ public:
 };
 
 
+// #define CFGAPPROX_LEXGEN 1
+
 /** Represent an item in a chart. Conceptually there are input items,
  *  lexical items and phrasal items. 
  */
@@ -216,7 +218,6 @@ public:
     else if((R->trait() == SYNTAX_TRAIT) ||
             ((R->trait() == LEX_TRAIT) && (inflrs_complete_p())))
       return false;
-    }
 #endif
     else if(R->trait() == SYNTAX_TRAIT) {
       if(! inflrs_complete_p())

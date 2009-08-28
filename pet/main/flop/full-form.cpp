@@ -143,11 +143,11 @@ void ff_entry::dump(dumper *f)
       LOG(logSemantic, WARN, "unknown preterminal `" << _preterminal << "'");
     }
 
-  preterminal = leaftype_order[preterminal];
+  preterminal = flop2cheap[preterminal];
 
   affix = types.id(_affix);
   if(affix != -1)
-    affix = leaftype_order[affix];
+    affix = flop2cheap[affix];
 
   if(!_affix.empty() && affix == -1)
     {
