@@ -164,8 +164,13 @@ void process_multi_instances()
       }
 }
 
-int *leaftype_order = 0;
-int *rleaftype_order = 0;
+/** The reorder_leaftypes functions fills the following arrays such that:
+ *  - given a cheap type code i, cheap2flop[i] is the corresponding flop type
+ *    code
+ *  - given a flop type code j, flop2cheap[j] is the corresponding cheap type
+ */
+int *cheap2flop = 0;
+int *flop2cheap = 0;
 
 /**
  * Returns true iff type t is a proper type.
@@ -181,15 +186,15 @@ is_proper(int t) {
  */
 void reorder_leaftypes()
 {
-  leaftype_order = (int *) malloc(nstatictypes * sizeof(int));
+  cheap2flop = (int *) malloc(nstatictypes * sizeof(int));
   for(int i = 0; i < nstatictypes; i++)
-    leaftype_order[i] = i;
+    cheap2flop[i] = i;
 
-  stable_partition(leaftype_order, leaftype_order + nstatictypes, is_proper);
+  stable_partition(cheap2flop, cheap2flop + nstatictypes, is_proper);
 
-  rleaftype_order = (int *) malloc(nstatictypes * sizeof(int));
+  flop2cheap = (int *) malloc(nstatictypes * sizeof(int));
   for(int i = 0; i < nstatictypes; i++)
-    rleaftype_order[leaftype_order[i]] = i;
+    flop2cheap[cheap2flop[i]] = i;
 }
 
 void assign_printnames()
@@ -311,8 +316,8 @@ void print_infls() {
     if(types[i]->inflr != NULL) {
       //if(flop_settings->statusmember("infl-rule-status-values",
       //                                typestatus[i])) {
-      fprintf(f, "%s:%d\n", type_name(rleaftype_order[i])
-              , typestatus[rleaftype_order[i]]);
+      fprintf(f, "%s:%d\n", type_name(flop2cheap[i])
+              , typestatus[flop2cheap[i]]);
     }
   }
 }

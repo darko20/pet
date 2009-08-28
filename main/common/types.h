@@ -137,6 +137,14 @@ type_t lookup_code(const class bitcode &b);
 
 /** Immediate supertypes for each non-leaftype. */
 extern std::vector< std::list<int> > immediateSupertype;
+
+#else // FLOP
+/*@{*/
+/** Tables containing a reordering function for types, from the new (cheap) 
+ *  type id to the old (flop) one and the inverse.
+ */
+extern int *cheap2flop, *flop2cheap;
+/*@}*/
 #endif
 
 /** Dump the hierarchy to \a f in binary format (bitcodes and leaftypeparents).
