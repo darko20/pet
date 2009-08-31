@@ -52,6 +52,26 @@
 using namespace std;
 
 
+struct alive_method : public xmlrpc_c::method
+{
+  alive_method()
+  {
+    _signature = "b:";
+    _help = "Returns true if this server is alive.";
+  }
+  
+  void execute(xmlrpc_c::paramList const& params,
+               xmlrpc_c::value * const retval)
+  {
+    // get method parameters:
+    params.verifyEnd(0);
+    
+    // prepare return value:
+    *retval = xmlrpc_c::value_boolean(true);
+  }
+};
+
+
 struct info_method : public xmlrpc_c::method
 {
   info_method()
@@ -190,10 +210,12 @@ tXMLRPCServer::run()
     throw tError("Server socket is not initialized.");
   
   xmlrpc_c::registry reg;
-  xmlrpc_c::methodPtr const analyze_method_ptr(new analyze_method);
+  xmlrpc_c::methodPtr const alive_method_ptr(new alive_method);
   xmlrpc_c::methodPtr const info_method_ptr(new info_method);
-  reg.addMethod("cheap.analyze", analyze_method_ptr);
+  xmlrpc_c::methodPtr const analyze_method_ptr(new analyze_method);
+  reg.addMethod("cheap.alive", alive_method_ptr);
   reg.addMethod("cheap.info", info_method_ptr);
+  reg.addMethod("cheap.analyze", analyze_method_ptr);
   
   xmlrpc_c::serverAbyss server(xmlrpc_c::serverAbyss::constrOpt()
     .registryP(&reg)
