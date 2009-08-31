@@ -133,7 +133,7 @@ tLingoTokenizer::do_it(string s) {
           if(s.find('\'', apo+1) != std::string::npos)
               throw tError("tokenizer: more than one apostroph in word");
           
-          if(apo == 0 || apo == s.length() - 1)
+          if(apo == 0)
           {
               words2.push_back(s);
           }

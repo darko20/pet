@@ -151,7 +151,7 @@ public:
  * \param surface the supposed surface string that was parsed
  * \param ch the current chart
  */
-void dump_jxchg(string &surface, chart *ch) {
+void dump_jxchg_binary(string &surface, chart *ch) {
   if (! get_opt_string("opt_jxchg_dir").empty()) {
     string yieldname = surface;
     replace(yieldname.begin(), yieldname.end(), ' ', '_');
@@ -169,7 +169,7 @@ void dump_jxchg(string &surface, chart *ch) {
       dmp.dump_int(0);
       dmp.dump_int(ch->rightmost());
       ChartDumper chdmp(&dmp);
-      ch->print(&chdmp, true, false);
+      ch->print(&chdmp, onlypassives);
       // logkb("edges", f);
       dmp.dump_int(0);
       dmp.dump_int(0);
@@ -194,11 +194,14 @@ void dump_jxchg_string(string surface, chart *current) {
     } else {
       out << "0 " << current->rightmost() << endl;
       tJxchgPrinter chp(out);
-      current->print(out, &chp, true, false); // print only passive edges
+      current->print(out, &chp, passive_no_inflrs); // print only passive edges
     }
   }
 }
 
+void dump_jxchg(string surface, chart *ch) {
+  dump_jxchg_string(surface, ch);
+}
 
 void interactive() {
   string input;

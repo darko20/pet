@@ -480,7 +480,7 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   if(R->trait() == INFL_TRAIT) {
     // We don't copy here, so only the tLexItem is responsible for deleting
     // the list
-    _inflrs_todo = rest(pasv->inflrs_todo());
+    _inflrs_todo = rest(pasv->_inflrs_todo);
     // output of morphographemic rules (rules with INFL_TRAIT) gets LEX_TRAIT
     _trait = LEX_TRAIT;
     // Modify the feature structure to contain the surface form in the

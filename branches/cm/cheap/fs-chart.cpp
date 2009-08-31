@@ -252,7 +252,7 @@ tChart::preceding_items(tChartVertex *v, int min, int max, bool skip_blocked,
 
 void
 tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
-              bool passives, bool actives, bool blocked)
+    item_predicate toprint)
 {
   tItemPrinter default_printer(out, LOG_ENABLED(logChart, INFO),
       LOG_ENABLED(logChart, DEBUG));
@@ -262,8 +262,7 @@ tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
   item_list all_items = items();
   for (item_iter it = all_items.begin(); it != all_items.end(); it++) {
     tItem *item = *it;
-    if ((blocked || !item->blocked())
-        && ((item->passive() && passives) || (! item->passive() && actives))) {
+    if (toprint(*it)) {
       printer->print(item); out << endl;
     }
   }
