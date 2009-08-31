@@ -1147,9 +1147,32 @@ namespace HASH_SPACE {
  */
 typedef bool (*item_predicate)(const class tItem *);
 
-/** default predicate for the above */
+/** Default predicate, selecting all items. */
 inline bool alltrue(const class tItem *it) { return true; }
 
+/** Item predicate selecting all passive items. */
+inline bool onlypassives(const tItem *item) { return item->passive(); }
+
+/** Item predicate selecting all passive items without pending morphographemic
+ * rules. */
+inline bool passive_no_inflrs(const tItem *item) {
+  return item->passive() && item->inflrs_complete_p();
+}
+
+/** \brief This predicate should be used in find_unexpanded if lexical
+ *  processing is not exhaustive. All non-input items are valid.
+ */
+inline bool non_input(const tItem *item) {
+  return item->trait() != INPUT_TRAIT;
+}
+
+/** \brief This predicate should be used in find_unexpanded if lexical
+ *  processing is exhaustive. All items that are not input items and have
+ *  satisified all inflection rules are valid.
+ */
+inline bool lex_complete(const tItem *item) {
+  return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
+}
 
 /** A function object comparing two items based on their score */
 struct item_greater_than_score :
