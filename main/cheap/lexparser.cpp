@@ -435,21 +435,6 @@ namespace HASH_SPACE {
   };
 }
 
-/** \brief This predicate should be used in find_unexpanded if lexical
- *  processing is not exhaustive. All non-input items are valid.
- */
-inline bool non_input(const tItem *item) {
-  return item->trait() != INPUT_TRAIT;
-}
-
-/** \brief This predicate should be used in find_unexpanded if lexical
- *  processing is exhaustive. All items that are not input items and have
- *  satisified all inflection rules are valid.
- */
-inline bool lex_complete(const tItem *item) {
-  return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
-}
-
 void
 mark_recursive(tItem *item, hash_set< tItem * > &checked
                , hash_map< tInputItem *, bool > &expanded){

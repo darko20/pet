@@ -140,12 +140,6 @@ public:
   }
 };
 
-bool onlypassives(const tItem *item) { return item->passive(); }
-
-bool passive_no_inflrs(const tItem *item) {
-  return item->passive() && item->inflrs_complete_p();
-}
-
 /** Dump the chart to a binary data file.
  * \param surface the supposed surface string that was parsed
  * \param ch the current chart
