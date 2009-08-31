@@ -93,12 +93,6 @@ extern char *global_inflrs;
  */
 extern int allow_redefinitions;
 
-/*@{*/
-/** Tables containing a reordering function for types, from the old type id to
- *  the new one and the inverse .
- */
-extern int *leaftype_order, *rleaftype_order;
-/*@}*/
 /** A table containing the parent of a leaf type, if greater than zero.
  *  \code leaftypeparent[type] < 0 \endcode is a predicate for testing
  *  if type is not a leaf type (after expansion).

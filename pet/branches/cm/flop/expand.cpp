@@ -601,7 +601,7 @@ void merge_top_down(int t, int p, tPartition &P) {
 }
 
 void merge_partitions(int t, int p, tPartition &P, int s) {
-  if(nfeat[t] == 0 || prefixl.find(t) != prefixl.end() && prefixl[t] >= 0)
+  if(nfeat[t] == 0 || (prefixl.find(t) != prefixl.end() && prefixl[t] >= 0))
     return;
 
   P.union_sets(t, p);

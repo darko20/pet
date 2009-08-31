@@ -277,7 +277,7 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
     *_out << " [" << print_name(result_root(item)) << "]";
   }
   
-  if(inflrs_todo(item) != NULL) {
+  if(! item->inflrs_complete_p()) {
     print_inflrs(item);
   }
 

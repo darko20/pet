@@ -556,29 +556,6 @@ namespace HASH_SPACE {
   };
 }
 
-/** \brief This predicate should be used in find_unexpanded if lexical
- *  processing is not exhaustive. All non-input items are valid.
- */
-struct valid_non_input : public item_predicate {
-  virtual ~valid_non_input() {}
-
-  virtual bool operator()(tItem *item) {
-    return item->trait() != INPUT_TRAIT;
-  }
-};
-
-/** \brief This predicate should be used in find_unexpanded if lexical
- *  processing is exhaustive. All items that are not input items and have
- *  satisified all inflection rules are valid.
- */
-struct valid_lex_complete : public item_predicate {
-  virtual ~valid_lex_complete() {}
-
-  virtual bool operator()(tItem *item) {
-    return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
-  }
-};
-
 void
 mark_recursive(tItem *item, hash_set< tItem * > &checked
                , hash_map< tInputItem *, bool > &expanded){
@@ -604,7 +581,7 @@ mark_recursive(tItem *item, hash_set< tItem * > &checked
  * (in terms of chart positions).
  */
 list<tInputItem *>
-find_unexpanded(chart *ch, item_predicate &valid_item) {
+find_unexpanded(chart *ch, item_predicate valid_item) {
   hash_set< tItem * > checked;
   hash_map< tInputItem *, bool > expanded;
 
@@ -874,7 +851,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
     tChartUtil::map_chart(inp_tokens, chart);
     if (chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] initial token chart:\n");
-      chart.print(cerr, &ip, true, false, false);
+      chart.print(cerr, &ip, onlypassives);
     } // if
     // apply chart mapping rules:
     const std::list<class tChartMappingRule*> &rules = Grammar->tokmap_rules();
@@ -886,7 +863,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
     // chart items should be handled by tItem::default_owner()
     if (chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] final token chart:\n");
-      chart.print(cerr, &ip, true, false, false);
+      chart.print(cerr, &ip, onlypassives);
     } // if
     if (chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping ends\n");
@@ -964,7 +941,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     tChartUtil::map_chart(*Chart, chart);
     if (chart_mapping & 8) {
       fprintf(stderr, "[cm] initial lexical chart:\n");
-      chart.print(cerr, &ip, true, false, false);
+      chart.print(cerr, &ip, onlypassives);
     } // if
     // apply chart mapping rules:
     const std::list<class tChartMappingRule*> &rules = Grammar->lexflt_rules();
@@ -976,7 +953,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     // chart items should be handled by tItem::default_owner()
     if (chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] final lexical chart:\n");
-      chart.print(cerr, &ip, true, false, false);
+      chart.print(cerr, &ip, onlypassives);
     } // if
     if (chart_mapping_loglevel & 1)
       fprintf(stderr, "[cm] lexical filtering ends\n");
@@ -1011,13 +988,9 @@ lex_parser::lexical_processing(inp_list &inp_tokens
   
   // Gap computation.
   list< tInputItem * > unexpanded;
-  item_predicate *valid;
-  if (lex_exhaustive)
-    valid = new valid_lex_complete();
-  else
-    valid = new valid_non_input();
-  if (! Chart->connected(*valid)) {
-    unexpanded = find_unexpanded(Chart, *valid) ;
+  item_predicate valid = (lex_exhaustive ? lex_complete : non_input);
+  if (! Chart->connected(valid)) {
+    unexpanded = find_unexpanded(Chart, valid) ;
   }
   
   int opt_predict_les;

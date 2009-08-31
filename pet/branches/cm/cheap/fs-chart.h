@@ -54,6 +54,8 @@ typedef std::list< class tInputItem * >::iterator inp_iterator;
 // forward declarations:
 class tItem;
 class tChartVertex;
+typedef bool (*item_predicate)(const class tItem *);
+bool alltrue(const class tItem *it);
 
 /**
  * Chart data structure for parsing, storing
@@ -217,7 +219,7 @@ public:
    * passive items with \a passives and \a actives.
    */
   void print(std::ostream &out, class tAbstractItemPrinter *printer = NULL,
-             bool passives = true, bool actives = true, bool blocked = true);
+      item_predicate toprint = alltrue);
 
 };
 
