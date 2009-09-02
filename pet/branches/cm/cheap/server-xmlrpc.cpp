@@ -183,6 +183,52 @@ struct analyze_method : public xmlrpc_c::method
   }
 };
 
+
+struct parsable_method : public xmlrpc_c::method
+{
+  parsable_method()
+  {
+    _signature = "b:s";
+    _help = "Analyze the specified input and return whether it is parsable.";
+  }
+  
+  void execute(xmlrpc_c::paramList const& params, xmlrpc_c::value* const retval)
+  {
+    // get method parameters:
+    string input(params.getString(0));
+    params.verifyEnd(1);
+    
+    // Define a string that will hold the error message for errors that
+    // occurred during parsing or be empty if there were no errors.
+    // This kind of error handling is a bit clumsy. But it makes it easier
+    // to cleanup the resources acquired during analyze(). A better solution
+    // would be to use the RAII pattern for all required resources.
+    string error;
+    
+    // analyze string:
+    chart *Chart = 0;
+    fs_alloc_state FSAS;
+    int id = 1;
+    try {
+      list<tError> errors;
+      analyze(input, Chart, FSAS, errors, id);
+      // this looks rather strange, but it seems to be the current paradigm
+      if (!errors.empty()) 
+        throw errors.front();
+    } catch (tError e) {
+      error = e.getMessage();
+    }
+    
+    bool result = error.empty() && !Chart->readings().empty();
+    *retval = xmlrpc_c::value_boolean(result);
+    
+    // delete resources:
+    if (Chart != 0)
+      delete Chart;
+  }
+};
+
+
 tXMLRPCServer::tXMLRPCServer(int port)
 : _port(port)
 {
@@ -213,9 +259,11 @@ tXMLRPCServer::run()
   xmlrpc_c::methodPtr const alive_method_ptr(new alive_method);
   xmlrpc_c::methodPtr const info_method_ptr(new info_method);
   xmlrpc_c::methodPtr const analyze_method_ptr(new analyze_method);
+  xmlrpc_c::methodPtr const parsable_method_ptr(new parsable_method);
   reg.addMethod("cheap.alive", alive_method_ptr);
   reg.addMethod("cheap.info", info_method_ptr);
   reg.addMethod("cheap.analyze", analyze_method_ptr);
+  reg.addMethod("cheap.parsable", parsable_method_ptr);
   
   xmlrpc_c::serverAbyss server(xmlrpc_c::serverAbyss::constrOpt()
     .registryP(&reg)
