@@ -299,9 +299,9 @@ void interactive() {
             if (mrs->valid()) {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
               if (mapped_mrs->valid()) {
-                fprintf(fstatus, "\n");
-                mapped_mrs->print(fstatus);
-                fprintf(fstatus, "\n");
+                std::cerr << std::endl;
+                mapped_mrs->print(cerr);
+                std::cerr << std::endl;
               }
               delete mapped_mrs;
             }
