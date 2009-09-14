@@ -21,9 +21,11 @@
 
 #include "chart.h"
 #include "item-printer.h"
+#include "mrs.h"
 #include "options.h"
 #include "parse.h"
 #include "tsdb++.h"
+#include "vpm.h"
 
 #ifdef HAVE_ECL
 #include "petecl.h"
@@ -51,6 +53,7 @@
 
 using namespace std;
 
+extern tVPM *vpm;
 
 struct alive_method : public xmlrpc_c::method
 {
@@ -150,14 +153,27 @@ struct analyze_method : public xmlrpc_c::method
         // get MRS:
         string opt_mrs = get_opt_string("opt_mrs");
         if (!opt_mrs.empty()) {
-          string mrs;
-          if (opt_mrs == "new")
-            mrs = "mrs=new not supported"; // TODO get string from native MRS code 
+          string mrs_str;
+          if (opt_mrs == "new") {
+            osstream.clear();
+            fs f = item->get_fs();
+            mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+            if (mrs->valid()) {
+              mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+              if (mapped_mrs->valid())
+                mapped_mrs->print(osstream);
+              delete mapped_mrs;
+            }
+            delete mrs;
+            mrs_str = osstream.str();
+          } else {
 #ifdef HAVE_MRS
-          else
-            mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs.c_str());
+            mrs_str = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs.c_str());
+#else
+            mrs_str = "";
 #endif
-          reading_helper["mrs"] = xmlrpc_c::value_string(mrs);
+          }
+          reading_helper["mrs"] = xmlrpc_c::value_string(mrs_str);
         }
         
         // store reading:
