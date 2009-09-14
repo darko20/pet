@@ -19,6 +19,7 @@ specific to chart-mapping branch:
   - added unit tests for types
 
 v0.99.??
+  - native MRS code now uses logging and prints with iostreams
   - made inflr_todo and part-of-speech tags part of tInputItem constructor
   - normalize chart item printing for the different types of items: prefix with
     "I", "L" or "P" (for input, lexical and phrasal items, respectively), print
