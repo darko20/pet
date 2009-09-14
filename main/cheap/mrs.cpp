@@ -17,14 +17,16 @@
  */
 
 #include "mrs.h"
-#include "types.h"
+
+#include "logging.h"
 #include "settings.h"
+#include "types.h"
 #include "utility.h"
 
+#include <boost/format.hpp>
 
 int variable_generator = 0;
 extern settings *cheap_settings;
-extern FILE* ferr;
 
 
 namespace mrs {
@@ -123,7 +125,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
   init_sem_dag = dag_get_path_value(dag, cheap_settings->req_value("mrs-initial-semantics-path"));
   if (init_sem_dag == FAIL) {
     _valid = false;
-    fprintf(ferr, "no mrs-initial-semantics-path found.\n");
+    LOG(logMRS, ERROR, "no mrs-initial-semantics-path found.");
     return;
   }
 
@@ -136,7 +138,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
     d = dag_get_path_value(init_sem_dag, psoa_top_h_path);
     if (d == FAIL) {
       _valid = false;
-      fprintf(ferr, "no mrs-psoa-top-h-path found.\n");
+      LOG(logMRS, ERROR, "no mrs-psoa-top-h-path found.");
       return;
     }
     top_h = request_var(d);
@@ -146,7 +148,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
   d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-index-path"));
   if (d == FAIL) {
     _valid = false;
-    fprintf(ferr, "no mrs-psoa-index-path found.\n");
+    LOG(logMRS, ERROR, "no mrs-psoa-index-path found.");
     return;
   }
   index = request_var(d);
@@ -155,7 +157,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
   d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-liszt-path"));
   if (d == FAIL) {
     _valid = false;
-    fprintf(ferr, "no mrs-psoa-liszt-path found.\n");
+    LOG(logMRS, ERROR, "no mrs-psoa-index-path found.");
     return;
   }
   int n = 0;
@@ -164,7 +166,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
        iter != rel_list.end(); iter ++, n ++) {
     if (*iter == FAIL) {
       _valid = false;
-      fprintf(ferr, "no relation %d", n);
+      LOG(logMRS, ERROR, boost::format("no relation %d") % n);
       liszt.clear();
       return;
     }
@@ -175,7 +177,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
   d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-rh-cons-path"));
   if (d == FAIL) {
     _valid = false;
-    fprintf(ferr, "no mrs-psoa-rh-cons-path found.\n");
+    LOG(logMRS, ERROR, "no mrs-psoa-rh-cons-path found.");
     return;
   }
   n = 0;
@@ -184,7 +186,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
        iter != hcons_list.end(); iter ++, n ++) {
     if (*iter == FAIL) {
       _valid = false;
-      fprintf(ferr, "no hcons %d", n);
+      LOG(logMRS, ERROR, boost::format("no hcons %d") % n);
       h_cons.clear();
       return;
     }
@@ -196,23 +198,23 @@ tPSOA::tPSOA(struct dag_node* dag) {
 }
 
 void tPSOA::
-print(FILE* f) {
-  fprintf(f, "<mrs>\n");
-  fprintf(f, "<label vid='%d'/>", top_h->id);
-  fprintf(f, "<var vid='%d'/>\n", index->id);
+print(std::ostream &out) {
+  out << "<mrs>\n";
+  out << boost::format("<label vid='%d'/>") % top_h->id;
+  out << boost::format("<var vid='%d'/>\n") % index->id;
   for (std::list<tBaseRel*>::iterator rel = liszt.begin();
        rel != liszt.end(); rel ++) {
-    (*rel)->print(f);
+    (*rel)->print(out);
   }
   for (std::list<tHCons*>::iterator hcons = h_cons.begin();
        hcons != h_cons.end(); hcons ++) {
-    (*hcons)->print(f);
+    (*hcons)->print(out);
   }
   for (std::list<tHCons*>::iterator acons = a_cons.begin();
        acons != a_cons.end(); acons ++) {
-    (*acons)->print(f);
+    (*acons)->print(out);
   }
-  fprintf(f, "</mrs>\n");
+  out << "</mrs>\n";
 } 
 
 tHCons::tHCons(struct dag_node* dag, class tBaseMRS* mrs) : _mrs(mrs) {
@@ -221,14 +223,14 @@ tHCons::tHCons(struct dag_node* dag, class tBaseMRS* mrs) : _mrs(mrs) {
   
   struct dag_node* d = dag_get_path_value(dag, cheap_settings->req_value("mrs-sc-arg-feature"));
   if (d == FAIL) {
-    fprintf(ferr, "no mrs-sc-arg-feature found.\n");
+    LOG(logMRS, ERROR, "no mrs-sc-arg-feature found.");
     return;
   }
   scarg = _mrs->request_var(d);
   
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-outscpd-feature"));
   if (d == FAIL) {
-    fprintf(ferr, "no mrs-outscpd-feature found.\n");
+    LOG(logMRS, ERROR, "no mrs-outscpd-feature found.");
     return;
   }
   outscpd = _mrs->request_var(d);
@@ -254,7 +256,7 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
   if (!indexing) {
     d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-handel-path"));
     if (d == FAIL) {
-      fprintf(ferr, "no mrs-rel-handel-path found.\n");
+      LOG(logMRS, ERROR, "no mrs-rel-handel-path found.");
       return;
     }
     handel = _mrs->request_var(d);
@@ -297,14 +299,14 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
   // _todo_ ignore cfrom/cto for the moment
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-cfrom-feature"));
   if (d != FAIL) {
-    if (d->type == BI_TOP)
+    if ((d->type == BI_TOP) || (d->type == BI_STRING))
       cfrom = -1;
     else
       cfrom = strtoint(type_name(d->type), "Invalid CFROM value", true);
   }
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-cto-feature"));
   if (d != FAIL) {
-    if (d->type == BI_TOP)
+    if ((d->type == BI_TOP) || (d->type == BI_STRING))
       cto = -1;
     else
       cto = strtoint(type_name(d->type), "Invalid CTO value", true);
@@ -322,17 +324,17 @@ collect_param_strings() {
 }
 
 void tRel::
-print(FILE* f) {
-  fprintf(f, "<ep cfrom='%d' cto='%d'>", cfrom, cto);
+print(std::ostream &out) {
+  out << boost::format("<ep cfrom='%d' cto='%d'>") % cfrom % cto;
   if (pred[0] == '"')
-    fprintf(f, "<spred>%s</spred>", pred.substr(1,pred.length()-2).c_str());
+    out << "<spred>" << pred.substr(1,pred.length()-2) << "</spred>";
   else {
     char* uppred = new char[pred.length()+1];
     strtoupper(uppred, pred.c_str());
-    fprintf(f, "<pred>%s</pred>", uppred);//pred.c_str());
+    out << "<pred>" << uppred << "</pred>"; //pred;
     delete uppred;
   }
-  fprintf(f, "<label vid='%d'/>", handel->id);
+  out << boost::format("<label vid='%d'/>") % handel->id;
   std::list<std::string> feats;
   for (std::map<std::string,tValue*>::iterator fvpair = flist.begin();
        fvpair != flist.end(); fvpair ++) 
@@ -340,45 +342,45 @@ print(FILE* f) {
   feats.sort(ltfeat());
   for (std::list<std::string>::iterator feat = feats.begin();
        feat != feats.end(); feat ++) {
-    fprintf(f, "\n<fvpair>");
-    fprintf(f, "<rargname>%s</rargname>", (*feat).c_str());
-    flist[*feat]->print_full(f);
-    fprintf(f, "</fvpair>");
+    out << "\n<fvpair>";
+    out << "<rargname>" << *feat << "</rargname>";
+    flist[*feat]->print_full(out);
+    out << "</fvpair>";
   }
 
-  fprintf(f, "</ep>\n");
+  out << "</ep>" << std::endl;
 }
 
 void tHCons::
-print(FILE* f) {
-  fprintf(f, "<hcons hreln='");
+print(std::ostream &out) {
+  out << "<hcons hreln='";
   if (relation == QEQ)
-    fprintf(f, "qeq");
+    out << "qeq";
   else if (relation == LHEQ)
-    fprintf(f, "lheq");
+    out << "lheq";
   else if (relation == OUTSCOPES)
-    fprintf(f, "outscopes");
-  fprintf(f, "'>");
-  fprintf(f, "<hi>");
-  scarg->print(f);
-  fprintf(f, "</hi>");
-  fprintf(f, "<lo>");
-  outscpd->print(f);
-  fprintf(f, "</lo>");
-  fprintf(f, "</hcons>\n");
+    out << "outscopes";
+  out << "'>";
+  out << "<hi>";
+  scarg->print(out);
+  out << "</hi>";
+  out << "<lo>";
+  outscpd->print(out);
+  out << "</lo>";
+  out << "</hcons>\n";
 }
 
 void tConstant::
-print(FILE* f) {
+print(std::ostream &out) {
   if (value[0] == '"')
-    fprintf(f, "<constant>%s</constant>", value.substr(1,value.length()-2).c_str());
+    out << "<constant>" << value.substr(1,value.length()-2) << "</constant>";
   else
-    fprintf(f, "<constant>%s</constant>", value.c_str());
+    out << "<constant>" << value << "</constant>";
 }
 
 void tConstant::
-print_full(FILE* f) {
-  print(f);
+print_full(std::ostream &out) {
+  print(out);
 }
 
 tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
@@ -417,13 +419,13 @@ tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
 }
 
 void tVar::
-print(FILE* f) {
-  fprintf(f, "<var vid='%d' sort='%s'></var>", id, type.c_str());
+print(std::ostream &out) {
+  out << boost::format("<var vid='%d' sort='%s'></var>") % id % type;
 }
 
 void tVar::
-print_full(FILE* f) {
-  fprintf(f, "<var vid='%d' sort='%s'>", id, type.c_str());
+print_full(std::ostream &out) {
+  out << boost::format("<var vid='%d' sort='%s'>") % id % type;
   // _todo_ this should be adapted to handle the feature priority
   std::list<std::string> feats;
   for (std::map<std::string,std::string>::iterator extrapair = extra.begin();
@@ -434,12 +436,11 @@ print_full(FILE* f) {
        feat != feats.end(); feat ++) {
     char* upvalue = new char[extra[*feat].length()+1];
     strtoupper(upvalue, extra[*feat].c_str());
-    fprintf(f, "\n<extrapair><path>%s</path><value>%s</value></extrapair>", 
-            (*feat).c_str(), upvalue);
+    out << std::endl << "<extrapair><path>" << *feat << "</path><value>"
+          << upvalue << "</value></extrapair>";
     delete upvalue;
   }
-
-  fprintf(f, "</var>");
+  out << "</var>";
 }
 
 void
