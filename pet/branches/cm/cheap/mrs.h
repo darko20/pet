@@ -3,12 +3,15 @@
 #ifndef _MRS_H_
 #define _MRS_H_
 
+#include "pet-config.h"
+
 #include "dag.h"
 
 #include <list>
 #include <vector>
 #include <map>
 #include <string>
+#include <iostream>
 
 namespace mrs {
 
@@ -26,8 +29,8 @@ public:
   virtual ~tValue() {
   }
 
-  virtual void print(FILE* f) = 0;
-  virtual void print_full(FILE* f) = 0;
+  virtual void print(std::ostream &out) = 0;
+  virtual void print_full(std::ostream &out) = 0;
   
 };
 
@@ -41,8 +44,8 @@ public:
 
   std::string value;
   
-  virtual void print(FILE* f);
-  virtual void print_full(FILE* f);
+  virtual void print(std::ostream &out);
+  virtual void print_full(std::ostream &out);
 };
 
 class tBaseVar : public tValue {
@@ -72,8 +75,8 @@ public:
 
   int id;
   
-  virtual void print(FILE* f);
-  virtual void print_full(FILE* f);
+  virtual void print(std::ostream &out);
+  virtual void print_full(std::ostream &out);
 };
 
 class tGrammarVar : public tBaseVar {
@@ -100,7 +103,7 @@ public:
   tVar* scarg;
   tVar* outscpd;
   
-  virtual void print(FILE* f);
+  virtual void print(std::ostream &out);
   
   class tBaseMRS* _mrs;
 };
@@ -134,7 +137,7 @@ public:
   std::string pred;
   std::map<std::string,tValue*> flist;
 
-  virtual void print(FILE* f) { }
+  virtual void print(std::ostream &out) { }
 
 
   /* reference to the parent mrs */
@@ -167,7 +170,7 @@ public:
   /** collect paramerter strings from the flist */
   void collect_param_strings();
 
-  virtual void print(FILE* f);
+  virtual void print(std::ostream &out);
 
 };
 
@@ -215,7 +218,7 @@ public:
    */
   tConstant* request_constant(std::string value);
   
-  virtual void print(FILE* f) { }
+  virtual void print(std::ostream &out) { }
   
   bool valid() { return _valid; }
 
@@ -239,7 +242,7 @@ public:
   tPSOA(struct dag_node* dag);
 
   tVar* index;
-  virtual void print(FILE* f);
+  virtual void print(std::ostream &out);
 };
 
 class tSemEnt : public tBaseMRS {
