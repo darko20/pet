@@ -155,7 +155,8 @@ struct analyze_method : public xmlrpc_c::method
         if (!opt_mrs.empty()) {
           string mrs_str;
           if (opt_mrs == "new") {
-            osstream.clear();
+            osstream.clear(); // reset state
+            osstream.str(""); // reset underlying buffer
             fs f = item->get_fs();
             mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
             if (mrs->valid()) {
