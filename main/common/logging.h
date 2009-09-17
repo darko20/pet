@@ -99,7 +99,7 @@ class Category {
   std::string _name;
 
 public:
-  Category() { }
+  Category() : _printer(0) { }
   Category(const std::string &name, Priority prio, int printer) : _name(name) {
     set(prio, printer);
   }
@@ -144,10 +144,10 @@ public:
                  (name, Category(name, prio, printer)));
     return _cats[name];
   }
-  static bool hasCat(const std::string name) {
+  static bool hasCat(const std::string &name) {
     return (_cats.find(name) != _cats.end());
   }
-  static Category &getCat(const std::string name) {
+  static Category &getCat(const std::string &name) {
     std::map<std::string, Category>::iterator it = _cats.find(name);
     if (it != _cats.end()) return _cats[name];
     else throw tError("unknown logging category requested");
