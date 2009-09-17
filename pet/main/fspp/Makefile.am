@@ -16,12 +16,12 @@ include $(top_srcdir)/common/Makefile.common
 
 bin_PROGRAMS = fspp
 
-fspp_SOURCES = main.cpp petecl.c petecl.h unicode.cpp unicode.h errors.h
-fspp_LDADD =  libfspp.a libpreprocessor.a libfspp.a # fix_me
+fspp_SOURCES = main.cpp unicode.cpp unicode.h errors.h
+fspp_LDADD = libfspp.la libpreprocessor.a # fix_me
 fspp_LDFLAGS =  -L. $(CHEAPLDFLAGS)
 ######
 
-noinst_LIBRARIES = libfspp.a
+noinst_LTLIBRARIES = libfspp.la
 
 DEFS += -DDYNAMIC_SYMBOLS
 
@@ -35,9 +35,9 @@ AM_CFLAGS = -g -Wall $(OPTIM) $(DEFS)
 CXXFLAGS =
 CFLAGS =
 
-libfspp_a_SOURCES = fspp.h fspp.cpp petecl.c petecl.h
+libfspp_la_SOURCES = fspp.h fspp.cpp petecl.c petecl.h
 
-libfspp_a_LIBADD = libfspp.a libpreprocessor.a libfspp.a
+libfspp_la_LIBADD = libpreprocessor.a
 
 # Add ecl libraries to be deleted on "make clean" ... 
 MOSTLYCLEANFILES = libfspp.a libpreprocessor.a
@@ -51,6 +51,6 @@ libpreprocessor.a:
 	echo "(mk::ecl-finalize-libbuild :module \"preprocessor\")"; \
 	) | $(ECL)
 
-libfspp.a: fspp.o libpreprocessor.a
-	ar rcs libfspp.a fspp.o # libpreprocessor.a
+#libfspp.a: fspp.o libpreprocessor.a
+#	ar rcs libfspp.a fspp.o # libpreprocessor.a
 

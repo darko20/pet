@@ -177,7 +177,7 @@ Logger::loggerendl::print(std::ostream &out) const {
   }
 }
 
-Priority getPrio(const std::string prio) {
+Priority getPrio(const std::string &prio) {
   if (prio.empty()) return NOTSET;
   if (prio == "EMERG") return EMERG;
   for (unsigned int i = 0; i <= sizeof(prio_names) / sizeof(std::string); ++i) {
@@ -186,7 +186,7 @@ Priority getPrio(const std::string prio) {
   return ILLEGAL;
 }
 
-int getPrinter(const std::string printer) {
+int getPrinter(const std::string &printer) {
   for (int i = 0 ; i <= 2; ++i) {
     if (printer == printer_names[i]) return i+1;
   }
