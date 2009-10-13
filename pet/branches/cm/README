@@ -110,6 +110,13 @@ privileges. Note that the header files are often distributed in separate
 packages, usually ending in `-dev' or `-devel' (e.g. `libboost-dev'). Make
 sure that these packages are installed, too.
 
+If you install your own libraries in non-standard directories, make sure
+that all these shared libraries and their dependencies can be found when
+PET's configure is run. There are several ways to achieve this (e.g., using
+ldconfig or the LD_LIBRARY_PATH environment variable, cf. the Program Library
+HOWTO). The dependencies of a program or library can be inspected with ldd.
+http://tldp.org/HOWTO/Program-Library-HOWTO/.
+
 Required:
 
 Boost provides free portable C++ libraries for various applications.
@@ -120,7 +127,7 @@ http://www.boost.org/
 
 Optional:
 
-If you want UniCode support in PET, you need the icu package freely
+If you want UniCode support in PET, you need the ICU package freely
 available from IBM.
 Current GNU/Linux distributions usually provide this library as a pre-built
 package. Make sure that the header files are installed, too (see above).
