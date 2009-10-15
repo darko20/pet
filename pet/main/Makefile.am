@@ -27,6 +27,19 @@ sign: dist
 	gpg --detach-sign --armor $(distdir).tar.gz
 	md5sum $(distdir).tar.gz | gpg --clearsign > $(distdir).tar.gz.md5sum
 
+bindist: all
+	$(am__remove_distdir)
+	mkdir -p $(distdir)/bin
+	mkdir -p $(distdir)/lib
+	cp cheap/cheap $(distdir)/bin
+	cp flop/flop $(distdir)/bin
+	ldd cheap/cheap flop/flop | perl -ne ' print "cp $$2 $(distdir)/lib\n" if /(.+)\s+=>\s+(.+) \([0-9a-fx]+\)/ ' | sort -u | bash
+	tar -czf $(distdir)_bin.tar.gz $(distdir)
+	$(am__remove_distdir)
+
+clean-local:
+	-rm $(distdir)_bin.tar.gz
+
 # Dependencies: all source files of the distribution
 # Should be done when the distribution is made
 if DOCBUILDERS
