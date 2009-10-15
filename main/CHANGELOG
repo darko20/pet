@@ -1,4 +1,6 @@
 v0.99.??
+  - added make target "bindist" which builds a tarball with the binaries and all
+    dependent shared libraries
   - native MRS code now uses logging and prints with iostreams
   - made inflr_todo and part-of-speech tags part of tInputItem constructor
   - normalize chart item printing for the different types of items: prefix with
