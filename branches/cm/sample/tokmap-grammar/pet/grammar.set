@@ -1,4 +1,5 @@
 include "common".
+include "cm".
 
 start-symbols := $start.
 
@@ -12,31 +13,4 @@ trivial-tokenizer.            ; for Lingo-style tokenizer "string"
 irregular-forms-only.
 
 lex-entries-can-fail.
-
-;;;
-;;; path settings for chart mapping rules
-;;;
-chart-mapping-context-path := "+CONTEXT".
-chart-mapping-input-path   := "+INPUT".
-chart-mapping-output-path  := "+OUTPUT".
-chart-mapping-position-path := "+POSITION".
-
-;;;
-;;; path settings for mapping tInputItem objects to input feature structures
-;;;
-token-form-path     := "+FORM".       ; required for input feature structures
-token-stem-path     := "+STEM".       ; optional, for stem-based lookup
-token-lexid-path    := "+LEXID".      ; optional, for lexid-based lookup
-token-inflr-path    := "+INFLR".      ; optional, for inflectional rules
-token-cfrom-path    := "+CFROM".      ; optional, for external start position
-token-cto-path      := "+CTO".        ; optional, for external end position
-token-id-path       := "+ID".         ; optional, a difflist of ids
-token-postags-path  := "+TNT.+TAGS".  ; optional, list of pos tags
-token-posprobs-path := "+TNT.+PRBS".  ; optional, list of pos probabilities
-
-;;;
-;;; in lexical instatiation, the list of tokens activating a lexical entry (be
-;;; it native or generic) are unified into the lexical entry under this path.
-;;;
-lexicon-tokens-path  := "TOKENS".
 
