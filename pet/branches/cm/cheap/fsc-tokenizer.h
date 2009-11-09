@@ -133,8 +133,8 @@ public:
 
 
 /**
- * A SAX parser handler class to read an input chart in the
- * Checkpoint format. 
+ * A SAX parser handler class to read exactly one input chart from an
+ * XML stream in the FSC format.
  */
 class tFSCHandler : public XERCES_CPP_NAMESPACE_QUALIFIER HandlerBase
 {
@@ -479,14 +479,5 @@ tFSCTokenizer::position_mapping()
 {
   return NO_POSITION_MAP;
 }
-
-
-// =====================================================
-// class tFSCHandler
-// =====================================================
-
-// =====================================================
-// FSC states
-// =====================================================
 
 #endif

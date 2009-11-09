@@ -13,6 +13,8 @@
 #include <list>
 //#include <string>
 
+using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
+
 //XERCES_CPP_NAMESPACE_USE
 //XERCES_CPP_NAMESPACE_BEGIN 
 

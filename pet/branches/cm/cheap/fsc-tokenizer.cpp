@@ -48,11 +48,23 @@ bool
 tFSCTokenizer::next_input(std::istream &in, std::string &input)
 {
   input.clear();
+  
   string nextline;
   do {
+    if (in.eof())
+      return false;
     std::getline(in, nextline);
-    input += nextline;
-  } while (! nextline.empty());
+    input.append(nextline);
+  } while ((nextline.find("</fsc>") == string::npos));
+  
+  // stuff string after end tag back into stream
+  size_t end = input.find("</fsc>") + 6;
+  size_t real_end = input.length();
+  for (size_t i = real_end - 1; i >= end; i--) {
+    in.putback(input.at(i));
+  }
+  input.erase(end, real_end - end);
+  
   return !input.empty();
 }
 
@@ -62,11 +74,11 @@ tFSCTokenizer::tokenize(std::string s, inp_list &result)
   tChart chart;
   tokenize(s, chart);
   tChartUtil::map_chart(chart, result);
-  chart.clear();
 }
 
 void
-tFSCTokenizer::tokenize(std::string s, tChart &result) {
+tFSCTokenizer::tokenize(std::string s, tChart &result)
+{  
   tFSCHandler fsc_handler(result);
   MemBufInputSource xml_input((const XMLByte *) s.c_str(), s.length(), "STDIN");
   parse_file(xml_input, &fsc_handler);
@@ -80,7 +92,6 @@ tFSCTokenizer::tokenize(std::string s, tChart &result) {
 
 tFSCHandler::tFSCHandler(tChart &chart)
 {
-  // create bottom state:
   _state_stack.push(_factory.create_state("*bottom*"));
   dynamic_cast<fsc::tFSCBottomState*>(_state_stack.top())->set_chart(&chart);
 }
@@ -99,7 +110,7 @@ tFSCHandler::startElement(const XMLCh* const xml_name,
       XERCES_CPP_NAMESPACE_QUALIFIER AttributeList& xml_attrs)
 {
   try {
-    std::string tgtname = XMLString::transcode(xml_name);
+    std::string tgtname = XMLCh2Native(xml_name);
     fsc::tFSCState *source = _state_stack.top();
     _state_stack.push(_factory.create_state(tgtname));
     fsc::tFSCState *target = _state_stack.top();
@@ -127,7 +138,7 @@ void
 tFSCHandler::characters(const XMLCh *const xml_chars, const unsigned int len)
 {
   try {
-    std::string chars = XMLString::transcode(xml_chars);
+    std::string chars = XMLCh2Native(xml_chars);
     fsc::tFSCState *current = _state_stack.top();
     if (chars.find_first_not_of(" \t\n\r") != std::string::npos)
       current->characters(chars); // only called if chars is not only whitespace
@@ -146,7 +157,7 @@ std::string
 tFSCHandler::errmsg(std::string category, std::string message)
 {
   return "[FSC tokenizer] " + category + " in "
-    + XMLString::transcode(_loc->getSystemId())
+    + XMLCh2Native(_loc->getSystemId())
     + ":" + boost::lexical_cast<std::string>(_loc->getLineNumber())
     + ":" + boost::lexical_cast<std::string>(_loc->getColumnNumber())
     + ": " + message;
@@ -155,19 +166,19 @@ tFSCHandler::errmsg(std::string category, std::string message)
 void
 tFSCHandler::warning(const SAXParseException& e)
 {
-  cerr << errmsg("Warning", XMLString::transcode(e.getMessage()));
+  cerr << errmsg("Warning", XMLCh2Native(e.getMessage()));
 }
 
 void
 tFSCHandler::error(const SAXParseException& e)
 {
-  cerr << errmsg("Error", XMLString::transcode(e.getMessage()));
+  cerr << errmsg("Error", XMLCh2Native(e.getMessage()));
 }
 
 void
 tFSCHandler::fatalError(const SAXParseException& e)
 {
-  throw tError(errmsg("Fatal error", XMLString::transcode(e.getMessage())));
+  throw tError(errmsg("Fatal error", XMLCh2Native(e.getMessage())));
 }
 
 
@@ -509,14 +520,14 @@ namespace fsc {
   void
   tFSCState_edge::enter(tFSCState_lattice *source, AttributeList &attrs)
   {
-    char *src_vertex = XMLString::transcode(attrs.getValue("source"));
-    char *tgt_vertex = XMLString::transcode(attrs.getValue("target"));
-    if (!src_vertex)
+    const XMLCh *src_vertex = attrs.getValue("source");
+    const XMLCh *tgt_vertex = attrs.getValue("target");
+    if (src_vertex == 0)
       throw tError("Missing required attribute \"source\".");
-    if (!tgt_vertex)
+    if (tgt_vertex == 0)
       throw tError("Missing required attribute \"target\".");
-    _vfrom_name = std::string(src_vertex);
-    _vto_name = std::string(tgt_vertex);
+    _vfrom_name = XMLCh2Native(src_vertex);
+    _vto_name = XMLCh2Native(tgt_vertex);
   }
   
   void
@@ -557,12 +568,12 @@ namespace fsc {
   {
     // cerr << "<" + name() + ">\n";
     // get type and instantiate the appropriate fs:
-    char *n = XMLString::transcode(attrs.getValue("type"));
+    const XMLCh *n = attrs.getValue("type");
     if (!n)
       throw tError("Missing required attribute \"type\".");
-    type_t type = lookup_type(n);
+    type_t type = lookup_type(XMLCh2Native(n));
     if (type == -1)
-      throw tError("Unknown type \"" + std::string(n) + "\".");
+      throw tError("Unknown type \"" + XMLCh2Native(n) + "\".");
     _fs = fs(type);
   }
   
@@ -624,16 +635,16 @@ namespace fsc {
   tFSCState_f::enter(tFSCState_fs *source, AttributeList &attrs)
   {
     // cerr << "<" + name() + ">\n";
-    char *n = XMLString::transcode(attrs.getValue("name")); // required
-    char *o = XMLString::transcode(attrs.getValue("org")); // optional
-    if (!n)
+    const XMLCh *n = attrs.getValue("name");
+    const XMLCh *o = attrs.getValue("org"); // optional
+    if (n == 0)
       throw tError("Missing required XML attribute \"name\".");
-    if (o && (std::string(o) != "list"))
+    if ((o != 0) && (XMLCh2Native(o) != "list"))
       throw tError("Wrong value for XML attribute \"org\".");
-    _attr = lookup_attr(n);
+    _attr = lookup_attr(XMLCh2Native(n).c_str());
     if (_attr == -1)
-      throw tError("Unknown attribute \"" + (string)n + "\".");
-    _is_list = o;
+      throw tError("Unknown attribute \"" + XMLCh2Native(n) + "\".");
+    _is_list = (o != 0);
     _parent = source;
   }
   
