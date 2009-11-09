@@ -476,6 +476,11 @@ tGrammar::tGrammar(const char * filename)
     
     init_parameters();
 
+    // initialize cm-specific parameters:
+    if ((get_opt<tokenizer_id>("opt_tok") == TOKENIZER_FSC)
+        || get_opt_int("opt_chart_mapping"))
+      tChartUtil::initialize();
+    
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
     undump_dags(&dmp);
@@ -624,6 +629,10 @@ tGrammar::tGrammar(const char * filename)
       }
     }
 
+    // check validity of cm-specific parameters:
+    if ((get_opt<tokenizer_id>("opt_tok") == TOKENIZER_FSC)
+        || get_opt_int("opt_chart_mapping"))
+      tChartUtil::check_validity();
 
 #ifdef HAVE_EXTDICT
     try
@@ -786,11 +795,6 @@ tGrammar::init_parameters()
           "packing enabled but no restrictor - packing disabled");
       opt_packing = 0;
     }
-    
-    // TODO better use Listener pattern to initialize grammar-dependent params?
-    if ((get_opt<tokenizer_id>("opt_tok") == TOKENIZER_FSC)
-        || get_opt_int("opt_chart_mapping"))
-      tChartUtil::initialize();
 }
 
 void
