@@ -367,6 +367,22 @@ tChartUtil::initialize()
     throw tError(e);
 }
 
+void
+tChartUtil::check_validity()
+{
+  string e; // errors
+  if (_lexicon_tokens_path && _lexicon_last_token_path) {
+    fs f1(_lexicon_tokens_path, BI_LIST);
+    fs f2(_lexicon_last_token_path, BI_TOP);
+    if (!f1.valid())
+      e += "Failed to get a value for the specified `lexicon-tokens-path' setting.";
+    if (!f2.valid())
+      e += "Failed to get a value for the specified `lexicon-last-token-path' setting.";
+  }
+  if (!e.empty())
+    throw tError(e);
+}
+
 tInputItem*
 tChartUtil::create_input_item(const fs &token_fs)
 {

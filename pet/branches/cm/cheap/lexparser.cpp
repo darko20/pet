@@ -275,27 +275,35 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   if (stem->length() == 1 
       && tChartUtil::lexicon_tokens_path()
       && tChartUtil::lexicon_last_token_path()) {
-    fs cons_fs(BI_CONS);
-    fs nil_fs(BI_NIL);
-    fs input_fs = i_item->get_fs();
-    cons_fs = unify(cons_fs, cons_fs.get_attr_value(BIA_FIRST), input_fs);
-    cons_fs = unify(cons_fs, cons_fs.get_attr_value(BIA_REST), nil_fs);
-    fs anchor_fs = newfs.get_path_value(tChartUtil::lexicon_tokens_path());
-    if (!anchor_fs.valid())
-      throw tError((std::string)"Failed to get a value for the specified "
-        "`lexicon-tokens-path' setting in lexical item of type `" +
-        newfs.printname() + "'.");
-    newfs = unify(newfs, anchor_fs, cons_fs);
+    //
+    // expand resulting fs as required (validity of lex_tokens_fs and
+    // lex_last_token_fs was checked once before):
+    //
+    fs lex_tokens_fs(tChartUtil::lexicon_tokens_path(), BI_LIST);
+    fs lex_last_token_fs(tChartUtil::lexicon_last_token_path(), BI_TOP);
+    newfs = unify(newfs, newfs, lex_tokens_fs);
     if (newfs.valid()) {
-      anchor_fs = newfs.get_path_value(tChartUtil::lexicon_last_token_path());
-      if (!anchor_fs.valid())
-        throw tError((std::string)"Failed to get a value for the specified "
-                     "`lexicon-last-token-path' setting in lexical item of "
-                     "type `" + newfs.printname() + "'.");
-      newfs = unify(newfs, anchor_fs, input_fs);
-    } // if
+      newfs = unify(newfs, newfs, lex_last_token_fs);
+    } else {
+      throw tError((std::string)"Failed to build the tokens list for "
+                   "`" + i_item->form() + "'.");
+    }
+    //
+    // build a list of the right arity, containing the token FSs
+    //
+    fs list_fs(BI_CONS);
+    fs nil_fs(BI_NIL);
+    fs token_fs = i_item->get_fs();
+    list_fs = unify(list_fs, list_fs.get_attr_value(BIA_FIRST), token_fs);
+    list_fs = unify(list_fs, list_fs.get_attr_value(BIA_REST), nil_fs);
+    //
+    // unify token FSs into final item fs:
+    //
+    newfs = unify(newfs, newfs.get_path_value(tChartUtil::lexicon_tokens_path()), list_fs);
+    if (newfs.valid()) {
+      newfs = unify(newfs, newfs.get_path_value(tChartUtil::lexicon_last_token_path()), token_fs);
+    }
   }
-
 
   if (newfs.valid()) {
     // LOG(logParse, DEBUG, "combine() succeeded in creating valid fs");
@@ -1095,8 +1103,23 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
     if (_lex_item->near_passive() 
         && tChartUtil::lexicon_tokens_path()
         && tChartUtil::lexicon_last_token_path()) {
+      
+      fs item_fs = _lex_item->get_fs(true);
       //
-      // first, build a list of the right arity, containing the token FSs
+      // expand resulting fs as required (validity of lex_tokens_fs and
+      // lex_last_token_fs was checked once before):
+      //
+      fs lex_tokens_fs(tChartUtil::lexicon_tokens_path(), BI_LIST);
+      fs lex_last_token_fs(tChartUtil::lexicon_last_token_path(), BI_TOP);
+      item_fs = unify(item_fs, item_fs, lex_tokens_fs);
+      if (item_fs.valid()) {
+        item_fs = unify(item_fs, item_fs, lex_last_token_fs);
+      } else {
+        throw tError((std::string)"Failed to build the tokens list for "
+                     "`" + _inp_item->form() + "'.");
+      }
+      //
+      // build a list of the right arity, containing the token FSs
       //
       fs list_fs(BI_LIST);
       fs nil_fs(BI_NIL);
@@ -1117,23 +1140,16 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
       } // for
       list_fs = unify(list_fs, list_fs.get_path_value(lpath), nil_fs);
       free_list(lpath);
-
-      fs item_fs = _lex_item->get_fs(true);
-      fs anchor_fs = item_fs.get_path_value(tChartUtil::lexicon_tokens_path());
-      if (!anchor_fs.valid())
-        throw tError((std::string)"Failed to get a value for the specified "
-                     "`lexicon-tokens-path' setting in lexical item of type `" 
-                     + get_printname(_lex_item->type()) + "'.");
-      item_fs = unify(item_fs, anchor_fs, list_fs);
-      if(item_fs.valid()) {
-        anchor_fs 
-          = item_fs.get_path_value(tChartUtil::lexicon_last_token_path());
-        if (!anchor_fs.valid())
-          throw tError((std::string)"Failed to get a value for the specified "
-                       "`lexicon-last-token-path' setting in lexical item of "
-                       "type `" + get_printname(_lex_item->type()) + "'.");
+      //
+      // unify token FSs into final item fs:
+      //
+      item_fs = unify(item_fs,
+          item_fs.get_path_value(tChartUtil::lexicon_tokens_path()), list_fs);
+      if (item_fs.valid()) {
         fs token_fs = dynamic_cast<tInputItem *>(daughters.back())->get_fs();
-        item_fs = unify(item_fs, anchor_fs, token_fs);
+        item_fs = unify(item_fs,
+            item_fs.get_path_value(tChartUtil::lexicon_last_token_path()),
+            token_fs);
       } // if
       //
       // only create (and add()) a new lexical item when unification succeeded

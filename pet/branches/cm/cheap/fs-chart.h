@@ -328,8 +328,16 @@ public:
 
   /**
    * Initialize all path settings.
+   * Called when loading a grammar.
    */
   static void initialize();
+  
+  /**
+   * Perform validity checks of cm-specific settings. 
+   * Called when loading a grammar.
+   * \throws tError if the settings are not valid
+   */
+  static void check_validity();
 
   /** Get the paths in lexical items into which input items or the rightmost
       token should be unified. */
