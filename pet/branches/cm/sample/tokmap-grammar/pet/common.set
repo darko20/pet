@@ -20,9 +20,6 @@ special-name-attr-args := "ARGS".
 lexrule-status-values := lex-rule.
 rule-status-values := grammar-rule.
 lexentry-status-values := lex-entry. 
-token-mapping-rule-status-values := tokmap-rule.
-lexical-filtering-rule-status-values := lexflt-rule.
-generic-lexentry-status-values := generic-lex-entry.
 
 ;; path to the list of arguments in a rule
 rule-args-path := ARGS.

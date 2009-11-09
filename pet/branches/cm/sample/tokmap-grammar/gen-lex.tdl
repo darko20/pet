@@ -1,17 +1,9 @@
 
 generic_sg_noun := noun-lxm &
   [ ORTH <! "generic-stem" !> ,
-    TOKEN.+TNT.+TAGS.FIRST "NN" ].
+    TOKENS.+LIST < [ +TNT.+TAGS.FIRST "NN" ] > ].
 
-; generic_mass_noun := noun-lxm &
-  ; [ ORTH <! *top* !> ,
-    ; TOKEN.+TNT.+TAGS.FIRST "NN" ].
-; 
-; generic_pl_noun := noun-lxm &
-  ; [ ORTH <! *top* !> ,
-    ; TOKEN.+TNT.+TAGS.FIRST "NN" ].
-
-; generic_trans_verb_bse := trans-verb &
-;   [ ORTH <! *top* !> ,
-;     TOKEN.+TNT.+TAGS.FIRST "VBZ" ].
-
+generic_pl_noun := noun-lxm &
+  [ ORTH <! "generic-stem" !> ,
+    TOKENS.+LIST < [ +TNT.+TAGS.FIRST "NNS" ] > ].
+    

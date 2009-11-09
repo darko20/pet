@@ -6,13 +6,13 @@
 
 ;; token mapping:
 ;; chart mapping rules for manipulating the tokens in the input chart
-:begin :instance :status tokmap-rule.
+:begin :instance :status token-mapping-rule.
 :include "tokmap-rules.tdl".
 :end :instance.
 
 ;; lexical filtering:
 ;; chart mapping rules for manipulating the chart after lexical instantiation
-:begin :instance :status lexflt-rule.
+:begin :instance :status lexical-filtering-rule.
 :include "lexflt-rules.tdl".
 :end :instance.
 

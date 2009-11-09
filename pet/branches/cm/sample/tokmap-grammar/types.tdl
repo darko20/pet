@@ -109,7 +109,7 @@ head-second := binary-rule &
 
 lex-item := sign &
 [ ORTH [ LIST [ REST #rest ], LAST #rest ],
-  TOKENS *list* ].
+  TOKENS tokens ].
 
 lexeme := lex-item.
 
@@ -189,19 +189,27 @@ prep-lxm := const-lxm &
 ;;; token feature structures
 ;;; ===========================================================
 
-+tok := *top* &
-  [ +ID    strlist,
+token := *top* &
+  [ +ID    *diff-list*,
     +FORM  string,
     +STEM  string,
     +INFLR string,
     +LEXID string,
-    +CFROM string,
-    +CTO   string,
-    +TNT   +tnt    ].
+    +FROM  string,
+    +TO    string,
+    +TNT   tnt    ].
 
-+tnt := *top* &
+tnt := *top* &
   [ +TAGS strlist,
     +PRBS strlist ].
+
+null_tnt := tnt &
+[ +TAGS < >,
+  +PRBS < > ].
+
+tokens := *top* &
+[ +LIST *list*, 
+  +LAST token ].
 
 
 
@@ -219,7 +227,7 @@ chart-mapping-rule := *top* &
 ;;; input mapping rules:
 
 inplist := *list*.
-inpcons := inplist & *cons* & [ FIRST +tok , REST inplist ].
+inpcons := inplist & *cons* & [ FIRST token , REST inplist ].
 inpnull := inplist & *null*.
 
 inpmap-rule := chart-mapping-rule &
@@ -229,37 +237,37 @@ inpmap-rule := chart-mapping-rule &
 
 inpmap-x11-rule := inpmap-rule &
   [ +CONTEXT inplist,
-    +INPUT   < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] >,
-    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] > ].
+    +INPUT   < token & [ +ID #id, +FROM #cfrom, +TO #cto , +TNT #tnt ] >,
+    +OUTPUT  < token & [ +ID #id, +FROM #cfrom, +TO #cto , +TNT #tnt ] > ].
 
 inpmap-x12-rule := inpmap-rule &
   [ +CONTEXT inplist,
-    +INPUT   < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] >,
-    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ],
-               +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ].
+    +INPUT   < token & [ +ID #id, +FROM #cfrom, +TO #cto ] >,
+    +OUTPUT  < token & [ +ID #id, +FROM #cfrom, +TO #cto ],
+               token & [ +ID #id, +FROM #cfrom, +TO #cto ] > ].
 
 inpmap-x21-rule := inpmap-rule &
   [ +CONTEXT inplist,
-    +INPUT   < +tok & [ +CFROM #cfrom ],
-               +tok & [ +CTO   #cto   ] >,
-    +OUTPUT  < +tok & [ +CFROM #cfrom, +CTO #cto ] > ].
+    +INPUT   < token & [ +FROM #cfrom ],
+               token & [ +TO   #cto   ] >,
+    +OUTPUT  < token & [ +FROM #cfrom, +TO #cto ] > ].
 
 inpmap-012-rule := inpmap-rule &
   [ +CONTEXT < >,
-    +INPUT   < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ,
-    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ],
-               +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ].
+    +INPUT   < token & [ +ID #id, +FROM #cfrom, +TO #cto ] > ,
+    +OUTPUT  < token & [ +ID #id, +FROM #cfrom, +TO #cto ],
+               token & [ +ID #id, +FROM #cfrom, +TO #cto ] > ].
 
 inpmap-101-rule := inpmap-rule &
-  [ +CONTEXT < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] >,
+  [ +CONTEXT < token & [ +ID #id, +FROM #cfrom, +TO #cto , +TNT #tnt ] >,
     +INPUT   < > ,
-    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto , +TNT #tnt ] > ].
+    +OUTPUT  < token & [ +ID #id, +FROM #cfrom, +TO #cto , +TNT #tnt ] > ].
 
 inpmap-102-rule := inpmap-rule &
-  [ +CONTEXT < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] >,
+  [ +CONTEXT < token & [ +ID #id, +FROM #cfrom, +TO #cto ] >,
     +INPUT   < > ,
-    +OUTPUT  < +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ],
-               +tok & [ +ID #id, +CFROM #cfrom, +CTO #cto ] > ].
+    +OUTPUT  < token & [ +ID #id, +FROM #cfrom, +TO #cto ],
+               token & [ +ID #id, +FROM #cfrom, +TO #cto ] > ].
 
 ;;; lexical mapping rules:
 
