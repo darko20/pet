@@ -1,12 +1,37 @@
-#include <xercesc/util/PlatformUtils.hpp>
-#include <xercesc/parsers/SAXParser.hpp>
-#include <xercesc/sax/SAXException.hpp>
-#include <xercesc/framework/MemBufFormatTarget.hpp>
+/* PET
+ * Platform for Experimentation with efficient HPSG processing Techniques
+ * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+ *
+ *   This program is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 #include "xmlparser.h"
+
 #include "cheap.h"
 #include "logging.h"
 
+#include <boost/scoped_array.hpp>
+
+#include <xercesc/framework/MemBufFormatTarget.hpp>
+#include <xercesc/parsers/SAXParser.hpp>
+#include <xercesc/sax/SAXException.hpp>
+#include <xercesc/util/PlatformUtils.hpp>
+#include <xercesc/util/XMLString.hpp>
+
 using namespace XERCES_CPP_NAMESPACE;
+using std::basic_string;
 
 /******************************************************************************
  String Encoding/Decoding Helpers
@@ -43,17 +68,32 @@ const char * XMLCh2Latin(const XMLCh *in) {
   return (const char *) membuf->getRawBuffer();
 }
 
+std::string XMLCh2Native(const XMLCh * const str) {
+  boost::scoped_array<char> ptr(xercesc::XMLString::transcode(str));
+  return (ptr != 0) ? std::string(ptr.get()) : "";
+}
+
+std::string XMLCh2Native(basic_string<XMLCh> str) {
+  return XMLCh2Native(str.c_str());
+}
+
+basic_string<XMLCh> Native2XMLCh(const char *str) {
+  boost::scoped_array<XMLCh> ptr(xercesc::XMLString::transcode(str));
+  return (ptr != 0) ? basic_string<XMLCh>(ptr.get()) : basic_string<XMLCh>();
+}
+
+basic_string<XMLCh> Native2XMLCh(const std::string &str) {
+  return Native2XMLCh(str.c_str());
+}
 
 
 bool parse_file(InputSource &inp, HandlerBase *docHandler){
   SAXParser parser;
 
   parser.setValidationScheme(SAXParser::Val_Auto);
-  //parser.setDoValidation(true); // deprecated, replaced by above fn
   parser.setDoNamespaces(true);    // optional
   parser.setDoSchema(true);
   parser.setValidationSchemaFullChecking(true);
-  // parser.setValidationConstraintFatal(true);
   parser.setExitOnFirstFatalError(true);
 
   parser.setDocumentHandler(docHandler);
