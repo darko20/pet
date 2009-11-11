@@ -193,7 +193,7 @@ char* parse_options(int argc, char* argv[])
 
   if(!argc) return NULL;
 
-  while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
+  while((c = getopt_long_only(argc, argv, "+", options, &res)) != EOF)
   {
       switch(c)
       {
@@ -397,11 +397,11 @@ char* parse_options(int argc, char* argv[])
         }
     }
 
-  if(optind != argc - 1)
-    {
-      LOG(logAppl, FATAL, "parse_options(): expecting name of grammar to load");
-      return NULL;
-    }
+  if(optind != argc - 1) {
+    LOG(logAppl, FATAL, "could not parse options: "
+        "expecting grammar-file as last parameter");
+    return NULL;
+  }
 
   if( get_opt_bool("opt_hyper") &&
       get_opt_charp("opt_compute_qc") != NULL)
