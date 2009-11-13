@@ -195,6 +195,7 @@ filter_combine_task(tItem *active, tItem *passive)
  */
 void
 postulate(tItem *passive) {
+  assert(!passive->blocked());
   // iterate over all the rules in the grammar
   for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
       rule++) {
