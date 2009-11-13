@@ -89,7 +89,7 @@ inline void tItemPrinter::print_packed(ostream &out, const tItem *item) {
 // former tItem::print_family
 inline void tItemPrinter::print_family(ostream &out, const tItem *item) {
   const item_list &items = item->daughters();
-  out << " < dtrs: ";
+  out << " < blk: " << item->blocked() << " dtrs: ";
   for(item_citer pos = items.begin(); pos != items.end(); ++pos)
     out << get_id(*pos) << " ";
   out << " parents: ";
@@ -131,11 +131,12 @@ void tItemPrinter::real_print(const tInputItem *item) {
   print_inflrs(*_out, item);
   *_out << "} ";
 
-  // fprintf(f, "@%d", inflpos);
-
   *_out << "{";
   item->get_in_postags().print(*_out);
   *_out << "}]";
+
+  *_out << " < blk: " << item->blocked() << " >";
+
   if (_dag_printer != NULL) {
     print_fs(*_out, get_fs(item));
   }
