@@ -125,7 +125,7 @@ void chart::remove(hash_set<tItem *> &to_delete)
 
 void chart::print(tAbstractItemPrinter *pr, item_predicate toprint) const {
   for(chart_iter_filtered pos(this, toprint); pos.valid(); pos++) {
-    pr->print(pos.current());// out << endl;
+    pr->print(pos.current());
   }
 }
 
@@ -136,7 +136,10 @@ void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
   if (pr == NULL) {
     pr = &def_print;
   }
-  print(pr, toprint);
+  for(chart_iter_filtered pos(this, toprint); pos.valid(); pos++) {
+    out << endl;
+    pr->print(pos.current());
+  }
 }
 
 void chart::get_statistics()

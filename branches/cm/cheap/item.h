@@ -443,7 +443,7 @@ public:
    */
   inline void freeze(bool freeze_parents = true) { block(2, freeze_parents); }
   /** \c true if an item is marked as blocked. */
-  inline bool blocked() const { return _blocked != 0; }
+  inline int blocked() const { return _blocked; }
   /** \c true if an item is marked as temporarily blocked. */
   inline bool frosted() const { return _blocked == 1; }
   /** \c true if an item is marked as permanently blocked. */
