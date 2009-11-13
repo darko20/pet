@@ -216,7 +216,8 @@ lex_parser::add(tLexItem *lex) {
     while(pass.valid()) {
       // we cannot check compatiblity via type, we have to have an
       // input-trait too :(
-      if (pass.current()->trait() == INPUT_TRAIT) {
+      tItem *current = pass.current();
+      if ((current->trait() == INPUT_TRAIT) && (!current->blocked())) {
         _agenda.push(new lex_and_inp_task(lex
                                , dynamic_cast<tInputItem *>(pass.current())));
       }
@@ -340,6 +341,10 @@ void
 lex_parser::add(tInputItem *inp) {
   // add item to the global chart
   Chart->add(inp);
+  
+  // item might already be blocked by token mapping:
+  if (inp->blocked())
+    return;
   
   // do a morphological analysis if necessary:
   list<tMorphAnalysis> morphs;
@@ -903,8 +908,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
   // now initialize agenda of lexical parser with list of input tokens
   // and start lexical processing with application of lex entries and lex rules
   for(inp_iterator it=inp_tokens.begin(); it != inp_tokens.end(); it++) {
-    if (!(*it)->blocked())
-      add(*it);
+    add(*it);
   }
 
   //
@@ -1065,7 +1069,8 @@ lex_parser::lexical_processing(inp_list &inp_tokens
 
   chart_iter ci(Chart);
   while (ci.valid()) {
-    if (ci.current()->passive() && (ci.current()->trait() != INPUT_TRAIT)) {
+    tItem *item = ci.current();
+    if (item->passive() && !item->blocked() && (item->trait() != INPUT_TRAIT)) {
       // _fix_me_ Use item_tasks here that were used with the input chart?
       // The item tasks would add the item to the chart again. What is
       // missing here is the test for packed items, the `rootness' of each
