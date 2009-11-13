@@ -74,7 +74,8 @@ public:
   /**
    * Construct a new object, using the specified chart mapping rules.
    */
-  tChartMappingEngine(const std::list<tChartMappingRule*> & rules);
+  tChartMappingEngine(const std::list<tChartMappingRule*> & rules,
+      const std::string &phase_name = "chart mapping");
   
   /**
    * Apply the chart mapping rules supplied during construction to the
@@ -92,6 +93,12 @@ private:
    * tChartMappingEngine.
    */
   const std::list<tChartMappingRule*> & _rules;
+  
+  /**
+   * A string for identifying this instance in logging output,
+   * e.g. "token mapping".
+   */
+  const std::string _phase_name;
   
 };
 

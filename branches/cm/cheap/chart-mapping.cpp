@@ -147,7 +147,7 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
     next_match = new_match ? (cache[sig]=match->match(item, arg, loglevel)) : cache[sig];
     
     // logging:
-    if ((loglevel & 256) && new_match) {
+    if (new_match && (LOG_ENABLED(logChartMapping, DEBUG) || (loglevel & 256))) {
       // TODO implement tItem::to_string() or tItem::printname()??
       string itemstr = "chart item " + lexical_cast<string>(item->id());
       tInputItem* inp_item = dynamic_cast<tInputItem*>(item);
@@ -176,8 +176,8 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
 }
 
 tChartMappingEngine::tChartMappingEngine(
-    const std::list<tChartMappingRule*> &rules)
-: _rules(rules)
+    const std::list<tChartMappingRule*> &rules, const std::string &phase_name)
+: _rules(rules), _phase_name(phase_name)
 {
   // nothing to do
 }
@@ -189,7 +189,7 @@ tChartMappingEngine::process(tChart &chart)
   int loglevel = get_opt_int("opt_chart_mapping");
   
   // logging:
-  if (LOG_ENABLED(logChartMapping, INFO) || loglevel & 1) {
+  if (LOG_ENABLED(logChartMapping, NOTICE) || loglevel & 1) {
     // get max id for items in the chart:
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
@@ -200,7 +200,7 @@ tChartMappingEngine::process(tChart &chart)
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)
         max_id = (*it)->id();
-    cerr << format("[cm] greatest item id before chart mapping: %d\n") % max_id;
+    cerr << format("[cm] greatest item id before %s: %d\n") % _phase_name % max_id;
   }
 
   // cache storing each match we've created:
@@ -234,7 +234,7 @@ tChartMappingEngine::process(tChart &chart)
     delete match_it->second; // delete 0 is safe according C++ Standard
 
   // logging:
-  if (LOG_ENABLED(logChartMapping, INFO) || loglevel & 1) {
+  if (LOG_ENABLED(logChartMapping, NOTICE) || loglevel & 1) {
     // get max id for items in the chart:
     // TODO for some reason the ids of the input chart might come in any order
     //      fix this and then look at the last item only
@@ -244,7 +244,7 @@ tChartMappingEngine::process(tChart &chart)
     for (it = items.rbegin(); it != items.rend(); it++)
       if ((*it)->id() > max_id)
         max_id = (*it)->id();
-    cerr << format("[cm] greatest item id after chart mapping: %d\n") % max_id;
+    cerr << format("[cm] greatest item id after %s: %d\n") % _phase_name % max_id;
   }
 }
 
@@ -1336,7 +1336,7 @@ tChartMappingMatch::fire(tChart &chart, int loglevel) {
   chart_changed = chart_changed || !inps.empty();
   
   // logging:
-  if (loglevel & 1 || loglevel & 16) {
+  if (LOG_ENABLED(logChartMapping, INFO) || loglevel & 1 || loglevel & 16) {
     ostringstream item_ids_os;
     std::vector<const tChartMappingRuleArg*> args = get_rule()->get_args();
     std::vector<const tChartMappingRuleArg*>::iterator arg_it;

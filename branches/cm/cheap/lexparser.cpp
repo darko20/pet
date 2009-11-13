@@ -848,7 +848,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
   position_map position_mapping = _tokenizers.front()->position_mapping();
   _maxpos = map_positions(inp_tokens, position_mapping);
   
-  // input chart mapping:
+  // token mapping:
   if (chart_mapping) {
     if (chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping starts\n");
@@ -863,7 +863,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
     } // if
     // apply chart mapping rules:
     const std::list<class tChartMappingRule*> &rules = Grammar->tokmap_rules();
-    tChartMappingEngine mapper(rules);
+    tChartMappingEngine mapper(rules, "token mapping");
     mapper.process(chart);
     // map back:
     _maxpos = tChartUtil::map_chart(chart, inp_tokens);
@@ -953,7 +953,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     } // if
     // apply chart mapping rules:
     const std::list<class tChartMappingRule*> &rules = Grammar->lexflt_rules();
-    tChartMappingEngine mapper(rules);
+    tChartMappingEngine mapper(rules, "lexical filtering");
     mapper.process(chart);
     // map back:
     _maxpos = tChartUtil::map_chart(chart, *Chart);
