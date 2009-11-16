@@ -324,7 +324,7 @@ packed_edge(tItem *newitem) {
     if(forward && !olditem->blocked()) {
       if((!backward && (opt_packing & PACKING_PRO))
          || (backward && (opt_packing & PACKING_EQUI))) {
-        LOG(logParse, DEBUG, "proactive (" << (backward ? "equi" : "subs")
+        LOG(logPack, DEBUG, "proactive (" << (backward ? "equi" : "subs")
             << ") packing:" << endl << *newitem << endl
             << " --> " << endl << *olditem << endl);
 
@@ -339,7 +339,7 @@ packed_edge(tItem *newitem) {
     }
 
     if(backward && (opt_packing & PACKING_RETRO) && !olditem->frosted()) {
-      LOG(logParse, DEBUG,  "retroactive packing:" << endl
+      LOG(logPack, DEBUG,  "retroactive packing:" << endl
           << *newitem << " <- " << *olditem << endl);
 
       newitem->packed.splice(newitem->packed.begin(), olditem->packed);
