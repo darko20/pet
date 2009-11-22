@@ -229,22 +229,21 @@ lex_parser::add(tLexItem *lex) {
 /**
  * Helper function for printing debug logs for lex_parser::combine().
  */
-void
+std::string
 debug_combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules) {
   ostringstream cdeb;
-  cdeb << "ERROR: combine("
+  cdeb << "combine("
        << stem->printname()
        << ", id:" << i_item->id()
-       << " form:" << i_item->form();
-  cdeb << " infl_rules:[";
+       << " form:" << i_item->form()
+       << " infl_rules:[";
   for(const list_int *l = infl_rules; l != 0; l = rest(l)) {
     cdeb << print_name(first(l));
     if (rest(l) != 0)
       cdeb << " ";
   }
-  cdeb << "]";
-  cdeb << ", mods) failed in creating valid fs";
-  LOG(logLexproc, DEBUG, cdeb.str());
+  cdeb << "], mods) failed in creating a valid fs.";
+  return cdeb.str();
 }
 
 /** This function creates new tLexItems based on an input item, its
@@ -274,21 +273,8 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   // the tLexItem constructor on the passive item.              (16-jan-09; oe)
   //
   if (stem->length() == 1 
-      && tChartUtil::lexicon_tokens_path()
-      && tChartUtil::lexicon_last_token_path()) {
-    //
-    // expand resulting fs as required (validity of lex_tokens_fs and
-    // lex_last_token_fs was checked once before):
-    //
-    fs lex_tokens_fs(tChartUtil::lexicon_tokens_path(), BI_LIST);
-    fs lex_last_token_fs(tChartUtil::lexicon_last_token_path(), BI_TOP);
-    newfs = unify(newfs, newfs, lex_tokens_fs);
-    if (newfs.valid()) {
-      newfs = unify(newfs, newfs, lex_last_token_fs);
-    } else {
-      throw tError((std::string)"Failed to build the tokens list for "
-                   "`" + i_item->form() + "'.");
-    }
+      && tChartUtil::lexicon_tokens_path() != 0
+      && tChartUtil::lexicon_last_token_path() != 0) {
     //
     // build a list of the right arity, containing the token FSs
     //
@@ -300,17 +286,31 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
     //
     // unify token FSs into final item fs:
     //
-    newfs = unify(newfs, newfs.get_path_value(tChartUtil::lexicon_tokens_path()), list_fs);
     if (newfs.valid()) {
-      newfs = unify(newfs, newfs.get_path_value(tChartUtil::lexicon_last_token_path()), token_fs);
+      fs anchor_fs = newfs.get_path_value(tChartUtil::lexicon_tokens_path());
+      if (!anchor_fs.valid()) {
+        LOG(logLexproc, ERROR, debug_combine(stem, i_item, infl_rules) +
+            " Reason: lexicon_tokens_path cannot be resolved in fs.");
+        return;
+      }
+      newfs = unify(newfs, anchor_fs, list_fs);
+    }
+    if (newfs.valid()) {
+      fs anchor_fs = newfs.get_path_value(tChartUtil::lexicon_last_token_path());
+      if (!anchor_fs.valid()) {
+        LOG(logLexproc, ERROR, debug_combine(stem, i_item, infl_rules) +
+            " Reason: lexicon_last_token_path cannot be resolved in fs.");
+        return;
+      }
+      newfs = unify(newfs, anchor_fs, token_fs);
     }
   }
 
   if (newfs.valid()) {
     // LOG(logParse, DEBUG, "combine() succeeded in creating valid fs");
     add(new tLexItem(stem, i_item, newfs, infl_rules));
-  } else if (LOG_ENABLED(logLexproc, DEBUG)) {
-      debug_combine(stem, i_item, infl_rules);
+  } else {
+    LOG(logLexproc, DEBUG, debug_combine(stem, i_item, infl_rules));
   }
 }
 
@@ -1090,6 +1090,24 @@ lex_parser::lexical_processing(inp_list &inp_tokens
 }
 
 
+/**
+ * Helper function for printing debug logs for lex_and_inp_task::execute().
+ */
+std::string
+debug_lex_and_inp_task_execute(tLexItem *l_item, tInputItem *i_item) {
+  ostringstream cdeb;
+  cdeb << "Combining lexical item "
+       << l_item->printname()
+       << "(id:" << l_item->id()
+       << ", form:" << l_item->get_yield()
+       << ") with input item "
+       << i_item->printname()
+       << "(id:" << i_item->id()
+       << ", form:" << i_item->form()
+       << ") failed in creating a valid fs.";
+  return cdeb.str();
+}
+
 void lex_and_inp_task::execute(class lex_parser &parser) {
 
   // the lex item already has its infl position filled (as long as the
@@ -1110,19 +1128,6 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
         && tChartUtil::lexicon_last_token_path()) {
       
       fs item_fs = _lex_item->get_fs(true);
-      //
-      // expand resulting fs as required (validity of lex_tokens_fs and
-      // lex_last_token_fs was checked once before):
-      //
-      fs lex_tokens_fs(tChartUtil::lexicon_tokens_path(), BI_LIST);
-      fs lex_last_token_fs(tChartUtil::lexicon_last_token_path(), BI_TOP);
-      item_fs = unify(item_fs, item_fs, lex_tokens_fs);
-      if (item_fs.valid()) {
-        item_fs = unify(item_fs, item_fs, lex_last_token_fs);
-      } else {
-        throw tError((std::string)"Failed to build the tokens list for "
-                     "`" + _inp_item->form() + "'.");
-      }
       //
       // build a list of the right arity, containing the token FSs
       //
@@ -1148,13 +1153,24 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
       //
       // unify token FSs into final item fs:
       //
-      item_fs = unify(item_fs,
-          item_fs.get_path_value(tChartUtil::lexicon_tokens_path()), list_fs);
       if (item_fs.valid()) {
+        fs anchor_fs = item_fs.get_path_value(tChartUtil::lexicon_tokens_path());
+        if (!anchor_fs.valid()) {
+          LOG(logLexproc, ERROR, debug_lex_and_inp_task_execute(_lex_item, _inp_item) +
+              " Reason: lexicon_tokens_path cannot be resolved in fs.");
+          return;
+        }
+        item_fs = unify(item_fs, anchor_fs, list_fs);
+      }
+      if (item_fs.valid()) {
+        fs anchor_fs = item_fs.get_path_value(tChartUtil::lexicon_last_token_path());
+        if (!anchor_fs.valid()) {
+          LOG(logLexproc, ERROR, debug_lex_and_inp_task_execute(_lex_item, _inp_item) +
+              " Reason: lexicon_last_token_path cannot be resolved in fs.");
+          return;
+        }
         fs token_fs = dynamic_cast<tInputItem *>(daughters.back())->get_fs();
-        item_fs = unify(item_fs,
-            item_fs.get_path_value(tChartUtil::lexicon_last_token_path()),
-            token_fs);
+        item_fs = unify(item_fs, anchor_fs, token_fs);
       } // if
       //
       // only create (and add()) a new lexical item when unification succeeded
