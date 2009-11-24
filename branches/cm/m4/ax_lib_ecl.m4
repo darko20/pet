@@ -121,8 +121,6 @@ AC_DEFUN([AX_LIB_ECL], [
     ax_lib_ecl_include_searchpaths=$(echo $ECL_CPPFLAGS_SEARCHPATH |
                                      sed -e 's/ /\n/g; s/^-I//mg; s/\n/ /mg;')
     AC_MSG_CHECKING([whether ECL provides ecl/ecl.h or ecl.h])
-    # need to call AH_CHECK_HEADERS since AC_CHECK_HEADERS is conditional
-    AH_CHECK_HEADERS([ecl/ecl.h ecl.h])
     for ax_lib_ecl_header in "ecl/ecl.h" "ecl.h" ; do
       for ax_lib_ecl_dir in $ax_lib_ecl_include_searchpaths ; do
         if test -f "$ax_lib_ecl_dir/$ax_lib_ecl_header" ; then
