@@ -181,7 +181,9 @@ protected:
 };
 
 
-class chart_iter_filtered : protected chart_iter {
+// WAS: class chart_iter_filtered : protected chart_iter {
+
+class chart_iter_filtered : public chart_iter {
 private:
   item_predicate _to_include;
 
