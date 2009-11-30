@@ -23,6 +23,7 @@
 #include "types.h"
 #include "utility.h"
 
+#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
 int variable_generator = 0;
@@ -31,6 +32,19 @@ extern settings *cheap_settings;
 
 namespace mrs {
 
+/**
+ * Escape XML delimiters.
+ */
+std::string
+xml_escape(std::string s) {
+  boost::replace_all(s, "<", "&lt;");
+  boost::replace_all(s, ">", "&gt;");
+  boost::replace_all(s, "&", "&amp;");
+  boost::replace_all(s, "'", "&apos;");
+  boost::replace_all(s, "\"", "&quot;");
+  return s;
+}
+ 
 tBaseMRS::~tBaseMRS() {
   for (std::list<tBaseRel*>::iterator rel = liszt.begin(); 
        rel != liszt.end(); rel ++)
@@ -327,11 +341,11 @@ void tRel::
 print(std::ostream &out) {
   out << boost::format("<ep cfrom='%d' cto='%d'>") % cfrom % cto;
   if (pred[0] == '"')
-    out << "<spred>" << pred.substr(1,pred.length()-2) << "</spred>";
+    out << "<spred>" << xml_escape(pred.substr(1,pred.length()-2)) << "</spred>";
   else {
     char* uppred = new char[pred.length()+1];
     strtoupper(uppred, pred.c_str());
-    out << "<pred>" << uppred << "</pred>"; //pred;
+    out << "<pred>" << xml_escape(uppred) << "</pred>"; //pred;
     delete uppred;
   }
   out << boost::format("<label vid='%d'/>") % handel->id;
@@ -342,8 +356,8 @@ print(std::ostream &out) {
   feats.sort(ltfeat());
   for (std::list<std::string>::iterator feat = feats.begin();
        feat != feats.end(); feat ++) {
-    out << "\n<fvpair>";
-    out << "<rargname>" << *feat << "</rargname>";
+    out << std::endl << "<fvpair>";
+    out << "<rargname>" << xml_escape(*feat) << "</rargname>";
     flist[*feat]->print_full(out);
     out << "</fvpair>";
   }
@@ -373,9 +387,10 @@ print(std::ostream &out) {
 void tConstant::
 print(std::ostream &out) {
   if (value[0] == '"')
-    out << "<constant>" << value.substr(1,value.length()-2) << "</constant>";
+    out << "<constant>" << xml_escape(value.substr(1,value.length()-2))
+        << "</constant>";
   else
-    out << "<constant>" << value << "</constant>";
+    out << "<constant>" << xml_escape(value) << "</constant>";
 }
 
 void tConstant::
@@ -420,12 +435,12 @@ tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
 
 void tVar::
 print(std::ostream &out) {
-  out << boost::format("<var vid='%d' sort='%s'></var>") % id % type;
+  out << boost::format("<var vid='%d' sort='%s'></var>") % id % xml_escape(type);
 }
 
 void tVar::
 print_full(std::ostream &out) {
-  out << boost::format("<var vid='%d' sort='%s'>") % id % type;
+  out << boost::format("<var vid='%d' sort='%s'>") % id % xml_escape(type);
   // _todo_ this should be adapted to handle the feature priority
   std::list<std::string> feats;
   for (std::map<std::string,std::string>::iterator extrapair = extra.begin();
@@ -436,8 +451,9 @@ print_full(std::ostream &out) {
        feat != feats.end(); feat ++) {
     char* upvalue = new char[extra[*feat].length()+1];
     strtoupper(upvalue, extra[*feat].c_str());
-    out << std::endl << "<extrapair><path>" << *feat << "</path><value>"
-          << upvalue << "</value></extrapair>";
+    out << std::endl << "<extrapair><path>" << xml_escape(*feat)
+          << "</path><value>"
+          << xml_escape(upvalue) << "</value></extrapair>";
     delete upvalue;
   }
   out << "</var>";
@@ -462,7 +478,7 @@ create_index_property_list(dag_node* dag, std::string path, std::map<std::string
 
   /* this was from the LKB implementation, and is now largely
     deprecated by the extension of variable type mapping in VPM */
-  bool compatible_var_types(std::string type1, std::string type2) {
+bool compatible_var_types(std::string type1, std::string type2) {
   if (type1 == type2)
     return true;
   if (type1 == "u" || type2 == "u")
@@ -514,4 +530,4 @@ operator()(const std::string feat1, const std::string feat2) const {
   return feat1 < feat2;
 }
 
-}
+} // namespace mrs
