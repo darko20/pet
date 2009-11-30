@@ -114,30 +114,8 @@ AC_DEFUN([AX_LIB_ECL], [
   if test "x$ax_lib_ecl" = "xyes" ; then
     AC_REQUIRE([AC_PROG_CC])
     AC_LANG_PUSH([C])
-    # Perform a search for ecl.h in the include search paths, and only then do
-    # a AC_CHECK_HEADERS. Can't look for header location with AC_CHECK_HEADERS
-    # directly since it also looks in standard locations, where a different
-    # version of the library might be installed.
-    ax_lib_ecl_include_searchpaths=$(echo $ECL_CPPFLAGS_SEARCHPATH |
-                                     sed -e 's/ /\n/g; s/^-I//mg; s/\n/ /mg;')
-    AC_MSG_CHECKING([whether ECL provides ecl/ecl.h or ecl.h])
-    # need to call AH_CHECK_HEADERS since AC_CHECK_HEADERS is conditional
-    AH_CHECK_HEADERS([ecl/ecl.h ecl.h])
-    for ax_lib_ecl_header in "ecl/ecl.h" "ecl.h" ; do
-      for ax_lib_ecl_dir in $ax_lib_ecl_include_searchpaths ; do
-        if test -f "$ax_lib_ecl_dir/$ax_lib_ecl_header" ; then
-          AC_MSG_RESULT([$ax_lib_ecl_header])
-          AC_CHECK_HEADERS([$ax_lib_ecl_header], [], [ax_lib_ecl="no"])
-          break 2
-        else
-          ax_lib_ecl_header=""
-        fi
-      done
-    done
-    if test "x$ax_lib_ecl_header" = "x" ; then
-      AC_MSG_RESULT([(none found)])
-      ax_lib_ecl="no"
-    fi
+    ax_lib_ecl="no"
+    AC_CHECK_HEADERS([ecl/ecl.h ecl.h], [ax_lib_ecl="yes"])
   fi
   
   # checking library functionality
