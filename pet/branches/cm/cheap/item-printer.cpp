@@ -274,7 +274,7 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
     *_out << "}";
   }
 
-  if(_level > 0 && result_root(item) != -1) {
+  if(_level == 0 && result_root(item) != -1) {
     *_out << " [" << print_name(result_root(item)) << "]";
   }
   
@@ -331,7 +331,7 @@ tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
       *_out << (*pos)->id();
   }
 
-  *_out << (item->result_root() > -1 ? "))" : ")") << flush;
+  *_out << (_level == 0 && item->result_root() > -1 ? "))" : ")") << flush;
 }
 
 /* ------------------------------------------------------------------------- */
