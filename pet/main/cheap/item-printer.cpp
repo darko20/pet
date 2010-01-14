@@ -270,7 +270,7 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
     *_out << "}";
   }
 
-  if(_level > 0 && result_root(item) != -1) {
+  if(_level == 0 && result_root(item) != -1) {
     *_out << " [" << print_name(result_root(item)) << "]";
   }
   
