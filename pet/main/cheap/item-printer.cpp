@@ -322,7 +322,7 @@ tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
       *_out << (*pos)->id();
   }
 
-  *_out << (item->result_root() > -1 ? "))" : ")") << flush;
+  *_out << (_level == 0 && item->result_root() > -1 ? "))" : ")") << flush;
 }
 
 /* ------------------------------------------------------------------------- */
