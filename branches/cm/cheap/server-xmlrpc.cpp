@@ -146,7 +146,7 @@ struct analyze_method : public xmlrpc_c::method
         // get derivation:
         std::map<std::string, xmlrpc_c::value> reading_helper;
         ostringstream osstream;
-        tCompactDerivationPrinter printer(osstream);
+        tTSDBDerivationPrinter printer(osstream, 1);
         printer.print(item);
         reading_helper["derivation"] = xmlrpc_c::value_string(osstream.str());
         
