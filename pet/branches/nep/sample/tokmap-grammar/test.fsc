@@ -1,0 +1,170 @@
+<?xml version='1.0'?>
+<!DOCTYPE fsc [
+<!ELEMENT fsc ( chart ) >
+<!ATTLIST fsc version NMTOKEN #REQUIRED >
+<!ELEMENT chart ( text, lattice ) >
+<!ATTLIST chart id CDATA #REQUIRED >
+<!ELEMENT text ( #PCDATA ) >
+<!ELEMENT lattice ( edge* ) >
+<!ATTLIST lattice final CDATA #REQUIRED >
+<!ATTLIST lattice init CDATA #REQUIRED >
+<!ELEMENT edge ( fs ) >
+<!ATTLIST edge source CDATA #REQUIRED >
+<!ATTLIST edge target CDATA #REQUIRED >
+<!ELEMENT fs ( f* ) >
+<!ATTLIST fs type CDATA #REQUIRED >
+<!ELEMENT f ( fs | str )* >
+<!ATTLIST f name CDATA #REQUIRED >
+<!ATTLIST f org ( list ) #IMPLIED >
+<!ELEMENT str ( #PCDATA ) >
+ ]>
+<fsc version="1.0">
+<chart id="fsc-test">
+<text>
+The dog chases the orc.</text>
+<lattice init="v0" final="v6">
+<edge source="v0" target="v1">
+<fs type="token">
+<f name="+FORM">
+<str>The</str>
+</f>
+<f name="+FROM">
+<str>0</str>
+</f>
+<f name="+TO">
+<str>3</str>
+</f>
+<f name="+TNT">
+<fs type="tnt">
+<f name="+TAGS" org="list">
+<str>DT</str>
+</f>
+<f name="+PRBS" org="list">
+<str>1.000000e+00</str>
+</f>
+</fs>
+</f>
+</fs>
+</edge>
+<edge source="v1" target="v2">
+<fs type="token">
+<f name="+FORM">
+<str>dog</str>
+</f>
+<f name="+FROM">
+<str>4</str>
+</f>
+<f name="+TO">
+<str>7</str>
+</f>
+<f name="+TNT">
+<fs type="tnt">
+<f name="+TAGS" org="list">
+<str>NN</str>
+</f>
+<f name="+PRBS" org="list">
+<str>1.000000e+00</str>
+</f>
+</fs>
+</f>
+</fs>
+</edge>
+<edge source="v2" target="v3">
+<fs type="token">
+<f name="+FORM">
+<str>chases</str>
+</f>
+<f name="+FROM">
+<str>8</str>
+</f>
+<f name="+TO">
+<str>14</str>
+</f>
+<f name="+TNT">
+<fs type="tnt">
+<f name="+TAGS" org="list">
+<str>VBZ</str>
+<str>NNS</str>
+</f>
+<f name="+PRBS" org="list">
+<str>8.039033e-01</str>
+<str>1.960967e-01</str>
+</f>
+</fs>
+</f>
+</fs>
+</edge>
+<edge source="v3" target="v4">
+<fs type="token">
+<f name="+FORM">
+<str>the</str>
+</f>
+<f name="+FROM">
+<str>15</str>
+</f>
+<f name="+TO">
+<str>18</str>
+</f>
+<f name="+TNT">
+<fs type="tnt">
+<f name="+TAGS" org="list">
+<str>DT</str>
+</f>
+<f name="+PRBS" org="list">
+<str>1.000000e+00</str>
+</f>
+</fs>
+</f>
+</fs>
+</edge>
+<edge source="v4" target="v5">
+<fs type="token">
+<f name="+FORM">
+<str>orc</str>
+</f>
+<f name="+FROM">
+<str>19</str>
+</f>
+<f name="+TO">
+<str>22</str>
+</f>
+<f name="+TNT">
+<fs type="tnt">
+<f name="+TAGS" org="list">
+<str>JJ</str>
+<str>NN</str>
+</f>
+<f name="+PRBS" org="list">
+<str>5.297595e-01</str>
+<str>4.702405e-01</str>
+</f>
+</fs>
+</f>
+</fs>
+</edge>
+<edge source="v5" target="v6">
+<fs type="token">
+<f name="+FORM">
+<str>.</str>
+</f>
+<f name="+FROM">
+<str>22</str>
+</f>
+<f name="+TO">
+<str>23</str>
+</f>
+<f name="+TNT">
+<fs type="tnt">
+<f name="+TAGS" org="list">
+<str>.</str>
+</f>
+<f name="+PRBS" org="list">
+<str>1.0</str>
+</f>
+</fs>
+</f>
+</fs>
+</edge>
+</lattice>
+</chart>
+</fsc>
