@@ -1,0 +1,35 @@
+encoding := utf-8.
+
+;; definition of names of types with a special meaning to PET
+special-name-top := "*top*".
+special-name-symbol := "string".
+special-name-string := "string".
+special-name-list := "*list*".
+special-name-cons := "*cons*".
+special-name-nil := "*null*".
+special-name-difflist := "*diff-list*".
+
+;; same for attributes
+special-name-attr-first := "FIRST".
+special-name-attr-rest := "REST".
+special-name-attr-list := "LIST".
+special-name-attr-last := "LAST".
+special-name-attr-args := "ARGS".
+
+;; status values
+lexrule-status-values := lex-rule.
+rule-status-values := grammar-rule.
+lexentry-status-values := lex-entry. 
+
+;; path to the list of arguments in a rule
+rule-args-path := ARGS.
+
+;; path to marker for head daughter of a rule
+head-dtr-path := HEAD-DTR.
+
+;; path to orthography
+orth-path := "ORTH.LIST".
+
+;; type to mark boolean value `true'
+true-type := +.
+
