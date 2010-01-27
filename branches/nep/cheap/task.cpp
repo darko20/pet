@@ -25,7 +25,11 @@
 #include "cheap.h"
 #include "tsdb++.h"
 #include "sm.h"
+#include "logging.h"
+
 #include <iomanip>
+#include <fstream>
+
 
 using namespace std;
 
@@ -35,8 +39,12 @@ extern int  opt_packing;
 
 int basic_task::next_id = 0;
 
+vector<int> basic_task::_spans;
+ofstream basic_task::_spans_outfile ("spans.txt");
+
+
 tItem *
-build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
+build_rule_item(chart *C, tAbstractAgenda *A, grammar_rule *R, tItem *passive)
 {
     fs_alloc_state FSAS(false);
     
@@ -171,13 +179,28 @@ build_combined_item(chart *C, tItem *active, tItem *passive)
 
 double packingscore(int start, int end, int n, bool active)
 {
-  return end - double(start) / n
-    - (active ? 0.0 : double(start) / n);
-  //return end - double(end - start) / n
-  //    - (active ? 0.0 : double(end - start) / n) ;
+
+  
+  // Original setting: 
+  //return end - double(start) / n
+  //  - (active ? 0.0 : double(start) / n);
+    
+  // Originally commented out: 
+   //return end - double(end - start) / n
+   //    - (active ? 0.0 : double(end - start) / n) ;
+  
+  // Adaptation 1: 
+  return double(end) - double(start) + (active ? 0.0 : 0.5);
+
+  // Adaptation 1b: 
+  //return double(end) - double(start) + (active ? 1.5 : 0.0);
+  
+  // Adaptation 2: 
+  //return end - start + (double(start) + active ? 0.0 : 0.5) / n;
+
 }
 
-rule_and_passive_task::rule_and_passive_task(chart *C, tAgenda *A,
+rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
                                              grammar_rule *R, tItem *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
@@ -200,19 +223,37 @@ rule_and_passive_task::execute()
 {
     if(_passive->blocked())
         return 0;
+
+    if (_R->arity() == 1) {
+      basic_task::_spans.push_back (_passive->end() - _passive->start());
+    }
     
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
     if(result) result->score(priority());
     return result;
 }
 
-active_and_passive_task::active_and_passive_task(chart *C, tAgenda *A,
+active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
                                                  tItem *act, tItem *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {
     if(opt_packing)
     {
         tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
+
+
+        /*
+        list<tItem *> daughters(active->daughters());
+
+         if(active->left_extending())
+            daughters.push_front(passive);
+        else
+            daughters.push_back(passive);
+
+        priority (Grammar->pcfgsm()->scoreLocalTree(active->rule(), daughters));
+        */
+        
+        // BaC: how it was before non-exhaustive parsing. 
         if(active->left_extending())
             priority(packingscore(passive->start(), active->end(),
                                   C->rightmost(), false));
@@ -240,6 +281,13 @@ active_and_passive_task::execute()
 {
     if(_passive->blocked() || _active->blocked())
         return 0;
+
+    if (_active->left_extending())
+    {
+      basic_task::_spans.push_back (_active->end() - _passive->start());
+    } else {
+      basic_task::_spans.push_back (_passive->end() - _active->start());
+    }
     
     tItem *result = build_combined_item(_Chart, _active, _passive);
     if(result) result->score(priority());

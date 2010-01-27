@@ -29,8 +29,15 @@
 #include <functional>
 #include <iosfwd>
 
+#include <fstream>
+#include <vector>
+
+
 /** Parser agenda: a queue of prioritized tasks */
-typedef agenda< class basic_task, class task_priority_less > tAgenda;
+typedef abstract_agenda< class basic_task, class task_priority_less > tAbstractAgenda;
+typedef exhaustive_agenda< class basic_task, class task_priority_less > tExhaustiveAgenda;
+typedef global_cap_agenda< class basic_task, class task_priority_less > tGlobalCapAgenda;
+typedef global_beam_agenda< class basic_task, class task_priority_less > tGlobalBeamAgenda;
 
 /** Pure virtual base class for tasks */
 class basic_task {
@@ -41,7 +48,7 @@ public:
   static int next_id;
 
   /** Base constructor */
-  inline basic_task(class chart *C, tAgenda *A) 
+  inline basic_task(class chart *C, tAbstractAgenda *A) 
     : _id(next_id++), _Chart(C), _A(A), _p(0.0)
   {}
 
@@ -63,6 +70,17 @@ public:
   /** Print task readably to \a f for debugging purposes */
   virtual void print(std::ostream &out);
 
+  static std::vector<int> _spans;
+  static std::ofstream _spans_outfile;
+  static void write_spans () {
+    for (std::vector<int>::iterator iter = _spans.begin(); iter != _spans.end(); iter++) {
+      _spans_outfile << *iter << " ";
+    }
+    _spans_outfile << std::endl;
+    _spans.clear();
+  };
+
+
 protected:
   /** Unique task id */
   int _id;
@@ -70,7 +88,7 @@ protected:
   /** The chart this task operates on */
   class chart *_Chart;
   /** The agenda this task came from */
-  tAgenda *_A;
+  tAbstractAgenda *_A;
   
   /** The priority of this task */
   double _p;
@@ -87,7 +105,7 @@ class rule_and_passive_task : public basic_task
     /** Create a task with a grammar rule and passive item that will be
      *  executed later on.
      */
-    rule_and_passive_task(class chart *C, tAgenda *A,
+    rule_and_passive_task(class chart *C, tAbstractAgenda *A,
                           class grammar_rule *R, class tItem *passive);
     
     /** See basic_task::execute() */
@@ -109,7 +127,7 @@ class active_and_passive_task : public basic_task
     /** Create a task with an active and a passive item that will be
      *  executed later on.
      */
-    active_and_passive_task(class chart *C, tAgenda *A,
+    active_and_passive_task(class chart *C, tAbstractAgenda *A,
                             class tItem *active, class tItem *passive);
 
     /** See basic_task::execute() */

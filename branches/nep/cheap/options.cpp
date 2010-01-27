@@ -141,6 +141,12 @@ void usage(FILE *f)
 #define OPTION_SM 40
 #define OPTION_ROBUST 41
 
+#define OPTION_GLOBAL_CAP 50
+#define OPTION_GLOBAL_BEAM 51
+#define OPTION_LOCAL_CAP 52
+#define OPTION_LOCAL_BEAM 53
+
+
 #ifdef YY
 #define OPTION_ONE_MEANING 100
 #define OPTION_YY 101
@@ -199,6 +205,10 @@ char* parse_options(int argc, char* argv[])
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
     {"cm", optional_argument, 0, OPTION_CHART_MAPPING},
     {"sm", optional_argument, 0, OPTION_SM},
+    {"global-cap", required_argument, 0, OPTION_GLOBAL_CAP},
+    {"global-beam", required_argument, 0, OPTION_GLOBAL_BEAM},
+    {"local-cap", required_argument, 0, OPTION_LOCAL_CAP},
+    {"local-beam", required_argument, 0, OPTION_LOCAL_BEAM},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -408,6 +418,31 @@ char* parse_options(int argc, char* argv[])
           else 
             set_opt("opt_sm", std::string("null"));
           break;
+      case OPTION_GLOBAL_CAP:
+          if (optarg != NULL)
+            set_opt_from_string("opt_global_cap", optarg);
+          else 
+            set_opt("opt_global_cap", (int) 10000);
+          break;
+      case OPTION_GLOBAL_BEAM:
+          if (optarg != NULL)
+            set_opt_from_string("opt_global_beam", optarg);
+          else 
+            set_opt("opt_global_beam", (int) 10000);
+          break;
+      case OPTION_LOCAL_CAP:
+          if (optarg != NULL)
+            set_opt_from_string("opt_local_cap", optarg);
+          else 
+            set_opt("opt_local_cap", (int) 10000);
+          break;
+      case OPTION_LOCAL_BEAM:
+          if (optarg != NULL)
+            set_opt_from_string("opt_local_beam", optarg);
+          else 
+            set_opt("opt_local_beam", (int) 10000);
+          break;
+
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)

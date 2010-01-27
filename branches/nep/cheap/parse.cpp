@@ -53,7 +53,7 @@ using namespace std;
 //
 
 chart *Chart;
-tAgenda *Agenda;
+tAbstractAgenda *Agenda;
 
 timer ParseTime;
 timer TotalParseTime(false);
@@ -581,6 +581,8 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
         errors.push_back(s.str());
       }
 
+      /*
+      // Assume: 
       if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
         ostringstream s;
         s << "timed out (" 
@@ -588,6 +590,7 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
           << " s)";
         errors.push_back(s.str());
       }
+      */
 
       stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
       stats.p_dyn_bytes = FSAS.dynamic_usage();
@@ -625,15 +628,17 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
     ostringstream s;
     if (memlimit > 0 && t_alloc.max_usage() >= memlimit) {
       s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
+      errors.push_back(s.str());
     }
     else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit) {
       s << "edge limit exhausted (" << pedgelimit << " pedges)";
+      errors.push_back(s.str());
     }
     else {
       s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
           << " s)";
+      errors.push_back(s.str());
     }
-    errors.push_back(s.str());
   }
   
   LOG(logParse, DEBUG, *Chart);
@@ -642,6 +647,11 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
                                        pedgelimit, memlimit, opt_nsolutions,
                                        Chart->trees());
   stats.readings = Chart->readings().size();
+
+  if (stats.readings > 0) {
+    basic_task::write_spans();
+  }
+
 }
 
 
@@ -672,7 +682,17 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   inp_list input_items;
   int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
-  Agenda = new tAgenda;
+  /*
+  if (get_opt_int("opt_global_cap") != 0) {
+    Agenda = new tGlobalCapAgenda (get_opt_int ("opt_global_cap"));
+  } else if (get_opt_int("opt_global_beam") != 0) {
+    Agenda = new tGlobalBeamAgenda (get_opt_int ("opt_global_beam"));
+  } else {
+    Agenda = new tExhaustiveAgenda;
+  }
+  */
+  
+  Agenda = new tExhaustiveAgenda;    
   C = Chart = new chart(max_pos, owner);
 
   //
