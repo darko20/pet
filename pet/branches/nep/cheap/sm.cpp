@@ -34,6 +34,7 @@
 #include <sstream>
 #include <float.h>
 #include <math.h>
+#include <map>
 
 using namespace std;
 using namespace HASH_SPACE;
@@ -1140,6 +1141,7 @@ tPCFG::readModel(const std::string &fileName) {
   adjustWeights();
   lexer_idchars = sv;
   fprintf(stderr, "(%d)\n ", G()->pcfg_rules().size());
+  computePriors();
 }
 
 void
@@ -1428,3 +1430,26 @@ tPCFG::adjustWeights() {
     }
   }
 }
+
+
+void
+tPCFG::computePriors() {
+  // Duidelijk, we moeten de freq_counts hebben. Wat de rule counts zijn, begrijp ik niet. 
+  /*
+  for (std::list<grammar_rule *>::const_iterator rule = G()->pcfg_rules().begin();
+       rule != G()->pcfg_rules().end(); rule ++) {
+    cerr << " rule type:   " << (*rule)->type() << '\n';
+    cerr << " rule arity:  " << (*rule)->arity() << '\n';
+    cerr << 
+    cerr << " freq_counts: " << _lhs_freq_counts[(*rule)->type()] << "\n";
+    cerr << " rule_counts: " << _lhs_rule_counts[(*rule)->type()] << "\n\n";
+  }
+  */
+}
+
+
+double
+tPCFG::getPrior (grammar_rule *rule) {
+  return 0.0;
+}
+

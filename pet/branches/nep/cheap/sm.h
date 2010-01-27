@@ -102,7 +102,7 @@ class tSM
     virtual double 
     score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path,
                      int gplevel);
-    
+
     /** Return the best predicted lexical (entry) types for the given
      * context.
      */
@@ -239,6 +239,9 @@ class tPCFG : public tSM
     double _laplace_smoothing;
     double _min_logprob;
 
+    // Initially, _weights contain the number of times this feature has been observed. 
+    // AdjustWeights will then make sure Laplace is used for smoothing. 
+    // The lisp code currently doesn't do any smoothing. 
     std::vector<double> _weights;
     std::map<type_t,int> _lhs_freq_counts;
     std::map<type_t,int> _lhs_rule_counts;
@@ -264,6 +267,11 @@ class tPCFG : public tSM
     double
     score(std::vector<type_t> rule);
 
+    void
+    computePriors();
+    
+    double 
+    getPrior(grammar_rule * rule);
 };
 
 #endif

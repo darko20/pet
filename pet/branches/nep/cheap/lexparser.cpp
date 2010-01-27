@@ -44,7 +44,7 @@ static lex_parser &init();
 lex_parser global_lexparser;
 lex_parser &Lexparser = init();
 extern chart *Chart;
-extern tAgenda *Agenda;
+extern tAbstractAgenda *Agenda;
 
 static std::string default_les_strategy_names[] = { 
   "no", "traditional", "all"

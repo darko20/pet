@@ -43,7 +43,7 @@ class pcfg_rule_and_passive_task : public basic_task
 public:
   virtual ~pcfg_rule_and_passive_task() {}
 
-  pcfg_rule_and_passive_task(class chart *C, tAgenda *A,
+  pcfg_rule_and_passive_task(class chart *C, tAbstractAgenda *A,
                              grammar_rule *rule, class tItem *passive);
   virtual class tItem *execute();
   // virtual void print(FILE *f) {}
@@ -57,7 +57,7 @@ class pcfg_active_and_passive_task : public basic_task
 {
 public:
   virtual ~pcfg_active_and_passive_task() {}
-  pcfg_active_and_passive_task(class chart *C, tAgenda *A,
+  pcfg_active_and_passive_task(class chart *C, tAbstractAgenda *A,
                                class tItem *active, class tItem* passive);
   virtual tItem *execute();
   // virtual void print(FILE *f) {}

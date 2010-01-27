@@ -49,7 +49,7 @@ using namespace std;
 #endif
 
 
-extern tAgenda* Agenda;
+extern tAbstractAgenda* Agenda;
 extern chart* Chart;
 extern int opt_nsolutions, opt_packing;
 extern clock_t timeout;
@@ -66,6 +66,19 @@ static bool init() {
   managed_opt("opt_robust",
               "try robust PCFG parsing, in case of full parse failure",
               0);
+  managed_opt("opt_global_cap",
+              "Restrict agenda, based on a PCFG model",
+              0);  return true;
+  managed_opt("opt_global_beam",
+              "Restrict agenda, based on a PCFG model",
+              0);  return true;
+  managed_opt("opt_local_cap",
+              "Restrict agenda, based on a PCFG model",
+              0);  return true;
+  managed_opt("opt_local_beam",
+              "Restrict agenda, based on a PCFG model",
+              0);  return true;
+
   return true;
 }
 
@@ -206,7 +219,7 @@ passive_item_exists(chart *C, int start, int end, type_t type, list<tItem*> dtrs
 }
 
 tItem *
-build_pcfg_rule_item(chart *C, tAgenda *A, grammar_rule *rule, tItem *passive)
+build_pcfg_rule_item(chart *C, tAbstractAgenda *A, grammar_rule *rule, tItem *passive)
 {
   //fs_alloc_state FSAS(false);
    //stats.etasks++;
@@ -237,7 +250,7 @@ build_pcfg_combined_item(chart *C, tItem *active, tItem *passive) {
 }
 
 
-pcfg_rule_and_passive_task::pcfg_rule_and_passive_task(chart *C, tAgenda *A,
+pcfg_rule_and_passive_task::pcfg_rule_and_passive_task(chart *C, tAbstractAgenda *A,
                                                        grammar_rule *rule, tItem *passive)
   : basic_task(C,A), _rule(rule), _passive(passive)
 {
@@ -263,7 +276,7 @@ pcfg_rule_and_passive_task::execute()
 }
 
 
-pcfg_active_and_passive_task::pcfg_active_and_passive_task(chart *C, tAgenda *A,
+pcfg_active_and_passive_task::pcfg_active_and_passive_task(chart *C, tAbstractAgenda *A,
                                                            tItem *act, tItem *passive)
   : basic_task(C, A), _active(act), _passive(passive) {
   if (Grammar->pcfgsm()) {
