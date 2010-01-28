@@ -21,6 +21,8 @@
 #
 # LAST MODIFICATION
 #
+#   2010-01-28 by Peter Adolphs
+#              - test alternative library names
 #   2008-11-03 by Peter Adolphs
 #              - simplified header and library checks using standard
 #                autoconf macros
@@ -42,7 +44,7 @@
 
 AC_DEFUN([AX_BOOST_REGEX],
 [
-  ax_boost_regex_default_libname="boost_regex"
+  ax_boost_regex_default_libnames="boost_regex boost_regex-mt"
   AC_ARG_WITH([boost-regex],
     [ AS_HELP_STRING(
         [--with-boost-regex@<:@=ARG@:>@],
@@ -55,14 +57,14 @@ AC_DEFUN([AX_BOOST_REGEX],
         ax_boost_regex_wanted="no"
       elif test "$withval" = "yes"; then
         ax_boost_regex_wanted="yes"
-        ax_boost_regex_libname="${ax_boost_regex_default_libname}"
+        ax_boost_regex_libnames="${ax_boost_regex_default_libnames}"
       else
         ax_boost_regex_wanted="yes"
-        ax_boost_regex_libname="$withval"
+        ax_boost_regex_libnames="$withval"
       fi
     ],
     [ax_boost_regex_wanted="yes"
-     ax_boost_regex_libname="${ax_boost_regex_default_libname}"]
+     ax_boost_regex_libnames="${ax_boost_regex_default_libnames}"]
   )
   
   if test "x$ax_boost_regex_wanted" = "xyes"; then
@@ -81,16 +83,21 @@ AC_DEFUN([AX_BOOST_REGEX],
                     [ax_boost_regex_headers=no
                      AC_MSG_WARN([Could not find header files for Boost.Regex])])
     if test "x${ax_boost_regex_headers}" = "xyes"; then
-      AC_CHECK_LIB([$ax_boost_regex_libname], [main],
-                   [ax_boost_regex_links=yes],
-                   [ax_boost_regex_links=no
-                    AC_MSG_WARN([Could not link Boost.Regex])])
+      for ax_boost_regex_libname in ${ax_boost_regex_libnames} ; do
+        AC_CHECK_LIB([$ax_boost_regex_libname], [main],
+                     [ax_boost_regex_links=yes
+                      BOOST_REGEX_LIBS=-l${ax_boost_regex_libname}
+                      break
+                     ],
+                     [ax_boost_regex_links=no])
+      done
+      test $ax_boost_regex_links == "no" && AC_MSG_WARN([Could not link Boost.Regex])
     fi
     AC_LANG_POP([C++])
     
     if test "x$ax_boost_regex_headers" = "xyes" -a "x$ax_boost_regex_links" = "xyes"; then
       AC_DEFINE(HAVE_BOOST_REGEX,,[define if the Boost.Regex library is available])
-      AC_SUBST(BOOST_REGEX_LIBS, ["-l${ax_boost_regex_libname}"])
+      AC_SUBST([BOOST_REGEX_LIBS])
       # execute ACTION-IF-FOUND (if present):
       ifelse([$1], , :, [$1])
     else
