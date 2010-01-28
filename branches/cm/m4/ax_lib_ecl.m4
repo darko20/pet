@@ -90,15 +90,15 @@ AC_DEFUN([AX_LIB_ECL], [
   unset ECL_LIBS
   if test "x$ax_lib_ecl" = "xyes" ; then
     ECL_CPPFLAGS=$($ax_lib_ecl_config --cflags |
-                sed -e 's/ /\n/g; s/^-[[^IDU]].*//mg; s/^\n//mg; s/\n/ /mg;')
+                sed -e 's/@[[A-Z_]]\+@//; s/ /\n/g; s/^-[[^IDU]].*//mg; s/^\n//mg; s/\n/ /mg;')
     ECL_CPPFLAGS_SEARCHPATH=$($ax_lib_ecl_config --cflags |
-                sed -e 's/ /\n/g; s/^-[[^I]].*//mg; s/^\n//mg; s/\n/ /mg;')
+                sed -e 's/@[[A-Z_]]\+@//; s/ /\n/g; s/^-[[^I]].*//mg; s/^\n//mg; s/\n/ /mg;')
     ECL_LDFLAGS=$($ax_lib_ecl_config --ldflags |
-                sed -e 's/ /\n/g; s/^-l.*//mg; s/^\n//mg; s/\n/ /mg;')
+                sed -e 's/@[[A-Z_]]\+@//; s/ /\n/g; s/^-l.*//mg; s/^\n//mg; s/\n/ /mg;')
     ECL_LDFLAGS_SEARCHPATH=$($ax_lib_ecl_config --ldflags |
-                sed -e 's/ /\n/g; s/^-[[^L]].*//mg; s/^\n//mg; s/\n/ /mg;')
+                sed -e 's/@[[A-Z_]]\+@//; s/ /\n/g; s/^-[[^L]].*//mg; s/^\n//mg; s/\n/ /mg;')
     ECL_LIBS=$($ax_lib_ecl_config --libs |
-                sed -e 's/ /\n/g; s/^-[[^l]].*//mg; s/^\n//mg; s/\n/ /mg;')
+                sed -e 's/@[[A-Z_]]\+@//; s/ /\n/g; s/^-[[^l]].*//mg; s/^\n//mg; s/\n/ /mg;')
   fi
   
   ax_lib_ecl_saved_CPPFLAGS=$CPPFLAGS
