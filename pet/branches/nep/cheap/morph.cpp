@@ -615,22 +615,16 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis analysis) {
       //
       bool cyclep = false;
       for(rule = rules.begin(), form = forms.begin();
-          rule != rules.end() && form != forms.end();
-          ++rule, ++form) 
-      {
-        if(*rule == candidate 
-           && (_analyzer->_duplicate_filter_p || *form == st))
-        {
-          cyclep = true;
-          break;
-        }
+          !cyclep && rule != rules.end() && form != forms.end();
+          ++rule, ++form) {
+        cyclep = (*rule == candidate 
+                  && (_analyzer->_duplicate_filter_p || *form == st));
       }
-      if(cyclep) continue;
-
-      rules.push_front(candidate);
-      forms.push_front(st);
-      
-      res.push_back(tMorphAnalysis(forms, rules));
+      if(!cyclep) {
+        rules.push_front(candidate);
+        forms.push_front(st);
+        res.push_back(tMorphAnalysis(forms, rules));
+      }
     }
   }
 
@@ -937,36 +931,34 @@ void tMorphAnalyzer::analyze1(tMorphAnalysis form, list<tMorphAnalysis> &result)
 
   for(multimap<string, tMorphAnalysis *>::iterator it = eq.first;
       it != eq.second; ++it) {
-
     //
     // _fix_me_
     // the following largely duplicates code from morph_trie::analyze(): here,
     // we need to check the orthographemic chain so far, so as to avoid adding
     // a cycle (as triggered, for example, by rules like `bet past_verb bet).
     // 
-    //
     grammar_rule *candidate = it->second->rules().front();
     rulelist rules = form.rules();
+
+    if (! rules.empty() && ! lexfilter_compatible(rules.front(), candidate))
+      continue;
+
     list<string> forms = form.forms();
     ruleiter rule;
     list<string>::iterator form;
+
     bool cyclep = false;
     for(rule = rules.begin(), form = forms.begin();
-        rule != rules.end() && form != forms.end();
+        !cyclep && rule != rules.end() && form != forms.end();
         ++rule, ++form) {
-
-      if(*rule == candidate && (_duplicate_filter_p || *form == base)) {
-        cyclep = true;
-        break;
-      } // if
-
+      cyclep = (*rule == candidate && (_duplicate_filter_p || *form == base));
     } // for
 
-    if(cyclep) continue;
-
-    rules.push_front(candidate);
-    forms.push_front(it->second->base());
-    pre.push_back(tMorphAnalysis(forms, rules));
+    if(! cyclep) {
+      rules.push_front(candidate);
+      forms.push_front(it->second->base());
+      pre.push_back(tMorphAnalysis(forms, rules));
+    }
 
   } // for
 
