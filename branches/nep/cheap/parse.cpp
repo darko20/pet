@@ -635,9 +635,11 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
       errors.push_back(s.str());
     }
     else {
+      /*
       s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
           << " s)";
       errors.push_back(s.str());
+      */
     }
   }
   
@@ -648,9 +650,11 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
                                        Chart->trees());
   stats.readings = Chart->readings().size();
 
+  /*
   if (stats.readings > 0) {
     basic_task::write_spans();
   }
+  */
 
 }
 
