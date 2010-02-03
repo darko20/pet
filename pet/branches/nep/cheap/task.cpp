@@ -39,9 +39,10 @@ extern int  opt_packing;
 
 int basic_task::next_id = 0;
 
+/*
 vector<int> basic_task::_spans;
 ofstream basic_task::_spans_outfile ("spans.txt");
-
+*/
 
 tItem *
 build_rule_item(chart *C, tAbstractAgenda *A, grammar_rule *R, tItem *passive)
@@ -224,9 +225,11 @@ rule_and_passive_task::execute()
     if(_passive->blocked())
         return 0;
 
+    /*
     if (_R->arity() == 1) {
       basic_task::_spans.push_back (_passive->end() - _passive->start());
     }
+    */
     
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
     if(result) result->score(priority());
@@ -282,12 +285,14 @@ active_and_passive_task::execute()
     if(_passive->blocked() || _active->blocked())
         return 0;
 
+    /*
     if (_active->left_extending())
     {
       basic_task::_spans.push_back (_active->end() - _passive->start());
     } else {
       basic_task::_spans.push_back (_passive->end() - _active->start());
     }
+    */
     
     tItem *result = build_combined_item(_Chart, _active, _passive);
     if(result) result->score(priority());

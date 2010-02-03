@@ -70,6 +70,7 @@ public:
   /** Print task readably to \a f for debugging purposes */
   virtual void print(std::ostream &out);
 
+ /*
   static std::vector<int> _spans;
   static std::ofstream _spans_outfile;
   static void write_spans () {
@@ -79,6 +80,7 @@ public:
     _spans_outfile << std::endl;
     _spans.clear();
   };
+  */
 
 
 protected:
