@@ -351,7 +351,7 @@ public:
   inline class tSM *lexsm() { return _lexsm; }
 
   /** Return the PCFG scoring model for robust parsing */
-  inline class tSM *pcfgsm() { return _pcfgsm; }
+  inline class tPCFG *pcfgsm() { return _pcfgsm; }
 
   /** deactivate all rules */
   void deactivate_all_rules() {
@@ -460,7 +460,7 @@ public:
   class tSM *_lexsm;
 
   // Robust PCFG parsing model.
-  class tSM *_pcfgsm;
+  class tPCFG *_pcfgsm;
 
   void undump_properties(dumper *f);
   void init_parameters();

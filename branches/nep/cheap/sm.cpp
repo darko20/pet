@@ -1435,21 +1435,20 @@ tPCFG::adjustWeights() {
 void
 tPCFG::computePriors() {
   // Duidelijk, we moeten de freq_counts hebben. Wat de rule counts zijn, begrijp ik niet. 
-  /*
   for (std::list<grammar_rule *>::const_iterator rule = G()->pcfg_rules().begin();
-       rule != G()->pcfg_rules().end(); rule ++) {
-    cerr << " rule type:   " << (*rule)->type() << '\n';
-    cerr << " rule arity:  " << (*rule)->arity() << '\n';
-    cerr << 
-    cerr << " freq_counts: " << _lhs_freq_counts[(*rule)->type()] << "\n";
-    cerr << " rule_counts: " << _lhs_rule_counts[(*rule)->type()] << "\n\n";
+       rule != G()->pcfg_rules().end(); rule++) {
+    _priors[(*rule)->type()] = _lhs_freq_counts[(*rule)->type()];
   }
-  */
-}
-
-
-double
-tPCFG::getPrior (grammar_rule *rule) {
-  return 0.0;
+  
+  double total = 0.0;
+  for (_prior_iter = _priors.begin(); _prior_iter != _priors.end(); _prior_iter++) {
+    total += _prior_iter->second;
+  }
+  for (_prior_iter = _priors.begin(); _prior_iter != _priors.end(); _prior_iter++) {
+    _prior_iter->second = log(_prior_iter->second / total);
+  }
+  //for (_prior_iter = _priors.begin(); _prior_iter != _priors.end(); _prior_iter++) {
+  //  cerr << _prior_iter->second << endl;
+  //}
 }
 

@@ -230,6 +230,13 @@ class tPCFG : public tSM
     /** Return the score for the hypothesis */
     virtual double 
     score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path, int gplevel);
+        
+    double 
+    getPrior(int t)
+    { 
+      _prior_iter = _priors.find(t);
+      return _prior_iter == _priors.end() ? -0.001 : _prior_iter->second;
+    }
     
 
  private:
@@ -245,7 +252,11 @@ class tPCFG : public tSM
     std::vector<double> _weights;
     std::map<type_t,int> _lhs_freq_counts;
     std::map<type_t,int> _lhs_rule_counts;
-
+    
+    // The ints here are the PCFG rules' type. 
+    std::map<int,double> _priors;
+    std::map<int,double>::iterator _prior_iter;
+    
     void
     readModel(const std::string &fileName);
 
@@ -269,9 +280,6 @@ class tPCFG : public tSM
 
     void
     computePriors();
-    
-    double 
-    getPrior(grammar_rule * rule);
 };
 
 #endif
