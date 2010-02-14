@@ -29,7 +29,7 @@
 
 #include <iomanip>
 #include <fstream>
-
+#include <iostream> 
 
 using namespace std;
 
@@ -207,8 +207,23 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
 {
     if(opt_packing)
     {
-        priority(packingscore(passive->start(), passive->end(),
-                              C->rightmost(), R->arity() > 1));
+
+        double prior = Grammar->pcfgsm()->getPrior(R->type());
+        double conditional;
+        if (R->arity() == 1) {
+          // Unary case: add prior, passive score and conditional 
+          std::list<class tItem *> l;
+          l.push_back(passive);
+          conditional = Grammar->pcfgsm()->scoreLocalTree(R, l);
+        } else {
+          // Binary case: add prior and passive score (conditional computed when rule is completed. 
+          conditional = 0.0;
+        }
+        priority (passive->score() + prior + conditional);
+
+        // BaC: how it was before non-exhaustive parsing. 
+        //priority(packingscore(passive->start(), passive->end(),
+        //                      C->rightmost(), R->arity() > 1));
     }
     else if(Grammar->sm())
     {
@@ -232,7 +247,19 @@ rule_and_passive_task::execute()
     */
     
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
-    if(result) result->score(priority());
+    if(result) 
+    {
+      result->score(priority());
+      if (_R->arity() == 1)
+      { 
+        // Passive unary rule. 
+        cerr << result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority() << '\n';
+        item_list l = result->daughters();
+        tItem *it = l.front();
+        cerr << "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << priority() << '\n';
+      }
+    }
+    
     return result;
 }
 
@@ -241,28 +268,35 @@ active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
     : basic_task(C, A), _active(act), _passive(passive)
 {
     if(opt_packing)
-    {
+    {	
         tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
 
+        std::list<class tItem *> l;
+        if (active->left_extending()) {
+          l.push_back (passive);
+          l.push_back (active);
+        } else {
+          l.push_back (active);
+          l.push_back (passive);
+        }
+        double conditional = Grammar->pcfgsm()->scoreLocalTree(active->rule(), l);
 
-        /*
-        list<tItem *> daughters(active->daughters());
-
-         if(active->left_extending())
-            daughters.push_front(passive);
-        else
-            daughters.push_back(passive);
-
-        priority (Grammar->pcfgsm()->scoreLocalTree(active->rule(), daughters));
-        */
+        // The active item already contains the prior of the rule. 
+        // To add: the score of the passive, and the conditional. 
+        priority (active->score() + passive->score() + conditional);
+        
         
         // BaC: how it was before non-exhaustive parsing. 
+        /*
+        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
         if(active->left_extending())
             priority(packingscore(passive->start(), active->end(),
                                   C->rightmost(), false));
         else
             priority(packingscore(active->start(), passive->end(),
                                   C->rightmost(), false));
+        */
+        
     }
     else if(Grammar->sm())
     {
@@ -295,7 +329,20 @@ active_and_passive_task::execute()
     */
     
     tItem *result = build_combined_item(_Chart, _active, _passive);
-    if(result) result->score(priority());
+    if(result) {
+      result->score(priority());    
+      if (result->rule()->arity() == 2)
+      { 
+        // Passive binary rule. 
+        cerr << result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority() << '\n';
+        item_list l = result->daughters();
+        tItem *it = l.front();
+        cerr << "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << priority() << '\n';
+        it = l.back();
+        cerr << "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << priority() << '\n';
+      }
+    }
+    
     return result;
 }
 

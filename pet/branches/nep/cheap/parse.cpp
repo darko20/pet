@@ -689,8 +689,6 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   /*
   if (get_opt_int("opt_global_cap") != 0) {
     Agenda = new tGlobalCapAgenda (get_opt_int ("opt_global_cap"));
-  } else if (get_opt_int("opt_global_beam") != 0) {
-    Agenda = new tGlobalBeamAgenda (get_opt_int ("opt_global_beam"));
   } else {
     Agenda = new tExhaustiveAgenda;
   }
