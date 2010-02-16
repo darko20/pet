@@ -205,25 +205,24 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
                                              grammar_rule *R, tItem *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
-    if(opt_packing)
-    {
-
-        double prior = Grammar->pcfgsm()->getPrior(R->type());
-        double conditional;
-        if (R->arity() == 1) {
-          // Unary case: add prior, passive score and conditional 
-          std::list<class tItem *> l;
-          l.push_back(passive);
-          conditional = Grammar->pcfgsm()->scoreLocalTree(R, l);
+    if(opt_packing) {
+        if (Grammar->gm()) {
+          double prior = Grammar->gm()->prior(R);
+          double conditional;
+          if (R->arity() == 1) {
+            // Unary case: add prior, passive score and conditional 
+            std::vector<class tItem *> l;
+            l.push_back(passive);
+            conditional = Grammar->gm()->conditional(R, l);
+          } else {
+            // Binary case: add prior and passive score (conditional computed when rule is completed). 
+            conditional = 0.0;
+          }
+          priority (passive->score() + prior + conditional);
         } else {
-          // Binary case: add prior and passive score (conditional computed when rule is completed. 
-          conditional = 0.0;
+          priority(packingscore(passive->start(), passive->end(),
+                                C->rightmost(), R->arity() > 1));
         }
-        priority (passive->score() + prior + conditional);
-
-        // BaC: how it was before non-exhaustive parsing. 
-        //priority(packingscore(passive->start(), passive->end(),
-        //                      C->rightmost(), R->arity() > 1));
     }
     else if(Grammar->sm())
     {
@@ -252,11 +251,12 @@ rule_and_passive_task::execute()
       result->score(priority());
       if (_R->arity() == 1)
       { 
-        // Passive unary rule. 
-        cerr << result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority() << '\n';
+        // Passive unary rule.
+        LOG (logGM, DEBUG, fixed << setprecision(2)); 
+        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority());
         item_list l = result->daughters();
         tItem *it = l.front();
-        cerr << "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << priority() << '\n';
+        LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << it->score());
       }
     }
     
@@ -267,36 +267,33 @@ active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
                                                  tItem *act, tItem *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {
-    if(opt_packing)
-    {	
-        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
+    if(opt_packing) {
+        if (Grammar->gm()) {
+          tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
 
-        std::list<class tItem *> l;
-        if (active->left_extending()) {
-          l.push_back (passive);
-          l.push_back (active);
-        } else {
-          l.push_back (active);
-          l.push_back (passive);
-        }
-        double conditional = Grammar->pcfgsm()->scoreLocalTree(active->rule(), l);
+          std::vector<class tItem *> l;
+          if (active->left_extending()) {
+            l.push_back (passive);
+            l.push_back (active);
+          } else {
+            l.push_back (active);
+            l.push_back (passive);
+          }
+          double conditional = Grammar->gm()->conditional(active->rule(), l);
 
-        // The active item already contains the prior of the rule. 
-        // To add: the score of the passive, and the conditional. 
-        priority (active->score() + passive->score() + conditional);
+          // The active item already contains the prior of the rule. 
+          // To add: the score of the passive, and the conditional. 
+          priority (active->score() + passive->score() + conditional);
+        } else {        
+          tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
+          if(active->left_extending())
+              priority(packingscore(passive->start(), active->end(),
+                                    C->rightmost(), false));
+          else
+              priority(packingscore(active->start(), passive->end(),
+                                    C->rightmost(), false));
         
-        
-        // BaC: how it was before non-exhaustive parsing. 
-        /*
-        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-        if(active->left_extending())
-            priority(packingscore(passive->start(), active->end(),
-                                  C->rightmost(), false));
-        else
-            priority(packingscore(active->start(), passive->end(),
-                                  C->rightmost(), false));
-        */
-        
+        }    
     }
     else if(Grammar->sm())
     {
@@ -334,12 +331,13 @@ active_and_passive_task::execute()
       if (result->rule()->arity() == 2)
       { 
         // Passive binary rule. 
-        cerr << result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority() << '\n';
+        LOG (logGM, DEBUG, fixed << setprecision(2));
+        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority());
         item_list l = result->daughters();
         tItem *it = l.front();
-        cerr << "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << priority() << '\n';
+        LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << it->score());
         it = l.back();
-        cerr << "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << priority() << '\n';
+        LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << it->score());
       }
     }
     

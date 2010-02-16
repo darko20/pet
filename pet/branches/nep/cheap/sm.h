@@ -231,13 +231,6 @@ class tPCFG : public tSM
     virtual double 
     score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path, int gplevel);
         
-    double 
-    getPrior(int t)
-    { 
-      _prior_iter = _priors.find(t);
-      return _prior_iter == _priors.end() ? -0.001 : _prior_iter->second;
-    }
-    
 
  private:
     
@@ -252,10 +245,6 @@ class tPCFG : public tSM
     std::vector<double> _weights;
     std::map<type_t,int> _lhs_freq_counts;
     std::map<type_t,int> _lhs_rule_counts;
-    
-    // The ints here are the PCFG rules' type. 
-    std::map<int,double> _priors;
-    std::map<int,double>::iterator _prior_iter;
     
     void
     readModel(const std::string &fileName);
@@ -278,8 +267,45 @@ class tPCFG : public tSM
     double
     score(std::vector<type_t> rule);
 
-    void
-    computePriors();
+};
+
+
+
+/** Generative Model */
+class tGM
+{
+ public:
+    tGM(class tGrammar *G, const char *fileName, const char *basePath);
+    virtual ~tGM();
+    
+    virtual double conditional (class grammar_rule *, std::vector<class tItem *>);
+    virtual double conditional (std::vector<type_t>);
+    virtual double prior (class grammar_rule *);
+    
+ private:
+
+    // Indicates the delta in the Lidstone smoothing algorithm: (C(x) + delta) / ( N + delta*V).
+    // Laplace is a special case of Lidstone, where delta is 1. 
+    double _lidstone_delta;   
+
+    std::map< std::vector<type_t>, int>    _counts; 
+    std::map< std::vector<type_t>, double> _weights; 
+    std::map<type_t,double> _unknown_conditionals;
+    std::map<type_t,int>    _prior_counts;
+    std::map<type_t,double> _prior_weights;
+    int _total_count;                          // Counts how many training instance were seen. 
+    double _unknown_prior;
+    std::map<type_t,int>    _lhs_counts;       // Counts how many rules exist with this lhs. 
+
+    void calculateWeights ();
+
+    // Functions for parsing the data file. 
+    void readModel(const std::string &fileName);
+    void parseModel();
+    void parseOptions();
+    void parseFeatures(int);
+    void parseFeature(int);
+  
 };
 
 #endif

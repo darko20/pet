@@ -353,6 +353,9 @@ public:
   /** Return the PCFG scoring model for robust parsing */
   inline class tPCFG *pcfgsm() { return _pcfgsm; }
 
+  /** Return the generative model for agenda manipulation */
+  inline class tGM *gm() { return _gm; }
+  
   /** deactivate all rules */
   void deactivate_all_rules() {
     _rules.clear();
@@ -461,6 +464,9 @@ public:
 
   // Robust PCFG parsing model.
   class tPCFG *_pcfgsm;
+  
+  // Generative model for agenda manipulation. 
+  class tGM *_gm; 
 
   void undump_properties(dumper *f);
   void init_parameters();
