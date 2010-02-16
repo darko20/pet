@@ -428,7 +428,7 @@ undump_dags(dumper *f) {
 tGrammar::tGrammar(const char * filename)
     : _properties(), _root_insts(0), _generics(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0), _pcfgsm(0), _lexsm(0)
+      _sm(0), _pcfgsm(0), _lexsm(0), _gm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
@@ -618,6 +618,15 @@ tGrammar::tGrammar(const char * filename)
         LOG(logGrammar, ERROR, e.getMessage());
         // LOG(logGrammar, ERROR, e.getMessage());
         _pcfgsm = 0;
+      }
+    }
+    char *gm_file;
+    if ((gm_file = cheap_settings->value("gm")) != 0) {
+      try { 
+        _gm = new tGM(this, gm_file, filename); 
+      } catch (tError &e) {
+        LOG(logGrammar, ERROR, e.getMessage());
+        _gm = 0;
       }
     }
     char *lexsm_file;
