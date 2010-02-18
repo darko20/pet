@@ -253,10 +253,17 @@ rule_and_passive_task::execute()
       { 
         // Passive unary rule.
         LOG (logGM, DEBUG, fixed << setprecision(2)); 
-        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority());
+        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << 
+                           result->identity() << "  " << result->printname() << "  " << priority());
         item_list l = result->daughters();
         tItem *it = l.front();
-        LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << it->score());
+        tLexItem *lit = dynamic_cast<tLexItem*> (it);
+        if (lit != 0) {
+          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
+                             it->identity() << "  " << get_typename(it->identity()) << "  " << it->score());
+        } else {
+          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->identity() << "  " << it->printname() << "  " << it->score());
+        }
       }
     }
     
@@ -274,9 +281,9 @@ active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
           std::vector<class tItem *> l;
           if (active->left_extending()) {
             l.push_back (passive);
-            l.push_back (active);
+            l.push_back (active->daughters().back());
           } else {
-            l.push_back (active);
+            l.push_back (active->daughters().front());
             l.push_back (passive);
           }
           double conditional = Grammar->gm()->conditional(active->rule(), l);
@@ -332,12 +339,26 @@ active_and_passive_task::execute()
       { 
         // Passive binary rule. 
         LOG (logGM, DEBUG, fixed << setprecision(2));
-        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << result->printname() << "  " << priority());
+        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << result->identity() << "  " << result->printname() << "  " << priority());
         item_list l = result->daughters();
         tItem *it = l.front();
-        LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << it->score());
+        tLexItem *lit = dynamic_cast<tLexItem*> (it);
+        if (lit != 0) {
+          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
+                             it->identity() << "  " << get_typename(it->identity()) << "  " << it->score());
+        } else {
+          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
+                             it->identity() << "  " << it->printname() << "  " << it->score());
+        }
         it = l.back();
-        LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->printname() << "  " << it->score());
+        lit = dynamic_cast<tLexItem*> (it);
+        if (lit != 0) {
+          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
+                             it->identity() << "  " << get_typename(it->identity()) << "  " << it->score());
+        } else {
+          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
+                             it->identity() << "  " << it->printname() << "  " << it->score());
+        }
       }
     }
     
