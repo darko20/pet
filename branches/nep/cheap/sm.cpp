@@ -1418,26 +1418,30 @@ tGM::~tGM() {
 
 double tGM::conditional (grammar_rule *rule, std::vector<class tItem *> vItem) {
   std::vector<type_t> v; 
-  v.push_back (rule->id());
-  for (std::vector<class tItem *>::iterator it = vItem.begin(); it != vItem.end(); it++) {
-    v.push_back ( (*it)->identity() );
+  v.push_back (rule->type());
+  for (unsigned int i=0; i<vItem.size(); i++) {
+    //v.push_back (vItem[i]->type());  // Correct for lexical items. 
+    v.push_back (vItem[i]->identity());
   }
   return conditional(v);
 }
 
 
 double tGM::conditional (std::vector<type_t> v) {
-  std::map<std::vector<type_t>, double>::iterator it = _weights.find(v); 
+  std::map<std::vector<type_t>, double>::iterator it = _weights.find(v);
   if (it != _weights.end()) {
     return it->second; 
   } else {
     // If we can't find the conditional, we fall back to the unknown conditional. 
     std::map<type_t, double>::iterator it2 = _unknown_conditionals.find(v[0]);
-    if (it2 != _unknown_conditionals.end()) {
+    if (it2 != _unknown_conditionals.end()) {      
       return it2->second; 
+      //return -100.0;
     } else {
       // We don't even know the rule. 
-      return -10.0; 
+      // Using _unknown_prior here results in using this number for both the prior and the conditional. 
+      return _unknown_prior; 
+      //return -1000.0;
     }
   }
 

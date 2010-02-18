@@ -35,7 +35,7 @@ public:
   
   virtual void push(T *t) = 0;
   virtual T * top() = 0;
-  virtual T * pop() = 0;
+  virtual T * pop() = 0;     // Responsibility to delete the task is for the caller. 
   virtual bool empty() = 0;
   virtual int size() = 0; 
 
@@ -64,7 +64,7 @@ template <typename T, typename LESS_THAN > class global_cap_agenda : public abst
 
 public : 
 
-  global_cap_agenda(int max_popped) : _A(), _max_popped(max_popped) {_popped = 0; }
+  global_cap_agenda(int max_popped) : _A(), _max_popped(max_popped), _popped(0) {}
   ~global_cap_agenda() {make_empty(); }
   
   void push(T *t) { _A.push(t); }
