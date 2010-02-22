@@ -270,6 +270,8 @@ rule_and_passive_task::execute()
     return result;
 }
 
+
+
 active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
                                                  tItem *act, tItem *passive)
     : basic_task(C, A), _active(act), _passive(passive)

@@ -144,7 +144,7 @@ void usage(FILE *f)
 #define OPTION_GLOBAL_CAP 50
 #define OPTION_GLOBAL_BEAM 51
 #define OPTION_LOCAL_CAP 52
-#define OPTION_LOCAL_BEAM 53
+#define OPTION_STRIPED_CAP 53
 
 
 #ifdef YY
@@ -208,7 +208,7 @@ char* parse_options(int argc, char* argv[])
     {"global-cap", required_argument, 0, OPTION_GLOBAL_CAP},
     {"global-beam", required_argument, 0, OPTION_GLOBAL_BEAM},
     {"local-cap", required_argument, 0, OPTION_LOCAL_CAP},
-    {"local-beam", required_argument, 0, OPTION_LOCAL_BEAM},
+    {"striped-cap", required_argument, 0, OPTION_STRIPED_CAP},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -436,11 +436,11 @@ char* parse_options(int argc, char* argv[])
           else 
             set_opt("opt_local_cap", (int) 10000);
           break;
-      case OPTION_LOCAL_BEAM:
+      case OPTION_STRIPED_CAP:
           if (optarg != NULL)
-            set_opt_from_string("opt_local_beam", optarg);
+            set_opt_from_string("opt_striped_cap", optarg);
           else 
-            set_opt("opt_local_beam", (int) 10000);
+            set_opt("opt_striped_cap", (int) 10000);
           break;
 
 #ifdef YY
