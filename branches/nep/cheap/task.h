@@ -26,6 +26,7 @@
 #define _TASK_H_
 
 #include "agenda.h"
+#include "item.h"
 #include <functional>
 #include <iosfwd>
 
@@ -38,6 +39,7 @@ typedef abstract_agenda< class basic_task, class task_priority_less > tAbstractA
 typedef exhaustive_agenda< class basic_task, class task_priority_less > tExhaustiveAgenda;
 typedef global_cap_agenda< class basic_task, class task_priority_less > tGlobalCapAgenda;
 typedef global_beam_agenda< class basic_task, class task_priority_less > tGlobalBeamAgenda;
+typedef local_cap_agenda< class basic_task, class task_priority_less > tLocalCapAgenda;
 
 /** Pure virtual base class for tasks */
 class basic_task {
@@ -66,6 +68,10 @@ public:
   /** Set the priority to \a p */
   inline void priority(double p)
   { _p = p; }
+
+  /** Return start and end positions of the possibly resulting edge. */
+  virtual int start () = 0;
+  virtual int end () = 0;
 
   /** Print task readably to \a f for debugging purposes */
   virtual void print(std::ostream &out);
@@ -112,6 +118,11 @@ class rule_and_passive_task : public basic_task
     
     /** See basic_task::execute() */
     virtual class tItem *execute();
+
+    /** Return start and end positions of the possibly resulting edge. */
+    int start () { return _passive->start();}
+    int end ()   { return _passive->end();}
+
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
     
@@ -134,6 +145,11 @@ class active_and_passive_task : public basic_task
 
     /** See basic_task::execute() */
     virtual tItem *execute();
+
+    /** Return start and end positions of the possibly resulting edge. */
+    int start () { return std::min(_passive->start(), _active->start());}
+    int end ()   { return std::min(_passive->end(), _active->end());}
+
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
 
