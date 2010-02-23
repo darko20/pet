@@ -693,7 +693,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   } else if (get_opt_int("opt_local_cap") != 0) {
     Agenda = new tLocalCapAgenda (get_opt_int ("opt_local_cap"));
   } else if (get_opt_int("opt_striped_cap") != 0) {
-    Agenda = new tGlobalCapAgenda (get_opt_int ("opt_striped_cap"));
+    Agenda = new tStripedCapAgenda (get_opt_int ("opt_striped_cap"));
   } else {
     Agenda = new tExhaustiveAgenda;
   }

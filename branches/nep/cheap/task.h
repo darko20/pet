@@ -40,6 +40,7 @@ typedef exhaustive_agenda< class basic_task, class task_priority_less > tExhaust
 typedef global_cap_agenda< class basic_task, class task_priority_less > tGlobalCapAgenda;
 typedef global_beam_agenda< class basic_task, class task_priority_less > tGlobalBeamAgenda;
 typedef local_cap_agenda< class basic_task, class task_priority_less > tLocalCapAgenda;
+typedef striped_cap_agenda< class basic_task, class task_priority_less > tStripedCapAgenda;
 
 /** Pure virtual base class for tasks */
 class basic_task {
