@@ -228,4 +228,68 @@ T * local_cap_agenda<T, LESS_THAN>::pop() {
   return t; 
 }
 
+
+
+/*
+ * STRIPED CAP AGENDA  
+ */
+
+template <typename T, typename LESS_THAN > class striped_cap_agenda : public abstract_agenda<T, LESS_THAN > {
+/* This class provides functionality to define a per-cell cap on the number of tasks to be executed. */
+
+public : 
+
+  striped_cap_agenda(int max_popped) : _A(), _popped(), _max_popped(max_popped) {}
+  ~striped_cap_agenda() { 
+    while (!_A.empty()) {
+      T* t = _A.top();
+      delete t;
+      _A.pop();
+    }
+  }
+  
+  void push(T *t) { _A.push(t); }
+  T * top();
+  T * pop(); 
+  bool empty() { return top() == NULL; }
+
+private:
+
+  std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
+  std::map<int, int> _popped;
+  int _max_popped;
+};
+
+template <typename T, class LESS_THAN>
+T * striped_cap_agenda<T, LESS_THAN>::top() {
+  T* t;
+  bool found = false;
+  while (!found) {
+    if (!_A.empty()) {
+      t = _A.top();
+      if (_popped[t->end()-t->start()] >= _max_popped) {
+        // This span reached the limit, so continue searching for a new task. 
+        delete t;
+        t = NULL;
+        _A.pop();
+      } else {
+        found = true;
+      }
+    } else {
+      break;
+    }
+  }
+  return t;
+}
+
+template <typename T, class LESS_THAN>
+T * striped_cap_agenda<T, LESS_THAN>::pop() { 
+  T *t = top(); 
+  if (t != NULL) { 
+    _A.pop(); 
+    _popped[t->end()-t->start()]++;
+  }
+  return t; 
+}
+
 #endif

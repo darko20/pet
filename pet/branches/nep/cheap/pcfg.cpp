@@ -75,7 +75,7 @@ static bool init() {
   managed_opt("opt_local_cap",
               "Restrict agenda, based on a PCFG model",
               0); 
-  managed_opt("opt_local_beam",
+  managed_opt("opt_striped_cap",
               "Restrict agenda, based on a PCFG model",
               0); 
   return true;
