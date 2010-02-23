@@ -29,6 +29,8 @@
 #include <utility>
 #include <map>
 
+#include "logging.h"
+
 /** agenda: a priority queue adapter */
 template <typename T, typename LESS_THAN > class abstract_agenda {
 public:
@@ -167,114 +169,63 @@ void global_beam_agenda<T, LESS_THAN>::drop_worst_task ()
 /*
  * LOCAL CAP AGENDA  
  */
- 
+
 template <typename T, typename LESS_THAN > class local_cap_agenda : public abstract_agenda<T, LESS_THAN > {
-/* This class provides functionality to define a cap on the number of tasks to be executed, in each cell. */
+/* This class provides functionality to define a per-cell cap on the number of tasks to be executed. */
 
 public : 
 
-  local_cap_agenda(int max_popped) : _divider(), _max_popped(max_popped), _max_end(1), 
-                                     _current_span(0,1), _current_popped(0) 
-                                     {_p_current_pq = &_divider[_current_span];}
-  ~local_cap_agenda() {make_empty(); }
-
-  void push(T *t);
+  local_cap_agenda(int max_popped) : _A(), _popped(), _max_popped(max_popped) {}
+  ~local_cap_agenda() { 
+    while (!_A.empty()) {
+      T* t = _A.top();
+      delete t;
+      _A.pop();
+    }
+  }
+  
+  void push(T *t) { _A.push(t); }
   T * top();
   T * pop(); 
-  bool empty();
-  
-  //void state() { cout << "State: (" << _current_span.first << ", " << _current_span.second << ") " << _current_popped << " " << _p_current_pq << '\n';}
+  bool empty() { return top() == NULL; }
 
 private:
 
-  std::map< std::pair<int, int>, std::priority_queue<T*, std::vector<T*>, LESS_THAN> > _divider;
-  int _max_popped;    // Maximum nr of popped items per cell. 
-  int _max_end;       // Highest _end observed so far. 
-  std::pair<int, int> _current_span;
-  int _current_popped; 
-  std::priority_queue<T*, std::vector<T*>, LESS_THAN> *_p_current_pq;
-
-  // Auxiliary variables
-  typename std::map< std::pair<int, int>, std::priority_queue<T*, std::vector<T*>, LESS_THAN> >::iterator iter_divider;
-  std::pair<int, int> span;
-
-  void make_empty() {}
-  void next_span();
-  
+  std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
+  std::map< std::pair<int,int>, int> _popped;
+  int _max_popped;
 };
 
-template <typename T, typename LESS_THAN>
-void local_cap_agenda<T, LESS_THAN>::push(T *t) {
-  span = std::pair<int,int>(t->start(), t->end()); 
-  iter_divider = _divider.find(span);
-  if (iter_divider == _divider.end()) {
-    // This span doesn't exist yet. 
-    _divider[span].push(t);  // Creates new priority queue; 
-    _max_end = std::max(_max_end, span.second);
-  } else {
-    iter_divider->second.push(t);
-  }
-  
-}
-
-template <typename T, typename LESS_THAN>
+template <typename T, class LESS_THAN>
 T * local_cap_agenda<T, LESS_THAN>::top() {
-  // Guaranteed that _p_current_pq != NULL. 
-  if (_current_popped >= _max_popped) {
-    // This cell is exhausted, delete remaining tasks. 
-    while (!_p_current_pq->empty()) {
-      delete _p_current_pq->top();
-      _p_current_pq->pop();
+  T* t;
+  bool found = false;
+  while (!found) {
+    if (!_A.empty()) {
+      t = _A.top();
+      if (_popped[std::pair<int,int>(t->start(), t->end())] >= _max_popped) {
+        // This span reached the limit, so continue searching for a new task. 
+        delete t;
+        t = NULL;
+        _A.pop();
+      } else {
+        found = true;
+      }
+    } else {
+      break;
     }
-  }
-  while (true) {
-    if (!_divider[_current_span].empty() ||
-        _current_span.first == -1)   {break;}
-    next_span();
-    _current_popped = 0;
-  }
-  
-  if (_current_span.first == -1) {
-    // No new cell to top() from. 
-    return NULL;
-  } else {
-    _p_current_pq = &_divider[_current_span];
-    return _p_current_pq->top();
-  }
-}
-
-template <typename T, typename LESS_THAN>
-T * local_cap_agenda<T, LESS_THAN>::pop() {
-  T* t = top();
-  if (t != NULL) {
-    _p_current_pq->pop();
-    _current_popped++;
   }
   return t;
 }
 
-template <typename T, typename LESS_THAN>
-bool local_cap_agenda<T, LESS_THAN>::empty() {
-  return top() == NULL;
-};
-
-template <typename T, typename LESS_THAN>
-void local_cap_agenda<T, LESS_THAN>::next_span() {
-  // _max_end=3: (0,1) -> (1,2) -> (2,3) -> (0,2) -> (1,3) -> (0,3) -> (-1,-1)
-  if (_current_span.second < _max_end) {
-    _current_span.first++;
-    _current_span.second++;
-  } else {
-    if (_current_span.second - _current_span.first == _max_end) {
-      _current_span.first = -1;
-      _current_span.second = -1;
-    } else {
-      _current_span.second = _current_span.second - _current_span.first + 1;
-      _current_span.first = 0;
-    }
+template <typename T, class LESS_THAN>
+T * local_cap_agenda<T, LESS_THAN>::pop() { 
+  T *t = top(); 
+  if (t != NULL) { 
+    _A.pop(); 
+    _popped[std::pair<int,int>(t->start(), t->end())]++;
   }
+  return t; 
 }
-
-
 
 #endif

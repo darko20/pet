@@ -56,6 +56,9 @@ public:
 
   /** Execute the task */
   virtual class tItem * execute() = 0;
+  
+  /* Return ID counter */
+  inline int id() {return _id;}
     
   /** Return the priority of this task. 
    *
@@ -64,7 +67,7 @@ public:
    */
   inline double priority() const
   { return _p; }
-    
+  
   /** Set the priority to \a p */
   inline void priority(double p)
   { _p = p; }
@@ -75,7 +78,7 @@ public:
 
   /** Print task readably to \a f for debugging purposes */
   virtual void print(std::ostream &out);
-
+  
  /*
   static std::vector<int> _spans;
   static std::ofstream _spans_outfile;

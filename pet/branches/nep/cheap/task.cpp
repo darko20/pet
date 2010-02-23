@@ -249,6 +249,7 @@ rule_and_passive_task::execute()
     if(result) 
     {
       result->score(priority());
+      /*
       if (_R->arity() == 1)
       { 
         // Passive unary rule.
@@ -265,6 +266,7 @@ rule_and_passive_task::execute()
           LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->identity() << "  " << it->printname() << "  " << it->score());
         }
       }
+      */
     }
     
     return result;
@@ -337,6 +339,7 @@ active_and_passive_task::execute()
     tItem *result = build_combined_item(_Chart, _active, _passive);
     if(result) {
       result->score(priority());    
+      /*
       if (result->rule()->arity() == 2)
       { 
         // Passive binary rule. 
@@ -362,6 +365,7 @@ active_and_passive_task::execute()
                              it->identity() << "  " << it->printname() << "  " << it->score());
         }
       }
+      */
     }
     
     return result;
