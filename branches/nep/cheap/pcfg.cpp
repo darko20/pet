@@ -68,17 +68,16 @@ static bool init() {
               0);
   managed_opt("opt_global_cap",
               "Restrict agenda, based on a PCFG model",
-              0);  return true;
+              0); 
   managed_opt("opt_global_beam",
               "Restrict agenda, based on a PCFG model",
-              0);  return true;
+              0); 
   managed_opt("opt_local_cap",
               "Restrict agenda, based on a PCFG model",
-              0);  return true;
+              0); 
   managed_opt("opt_local_beam",
               "Restrict agenda, based on a PCFG model",
-              0);  return true;
-
+              0); 
   return true;
 }
 
