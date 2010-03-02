@@ -1420,7 +1420,6 @@ double tGM::conditional (grammar_rule *rule, std::vector<class tItem *> vItem) {
   std::vector<type_t> v; 
   v.push_back (rule->type());
   for (unsigned int i=0; i<vItem.size(); i++) {
-    //v.push_back (vItem[i]->type());  // Correct for lexical items. 
     v.push_back (vItem[i]->identity());
   }
   return conditional(v);
@@ -1436,12 +1435,10 @@ double tGM::conditional (std::vector<type_t> v) {
     std::map<type_t, double>::iterator it2 = _unknown_conditionals.find(v[0]);
     if (it2 != _unknown_conditionals.end()) {      
       return it2->second; 
-      //return -100.0;
     } else {
       // We don't even know the rule. 
       // Using _unknown_prior here results in using this number for both the prior and the conditional. 
       return _unknown_prior; 
-      //return -1000.0;
     }
   }
 
@@ -1462,6 +1459,7 @@ void tGM::calculateWeights () {
   for (std::map< std::vector<type_t>, int>::iterator it=_counts.begin(); it!=_counts.end(); it++) {
     type_t lhs = it->first.front();
     _weights[it->first] = log(double(it->second + _lidstone_delta) / (double(_prior_counts[lhs]) + _lidstone_delta * (_lhs_counts[lhs]+1)));
+    /*
     if (it->first.size() == 2) {
       LOG (logGM, INFO, "Conditional: " << it->first[0] << " " << it->first[1] << "       " << _weights[it->first]);
     } else if (it->first.size() == 3) {
@@ -1469,18 +1467,19 @@ void tGM::calculateWeights () {
     } else {
       LOG (logGM, WARN, "WARNING: strange rule size: " << it->first.size());
     }
+    */
   }
   
   // Priors
   double denom = _total_count + _lidstone_delta * (_lhs_counts.size()+1);
   for (std::map<type_t, int>::iterator it=_prior_counts.begin(); it!=_prior_counts.end(); it++) {
     _prior_weights[it->first] = log(double(it->second + _lidstone_delta) / denom);
-    LOG (logGM, INFO, "Prior: " << it->first << "  " << _prior_weights[it->first]);
+    //LOG (logGM, INFO, "Prior: " << it->first << "  " << _prior_weights[it->first]);
     _unknown_conditionals[it->first] = log(_lidstone_delta / (double(_prior_counts[it->first]) + _lidstone_delta * (_lhs_counts[it->first]+1)));
-    LOG (logGM, INFO, "Conditional unknown: " << it->first << "  " << _unknown_conditionals[it->first]);
+    //LOG (logGM, INFO, "Conditional unknown: " << it->first << "  " << _unknown_conditionals[it->first]);
   }
   _unknown_prior = log (_lidstone_delta / denom);
-  LOG (logGM, INFO, "Prior unknown: " << _unknown_prior);
+  //LOG (logGM, INFO, "Prior unknown: " << _unknown_prior);
 }
 
 void tGM::readModel(const std::string &fileName) {
