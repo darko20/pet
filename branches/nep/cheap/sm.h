@@ -280,6 +280,7 @@ class tGM
     
     virtual double conditional (class grammar_rule *, std::vector<class tItem *>);
     virtual double conditional (std::vector<type_t>);
+    virtual double unknown_conditional (type_t ruletype);
     virtual double prior (class grammar_rule *);
     
  private:

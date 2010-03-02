@@ -208,17 +208,17 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
     if(opt_packing) {
         if (Grammar->gm()) {
           double prior = Grammar->gm()->prior(R);
-          double conditional;
           if (R->arity() == 1) {
-            // Unary case: add prior, passive score and conditional 
+            // Priority(R, X) = P(R) P(R->X) P(X)
             std::vector<class tItem *> l;
             l.push_back(passive);
-            conditional = Grammar->gm()->conditional(R, l);
+            double conditional = Grammar->gm()->conditional(R, l);
+            priority (prior + conditional + passive->score());
           } else {
-            // Binary case: add prior and passive score (conditional computed when rule is completed). 
-            conditional = 0.0;
+            // Priority(R, X, ?) = P(R) P(X) * penalty
+            // The heavy penalty will make sure that tasks leading to passive items will always be preferred over task leading to active items. 
+            priority (prior + passive->score() - 1000.0);
           }
-          priority (passive->score() + prior + conditional);
         } else {
           priority(packingscore(passive->start(), passive->end(),
                                 C->rightmost(), R->arity() > 1));
@@ -248,7 +248,21 @@ rule_and_passive_task::execute()
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
     if(result) 
     {
-      result->score(priority());
+      if (Grammar->gm()) {
+        if (_R->arity() == 1) {
+          // P(R, X) = P(R->X) P(X)
+          std::vector<class tItem *> l;
+          l.push_back(_passive);
+          double conditional = Grammar->gm()->conditional(_R, l);
+          result->score(conditional + _passive->score());
+        } else {
+          // P(R,X,?) = P(X)
+          // Well, this result doesn't matter. If a passive results from this new active edge, its score is re-calculated anyway. 
+          result->score(_passive->score());
+        }
+      } else {
+        result->score(priority());
+      }
       /*
       if (_R->arity() == 1)
       { 
@@ -280,21 +294,24 @@ active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
 {
     if(opt_packing) {
         if (Grammar->gm()) {
+          // Priority(R, X, Y) = P(R) P(R->XY) P(X) P(Y)
           tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-
+          double prior = Grammar->gm()->prior(active->rule());
+          tItem* active_daughter;
+          
           std::vector<class tItem *> l;
           if (active->left_extending()) {
             l.push_back (passive);
-            l.push_back (active->daughters().back());
+            active_daughter = active->daughters().back();
+            l.push_back (active_daughter);
           } else {
-            l.push_back (active->daughters().front());
+            active_daughter = active->daughters().front();
+            l.push_back (active_daughter);
             l.push_back (passive);
           }
           double conditional = Grammar->gm()->conditional(active->rule(), l);
-
-          // The active item already contains the prior of the rule. 
-          // To add: the score of the passive, and the conditional. 
-          priority (active->score() + passive->score() + conditional);
+          
+          priority (prior + conditional + passive->score() + active_daughter->score());
         } else {        
           tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
           if(active->left_extending())
@@ -337,8 +354,26 @@ active_and_passive_task::execute()
     */
     
     tItem *result = build_combined_item(_Chart, _active, _passive);
-    if(result) {
-      result->score(priority());    
+    if(result) 
+    {
+      if (Grammar->gm()) {
+        std::vector<class tItem *> l;
+        tItem* active_daughter;
+        if (_active->left_extending()) {
+          l.push_back (_passive);
+          active_daughter = _active->daughters().back();
+          l.push_back (active_daughter);
+        } else {
+          active_daughter = _active->daughters().front();
+          l.push_back (active_daughter);
+          l.push_back (_passive);
+        }
+        double conditional = Grammar->gm()->conditional(_active->rule(), l);
+        result->score(conditional + active_daughter->score() + _passive->score());
+      } else {
+        result->score(priority());
+      }
+
       /*
       if (result->rule()->arity() == 2)
       { 
