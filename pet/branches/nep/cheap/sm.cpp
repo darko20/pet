@@ -1432,7 +1432,12 @@ double tGM::conditional (std::vector<type_t> v) {
     return it->second; 
   } else {
     // If we can't find the conditional, we fall back to the unknown conditional. 
-    std::map<type_t, double>::iterator it2 = _unknown_conditionals.find(v[0]);
+    return unknown_conditional (v[0]);
+  }
+}
+
+double tGM::unknown_conditional (type_t ruletype) {
+    std::map<type_t, double>::iterator it2 = _unknown_conditionals.find(ruletype);
     if (it2 != _unknown_conditionals.end()) {      
       return it2->second; 
     } else {
@@ -1440,8 +1445,6 @@ double tGM::conditional (std::vector<type_t> v) {
       // Using _unknown_prior here results in using this number for both the prior and the conditional. 
       return _unknown_prior; 
     }
-  }
-
 }
 
 double tGM::prior (grammar_rule *rule) {
