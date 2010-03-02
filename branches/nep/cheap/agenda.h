@@ -144,7 +144,10 @@ public :
   local_cap_agenda(int max_popped) : _A(), _popped(), _max_popped(max_popped) {}
   ~local_cap_agenda();
   
-  void push(T *t) { _A.push(t); }
+  void push(T *t) { 
+    //LOG (logGM, DEBUG, "Push: " << t->id() << " (" << t->start() << ", " << t->end() << ") " << t->priority());
+    _A.push(t); 
+  }
   T * top();
   T * pop(); 
   bool empty() { return top() == NULL; }
@@ -174,13 +177,17 @@ T * local_cap_agenda<T, LESS_THAN>::top() {
       t = _A.top();
       if (_popped[std::pair<int,int>(t->start(), t->end())] >= _max_popped) {
         // This span reached the limit, so continue searching for a new task. 
+        //LOG (logGM, DEBUG, "Discard: " << t->id() << " (" << t->start() << ", " << t->end() << ") " << t->priority());
         delete t;
         t = NULL;
         _A.pop();
       } else {
+        //LOG (logGM, DEBUG, "Pop: " << t->id() << " (" << t->start() << ", " << t->end() << ") " << t->priority());
         found = true;
       }
     } else {
+      //LOG (logGM, DEBUG, "Agenda empty.");
+      t = NULL;
       break;
     }
   }
