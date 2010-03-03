@@ -1405,7 +1405,10 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
     }
   }
 
-  while (!ragenda.empty() && n > 0) {
+  // HACK
+  int whiles = 100000;
+  while (!ragenda.empty() && n > 0 && whiles > 0) {
+    whiles--;
     aitem = ragenda.front();
     ragenda.pop_front();
     tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit, memlimit);
@@ -1423,7 +1426,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
         break;
       }
     }
-  
+    
     hypo = aitem->edge->hypothesize_edge(path, aitem->indices[0]+1);
     if (hypo) {
       //Grammar->sm()->score_hypothesis(hypo);
@@ -1434,7 +1437,9 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
     delete aitem;
   }
 
-  //_fix_me release memory allocated
+  if (whiles == 0)
+    LOG (logGM, WARN, "Unpacking aborted after 100k while loops.");
+
   for (list<tHypothesis*>::iterator it = ragenda.begin();
        it != ragenda.end(); it++)
     delete *it;
