@@ -420,25 +420,29 @@ char* parse_options(int argc, char* argv[])
           break;
       case OPTION_GLOBAL_CAP:
           if (optarg != NULL)
-            set_opt_from_string("opt_global_cap", optarg);
+            set_opt("opt_global_cap",
+                    (int)(1000 * strtoint(optarg, "")));
           else 
-            set_opt("opt_global_cap", (int) 10000);
+            set_opt("opt_global_cap", (int) 1000*1000);
           break;
       case OPTION_GLOBAL_BEAM:
           if (optarg != NULL)
-            set_opt_from_string("opt_global_beam", optarg);
+            set_opt("opt_global_beam",
+                    (int)(1000 * strtoint(optarg, "")));
           else 
-            set_opt("opt_global_beam", (int) 10000);
+            set_opt("opt_global_beam", (int) 100*1000);
           break;
       case OPTION_LOCAL_CAP:
           if (optarg != NULL)
-            set_opt_from_string("opt_local_cap", optarg);
+            set_opt("opt_local_cap",
+                    (int)(1000 * strtoint(optarg, "")));
           else 
-            set_opt("opt_local_cap", (int) 10000);
+            set_opt("opt_local_cap", (int) 10*1000);
           break;
       case OPTION_STRIPED_CAP:
           if (optarg != NULL)
-            set_opt_from_string("opt_striped_cap", optarg);
+            set_opt("opt_striped_cap",
+                    (int)(1000 * strtoint(optarg, "")));
           else 
             set_opt("opt_striped_cap", (int) 10000);
           break;
