@@ -205,32 +205,27 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
                                              grammar_rule *R, tItem *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
-    if(opt_packing) {
-        if (Grammar->gm()) {
-          double prior = Grammar->gm()->prior(R);
-          if (R->arity() == 1) {
-            // Priority(R, X) = P(R) P(R->X) P(X)
-            std::vector<class tItem *> l;
-            l.push_back(passive);
-            double conditional = Grammar->gm()->conditional(R, l);
-            priority (prior + conditional + passive->score());
-          } else {
-            // Priority(R, X, ?) = P(R) P(X) * penalty
-            // The heavy penalty will make sure that tasks leading to passive items will always be preferred over task leading to active items. 
-            priority (prior + passive->score() - 1000.0);
-          }
-        } else {
-          priority(packingscore(passive->start(), passive->end(),
-                                C->rightmost(), R->arity() > 1));
-        }
-    }
-    else if(Grammar->sm())
-    {
-        list<tItem *> daughters;
-        daughters.push_back(passive);
 
-        priority(Grammar->sm()->scoreLocalTree(R, daughters));
+  if (Grammar->gm()) {
+    double prior = Grammar->gm()->prior(R);
+    if (R->arity() == 1) {
+      // Priority(R, X) = P(R) P(R->X) P(X)
+      std::vector<class tItem *> l;
+      l.push_back(passive);
+      double conditional = Grammar->gm()->conditional(R, l);
+      priority (prior + conditional + passive->score());
+    } else {
+      // Priority(R, X, ?) = P(R) P(X) * penalty
+      // The heavy penalty will make sure that tasks leading to passive items will always be preferred over task leading to active items. 
+      priority (prior + passive->score() - 1000.0);
     }
+  } else {
+    priority(packingscore(passive->start(), passive->end(),
+                          C->rightmost(), R->arity() > 1));
+  }
+        
+  LOG (logGM, DEBUG, "MAKE    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+
 }
 
 tItem *
@@ -239,15 +234,10 @@ rule_and_passive_task::execute()
     if(_passive->blocked())
         return 0;
 
-    /*
-    if (_R->arity() == 1) {
-      basic_task::_spans.push_back (_passive->end() - _passive->start());
-    }
-    */
-    
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
     if(result) 
     {
+      LOG (logGM, DEBUG, "SUCCESS rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
       if (Grammar->gm()) {
         if (_R->arity() == 1) {
           // P(R, X) = P(R->X) P(X)
@@ -263,25 +253,9 @@ rule_and_passive_task::execute()
       } else {
         result->score(priority());
       }
-      /*
-      if (_R->arity() == 1)
-      { 
-        // Passive unary rule.
-        LOG (logGM, DEBUG, fixed << setprecision(2)); 
-        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << 
-                           result->identity() << "  " << result->printname() << "  " << priority());
-        item_list l = result->daughters();
-        tItem *it = l.front();
-        tLexItem *lit = dynamic_cast<tLexItem*> (it);
-        if (lit != 0) {
-          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
-                             it->identity() << "  " << get_typename(it->identity()) << "  " << it->score());
-        } else {
-          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << it->identity() << "  " << it->printname() << "  " << it->score());
-        }
-      }
-      */
-    }
+    } else {
+      LOG (logGM, DEBUG, "FAIL    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+    }  
     
     return result;
 }
@@ -292,50 +266,41 @@ active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
                                                  tItem *act, tItem *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {
-    if(opt_packing) {
-        if (Grammar->gm()) {
-          // Priority(R, X, Y) = P(R) P(R->XY) P(X) P(Y)
-          tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-          double prior = Grammar->gm()->prior(active->rule());
-          tItem* active_daughter;
-          
-          std::vector<class tItem *> l;
-          if (active->left_extending()) {
-            l.push_back (passive);
-            active_daughter = active->daughters().back();
-            l.push_back (active_daughter);
-          } else {
-            active_daughter = active->daughters().front();
-            l.push_back (active_daughter);
-            l.push_back (passive);
-          }
-          double conditional = Grammar->gm()->conditional(active->rule(), l);
-          
-          priority (prior + conditional + passive->score() + active_daughter->score());
-        } else {        
-          tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-          if(active->left_extending())
-              priority(packingscore(passive->start(), active->end(),
-                                    C->rightmost(), false));
-          else
-              priority(packingscore(active->start(), passive->end(),
-                                    C->rightmost(), false));
-        
-        }    
+
+  if (Grammar->gm()) {
+    // Priority(R, X, Y) = P(R) P(R->XY) P(X) P(Y)
+    tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
+    double prior = Grammar->gm()->prior(active->rule());
+    tItem* active_daughter;
+    
+    std::vector<class tItem *> l;
+    if (active->left_extending()) {
+      l.push_back (passive);
+      active_daughter = active->daughters().back();
+      l.push_back (active_daughter);
+    } else {
+      active_daughter = active->daughters().front();
+      l.push_back (active_daughter);
+      l.push_back (passive);
     }
-    else if(Grammar->sm())
-    {
-        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-
-        list<tItem *> daughters(active->daughters());
-
-        if(active->left_extending())
-            daughters.push_front(passive);
-        else
-            daughters.push_back(passive);
-
-        priority(Grammar->sm()->scoreLocalTree(active->rule(), daughters));
+    double conditional = Grammar->gm()->conditional(active->rule(), l);
+    priority (prior + conditional + passive->score() + active_daughter->score());
+  } else {        
+    tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
+    if(active->left_extending()) {
+      priority(packingscore(passive->start(), active->end(),
+                            C->rightmost(), false));
+    } else {
+      priority(packingscore(active->start(), passive->end(),
+                            C->rightmost(), false));
     }
+  }
+
+  LOG (logGM, DEBUG, "MAKE    active_and_passive: " 
+                     << id() << " (" << _active->rule()->printname() << "  " << _p << " ("
+                     << _active->start()  << ", " << _active->end()  << ") (" 
+                     << _passive->start() << ", " << _passive->end() << ") ");
+
 }
 
 tItem *
@@ -343,19 +308,13 @@ active_and_passive_task::execute()
 {
     if(_passive->blocked() || _active->blocked())
         return 0;
-
-    /*
-    if (_active->left_extending())
-    {
-      basic_task::_spans.push_back (_active->end() - _passive->start());
-    } else {
-      basic_task::_spans.push_back (_passive->end() - _active->start());
-    }
-    */
     
     tItem *result = build_combined_item(_Chart, _active, _passive);
     if(result) 
     {
+      LOG (logGM, DEBUG, "SUCCESS active_and_passive: " << id() << " (" << _active->rule()->printname() << "  " << _p << " )"
+                                                        << _active->start()  << ", " << _active->end()  << ") (" 
+                                                        << _passive->start() << ", " << _passive->end() << ") ");
       if (Grammar->gm()) {
         std::vector<class tItem *> l;
         tItem* active_daughter;
@@ -373,34 +332,10 @@ active_and_passive_task::execute()
       } else {
         result->score(priority());
       }
-
-      /*
-      if (result->rule()->arity() == 2)
-      { 
-        // Passive binary rule. 
-        LOG (logGM, DEBUG, fixed << setprecision(2));
-        LOG (logGM, DEBUG, result->id() << " (" << result->start() << ", " << result->end() << ") " << result->identity() << "  " << result->printname() << "  " << priority());
-        item_list l = result->daughters();
-        tItem *it = l.front();
-        tLexItem *lit = dynamic_cast<tLexItem*> (it);
-        if (lit != 0) {
-          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
-                             it->identity() << "  " << get_typename(it->identity()) << "  " << it->score());
-        } else {
-          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
-                             it->identity() << "  " << it->printname() << "  " << it->score());
-        }
-        it = l.back();
-        lit = dynamic_cast<tLexItem*> (it);
-        if (lit != 0) {
-          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
-                             it->identity() << "  " << get_typename(it->identity()) << "  " << it->score());
-        } else {
-          LOG (logGM, DEBUG, "    " << it->id() << " (" << it->start() << ", " << it->end() << ") " << 
-                             it->identity() << "  " << it->printname() << "  " << it->score());
-        }
-      }
-      */
+    } else {
+      LOG (logGM, DEBUG, "FAIL    active_and_passive: " << id() << " (" << _active->rule()->printname() << "  " << _p
+                                                        << _active->start()  << ", " << _active->end()  << ") (" 
+                                                        << _passive->start() << ", " << _passive->end() << ") ");
     }
     
     return result;
