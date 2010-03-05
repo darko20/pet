@@ -35,6 +35,7 @@
 #include <float.h>
 #include <math.h>
 #include <map>
+#include <iomanip>
 
 using namespace std;
 using namespace HASH_SPACE;
@@ -1411,6 +1412,7 @@ tGM::tGM(class tGrammar *G, const char *fileNameIn, const char *basePath)
     throw tError(string("Could not open GM file \"") + fileNameIn + "\"");
   readModel(fileName);
   calculateWeights();
+  LOG (logGM, DEBUG, std::fixed << std::setprecision(2) );
 }
 
 tGM::~tGM() {
