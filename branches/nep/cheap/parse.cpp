@@ -687,13 +687,11 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
   if (get_opt_int("opt_global_cap") != 0) {
-    Agenda = new tGlobalCapAgenda (get_opt_int ("opt_global_cap"));
-  } else if (get_opt_int("opt_global_beam") != 0) {
-    Agenda = new tGlobalBeamAgenda (get_opt_int ("opt_global_beam"));
+    Agenda = new tGlobalCapAgenda (get_opt_int ("opt_global_cap"), max_pos);
   } else if (get_opt_int("opt_local_cap") != 0) {
-    Agenda = new tLocalCapAgenda (get_opt_int ("opt_local_cap"));
+    Agenda = new tLocalCapAgenda (get_opt_int ("opt_local_cap"), max_pos);
   } else if (get_opt_int("opt_striped_cap") != 0) {
-    Agenda = new tStripedCapAgenda (get_opt_int ("opt_striped_cap"));
+    Agenda = new tStripedCapAgenda (get_opt_int ("opt_striped_cap"), max_pos);
   } else {
     Agenda = new tExhaustiveAgenda;
   }

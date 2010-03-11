@@ -142,9 +142,8 @@ void usage(FILE *f)
 #define OPTION_ROBUST 41
 
 #define OPTION_GLOBAL_CAP 50
-#define OPTION_GLOBAL_BEAM 51
+#define OPTION_STRIPED_CAP 51
 #define OPTION_LOCAL_CAP 52
-#define OPTION_STRIPED_CAP 53
 
 
 #ifdef YY
@@ -206,9 +205,8 @@ char* parse_options(int argc, char* argv[])
     {"cm", optional_argument, 0, OPTION_CHART_MAPPING},
     {"sm", optional_argument, 0, OPTION_SM},
     {"global-cap", required_argument, 0, OPTION_GLOBAL_CAP},
-    {"global-beam", required_argument, 0, OPTION_GLOBAL_BEAM},
-    {"local-cap", required_argument, 0, OPTION_LOCAL_CAP},
     {"striped-cap", required_argument, 0, OPTION_STRIPED_CAP},
+    {"local-cap", required_argument, 0, OPTION_LOCAL_CAP},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -421,30 +419,23 @@ char* parse_options(int argc, char* argv[])
       case OPTION_GLOBAL_CAP:
           if (optarg != NULL)
             set_opt("opt_global_cap",
-                    (int)(1000 * strtoint(optarg, "")));
+                    (int)(strtoint(optarg, "")));
           else 
-            set_opt("opt_global_cap", (int) 1000*1000);
-          break;
-      case OPTION_GLOBAL_BEAM:
-          if (optarg != NULL)
-            set_opt("opt_global_beam",
-                    (int)(1000 * strtoint(optarg, "")));
-          else 
-            set_opt("opt_global_beam", (int) 100*1000);
-          break;
-      case OPTION_LOCAL_CAP:
-          if (optarg != NULL)
-            set_opt("opt_local_cap",
-                    (int)(1000 * strtoint(optarg, "")));
-          else 
-            set_opt("opt_local_cap", (int) 10*1000);
+            set_opt("opt_global_cap", (int) 1000);
           break;
       case OPTION_STRIPED_CAP:
           if (optarg != NULL)
             set_opt("opt_striped_cap",
-                    (int)(1000 * strtoint(optarg, "")));
+                    (int)(strtoint(optarg, "")));
           else 
-            set_opt("opt_striped_cap", (int) 10000);
+            set_opt("opt_striped_cap", (int) 1000);
+          break;
+      case OPTION_LOCAL_CAP:
+          if (optarg != NULL)
+            set_opt("opt_local_cap",
+                    (int)(strtoint(optarg, "")));
+          else 
+            set_opt("opt_local_cap", (int) 1000);
           break;
 
 #ifdef YY
