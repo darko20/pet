@@ -73,7 +73,7 @@ template <typename T, typename LESS_THAN > class global_cap_agenda : public abst
 
 public : 
 
-  global_cap_agenda(int max_popped) : _A(), _popped(), _max_popped(max_popped) {}
+  global_cap_agenda(int cell_size, int max_pos) : _A(), _popped(), _max_popped(max_pos*cell_size*(cell_size+1)/2) {}
   ~global_cap_agenda(); 
   
   void push(T *t) { _A.push(t); }
@@ -108,12 +108,12 @@ T * global_cap_agenda<T, LESS_THAN>::top() {
       if (_popped >= _max_popped) {
         // This span reached the limit, so continue searching for a new task. 
         delete t;
-        t = NULL;
         _A.pop();
       } else {
         found = true;
       }
     } else {
+      t = NULL;
       break;
     }
   }
@@ -131,81 +131,6 @@ T * global_cap_agenda<T, LESS_THAN>::pop() {
 }
 
 
-
-/*
- * LOCAL CAP AGENDA  
- */
-
-template <typename T, typename LESS_THAN > class local_cap_agenda : public abstract_agenda<T, LESS_THAN > {
-/* This class provides functionality to define a per-cell cap on the number of tasks to be executed. */
-
-public : 
-
-  local_cap_agenda(int max_popped) : _A(), _popped(), _max_popped(max_popped) {}
-  ~local_cap_agenda();
-  
-  void push(T *t) { 
-    //LOG (logGM, DEBUG, "Push: " << t->id() << " (" << t->start() << ", " << t->end() << ") " << t->priority());
-    _A.push(t); 
-  }
-  T * top();
-  T * pop(); 
-  bool empty() { return top() == NULL; }
-
-private:
-
-  std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
-  std::map< std::pair<int,int>, int> _popped;
-  int _max_popped;
-};
-
-template <typename T, class LESS_THAN>
-local_cap_agenda<T, LESS_THAN>::~local_cap_agenda() {
-  while (!_A.empty()) {
-    T* t = _A.top();
-    delete t;
-    _A.pop();
-  }
-}
-
-template <typename T, class LESS_THAN>
-T * local_cap_agenda<T, LESS_THAN>::top() {
-  T* t;
-  bool found = false;
-  while (!found) {
-    if (!_A.empty()) {
-      t = _A.top();
-      if (_popped[std::pair<int,int>(t->start(), t->end())] >= _max_popped) {
-        // This span reached the limit, so continue searching for a new task. 
-        //LOG (logGM, DEBUG, "Discard: " << t->id() << " (" << t->start() << ", " << t->end() << ") " << t->priority());
-        delete t;
-        t = NULL;
-        _A.pop();
-      } else {
-        //LOG (logGM, DEBUG, "Pop: " << t->id() << " (" << t->start() << ", " << t->end() << ") " << t->priority());
-        found = true;
-      }
-    } else {
-      //LOG (logGM, DEBUG, "Agenda empty.");
-      t = NULL;
-      break;
-    }
-  }
-  return t;
-}
-
-template <typename T, class LESS_THAN>
-T * local_cap_agenda<T, LESS_THAN>::pop() { 
-  T *t = top(); 
-  if (t != NULL) { 
-    _A.pop(); 
-    _popped[std::pair<int,int>(t->start(), t->end())]++;
-  }
-  return t; 
-}
-
-
-
 /*
  * STRIPED CAP AGENDA  
  */
@@ -215,7 +140,7 @@ template <typename T, typename LESS_THAN > class striped_cap_agenda : public abs
 
 public : 
 
-  striped_cap_agenda(int max_popped) : _A(), _popped(), _max_popped(max_popped) {}
+  striped_cap_agenda(int cell_size, int max_pos) : _A(), _popped(), _cell_size(cell_size) {}
   ~striped_cap_agenda();
   
   void push(T *t) { _A.push(t); }
@@ -227,7 +152,7 @@ private:
 
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
   std::map<int, int> _popped;
-  int _max_popped;
+  int _cell_size;
 };
 
 template <typename T, class LESS_THAN>
@@ -246,15 +171,15 @@ T * striped_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (_popped[t->end()-t->start()] >= _max_popped) {
+      if (_popped[t->end()-t->start()] >= _cell_size*(t->end()-t->start())) {
         // This span reached the limit, so continue searching for a new task. 
         delete t;
-        t = NULL;
         _A.pop();
       } else {
         found = true;
       }
     } else {
+      t = NULL;
       break;
     }
   }
@@ -272,69 +197,72 @@ T * striped_cap_agenda<T, LESS_THAN>::pop() {
 }
 
 
-/* 
- * GLOBAL BEAM 
+
+/*
+ * LOCAL CAP AGENDA
  */
 
-template <typename T, typename LESS_THAN > class global_beam_agenda : public abstract_agenda<T, LESS_THAN > {
-/* This class provides functionality to define a global number of tasks to be held at the same time. */
+template <typename T, typename LESS_THAN > class local_cap_agenda : public abstract_agenda<T, LESS_THAN > {
+/* This class provides functionality to define a per-cell cap on the number of tasks to be executed. */
 
-public :
-  global_beam_agenda (int beam_size) :  _beam_size(beam_size) {_S = std::set<T *, LESS_THAN>();}
-  ~global_beam_agenda ();
+public : 
 
-  void push(T *t);
+  local_cap_agenda(int cell_size, int max_pos) : _A(), _popped(), _cell_size(cell_size) {}
+  ~local_cap_agenda();
+  
+  void push(T *t) {
+    _A.push(t); 
+  }
   T * top();
   T * pop(); 
-  bool empty() { return _S.empty(); }
+  bool empty() { return top() == NULL; }
 
-private :
+private:
 
-  int _beam_size;
-  std::set<T *, LESS_THAN > _S;
-  typename std::set<T *, LESS_THAN>::iterator iter;
-  typename std::set<T *, LESS_THAN>::reverse_iterator riter;
-  
-  void drop_worst_task ();
-
+  std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
+  std::map< std::pair<int,int>, int> _popped;
+  int _cell_size;
 };
 
-template <typename T, typename LESS_THAN>
-global_beam_agenda<T,LESS_THAN>::~global_beam_agenda () 
-{
-  while (!empty()) {
-    drop_worst_task();
+template <typename T, class LESS_THAN>
+local_cap_agenda<T, LESS_THAN>::~local_cap_agenda() {
+  while (!_A.empty()) {
+    T* t = _A.top();
+    delete t;
+    _A.pop();
   }
 }
 
-template <typename T, typename LESS_THAN>
-void global_beam_agenda<T,LESS_THAN>::push (T *t) 
-{
-  _S.insert (t);
-  if (_S.size() > _beam_size) drop_worst_task(); 
+template <typename T, class LESS_THAN>
+T * local_cap_agenda<T, LESS_THAN>::top() {
+  T* t;
+  bool found = false;
+  while (!found) {
+    if (!_A.empty()) {
+      t = _A.top();
+      if (_popped[std::pair<int,int>(t->start(), t->end())] >= _cell_size) {
+        // This span reached the limit, so continue searching for a new task. 
+        delete t;
+        _A.pop();
+      } else {
+        found = true;
+      }
+    } else {
+      t = NULL;
+      break;
+    }
+  }
+  return t;
 }
 
-template <typename T, typename LESS_THAN>
-T * global_beam_agenda<T,LESS_THAN>::top () 
-{
-  return *_S.begin();
+template <typename T, class LESS_THAN>
+T * local_cap_agenda<T, LESS_THAN>::pop() { 
+  T *t = top(); 
+  if (t != NULL) { 
+    _A.pop(); 
+    _popped[std::pair<int,int>(t->start(), t->end())]++;
+  }
+  return t; 
 }
-
-template <typename T, typename LESS_THAN>
-T * global_beam_agenda<T, LESS_THAN>::pop () 
-{ 
-  iter = _S.begin();
-  _S.erase(*iter);
-  return *iter;
-}
-
-template <typename T, typename LESS_THAN>
-void global_beam_agenda<T, LESS_THAN>::drop_worst_task () 
-{
-  riter = _S.rbegin();
-  delete *riter;
-  _S.erase(*riter);
-}
-
 
 #endif
