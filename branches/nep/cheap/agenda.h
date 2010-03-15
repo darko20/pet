@@ -105,7 +105,7 @@ T * global_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (_popped >= _max_popped) {
+      if (t->end() - t->start() > 1 && _popped >= _max_popped) {
         // This span reached the limit, so continue searching for a new task. 
         delete t;
         _A.pop();
@@ -153,6 +153,7 @@ private:
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
   std::map<int, int> _popped;
   int _cell_size;
+  int _span; 
 };
 
 template <typename T, class LESS_THAN>
@@ -171,7 +172,8 @@ T * striped_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (_popped[t->end()-t->start()] >= _cell_size*(t->end()-t->start())) {
+      _span = t->end() - t->start(); 
+      if (_span > 1 && _popped[_span] >= _cell_size*_span) {
         // This span reached the limit, so continue searching for a new task. 
         delete t;
         _A.pop();
@@ -240,7 +242,7 @@ T * local_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (_popped[std::pair<int,int>(t->start(), t->end())] >= _cell_size) {
+      if (t->end() - t->start() > 1 && _popped[std::pair<int,int>(t->start(), t->end())] >= _cell_size) {
         // This span reached the limit, so continue searching for a new task. 
         delete t;
         _A.pop();
