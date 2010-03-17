@@ -185,6 +185,8 @@ tChartMappingEngine::tChartMappingEngine(
 void
 tChartMappingEngine::process(tChart &chart)
 {
+  assert(chart.connected());
+  
   // TODO loglevel should be configured with logging system
   int loglevel = get_opt_int("opt_chart_mapping");
   
@@ -232,6 +234,12 @@ tChartMappingEngine::process(tChart &chart)
   tChartMappingMatchCache::iterator match_it;
   for (match_it = cache.begin(); match_it != cache.end(); match_it++)
     delete match_it->second; // delete 0 is safe according C++ Standard
+
+  // check whether the chart is still wellformed:
+  if (!chart.connected()) {
+    throw tError("Chart is not well-formed after chart mapping. "
+        "This is probably a bug in the grammar.");
+  }
 
   // logging:
   if (LOG_ENABLED(logChartMapping, NOTICE) || loglevel & 1) {

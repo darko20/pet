@@ -215,6 +215,14 @@ public:
       bool skip_pending_inflrs = false, item_list skip = item_list());
 
   /**
+   * Checks whether the chart is connected. That means it should have
+   * exactly one start and exactly one end vertex where a start/end vertex is
+   * a vertex with no or only blocked preceding/succeding items.
+   */
+  bool
+  connected();
+
+  /**
    * Print chart items to stream \a out using \a aip, select active and
    * passive items with \a passives and \a actives.
    */

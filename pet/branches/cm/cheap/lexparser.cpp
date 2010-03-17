@@ -216,8 +216,7 @@ lex_parser::add(tLexItem *lex) {
     while(pass.valid()) {
       // we cannot check compatiblity via type, we have to have an
       // input-trait too :(
-      tItem *current = pass.current();
-      if ((current->trait() == INPUT_TRAIT) && (!current->blocked())) {
+      if (pass.current()->trait() == INPUT_TRAIT) {
         _agenda.push(new lex_and_inp_task(lex
                                , dynamic_cast<tInputItem *>(pass.current())));
       }
@@ -339,12 +338,10 @@ static list_int *get_rules(tMorphAnalysis &analysis) {
  */
 void
 lex_parser::add(tInputItem *inp) {
+  assert(!inp->blocked());
+
   // add item to the global chart
   Chart->add(inp);
-  
-  // item might already be blocked by token mapping:
-  if (inp->blocked())
-    return;
   
   // do a morphological analysis if necessary:
   list<tMorphAnalysis> morphs;
@@ -908,7 +905,10 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
   // now initialize agenda of lexical parser with list of input tokens
   // and start lexical processing with application of lex entries and lex rules
   for(inp_iterator it=inp_tokens.begin(); it != inp_tokens.end(); it++) {
-    add(*it);
+    // add all input items that have not been deleted in token mapping:
+    if (!(*it)->blocked()) { 
+      add(*it);
+    }
   }
 
   //
