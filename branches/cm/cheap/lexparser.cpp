@@ -951,7 +951,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     tChart chart;
     tItemPrinter ip(cerr, false, true);
     tChartUtil::map_chart(*Chart, chart);
-    if (chart_mapping & 8) {
+    if (chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] initial lexical chart:\n");
       chart.print(cerr, &ip, onlypassives);
     } // if
