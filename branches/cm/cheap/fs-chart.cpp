@@ -250,6 +250,49 @@ tChart::preceding_items(tChartVertex *v, int min, int max, bool skip_blocked,
   return result;
 }
 
+bool
+tChart::connected() {
+  int nr_start = 0;
+  int nr_end = 0;
+  for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
+       it != _vertices.end();
+       it++)
+  {
+    tChartVertex* vertex = *it;
+    std::map<tChartVertex*, item_list >::const_iterator vertex_items_it;
+    // check items preceding vertex:
+    vertex_items_it = _vertex_to_ending_items.find(vertex);
+    bool has_active_prec_items = false;
+    if (vertex_items_it != _vertex_to_ending_items.end()) {
+      item_list items = vertex_items_it->second;
+      for (item_list::iterator item_it = items.begin();
+           item_it != items.end();
+           item_it++) {
+        has_active_prec_items = has_active_prec_items || !(*item_it)->blocked();
+      }
+    }
+    // check items succeeding vertex:
+    vertex_items_it = _vertex_to_starting_items.find(vertex);
+    bool has_active_succ_items = false;
+    if (vertex_items_it != _vertex_to_starting_items.end()) {
+      item_list items = vertex_items_it->second;
+      for (item_list::iterator item_it = items.begin();
+           item_it != items.end();
+           item_it++) {
+        has_active_succ_items = has_active_succ_items || !(*item_it)->blocked();
+      }
+    }
+    // check whether this is a start or an end vertex:
+    if (!has_active_prec_items && has_active_succ_items) {
+      nr_start++;
+    }
+    if (has_active_prec_items && !has_active_succ_items) {
+      nr_end++;
+    }
+  }
+  return (nr_start == 1) && (nr_end == 1);
+}
+
 void
 tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
     item_predicate toprint)
