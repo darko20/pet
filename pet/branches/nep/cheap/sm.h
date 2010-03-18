@@ -49,6 +49,8 @@ class tSMFeature
     void
     print(std::ostream &) const;
     
+    //std::string bart_print () const; 
+    
  private:
     std::vector<int> _v;
     

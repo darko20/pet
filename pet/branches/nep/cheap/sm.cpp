@@ -37,6 +37,7 @@
 #include <map>
 #include <iomanip>
 
+
 using namespace std;
 using namespace HASH_SPACE;
 
@@ -55,6 +56,24 @@ tSMFeature::print(std::ostream &o) const
       o << *it << " ";
     }
 }
+
+/*
+std::string
+tSMFeature::bart_print () const
+{
+  std::string s = "";
+  for (unsigned int i=2; i<_v.size(); i++) {
+    if (_v[i] < typenames.size()) {
+      s += typenames[_v[i]] + " ";
+    } else if (_v[i] == 2147483647) {
+      s += "^ ";
+    } else {
+      s += "WORD ";
+    }
+  }
+  return s;
+}
+*/
 
 inline int
 compare(const tSMFeature &f1, const tSMFeature &f2)
@@ -705,8 +724,9 @@ tMEM::score(const tSMFeature &f)
     assert(code >=0);
     if(code < (int) _weights.size())
         return _weights[code];
-    else
-        return 0.0;
+    else {
+        return -1.0;
+    }
 }
 
 void
