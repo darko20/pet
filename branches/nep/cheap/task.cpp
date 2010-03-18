@@ -215,9 +215,8 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
       double conditional = Grammar->gm()->conditional(R, l);
       priority (prior + conditional + passive->score());
     } else {
-      // Priority(R, X, ?) = P(R) P(X) * penalty
-      // The heavy penalty will make sure that tasks leading to passive items will always be preferred over task leading to active items. 
-      priority (prior + passive->score() - 1000.0);
+      // Priority(R, X, ?) = P(R) P(X)
+      priority (prior + passive->score());
     }
   } else {
     priority(packingscore(passive->start(), passive->end(),
