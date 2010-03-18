@@ -459,6 +459,8 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
                        long memlimit, int nsolutions, 
                        timer *UnpackTime , vector<tItem *> &readings) {
+  LOG (logAppl, INFO, "Start unpacking");
+
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0)
     timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
