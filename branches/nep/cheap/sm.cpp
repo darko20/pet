@@ -725,7 +725,7 @@ tMEM::score(const tSMFeature &f)
     if(code < (int) _weights.size())
         return _weights[code];
     else {
-        return -1.0;
+        return 0.0;
     }
 }
 
@@ -1425,7 +1425,7 @@ tPCFG::adjustWeights() {
 
 
 tGM::tGM(class tGrammar *G, const char *fileNameIn, const char *basePath)
-  : _lidstone_delta(0.5)
+  : _lidstone_delta(0.01)
 {
   std::string fileName = find_file(fileNameIn, std::string("pcfg"), basePath);
   if(fileName.empty())
@@ -1465,7 +1465,8 @@ double tGM::unknown_conditional (type_t ruletype) {
     } else {
       // We don't even know the rule. 
       // Using _unknown_prior here results in using this number for both the prior and the conditional. 
-      return _unknown_prior; 
+      //return _unknown_prior; 
+      return -10000.0;
     }
 }
 
