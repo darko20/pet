@@ -105,8 +105,9 @@ T * global_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (t->end() - t->start() > 1 && _popped >= _max_popped) {
+      if (t->phrasal() && _popped >= _max_popped) {
         // This span reached the limit, so continue searching for a new task. 
+        // Inflectional and lexical rules are always carried out. 
         delete t;
         _A.pop();
       } else {
@@ -125,7 +126,9 @@ T * global_cap_agenda<T, LESS_THAN>::pop() {
   T *t = top(); 
   if (t != NULL) { 
     _A.pop(); 
-    _popped++;
+    if (t->phrasal()) {
+      _popped++;
+    }
   }
   return t; 
 }
@@ -172,9 +175,9 @@ T * striped_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      _span = t->end() - t->start(); 
-      if (_span > 1 && _popped[_span] >= _cell_size*_span) {
+      if (t->phrasal() && _popped[_span] >= _cell_size*_span) {
         // This span reached the limit, so continue searching for a new task. 
+        // Inflectional and lexical rules are always carried out. 
         delete t;
         _A.pop();
       } else {
@@ -193,7 +196,9 @@ T * striped_cap_agenda<T, LESS_THAN>::pop() {
   T *t = top(); 
   if (t != NULL) { 
     _A.pop(); 
-    _popped[t->end()-t->start()]++;
+    if (t->phrasal()) {
+      _popped[t->end()-t->start()]++;
+    }
   }
   return t; 
 }
@@ -242,8 +247,9 @@ T * local_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (t->end() - t->start() > 1 && _popped[std::pair<int,int>(t->start(), t->end())] >= _cell_size) {
+      if (t->phrasal() && _popped[std::pair<int,int>(t->start(), t->end())] >= _cell_size) {
         // This span reached the limit, so continue searching for a new task. 
+        // Inflectional and lexical rules are always carried out. 
         delete t;
         _A.pop();
       } else {
@@ -262,7 +268,9 @@ T * local_cap_agenda<T, LESS_THAN>::pop() {
   T *t = top(); 
   if (t != NULL) { 
     _A.pop(); 
-    _popped[std::pair<int,int>(t->start(), t->end())]++;
+    if (t->phrasal()) {
+      _popped[std::pair<int,int>(t->start(), t->end())]++;
+    }
   }
   return t; 
 }

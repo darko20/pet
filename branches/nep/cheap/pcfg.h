@@ -49,6 +49,7 @@ public:
   /** Return start and end positions of the possibly resulting edge. */
   int start () { return _passive->start();}
   int end ()   { return _passive->end();}
+  bool phrasal () { return false; }
 
   virtual class tItem *execute();
   // virtual void print(FILE *f) {}
@@ -68,7 +69,8 @@ public:
   /** Return start and end positions of the possibly resulting edge. */
   int start () { return std::min(_passive->start(), _active->start());}
   int end ()   { return std::min(_passive->end(), _active->end());}
-
+  bool phrasal () { return false; }
+  
   virtual tItem *execute();
   // virtual void print(FILE *f) {}
   

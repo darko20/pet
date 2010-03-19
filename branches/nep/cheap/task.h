@@ -27,6 +27,7 @@
 
 #include "agenda.h"
 #include "item.h"
+#include "grammar.h"
 #include <functional>
 #include <iosfwd>
 
@@ -75,6 +76,7 @@ public:
   /** Return start and end positions of the possibly resulting edge. */
   virtual int start () = 0;
   virtual int end () = 0;
+  virtual bool phrasal () = 0;
 
   /** Print task readably to \a f for debugging purposes */
   virtual void print(std::ostream &out);
@@ -125,7 +127,8 @@ class rule_and_passive_task : public basic_task
     /** Return start and end positions of the possibly resulting edge. */
     int start () { return _passive->start();}
     int end ()   { return _passive->end();}
-
+    inline bool phrasal () { return _R->trait() == SYNTAX_TRAIT;}
+    
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
     
@@ -152,6 +155,7 @@ class active_and_passive_task : public basic_task
     /** Return start and end positions of the possibly resulting edge. */
     int start () { return std::min(_passive->start(), _active->start());}
     int end ()   { return std::min(_passive->end(), _active->end());}
+    inline bool phrasal () { return false;}
 
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
