@@ -861,7 +861,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
     tChartUtil::map_chart(inp_tokens, chart);
     if (chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] initial token chart:\n");
-      chart.print(cerr, &ip, onlypassives);
+      chart.print(cerr, &ip, passive_unblocked);
     } // if
     // apply chart mapping rules:
     const std::list<class tChartMappingRule*> &rules = Grammar->tokmap_rules();
@@ -873,7 +873,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
     // chart items should be handled by tItem::default_owner()
     if (chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] final token chart:\n");
-      chart.print(cerr, &ip, onlypassives);
+      chart.print(cerr, &ip, passive_unblocked);
     } // if
     if (chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping ends\n");
@@ -953,7 +953,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     tChartUtil::map_chart(*Chart, chart);
     if (chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] initial lexical chart:\n");
-      chart.print(cerr, &ip, onlypassives);
+      chart.print(cerr, &ip, passive_unblocked_non_input);
     } // if
     // apply chart mapping rules:
     const std::list<class tChartMappingRule*> &rules = Grammar->lexflt_rules();
@@ -965,7 +965,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     // chart items should be handled by tItem::default_owner()
     if (chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] final lexical chart:\n");
-      chart.print(cerr, &ip, onlypassives);
+      chart.print(cerr, &ip, passive_unblocked_non_input);
     } // if
     if (chart_mapping_loglevel & 1)
       fprintf(stderr, "[cm] lexical filtering ends\n");

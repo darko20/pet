@@ -1291,6 +1291,16 @@ inline bool alltrue(const class tItem *it) { return true; }
 /** Item predicate selecting all passive items. */
 inline bool onlypassives(const tItem *item) { return item->passive(); }
 
+/** Item predicate selecting all passive non-blocked items. */
+inline bool passive_unblocked(const class tItem *item) { 
+  return item->passive() && !item->blocked(); 
+}
+
+/** Item predicate selecting all passive non-blocked, non-input items. */
+inline bool passive_unblocked_non_input(const class tItem *item) { 
+  return item->passive() && !item->blocked() && item->trait() != INPUT_TRAIT; 
+}
+
 /** Item predicate selecting all passive items without pending morphographemic
  * rules. */
 inline bool passive_no_inflrs(const tItem *item) {
