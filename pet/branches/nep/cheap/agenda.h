@@ -156,7 +156,6 @@ private:
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
   std::map<int, int> _popped;
   int _cell_size;
-  int _span; 
 };
 
 template <typename T, class LESS_THAN>
@@ -171,11 +170,13 @@ striped_cap_agenda<T, LESS_THAN>::~striped_cap_agenda() {
 template <typename T, class LESS_THAN>
 T * striped_cap_agenda<T, LESS_THAN>::top() {
   T* t;
+  int span;
   bool found = false;
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (t->phrasal() && _popped[_span] >= _cell_size*_span) {
+      span = t->end() - t->start();
+      if (t->phrasal() && _popped[span] >= _cell_size*span) {
         // This span reached the limit, so continue searching for a new task. 
         // Inflectional and lexical rules are always carried out. 
         delete t;
