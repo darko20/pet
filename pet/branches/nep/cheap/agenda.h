@@ -73,7 +73,7 @@ template <typename T, typename LESS_THAN > class global_cap_agenda : public abst
 
 public : 
 
-  global_cap_agenda(int cell_size, int max_pos) : _A(), _popped(), _max_popped(max_pos*cell_size*(cell_size+1)/2) {}
+  global_cap_agenda(int cell_size, int max_pos) : _A(), _popped(), _max_popped(cell_size*max_pos*(max_pos+1)/2) {}
   ~global_cap_agenda(); 
   
   void push(T *t) { _A.push(t); }
