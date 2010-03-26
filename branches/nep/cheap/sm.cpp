@@ -743,7 +743,7 @@ tMEM::score(const tSMFeature &f)
             for (unsigned int i=0; i<_robust_rules.size(); i++) {
                 if (_robust_rules[i] == t) {
                     //LOG (logSM, WARN, f.bart_print());
-                    return 0.0;
+                    return -100.0;
                 }
             }
         }
