@@ -57,7 +57,7 @@ tSMFeature::print(std::ostream &o) const
     }
 }
 
-/*
+
 std::string
 tSMFeature::bart_print () const
 {
@@ -73,7 +73,7 @@ tSMFeature::bart_print () const
   }
   return s;
 }
-*/
+
 
 inline int
 compare(const tSMFeature &f1, const tSMFeature &f2)
@@ -352,6 +352,19 @@ tMEM::tMEM(tGrammar *G, const char *fileNameIn, const char *basePath)
   : tSM(G, fileNameIn, basePath), _format(0)
 {
     readModel(fileName());
+    
+    struct setting *set;
+    if((set = cheap_settings->lookup("robust-rules")) != 0)
+    {
+        for(int i = 0; i < set->n; i++)
+        {
+            type_t t = lookup_type(set->values[i]);
+            if (t > 0)
+              _robust_rules.push_back(lookup_type(set->values[i]));
+            else
+              LOG (logSM, WARN, "Robust rule " << set->values[i] << " does not exist.");
+        }
+    }
 }
 
 tMEM::~tMEM()
@@ -725,8 +738,17 @@ tMEM::score(const tSMFeature &f)
     if(code < (int) _weights.size())
         return _weights[code];
     else {
-        return 0.0;
+        int t = f.head_gp_0();
+        if (t != 0) {
+            for (unsigned int i=0; i<_robust_rules.size(); i++) {
+                if (_robust_rules[i] == t) {
+                    //LOG (logSM, WARN, f.bart_print());
+                    return 0.0;
+                }
+            }
+        }
     }
+    return 0.0;
 }
 
 void

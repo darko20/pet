@@ -49,7 +49,9 @@ class tSMFeature
     void
     print(std::ostream &) const;
     
-    //std::string bart_print () const; 
+    int head_gp_0 () const {return _v.size() == 5 ? _v[2] : 0;}
+    
+    std::string bart_print () const; 
     
  private:
     std::vector<int> _v;
@@ -174,6 +176,8 @@ class tMEM : public tSM
         2: lexical type prediction model format
     */
     int _format;
+
+    std::vector<int> _robust_rules; 
 
     void
     readModel(const std::string &fileName);
