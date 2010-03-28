@@ -102,17 +102,26 @@ struct analyze_method : public xmlrpc_c::method
 {
   analyze_method()
   {
-    _signature = "S:s";
-    _help = "Analyze the specified input and return the result."
-        "The input should be in the same format as required by this"
-        "cheap server (usually specified with the `-tok' parameter).";
+    _signature = "S:ss";
+    _help = "Analyze the specified input and return the result. "
+        "The input should be in the same format as required by this "
+        "cheap server (usually specified with the `-tok' parameter). "
+        "The first parameter is the input, the optional second parameter "
+        "is the derivation printing format "
+        "(either `udf' or `compact'; default: `udf').";
   }
   
   void execute(xmlrpc_c::paramList const& params, xmlrpc_c::value* const retval)
   {
     // get method parameters:
     string input(params.getString(0));
-    params.verifyEnd(1);
+    string derivformat("udf");
+    if (params.size() > 1) {
+      derivformat = params.getString(1);
+      params.verifyEnd(2);
+    } else {
+      params.verifyEnd(1);
+    }
     
     // Define a string that will hold the error message for errors that
     // occurred during parsing or be empty if there were no errors.
@@ -147,7 +156,10 @@ struct analyze_method : public xmlrpc_c::method
         std::map<std::string, xmlrpc_c::value> reading_helper;
         ostringstream osstream;
         tTSDBDerivationPrinter printer(osstream, 1);
-        printer.print(item);
+        if (derivformat == "udf")
+          tTSDBDerivationPrinter(osstream, 1).print(item);
+        else if (derivformat == "compact")
+          tCompactDerivationPrinter(osstream).print(item);
         reading_helper["derivation"] = xmlrpc_c::value_string(osstream.str());
         
         // get MRS:
