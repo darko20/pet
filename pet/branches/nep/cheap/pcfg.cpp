@@ -78,6 +78,9 @@ static bool init() {
   managed_opt("opt_striped_cap",
               "Restrict agenda, based on a PCFG model",
               0); 
+  managed_opt("opt_count_tasks",
+              "Determines which tasks are count when retricting the parse process: 0=all tasks; 1=all successful tasks; 2=all passive items",
+              0); 
   return true;
 }
 

@@ -144,7 +144,7 @@ void usage(FILE *f)
 #define OPTION_GLOBAL_CAP 50
 #define OPTION_STRIPED_CAP 51
 #define OPTION_LOCAL_CAP 52
-
+#define OPTION_COUNT_TASKS 53
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -207,6 +207,7 @@ char* parse_options(int argc, char* argv[])
     {"global-cap", required_argument, 0, OPTION_GLOBAL_CAP},
     {"striped-cap", required_argument, 0, OPTION_STRIPED_CAP},
     {"local-cap", required_argument, 0, OPTION_LOCAL_CAP},
+    {"count-tasks", required_argument, 0, OPTION_COUNT_TASKS},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -436,6 +437,13 @@ char* parse_options(int argc, char* argv[])
                     (int)(strtoint(optarg, "")));
           else 
             set_opt("opt_local_cap", (int) 1000);
+          break;
+      case OPTION_COUNT_TASKS:
+          if (optarg != NULL)
+            set_opt("opt_count_tasks",
+                    (int)(strtoint(optarg, "")));
+          else 
+            set_opt("opt_count_tasks", (int) 0);
           break;
 
 #ifdef YY
