@@ -234,6 +234,7 @@ rule_and_passive_task::execute()
         return 0;
 
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
+    _A->feedback (this, result);
     if(result) 
     {
       LOG (logGM, DEBUG, "SUCCESS    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
@@ -308,6 +309,7 @@ active_and_passive_task::execute()
         return 0;
     
     tItem *result = build_combined_item(_Chart, _active, _passive);
+    _A->feedback (this, result);
     if(result) 
     {
       LOG (logGM, DEBUG, "EX SUCCESS active_and_passive: " << id() << " ("

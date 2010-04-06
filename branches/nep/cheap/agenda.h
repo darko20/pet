@@ -30,6 +30,9 @@
 #include <map>
 
 #include "logging.h"
+#include "options.h"
+#include "item.h"
+#include "task.h"
 
 /** agenda: a priority queue adapter */
 template <typename T, typename LESS_THAN > class abstract_agenda {
@@ -41,6 +44,7 @@ public:
   virtual T * top() = 0;
   virtual T * pop() = 0;     // Responsibility to delete the task is for the caller. 
   virtual bool empty() = 0;
+  virtual void feedback (T *t, tItem *result) = 0; 
 
 };
 
@@ -55,6 +59,7 @@ public :
   T * top() { return _A.top(); }
   T * pop() { T *t = top(); _A.pop(); return t; }
   bool empty() { return _A.empty(); }
+  void feedback (T *t, tItem *result) {}
   
 private:
 
@@ -80,6 +85,7 @@ public :
   T * top();
   T * pop(); 
   bool empty() { return top() == NULL; }
+  void feedback (T *t, tItem *result) {}
 
 private:
 
@@ -150,6 +156,7 @@ public :
   T * top();
   T * pop(); 
   bool empty() { return top() == NULL; }
+  void feedback (T *t, tItem *result) {}
 
 private:
 
@@ -224,6 +231,7 @@ public :
   T * top();
   T * pop(); 
   bool empty() { return top() == NULL; }
+  void feedback (T *t, tItem *result);
 
 private:
 
@@ -270,11 +278,21 @@ T * local_cap_agenda<T, LESS_THAN>::pop() {
   T *t = top(); 
   if (t != NULL) { 
     _A.pop(); 
-    if (t->phrasal()) {
+  }
+  return t; 
+}
+
+template <typename T, class LESS_THAN>
+void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) { 
+  if (t->phrasal()) {
+    if (get_opt_int("opt_count_tasks") == 0) {
+      _popped[t->start()*(_max_pos+1) + t->end()]++;
+    } else if (get_opt_int("opt_count_tasks") == 1 && (result != 0)) {
+      _popped[t->start()*(_max_pos+1) + t->end()]++;
+    } else if (get_opt_int("opt_count_tasks") == 2 && (result != 0) && t->yields_passive()) {
       _popped[t->start()*(_max_pos+1) + t->end()]++;
     }
   }
-  return t; 
 }
 
 #endif

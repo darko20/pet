@@ -77,21 +77,10 @@ public:
   virtual int start () = 0;
   virtual int end () = 0;
   virtual bool phrasal () = 0;
+  virtual bool yields_passive () = 0;
 
   /** Print task readably to \a f for debugging purposes */
   virtual void print(std::ostream &out);
-  
- /*
-  static std::vector<int> _spans;
-  static std::ofstream _spans_outfile;
-  static void write_spans () {
-    for (std::vector<int>::iterator iter = _spans.begin(); iter != _spans.end(); iter++) {
-      _spans_outfile << *iter << " ";
-    }
-    _spans_outfile << std::endl;
-    _spans.clear();
-  };
-  */
 
 
 protected:
@@ -128,6 +117,7 @@ class rule_and_passive_task : public basic_task
     int start () { return _passive->start();}
     int end ()   { return _passive->end();}
     inline bool phrasal () { return _R->trait() == SYNTAX_TRAIT;}
+    inline bool yields_passive () { return _R->arity() == 1;}
     
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
@@ -155,7 +145,8 @@ class active_and_passive_task : public basic_task
     /** Return start and end positions of the possibly resulting edge. */
     int start () { return std::min(_passive->start(), _active->start());}
     int end ()   { return std::min(_passive->end(), _active->end());}
-    inline bool phrasal () { return false;}
+    inline bool phrasal () { return true;}
+    inline bool yields_passive () { return true; }
 
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
