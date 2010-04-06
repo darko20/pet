@@ -143,7 +143,7 @@ template <typename T, typename LESS_THAN > class striped_cap_agenda : public abs
 
 public : 
 
-  striped_cap_agenda(int cell_size, int max_pos) : _A(), _popped(), _cell_size(cell_size) {}
+  striped_cap_agenda(int cell_size, int max_pos) : _A(), _popped(max_pos+1), _cell_size(cell_size) {}
   ~striped_cap_agenda();
   
   void push(T *t) { _A.push(t); }
@@ -154,7 +154,7 @@ public :
 private:
 
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
-  std::map<int, int> _popped;
+  std::vector<int> _popped;
   int _cell_size;
 };
 
@@ -215,7 +215,7 @@ template <typename T, typename LESS_THAN > class local_cap_agenda : public abstr
 
 public : 
 
-  local_cap_agenda(int cell_size, int max_pos) : _A(), _popped(), _cell_size(cell_size) {}
+  local_cap_agenda(int cell_size, int max_pos) : _A(), _popped((max_pos+1)*(max_pos+1)), _max_pos(max_pos), _cell_size(cell_size) {}
   ~local_cap_agenda();
   
   void push(T *t) {
@@ -228,7 +228,8 @@ public :
 private:
 
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
-  std::map< std::pair<int,int>, int> _popped;
+  std::vector<int> _popped;
+  int _max_pos;
   int _cell_size;
 };
 
@@ -248,7 +249,7 @@ T * local_cap_agenda<T, LESS_THAN>::top() {
   while (!found) {
     if (!_A.empty()) {
       t = _A.top();
-      if (t->phrasal() && _popped[std::pair<int,int>(t->start(), t->end())] >= _cell_size) {
+      if (t->phrasal() && _popped[t->start()*(_max_pos+1) + t->end()] >= _cell_size) {
         // This span reached the limit, so continue searching for a new task. 
         // Inflectional and lexical rules are always carried out. 
         delete t;
@@ -270,7 +271,7 @@ T * local_cap_agenda<T, LESS_THAN>::pop() {
   if (t != NULL) { 
     _A.pop(); 
     if (t->phrasal()) {
-      _popped[std::pair<int,int>(t->start(), t->end())]++;
+      _popped[t->start()*(_max_pos+1) + t->end()]++;
     }
   }
   return t; 
