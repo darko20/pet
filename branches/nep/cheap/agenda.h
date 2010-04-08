@@ -34,6 +34,12 @@
 #include "item.h"
 #include "task.h"
 
+
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+
+
 /** agenda: a priority queue adapter */
 template <typename T, typename LESS_THAN > class abstract_agenda {
 public:
@@ -222,7 +228,11 @@ template <typename T, typename LESS_THAN > class local_cap_agenda : public abstr
 
 public : 
 
-  local_cap_agenda(int cell_size, int max_pos) : _A(), _popped((max_pos+1)*(max_pos+1)), _max_pos(max_pos), _cell_size(cell_size) {}
+  local_cap_agenda(int cell_size, int max_pos) : _A(), _popped((max_pos+1)*(max_pos+1)), _max_pos(max_pos), _cell_size(cell_size),
+                                                 _exec((max_pos+1)*(max_pos+1)), _succ((max_pos+1)*(max_pos+1)), _pass((max_pos+1)*(max_pos+1)) { 
+    //out.open ("tasks.txt", std::ios::app);
+    //out << std::setiosflags(std::ios::fixed);
+  }
   ~local_cap_agenda();
   
   void push(T *t) {
@@ -239,6 +249,12 @@ private:
   std::vector<int> _popped;
   int _max_pos;
   int _cell_size;
+  
+  std::vector<int> _exec;
+  std::vector<int> _succ;
+  std::vector<int> _pass; 
+  //std::ofstream out; 
+  
 };
 
 template <typename T, class LESS_THAN>
@@ -248,6 +264,26 @@ local_cap_agenda<T, LESS_THAN>::~local_cap_agenda() {
     delete t;
     _A.pop();
   }
+  
+  int j;
+  for (int length=_max_pos; length>0; length--) {
+    for (int i=0; i<_max_pos-length+1; i++) {
+      j = i + length;
+      std::cout << std::setw(8) << _exec[i*(_max_pos+1)+j];
+    }
+    std::cout << '\n';
+    for (int i=0; i<_max_pos-length+1; i++) {
+      j = i + length;
+      std::cout << std::setw(8) << _succ[i*(_max_pos+1)+j];
+    }
+    std::cout << '\n';
+    for (int i=0; i<_max_pos-length+1; i++) {
+      j = i + length;
+      std::cout << std::setw(8) << _pass[i*(_max_pos+1)+j];
+    }
+    std::cout << "\n\n";
+  }
+  //out.close();
 }
 
 template <typename T, class LESS_THAN>
@@ -292,6 +328,11 @@ void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) {
     } else if (get_opt_int("opt_count_tasks") == 2 && (result != 0) && t->yields_passive()) {
       _popped[t->start()*(_max_pos+1) + t->end()]++;
     }
+    
+    int pos = t->start()*(_max_pos+1) + t->end();
+    _exec[pos]++;
+    if (result) _succ[pos]++;
+    if (result && t->yields_passive()) _pass[pos]++;
   }
 }
 
