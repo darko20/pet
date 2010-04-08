@@ -265,6 +265,7 @@ local_cap_agenda<T, LESS_THAN>::~local_cap_agenda() {
     _A.pop();
   }
   
+  /*
   int j;
   for (int length=_max_pos; length>0; length--) {
     for (int i=0; i<_max_pos-length+1; i++) {
@@ -283,6 +284,7 @@ local_cap_agenda<T, LESS_THAN>::~local_cap_agenda() {
     }
     std::cout << "\n\n";
   }
+  */
   //out.close();
 }
 
@@ -329,10 +331,12 @@ void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) {
       _popped[t->start()*(_max_pos+1) + t->end()]++;
     }
     
+    /*
     int pos = t->start()*(_max_pos+1) + t->end();
     _exec[pos]++;
     if (result) _succ[pos]++;
     if (result && t->yields_passive()) _pass[pos]++;
+    */
   }
 }
 
