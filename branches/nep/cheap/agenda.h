@@ -25,19 +25,10 @@
 
 #include <queue>
 #include <vector>
-#include <set>
-#include <utility>
-#include <map>
 
-#include "logging.h"
-#include "options.h"
 #include "item.h"
+#include "options.h"
 #include "task.h"
-
-
-#include <fstream>
-#include <iostream>
-#include <iomanip>
 
 
 /** agenda: a priority queue adapter */
@@ -91,7 +82,7 @@ public :
   T * top();
   T * pop(); 
   bool empty() { return top() == NULL; }
-  void feedback (T *t, tItem *result) {}
+  void feedback (T *t, tItem *result);
 
 private:
 
@@ -101,49 +92,6 @@ private:
 };
 
 
-template <typename T, class LESS_THAN>
-global_cap_agenda<T, LESS_THAN>::~global_cap_agenda() {
-  while (!_A.empty()) {
-    T* t = _A.top();
-    delete t;
-    _A.pop();
-  }
-}
-
-template <typename T, class LESS_THAN>
-T * global_cap_agenda<T, LESS_THAN>::top() {
-  T* t;
-  bool found = false;
-  while (!found) {
-    if (!_A.empty()) {
-      t = _A.top();
-      if (t->phrasal() && _popped >= _max_popped) {
-        // This span reached the limit, so continue searching for a new task. 
-        // Inflectional and lexical rules are always carried out. 
-        delete t;
-        _A.pop();
-      } else {
-        found = true;
-      }
-    } else {
-      t = NULL;
-      break;
-    }
-  }
-  return t;
-}
-
-template <typename T, class LESS_THAN>
-T * global_cap_agenda<T, LESS_THAN>::pop() { 
-  T *t = top(); 
-  if (t != NULL) { 
-    _A.pop(); 
-    if (t->phrasal()) {
-      _popped++;
-    }
-  }
-  return t; 
-}
 
 
 /*
@@ -162,7 +110,7 @@ public :
   T * top();
   T * pop(); 
   bool empty() { return top() == NULL; }
-  void feedback (T *t, tItem *result) {}
+  void feedback (T *t, tItem *result);
 
 private:
 
@@ -171,51 +119,6 @@ private:
   int _cell_size;
 };
 
-template <typename T, class LESS_THAN>
-striped_cap_agenda<T, LESS_THAN>::~striped_cap_agenda() {
-  while (!_A.empty()) {
-    T* t = _A.top();
-    delete t;
-    _A.pop();
-  }
-}
-
-template <typename T, class LESS_THAN>
-T * striped_cap_agenda<T, LESS_THAN>::top() {
-  T* t;
-  int span;
-  bool found = false;
-  while (!found) {
-    if (!_A.empty()) {
-      t = _A.top();
-      span = t->end() - t->start();
-      if (t->phrasal() && _popped[span] >= _cell_size*span) {
-        // This span reached the limit, so continue searching for a new task. 
-        // Inflectional and lexical rules are always carried out. 
-        delete t;
-        _A.pop();
-      } else {
-        found = true;
-      }
-    } else {
-      t = NULL;
-      break;
-    }
-  }
-  return t;
-}
-
-template <typename T, class LESS_THAN>
-T * striped_cap_agenda<T, LESS_THAN>::pop() { 
-  T *t = top(); 
-  if (t != NULL) { 
-    _A.pop(); 
-    if (t->phrasal()) {
-      _popped[t->end()-t->start()]++;
-    }
-  }
-  return t; 
-}
 
 
 
@@ -256,6 +159,135 @@ private:
   //std::ofstream out; 
   
 };
+
+
+
+
+
+/* 
+ * GLOBAL CAP
+ */
+
+template <typename T, class LESS_THAN>
+global_cap_agenda<T, LESS_THAN>::~global_cap_agenda() {
+  while (!_A.empty()) {
+    T* t = _A.top();
+    delete t;
+    _A.pop();
+  }
+}
+
+template <typename T, class LESS_THAN>
+T * global_cap_agenda<T, LESS_THAN>::top() {
+  T* t;
+  bool found = false;
+  while (!found) {
+    if (!_A.empty()) {
+      t = _A.top();
+      if (t->phrasal() && _popped >= _max_popped) {
+        // This span reached the limit, so continue searching for a new task. 
+        // Inflectional and lexical rules are always carried out. 
+        delete t;
+        _A.pop();
+      } else {
+        found = true;
+      }
+    } else {
+      t = NULL;
+      break;
+    }
+  }
+  return t;
+}
+
+template <typename T, class LESS_THAN>
+T * global_cap_agenda<T, LESS_THAN>::pop() { 
+  T *t = top(); 
+  if (t != NULL) { 
+    _A.pop(); 
+  }
+  return t; 
+}
+
+template <typename T, class LESS_THAN>
+void global_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) { 
+  if (t->phrasal()) {
+    if (get_opt_int("opt_count_tasks") == 0) {
+      _popped++;
+    } else if (get_opt_int("opt_count_tasks") == 1 && (result != 0)) {
+      _popped++;
+    } else if (get_opt_int("opt_count_tasks") == 2 && (result != 0) && t->yields_passive()) {
+      _popped++;
+    }
+  }
+}
+
+
+
+/*
+ * STRIPED CAP AGENDA  
+ */
+
+template <typename T, class LESS_THAN>
+striped_cap_agenda<T, LESS_THAN>::~striped_cap_agenda() {
+  while (!_A.empty()) {
+    T* t = _A.top();
+    delete t;
+    _A.pop();
+  }
+}
+
+template <typename T, class LESS_THAN>
+T * striped_cap_agenda<T, LESS_THAN>::top() {
+  T* t;
+  int span;
+  bool found = false;
+  while (!found) {
+    if (!_A.empty()) {
+      t = _A.top();
+      span = t->end() - t->start();
+      if (t->phrasal() && _popped[span] >= _cell_size*span) {
+        // This span reached the limit, so continue searching for a new task. 
+        // Inflectional and lexical rules are always carried out. 
+        delete t;
+        _A.pop();
+      } else {
+        found = true;
+      }
+    } else {
+      t = NULL;
+      break;
+    }
+  }
+  return t;
+}
+
+template <typename T, class LESS_THAN>
+T * striped_cap_agenda<T, LESS_THAN>::pop() { 
+  T *t = top(); 
+  if (t != NULL) { 
+    _A.pop(); 
+  }
+  return t; 
+}
+
+template <typename T, class LESS_THAN>
+void striped_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) { 
+  if (t->phrasal()) {
+    if (get_opt_int("opt_count_tasks") == 0) {
+      _popped[t->end()-t->start()]++;
+    } else if (get_opt_int("opt_count_tasks") == 1 && (result != 0)) {
+      _popped[t->end()-t->start()]++;
+    } else if (get_opt_int("opt_count_tasks") == 2 && (result != 0) && t->yields_passive()) {
+      _popped[t->end()-t->start()]++;
+    }
+  }
+}
+
+
+/*
+ * LOCAL CAP AGENDA
+ */
 
 template <typename T, class LESS_THAN>
 local_cap_agenda<T, LESS_THAN>::~local_cap_agenda() {
@@ -339,5 +371,6 @@ void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) {
     */
   }
 }
+
 
 #endif
