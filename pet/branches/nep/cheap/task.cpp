@@ -39,11 +39,6 @@ extern int  opt_packing;
 
 int basic_task::next_id = 0;
 
-/*
-vector<int> basic_task::_spans;
-ofstream basic_task::_spans_outfile ("spans.txt");
-*/
-
 tItem *
 build_rule_item(chart *C, tAbstractAgenda *A, grammar_rule *R, tItem *passive)
 {
