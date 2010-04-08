@@ -852,14 +852,14 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
   
   // token mapping:
   if (chart_mapping) {
-    if (chart_mapping_loglevel & 1) {
+    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping starts\n");
     }
     // map to tChart:
     tChart chart;
     tItemPrinter ip(cerr, false, true);
     tChartUtil::map_chart(inp_tokens, chart);
-    if (chart_mapping_loglevel & 4) {
+    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] initial token chart:\n");
       chart.print(cerr, &ip, passive_unblocked);
     } // if
@@ -871,11 +871,11 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
     _maxpos = tChartUtil::map_chart(chart, inp_tokens);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (chart_mapping_loglevel & 4) {
+    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] final token chart:\n");
       chart.print(cerr, &ip, passive_unblocked);
     } // if
-    if (chart_mapping_loglevel & 1) {
+    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping ends\n");
     }
   }
@@ -945,13 +945,13 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
   
   // Lexical chart mapping (a.k.a. lexical filtering):
   if (chart_mapping) {
-    if (chart_mapping_loglevel & 1)
+    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1)
       fprintf(stderr, "[cm] lexical filtering starts\n");
     // map to tChart:
     tChart chart;
     tItemPrinter ip(cerr, false, true);
     tChartUtil::map_chart(*Chart, chart);
-    if (chart_mapping_loglevel & 8) {
+    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] initial lexical chart:\n");
       chart.print(cerr, &ip, passive_unblocked_non_input);
     } // if
@@ -963,11 +963,11 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     _maxpos = tChartUtil::map_chart(chart, *Chart);
     // chart and chart vertices memory is released by ~tChart 
     // chart items should be handled by tItem::default_owner()
-    if (chart_mapping_loglevel & 8) {
+    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] final lexical chart:\n");
       chart.print(cerr, &ip, passive_unblocked_non_input);
     } // if
-    if (chart_mapping_loglevel & 1)
+    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1)
       fprintf(stderr, "[cm] lexical filtering ends\n");
   }
 }
