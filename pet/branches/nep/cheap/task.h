@@ -144,7 +144,7 @@ class active_and_passive_task : public basic_task
 
     /** Return start and end positions of the possibly resulting edge. */
     int start () { return std::min(_passive->start(), _active->start());}
-    int end ()   { return std::min(_passive->end(), _active->end());}
+    int end ()   { return std::max(_passive->end(),   _active->end());}
     inline bool phrasal () { return true;}
     inline bool yields_passive () { return true; }
 
