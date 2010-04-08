@@ -161,13 +161,15 @@ get_new_completed_match(tChart &chart, tChartMappingMatch *match,
     // base case and recursion:
     if (next_match) {
       if (next_match->is_complete()) {
-        if (new_match)
+        if (new_match) {
           return next_match;
+        }
       } else {
         tChartMappingMatch *next_completed_match =
           get_new_completed_match(chart, next_match, cache, loglevel);
-        if (next_completed_match)
+        if (next_completed_match) {
           return next_completed_match;
+        }
       }
     }
   }
@@ -222,8 +224,9 @@ tChartMappingEngine::process(tChart &chart)
       tChartMappingMatch *completed = 0;
       do {
         completed = get_new_completed_match(chart, empty_match, cache, loglevel);
-        if (completed) // 0 if there is no further completed match
+        if (completed) { // 0 if there is no further completed match
           chart_changed = completed->fire(chart, loglevel) || chart_changed;
+        }
       } while (completed);
     } // for each rule
   } while (false); // quit after the first round of rule applications
@@ -1356,7 +1359,7 @@ tChartMappingMatch::fire(tChart &chart, int loglevel) {
     }
     cerr << format("[cm] %s fired: %s\n") % get_rule()->get_printname()
         % item_ids_os.str();
-    if (loglevel & 16) {
+    if (LOG_ENABLED(logChartMapping, DEBUG) || loglevel & 16) {
       args = get_rule()->get_args(tChartMappingRuleArg::OUTPUT_ARG);
       tItemPrinter ip(cerr, false, true);
       for (arg_it = args.begin(); arg_it != args.end(); arg_it++) {
