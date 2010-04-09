@@ -146,7 +146,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0), _printname(printname),
+      _score(0.0), _gmscore(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed(), _chart(0)
 {
     if(_default_owner) _default_owner->add(this);
@@ -159,7 +159,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0), _printname(printname),
+      _score(0.0), _gmscore(0.0), _printname(printname),
       _blocked(0), _unpack_cache(0), parents(), packed(), _chart(0)
 {
     if(_default_owner) _default_owner->add(this);

@@ -208,10 +208,10 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
       std::vector<class tItem *> l;
       l.push_back(passive);
       double conditional = Grammar->gm()->conditional(R, l);
-      priority (prior + conditional + passive->score());
+      priority (prior + conditional + passive->gmscore());
     } else {
       // Priority(R, X, ?) = P(R) P(X)
-      priority (prior + passive->score());
+      priority (prior + passive->gmscore());
     }
   } else {
     priority(packingscore(passive->start(), passive->end(),
@@ -239,14 +239,14 @@ rule_and_passive_task::execute()
           std::vector<class tItem *> l;
           l.push_back(_passive);
           double conditional = Grammar->gm()->conditional(_R, l);
-          result->score(conditional + _passive->score());
+          result->gmscore(conditional + _passive->gmscore());
         } else {
           // P(R,X,?) = P(X)
           // Well, this result doesn't matter. If a passive results from this new active edge, its score is re-calculated anyway. 
-          result->score(_passive->score());
+          result->gmscore(_passive->gmscore());
         }
       } else {
-        result->score(priority());
+        result->gmscore(priority());
       }
     } else {
       LOG (logGM, DEBUG, "EX FAIL    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
@@ -279,7 +279,7 @@ active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
       l.push_back (passive);
     }
     double conditional = Grammar->gm()->conditional(active->rule(), l);
-    priority (prior + conditional + passive->score() + active_daughter->score());
+    priority (prior + conditional + passive->gmscore() + active_daughter->gmscore());
   } else {        
     tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
     if(active->left_extending()) {
@@ -324,9 +324,9 @@ active_and_passive_task::execute()
           l.push_back (_passive);
         }
         double conditional = Grammar->gm()->conditional(_active->rule(), l);
-        result->score(conditional + active_daughter->score() + _passive->score());
+        result->gmscore(conditional + active_daughter->gmscore() + _passive->gmscore());
       } else {
-        result->score(priority());
+        result->gmscore(priority());
       }
     } else {
       LOG (logGM, DEBUG, "EX FAIL    active_and_passive: " << id() << " ("
