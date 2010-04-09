@@ -321,15 +321,34 @@ void interactive() {
         }
 
 #ifdef HAVE_MRS
+        // if(get_opt_bool("opt_partial") && (Chart->readings().empty())) {
+        //   list< tItem * > partials;
+        //   passive_weights pass;
+        //   Chart->shortest_path<unsigned int>(partials, pass, true);
+        //   bool rmrs_xml = (opt_mrs != NULL && strcmp(opt_mrs, "rmrx") == 0);
+        //   if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
+        //   for(item_iter it = partials.begin(); it != partials.end(); ++it) {
+        //     if(opt_mrs) {
+        //       tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
+        //       if (item != NULL) {
+        //         string mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs);
+        //         if (! mrs.empty()) {
+        //           fprintf(fstatus, "%s\n", mrs.c_str());
+        //         }
+        //       }
+        //     }
+        //   }
+        //   if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
+        //   else fprintf(fstatus, "EOM\n");
+        // }
         if(get_opt_bool("opt_partial") && (Chart->readings().empty())) {
-          list< tItem * > partials;
-          passive_weights pass;
-          Chart->shortest_path<unsigned int>(partials, pass, true);
+          list< tItem*> partials;
+          Chart->longest_path(partials);
           bool rmrs_xml = (opt_mrs != NULL && strcmp(opt_mrs, "rmrx") == 0);
-          if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
-          for(item_iter it = partials.begin(); it != partials.end(); ++it) {
-            if(opt_mrs) {
-              tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
+          if (rmrs_xml) fprintf(fstatus,"\n<rmrs-list>\n");
+          for (item_iter it = partials.begin(); it != partials.end(); it++) {
+            if (opt_mrs) {
+              tPhrasalItem *item = dynamic_cast<tPhrasalItem*>(*it);
               if (item != NULL) {
                 string mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs);
                 if (! mrs.empty()) {
@@ -338,7 +357,7 @@ void interactive() {
               }
             }
           }
-          if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
+          if (rmrs_xml) fprintf(fstatus, "</rmrs_list>\n");
           else fprintf(fstatus, "EOM\n");
         }
 #endif

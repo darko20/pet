@@ -22,7 +22,10 @@
 #include "chart.h"
 #include "tsdb++.h"
 #include "item-printer.h"
+#include "settings.h"
+#include "configs.h"
 #include "logging.h"
+#include <float.h>
 
 using namespace std;
 using namespace HASH_SPACE;
@@ -234,3 +237,56 @@ std::ostream &operator<<(std::ostream &out, const chart &ch) {
   ch.print(out);
   return out;
 }
+
+
+
+struct psv_weights : public unary_function< tItem *, unsigned int > {
+  unsigned int operator()(tItem * i) {
+    // return a weight close to infinity if this is not a phrasal item
+    // thus, we guarantee that phrasal items are drastically preferred
+    if (dynamic_cast<tPhrasalItem *>(i) != NULL) return 1;
+    else if (dynamic_cast<tLexItem *>(i) != NULL) return 2;
+    else return 1000000;
+  }
+};
+
+void chart::longest_path(list <tItem *> &result) {
+
+  list<tItem *> partials;
+  psv_weights pass;
+  shortest_path<unsigned int>(partials, pass, false);
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  partials.size();
+  // for each edge on the shortest path
+  for (list<tItem *>::iterator it = partials.begin();
+       it != partials.end(); it ++) {
+    double score = -DBL_MAX;
+    tItem* edge = NULL;
+    tItem* ite = *it;
+    // for each passive item on the chart with the same span
+    for (list<tItem*>::iterator curr = _Cp_span[ite->start()][ite->span()].begin();
+	 curr != _Cp_span[ite->start()][ite->span()].end(); curr ++) {
+      if ((*curr)->end() != (*it)->end())
+	continue;
+      list<tItem*> unpacked = (*curr)->selectively_unpack(1,0,memlimit);
+      if (!unpacked.empty()) {
+	tItem* passive = unpacked.front();
+	double curr_score = passive->score();
+	if (dynamic_cast<tLexItem*>(*curr) != NULL) { // an lexical item
+	  curr_score -= 1000.0; // dis-prefer
+	}
+	if (dynamic_cast<tInputItem*>(*curr) != NULL) { // an input item
+	  curr_score -= 1000000.0; // dis-prefer more
+	}
+	if (curr_score > score) {
+	  score = curr_score; 
+	  edge = passive;
+	}
+      }
+    }
+    if (edge != NULL) 
+      result.push_back(edge);
+  }
+  
+}
+

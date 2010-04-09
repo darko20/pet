@@ -107,6 +107,8 @@ public:
   void shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
                      , bool all = false);
 
+  void longest_path(std::list <tItem *> &result);
+
   /** Extract a surface string from the input items in this chart. This is
    *  in particular relevant where the input is given as a word lattice.
    */
