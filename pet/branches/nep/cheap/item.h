@@ -459,7 +459,7 @@ public:
    *
    *  \return the list of items represented by this item
    */
-  //  virtual item_list selectively_unpack(int n, int upedgelimit) = 0;
+  virtual item_list selectively_unpack(int n, int upedgelimit, long memlimit) = 0;
 
   /** \brief Selective unpacking function that unpacks \a n best
    *   readings from the list of \a root items. Stop unpacking when \a
@@ -850,7 +850,7 @@ public:
       need not be unpacked. */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
-  //  virtual item_list selectively_unpack(int n, int upedgelimit);
+  virtual item_list selectively_unpack(int n, int upedgelimit, long memlimit);
 
   /** Return the external id associated with this item */
   const std::string &external_id() const { return _input_id; }
@@ -1020,7 +1020,7 @@ protected:
    */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
-  //  virtual item_list selectively_unpack(int n, int upedgelimit);
+  virtual item_list selectively_unpack(int n, int upedgelimit, long memlimit);
 
 private:
   void init();
@@ -1177,7 +1177,7 @@ protected:
    *
    * \return The list of unpacked results (up to \a n items)
    */
-  //  virtual item_list selectively_unpack(int n, int upedgelimit);
+  virtual item_list selectively_unpack(int n, int upedgelimit, long memlimit);
 
   /** Get the \i th best hypothesis of the item with \a path to root. */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);

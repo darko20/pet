@@ -1276,9 +1276,9 @@ tPhrasalItem::new_hypothesis(tDecomposition* decomposition,
   }
 }
 
-/*
+
 list<tItem *>
-tInputItem::selectively_unpack(int n, int upedgelimit)
+tInputItem::selectively_unpack(int n, int upedgelimit, long memlimit)
 {
   list<tItem *> res;
   res.push_back(this);
@@ -1286,7 +1286,7 @@ tInputItem::selectively_unpack(int n, int upedgelimit)
 }
 
 list<tItem *>
-tLexItem::selectively_unpack(int n, int upedgelimit)
+tLexItem::selectively_unpack(int n, int upedgelimit, long memlimit)
 {
   list<tItem *> res;
   res.push_back(this);
@@ -1294,7 +1294,7 @@ tLexItem::selectively_unpack(int n, int upedgelimit)
 }
 
 list<tItem *>
-tPhrasalItem::selectively_unpack(int n, int upedgelimit)
+tPhrasalItem::selectively_unpack(int n, int upedgelimit, long memlimit)
 {
   list<tItem *> results;
   if (n <= 0)
@@ -1302,13 +1302,14 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 
   list<tHypothesis*> ragenda;
   tHypothesis* aitem;
-
-  tHypothesis* hypo = this->hypothesize_edge(0);
+  list<tItem*> path;
+  path.push_back(NULL); // root path
+  tHypothesis* hypo = this->hypothesize_edge(path,0);
   if (hypo) {
     //Grammar->sm()->score_hypothesis(hypo);
     aitem = new tHypothesis(this, hypo, 0);
     stats.p_hypotheses ++;
-    hagenda_insert(ragenda, aitem);
+    hagenda_insert(ragenda, aitem, path);
   }
   for (list<tItem*>::iterator edge = packed.begin();
        edge != packed.end(); edge++) {
@@ -1316,19 +1317,19 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
     if ((*edge)->frozen())
       continue;
 
-    hypo = (*edge)->hypothesize_edge(0);
+    hypo = (*edge)->hypothesize_edge(path,0);
     if (!hypo)
       continue;
     //Grammar->sm()->score_hypothesis(hypo);
     aitem = new tHypothesis(*edge, hypo, 0);
     stats.p_hypotheses ++;
-    hagenda_insert(ragenda, aitem);
+    hagenda_insert(ragenda, aitem, path);
   }
 
   while (!ragenda.empty() && n > 0) {
     aitem = ragenda.front();
     ragenda.pop_front();
-    tItem *result = aitem->edge->instantiate_hypothesis(aitem->hypo_dtrs.front(), upedgelimit);
+    tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit, memlimit);
     if (upedgelimit > 0 && stats.p_upedges > upedgelimit)
       return results;
     if (result) {
@@ -1337,12 +1338,12 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
       if (n == 0)
         break;
     }
-    hypo = aitem->edge->hypothesize_edge(aitem->indices[0]+1);
+    hypo = aitem->edge->hypothesize_edge(path, aitem->indices[0]+1);
     if (hypo) {
       //Grammar->sm()->score_hypothesis(hypo);
       tHypothesis* naitem = new tHypothesis(aitem->edge, hypo, aitem->indices[0]+1);
       stats.p_hypotheses ++;
-      hagenda_insert(ragenda, naitem);
+      hagenda_insert(ragenda, naitem, path);
     }
     delete aitem;
   }
@@ -1354,7 +1355,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
 
   return results;
 }
-*/
+
 
 /** Unpack at most \a n trees from the packed parse forest given by \a roots.
  * \param roots       a set of packed trees
