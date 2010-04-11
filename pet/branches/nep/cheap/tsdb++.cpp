@@ -638,6 +638,32 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 T.push_result(R);
                 nres++;
             }
+            if (get_opt_bool("opt_partial") && (Chart.readings().empty())) {
+              const char * opt_mrs = get_opt_string("opt_mrs").c_str();
+              tsdb_result R;
+              R.parse_id = tsdb_unique_id;
+              R.result_id = nres;
+              R.mrs = "";
+              list< tItem*> partials;
+              Chart.longest_path(partials);
+              bool rmrs_xml = (opt_mrs != NULL && strcmp(opt_mrs, "rmrx") == 0);
+              if (rmrs_xml) R.mrs += "<rmrs-list>\n";
+              for (item_iter it = partials.begin(); it != partials.end(); it++) {
+                if (opt_mrs) {
+                  tPhrasalItem *item = dynamic_cast<tPhrasalItem*>(*it);
+                  if (item != NULL) {
+                    string mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs);
+                    if (! mrs.empty()) {
+                      R.mrs += mrs + "\n";
+                    }
+                  }
+                }
+              }
+              if (rmrs_xml) R.mrs += "</rmrs_list>\n";
+              else R.mrs += "EOM\n";
+              T.push_result(R);
+              nres++;
+            }
         }
         else // report all passive edges
         {
