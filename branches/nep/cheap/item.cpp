@@ -899,13 +899,11 @@ tItem::unpack(int upedgelimit)
 
     // Check if we reached timeout. Caller is responsible for checking
     // this to verify completeness of results.
-    /*
     if (get_opt_int("opt_timeout") > 0) {
       timestamp = times(NULL);
-      if (timestamp >= timeout)
+      if (timestamp >= timeout + 10)
         return res;
     }
-    */
 
     // Recursively unpack items that are packed into this item.
     for(item_iter p = packed.begin(); p != packed.end(); ++p)
@@ -1097,13 +1095,11 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   tHypothesis *hypo = NULL;
 
   // check whether timeout has passed.
-  /*
   if (get_opt_int("opt_timeout") > 0) {
     timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
-    if (timestamp >= timeout)
+    if (timestamp >= timeout + 10)
       return hypo;
   }
-  */
 
   // Only check the path length no longer than the opt_gplevel
   while (path.size() > opt_gplevel)
@@ -1407,9 +1403,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
   }
 
   // HACK
-  int whiles = 100000;
-  while (!ragenda.empty() && n > 0 && whiles > 0) {
-    whiles--;
+  while (!ragenda.empty() && n > 0) {
     aitem = ragenda.front();
     ragenda.pop_front();
     tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit, memlimit);
@@ -1437,9 +1431,6 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
     }
     delete aitem;
   }
-
-  if (whiles == 0)
-    LOG (logGM, WARN, "Unpacking aborted after 100k while loops.");
 
   for (list<tHypothesis*>::iterator it = ragenda.begin();
        it != ragenda.end(); it++)
