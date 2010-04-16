@@ -903,6 +903,8 @@ tItem::unpack(int upedgelimit)
       timestamp = times(NULL);
       if (timestamp >= timeout + 10)
         return res;
+      else 
+        LOG (logUnpack, WARN, "Unpacking timeout reached");
     }
 
     // Recursively unpack items that are packed into this item.
@@ -1099,6 +1101,9 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
     timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
     if (timestamp >= timeout + 10)
       return hypo;
+    else 
+      LOG (logUnpack, WARN, "Unpacking timeout reached");
+
   }
 
   // Only check the path length no longer than the opt_gplevel
