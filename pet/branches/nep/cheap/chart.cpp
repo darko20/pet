@@ -256,6 +256,7 @@ void chart::longest_path(list <tItem *> &result) {
   psv_weights pass;
   shortest_path<unsigned int>(partials, pass, false);
   long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  long edgelimit = get_opt_int("opt_pedgelimit");
   partials.size();
   // for each edge on the shortest path
   for (list<tItem *>::iterator it = partials.begin();
@@ -268,7 +269,7 @@ void chart::longest_path(list <tItem *> &result) {
 	 curr != _Cp_span[ite->start()][ite->span()].end(); curr ++) {
       if ((*curr)->end() != (*it)->end())
 	continue;
-      list<tItem*> unpacked = (*curr)->selectively_unpack(1,0,memlimit);
+      list<tItem*> unpacked = (*curr)->selectively_unpack(1,edgelimit,memlimit);
       if (!unpacked.empty()) {
 	tItem* passive = unpacked.front();
 	double curr_score = passive->score();
