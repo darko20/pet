@@ -459,7 +459,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
                        long memlimit, int nsolutions, 
                        timer *UnpackTime , vector<tItem *> &readings) {
-  LOG (logAppl, INFO, "Start unpacking");
+  LOG (logUnpack, WARN, "Start unpacking");
 
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0)
@@ -637,6 +637,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
       errors.push_back(s.str());
     }
     else {
+      LOG (logUnpack, WARN, "Packing stage timed out");
       /*
       s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
           << " s)";
