@@ -59,6 +59,12 @@ static int init() {
   managed_opt("opt_sm",
               "parse selection model (`null' for none)",
               std::string(""));
+  managed_opt("opt_local_cap",
+              "Restrict agenda, based on a generative model",
+              0); 
+  managed_opt("opt_count_tasks",
+              "Determines which tasks are count when retricting the parse process: 0=all tasks; 1=all successful tasks; 2=all passive items",
+              0);
   return true;
 }
 
@@ -428,7 +434,7 @@ undump_dags(dumper *f) {
 tGrammar::tGrammar(const char * filename)
     : _properties(), _root_insts(0), _generics(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0), _pcfgsm(0), _lexsm(0)
+      _sm(0), _pcfgsm(0), _lexsm(0), _gm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
@@ -620,6 +626,17 @@ tGrammar::tGrammar(const char * filename)
         _pcfgsm = 0;
       }
     }
+
+    char *gm_file;
+    if ((gm_file = cheap_settings->value("gm")) != 0) {
+      try { 
+        _gm = new tGM(this, gm_file, filename); 
+      } catch (tError &e) {
+        LOG(logGrammar, ERROR, e.getMessage());
+        _gm = 0;
+      }
+    }
+
     char *lexsm_file;
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }

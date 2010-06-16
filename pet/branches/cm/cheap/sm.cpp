@@ -32,6 +32,7 @@
 #include "logging.h"
 
 #include <sstream>
+#include <iomanip>
 #include <float.h>
 #include <math.h>
 
@@ -1428,3 +1429,290 @@ tPCFG::adjustWeights() {
     }
   }
 }
+
+
+
+
+tGM::tGM(class tGrammar *G, const char *fileNameIn, const char *basePath)
+  : _lidstone_delta(0.01)
+{
+  std::string fileName = find_file(fileNameIn, std::string("pcfg"), basePath);
+  if(fileName.empty())
+    throw tError(string("Could not open GM file \"") + fileNameIn + "\"");
+  readModel(fileName);
+  calculateWeights();
+  LOG (logGM, DEBUG, std::fixed << std::setprecision(2) );
+}
+
+tGM::~tGM() {
+}
+
+double tGM::conditional (grammar_rule *rule, std::vector<class tItem *> vItem) {
+  std::vector<type_t> v; 
+  v.push_back (rule->type());
+  for (unsigned int i=0; i<vItem.size(); i++) {
+    v.push_back (vItem[i]->identity());
+  }
+  return conditional(v);
+}
+
+
+double tGM::conditional (std::vector<type_t> v) {
+  std::map<std::vector<type_t>, double>::iterator it = _weights.find(v);
+  if (it != _weights.end()) {
+    return it->second; 
+  } else {
+    // If we can't find the conditional, we fall back to the unknown conditional. 
+    return unknown_conditional (v[0]);
+  }
+}
+
+double tGM::unknown_conditional (type_t ruletype) {
+    std::map<type_t, double>::iterator it2 = _unknown_conditionals.find(ruletype);
+    if (it2 != _unknown_conditionals.end()) {      
+      return it2->second; 
+    } else {
+      // We don't even know the rule. 
+      // Using _unknown_prior here results in using this number for both the prior and the conditional. 
+      //return _unknown_prior; 
+      return -10000.0;
+    }
+}
+
+double tGM::prior (grammar_rule *rule) {
+  std::map<type_t, double>::iterator it = _prior_weights.find(rule->type()); 
+  if (it != _prior_weights.end()) {
+    return it->second; 
+  } else {
+    return _unknown_prior;
+  }
+}
+
+void tGM::calculateWeights () {
+
+  // Conditionals
+  for (std::map< std::vector<type_t>, int>::iterator it=_counts.begin(); it!=_counts.end(); it++) {
+    type_t lhs = it->first.front();
+    _weights[it->first] = log(double(it->second + _lidstone_delta) / (double(_prior_counts[lhs]) + _lidstone_delta * (_lhs_counts[lhs]+1)));
+  }
+  
+  // Priors
+  double denom = _total_count + _lidstone_delta * (_lhs_counts.size()+1);
+  for (std::map<type_t, int>::iterator it=_prior_counts.begin(); it!=_prior_counts.end(); it++) {
+    _prior_weights[it->first] = log(double(it->second + _lidstone_delta) / denom);
+    _unknown_conditionals[it->first] = log(_lidstone_delta / (double(_prior_counts[it->first]) + _lidstone_delta * (_lhs_counts[it->first]+1)));
+  }
+  _unknown_prior = log (_lidstone_delta / denom);
+}
+
+void tGM::readModel(const std::string &fileName) {
+
+  push_file(fileName, "reading GM");
+  const char *sv = lexer_idchars;
+  lexer_idchars = "_+-*?$";
+  parseModel();
+  lexer_idchars = sv;
+}
+
+void tGM::parseModel() {
+    char *tmp;
+
+    match(T_COLON, "`:' before keyword", true);
+    match_keyword("begin");
+    match(T_COLON, "`:' before keyword", true);
+    tmp = match(T_ID, "pcfg", false);
+    if (strcmp(tmp, "pcfg") != 0)
+      syntax_error("expecting `pcfg' section", LA(0));
+    free (tmp);
+
+    match(T_ID, "number of contexts", true);
+    match(T_DOT, "`.' after section opening", true);
+    
+    parseOptions();
+
+    match(T_COLON, "`:' before keyword", true);
+    match_keyword("begin");
+    match(T_COLON, "`:' before keyword", true);
+    tmp = match(T_ID, "rules", false);
+    if(strcmp(tmp, "rules") != 0)
+    {
+        syntax_error("expecting `rules' section", LA(0));
+    }
+    free(tmp);
+    tmp = match(T_ID, "number of rules", false);
+    int nFeatures = strtoint(tmp, "as number of rules in PCFG");
+    free(tmp);
+    match(T_DOT, "`.' after section opening", true);
+
+    parseFeatures(nFeatures);
+
+    match(T_COLON, "`:' before keyword", true);
+    match_keyword("end");
+    match(T_COLON, "`:' before keyword", true);
+    tmp = match(T_ID, "rules", false);
+    if(strcmp(tmp, "rules") != 0)
+    {
+        syntax_error("expecting end of `rules' section", LA(0));
+    }
+    free(tmp);
+    match(T_DOT, "`.' after section end", true);
+
+    match(T_COLON, "`:' before keyword", true);
+    match_keyword("end");
+    match(T_COLON, "`:' before keyword", true);
+    tmp = match(T_ID, "pcfg", false);
+    if (strcmp(tmp, "pcfg") != 0)
+        syntax_error("expecting end of `pcfg' section", LA(0));
+    free(tmp);
+    match(T_DOT, "`.' after section end", true);
+}
+
+void 
+tGM::parseOptions() {
+  // We parse but ignore all options here.
+  char * pname;
+  char * pvalue;
+  while(LA(0)->tag != T_EOF) {
+    if(LA(0)->tag == T_COLON &&
+       is_keyword(LA(1), "begin"))
+      break;
+    if (LA(0)->tag == T_ID) {
+      pname = match(T_ID, "parameter name", false);
+      if(!strcmp(pname, "*pcfg-use-preterminal-types-p*")) {
+        match(T_ISEQ, "iseq after parameter name", true);
+        if (LA(0)->tag == T_COLON) consume(1);
+        pvalue = match(T_ID, "parameter value", false);
+        match(T_DOT, "dot after parameter value", true);
+        //_use_preterminal_types = strcmp(pvalue,"yes")==0 ? true : false;
+        free(pvalue);
+      }
+      else if (!strcmp(pname, "*pcfg-include-leafs-p*")) {
+        match(T_ISEQ, "iseq after parameter name", true);
+        if (LA(0)->tag == T_COLON) consume(1);
+        pvalue = match(T_ID, "parameter value", false);
+        match(T_DOT, "dot after parameter value", true);
+        //_include_leafs = strcmp(pvalue, "yes")==0 ? true : false;
+        free(pvalue);
+      }
+      else if (!strcmp(pname, "*pcfg-laplace-smoothing-p*")) {
+        match(T_ISEQ, "iseq after parameter name", true);
+        if (LA(0)->tag == T_COLON) consume(1);
+        pvalue = match(T_ID, "parameter value", false);
+        match(T_DOT, "dot after parameter value", true);
+        //_laplace_smoothing = strtod(pvalue, NULL);
+        free(pvalue);
+      }
+      else {
+        while(LA(0)->tag != T_DOT) consume(1);
+        consume(1);
+      }
+      free(pname);
+    }	 
+    else 
+      consume(1);
+  }
+}
+
+void 
+tGM::parseFeatures(int nFeatures) {
+  fprintf(stderr, "[%d rules] ", nFeatures);
+  //_weights.resize(nFeatures);
+
+  int n = 0;
+  while (LA(0)->tag != T_EOF) {
+    if (LA(0)->tag == T_COLON &&
+	is_keyword(LA(1), "end"))
+      break;
+    
+    parseFeature(n++);
+  }
+}
+
+void
+tGM::parseFeature(int n) {
+
+  // Vector of types.
+  vector<type_t> rule;
+
+  match(T_LPAREN, "begin of feature", true);
+  match(T_ID, "feature index", true);
+  match(T_RPAREN, "after feature index", true);
+  match(T_LBRACKET, "begin of rule", true);
+  
+  bool good = true;
+  char *tmp;
+  while (LA(0)->tag != T_RBRACKET && LA(0)->tag != T_EOF) {
+    if (LA(0)->tag == T_ID) {
+      // this can be an integer or a type/instance identifier.
+      tmp = match(T_ID, "subfeature in rule", false);
+
+      char *endptr;
+      int t = strtol(tmp, &endptr, 10);
+      if (endptr == 0 || *endptr != 0) {
+	// This is not an integer, so it must be a type/instance.
+	char *inst = (char *) malloc(strlen(tmp)+2);
+	strcpy(inst, "$");
+	strcat(inst, tmp);
+	t = lookup_type(inst);
+	if(t == -1)
+	  t = lookup_type(inst+1);
+	free(inst);
+        
+	if(t == -1) {
+          fprintf(stderr, "Unknown type/instance `%s' in rule #%d\n", tmp, n);
+	  good = false;
+	}
+	else {
+	  rule.push_back(t);
+	}
+      }
+      else {
+	// This is an integer.
+	//v.push_back(map()->intToSubfeature(t));
+      }
+      free(tmp);
+    }
+    else if (LA(0)->tag == T_STRING) {
+      tmp = match(T_STRING, "Input item", false);
+      free(tmp);
+      good = false; 
+    }
+    else if (LA(0)->tag == T_CAP) {
+      // This is a special 
+      consume(1);
+      //v.push_back(INT_MAX);
+    }
+    else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
+      consume(1);
+    }
+    else {
+      syntax_error("expecting subparts", LA(0));
+      consume(1);
+    }
+  }
+
+  match(T_RBRACKET, "end of rule", true);
+  
+  // discard weight, calculate them in calculateWeights() (with smoothing)
+  if (LA(0)->tag == T_ID) {
+    tmp = match(T_ID, "rule weight", false);
+    free(tmp);
+  }
+
+  match(T_LBRACE, "begin of frequency counts", true);
+  tmp = match(T_ID, "LHS frequency", false);// Discard rule frequency, will calculate this number in calculateWeights()
+  free(tmp);
+  tmp = match(T_ID, "rule frequency", false);  
+  int rulefreq = atoi(tmp);
+  free(tmp);
+  match(T_RBRACE, "end of frequency counts", true);
+    
+  if (good) {
+    _counts[rule] = rulefreq;
+    _prior_counts[rule.front()] += rulefreq;
+    _total_count += rulefreq;
+    _lhs_counts[rule.front()] ++;
+  } 
+}
+
+

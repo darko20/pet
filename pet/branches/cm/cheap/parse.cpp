@@ -53,7 +53,7 @@ using namespace std;
 //
 
 chart *Chart;
-tAgenda *Agenda;
+tAbstractAgenda *Agenda;
 
 timer ParseTime;
 timer TotalParseTime(false);
@@ -672,7 +672,12 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   inp_list input_items;
   int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
-  Agenda = new tAgenda;
+  if (get_opt_int("opt_local_cap") != 0) {
+    Agenda = new tLocalCapAgenda (get_opt_int ("opt_local_cap"), max_pos);
+  } else {
+    Agenda = new tExhaustiveAgenda;
+  }
+  
   C = Chart = new chart(max_pos, owner);
 
   //

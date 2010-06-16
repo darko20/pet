@@ -25,6 +25,7 @@
 #include "cheap.h"
 #include "tsdb++.h"
 #include "sm.h"
+#include "logging.h"
 #include <iomanip>
 
 using namespace std;
@@ -36,7 +37,7 @@ extern int  opt_packing;
 int basic_task::next_id = 0;
 
 tItem *
-build_rule_item(chart *C, tAgenda *A, grammar_rule *R, tItem *passive)
+build_rule_item(chart *C, tAbstractAgenda *A, grammar_rule *R, tItem *passive)
 {
     fs_alloc_state FSAS(false);
     
@@ -177,22 +178,30 @@ double packingscore(int start, int end, int n, bool active)
   //    - (active ? 0.0 : double(end - start) / n) ;
 }
 
-rule_and_passive_task::rule_and_passive_task(chart *C, tAgenda *A,
+rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
                                              grammar_rule *R, tItem *passive)
     : basic_task(C, A), _R(R), _passive(passive)
 {
-    if(opt_packing)
-    {
-        priority(packingscore(passive->start(), passive->end(),
-                              C->rightmost(), R->arity() > 1));
-    }
-    else if(Grammar->sm())
-    {
-        list<tItem *> daughters;
-        daughters.push_back(passive);
 
-        priority(Grammar->sm()->scoreLocalTree(R, daughters));
+  if (Grammar->gm()) {
+    double prior = Grammar->gm()->prior(R);
+    if (R->arity() == 1) {
+      // Priority(R, X) = P(R) P(R->X) P(X)
+      std::vector<class tItem *> l;
+      l.push_back(passive);
+      double conditional = Grammar->gm()->conditional(R, l);
+      priority (prior + conditional + passive->gmscore());
+    } else {
+      // Priority(R, X, ?) = P(R) P(X)
+      priority (prior + passive->gmscore());
     }
+  } else {
+    priority(packingscore(passive->start(), passive->end(),
+                          C->rightmost(), R->arity() > 1));
+  }
+        
+  LOG (logGM, DEBUG, "EX MAKE    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+
 }
 
 tItem *
@@ -202,37 +211,69 @@ rule_and_passive_task::execute()
         return 0;
     
     tItem *result = build_rule_item(_Chart, _A, _R, _passive);
-    if(result) result->score(priority());
+    _A->feedback (this, result);
+    if(result) 
+    {
+      LOG (logGM, DEBUG, "SUCCESS    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+      if (Grammar->gm()) {
+        if (_R->arity() == 1) {
+          // P(R, X) = P(R->X) P(X)
+          std::vector<class tItem *> l;
+          l.push_back(_passive);
+          double conditional = Grammar->gm()->conditional(_R, l);
+          result->gmscore(conditional + _passive->gmscore());
+        } else {
+          // P(R,X,?) = P(X)
+          // Well, this result doesn't matter. If a passive results from this new active edge, its score is re-calculated anyway. 
+          result->gmscore(_passive->gmscore());
+        }
+      } else {
+        result->gmscore(priority());
+      }
+    } else {
+      LOG (logGM, DEBUG, "EX FAIL    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+    }
+
     return result;
 }
 
-active_and_passive_task::active_and_passive_task(chart *C, tAgenda *A,
+active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
                                                  tItem *act, tItem *passive)
     : basic_task(C, A), _active(act), _passive(passive)
 {
-    if(opt_packing)
-    {
-        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-        if(active->left_extending())
-            priority(packingscore(passive->start(), active->end(),
-                                  C->rightmost(), false));
-        else
-            priority(packingscore(active->start(), passive->end(),
-                                  C->rightmost(), false));
+  if (Grammar->gm()) {
+    // Priority(R, X, Y) = P(R) P(R->XY) P(X) P(Y)
+    tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
+    double prior = Grammar->gm()->prior(active->rule());
+    tItem* active_daughter;
+    
+    std::vector<class tItem *> l;
+    if (active->left_extending()) {
+      l.push_back (passive);
+      active_daughter = active->daughters().back();
+      l.push_back (active_daughter);
+    } else {
+      active_daughter = active->daughters().front();
+      l.push_back (active_daughter);
+      l.push_back (passive);
     }
-    else if(Grammar->sm())
-    {
-        tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
-
-        list<tItem *> daughters(active->daughters());
-
-        if(active->left_extending())
-            daughters.push_front(passive);
-        else
-            daughters.push_back(passive);
-
-        priority(Grammar->sm()->scoreLocalTree(active->rule(), daughters));
+    double conditional = Grammar->gm()->conditional(active->rule(), l);
+    priority (prior + conditional + passive->gmscore() + active_daughter->gmscore());
+  } else {        
+    tPhrasalItem *active = dynamic_cast<tPhrasalItem *>(act); 
+    if(active->left_extending()) {
+      priority(packingscore(passive->start(), active->end(),
+                            C->rightmost(), false));
+    } else {
+      priority(packingscore(active->start(), passive->end(),
+                            C->rightmost(), false));
     }
+  }
+
+  LOG (logGM, DEBUG, "MAKE       active_and_passive: " << id() << " ("
+                                                    << _active->start()  << ", " << _active->end()  << ")  (" 
+                                                    << _passive->start() << ", " << _passive->end() << ")  "
+                                                    << _active->rule()->printname() << "  " << _p );
 }
 
 tItem *
@@ -242,7 +283,37 @@ active_and_passive_task::execute()
         return 0;
     
     tItem *result = build_combined_item(_Chart, _active, _passive);
-    if(result) result->score(priority());
+    _A->feedback (this, result);
+    if(result) 
+    {
+      LOG (logGM, DEBUG, "EX SUCCESS active_and_passive: " << id() << " ("
+                                                           << _active->start()  << ", " << _active->end()  << ")  (" 
+                                                           << _passive->start() << ", " << _passive->end() << ")  "
+                                                           << _active->rule()->printname() << "  " << _p );
+      if (Grammar->gm()) {
+        std::vector<class tItem *> l;
+        tItem* active_daughter;
+        if (_active->left_extending()) {
+          l.push_back (_passive);
+          active_daughter = _active->daughters().back();
+          l.push_back (active_daughter);
+        } else {
+          active_daughter = _active->daughters().front();
+          l.push_back (active_daughter);
+          l.push_back (_passive);
+        }
+        double conditional = Grammar->gm()->conditional(_active->rule(), l);
+        result->gmscore(conditional + active_daughter->gmscore() + _passive->gmscore());
+      } else {
+        result->gmscore(priority());
+      }
+    } else {
+      LOG (logGM, DEBUG, "EX FAIL    active_and_passive: " << id() << " ("
+                                                        << _active->start()  << ", " << _active->end()  << ")  (" 
+                                                        << _passive->start() << ", " << _passive->end() << ")  "
+                                                        << _active->rule()->printname() << "  " << _p );
+    }
+
     return result;
 }
 

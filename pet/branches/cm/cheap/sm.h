@@ -239,6 +239,9 @@ class tPCFG : public tSM
     double _laplace_smoothing;
     double _min_logprob;
 
+    // Initially, _weights contain the number of times this feature has been observed. 
+    // AdjustWeights will then make sure Laplace is used for smoothing. 
+    // The lisp code currently doesn't do any smoothing. 
     std::vector<double> _weights;
     std::map<type_t,int> _lhs_freq_counts;
     std::map<type_t,int> _lhs_rule_counts;
@@ -265,5 +268,45 @@ class tPCFG : public tSM
     score(std::vector<type_t> rule);
 
 };
+
+/** Generative Model */
+class tGM
+{
+ public:
+    tGM(class tGrammar *G, const char *fileName, const char *basePath);
+    virtual ~tGM();
+    
+    virtual double conditional (class grammar_rule *, std::vector<class tItem *>);
+    virtual double conditional (std::vector<type_t>);
+    virtual double unknown_conditional (type_t ruletype);
+    virtual double prior (class grammar_rule *);
+    
+ private:
+
+    // Indicates the delta in the Lidstone smoothing algorithm: (C(x) + delta) / ( N + delta*V).
+    // Laplace is a special case of Lidstone, where delta is 1. 
+    double _lidstone_delta;   
+
+    std::map< std::vector<type_t>, int>    _counts; 
+    std::map< std::vector<type_t>, double> _weights; 
+    std::map<type_t,double> _unknown_conditionals;
+    std::map<type_t,int>    _prior_counts;
+    std::map<type_t,double> _prior_weights;
+    int _total_count;                          // Counts how many training instance were seen. 
+    double _unknown_prior;
+    std::map<type_t,int>    _lhs_counts;       // Counts how many rules exist with this lhs. 
+
+    void calculateWeights ();
+
+    // Functions for parsing the data file. 
+    void readModel(const std::string &fileName);
+    void parseModel();
+    void parseOptions();
+    void parseFeatures(int);
+    void parseFeature(int);
+  
+};
+
+
 
 #endif
