@@ -431,6 +431,12 @@ public:
   /** Set the score for this item to \a score */
   void score(double score) { _score = score; }
 
+  /** Return the GM score for this item */
+  double gmscore() const { return _gmscore; }
+
+  /** Set the GM score for this item to \a score */
+  void gmscore(double gmscore) { _gmscore = gmscore; }
+
   /** @name Blocking Functions
    * Functions used to block items for packing.
    * See Oepen & Carroll 2000
@@ -576,6 +582,7 @@ private:
   qc_vec _qc_vector_subs;
 
   double _score;
+  double _gmscore;
 
   const std::string _printname;
 

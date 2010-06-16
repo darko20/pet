@@ -99,6 +99,10 @@ void usage(FILE *f)
           "allow input comments (-1 to suppress output)\n");
   fprintf(f, "  `-cm' --- "
           "enable chart mapping (token mapping and lexical filtering)\n");
+  fprintf(f, "  `-local-cap=size' --- "
+          "enable local phrasal search space restriction\n");
+  fprintf(f, "  `-count-tasks' --- "
+          "indicates which types of tasks should be counted: all (0, default), successful (1), or successful+passive (2). \n");
 }
 
 #define OPTION_TSDB 0
@@ -140,6 +144,8 @@ void usage(FILE *f)
 #define OPTION_CHART_MAPPING 39
 #define OPTION_SM 40
 #define OPTION_ROBUST 41
+#define OPTION_LOCAL_CAP 42
+#define OPTION_COUNT_TASKS 43
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -199,6 +205,9 @@ char* parse_options(int argc, char* argv[])
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
     {"cm", optional_argument, 0, OPTION_CHART_MAPPING},
     {"sm", optional_argument, 0, OPTION_SM},
+    {"local-cap", required_argument, 0, OPTION_LOCAL_CAP},
+    {"count-tasks", required_argument, 0, OPTION_COUNT_TASKS},
+
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -408,6 +417,21 @@ char* parse_options(int argc, char* argv[])
           else 
             set_opt("opt_sm", std::string("null"));
           break;
+      case OPTION_LOCAL_CAP:
+          if (optarg != NULL)
+            set_opt("opt_local_cap",
+                    (int)(strtoint(optarg, "")));
+          else 
+            set_opt("opt_local_cap", (int) 1000);
+          break;
+      case OPTION_COUNT_TASKS:
+          if (optarg != NULL)
+            set_opt("opt_count_tasks",
+                    (int)(strtoint(optarg, "")));
+          else 
+            set_opt("opt_count_tasks", (int) 0);
+          break;
+
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
