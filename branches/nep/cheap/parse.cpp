@@ -421,7 +421,7 @@ resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
 {
   return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) ||
     (memlimit > 0 && t_alloc.max_usage() >= memlimit) ||
-    (timeout > 0 && timestamp >= timeout );
+    (get_opt_int("opt_timeout") > 0 && timestamp >= timeout );
 }
 
 void
@@ -443,7 +443,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 #endif
     tItem *it = t->execute();
     delete t;
-    if (timeout > 0)
+    if (get_opt_int("opt_timeout") > 0)
       timestamp = times(NULL);
     // add_item checks all limits that have to do with the number of
     // analyses. If it returns true that means that one of these limits has
