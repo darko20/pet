@@ -69,7 +69,7 @@ void undump_arc(dumper *f, dag_arc_dump *x)
   x->val = f->undump_short();
 }
 
-// 
+//
 // name spaces etc.
 //
 
@@ -177,6 +177,22 @@ dag_find_paths(dag_node* dag, type_t maxapp)
   return result;
 }
 
+struct dag_node *
+dag_get_path_value_check_dlist(struct dag_node *dag, list_int *path) {
+  while(path) {
+    if(dag == FAIL) return FAIL;
+    int feature = first(path);
+    dag_node *next = dag_get_attr_value(dag, feature);
+    if (feature == BIA_LIST) {
+      dag_node *last =  dag_get_attr_value(dag, BIA_LAST);
+      if (next == last) return FAIL;
+    }
+    dag = next;
+    path = rest(path);
+  }
+  return dag;
+}
+
 struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
   while(path) {
     if(dag == FAIL) return FAIL;
@@ -211,7 +227,7 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
  *  \param path a pointer to the variable holding the path to descend from
  *              \a dag
  *  \return the subdag at the end of the longest subpath that could be found,
- *          starting at \a dag, and the subpath that could not be found in 
+ *          starting at \a dag, and the subpath that could not be found in
  *          path.
  */
 struct dag_node *
@@ -273,7 +289,7 @@ struct dag_node *dag_create_path_value(const char *path, type_t type) {
     delete[] firstpart;
     return res;
   } else
-    return dag_create_attr_value(path, 
+    return dag_create_attr_value(path,
                                  dag_create_path_value((const char *)NULL
                                                        , type));
 }
@@ -286,7 +302,7 @@ struct dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
     // the path and the dag of arg at its end
     arg = dag_create_path_value(path, arg);
     if (arg == FAIL) return FAIL;
-  } 
+  }
   dag_node *newdag = dag_unify(root, arg, subdag, 0);
   if (newdag == FAIL) return FAIL;
   return newdag;
@@ -317,6 +333,7 @@ struct dag_node *dag_create_path_value(list_int *path, dag_node *dag)
   }
 }
 
+// this looks a bit complicated at first, but avoids memory leaks
 struct list_int *path_to_lpath(const char *thepath) {
   if(thepath == 0 || strlen(thepath) == 0) return NULL;
   char *path, *pathroot; // we need pathroot to be able to free the memory
@@ -331,7 +348,7 @@ struct list_int *path_to_lpath(const char *thepath) {
     char *dot = strchr(path, '.');
     if (dot == NULL)
       dot = pathend;
-    else 
+    else
       *dot = '\0';
     feat = lookup_attr(path);
     if (feat == -1) {
@@ -349,32 +366,6 @@ struct list_int *path_to_lpath(const char *thepath) {
   free(pathroot);
   free_list(head);
   return tail;
-}
-
-
-struct list_int *path_to_lpath0(const char *path)
-{
-  if(path == 0 || strlen(path) == 0) return NULL;
-
-  const char *dot = strchr(path, '.');
-  if(dot != 0)
-    { // copy the feature name into attr and get its code
-      char *attr = new char[dot - path + 1];
-      strncpy(attr, path, dot - path);
-      attr[dot - path] = '\0';
-      attr_t feat = lookup_attr(attr);
-      delete[] attr;
-      if (feat == -1) return NULL;
-      list_int *sub = path_to_lpath(dot + 1);
-      if (sub == NULL) return NULL;
-      return cons(feat, sub);
-    }
-  else
-    {
-    attr_t feat = lookup_attr(path);
-    if (feat == -1) return NULL;
-    return cons(feat, NULL);
-    }
 }
 
 

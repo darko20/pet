@@ -206,7 +206,7 @@ char* parse_options(int argc, char* argv[])
               opt_tsdb = strtoint(optarg, "as argument to -tsdb");
               if(opt_tsdb < 0 || opt_tsdb > 2)
               {
-                LOG(logAppl, FATAL, 
+                LOG(logAppl, FATAL,
                     "parse_options(): invalid tsdb++ protocol version");
                return NULL;
               }
@@ -228,7 +228,7 @@ char* parse_options(int argc, char* argv[])
           set_opt("opt_default_les", true);
           break;
       case OPTION_NO_CHART_MAN:
-          set_opt("opt_chart_man", false); 
+          set_opt("opt_chart_man", false);
           break;
       case OPTION_SERVER:
           if(optarg != NULL)
@@ -317,7 +317,7 @@ char* parse_options(int argc, char* argv[])
             set_opt_from_string("opt_memlimit", optarg);
           break;
       case OPTION_TIMEOUT:
-        // \todo the option should store the raw value and leave the details to 
+        // \todo the option should store the raw value and leave the details to
         // the implementation
           if(optarg != NULL)
             set_opt("opt_timeout",
@@ -325,10 +325,11 @@ char* parse_options(int argc, char* argv[])
                               strtoint(optarg, "as argument to -timeout")));
           break;
       case OPTION_LOG:
-          if(optarg != NULL)
-              if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
-              else flog = fopen(optarg, "w");
-          break;
+        if(optarg != NULL) {
+          if(optarg[0] == '+') flog = fopen(&optarg[1], "a");
+          else flog = fopen(optarg, "w");
+        }
+        break;
       case OPTION_NO_ONLINE_MORPH:
           set_opt("opt_online_morph", false);
           break;
@@ -336,7 +337,7 @@ char* parse_options(int argc, char* argv[])
         if(optarg != NULL)
           set_opt_from_string("opt_packing", optarg);
         else
-          set_opt("opt_packing", 
+          set_opt("opt_packing",
                       (int)(PACKING_EQUI | PACKING_PRO |
                             PACKING_RETRO | PACKING_SELUNPACK));
         break;
@@ -355,7 +356,7 @@ char* parse_options(int argc, char* argv[])
           if(optarg != NULL)
             set_opt_from_string("opt_nresults", optarg);
           break;
-      case OPTION_TOK: 
+      case OPTION_TOK:
           set_opt_from_string("opt_tok", optarg);
           break;
       case OPTION_JXCHG_DUMP:
@@ -373,13 +374,13 @@ char* parse_options(int argc, char* argv[])
       case OPTION_PREDICT_LES:
         if (optarg != NULL)
           set_opt_from_string("opt_predict_les", optarg);
-        else 
+        else
           set_opt("opt_predict_les", (int) 1);
         break;
       case OPTION_SM:
           if (optarg != NULL)
             set_opt("opt_sm", std::string(optarg));
-          else 
+          else
             set_opt("opt_sm", std::string("null"));
           break;
 #ifdef YY
