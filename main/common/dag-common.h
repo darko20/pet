@@ -151,7 +151,7 @@ dag_node *dag_undump(dumper *f);
 
 /** Look up the attribute \a attr in the arc list of \a dag.
  *  \return If \a attr is a known attribute and an arc with attribute \a attr
- *  was found, the value of that arc, \c FAIL otherwise. 
+ *  was found, the value of that arc, \c FAIL otherwise.
  */
 dag_node *dag_get_attr_value(dag_node *dag, const char *attr);
 
@@ -183,6 +183,15 @@ dag_node *dag_get_path_value(dag_node *dag, const char *path);
  */
 dag_node *dag_get_path_value(dag_node *dag, list_int *path);
 
+/** Very much like \see dag_get_path_value(dag_node *dag, list_int *path),
+ *  except that if in an empty diff list is found, the function will return \c
+ *  FAIL instead of trying to proceed. This is necessary when a "valid" path
+ *  is required. Since there could be a nonempty feature structure under an
+ *  empty difference list, dag_get_path_value would incorrectly return a
+ *  sub-dag instead of \c FAIL
+ */
+dag_node *dag_get_path_value_check_dlist(dag_node *dag, list_int *path);
+
 /** Create a minimal feature structure that contains the arc path
  *  \a path and where the node at the bottom has type \a type.
  *  \a path must to be a list of (known) attribute names, separated by dots.
@@ -191,14 +200,14 @@ dag_node *dag_get_path_value(dag_node *dag, list_int *path);
 dag_node *dag_create_path_value(const char *path, type_t type);
 
 /** Create a minimal feature structure that contains the arc path \a path and
- * where the node at the bottom has type \a type. 
+ * where the node at the bottom has type \a type.
  * \a path must be a list of valid attribute IDs
  *  \return The root node of the new dag on success, \c FAIL otherwise
  */
 dag_node *dag_create_path_value(list_int *path, type_t type);
 
 /** Create a minimal feature structure that contains the arc path \a path and
- * where the node at the bottom has type \a type. 
+ * where the node at the bottom has type \a type.
  * \a path must be a list of valid attribute IDs
  *  \return The root node of the new dag on success, \c FAIL otherwise
  */
@@ -206,7 +215,7 @@ dag_node *dag_create_path_value(list_int *path, struct dag_node *dag);
 
 /** Convert a dot-separated list of attributes into a list of attributes ids
  *  \return the pointer to the list if all attributes are known, \c NULL
- *          otherwise 
+ *          otherwise
  */
 list_int *path_to_lpath(const char *path);
 
@@ -219,7 +228,7 @@ std::list<dag_node *> dag_get_list(dag_node* first);
  *  A list in feature structure encoding will be produced, with the \c FIRST
  *  arcs pointing to (empty) dags getting the types in l.
  *  \attention As already said, the FS list is in reverse order.
- */ 
+ */
 dag_node *dag_listify_ints(list_int *l);
 
 /**
@@ -236,7 +245,7 @@ dag_node *dag_nth_element(struct dag_node *dag, int attr, int n);
 dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n);
 
 /** Get the substructure under ARGS.REST*(n-1).FIRST if it exists, \c FAIL
- *  otherwise. 
+ *  otherwise.
  */
 dag_node *dag_nth_arg(dag_node *dag, int n);
 
@@ -247,7 +256,7 @@ dag_node *dag_nth_arg(dag_node *dag, int n);
 std::list<list_int*> dag_find_paths(dag_node* dag, type_t maxapp = BI_TOP);
 
 /** \brief Set the \c visit field of every dag node in \a dag to the number of
- *  incoming arcs. Any node with a \c visit field of more than one is 
+ *  incoming arcs. Any node with a \c visit field of more than one is
  *  `coreferenced'.
  */
 void dag_mark_coreferences(dag_node *dag);
@@ -264,7 +273,7 @@ int dag_size(dag_node *dag);
 void dag_remove_arcs(dag_node *dag, list_int *del);
 
 /** @name Common Interface
- * A common dag interface. It is defined here, the implementation is in 
+ * A common dag interface. It is defined here, the implementation is in
  * separate files.
  */
 /*@{*/
@@ -299,7 +308,7 @@ bool dag_set_attr_value(dag_node *dag, attr_t attr, dag_node *val);
 /** Clone \a dag completely (make a deep copy) */
 dag_node *dag_full_copy(dag_node *dag);
 
-/** Unify \a dag2 into \a root at subdag \a dag1.  
+/** Unify \a dag2 into \a root at subdag \a dag1.
  *
  * If the unification succeeds, return a (possibly partial, i.e., structure
  * sharing) copy of the result, omitting all arcs at the root node that bear
@@ -317,7 +326,7 @@ dag_node *
 dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del);
 
 
-/** Unify \a arg into \a root at subdag under path \a path.  
+/** Unify \a arg into \a root at subdag under path \a path.
  *
  * If the path is not (fully) present in the feature structure \a root, try to
  * add it. If the unification succeeds, return a (possibly partial, i.e.,
@@ -336,7 +345,7 @@ bool dags_compatible(dag_node *dag1, dag_node *dag2);
  *  \return \c true in \a forward, if \a dag1 subsumes (is more general than)
  *          \a dag2, \c true in \a backward, if \a dag1 is subsumed by \a dag2
  */
-void 
+void
 dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
 
 /** Make \a dag totally wellformed.
@@ -359,12 +368,12 @@ struct qc_node;
  * the path in the list. The arc labels are all valid attribute IDs.
  *
  * \param f     The dumper to read from
- * \param limit Only store paths whose list position is not beyond \a limit. 
+ * \param limit Only store paths whose list position is not beyond \a limit.
  *              Values below zero indicate that all stored paths should be
  *              taken .
  * \param qc_len Return the number of stored paths in this variable.
  * \return The quick check tree, and the number of paths it contains in \a
- *         qc_len 
+ *         qc_len
  */
 qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len);
 

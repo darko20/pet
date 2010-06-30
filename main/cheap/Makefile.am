@@ -70,6 +70,7 @@ libcheap_la_SOURCES = \
 	morph.cpp morph.h morph-inner.h \
 	options.cpp options.h \
 	parse.cpp parse.h \
+	parsenodes.cpp parsenodes.h \
 	paths.cpp paths.h \
 	position-mapper.h \
 	postags.cpp postags.h \
@@ -128,7 +129,7 @@ libcheap_la_SOURCES += cppbridge.cpp cppbridge.h petmrs.h petmrs.c
 cheap_LDADD += libmrs.a
 endif
 
-# Add ecl libraries to be deleted on "make clean" ... 
+# Add ecl libraries to be deleted on "make clean" ...
 # Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 MOSTLYCLEANFILES = libmrs.a
 

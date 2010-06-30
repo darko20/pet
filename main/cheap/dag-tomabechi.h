@@ -77,7 +77,7 @@ struct dag_node
 
   /** \brief The generation of this dag node. Affects the members
    *  dag_node::new_type, dag_node::comp_arcs, dag_node::forward and
-   *  dag_node::copy 
+   *  dag_node::copy
    */
   int generation;
 
@@ -152,7 +152,7 @@ inline void dag_set_type(dag_node *dag, type_t s) { dag->type = s; }
 /** Clone the dag (deep copy). */
 dag_node *dag_full_copy(dag_node *dag);
 /** Unify and two dags and copy the result, if successful.
- *  \param root the root node of the first dag 
+ *  \param root the root node of the first dag
  *  \param dag1 a subnode of \a root, or equal to it
  *  \param dag2 the second dag to be unified with \a dag1
  *  \param del a list of attribute ids. Arcs in the resulting root dag that
@@ -171,7 +171,7 @@ bool dags_compatible(dag_node *dag1, dag_node *dag2);
  *  \c true when this function is called, otherwise, the direction will not be
  *  checked.
  */
-void 
+void
 dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward);
 
 /** Return a permanent (deep) copy of \a dag.
@@ -230,7 +230,7 @@ dag_subsumes_get_failures(dag_node *dag1, dag_node *dag2,
 /** Unify two dags, but do not copy the result if unification is successful,
  *  just return the temporary dag, and \c FAIL, otherwise.
  *
- *  \param root the root node of the first dag 
+ *  \param root the root node of the first dag
  *  \param dag1 a subnode of \a root, or equal to it
  *  \param dag2 the second dag to be unified with \a dag1
  *
@@ -344,7 +344,7 @@ inline void dag_set_copy(dag_node *dag, dag_node *c)
 inline dag_arc *dag_cons_arc(attr_t attr, dag_node *val, dag_arc *next) {
   dag_arc *arc = new_arc(attr, val);
   arc->next = next;
-  
+
   return arc;
 }
 
@@ -415,7 +415,7 @@ class temporary_generation
 {
  public:
   /** Save the global generation counter and set its value to \a gen */
-  inline temporary_generation(int gen) : _save(unify_generation) 
+  inline temporary_generation(int gen) : _save(unify_generation)
     { if(gen != 0) unify_generation = gen; }
   /** Restore the saved generation counter */
   inline ~temporary_generation()
@@ -427,7 +427,7 @@ class temporary_generation
 
 dag_node *dag_partial_copy1(dag_node *dag, type_t new_type);
 
-/** Clone \a dag using \a del as a restrictor. 
+/** Clone \a dag using \a del as a restrictor.
  * At every occurence of a feature in \a del, the node below that feature will
  * be replaced by an empty dag node with the maximal appropriate type. In this
  * variant, the restrictor remains constant on every recursion level, which
@@ -439,13 +439,13 @@ dag_node *
 dag_partial_copy_stateless(dag_node *dag, const STATELESS_RESTRICTOR &del) {
   dag_node *copy = dag_get_copy(dag);
   if(copy == 0) {
-    copy = new_dag(dag->type);        
+    copy = new_dag(dag->type);
     dag_set_copy(dag, copy);
-        
+
     dag_arc *arc = dag->arcs;
     while(arc != 0) {
       dag_add_arc(copy,
-                  new_arc(arc->attr, 
+                  new_arc(arc->attr,
                           (del.prune_arc(arc->attr) ?
                            dag_partial_copy1(arc->val, maxapp[arc->attr])
                            : dag_partial_copy_stateless(arc->val, del))));
@@ -466,7 +466,7 @@ dag_arc *dag_copy_arcs(dag_arc *arc, R_STATE rst, dag_arc *new_arcs = NULL) {
   dag_node *new_node;
   while(arc != 0) {
     R_STATE new_state = walk_arc(rst, arc->attr);
-    
+
     if (empty(new_state)) {
       // \todo Do we want to strip the arc up to its appropriate type or do
       // we want to delete it completely??
@@ -475,9 +475,9 @@ dag_arc *dag_copy_arcs(dag_arc *arc, R_STATE rst, dag_arc *new_arcs = NULL) {
       new_node = dag_partial_copy_state(arc->val, new_state);
     }
     if (new_node == FAIL) return (dag_arc *) FAIL;
-    
+
     new_arcs = dag_cons_arc(arc->attr, new_node, new_arcs);
-    
+
     arc = arc->next;
   }
   return new_arcs;
@@ -511,12 +511,12 @@ dag_node *dag_partial_copy_state(dag_node *dag, R_STATE rst) {
   if(copy == INSIDE) {
     return FAIL;
   }
-  
+
   if(copy == NULL) {
     if (copy_full(rst)) return dag_copy(dag, NULL);
 
     dag_set_copy(dag, INSIDE);
-    dag_arc *new_arcs = dag_copy_arcs(dag_get_comp_arcs(dag), rst, 
+    dag_arc *new_arcs = dag_copy_arcs(dag_get_comp_arcs(dag), rst,
                                       dag_copy_arcs(dag->arcs, rst));
     if (new_arcs == (dag_arc *) FAIL)
       return FAIL;
@@ -525,8 +525,23 @@ dag_node *dag_partial_copy_state(dag_node *dag, R_STATE rst) {
     copy->arcs = new_arcs;
     dag_set_copy(dag, copy);
   }
-      
+
   return copy;
 }
+
+/** start recording failures when unifying or testing subsumption. If the
+ *  \p all parameter is \c true, as many failures as possible are recorded, and
+ *  the operations may take longer as a consequence.
+ */
+void start_recording_failures(bool all = false);
+
+/** Stop failure recording and return the last failure */
+class failure * stop_recording_failures();
+
+/** Return all failures that have been recorded */
+const std::list<class failure *> &get_failures();
+
+/** Clear the list of failures and free the associated data structures */
+void clear_failures();
 
 #endif
