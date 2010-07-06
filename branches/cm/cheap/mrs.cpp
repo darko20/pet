@@ -29,21 +29,7 @@
 int variable_generator = 0;
 extern settings *cheap_settings;
 
-
 namespace mrs {
-
-/**
- * Escape XML delimiters.
- */
-std::string
-xml_escape(std::string s) {
-  boost::replace_all(s, "<", "&lt;");
-  boost::replace_all(s, ">", "&gt;");
-  boost::replace_all(s, "&", "&amp;");
-  boost::replace_all(s, "'", "&apos;");
-  boost::replace_all(s, "\"", "&quot;");
-  return s;
-}
  
 tBaseMRS::~tBaseMRS() {
   for (std::list<tBaseRel*>::iterator rel = liszt.begin(); 
@@ -147,7 +133,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
   struct dag_node* d = FAIL;
   char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
   if (!psoa_top_h_path || strcmp(psoa_top_h_path, "") == 0) 
-    top_h = request_var("h");
+    top_h = request_var("handle");
   else { 
     d = dag_get_path_value(init_sem_dag, psoa_top_h_path);
     if (d == FAIL) {
@@ -210,26 +196,6 @@ tPSOA::tPSOA(struct dag_node* dag) {
   
   _valid = true;
 }
-
-void tPSOA::
-print(std::ostream &out) {
-  out << "<mrs>\n";
-  out << boost::format("<label vid='%d'/>") % top_h->id;
-  out << boost::format("<var vid='%d'/>\n") % index->id;
-  for (std::list<tBaseRel*>::iterator rel = liszt.begin();
-       rel != liszt.end(); rel ++) {
-    (*rel)->print(out);
-  }
-  for (std::list<tHCons*>::iterator hcons = h_cons.begin();
-       hcons != h_cons.end(); hcons ++) {
-    (*hcons)->print(out);
-  }
-  for (std::list<tHCons*>::iterator acons = a_cons.begin();
-       acons != a_cons.end(); acons ++) {
-    (*acons)->print(out);
-  }
-  out << "</mrs>\n";
-} 
 
 tHCons::tHCons(struct dag_node* dag, class tBaseMRS* mrs) : _mrs(mrs) {
   // _fixme_ : for the moment there is only one type of H-Cons: QEQ
@@ -337,67 +303,6 @@ collect_param_strings() {
   }
 }
 
-void tRel::
-print(std::ostream &out) {
-  out << boost::format("<ep cfrom='%d' cto='%d'>") % cfrom % cto;
-  if (pred[0] == '"')
-    out << "<spred>" << xml_escape(pred.substr(1,pred.length()-2)) << "</spred>";
-  else {
-    char* uppred = new char[pred.length()+1];
-    strtoupper(uppred, pred.c_str());
-    out << "<pred>" << xml_escape(uppred) << "</pred>"; //pred;
-    delete uppred;
-  }
-  out << boost::format("<label vid='%d'/>") % handel->id;
-  std::list<std::string> feats;
-  for (std::map<std::string,tValue*>::iterator fvpair = flist.begin();
-       fvpair != flist.end(); fvpair ++) 
-    feats.push_back((*fvpair).first);
-  feats.sort(ltfeat());
-  for (std::list<std::string>::iterator feat = feats.begin();
-       feat != feats.end(); feat ++) {
-    out << std::endl << "<fvpair>";
-    out << "<rargname>" << xml_escape(*feat) << "</rargname>";
-    flist[*feat]->print_full(out);
-    out << "</fvpair>";
-  }
-
-  out << "</ep>" << std::endl;
-}
-
-void tHCons::
-print(std::ostream &out) {
-  out << "<hcons hreln='";
-  if (relation == QEQ)
-    out << "qeq";
-  else if (relation == LHEQ)
-    out << "lheq";
-  else if (relation == OUTSCOPES)
-    out << "outscopes";
-  out << "'>";
-  out << "<hi>";
-  scarg->print(out);
-  out << "</hi>";
-  out << "<lo>";
-  outscpd->print(out);
-  out << "</lo>";
-  out << "</hcons>\n";
-}
-
-void tConstant::
-print(std::ostream &out) {
-  if (value[0] == '"')
-    out << "<constant>" << xml_escape(value.substr(1,value.length()-2))
-        << "</constant>";
-  else
-    out << "<constant>" << xml_escape(value) << "</constant>";
-}
-
-void tConstant::
-print_full(std::ostream &out) {
-  print(out);
-}
-
 tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
   if (dag != FAIL) {
 
@@ -431,32 +336,6 @@ tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
 
   }
       
-}
-
-void tVar::
-print(std::ostream &out) {
-  out << boost::format("<var vid='%d' sort='%s'></var>") % id % xml_escape(type);
-}
-
-void tVar::
-print_full(std::ostream &out) {
-  out << boost::format("<var vid='%d' sort='%s'>") % id % xml_escape(type);
-  // _todo_ this should be adapted to handle the feature priority
-  std::list<std::string> feats;
-  for (std::map<std::string,std::string>::iterator extrapair = extra.begin();
-       extrapair != extra.end(); extrapair ++)
-    feats.push_back((*extrapair).first);
-  feats.sort(ltextra());
-  for (std::list<std::string>::iterator feat = feats.begin();
-       feat != feats.end(); feat ++) {
-    char* upvalue = new char[extra[*feat].length()+1];
-    strtoupper(upvalue, extra[*feat].c_str());
-    out << std::endl << "<extrapair><path>" << xml_escape(*feat)
-          << "</path><value>"
-          << xml_escape(upvalue) << "</value></extrapair>";
-    delete upvalue;
-  }
-  out << "</var>";
 }
 
 void
