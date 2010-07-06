@@ -40,6 +40,7 @@
 #include "item-printer.h"
 #include "version.h"
 #include "mrs.h"
+#include "mrs-printer.h"
 #include "vpm.h"
 #include "qc.h"
 #include "pcfg.h"
@@ -289,7 +290,9 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(opt_mrs && (strcmp(opt_mrs, "new") != 0)) {
+          if (opt_mrs && 
+             ((strcmp(opt_mrs, "new") != 0) &&
+              (strcmp(opt_mrs, "simple") != 0))) {
             string mrs;
             if(it->trait() != PCFG_TRAIT)
               mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
@@ -303,7 +306,9 @@ void interactive() {
             }
           }
 #endif
-          if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
+          if (opt_mrs && 
+              ((strcmp(opt_mrs, "new") == 0) ||
+               (strcmp(opt_mrs, "simple") == 0))) {
             fs f = it->get_fs();
             // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
             mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
@@ -311,7 +316,14 @@ void interactive() {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
               if (mapped_mrs->valid()) {
                 std::cerr << std::endl;
-                mapped_mrs->print(cerr);
+                if (strcmp(opt_mrs, "new") == 0) {
+                  MrxMRSPrinter ptr(cerr);
+                  ptr.print(mapped_mrs);
+                } else if (strcmp(opt_mrs, "simple") == 0) {
+                  SimpleMRSPrinter ptr(cerr);
+                  ptr.print(mapped_mrs);
+                }
+                //                mapped_mrs->print_simple(cerr);
                 std::cerr << std::endl;
               }
               delete mapped_mrs;

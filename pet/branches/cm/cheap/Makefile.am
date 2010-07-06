@@ -80,6 +80,7 @@ libcheap_a_SOURCES = \
 	task.cpp task.h \
 	tsdb++.h tsdb++.cpp \
 	mrs.h mrs.cpp \
+	mrs-printer.h mrs-printer.cpp \
 	vpm.h vpm.cpp \
 	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
