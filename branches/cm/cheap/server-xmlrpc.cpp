@@ -22,6 +22,7 @@
 #include "chart.h"
 #include "item-printer.h"
 #include "mrs.h"
+#include "mrs-printer.h"
 #include "options.h"
 #include "parse.h"
 #include "tsdb++.h"
@@ -166,15 +167,22 @@ struct analyze_method : public xmlrpc_c::method
         string opt_mrs = get_opt_string("opt_mrs");
         if (!opt_mrs.empty()) {
           string mrs_str;
-          if (opt_mrs == "new") {
+          if ((opt_mrs == "new") || (opt_mrs == "simple")) {
             osstream.clear(); // reset state
             osstream.str(""); // reset underlying buffer
             fs f = item->get_fs();
             mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
             if (mrs->valid()) {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
-              if (mapped_mrs->valid())
-                mapped_mrs->print(osstream);
+              if (mapped_mrs->valid()) {
+                if (opt_mrs == "new") {
+                  MrxMRSPrinter ptr(osstream);
+                  ptr.print(mapped_mrs);
+                } else if (opt_mrs == "simple") {
+                  SimpleMRSPrinter ptr(osstream);
+                  ptr.print(mapped_mrs);
+                }
+              }
               delete mapped_mrs;
             }
             delete mrs;
