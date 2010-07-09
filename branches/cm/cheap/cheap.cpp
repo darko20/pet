@@ -83,6 +83,7 @@ int verbosity = 0;
 // global variables for parsing
 
 tGrammar *Grammar = 0;
+ParseNodes pn;
 settings *cheap_settings = 0;
 bool XMLServices = false;
 tVPM *vpm = 0;
@@ -275,8 +276,9 @@ void interactive() {
               ; (iter != results.end()
                  && ((opt_nresults == 0) || (opt_nresults > nres)))
               ; ++iter) {
-          //tFegramedPrinter fedprint("/tmp/fed-");
-          //tDelegateDerivationPrinter deriv(fstatus, fedprint);
+          //tFegramedPrinter baseprint("/tmp/fed-");
+          //tLabelPrinter baseprint(pn) ;
+          //tDelegateDerivationPrinter deriv(std::cerr, baseprint, 2);
           //tTSDBDerivationPrinter deriv(std::cerr, 1);
           tCompactDerivationPrinter deriv(std::cerr);
           tItem *it = *iter;
@@ -621,6 +623,8 @@ void process(const char *s) {
   }
   else {
     initialize_version();
+
+    pn.initialize();
 
 #if defined(YY) && defined(SOCKET_INTERFACE)
     if(get_opt_int("opt_server") != 0)

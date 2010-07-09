@@ -43,7 +43,7 @@ void dagify_symtabs()
 
   first_leaftype = types.number() - nstaticleaftypes;
   nstatictypes = types.number();
-  
+
   typenames = std::vector<std::string>(nstatictypes);
   typestatus = (int *) salloc(sizeof(int) * nstatictypes);
   printnames = std::vector<std::string>(nstatictypes);
@@ -53,7 +53,7 @@ void dagify_symtabs()
       typenames[i] = types.name(i);
       typestatus[i] = types[i]->status;
       printnames[i] = types[i]->printname;
-      if(printnames[i].empty())
+      if(printnames[i].empty() && types[i]->printname == 0)
         printnames[i] = typenames[i];
     }
 
@@ -82,13 +82,13 @@ struct dag_node *dagify_tdl_term(struct conjunction *C, int type, int ncr)
 {
   int i;
   struct dag_node *result;
-  
+
   current_toplevel_type = type;
 
   ncorefs = ncr;
   dagify_corefs = new struct dag_node * [ncorefs];
   for(i = 0; i < ncorefs; i++) dagify_corefs[i] = 0;
-  
+
   result = dagify_conjunction(C, type);
 
   current_toplevel_type = 0;
@@ -107,7 +107,7 @@ struct dag_node *dagify_avm(struct avm *A)
   attr_t sem_attr = T_BOTTOM;
   if (get_opt_bool("opt_no_sem"))
     sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
-  
+
   for(i = 0; i < A->n; i++)
     {
       struct dag_arc *arc;
@@ -116,7 +116,7 @@ struct dag_node *dagify_avm(struct avm *A)
 
       attr = attributes.id(A->av[i]->attr);
 
-      
+
       // With the option 'no-semantics', all structures under a feature
       // which is specified as 'sem-attr' in the 'flop.set' are
       // removed from the hierarchy definitions and the feature itself is
@@ -127,13 +127,13 @@ struct dag_node *dagify_avm(struct avm *A)
 
       if((val = dagify_conjunction(A->av[i]->val, BI_TOP)) == FAIL)
         return FAIL;
- 
+
       if((arc = dag_find_attr(result->arcs, attr)))
         {
           if(dag_unify1(arc->val, val) == FAIL)
             {
               LOG(logSemantic, WARN,
-                  "type `" << type_name(current_toplevel_type) 
+                  "type `" << type_name(current_toplevel_type)
                   << "': unification under `" << attrname[attr] << "' failed");
               return FAIL;
             }
@@ -170,7 +170,7 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
           return result;
         }
     }
-  
+
   result = new_dag(BI_LIST);
   if((tmp = dagify_conjunction(L->list[i], BI_TOP)) == FAIL) return FAIL;
   dag_add_arc(result, new_arc(BIA_FIRST, tmp));
@@ -189,7 +189,7 @@ struct dag_node *dagify_list(struct tdl_list *L)
       struct dag_node *last, *lst;
 
       result = new_dag(BI_DIFF_LIST);
-      
+
       last = new_dag(BI_TOP);
       dag_add_arc(result, new_arc(BIA_LAST, last));
 
@@ -265,7 +265,7 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
           if(dag_unify1(result, tmp) == FAIL)
             {
               LOG(logSemantic, WARN,
-                  "type `" << type_name(current_toplevel_type) 
+                  "type `" << type_name(current_toplevel_type)
                   << "': feature term unification failed");
               return FAIL;
             }

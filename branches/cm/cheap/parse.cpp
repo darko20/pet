@@ -76,7 +76,7 @@ static bool parser_init() {
                 "The number of solutions until the parser is"
                 "stopped, if not in packing mode", opt_nsolutions);
   opt_nsolutions = 0;
-  reference_opt("opt_packing", 
+  reference_opt("opt_packing",
                 "choose ambiguity packing mode. (see Oepen & Carroll 2000a,b) "
                 "a bit vector of flags: 1:equivalence "
                 "2:proactive 4:retroactive packing; "
@@ -153,7 +153,7 @@ bool
 filter_combine_task(tItem *active, tItem *passive)
 {
 #ifdef PETDEBUG
-    LOG(logParse, DEBUG, "trying active " << *active 
+    LOG(logParse, DEBUG, "trying active " << *active
         << " & passive " << *passive << " ==> ");
 #endif
 
@@ -235,9 +235,6 @@ fundamental_for_active(tPhrasalItem *active) {
                                                active, it.current()));
 }
 
-extern void start_recording_failures();
-extern class failure * stop_recording_failures();
-
 bool
 packed_edge(tItem *newitem) {
   if(! newitem->inflrs_complete_p()) return false;
@@ -316,7 +313,7 @@ packed_edge(tItem *newitem) {
           ? olditem->rule()->printname() : olditem->printname() ;
         if (uf != NULL)
           LOG(logParse, DEBUG, "SF: " << id1 << " <-> " << id2 << " " << *uf);
-        else 
+        else
           LOG(logParse, DEBUG, "SF: " << id1 << " <-> " << id2);
       }
 #endif
@@ -364,7 +361,7 @@ inline bool result_limits() {
   // in no-unpacking mode (aiming to determine parseability only), have we
   // found at least one tree?
   if ((opt_packing & PACKING_NOUNPACK) != 0 && stats.trees > 0) return true;
-  
+
   // in (non-packing) best-first mode, is the number of trees found equal to
   // the number of requested solutions?
   // opt_packing w/unpacking implies exhaustive parsing
@@ -380,7 +377,7 @@ inline bool result_limits() {
 
 bool add_item(tItem *it) {
   assert(!it->blocked());
-  
+
 #ifdef PETDEBUG
   LOG(logParse, DEBUG, "add_item " << *it);
 #endif
@@ -389,7 +386,7 @@ bool add_item(tItem *it) {
     // \todo how could there be a packed edge if packing is not on??
     if(opt_packing && packed_edge(it))
       return false;
-    
+
     Chart->add(it);
 
     type_t rule;
@@ -426,7 +423,7 @@ resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
 
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
   int pedgelimit = get_opt_int("opt_pedgelimit");
 
   //
@@ -470,7 +467,7 @@ int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
        // in the loop, and will either lead to no or all trees ending up in
        // uroots, or am i wrong??
        (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
-       // END TODO 
+       // END TODO
          && tree != trees.end(); ++tree) {
     if (! (*tree)->blocked()) {
       stats.trees ++;
@@ -488,7 +485,7 @@ int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
     LOG(logParse, DEBUG,
         "unpacked[" << nres << "] (" << setprecision(1)
         << (float) (UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-        << "): " << endl 
+        << "): " << endl
         << (std::pair<tAbstractItemPrinter *, const tItem *>(&cdp, *res))
         << endl);
     nres++;
@@ -505,7 +502,7 @@ int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit,
                         timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
-  if (get_opt_int("opt_timeout") > 0) 
+  if (get_opt_int("opt_timeout") > 0)
     timestamp = times(NULL);
   for(vector<tItem *>::iterator tree = trees.begin();
       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
@@ -530,7 +527,7 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit,
           LOG(logParse, DEBUG,
               "unpacked[" << nres << "] (" << setprecision(1)
               << (float)(UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-              << "): " << endl 
+              << "): " << endl
               << (std::pair<tAbstractItemPrinter *, const tItem *>(&cdp, *res))
               << endl);
           nres++;
@@ -542,7 +539,7 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit,
 }
 
 vector<tItem*>
-collect_readings(fs_alloc_state &FSAS, list<tError> &errors, 
+collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
                  int pedgelimit, long memlimit, int nsolutions,
                  vector<tItem*> &trees) {
   vector<tItem *> readings;
@@ -583,8 +580,8 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
 
       if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
         ostringstream s;
-        s << "timed out (" 
-          << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
+        s << "timed out ("
+          << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
           << " s)";
         errors.push_back(s.str());
       }
@@ -609,18 +606,18 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
 
 void
 parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
   int pedgelimit = get_opt_int("opt_pedgelimit");
   clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
-  
+
   stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
-  
+
   stats.dyn_bytes = FSAS.dynamic_usage();
   stats.stat_bytes = FSAS.static_usage();
-  
+
   get_unifier_stats();
   Chart->get_statistics();
-  
+
   if(resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
     ostringstream s;
     if (memlimit > 0 && t_alloc.max_usage() >= memlimit) {
@@ -635,13 +632,14 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
     }
     errors.push_back(s.str());
   }
-  
+
   LOG(logParse, DEBUG, *Chart);
 
   Chart->readings() = collect_readings(FSAS, errors, 
                                        pedgelimit, memlimit, opt_nsolutions,
                                        Chart->trees());
   stats.readings = Chart->readings().size();
+
 }
 
 
@@ -657,7 +655,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     FSAS.may_shrink();
     prune_glbcache();
   }
-  
+
   FSAS.clear_stats();
   stats.reset();
   stats.id = id;

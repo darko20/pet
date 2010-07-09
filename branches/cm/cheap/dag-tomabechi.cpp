@@ -153,6 +153,24 @@ bool dags_compatible(dag_node *dag1, dag_node *dag2) {
   return res;
 }
 
+bool dags_compatible_failures(dag_node *dag1, dag_node *dag2) {
+  bool res = true;
+
+  unification_cost = 0;
+
+  if(recfail<true>::dag_unify1(dag1, dag2) == FAIL)
+    res = false;
+
+#ifdef STRICT_LKB_COMPATIBILITY
+  else
+    res = !recfail<true>::dag_cyclic_rec(dag1);
+#endif
+
+  dag_invalidate_changes();
+
+  return res;
+}
+
 //
 // recording of failures
 //
@@ -175,12 +193,26 @@ void save_or_clear_failure() {
     clear_failure();
 }
 
-void start_recording_failures() {
+void start_recording_failures(bool all) {
+  all_failures = all;
   clear_failure();
 }
 
 failure * stop_recording_failures() {
   return last_failure;
+}
+
+const list<failure *> &get_failures() {
+  return failures;
+}
+
+void clear_failures() {
+  last_failure = 0;
+  for(list<failure *>::iterator it = failures.begin(); it != failures.end();
+      ++it) {
+    delete (*it);
+  }
+  failures.clear();
 }
 
 dag_node *dag_cyclic_copy(dag_node *src, list_int *del);
@@ -550,7 +582,7 @@ dag_unify2(dag_node *dag1, dag_node *dag2) {
           LOG(logSemantic, DEBUG, "glb: one compatible set");
         else
           LOG(logSemantic, DEBUG,
-              "glb: " << type_name(s1) << dag_has_arcs(dag1) ? "[]" : "" 
+              "glb: " << type_name(s1) << dag_has_arcs(dag1) ? "[]" : ""
               << "(" << featset[s1] << ")"
               << type_name(s2) << dag_has_arcs(dag2) ? "[]" : "",
               << "(" << featset[s2] << ") -> "
@@ -1218,13 +1250,13 @@ bool dag_valid_rec(dag_node *dag) {
 
     while(arc) {
       if(! is_attr(arc->attr)) {
-        LOG(logSemantic, DEBUG, "(3) invalid attr: " << arc->attr 
+        LOG(logSemantic, DEBUG, "(3) invalid attr: " << arc->attr
             << ", val: 0x" << std::setbase(16) << (size_t) arc->val);
         return false;
       }
 
       if(dag_valid_rec(arc->val) == false) {
-        LOG(logSemantic, DEBUG, 
+        LOG(logSemantic, DEBUG,
             "(4) invalid value under " << attrname[arc->attr]);
         return false;
       }

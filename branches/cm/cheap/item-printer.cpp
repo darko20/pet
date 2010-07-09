@@ -24,8 +24,8 @@ std::ostream &operator<<(tAbstractItemPrinter &ip, const tItem &item) {
 // ----------------------------------------------------------------------
 
 tItemPrinter::tItemPrinter(ostream &out, bool print_derivation, bool print_fs)
-  : tAbstractItemPrinter(out), 
-    _derivation_printer(print_derivation 
+  : tAbstractItemPrinter(out),
+    _derivation_printer(print_derivation
                         ? new tCompactDerivationPrinter(out)
                         : NULL),
     _dag_printer(print_fs
@@ -33,8 +33,8 @@ tItemPrinter::tItemPrinter(ostream &out, bool print_derivation, bool print_fs)
                  : NULL) {}
 
 tItemPrinter::tItemPrinter(bool print_derivation, bool print_fs)
-  : tAbstractItemPrinter(), 
-    _derivation_printer(print_derivation 
+  : tAbstractItemPrinter(),
+    _derivation_printer(print_derivation
                         ? new tCompactDerivationPrinter()
                         : NULL),
     _dag_printer(print_fs
@@ -48,7 +48,7 @@ tItemPrinter::~tItemPrinter() {
 
 // helper function from tItem::print
 inline void tItemPrinter::print_tofill(ostream &out, const tItem *item) {
-  if (item->passive()) return; 
+  if (item->passive()) return;
   list_int *l;
   out << item->nextarg() ;
   for (l = item->restargs(); l != NULL; l = rest(l)) {
@@ -79,7 +79,7 @@ inline void tItemPrinter::print_paths(ostream &out, const tItem *item) {
 inline void tItemPrinter::print_packed(ostream &out, const tItem *item) {
   const item_list &packed = item->packed;
   if(packed.size() == 0) return;
-  
+
   out << " < packed: ";
   for(item_citer pos = packed.begin(); pos != packed.end(); ++pos)
     out << get_id(*pos) << " ";
@@ -101,8 +101,8 @@ inline void tItemPrinter::print_family(ostream &out, const tItem *item) {
 
 // former tItem::print
 void tItemPrinter::print_common(ostream &out, const tItem *item) {
-  out << "[" << item->id() 
-       << " " << item->start() << "-" << item->end() << " " 
+  out << "[" << item->id()
+       << " " << item->start() << "-" << item->end() << " "
        << item->printname() << " (" << item->trait() << ") "
        << std::setprecision(4) << item->score()
        << " {";
@@ -114,7 +114,7 @@ void tItemPrinter::print_common(ostream &out, const tItem *item) {
   out << "}]";
   print_family(out, item);
   print_packed(out, item);
-  
+
   if(_derivation_printer != NULL) {
     _derivation_printer->print(item);
   }
@@ -173,9 +173,9 @@ void print_string_escaped(std::ostream &out, const char *str
                           , const char *to_escape, char esc_char = '\\'){
   const char *next, *pos;
   while ((next = strpbrk(str, to_escape)) != NULL) {
-    pos = str; 
+    pos = str;
     while (pos < next) {
-      out << *pos; 
+      out << *pos;
       pos ++;
     }
     out << esc_char << *next;
@@ -198,7 +198,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
     for(dtr = dtrs.begin(); dtr != dtrs.end(); dtr++) {
       print(*dtr);
     }
-    *_out << "draw_edge " << _chart_id << " " << _item_id 
+    *_out << "draw_edge " << _chart_id << " " << _item_id
          << " " << item->start() << " " << item->end()
          << " \"";
     print_string_escaped(*_out, item->printname(), tcl_chars_to_escape);
@@ -231,7 +231,7 @@ tCompactDerivationPrinter::real_print(const tInputItem *item) {
        << ">" << ")";
 }
 
-void 
+void
 tCompactDerivationPrinter::print_inflrs(const tItem* item) {
   *_out << " [";
   const list_int *l = inflrs_todo(item);
@@ -242,7 +242,7 @@ tCompactDerivationPrinter::print_inflrs(const tItem* item) {
 }
 
 // former tLexItem::print_derivation
-void 
+void
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
   *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
        << item->id() << " "
@@ -257,7 +257,7 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 }
 
 // former tPhrasalItem::print_derivation
-void 
+void
 tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
   *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
        << item->id() << " "
@@ -277,13 +277,13 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
   if(_level == 0 && result_root(item) != -1) {
     *_out << " [" << print_name(result_root(item)) << "]";
   }
-  
+
   if(! item->inflrs_complete_p()) {
     print_inflrs(item);
   }
 
   print_daughters(item);
-  
+
   *_out << ")";
 }
 
@@ -314,14 +314,14 @@ tTSDBDerivationPrinter::real_print(const tLexItem *item) {
 
 void
 tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
-  if(_level == 0 && item->result_root() > -1) 
+  if(_level == 0 && item->result_root() > -1)
     *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
          << print_name(item->result_root()) << " ";
-  
+
   *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
        << item->id() << " " << item->printname() << " " << item->score()
        << " " << item->start() << " " << item->end();
-  
+
   const item_list &daughters = item->daughters();
   for(item_citer pos = daughters.begin(); pos != daughters.end(); ++pos) {
     *_out << " ";
@@ -340,18 +340,18 @@ tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
 
 void
 tDelegateDerivationPrinter::real_print(const tInputItem *item) {
-  _itemprinter.print(item);
+  _itemprinter.print(*_out, item);
 }
 
-void 
+void
 tDelegateDerivationPrinter::real_print(const tLexItem *item) {
-  _itemprinter.print(item);
+  _itemprinter.print(*_out, item);
   print_daughters(item);
 }
 
-void 
+void
 tDelegateDerivationPrinter::real_print(const tPhrasalItem *item) {
-  _itemprinter.print(item);
+  _itemprinter.print(*_out, item);
   print_daughters(item);
 }
 
@@ -363,17 +363,17 @@ void tFSPrinter::print(const tItem *arg) {
   get_fs(arg).print(*_out, _dag_printer);
 }
 
-void tFegramedPrinter::print(const dag_node *dag, const char *name) { 
+void tFegramedPrinter::print(const dag_node *dag, const char *name) {
   open_stream(name);
   FegramedDagPrinter fp;
   fp.print(_out, dag);
   close_stream();
 }
 
-void tFegramedPrinter::print(const tItem *arg, const char *name) { 
+void tFegramedPrinter::print(const tItem *arg, const char *name) {
   if (name == NULL) {
     std::ostringstream out;
-    out << arg->printname() 
+    out << arg->printname()
         << "-" << arg->start() << "-" << arg->end() << "-";
     name = out.str().c_str();
   }
@@ -387,7 +387,7 @@ void tFegramedPrinter::print(const tItem *arg, const char *name) {
 /* ----------------------------- JxchgPrinter ------------------------------ */
 /* ------------------------------------------------------------------------- */
 
-void 
+void
 tJxchgPrinter::print(const tItem *arg) { arg->print_gen(this); }
 
 
@@ -408,7 +408,7 @@ void tJxchgPrinter::print_yield(const tInputItem *item) {
 /** Input items don't print themselves */
 void tJxchgPrinter::real_print(const tInputItem *item) { }
 
-void 
+void
 tJxchgPrinter::real_print(const tLexItem *item) {
   *_out << item->id() << " " << item->start() << " " << item->end() << " "
     // print the HPSG type this item stems from
@@ -417,7 +417,7 @@ tJxchgPrinter::real_print(const tLexItem *item) {
     *_out << print_name(first(l));
     if (rest(l) != 0) *_out << " ";
   }
-  *_out << "] ( "; 
+  *_out << "] ( ";
   // This prints only the yield, because all daughters are tInputItems
   for(item_citer it = item->daughters().begin(); it != item->daughters().end()
         ; it++)
@@ -427,11 +427,11 @@ tJxchgPrinter::real_print(const tLexItem *item) {
   *_out << std::endl;
 }
 
-void 
+void
 tJxchgPrinter::real_print(const tPhrasalItem *item) {
   *_out << item->id() << " " << item->start() << " " << item->end() << " "
     // print the rule type, if any
-       << print_name(item->identity()) 
+       << print_name(item->identity())
        << " (";
   for(item_citer it = item->daughters().begin(); it != item->daughters().end()
         ; it++) {
@@ -446,7 +446,7 @@ tJxchgPrinter::real_print(const tPhrasalItem *item) {
 /* ------------------------------ tLUIPrinter ------------------------------ */
 /* ------------------------------------------------------------------------- */
 
-void 
+void
 tLUIPrinter::print(const tItem *item) {
   ostringstream fn;
   fn << _path << item->id() << ".lui";
@@ -456,4 +456,31 @@ tLUIPrinter::print(const tItem *item) {
   get_fs(item).print(stream, _dagprinter);
   stream << " \"Edge # " << item->id() << "\"\f\n" ;
   stream.close();
+}
+
+/* ------------------------------------------------------------------------- */
+/* ----------------------------- tLabelPrinter ----------------------------- */
+/* ------------------------------------------------------------------------- */
+
+void
+tLabelPrinter::print(const tItem *arg) { arg->print_gen(this); }
+
+void
+tLabelPrinter::real_print(const tInputItem *item) {
+  // print input string (printname() is the same as orth())
+  *_out << item->orth() << endl;
+}
+
+void
+tLabelPrinter::real_print(const tLexItem *item) {
+  *_out << _parse_nodes.getLabel(get_fs(item).dag())
+        << " " << item->printname()
+        << endl;
+}
+
+void
+tLabelPrinter::real_print(const tPhrasalItem *item) {
+  *_out << _parse_nodes.getLabel(get_fs(item).dag())
+        << " " << item->printname()
+        << endl;
 }

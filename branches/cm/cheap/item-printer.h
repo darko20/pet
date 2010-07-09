@@ -10,9 +10,10 @@
 #include "errors.h"
 #include "dagprinter.h"
 #include "hashing.h"
+#include "parsenodes.h"
 #include <iostream>
 #include <fstream>
-#include <iomanip> 
+#include <iomanip>
 
 /** A virtual base class to have a generic print service for chart items.
  *
@@ -20,7 +21,7 @@
  * which users want chart items to be printed from their implementation.
  * That way, a new print format will not require changes in item.h, but can
  * be kept completely separate as a new subclass of tAbstractItemPrinter.
- * 
+ *
  * To implement this, we use the double dispatch technique: The user calls the
  * tAbstractItemPrinter print() method, which calls the virtual tItem method
  * print_gen(), passing itself as argument. Thus, the subtype of tItem is
@@ -95,7 +96,7 @@ public:
   tItemPrinter(bool print_derivation = false, bool print_fs = false);
 
   virtual ~tItemPrinter();
-  
+
   /** The top level function called by the user */
   virtual void print(const tItem *arg) { arg->print_gen(this); }
 
@@ -111,14 +112,14 @@ public:
   /** Base printer function for a tPhrasalItem */
   virtual void real_print(const tPhrasalItem *item) ;
   /*@}*/
-  
+
 private:
   // Print the positions of argument positions which are still to fill (active
   // items only)
   void print_tofill(std::ostream &out, const tItem *item);
 
   // Print the list of inflection rules which remain to be processed
-  void print_inflrs(std::ostream &out, const tItem *item); 
+  void print_inflrs(std::ostream &out, const tItem *item);
 
   // Print the lattice paths this item may belong to
   void print_paths(std::ostream &out, const tItem *item);
@@ -150,21 +151,21 @@ public:
    */
   tTclChartPrinter(std::ostream &out, int chart_id = 0)
     : tAbstractItemPrinter(out), _chart_id(chart_id) {}
-  
+
   virtual ~tTclChartPrinter() {}
 
   virtual void print(const tItem *arg) { arg->print_gen(this); }
 
   virtual void
   real_print(const tInputItem *item) { print_it(item, true, false); }
-  virtual void 
+  virtual void
   real_print(const tLexItem *item) { print_it(item, true, false); }
   virtual void
   real_print(const tPhrasalItem *item) {
     print_it(item, item->passive()
              , (! item->passive()) && item->left_extending());
   }
-  
+
 private:
   typedef HASH_SPACE::hash_map<long int, unsigned int> item_map;
 
@@ -180,10 +181,10 @@ private:
  */
 class tAbstractDerivationPrinter : public tAbstractItemPrinter {
 public:
-  tAbstractDerivationPrinter(std::ostream &out) 
+  tAbstractDerivationPrinter(std::ostream &out)
     : tAbstractItemPrinter(out), _level(-1) {}
 
-  tAbstractDerivationPrinter() 
+  tAbstractDerivationPrinter()
     : tAbstractItemPrinter(), _level(-1) {}
 
   virtual ~tAbstractDerivationPrinter() {}
@@ -198,7 +199,7 @@ public:
   virtual void real_print(const tInputItem *item) = 0;
   virtual void real_print(const tLexItem *item) = 0;
   virtual void real_print(const tPhrasalItem *item) = 0;
-  
+
 protected:
   /** Print a separator between the items of a derivation. */
   virtual void print_separator() = 0;
@@ -220,11 +221,11 @@ protected:
  */
 class tCompactDerivationPrinter : public tAbstractDerivationPrinter {
 public:
-  tCompactDerivationPrinter(bool quoted = false, int indent = 2) 
+  tCompactDerivationPrinter(bool quoted = false, int indent = 2)
     : tAbstractDerivationPrinter(), _quoted(quoted), _indent_delta(indent)
   {}
 
-  tCompactDerivationPrinter(std::ostream &out, bool quoted = false, int indent = 2) 
+  tCompactDerivationPrinter(std::ostream &out, bool quoted = false, int indent = 2)
     : tAbstractDerivationPrinter(out), _quoted(quoted), _indent_delta(indent) {}
 
   virtual ~tCompactDerivationPrinter() {}
@@ -232,13 +233,13 @@ public:
   virtual void real_print(const tInputItem *item);
   virtual void real_print(const tLexItem *item);
   virtual void real_print(const tPhrasalItem *item);
-  
+
 private:
   /** Print a newline, followed by an appropriate indentation */
-  virtual void print_separator() { 
+  virtual void print_separator() {
     *_out << std::endl ; *_out << std::setw(_indent_delta * _level) << "";
   };
-  
+
   void print_inflrs(const tItem *);
 
   bool _quoted;
@@ -262,7 +263,7 @@ public:
 
 private:
   virtual void print_separator() { };
-  
+
   bool _protocolversion;
 };
 
@@ -275,7 +276,7 @@ class tDelegateDerivationPrinter : public tAbstractDerivationPrinter {
 public:
   tDelegateDerivationPrinter(std::ostream &out,
                              tAbstractItemPrinter &itemprinter,
-                             int indent = 0) 
+                             int indent = 0)
     : tAbstractDerivationPrinter(out), _itemprinter(itemprinter),
       _indent_delta(indent) {}
 
@@ -287,19 +288,19 @@ public:
 
 private:
   virtual void print_separator() {
-    if (_indent_delta > 0) *_out << std::setw(_level * _indent_delta) << "-";
+    if (_indent_delta > 0) *_out << std::setw(_level * _indent_delta) << "";
   }
 
   tAbstractItemPrinter &_itemprinter;
   int _indent_delta;
 };
 
-/** Just print the feature structure of an item readably to a stream or file. 
+/** Just print the feature structure of an item readably to a stream or file.
  *  For function descriptions, \see tAbstractItemPrinter.
  */
 class tFSPrinter : public tAbstractItemPrinter {
 public:
-  tFSPrinter(std::ostream &out, AbstractDagPrinter &printer): 
+  tFSPrinter(std::ostream &out, AbstractDagPrinter &printer):
     tAbstractItemPrinter(out), _dag_printer(printer) {}
 
   virtual ~tFSPrinter() {}
@@ -329,9 +330,9 @@ public:
     _out = NULL;
     _filename_prefix = strdup(prefix);
   }
-  
+
   virtual ~tFegramedPrinter() {
-    if (_out != NULL) { 
+    if (_out != NULL) {
       fclose(_out);
       _out = NULL;
     }
@@ -363,7 +364,7 @@ private:
    */
   void open_stream(const char *name = "") {
     if (_filename_prefix != NULL) {
-      if (_out != NULL) { 
+      if (_out != NULL) {
         fclose(_out);
         _out = NULL;
       }
@@ -384,7 +385,7 @@ private:
    *  make_unique == \c true.
    */
   void close_stream() {
-    if ((_filename_prefix != NULL) && (_out != NULL)) { 
+    if ((_filename_prefix != NULL) && (_out != NULL)) {
       fclose(_out);
       _out = NULL;
     }
@@ -406,9 +407,9 @@ public:
   /** Specify a \a prefix that is prepended to all filenames, e.g., a directory
    *  prefix.
    */
-  tFegramedPrinter(const char *prefix) 
+  tFegramedPrinter(const char *prefix)
     : _out(), _filename_prefix(strdup(prefix)) { }
-  
+
   virtual ~tFegramedPrinter() {
     close_stream();
     if (_filename_prefix != NULL) {
@@ -475,7 +476,7 @@ public:
   /** Print items onto stream \a out. */
   tJxchgPrinter(std::ostream &out)
   : tAbstractItemPrinter(out), jxchgprinter() {}
-  
+
   virtual ~tJxchgPrinter() {}
 
   virtual void print(const tItem *arg) ;
@@ -483,7 +484,7 @@ public:
   virtual void real_print(const tInputItem *item) ;
   virtual void real_print(const tLexItem *item) ;
   virtual void real_print(const tPhrasalItem *item) ;
-  
+
 private:
   void print_yield(const tInputItem *item);
 
@@ -491,15 +492,14 @@ private:
 };
 
 
-/** Print chart items for the exchange with Ulrich Krieger's jfs, mainly for
- *  use with his corpus directed approximation.
+/** Print chart items for the exchange with LUI.
  *  For function descriptions, \see tAbstractItemPrinter.
  */
 class tLUIPrinter : public tAbstractItemPrinter {
 public:
   /** Print items into files that are under \a path. */
   tLUIPrinter(const char *path) : _dagprinter(), _path(path) {}
-  
+
   virtual ~tLUIPrinter() {}
 
   virtual void print(const tItem *arg) ;
@@ -508,6 +508,25 @@ private:
   LUIDagPrinter _dagprinter;
   std::string _path;
 };
+
+/** Print an item's label only, as specified by the parse nodes. */
+class tLabelPrinter : public tAbstractItemPrinter {
+public:
+  /** Print items into files that are under \a path. */
+  tLabelPrinter(ParseNodes &pn) : _parse_nodes(pn) {}
+
+  virtual ~tLabelPrinter() {}
+
+  virtual void print(const tItem *arg);
+
+  virtual void real_print(const tInputItem *item) ;
+  virtual void real_print(const tLexItem *item) ;
+  virtual void real_print(const tPhrasalItem *item) ;
+
+private:
+  ParseNodes &_parse_nodes;
+};
+
 
 /** use an item_printer like a modifier */
 inline std::ostream &
@@ -521,5 +540,6 @@ operator<<(std::ostream &out,
 inline std::ostream &operator<<(std::ostream &out, const tItem &item) {
   return out << tItemPrinter().set(item);
 }
+
 
 #endif
