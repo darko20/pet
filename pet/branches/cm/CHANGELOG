@@ -19,6 +19,11 @@ specific to chart-mapping branch:
   - added unit tests for types
 
 v0.99.??
+  - added the ParseNodes class to be able to produce nice small parse trees as
+    in the online demo, and an item printer to test it
+  - added dag_get_path_value_check_dlist for cases where an empty diff list is
+    required to end the path search
+  - removed old path_to_lpath0 which produced memory leaks
   - escape XML delimiters in native MRS output
   - added make target "bindist" which builds a tarball with the binaries and all
     dependent shared libraries
@@ -42,14 +47,14 @@ v0.99.??
     * implemented fs::fs(char *path, type_t type)
     * added fs::fs(const list_int *path, type_t type)
     * added fs::get_path_value(const list_int *path) const
-    * added fs::get_list() const 
-    * renamed dag_get_path_value_l to dag_get_path_value 
+    * added fs::get_list() const
+    * renamed dag_get_path_value_l to dag_get_path_value
   - made cheap/options.* less messy:
     * added doxygen comments for options
     * one option variable per line
     * grouped options by function
     * removed opt_fullform_morph
-    * renamed memlimit to opt_memlimit 
+    * renamed memlimit to opt_memlimit
   - turn cheap.cpp/print-grammar and -pg into a useful function
   - fix type addenda problem when using same coreference names (closes
     ticket #16)
@@ -59,11 +64,11 @@ v0.99.??
   - remove as many #include from flop.h as possible
   - found error concerning two or more corefs in one conjunction at type
     definition (opened ticket #17)
-  - removed zillions of deprecation warnings concerning the use of 
+  - removed zillions of deprecation warnings concerning the use of
     char * literals as non-const char *, although not all
-  - implemented new printing functions for items and dags that use visitor 
+  - implemented new printing functions for items and dags that use visitor
     objects (ItemPrinter and DagPrinter) and C++ streams instead of FILE *.
-    Old functions are still in-place and have to be removed. This is a 
+    Old functions are still in-place and have to be removed. This is a
     preliminary check-in.
   - made get_surface_string() in cheap.cpp a method of class chart
   - better integration of static and dynamic types:
@@ -107,12 +112,12 @@ v0.99.??
     is now required for cheap, too. (closes ticket #10)
   - added native MRS implementation in C++ (preliminary)
   - finish extended restrictor functionality
-  - bind reading of new input to the registered tokenizer to get a clean 
+  - bind reading of new input to the registered tokenizer to get a clean
     interface that works for PIC and tsdb, too
   - allow dumping of cyclic dags in flop
   - fix problem of fspp/Makefile.am
   - rmrs-list output is activated correctly again when -mrs=rmrx is used
-  - changed order in SUBDIRS so that libpreprocessor is build before cheap, if 
+  - changed order in SUBDIRS so that libpreprocessor is build before cheap, if
     enabled
   - Remove the need for the QCCOMP #ifdefs and the corresponding switch in the
     configuration using code unfolding a la C++
@@ -126,32 +131,32 @@ v0.99.??
   - Moved functionality of fresh_constraint_p into cached_constraint_of
   - Default for memory allocation is now NO mmap, because of the notorious
     problems with the ecl-based modules. Works fine for cheap and flop.
-  - re-ordered library configuration checks because of problems with current 
-    version of ICU; fixed bug that caused wrong type fs inconsistencies in 
+  - re-ordered library configuration checks because of problems with current
+    version of ICU; fixed bug that caused wrong type fs inconsistencies in
     flop when used without mmap (part of ticket #4)
   - further SMAF XML support (Ersatz, OSCAR named entities)
   - fixed creation of additional (wrong) coreferences with characterization
     (ticket #6)
-  - change message "no lexicon entries for ..." to include POS tag info when 
+  - change message "no lexicon entries for ..." to include POS tag info when
     using '-default-les'
   (minor `new' feature by oe)
   - re-enable `-interactive-morphology' mode (requested by tim);
-  - add new feature: lexical type prediction for lexical gaps  
+  - add new feature: lexical type prediction for lexical gaps
   - fix incompatible blocking application of non-inflectional lexical rules on
     phrasal items (resolves issue of ticket #2 by Francis)
   - fix broken handling of file input when using PIC XML input format
   - remove all (currently) unused options from configure.ac
-    add morphology computation for generic entries, too (requested by 
-    Berthold): this requires proper blocking of these rules in the grammar, 
+    add morphology computation for generic entries, too (requested by
+    Berthold): this requires proper blocking of these rules in the grammar,
     in case it is not wanted.
     updated README file to reflect current version (almost)
   - Adapted tsdb dump code to match new version; surface string printed on
     error, too, as well as relations file. (changeset 291)
-  - efficiency improvement for selective unpacking by i) avoid propagating 
+  - efficiency improvement for selective unpacking by i) avoid propagating
     hypotheses that failed to instantiate ii) better recording of
     seen indices for decompositions (changeset 290)
   - fixed error which caused cheap crash with SIGFPE under certain conditions
-    in XML reader code. Copying of uninitialized double values have lead to 
+    in XML reader code. Copying of uninitialized double values have lead to
     underflow exception in FPU (changeset 287)
   - problem with map not being included in grammar.h (ticket 3)
     wrong test in configure.ac concering xerces fixed (changeset 284)
@@ -204,7 +209,7 @@ v0.99.12
   - integration of x-preprocessor code: code split for ecl/mrs/preprocessor
     and change of library build, command line option -tok=fsr now activates
     preprocessor code (if compiled in)
-  - changed mrs.system such that it puts the libmrs.a and mrs.h into the 
+  - changed mrs.system such that it puts the libmrs.a and mrs.h into the
     cheap subdirectory
   - make item trait filtering work correctly (with oe in Jerez), which means
     that main is now doing as well as the oe branch
@@ -212,7 +217,7 @@ v0.99.12
   - chart item copy and assignment constructor inhibition went into a macro
   - fixed ecl_decode_string, which in some conditions returned improperly
     terminated C strings
-  - generalized the find_file ugliness in cppbridge.cpp, sm.cpp and 
+  - generalized the find_file ugliness in cppbridge.cpp, sm.cpp and
     settings.cpp and added some nice pathname functionality in utility.cpp
 
 v0.99.11
@@ -228,8 +233,8 @@ v0.99.9
   - work on lexical psql database continued (unfinished)
   - changed characterization to make it work with unfilling
   - fixed performance problem in boost version of flop
-  - moved propagate_status from flop.cpp to hierarchy.cpp where it logically 
-    belongs 
+  - moved propagate_status from flop.cpp to hierarchy.cpp where it logically
+    belongs
   - fixed wrong dumping of inflection rules in some situations with many
     leaf types
   - added morph.cpp patches provided by oe (oe@csli.stanford.edu) for escaping
@@ -238,7 +243,7 @@ v0.99.9
   - added some more comments
   - added some virtural destructors gcc4.0 complains about
   - added fs modifications for stem and form for Berthold
-  - fixed wrong chart position mapping. Now put into its own class and file 
+  - fixed wrong chart position mapping. Now put into its own class and file
     position-mapper.h again
   - corrected behaviour of dependency filter in case lex_exhaustive is used
   - added printing of feature structures for fegramed
@@ -250,7 +255,7 @@ v0.99.8
     * correct creation of mrs.h file in the autoconf/make scripts (no longer
       distributed by LKB)
     * fix problems with kernel/architecture specific subdirectories in LKB
-  - patch provided by Francis Bond (thanks) concerning tsdb MWE's output 
+  - patch provided by Francis Bond (thanks) concerning tsdb MWE's output
     included
   - in all chart items that replay infl rules, it is attempted to unify either
     the base or the surface form into "orth-path"."path-to-inflpos". The base
@@ -274,12 +279,12 @@ v0.99.6
   - optional application of the rule filter during morphological analysis
     and fixed code to restrict the number of spelling rule applications
   - bug fix: blanks were not stripped correctly on the right side of
-    orthographemic rules 
+    orthographemic rules
   - bug fix in code assigning input items chart positions derived from external
     positions
 
 v0.99.5
-  - dump chart in jxchg format even if an error occured, e.g., exhaustion of 
+  - dump chart in jxchg format even if an error occured, e.g., exhaustion of
     passive edges (only if enabled)
   - deleted inactive code in grammar.cpp (punctuationp, translate_iso_chars)
   - fixed wrong is_stem_token predicate in item.h
@@ -290,7 +295,7 @@ v0.99.5
 v0.99.4
   - bugfixes and additions for XML input mode: missing infl tag, translate_iso,
     state names are static members of the state classes, state factory now
-    creates new states, exception are correctly thrown and catched and are 
+    creates new states, exception are correctly thrown and catched and are
     decorated with the error location ; read XML from stdin directly rather
     than from file.
   - the isomorphix translation has been put completely into the tokenizers
@@ -308,8 +313,8 @@ v0.99.2
   - build process with automake && autoconfig && configure for flop and cheap,
     boost and dumpgram binaries may be revived if used by anybody
   - adaptation of source files to use automatically build config.h
-  - make the use of ICU really optional, i.e. make cheap work without ICU 
-    altogether. 
+  - make the use of ICU really optional, i.e. make cheap work without ICU
+    altogether.
   - corpus approximation (jxchg) output format provided anew
   - separate switches for unification and subsumption quickcheck computation
   - changed version mechanism to be supported by the auto... tools
@@ -327,7 +332,7 @@ v0.99.0
     flexible exchange of tokenization, morphology, etc.
   - "japanese multiword bug" fixed
   - Application of inflection and lexical rules can now be completed before any
-    syntactical processing takes place (which might be beneficial for 
+    syntactical processing takes place (which might be beneficial for
     chart dependencies in german)
   - fixed bug in acyclic transitive reduction in the boost version of flop
   - expansion failures (flop) now report the failure path
@@ -350,7 +355,7 @@ v0.99.0
   - more flexible restrictor functionality
 
   - lots of minor cleanup issues
-  - first attempt to CHANGELOG, TODO, BUGS, version.h 
+  - first attempt to CHANGELOG, TODO, BUGS, version.h
 
 Done previously (from old ToDo file, partially redundant)
 
