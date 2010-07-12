@@ -28,6 +28,9 @@
 #include "version.h"
 #include "item-printer.h"
 #include "sm.h"
+#include "mrs.h"
+#include "vpm.h"
+#include "mrs-printer.h"
 #include "settings.h"
 #include "configs.h"
 #include "logging.h"
@@ -41,6 +44,8 @@
 #include<fstream>
 
 using namespace std;
+
+extern tVPM* vpm;
 
 static bool init();
 static bool tsdb_init = init();
@@ -628,13 +633,34 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_parse_collect_edges(T, *iter);
                 }
                 
+                if(! get_opt_string("opt_mrs").empty()) {
+                  if ((strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) ||
+                      (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0)) {
+                    fs f = (*iter)->get_fs();
+                    mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+                    if (mrs->valid()) {
+                      mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+                      ostringstream out;
+                      if (mapped_mrs->valid()) {
+                        if (strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) {
+                          MrxMRSPrinter ptr(out);
+                          ptr.print(mapped_mrs);
+                        } else if (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0) {
+                          SimpleMRSPrinter ptr(out);
+                          ptr.print(mapped_mrs);
+                        }
+                      }
+                      delete mapped_mrs;
+                    }
+                    delete mrs;
+                  }
 #ifdef HAVE_MRS
-                if(! get_opt_string("opt_mrs").empty())
-                {
-                  R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-					      get_opt_string("opt_mrs").c_str());
-                }
+                  else {
+                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
+                                                get_opt_string("opt_mrs").c_str());
+                  }
 #endif
+                }
                 T.push_result(R);
                 nres++;
             }

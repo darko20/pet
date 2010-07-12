@@ -37,4 +37,6 @@ extern FILE *flog;
  */
 extern class tGrammar *Grammar;
 
+/** The golbal VPM for this process */
+extern class tVPM *vpm;
 #endif
