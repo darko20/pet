@@ -194,9 +194,9 @@ std::string current_time()
   if(foo > 0 && now != 0)
     strftime(result, 80, "%d-%m-%Y (%H:%M:%S)", now);
   else
-    sprintf(result, "now");
+    return "now";
 
-  return(result);
+  return result;
 }
 
 
