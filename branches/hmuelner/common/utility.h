@@ -118,8 +118,7 @@ find_file(const std::string &name, const std::string &extension,
  *  
  *  \return the name of the file, if it exists, an empty string otherwise.
  */
-std::string
-find_set_file(const std::string &name, const std::string &ext,
+std::string find_set_file(const std::string &name, const std::string &ext,
               const std::string &base_dir);
 
 /** Produce an output file name from an input file name \a in by replacing the 
@@ -127,8 +126,7 @@ find_set_file(const std::string &name, const std::string &ext,
  *  \a newextension otherwise.
  *  \return the new string
  */
-std::string
-output_name(const std::string& in, const std::string& oldext, const std::string& newext);
+std::string output_name(const std::string& in, const std::string& oldext, const std::string& newext);
 
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.
@@ -136,54 +134,10 @@ output_name(const std::string& in, const std::string& oldext, const std::string&
 std::string read_line(FILE *f, int commentp = 0);
 
 /** Replace all occurences of \a oldText in \a s by \a newText. */
-void
-findAndReplace(std::string &s, const std::string &oldText, const std::string &newText);
+void findAndReplace(std::string &s, const std::string &oldText, const std::string &newText);
 
 /** Split each string in a list of strings into tokens seperated by blanks. */
-void
-splitStrings(std::list<std::string> &strs);
-
-/** Predicate comparing two plain C strings for equality */
-struct cstr_eq {
-  bool operator()(const char* s, const char* t) const {
-    return strcmp(s, t) == 0;
-  }
-};
-
-/** Less than predicate for two plain C strings */
-struct cstr_lt {
-  bool operator()(const char *s, const char *t) const {
-    return strcmp(s, t) < 0;
-  }
-};
-
-/** Case insensitive less than predicate for plain C strings */
-struct cstr_lt_case {
-  bool operator()(const char *s, const char *t) const {
-    return strcasecmp(s, t) < 0;
-  }
-};
-
-/** A function object comparing two strings for equality */
-struct string_eq : public std::binary_function<std::string, std::string, bool> {
-  inline bool operator()(const std::string &s1, const std::string &s2) {
-    return s1 == s2;
-  }
-};
-
-/** A function object comparing two strings lexicographically */
-struct string_lt {
-  bool operator()(const std::string &s, const std::string &t) const {
-    return strcmp(s.c_str(), t.c_str()) < 0;
-  }
-};
-
-/** A function object comparing two strings lexicographically disregarding
- * case.
- */
-struct string_lt_case {
-  bool operator()(const std::string &s, const std::string &t) const;
-};
+void splitStrings(std::list<std::string> &strs);
 
 #ifdef __BORLANDC__
 void print_borland_heap(FILE *f);

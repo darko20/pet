@@ -1,30 +1,32 @@
 /* PET
- * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
- *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   Lesser General Public License for more details.
- *
- *   You should have received a copy of the GNU Lesser General Public
- *   License along with this library; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* Platform for Experimentation with efficient HPSG processing Techniques
+* (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 2.1 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public
+*   License along with this library; if not, write to the Free Software
+*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 /* object representing a binary dump 
- * abstracts away from low level representation (byteorder etc)
- */
+* abstracts away from low level representation (byteorder etc)
+*/
 
 #include "byteorder.h"
 #include "dumper.h"
 
-#include <cstring>
+#include <string>
+
+using std::string;
 
 #define DUMP_LITTLE_ENDIAN true
 
@@ -57,10 +59,10 @@ dumper::dumper(const char *fname, bool write)
 dumper::~dumper()
 {
   if(_coe)
-    {
-      fclose(_f);
-      delete[] _buff;
-    }
+  {
+    fclose(_f);
+    delete[] _buff;
+  }
 }
 
 void dumper::dump_char(char i)
@@ -113,44 +115,42 @@ int dumper::undump_int()
     return i;
 }
 
-void dumper::dump_string(const char *s)
+void dumper::dump_string(const string& s)
 {
-  if(!_write)
+  // WARNING: this may be incompatible with older versions of flop,
+  // because no terminating zero byte is written
+  if(!_write) {
     throw tError("not in write mode");
-
-  if(s == 0)
-    {
-      dump_short(0);
-      return;
-    }
-
-  int len;
-  len = strlen(s) + 1;
-
+  }
+  int len = s.size();
   dump_short(len);
 
-  if(fwrite(s, sizeof(char), len, _f) != (unsigned int) len)
-    throw tError("error writing string to file");
+  if (!s.empty()) {
+    if(fwrite(s.c_str(), sizeof(char), len, _f) != (unsigned int) len) {
+      throw tError("error writing string to file");
+    }
+  }
 }
 
-char *dumper::undump_string()
+string dumper::undump_string()
 {
-  int len;
-  char *s;
-
-  if(_write)
+  if(_write) {
     throw tError("not in read mode");
+  }
+  int len = undump_short();
 
-  len = undump_short();
+  if(len == 0) {
+    return string();
+  }
+  string s(len, 0);
 
-  if(len == 0)
-    return 0;
-
-  s = new char[len];
-  
-  if(s == 0 || fread(s, sizeof(char), len, _f) != (unsigned int) len)
+  if (fread(&s[0], sizeof(char), len, _f) != (unsigned int) len) {
     throw tError("error reading string from file");
-
+  }
+  if (s[len-1] == 0) {
+    // get rid of trailing zero byte when reading from older grm files
+    s.resize(len-1);
+  }
   return s;
 }
 

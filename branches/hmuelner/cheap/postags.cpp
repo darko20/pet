@@ -85,16 +85,8 @@ bool postags::operator==(const postags &b) const {
 /** \todo Test the new implementation of this method for case insensitive
  *  search.
  */
-bool postags::contains(const string &s) const {
-  /*
-   for(set<string>::const_iterator iter = _tags.begin();
-        iter != _tags.end(); ++iter)
-    {
-        if(strcasecmp(iter->c_str(), s.c_str()) == 0)
-            return true;
-    }
-    return false;
-  */
+bool postags::contains(const string &s) const
+{
   return (_tags.find(s) != _tags.end());
 }
 

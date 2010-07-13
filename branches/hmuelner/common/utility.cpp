@@ -386,11 +386,6 @@ splitStrings(list<string> &strs)
   strs.swap(result);
 }
 
-bool string_lt_case::operator()(const std::string &s, const std::string &t) const
-{
-  return boost::algorithm::ilexicographical_compare(s, t);
-}
-
 #ifdef __BORLANDC__
 
 #include <alloc.h>

@@ -49,6 +49,7 @@
  * - 15 -> 16: add new section containing grammar properties
  * - 16 -> 17: stable type order: proper types and leaf types are ordered
  *             as defined in TDL
+ * - 17 -> 18: don't store trailing 0-byte for strings
  */
 
 #ifndef _GRAMMAR_DUMP_H_
@@ -63,7 +64,7 @@
 /** Magic Number of binary grammar files */
 #define DUMP_MAGIC 0x03422711
 /** Current binary grammar file version */
-#define DUMP_VERSION 17
+#define DUMP_VERSION 18
 
 /** @name Header Dump
  * Dump/Undump the header of the grammar file.
@@ -72,7 +73,7 @@
  */
 /*@{*/
 void dump_header(dumper *f, const char *description);
-char *undump_header(dumper *f, int &version);
+std::string undump_header(dumper *f, int &version);
 /*@}*/
 
 /** section type identifiers */
