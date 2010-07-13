@@ -1,0 +1,245 @@
++- make << operator for tItemPrinters to allow modifier stream like usage
+   - check if making the stream an argument of the print function decreases
+     performance, if not, remove the global pointer to the stream used and
+     replace it with a method argument 
+
+- options to set/configure printers for items/dags/chart
+
+- implement timelimit with signal-based alarm and check the intended
+  functionality (real time?, cpu time?)
+
+- do a uniform treatment of all the resource limits
+
+- More generally: which parts of the processing should be affected by the given
+  limits, especially since we ge a new preprocessing component which may be
+  computationally expensive
+
+- make all _fix_me_'s \todos (so that they are handled by doxygen) and try to
+  settle as many of them as possible
+
+- code/modules that might go away:
+  - unconditional (exhaustive) unpacking
+  - CHIC printing (flop)
+  - extdict??
+
++- finish proper distribution/handling of options, still missing:
+   - `sections' to group the options, e.g., for GUI
+   - default values for when they are set with command line options, but
+     without value, like, e.g., opt_packing
+   - recode options.cpp such that it makes better use of the nice new 
+     functionality, requires renaming of the options
+   - integrate management of settings files into the config system and get rid
+     of the old settings, this needs more elaborate values (maps and such)
+   - is there a way of turning the run-time type errors, at least for the 
+     static code, into compile-time or link-time errors?
+     1. transform the string keys into #define symbols. That at least prevents
+        the use of unknown keys (requires proper include file use, which isn't
+        such a bad idea anyway). That does not resolve the problem of 
+        key<->type correlation errors.
+
+-! fix the problem with multiple coreferences in one TDL conjunction in flop
+
+- check if the dumping of cyclic structures works correctly in flop
+
+- proper handling of upcase/lowercase handling in a) tokenizers and b) lexicon
+  access (have to use ICU?). Is it enough to have two modes: strict (no
+  conversion) and robust (all to lower)? At least the lexicon that comes from
+  the binary grammar file must get an additional access table for "normalized"
+  strings to be able to switch the mode at runtime --> uppercase umlauts are
+  now converted correctly to lowercase in lingo-tokenizer, but not in
+  yy-tokenizer. This should be done in a common way and an option should be
+  introduced that controls if conversion to lower case is done at all.
+  (ticket #5) (The Ueber- bzw. Aegypten bug)  
+
+- unpacking of edges does not terminate in some cases with unary rules
+  fix: separate the local unary edges and do a fix point computation. This must
+  terminate for correct grammars
+
+- "unpack edge limit exhausted" error: wrong result number to tsdb
+
+- "automatic" tests (preferably with tsdb) for unfilling/packing modes
+  - freeze an english and german grammar version for performance comparisons
+  - main type/unification/parsing engine
+  - check characterization and carg too
+  - input processing
+  - foreign character encoding input and output
+  - automated tests for single modules ??
+
+- finish lexdb: lexical database (sqlite instead of postgres?) integration
+
+- unreleased memory? (see valgrind-errors-15-apr-04)
+  Memory leak seems to be not ignoreable (berthold et al. Jan 2006)
+
+- finish modlist class, rather, make it obsolete by moving to modification fs
+  and moving the relevant code "into" the creation of tLexItem, but there is 
+  the problem of <failing constructor>.
+
+- mmap problems seem to come up again and again!
+  Idea: Make sure that permanent dags avoid using one of the slots that are 
+        used for unification and mark it with a special value. After some 
+        thinking, i would say that this might not be feasible.
+
+- remove all uses of negative values as `marker'-values, especially where casts
+  from integers to pointers and back are involved. 
+
+- multiple irregs files as in LKB (gimmick)
+
+- Preprocessor input format (SMAF) 
+   Lattice structure with FS, RMRS, META
+   pointers back to the original input in (maybe more than one) format to 
+        retrieve the original text for standoff annotations
+   An option to include the original string (e.g. in the case that the
+        processor does not work on documents)
+   ID references from annotations to the tokens
+   There has to be a (at least) name mapping table/specification
+   Multiple tokens have to transform into multiple other tokens
+        one does not want to have to specify exactly how many tokens to match
+        see example.
+
+- divergence in the case of chart dependencies:
+  this problem stems from the fact that in PET chart dependencies are applied
+  either after or before lexical AND inflectional rules have been tried on
+  the input items. It is wrong to do only inflectional rules and then lexical
+  rules because lexical rules could be interleaved with inflectional rules.
+  The only other meaningful solution to that would be to postpone applying
+  lexical rules to items with zero length infl rules as long as possible.
+  The first applicance of the filter would then be after all items with
+  non-empty infl rules list had been expanded to the point where all possible 
+  infl rules had been applied, but not the remaining lexical rules.
+
+- flop returns zero even in the presence of errors like non-unique feature
+  introduction
+- flop: Better error handling for use with external applications
+- flop: emacs compatible error messages ?
+- flop does not dump (multiply) cyclic structures
+  - test dag restrictor once this is fixed
+
+- API!!! and maybe cheap dynamic library
+  - restarting a parse stopped because the first result arrived
+  - determining the subset of results to retrieve
+  - determine the desired output format(s) (multiple formats may be desired, 
+    without reparse!)
+  - which kind of output should be produced, and on which demand
+  - CFG/labeled phrase structure tree as output 
+  - set/change options/settings through API (a part of "clean up:options")
+  - XML-RPC layer
+
+- scoring:
+  - offline scoring ???
+  - simplified model for compatibility ??  What does that mean ?
+  - flexible layer for feature extraction (20-24Feb2006)
+
+- What does "duplicate failure path" mean? How is it that it occurs with the 
+  new restrictors under unification
+
+- Documentation
+  - flop & cheap user doc
+  - missing header file documentation (oe, please help here, if possible)
+    itsdb.h, tsdb++.h
+
+- more flexible way to do selection of generic entries, e.g., based only on a 
+  (highly scored) subset of POS, or combined clues from morphology
+
+- more flexible heuristics / better selection of partial results
+
+- cleaning up:
+  - option handling, ESSENTIAL FOR API IMPLEMENTATION!
+  - logging / debugging info: get rid of global verbosity,
+    implement some central logging facility (take Apache log4cxx)
+  - YY references; split yy.cpp module into separate modules
+    - server mode still unused, yy.cpp/h should become socket.cpp/h
+    - should go away with native mrs support (already gone) after migration to
+      subversion
+
+- integrate silo ??
+
+- lsl completion - minimal ?? What does that mean ?
+
+- packing:
+  - fix & integrate subsumption quickcheck
+    currently, it gives incorrect results for non-existing paths
+  - simplify/optimise subsume
+  - subtype caching
+  - re-enable unfilling as far as possible 
+
+- defaults
+
+- generator
+
+- whenever dag_get_path_value is called, structure should be filled, at least
+  under that path.
+
+- extend chart dependencies to allow a dependency to be conditioned on
+  a specified path-value pair. chart dependencies could take a variety of
+  forms: (OP could be unifies, subsumes, is_subsumed_by, equals)
+  - val(path1) OP val(path2)
+  - val(path1) OP const1 && val(path2) OP const2
+  - val(path1) OP const1 && val(path1) OP val(path2)
+  - val(path1) OP val(path2) && val(path2) OP const2  (??)
+
+refactoring:
+- make the unification/type engine(s) more modular
+- better decoupling of the dag allocation mechanism
+- replace item print routines by item printers where possible:
+  - check that the existing printers can be safely replaced!!!
+
+- diagnostic messages for errors in the MRS construction
+- performance loss compared zu ~kiefer/duo/public/pet-730.tgz is 30% ? --
+  because of the data structures in the chart that are necessary for packing,
+  like _Cp_span? this has to be checked.
+
+- recode preprocessor in C/C++
+- implement LUI bridge with threads
+
++ make tAgenda a template
++ apply chart dependencies after lexical processing
+  + chart dependencies after lex lookup (1) AND lex processing (2)
+  + still to be tested, Berthold will try it: Seems to work
++ flop performance improvement
+  performance loss flop Leda vs. flop boost: stems from a huge amount 
+  of minor page faults and cache faults. The huge edge list produced lots of
+  non-local accesses, which was fixed by looping over the vertices in the right
+  order and thereby localizing the access to the out-edges of each vertex
++ irregs as last rule in the affixation analysis: solved in the last oe patches
++ bei characterization immer reinknallen, egal ob das Feature da ist oder 
+  nicht: d.h. man geht den Pfad runter bis auf das letzte Element und
+  unifiziert so lange first.lastfeat|type, rest.first.lastfeat|type,
+  bis das klappt
++ resolve problematic pointer <-> int conversions with typedef
++ restructure petecl.c cppbridge.cpp etc. for integration of preprocessor
++ 5% performance loss from oe branch to current main branch. Check that!
+  performance loss is between 2,5 and 4 per cent
++ check that all relevant files appear in the perforce directory
+  dag-print-fed , TODO, doxyconfig.(flop|cheap)
+  borland/Makefile.am
+  remove items.txt, chartpositions.h
++ set up and migrate to svn as soon as a reasonable version has stabilized.
+  Ask Malte Kiesel (Dengel Workgroup at KL), who administrates the OpenDFKI
+  for svn with https in trec system
++ selective unpacking (by Yi)
++ write a HOWTO (in pet.opendfki.de) that describes how to build the system
+  using a new SVN snapshot: aclocal && automake -a && autconf && ./configure
+  and describe configuration options
++ make morphology computation available to generic entries
++ inconsistencies between LKB and PET (ticket #2 by Francis Bond) fixed
++ characterization bug during exhaustive unpacking because of restricted fs
+  in tLexItem
++ new correct rule filter for inflectional analysis makes 
+  orthographemics-cohesive-chains obsolete
++ some unclean allocations resolved, still some to fix.
++ mmap disabling makes segfaults (Francis tries to pin this down), fixed,
+  mmap now OFF by default
++- implement a less efficient form of unfilling that might allow simple but
+  correct subsumption tests for packing: Either a structure is completely
+  represented by its type and no features, or all appropriate features are
+  present. THOUGHT ABOUT THIS AND I DON'T THINK IT WILL WORK. Would require 
+  quite complicated refilling using appropriate type fs's
++ reasonable splitting of logging and output, ESSENTIAL FOR API IMPLEMENTATION!
++- 64bit version does not work properly (current tests suggest that this seems
+  to be fixed)
++ all functionality for quick checks (opt_nqc...) into one place (fs.cpp/.h)
++ parsing of properties file for simple (built-in) logging
++ checked: config cheap does the same thing as main cheap. There seems to be a
+  reordering of tasks, which is why packed parses report different number of
+  passive items and parses that hit the limits report different numbers of 
+  tasks and items
