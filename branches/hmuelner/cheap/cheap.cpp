@@ -474,7 +474,7 @@ void process(const char *s) {
     case TOKENIZER_YY:
     case TOKENIZER_YY_COUNTS:
       {
-        char *classchar = cheap_settings->value("class-name-char");
+        const char *classchar = cheap_settings->value("class-name-char");
         if (classchar != NULL)
           tok = new tYYTokenizer(
             (get_opt<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
@@ -556,7 +556,7 @@ void process(const char *s) {
 #endif
 
   vpm = new tVPM();
-  char *name2 = cheap_settings->value("vpm");
+  const char *name2 = cheap_settings->value("vpm");
   if (name2) {
     string file = find_file(name2, ".vpm", s);
     vpm->read_vpm(file);

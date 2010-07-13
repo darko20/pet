@@ -141,8 +141,6 @@ struct avm
 {
   /** The number of elements active in the \c attr_val list */
   int n;
-  /** _fix_me_ This slot seems to be out of use. */
-  int is_special;
   /** \brief The number of elements allocated in the \c attr_val list.
    *  This is always bigger than avm::n.
    */

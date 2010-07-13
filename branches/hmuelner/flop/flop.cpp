@@ -360,7 +360,7 @@ print_morph_info(std::ostream &out)
 char *parse_version() {
   char *version = 0;
 
-  char *fname_set = flop_settings->value("version-file");
+  const char *fname_set = flop_settings->value("version-file");
   if(fname_set) {
     string fname = find_file(fname_set, SET_EXT);
     if(fname.empty()) return 0;
@@ -433,7 +433,7 @@ int process(const std::string& ofname) {
   FILE *outf = fopen(outfname.c_str(), "wb");
   
   if(outf) {
-    struct setting *set;
+    setting *set;
     int i;
 
     initialize_specials(flop_settings);
@@ -443,7 +443,7 @@ int process(const std::string& ofname) {
         "' (" << grammar_version << ") into `" << outfname << "' ...");
       
     if((set = flop_settings->lookup("postload-files")) != 0)
-      for(i = set->n - 1; i >= 0; i--) {
+      for(i = set->n() - 1; i >= 0; i--) {
         string fname = find_file(set->values[i], TDL_EXT);
         if(! fname.empty()) push_file(fname, "postloading");
       }
@@ -451,7 +451,7 @@ int process(const std::string& ofname) {
     push_file(fname, "loading");
       
     if((set = flop_settings->lookup("preload-files")) != 0)
-      for(i = set->n - 1; i >= 0; i--) {
+      for(i = set->n() - 1; i >= 0; i--) {
         string fname = find_file(set->values[i], TDL_EXT);
         if(! fname.empty()) push_file(fname, "preloading");
       }
@@ -462,8 +462,8 @@ int process(const std::string& ofname) {
 
     mem_checkpoint("after parsing TDL files");
         
-    char *fffname;
-    if((fffname = flop_settings->value("fullform-file")) != 0) {
+    const char *fffname = flop_settings->value("fullform-file");
+    if(fffname != 0) {
       string fffnamestr = find_file(fffname, VOC_EXT);
       if(! fffnamestr.empty())
         read_morph(fffnamestr.c_str());
@@ -471,8 +471,8 @@ int process(const std::string& ofname) {
 
     mem_checkpoint("after reading full form file");
         
-    char *irregfname;
-    if((irregfname = flop_settings->value("irregs-file")) != 0) {
+    const char *irregfname = flop_settings->value("irregs-file");
+    if(irregfname != 0) {
       string irregfnamestr = find_file(irregfname, IRR_EXT);
       if(! irregfnamestr.empty())
         read_irregs(irregfnamestr.c_str());

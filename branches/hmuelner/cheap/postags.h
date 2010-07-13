@@ -30,6 +30,8 @@
 #include <map>
 #include <vector>
 
+struct setting;
+
 /** Implements a list of POS tags with probabilities. All string handling is
  *  case insensitive.
  */
@@ -102,7 +104,7 @@ class postags
   std::string getPrintString() const;
 
  private:
-  bool contains(type_t t, const class setting *set) const;
+  bool contains(type_t t, const setting *set) const;
 
   struct ltstr {
     bool operator()(const std::string &s1, const std::string &s2) const {

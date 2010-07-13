@@ -69,9 +69,6 @@ settings::settings(const std::string &input)
 
 settings::~settings() {
   for(int i = 0; i < _n; i++) {
-    for(int j = 0; j < _set[i]->n; j++)
-      free(_set[i]->values[j]);
-    free(_set[i]->values);
     delete _set[i];
   }
 
@@ -88,7 +85,7 @@ settings::~settings() {
  */
 setting *settings::lookup(const char *name) {
   for(int i = 0; i < _n; i++)
-    if(strcmp(_set[i]->name, name) == 0) {
+    if(strcmp(_set[i]->name.c_str(), name) == 0) {
       if(i != 0) {
         // put to front, so further lookup is faster
         setting *tmp = _set[i]; _set[i] = _set[0]; _set[0] = tmp;
@@ -105,21 +102,20 @@ setting *settings::lookup(const char *name) {
 /** Return the value of the first setting matching \a name or NULL if there is
  * no such setting.
  */
-char *settings::value(const char *name) {
-  setting *s;
-
-  s = lookup(name);
+const char *settings::value(const char *name)
+{
+  setting *s = lookup(name);
   if(s == 0) return 0;
 
-  return s->values[0];
+  return s->values[0].c_str();
 }
 
 /** Return the value of the first setting matching \a name or throw an error if
  *  there is no such setting (short for required_value).
  */
-char *settings::req_value(const char *name)
+const char *settings::req_value(const char *name)
 {
-  char *v = value(name);
+  const char *v = value(name);
   if(v == 0)
     {
       throw tError("no definition for required parameter `" + string(name) + "'");
@@ -134,8 +130,8 @@ bool settings::member(const char *name, const char *value)
 
   if(set == 0) return false;
 
-  for(int i = 0; i < set->n; i++)
-    if(strcasecmp(set->values[i], value) == 0)
+  for(int i = 0; i < set->n(); i++)
+    if(strcasecmp(set->values[i].c_str(), value) == 0)
       return true;
 
   return false;
@@ -150,18 +146,18 @@ bool settings::member(const char *name, const char *value)
  *  \return NULL if there is no such setting or no such key in the assoc list,
  *          the \a nth element of the assoc cons otherwise
  */
-char *settings::assoc(const char *name, const char *key, int arity, int nth)
+const char *settings::assoc(const char *name, const char *key, int arity, int nth)
 {
   setting *set = lookup(name);
   if(set == 0) return 0;
 
   assert(nth <= arity && arity > 1);
 
-  for(int i = 0; i < set->n; i+=arity)
+  for(int i = 0; i < set->n(); i+=arity)
     {
-      if(i+nth >= set->n) return 0;
-      if(strcasecmp(set->values[i], key) == 0)
-        return set->values[i+nth];
+      if(i+nth >= set->n()) return 0;
+      if(strcasecmp(set->values[i].c_str(), key) == 0)
+        return set->values[i+nth].c_str();
     }
 
   return 0;
@@ -178,16 +174,17 @@ std::set<std::string> settings::smap(const char *name, int key_type)
 
   if(key_type == -1) return res;
 
-  for(int i = 0; i < set->n; i+=2)
+  for(int i = 0; i < set->n(); i+=2)
     {
-      if(i+2 > set->n)
+      if(i+2 > set->n())
         {
           LOG(logAppl, WARN, "warning: incomplete last entry in `" << name
               << "' mapping - ignored");
           break;
         }
 
-      char *lhs = set->values[i], *rhs = set->values[i+1];
+      const char* lhs = set->values[i].c_str();
+      const char* rhs = set->values[i+1].c_str();
       int id = lookup_type(lhs);
       if(id != -1)
         {
@@ -218,9 +215,9 @@ bool settings::statusmember(const char *name, type_t key)
       // are reported to be unknown.
       if(set != 0)
         {
-          for(int i = 0; i < set->n; i++)
+          for(int i = 0; i < set->n(); i++)
             {
-              int v = lookup_status(set->values[i]);
+              int v = lookup_status(set->values[i].c_str());
               if(v == -1)
                 {
                   LOG(logAppl, WARN, "ignoring unknown status `"
@@ -237,12 +234,10 @@ bool settings::statusmember(const char *name, type_t key)
 
 void settings::parse_one()
 {
-  char *option;
-  struct setting *set;
-  option = LA(0)->text; LA(0)->text = NULL;
+  char *option = LA(0)->text; LA(0)->text = NULL;
   consume(1);
 
-  set = lookup(option);
+  setting *set = lookup(option);
   if(set)
     {
       LOG(logAppl, WARN,
@@ -254,9 +249,6 @@ void settings::parse_one()
       set = _set[_n++] = new setting;
       set->name = option;
       set->loc = LA(0)->loc; LA(0)->loc = NULL;
-      set->n = 0;
-      set->allocated = SET_TABLE_SIZE;
-      set->values = (char **) malloc(set->allocated * sizeof(char *));
     }
 
   if(LA(0)->tag != T_DOT)
@@ -268,13 +260,8 @@ void settings::parse_one()
           if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
              LA(0)->tag == T_STRING)
             {
-              if(set->n >= set->allocated)
-                {
-                  set->allocated += SET_TABLE_SIZE;
-                  set->values = (char **) realloc(set->values, set->allocated * sizeof(char *));
-
-                }
-              set->values[set->n++] = LA(0)->text; LA(0)->text=NULL;
+              set->values.push_back(LA(0)->text);
+              LA(0)->text=NULL;
             }
           else
             {
