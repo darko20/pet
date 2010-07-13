@@ -26,7 +26,10 @@
 #include "morph.h"
 #include "settings.h"
 #include "logging.h"
+#include <boost/algorithm/string/case_conv.hpp>
 
+using boost::algorithm::to_upper;
+using boost::algorithm::to_lower;
 using std::string;
 using std::list;
 using std::vector;
@@ -90,7 +93,7 @@ lex_stem::get_stems() {
     return orth;
   }
 
-  list <struct dag_node *> stemlist = dag_get_list(dag);
+  list<dag_node*> stemlist = dag_get_list(dag);
 
   if(stemlist.size() == 0) {
     // might be a singleton
@@ -141,9 +144,10 @@ lex_stem::get_stems() {
   return orth;
 }
 
-void lex_stem::print(std::ostream &out) const {
+void lex_stem::print(std::ostream &out) const
+{
   out << printname() << ':';
-  for(int i = 0; i < _nwords; i++)
+  for(size_t i = 0; i < _orth.size(); ++i)
     out << " \"" << _orth[i] << "\"";
 }
 
@@ -158,33 +162,33 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
   
   if(orths.size() == 0) {
     vector<string> orth = get_stems();
-    _nwords = orth.size();
+    size_t nwords = orth.size();
       
-    if(_nwords == 0) return; // invalid entry
+    if (nwords == 0) return; // invalid entry
       
-    _orth = new char*[_nwords];
+    _orth.clear();
+    _orth.reserve(nwords);
         
-    for(int j = 0; j < _nwords; j++) {
+    for(int j = 0; j < nwords; j++) {
 #ifdef HAVE_ICU
       string lc_str = Conv->convert(Conv->convert(orth[j]).toLower());
-      _orth[j] = strdup(lc_str.c_str());
+      _orth.push_back(lc_str);
 #else
-      _orth[j] = strdup(orth[j].c_str());
-      strtolower(_orth[j]);
+      _orth.push_back(orth[j]);
+      to_lower(_orth[j]);
 #endif
     }
   } else {
-    _nwords = orths.size();
-    _orth = new char *[_nwords];
-    int j = 0;
-    for(list<string>::const_iterator it = orths.begin(); it != orths.end();
-        ++it, ++j) {
+    size_t nwords = orths.size();
+    _orth.clear();
+    _orth.reserve(nwords);
+    for(list<string>::const_iterator it = orths.begin(); it != orths.end(); ++it) {
 #ifdef HAVE_ICU
       string lc_str = Conv->convert(Conv->convert(*it).toLower());
-      _orth[j] = strdup(lc_str.c_str());
+      _orth.push_back(lc_str);
 #else
-      _orth[j] = strdup(it->c_str());
-      strtolower(_orth[j]);
+      _orth.push_back(it->c_str());
+      to_lower(_orth.back());
 #endif
     }
   }
@@ -195,9 +199,5 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
 
 lex_stem::~lex_stem()
 {
-  for(int j = 0; j < _nwords; j++)
-    free(_orth[j]);
-  if(_orth)
-    delete[] _orth;
 }
 

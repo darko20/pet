@@ -167,7 +167,7 @@ void free_type_tables();
 int lookup_status(const char *s);
 /** Get the attribute id for attribute name \a s, or -1, if it does not
     exist */
-attr_t lookup_attr(const char *s);
+attr_t lookup_attr(const std::string& s);
 
 /** Get the type id for type name \a name or return -1 if it does not exist. */
 type_t lookup_type(const std::string &name);

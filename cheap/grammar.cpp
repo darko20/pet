@@ -639,8 +639,8 @@ tGrammar::init_parameters()
     {
         for(int i = 0; i < set->n(); i++)
         {
-            int a;
-            if((a = lookup_attr(set->values[i].c_str())) != -1)
+            int a = lookup_attr(set->values[i]);
+            if (a != -1)
                 _deleted_daughters = cons(a, _deleted_daughters);
             else
               LOG(logGrammar, WARN, "ignoring unknown attribute `"
@@ -659,7 +659,8 @@ tGrammar::init_parameters()
       bool extended = false;
       for(int i = 0; i < set->n(); i++)
         {
-          if((del_attrs = path_to_lpath(set->values[i].c_str())) != NULL) {
+          del_attrs = path_to_lpath(set->values[i]);
+          if(del_attrs != NULL) {
             // is there a path with length > 1 ??
             extended = extended || (rest(del_attrs) != NULL) ;
             del_paths.push_front(del_attrs);

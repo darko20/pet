@@ -35,30 +35,6 @@ using std::list;
 
 namespace fs = boost::filesystem;
 
-/** "Safe" \c malloc: call \c malloc and throw an error if
-*   it returns \c NULL.
-*/
-void *salloc(size_t size)
-{
-  void *p = malloc(size);
-
-  if(!p)
-    throw tError("out of memory");
-
-  return p;
-}
-
-#ifndef HAVE_STRDUP
-char *strdup(const char *s)
-{
-  char *s1;
-
-  s1 = (char *) salloc(strlen(s) + 1);
-  strcpy(s1, s);
-  return s1;
-}
-#endif
-
 /** Convert all characters in \a s to lower case */
 void strtolower(char *s)
 {
