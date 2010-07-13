@@ -1,21 +1,21 @@
 /* PET
- * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
- *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   Lesser General Public License for more details.
- *
- *   You should have received a copy of the GNU Lesser General Public
- *   License along with this library; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* Platform for Experimentation with efficient HPSG processing Techniques
+* (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 2.1 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public
+*   License along with this library; if not, write to the Free Software
+*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 /* parse the settings file */
 
@@ -29,13 +29,14 @@
 #include "logging.h"
 
 #include <cstdlib>
+#include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 
 using std::string;
 using boost::algorithm::iequals;
 
 settings::settings(string name, string base_dir, const char *message)
-  : _li_cache(), _lloc() {
+: _li_cache(), _lloc() {
 
   _fname = find_set_file(name, SET_EXT, base_dir);
 
@@ -53,7 +54,7 @@ settings::settings(string name, string base_dir, const char *message)
 
 
 settings::settings(const std::string &input)
-  : _li_cache(), _lloc() {
+: _li_cache(), _lloc() {
 
   push_string(input, NULL);
   const char *sv = lexer_idchars;
@@ -63,22 +64,18 @@ settings::settings(const std::string &input)
 }
 
 
-settings::~settings() {
+settings::~settings()
+{
   for(int i = 0; i < _set.size(); i++) {
     delete _set[i];
-  }
-
-  for(std::map<std::string, struct list_int *>::iterator it = _li_cache.begin();
-      it != _li_cache.end(); ++it) {
-    free_list(it->second);
   }
 }
 
 /** Do a linear search for \a name in the settings and return the first
- * matching setting.
- */
+* matching setting.
+*/
 setting *settings::lookup(const char *name) {
-    for(int i = 0; i < _set.size(); i++)
+  for(int i = 0; i < _set.size(); i++)
     if(_set[i]->_name == name) {
       if(i != 0) {
         // put to front, so further lookup is faster
@@ -89,12 +86,12 @@ setting *settings::lookup(const char *name) {
       return _set[0];
     }
 
-  return 0;
+    return 0;
 }
 
 /** Return the value of the first setting matching \a name or NULL if there is
- * no such setting.
- */
+* no such setting.
+*/
 const char *settings::value(const char *name)
 {
   setting *s = lookup(name);
@@ -104,15 +101,15 @@ const char *settings::value(const char *name)
 }
 
 /** Return the value of the first setting matching \a name or throw an error if
- *  there is no such setting (short for required_value).
- */
+*  there is no such setting (short for required_value).
+*/
 const char *settings::req_value(const char *name)
 {
   const char *v = value(name);
   if(v == 0)
-    {
-      throw tError("no definition for required parameter `" + string(name) + "'");
-    }
+  {
+    throw tError("no definition for required parameter `" + string(name) + "'");
+  }
   return v;
 }
 
@@ -131,14 +128,14 @@ bool settings::member(const char *name, const char *value)
 }
 
 /** Get an element of a setting that is an assoc list.
- *
- *  \param name The setting to look for
- *  \param key The key to search in the assoc list
- *  \param arity The number of elements in one assoc-cons
- *  \param nth The number of the element to return
- *  \return NULL if there is no such setting or no such key in the assoc list,
- *          the \a nth element of the assoc cons otherwise
- */
+*
+*  \param name The setting to look for
+*  \param key The key to search in the assoc list
+*  \param arity The number of elements in one assoc-cons
+*  \param nth The number of the element to return
+*  \return NULL if there is no such setting or no such key in the assoc list,
+*          the \a nth element of the assoc cons otherwise
+*/
 const char *settings::assoc(const char *name, const char *key, int arity, int nth)
 {
   setting *set = lookup(name);
@@ -147,11 +144,11 @@ const char *settings::assoc(const char *name, const char *key, int arity, int nt
   assert(nth <= arity && arity > 1);
 
   for(int i = 0; i < set->n(); i+=arity)
-    {
-      if(i+nth >= set->n()) return 0;
-      if(iequals(set->values[i], key))
-        return set->values[i+nth].c_str();
-    }
+  {
+    if(i+nth >= set->n()) return 0;
+    if(iequals(set->values[i], key))
+      return set->values[i+nth].c_str();
+  }
 
   return 0;
 }
@@ -168,61 +165,64 @@ std::set<std::string> settings::smap(const char *name, int key_type)
   if(key_type == -1) return res;
 
   for(int i = 0; i < set->n(); i+=2)
+  {
+    if(i+2 > set->n())
     {
-      if(i+2 > set->n())
-        {
-          LOG(logAppl, WARN, "warning: incomplete last entry in `" << name
-              << "' mapping - ignored");
-          break;
-        }
-
-      const char* lhs = set->values[i].c_str();
-      const char* rhs = set->values[i+1].c_str();
-      int id = lookup_type(lhs);
-      if(id != -1)
-        {
-          if(subtype(key_type, id))
-            res.insert(rhs);
-        }
-      else
-        LOG(logAppl, WARN, "unknown type `" << name << "' in `"
-            << lhs << "' mapping - ignored");
-
+      LOG(logAppl, WARN, "warning: incomplete last entry in `" << name
+        << "' mapping - ignored");
+      break;
     }
+
+    const char* lhs = set->values[i].c_str();
+    const char* rhs = set->values[i+1].c_str();
+    int id = lookup_type(lhs);
+    if(id != -1)
+    {
+      if(subtype(key_type, id))
+        res.insert(rhs);
+    }
+    else
+      LOG(logAppl, WARN, "unknown type `" << name << "' in `"
+      << lhs << "' mapping - ignored");
+
+  }
 
   return res;
 }
 #endif
 
 /** Return \c true, if the \a key is a type with status \a name.
- */
-bool settings::statusmember(const char *name, type_t key)
+*/
+bool settings::statusmember(const string& name, type_t key)
 {
   // first try to find the list of status types for name in the cache
-  list_int *l = _li_cache[string(name)];
-  if(l == 0)
-    {
-      setting *set = lookup(name);
-      // convert the set of status names into a list of code numbers and store
-      // it in the cache. All status names that do not occur in the grammar
-      // are reported to be unknown.
-      if(set != 0)
+  CacheType::const_iterator l = _li_cache.find(name);
+  if(l == _li_cache.end())
+  {
+    setting *set = lookup(name.c_str());
+    // convert the set of status names into a list of code numbers and store
+    // it in the cache. All status names that do not occur in the grammar
+    // are reported to be unknown.
+    bool contained = false;
+    if (set != 0) {
+      std::vector<int> codeNumbers;
+      for(int i = 0; i < set->n(); ++i) {
+        int v = lookup_status(set->values[i].c_str());
+        if (v == -1)
         {
-          for(int i = 0; i < set->n(); i++)
-            {
-              int v = lookup_status(set->values[i].c_str());
-              if(v == -1)
-                {
-                  LOG(logAppl, WARN, "ignoring unknown status `"
-                      << set->values[i] << "' in setting `" << name << "'");
-                }
-              else
-                l = cons(v, l);
-            }
-          _li_cache[name] = l;
+          LOG(logAppl, WARN, "ignoring unknown status `"
+            << set->values[i] << "' in setting `" << name << "'");
         }
+        else {
+          codeNumbers.push_back(v);
+          contained = contained || (v == key);
+        }
+      }
+      _li_cache[name] = codeNumbers;
     }
-  return contains(l, key);
+    return contained;
+  }
+  return std::find(l->second.begin(), l->second.end(), key) != l->second.end();
 }
 
 void settings::parse_one()
@@ -232,39 +232,39 @@ void settings::parse_one()
 
   setting *set = lookup(option.c_str());
   if(set)
-    {
-      LOG(logAppl, WARN,
-          "more than one definition for setting `" << option << "'...");
-    }
+  {
+    LOG(logAppl, WARN,
+      "more than one definition for setting `" << option << "'...");
+  }
   else
-    {
-        _set.push_back(new setting());
-      set = _set.back();
-      set->_name = option;
-      set->_loc = LA(0)->loc;
-    }
+  {
+    _set.push_back(new setting());
+    set = _set.back();
+    set->_name = option;
+    set->_loc = LA(0)->loc;
+  }
 
   if(LA(0)->tag != T_DOT)
+  {
+    match(T_ISEQ, "option setting", true);
+
+    while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
     {
-      match(T_ISEQ, "option setting", true);
+      if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
+        LA(0)->tag == T_STRING)
+      {
+        set->values.push_back(LA(0)->text);
+      }
+      else
+      {
+        LOG(logSyntax, WARN, LA(0)->loc.fname << ":"
+          << LA(0)->loc.linenr << ": warning: ignoring "
+          << LA(0)->text);
+      }
 
-      while(LA(0)->tag != T_DOT && LA(0)->tag != T_EOF)
-        {
-          if(LA(0)->tag == T_ID || LA(0)->tag == T_KEYWORD ||
-             LA(0)->tag == T_STRING)
-            {
-              set->values.push_back(LA(0)->text);
-            }
-          else
-            {
-              LOG(logSyntax, WARN, LA(0)->loc.fname << ":"
-                  << LA(0)->loc.linenr << ": warning: ignoring "
-                  << LA(0)->text);
-            }
-
-          consume(1);
-        }
+      consume(1);
     }
+  }
 
   match(T_DOT, "end of option setting", true);
 }
@@ -282,7 +282,7 @@ void settings::parse() {
 
       if(LA(0)->tag != T_STRING) {
         LOG(logSyntax, WARN, LA(0)->loc.fname << ":" << LA(0)->loc.linenr
-            << ": warning: expecting include file name");
+          << ": warning: expecting include file name");
       }
       else {
         string ofname = _prefix + LA(0)->text + SET_EXT;

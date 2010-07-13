@@ -151,7 +151,7 @@ class grammar_rule
   fs _f_restriced;  // The feature structure corresponding to this rule
                     // with the packing restrictor applied.
   
-  qc_vec* _qc_vector_unif;
+  std::vector<qc_vec> _qc_vector_unif;
   void init_qc_vector_unif();
 
   bool _hyper;

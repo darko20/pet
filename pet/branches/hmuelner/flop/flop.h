@@ -113,7 +113,7 @@ extern int syntax_errors;
 * apptype[j] is the first subtype of \c *top* that introduces feature \c j.
 * in \c types.cc 
 */
-extern type_t *apptype;
+extern std::vector<type_t> apptype;
 
 /** @name full-form.cc */
 /*@{*/
@@ -281,12 +281,12 @@ struct Tdl_list
     std::string inflr;
 
     /** parents specified in definition */
-    list_int *parents;
+    std::vector<int> parents;
 
     Type() : id(0), printname(), status(NO_STATUS), defines_status(false),
       status_giver(0), implicit(false), def(), coref(NULL),
       constraint(NULL), bcode(NULL), thedag(NULL), tdl_instance(false),
-      inflr(), parents(NULL) {}
+      inflr(), parents() {}
     Type(const Type&);
     Type& operator=(const Type&);
   };

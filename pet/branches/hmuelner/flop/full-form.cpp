@@ -51,7 +51,7 @@ ostream& operator<<(ostream& O, const ff_entry& C)
 
 string get_string(string &line, int &pos, istream &I)
 {
-  while(isspace(line[pos])) pos++;
+  while(isspace(line[pos] & 0xFF)) pos++;
   
   if(line[pos] == '"')
     {
@@ -76,7 +76,7 @@ string get_string(string &line, int &pos, istream &I)
 
 int get_int(string &line, int &pos, istream &I)
 {
-  while(isspace(line[pos])) pos++;
+  while(isspace(line[pos] &0xFF)) pos++;
   
   if(isdigit(line[pos]))
     {
@@ -205,21 +205,21 @@ bool parse_irreg(string line)
   string s1, s2, s3;
   unsigned int p = 0, p1;
 
-  while(isspace(line[p]) && p < line.length()) p++;
+  while(isspace(line[p] &0xFF) && p < line.length()) p++;
   if(p >= line.length()) return false; else p1 = p;
-  while(!isspace(line[p]) && p < line.length()) p++;
+  while(!isspace(line[p] & 0xFF) && p < line.length()) p++;
   s1 = line.substr(p1, p - p1);
 
-  while(isspace(line[p]) && p < line.length()) p++;
+  while(isspace(line[p] & 0xFF) && p < line.length()) p++;
   if(p >= line.length()) return false; else p1 = p;
-  while(!isspace(line[p]) && p < line.length()) p++;
+  while(!isspace(line[p] & 0xFF) && p < line.length()) p++;
   if(opt_inst_affixes) s2 = "$";
   s2 += line.substr(p1, p - p1);
   if(suf) s2 += string(suf);
 
-  while(isspace(line[p]) && p < line.length()) p++;
+  while(isspace(line[p] & 0xFF) && p < line.length()) p++;
   if(p >= line.length()) return false; else p1 = p;
-  while(!isspace(line[p]) && p < line.length()) p++;
+  while(!isspace(line[p] & 0xFF) && p < line.length()) p++;
   s3 = line.substr(p1, p - p1);
 
   irregforms.push_back(irreg_entry(s1, s2, s3));

@@ -68,8 +68,8 @@ static unordered_map<bitcode, int, bitcode_hash> codetable;
 static bitcode *temp_bitcode = NULL;
 static int codesize;
 
-type_t *apptype = 0; // TODO vector
-type_t *maxapp = 0; // TODO vector
+std::vector<type_t> apptype;
+std::vector<type_t> maxapp;
 
 // status
 std::vector<std::string> statusnames;
@@ -314,14 +314,7 @@ void undump_printnames(dumper *f)
 
 void free_type_tables()
 {
- 
   delete temp_bitcode;
-  delete[] apptype;
-  delete[] maxapp;
-  delete[] featset;
-  for(int i = 0; i < nfeatsets; i++)
-    delete[] featsetdesc[i].attr;
-  delete[] featsetdesc;
 }
 
 #endif
@@ -369,14 +362,13 @@ void undump_hierarchy(dumper *f)
     leaftypeparent[i] = f->undump_int();
 }
 
-void
-initialize_maxapp()
+void  initialize_maxapp()
 {
     size_t nattrs = attrname.size();
-    maxapp = new int[nattrs];
+    maxapp.clear();
+    maxapp.resize(nattrs, 9);
     for(int i = 0; i < nattrs; i++)
     {
-        maxapp[i] = 0;
         // the direct access to typedag[] is ok here because no dynamic type
         // can be appropriate for a feature
         dag_node *cval = dag_get_attr_value(typedag[apptype[i]], i);
@@ -398,33 +390,30 @@ void undump_tables(dumper *f)
   else
     throw tError("unknown encoding");
 
-  featset = new int[first_leaftype];
+  featset.clear();
+  featset.reserve(first_leaftype);
 
   for(int i = 0; i < first_leaftype; i++)
     {
-      featset[i] = f->undump_int();
+      featset.push_back(f->undump_int());
     }
-
   // read feature sets
-
-  nfeatsets = f->undump_int();
-  featsetdesc = new featsetdescriptor[nfeatsets];
-  
+  int nfeatsets = f->undump_int();
+  featsetdesc.clear();
+  featsetdesc.resize(nfeatsets);
   for(int i = 0; i < nfeatsets; i++)
     {
-      short int na = featsetdesc[i].n = f->undump_short();
-      featsetdesc[i].attr = na > 0 ? new short int[na] : 0;
-
+      short int na = f->undump_short();
+      featsetdesc[i].attr.reserve(na);
       for(int j = 0; j < na; j++)
-        featsetdesc[i].attr[j] = f->undump_short();
+        featsetdesc[i].attr.push_back(f->undump_short());
     }
-
   // read appropriate sorts table
-
   size_t nattrs = attrname.size();
-  apptype = new int[nattrs];
+  apptype.clear();
+  apptype.reserve(nattrs);
   for(int i = 0; i < nattrs; i++)
-    apptype[i] = f->undump_int();
+    apptype.push_back(f->undump_int());
 }
 
 #ifndef FLOP

@@ -18,14 +18,12 @@ tPartition::tPartition(int n)
         make_set(i);
 }
 
-void
-tPartition::make_set(int x)
+void tPartition::make_set(int x)
 {
     _p[x] = x;
 }
 
-void
-tPartition::link(int x, int y)
+void tPartition::link(int x, int y)
 {
     if(_rank[x] > _rank[y])
     {
@@ -39,8 +37,7 @@ tPartition::link(int x, int y)
     }
 }
 
-int
-tPartition::find_set(int x)
+int tPartition::find_set(int x)
 {
     if(x != _p[x])
     {
@@ -54,29 +51,25 @@ tPartition::find_set(int x)
 // 
 
 
-bool
-tPartition::same_set(int a, int b)
+bool tPartition::same_set(int a, int b)
 {
     return find_set(a) == find_set(b);
 }
 
     
-void
-tPartition::union_sets(int a, int b)
+void tPartition::union_sets(int a, int b)
 {
     link(find_set(a), find_set(b));
 }
 
 
-void
-tPartition::make_rep(int a)
+void tPartition::make_rep(int a)
 {
     _rep[find_set(a)] = a;
 }
 
     
-int
-tPartition::operator()(int a)
+int tPartition::operator()(int a)
 {
     int rep = find_set(a);
     std::map<int, int>::iterator it = _rep.find(rep);
