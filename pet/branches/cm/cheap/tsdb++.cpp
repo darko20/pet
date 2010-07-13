@@ -650,6 +650,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                           ptr.print(mapped_mrs);
                         }
                       }
+                      R.mrs = out.str();
                       delete mapped_mrs;
                     }
                     delete mrs;
