@@ -341,8 +341,7 @@ void make_semilattice()
     low = high; high = types.number();
 
     // mark the new types as non leaftypes
-    leaftypeparent = (int *) realloc(leaftypeparent, high * sizeof(int));
-    for(i = low; i < high; i++) leaftypeparent[i] = -1;
+    leaftypeparent.resize(high, -1);
 
   } while(changed);
 
@@ -458,8 +457,7 @@ void find_leaftypes()
     int i;
     
     // initialize the leaftype array to all -1
-    leaftypeparent = (int *) salloc(types.number() * sizeof(int));
-    for(i = 0; i < types.number(); i++) leaftypeparent[i] = -1;
+    leaftypeparent.resize(types.number(), -1);
     
 #ifdef ONLY_SIMPLE_LEAFTYPES
     

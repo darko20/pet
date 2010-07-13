@@ -49,20 +49,7 @@ Term *add_term(Conjunction *C, Term *T)
   return T;
 }
 
-Attr_val *add_attr_val(Avm *a, Attr_val *av)
-{
-  assert(a);
-  a->av.push_back(av);
-  return av;
-}
-
-Conjunction *add_conjunction(Tdl_list *L, Conjunction *C)
-{
-    L->list.push_back(C);
-    return C;
-}
-
-Conjunction *get_feature(Avm *A, char *feat)
+Conjunction *get_feature(Avm *A, char *feat) // TODO only used in add_feature
 {
     for(int i = 0; i < A -> n(); i ++)
     {
@@ -73,7 +60,7 @@ Conjunction *get_feature(Avm *A, char *feat)
     return NULL;
 }
 
-Conjunction *add_feature(Avm *A, char *feat)
+Conjunction *add_feature(Avm *A, char *feat) // TODO unused
 {
   Attr_val *av;
   Conjunction *C;
@@ -89,12 +76,12 @@ Conjunction *add_feature(Avm *A, char *feat)
   av->attr = feat;
   av->val = new Conjunction();
 
-  add_attr_val(A, av);
+  A->add_attr_val(av);
 
   return av->val;
 }
 
-int nr_avm_constraints(Conjunction *C)
+int nr_avm_constraints(Conjunction *C) // TODO unused
 {
   int cnt = 0;
 

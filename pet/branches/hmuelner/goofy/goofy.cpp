@@ -20,42 +20,49 @@
 // goofy - interface for flop and cheap
 
 #include <assert.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <iostream>
+//#include <sys/types.h>
+//#include <sys/wait.h>
 
-#include <qapplication.h>
-#include <qdragobject.h>
-#include <qevent.h>
-#include <qfiledialog.h>
-#include <qheader.h>
-#include <qlayout.h>
-#include <qmainwindow.h>
-#include <qmenubar.h>
-#include <qmessagebox.h>
-#include <qmultilineedit.h>
-#include <qpopupmenu.h>
-#include <qpushbutton.h>
-#include <qsocketnotifier.h>
-#include <qstatusbar.h>
-#include <qtextstream.h>
-#include <qtooltip.h>
-#include <qwidget.h>
-#include <qlistbox.h>
-#include <qpainter.h>
-#include <qstyle.h>
-#include <qcursor.h>
+#include <Qapplication>
+#include <Qevent>
+#include <Qlayout>
+#include <Qmenubar>
+#include <Qmessagebox>
+#include <Qpushbutton.h>
+#include <Qsocketnotifier.h>
+#include <Qstatusbar.h>
+#include <QTooltip>
+#include <Qwidget.h>
+#include <Qpainter.h>
+#include <Qstyle.h>
+#include <Qcursor.h>
+#include <QDragLeaveEvent>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QMouseEvent>
+#include <QTextEdit>
+#include <QFileDialog>
 
+#include "pet-config.h"
 #include "cheap.h"
 #include "goofy.h"
 #include "grammar.h"
 #include "types.h"
 #include "tsdb++.h"
 #include "errors.h"
+#include "settings.h"
+#include "configs.h"
 
 // #define _POSIX_OPEN_MAX 10
+
+const char * version_string = VERSION ;
+settings *cheap_settings = 0;
+tGrammar *Grammar = 0;
 
 extern int BI_TOP, BI_ATOM, BI_NIL, BIA_FIRST, BIA_REST;
 extern int BIA_ARGS;
@@ -67,83 +74,134 @@ int capi_register(int (*)(char *, int, char *, int, char *),
                          int (*)(char *),
                          int (*)(int, char *)) { return 0 ;}
 
-FILE *ferr, *fstatus;
+FILE *fstatus;
 
 int main(int argc, char *argv[])
 {
-  QApplication Goofy(argc, argv);
+    managed_opt("opt_comment_passthrough",
+        "Ignore/repeat input classified as comment: starts with '#' or '//'",
+        false);
 
-  ferr = fstatus = stderr;
+    /** @name Operating modes
+    * If none of the following options is provided, cheap will go into the usual
+    * parsing mode.
+    */
+    //@{
+    managed_opt("opt_tsdb",
+        "enable [incr tsdb()] slave mode (protocol version = n)",
+        0);
+    managed_opt("opt_server",
+        "go into server mode, bind to port `n' (default: 4711)",
+        0);
+    managed_opt("opt_pg",
+        "print grammar in ASCII form, one of (s)ymbols (the default), (g)lbs "
+        "(t)ype fs's or (a)ll", '\0');
+    //@}
 
-  GoofyWindow *Main = new GoofyWindow();
+    managed_opt("opt_interactive_morph",
+        "make cheap only run interactive morphology (only morphological rules, "
+        "without lexicon)", false);
 
-  Goofy.setMainWidget(Main);
-  Main->show();
+    managed_opt("opt_online_morph",
+        "use the internal morphology (the regular expression style one)", true);
 
-  Goofy.connect( &Goofy, SIGNAL(lastWindowClosed()), &Goofy, SLOT(quit()) );
+    managed_opt("opt_tsdb_dir",
+        "write [incr tsdb()] item, result and parse files to this directory",
+        ((std::string) ""));
 
-  try{
-    if(argc == 2)
-      Main->load_grammar(argv[1]);
+    managed_opt("opt_jxchg_dir",
+        "write parse charts in jxchg format to the given directory",
+        std::string());
 
-    Goofy.exec();
-  }
+    /** @name Output control */
+    //@{
+    managed_opt("opt_mrs",
+        "determines if and which kind of MRS output is generated. "
+        "(modes: C implementation, LKB bindings via ECL; default: no)",
+        std::string());
+    managed_opt("opt_nresults",
+        "print at most n (full) results "
+        "(should be the argument of an API function)", 0);
+    /** print partial results in case of parse failure */
+    managed_opt("opt_partial",
+        "in case of parse failure, find a set of chart edges (partial results)"
+        "that covers the chart in a good manner", false);
+    //@}
 
-  catch(tError &e)
-    {
-      fprintf(stderr, "%s\n", e.getMessage().c_str());
-      exit(1);
+    // \todo should go to yy.cpp, but this produces no code and the call is
+    // optimized away
+    managed_opt("opt_yy",
+        "old shit that should be thrown out or properly reengineered and renamed.",
+        false);
+
+    QApplication Goofy(argc, argv);
+
+    fstatus = stderr;
+
+    GoofyWindow *Main = new GoofyWindow();
+
+    Main->show();
+
+    Goofy.connect( &Goofy, SIGNAL(lastWindowClosed()), &Goofy, SLOT(quit()) );
+
+    try{
+        if(argc == 2)
+            Main->load_grammar(argv[1]);
+
+        Goofy.exec();
     }
 
-  return 0;
+    catch(tError &e)
+    {
+        fprintf(stderr, "%s\n", e.getMessage().c_str());
+        exit(1);
+    }
+
+    return 0;
 }
 
 GoofyWindow::GoofyWindow()
-  : QMainWindow( 0, "Goofy", WDestructiveClose), _sort_names(), _inst_names(), _rule_names()
+  : QMainWindow( 0 ), _sort_names(), _inst_names(), _rule_names()
 {
-  mFile = new QPopupMenu(this);
-  menuBar()->insertItem("&File", mFile);
-  mFile->insertItem("&Preprocess", this, SLOT(filePreprocess()), CTRL+Key_P);
-  mFile->insertItem("&Load", this, SLOT(fileLoad()), CTRL+Key_L);
-  mFile->insertSeparator();
-  mFile->insertItem("&Quit", qApp, SLOT( closeAllWindows() ), CTRL+Key_Q);
+  mFile = menuBar()->addMenu(tr("&File"));
+  mFile->addAction("&Preprocess", this, SLOT(filePreprocess()), Qt::CTRL+Qt::Key_P);
+  mFile->addAction("&Load", this, SLOT(fileLoad()), Qt::CTRL+Qt::Key_L);
+  mFile->addSeparator();
+  mFile->addAction("&Quit", qApp, SLOT( closeAllWindows() ), Qt::CTRL+Qt::Key_Q);
 
-  mView = new QPopupMenu(this);
-  menuBar()->insertItem("&View", mView);
-  id_ViewType = mView->insertItem("&Type", this, SLOT(viewType()), CTRL+Key_T);
-  id_ViewInstance = mView->insertItem("&Instance", this, SLOT(viewInstance()), CTRL+Key_I);
-  id_ViewLexentry = mView->insertItem("&Lexicon Entry", this, SLOT(viewLexentry()), CTRL+Key_L);
-  id_ViewRule = mView->insertItem("&Rule", this, SLOT(viewRule()), CTRL+Key_R);
+  mView = menuBar()->addMenu(tr("&View"));
+  viewTypeAction = mView->addAction("&Type", this, SLOT(viewType()), Qt::CTRL+Qt::Key_T);
+  viewInstanceAction = mView->addAction("&Instance", this, SLOT(viewInstance()), Qt::CTRL+Qt::Key_I);
+  viewLexentryAction = mView->addAction("&Lexicon Entry", this, SLOT(viewLexentry()), Qt::CTRL+Qt::Key_L);
+  viewRuleAction = mView->addAction("&Rule", this, SLOT(viewRule()), Qt::CTRL+Qt::Key_R);
 
-  mParse = new QPopupMenu(this);
-  menuBar()->insertItem("&Parse", mParse);
-  id_ParseInput = mParse->insertItem("&Input", this, SLOT(parseInput()), CTRL+Key_I);
-  id_ParseFile = mParse->insertItem("&File", this, SLOT(parseFile()), CTRL+Key_F);
-  id_ParseChart = mParse->insertItem("Show &Chart", this, SLOT(parseChart()), CTRL+Key_C);
+  mParse = menuBar()->addMenu(tr("&Parse"));
+  parseInputAction = mParse->addAction("&Input", this, SLOT(parseInput()), Qt::CTRL+Qt::Key_I);
+  parseFileAction = mParse->addAction("&File", this, SLOT(parseFile()), Qt::CTRL+Qt::Key_F);
+  parseChartAction = mParse->addAction("Show &Chart", this, SLOT(parseChart()), Qt::CTRL+Qt::Key_C);
 
-  mOptions = new QPopupMenu(this);
-  menuBar()->insertItem("&Options", mOptions);
-  mOptions->insertItem("&General", this, SLOT(optionsGeneral()), CTRL+Key_G);
-  mOptions->insertItem("P&reprocessor", this, SLOT(optionsPre()), CTRL+Key_R);
-  mOptions->insertItem("&Parser", this, SLOT(optionsParser()), CTRL+Key_P);
+  mOptions = menuBar()->addMenu(tr("&Options"));
+  mOptions->addAction("&General", this, SLOT(optionsGeneral()), Qt::CTRL+Qt::Key_G);
+  mOptions->addAction("P&reprocessor", this, SLOT(optionsPre()), Qt::CTRL+Qt::Key_R);
+  mOptions->addAction("&Parser", this, SLOT(optionsParser()), Qt::CTRL+Qt::Key_P);
 
-  mHelp = new QPopupMenu( this );
-  menuBar()->insertSeparator();
-  menuBar()->insertItem( "&Help", mHelp );
+  menuBar()->addSeparator();
+  mHelp = menuBar()->addMenu("?");
+  menuBar()->addAction(tr("&Help"));
 
-  mHelp->insertItem( "&About", this, SLOT(helpAbout()), Key_F1);
-  mHelp->insertItem( "Dump Core", this, SLOT(helpCore()));
-  mHelp->insertSeparator();
-  mHelp->insertItem( "About&Qt", this, SLOT(aboutQt()));
+  mHelp->addAction( "&About", this, SLOT(helpAbout()), Qt::Key_F1);
+  mHelp->addAction( "Dump Core", this, SLOT(helpCore()));
+  mHelp->addSeparator();
+  mHelp->addAction( "About&Qt", this, SLOT(aboutQt()));
 
   set_menu_state(false);
-  mParse->setItemEnabled(id_ParseChart, false);
+  parseChartAction->setEnabled(false);
 
-  e = new QMultiLineEdit( this, "main area" );
+  e = new QTextEdit( this);
   e->setFocus();
   e->setReadOnly(true);
   setCentralWidget( e );
-  statusBar()->message( "Ready");
+  statusBar()->showMessage( "Ready");
   resize( 450, 600 );
 
   flop_stat_stream = flop_err_stream = 0;
@@ -160,22 +218,20 @@ GoofyWindow::~GoofyWindow()
 
 void GoofyWindow::filePreprocess()
 {
-  QString fn = QFileDialog::getOpenFileName(QString::null, QString("*.tdl"),
-                                            this);
+  QString fn = QFileDialog::getOpenFileName(this, QString::null, ".", QString("*.tdl"));
   if (!fn.isEmpty())
-    preprocess_grammar(fn);
+    preprocess_grammar(fn.toLocal8Bit());
   else
-    statusBar()->message("Aborted", 5000);
+    statusBar()->showMessage("Aborted", 5000);
 }
 
 void GoofyWindow::fileLoad()
 {
-  QString fn = QFileDialog::getOpenFileName(QString::null, QString("*.gram"),
-                                            this);
+  QString fn = QFileDialog::getOpenFileName(this, QString::null, ".", QString("*.grm"));
   if (!fn.isEmpty())
-    load_grammar(fn);
+      load_grammar(fn.toLocal8Bit());
   else
-    statusBar()->message("Aborted", 5000);
+    statusBar()->showMessage("Aborted", 5000);
 }
 
 void GoofyWindow::viewType()
@@ -186,7 +242,7 @@ void GoofyWindow::viewType()
     {
       if(!dialog->selected().isEmpty())
         {
-          int sort = lookup_type(dialog->selected());
+            int sort = lookup_type((dialog->selected()).toStdString());
           if(sort != -1)
             {
               DagView *dagview = new DagView(type_dag(sort)
@@ -199,7 +255,7 @@ void GoofyWindow::viewType()
 
 type_t lookup_instance(string name) {
   if (name[0] != '$') { name = "$" + name; }
-  return lookup_type(name.c_str());
+  return lookup_type(name);
 }
 
 void GoofyWindow::viewInstance()
@@ -212,7 +268,7 @@ void GoofyWindow::viewInstance()
         {
           // _fix_me_ we maybe have to massage the string dialog->selected()
           // to start with a '$' sign ??
-          int sort = lookup_instance(dialog->selected().latin1());
+          int sort = lookup_instance(dialog->selected().toStdString());
           if(sort != -1)
             {
               DagView *dagview = new DagView(type_dag(sort)
@@ -260,7 +316,7 @@ void GoofyWindow::viewRule()
     {
       if(!dialog->selected().isEmpty())
         {
-          int sort = lookup_instance(dialog->selected().latin1());
+          int sort = lookup_instance(dialog->selected().toStdString());
           if(sort != -1)
             {
               DagView *dagview = new DagView(type_dag(sort), dialog->selected());
@@ -328,17 +384,17 @@ void GoofyWindow::not_implemented()
 
 void GoofyWindow::set_menu_state(bool f)
 {
-  mView->setItemEnabled(id_ViewType, f);
-  mView->setItemEnabled(id_ViewLexentry, f);
-  mView->setItemEnabled(id_ViewRule, f);
+  viewTypeAction->setEnabled(f);
+  viewLexentryAction->setEnabled(f);
+  viewRuleAction->setEnabled(f);
 
-  mParse->setItemEnabled(id_ParseInput, f);
-  mParse->setItemEnabled(id_ParseFile, f);
+  parseInputAction->setEnabled(f);
+  parseFileAction->setEnabled(f);
 }
 
 void GoofyWindow::data_received(int fd)
 {
-  if(flop_stat_stream->eof())
+  if(flop_stat_stream->atEnd())
     {
       flop_stat_sn->setEnabled(false);
     }
@@ -351,68 +407,68 @@ void GoofyWindow::data_received(int fd)
 
 void GoofyWindow::preprocess_grammar(const char *fn)
 {
-  pid_t pid;
-  int pipe_stat[2], pipe_err[2];
-  QFile *file_stat, *file_err;
+  //pid_t pid;
+  //int pipe_stat[2], pipe_err[2];
+  //QFile *file_stat, *file_err;
 
-  if(flop_stat_stream) 
-    delete flop_stat_stream;
+  //if(flop_stat_stream) 
+  //  delete flop_stat_stream;
 
-  if(flop_err_stream) 
-    delete flop_err_stream;
+  //if(flop_err_stream) 
+  //  delete flop_err_stream;
 
-  if(flop_stat_sn)
-    delete flop_stat_sn;
+  //if(flop_stat_sn)
+  //  delete flop_stat_sn;
 
-  if(::pipe(pipe_stat) < 0)
-    throw tError("cannot pipe()");
+  //if(::pipe(pipe_stat) < 0)
+  //  throw tError("cannot pipe()");
 
-  if(::pipe(pipe_err) < 0)
-    throw tError("cannot pipe()");
+  //if(::pipe(pipe_err) < 0)
+  //  throw tError("cannot pipe()");
 
-  if((pid = ::fork()) < 0)
-    {
-      throw tError("cannot fork()");
-    }
-  else if(pid == 0) // child
-    {
-      if(pipe_stat[1] != 2)
-        ::dup2(pipe_stat[1], 2);
+  //if((pid = ::fork()) < 0)
+  //  {
+  //    throw tError("cannot fork()");
+  //  }
+  //else if(pid == 0) // child
+  //  {
+  //    if(pipe_stat[1] != 2)
+  //      ::dup2(pipe_stat[1], 2);
 
-      for(int i = _POSIX_OPEN_MAX; i >= 0; i--)
-        if(i != 2 && i != pipe_err[1])
-          ::close(i);
+  //    for(int i = _POSIX_OPEN_MAX; i >= 0; i--)
+  //      if(i != 2 && i != pipe_err[1])
+  //        ::close(i);
 
-      QString arg1;
-      arg1.sprintf("-errors-to=%d", pipe_err[1]);
+  //    QString arg1;
+  //    arg1.sprintf("-errors-to=%d", pipe_err[1]);
 
-      if(::execlp("flop", "flop", arg1.ascii(), fn,  0) == -1)
-        {
-          exit(1);
-        }
-    }
-  else // parent
-    {
-      ::close(pipe_stat[1]);
-      ::close(pipe_err[1]);
+  //    if(::execlp("flop", "flop", arg1.ascii(), fn,  0) == -1)
+  //      {
+  //        exit(1);
+  //      }
+  //  }
+  //else // parent
+  //  {
+  //    ::close(pipe_stat[1]);
+  //    ::close(pipe_err[1]);
 
-      file_stat = new QFile();
-      file_err = new QFile();
+  //    file_stat = new QFile();
+  //    file_err = new QFile();
 
-      file_stat->open(IO_ReadOnly, pipe_stat[0]);
-      file_err->open(IO_ReadOnly, pipe_err[0]);
+  //    file_stat->open(QIODevice::ReadOnly, pipe_stat[0]);
+  //    file_err->open(QIODevice::ReadOnly, pipe_err[0]);
 
-      flop_stat_sn = new QSocketNotifier(pipe_stat[0], QSocketNotifier::Read);
+  //    flop_stat_sn = new QSocketNotifier(pipe_stat[0], QSocketNotifier::Read);
 
-      QObject::connect(flop_stat_sn,SIGNAL(activated(int)),
-                       this, SLOT(data_received(int)));
+  //    QObject::connect(flop_stat_sn,SIGNAL(activated(int)),
+  //                     this, SLOT(data_received(int)));
 
-      flop_stat_stream = new QTextStream(file_stat);
-      flop_err_stream = new QTextStream(file_err);
+  //    flop_stat_stream = new QTextStream(file_stat);
+  //    flop_err_stream = new QTextStream(file_err);
 
-      //      if(::waitpid(pid, &status, 0) == pid)
-      //        fprintf(stderr, "got child exit status\n");
-    }
+  //    //      if(::waitpid(pid, &status, 0) == pid)
+  //    //        fprintf(stderr, "got child exit status\n");
+  //  }
 }
 
 void GoofyWindow::load_grammar(const char *fn)
@@ -423,7 +479,7 @@ void GoofyWindow::load_grammar(const char *fn)
     delete cheap_settings;
 
   try {
-    cheap_settings = new settings("cheap", fn);
+    cheap_settings = new settings(raw_name(fn), fn, "reading");
     G = new tGrammar( fn );
   }
 
@@ -439,7 +495,7 @@ void GoofyWindow::load_grammar(const char *fn)
 
   Grammar = G;
 
-  setCaption( fn );
+  setWindowTitle( fn );
   set_menu_state(true);
 
   for(int i = 0; i < nstatictypes; i++)
@@ -454,26 +510,29 @@ void GoofyWindow::load_grammar(const char *fn)
     }
   _sort_names.sort();
   */
-  for(rule_iter rules(Grammar); rules.valid(); rules++)
+  ruleiter iter_end = Grammar->rules().end();
+  for(ruleiter iter = Grammar->rules().begin(); iter != iter_end; ++iter)
     {
-      _rule_names.append(QString(rules.current()->printname()));
+        grammar_rule* r = *iter;
+      _rule_names.append(QString(r->printname()));
     }
+
   _rule_names.sort();
 
   QString s;
   s.sprintf( "Loaded `%s'", fn );
 
-  statusBar()->message(s);  
+  statusBar()->showMessage(s);  
 }
 
 // StringSelDialog
 
 StringSelDialog::StringSelDialog(const QStringList &L, const QString &what) 
-  : QDialog(0, "string chooser", true, WStyle_Title), _selected()
+  : QDialog(0, 0), _selected()
 {
-  _list_box = new QListBox(this);
+  _list_box = new QListWidget(this);
 
-  _list_box->insertStringList(L);
+  _list_box->insertItems(0, L);
 
   QPushButton *okbutton = new QPushButton("OK", this);
   QObject::connect(okbutton, SIGNAL(clicked()), this, SLOT(accept()));
@@ -481,22 +540,26 @@ StringSelDialog::StringSelDialog(const QStringList &L, const QString &what)
   QPushButton *cancelbutton = new QPushButton("Cancel", this);
   QObject::connect(cancelbutton, SIGNAL(clicked()), this, SLOT(reject()));
 
-  QVBoxLayout *vbox1 = new QVBoxLayout(this, 5);
+  QVBoxLayout *vbox1 = new QVBoxLayout();
+  vbox1->setContentsMargins(5, 5, 5, 5);
   vbox1->addWidget(_list_box);
   
-  QHBoxLayout *hbox1 = new QHBoxLayout(vbox1, 5);
+  QHBoxLayout *hbox1 = new QHBoxLayout();
+  hbox1->setContentsMargins(5, 5, 5, 5);
   hbox1->addWidget(okbutton);
   hbox1->addWidget(cancelbutton);
+  vbox1->addLayout(hbox1);
+  this->setLayout(vbox1);
   
   QObject::connect(_list_box, SIGNAL(highlighted(const QString &)), this, SLOT(setselected(const QString &)));
 
-  setCaption("Select " + what);
+  setWindowTitle("Select " + what);
 }
 
 // StringInputDialog
 
 StringInputDialog::StringInputDialog(const QString &what) 
-  : QDialog(0, "string chooser", true, WStyle_Title), _sel()
+  : QDialog(0, 0), _sel()
 {
   _edit = new QLineEdit(this);
 
@@ -506,72 +569,67 @@ StringInputDialog::StringInputDialog(const QString &what)
   QPushButton *cancelbutton = new QPushButton("Cancel", this);
   QObject::connect(cancelbutton, SIGNAL(clicked()), this, SLOT(reject()));
 
-  QVBoxLayout *vbox1 = new QVBoxLayout(this, 5);
+  QVBoxLayout *vbox1 = new QVBoxLayout();
+  vbox1->setContentsMargins(5, 5, 5, 5);
   vbox1->addWidget(_edit);
   
-  QHBoxLayout *hbox1 = new QHBoxLayout(vbox1, 5);
+  QHBoxLayout *hbox1 = new QHBoxLayout();
   hbox1->addWidget(okbutton);
   hbox1->addWidget(cancelbutton);
+  vbox1->addLayout(hbox1);
+  this->setLayout(vbox1);
   
-  setCaption("Input " + what);
+  setWindowTitle("Input " + what);
 }
 
-// TFS Tool Tips
-
-TFSTip::TFSTip(TFSView *parent)
-  : QToolTip(parent)
-{
-  _tfsview = parent;
-}
-
-void TFSTip::maybeTip(const QPoint &p)
-{
-  TFSViewItem *it = dynamic_cast<TFSViewItem*>(_tfsview->itemAt(p));
-  if(it)
-    {
-      QString s = it->tip();
-      
-      tip(_tfsview->itemRect(it), s);
-    }
-}
+//void TFSTip::maybeTip(const QPoint &p)
+//{
+//  TFSViewItem *it = dynamic_cast<TFSViewItem*>(_tfsview->itemAt(p));
+//  if(it)
+//    {
+//      QString s = it->tip();
+//      
+//      tip(_tfsview->itemRect(it), s);
+//    }
+//}
 
 // TFSDrag
 
-TFSDrag::TFSDrag(dag_node *dag, QWidget *parent, const char *name)
-  : QStoredDrag("dag/cheap", parent, name )
-{
-  QByteArray data;
-  QDataStream s(data, IO_WriteOnly);
+//TFSDrag::TFSDrag(dag_node *dag, QWidget *parent, const char *name)
+//  : QStoredDrag("dag/cheap", parent, name )
+//{
+//  QByteArray data;
+//  QDataStream s(data, QIODevice::WriteOnly);
+//
+//  s << qApp->sessionId();
+//  s << (int) dag;
+//  
+//  setEncodedData( data );
+//}
 
-  s << qApp->sessionId();
-  s << (int) dag;
-  
-  setEncodedData( data );
-}
-
-bool TFSDrag::canDecode(QDropEvent* e)
-{
-  return e->provides("dag/cheap");
-}
-
-bool TFSDrag::decode(QDropEvent* e, dag_node *&dag )
-{
-  QByteArray payload = e->data("dag/cheap");
-  QDataStream s(payload, IO_ReadOnly);
-
-  QString sess; s >> sess;
-  int addr; s >> addr;
-
-  if(sess == qApp->sessionId())
-    {
-      dag = (dag_node *) addr;
-      e->accept();
-      return TRUE;
-    }
-
-  return FALSE;
-}
-
+//bool TFSDrag::canDecode(QDropEvent* e)
+//{
+//  return e->provides("dag/cheap");
+//}
+//
+//bool TFSDrag::decode(QDropEvent* e, dag_node *&dag )
+//{
+//  QByteArray payload = e->data("dag/cheap");
+//  QDataStream s(payload, QIODevice::ReadOnly);
+//
+//  QString sess; s >> sess;
+//  int addr; s >> addr;
+//
+//  if(sess == qApp->sessionId())
+//    {
+//      dag = (dag_node *) addr;
+//      e->accept();
+//      return TRUE;
+//    }
+//
+//  return FALSE;
+//}
+//
 QString path_string(list_int *p)
 {
   QString s;
@@ -580,18 +638,19 @@ QString path_string(list_int *p)
   while(p)
     {
       if(!f) s.append("."); else f = false;
-      s.append(attrname[first(p)]);
+      s.append(QString::fromStdString(attrname[first(p)]));
       p = rest(p);
     }
 
   return s;
 }
 
+#if 0
 // TFSViewItems
 
 int TFSViewItem::_next_id = 0;
 
-TFSViewItem::TFSViewItem(QListView *parent, TFSViewItem *after
+TFSViewItem::TFSViewItem(QListWidget *parent, TFSViewItem *after
                          , dag_node *dag, dag_node *root
                          , int tag, int sort)
   : QListViewItem(parent, after), _s_attr(), _s_tag(), _s_sort()
@@ -666,8 +725,8 @@ void TFSViewItem::setup_text()
 
   if(_attr >= 0)
     {
-      _s_attr = QString(attrname[_attr]);
-      _w_attr = fm.boundingRect(0, 0, 10000, fm.height(), AlignVCenter, _s_attr).width();
+        _s_attr = QString::fromStdString(attrname[_attr]);
+      _w_attr = fm.boundingRect(0, 0, 10000, fm.height(), Qt::AlignVCenter, _s_attr).width();
       _w_total += _w_attr + _w_inter;
     }
 
@@ -682,7 +741,7 @@ void TFSViewItem::setup_text()
           _w_total += _w_inter;
         }
       
-      _w_tag = fm.boundingRect(0, 0, 10000, fm.height(), AlignVCenter, _s_tag).width();
+      _w_tag = fm.boundingRect(0, 0, 10000, fm.height(), Qt::AlignVCenter, _s_tag).width();
       _w_total += _w_tag;
     }
   
@@ -692,11 +751,11 @@ void TFSViewItem::setup_text()
         _s_sort = QString("(failed)");
       else if(_failure)
         {
-          if(_failure->type() == unification_failure::CLASH)
+          if(_failure->type() == failure::CLASH)
             _s_sort = QString("(sort clash)");
-          else if(_failure->type() == unification_failure::CONSTRAINT)
+          else if(_failure->type() == failure::CONSTRAINT)
             _s_sort = QString("(constraint clash)");
-          else if(_failure->type() == unification_failure::CYCLE)
+          else if(_failure->type() == failure::CYCLE)
             _s_sort = QString("(cycle)");
           else
             _s_sort = QString("(failed)");
@@ -704,7 +763,7 @@ void TFSViewItem::setup_text()
       else
         _s_sort = QString(type_name(_sort));
 
-      _w_sort = fm.boundingRect(0, 0, 10000, fm.height(), AlignVCenter, _s_sort).width();
+      _w_sort = fm.boundingRect(0, 0, 10000, fm.height(), Qt::AlignVCenter, _s_sort).width();
       _w_total += _w_sort;
     }
 
@@ -749,17 +808,16 @@ void TFSViewItem::popup(const QPoint &pos)
 
   if(!_popupmenu)
     {
-      _popupmenu = new QPopupMenu();
+      _popupmenu = new QMenu();
 
-      connect(_popupmenu, SIGNAL(activated(int)), this, SLOT(goto_coref(int)));
+      QObject::connect(_popupmenu, SIGNAL(activated(int)), this, SLOT(goto_coref(int)));
 
       TFSViewItem *def = _tfs->coref(_tag);
-      int i = 0;
-      _popupmenu->insertItem(path_string(def->path()), i++);
-      _popupmenu->insertSeparator();
+      _popupmenu->addAction(path_string(def->path()));
+      _popupmenu->addSeparator();
       while((def = def->next_coref()))
         {
-          _popupmenu->insertItem(path_string(def->path()), i++);
+          _popupmenu->addAction(path_string(def->path()));
         }
     }
 
@@ -797,13 +855,13 @@ QString TFSViewItem::tip()
       s.append(": ");
       switch(_failure->type())
         {
-        case unification_failure::CLASH:
+        case failure::CLASH:
           s.append("clash ");
           s.append(type_name(_failure->s1()));
           s.append(" & ");
           s.append(type_name(_failure->s2()));
           break;
-        case unification_failure::CYCLE:
+        case failure::CYCLE:
           {
             s.append("cycle");
 
@@ -820,7 +878,7 @@ QString TFSViewItem::tip()
             
             break;
           }
-        case unification_failure::CONSTRAINT:
+        case failure::CONSTRAINT:
           {
             s.append("constraint clash (");
             int meet = glb(_failure->s1(), _failure->s2());
@@ -837,7 +895,7 @@ QString TFSViewItem::tip()
   return s;
 }
 
-void TFSViewItem::set_failure(unification_failure *f)
+void TFSViewItem::set_failure(failure *f)
 {
   _failure = f;
   setup_text();
@@ -893,19 +951,19 @@ void TFSViewItem::paintCell(QPainter *p, const QColorGroup &cg, int column, int 
   if(_w_attr > 0)
     {
       p->drawText( marg, 0,
-                   _w_attr, height(), AlignVCenter, _s_attr);
+                   _w_attr, height(), Qt::AlignVCenter, _s_attr);
     }
 
   if(_w_tag > 0)
     {
       p->drawText( marg + _w_attr + (_w_attr ? _w_inter : 0), 0,
-                   _w_tag, height(), AlignVCenter, _s_tag);
+                   _w_tag, height(), Qt::AlignVCenter, _s_tag);
     }
 
   if(_w_sort > 0)
     {
       p->drawText( marg + _w_attr + (_w_attr ? _w_inter : 0) + _w_tag + (_w_tag ? _w_inter : 0), 0,
-                   _w_sort, height(), AlignVCenter, _s_sort);
+                   _w_sort, height(), Qt::AlignVCenter, _s_sort);
     }
 }
 
@@ -922,16 +980,17 @@ int TFSViewItem::width(const QFontMetrics &fm, const QListView *lv, int c) const
 {
   return _w_total;
 }
+#endif
 
 // TFSView
 
 TFSView::TFSView(QWidget * parent, bool failure, const char * name)
-  : QListView(parent, name), oldCurrent(0), dropItem(0), autoopen_timer(this), autoscroll_timer(this)
+  : QListView(parent), oldCurrent(0), /*dropItem(0), */autoopen_timer(this), autoscroll_timer(this)
 {
   _failure = failure;
 
   _ncorefs = _corefs_alloc = 0;
-  _corefs = 0;
+//  _corefs = 0;
 
   if(!_failure)
     {
@@ -939,7 +998,6 @@ TFSView::TFSView(QWidget * parent, bool failure, const char * name)
       viewport()->setAcceptDrops(true);
     }
 
-  _tip = new TFSTip(this);
 
   connect(&autoopen_timer, SIGNAL(timeout()), this, SLOT(openBranch()));
   connect(&autoscroll_timer, SIGNAL(timeout()), this, SLOT(autoScroll()));
@@ -949,6 +1007,7 @@ TFSView::~TFSView()
 {
 }
 
+#if 0
 void TFSView::new_coref(int tag, TFSViewItem *item)
 {
   assert(tag >= 0);
@@ -1006,20 +1065,22 @@ TFSViewItem *TFSView::path_value(list_int *path)
 
   return v;
 }
-
+#endif
 void TFSView::openBranch()
 {
   autoopen_timer.stop();
-  
+#if 0  
   if(dropItem && !dropItem->isOpen())
     {
       dropItem->setOpen(TRUE);
       dropItem->repaint();
     }
+#endif
 }
 
 static const int autoopenTime = 750;
 
+#if 0
 void TFSView::contentsDragEnterEvent( QDragEnterEvent *e )
 {
   if(!TFSDrag::canDecode(e))
@@ -1037,7 +1098,7 @@ void TFSView::contentsDragEnterEvent( QDragEnterEvent *e )
         autoopen_timer.start(autoopenTime);
       }
 }
-
+#endif
 static const int autoscroll_margin = 16;
 static const int initialScrollTime = 30;
 static const int initialScrollAccel = 5;
@@ -1068,25 +1129,25 @@ void TFSView::autoScroll()
       autoscroll_timer.start(autoscroll_time);
     }
 
-  int l = QMAX(1,(initialScrollTime-autoscroll_time));
+  int l = std::max<int>(1,(initialScrollTime-autoscroll_time));
   int dx = 0,dy = 0;
 
   if(p.y() < autoscroll_margin)
     dy = -l;
-  else if (p.y() > visibleHeight()-autoscroll_margin)
+  else if (p.y() > height()-autoscroll_margin)
     dy = +l;
   
   if(p.x() < autoscroll_margin)
     dx = -l;
-  else if (p.x() > visibleWidth()-autoscroll_margin)
+  else if (p.x() > width()-autoscroll_margin)
     dx = +l;
   
   if(dx||dy)
-    scrollBy(dx,dy);
+    scroll(dx,dy);
   else
     stopAutoScroll();
 }
-
+#if 0
 void TFSView::contentsDragMoveEvent( QDragMoveEvent *e )
 {
   if(!TFSDrag::canDecode(e))
@@ -1140,15 +1201,16 @@ void TFSView::contentsDragMoveEvent( QDragMoveEvent *e )
       dropItem = 0L;
     }
 }
-
+#endif
 void TFSView::contentsDragLeaveEvent( QDragLeaveEvent *e )
 {
   autoopen_timer.stop();
   stopAutoScroll();
+#if 0
   dropItem = 0L;
-
   setCurrentItem(oldCurrent);
   setSelected(oldCurrent, TRUE);
+#endif
 }
 
 void TFSView::do_unification(dag_node *root, dag_node *a, dag_node *b, list_int *p)
@@ -1167,7 +1229,7 @@ void TFSView::do_unification(dag_node *root, dag_node *a, dag_node *b, list_int 
       dag_alloc_release(s);
 
       dag_node *result = root;
-      list<unification_failure *> fails = dag_unify_get_failures(a, b, true, p, &result);
+      list<failure *> fails = dag_unify_get_failures(a, b, true, p, &result);
 
       DagView *dagview = new DagView(result, fails);
       dagview->show();
@@ -1178,7 +1240,7 @@ void TFSView::do_unification(dag_node *root, dag_node *a, dag_node *b, list_int 
       dagview->show();
     }
 }
-
+#if 0
 void TFSView::contentsDropEvent( QDropEvent * e )
 {
   autoopen_timer.stop();
@@ -1213,7 +1275,7 @@ void TFSView::contentsDropEvent( QDropEvent * e )
 
 void TFSView::contentsMousePressEvent(QMouseEvent* e)
 {
-  if(e->button() == RightButton)
+  if(e->button() == Qt::RightButton)
     {
       TFSViewItem *item = dynamic_cast<TFSViewItem *> (itemAt(contentsToViewport(e->pos())));
       if (item)
@@ -1244,9 +1306,11 @@ void TFSView::contentsMouseMoveEvent(QMouseEvent* e)
         }
     }
 }
+#endif
 
 static int crefnr;
 
+#if 0
 TFSViewItem *dag_make_listview(TFSView *tfs, TFSViewItem *parent, TFSViewItem *after, int attr,
                                dag_node *dag, dag_node *root)
 {
@@ -1332,78 +1396,87 @@ TFSViewItem *dag_make_listview(TFSView *tfs, TFSViewItem *parent, TFSViewItem *a
 
   return item;
 }
-
+#endif
 // DagView Dialog
 
 DagView::DagView(dag_node *dag, QString caption)
-  : QDialog(0, "dag viewer", false)
+  : QDialog(0)
 {
   _dag = dag;
 
   _tfs = new TFSView(this, false);
-  
+#if 0
   _tfs->addColumn("");
   _tfs->setColumnWidthMode(0, QListView::Maximum);
   _tfs->header()->hide();
   _tfs->setSorting(-1);
   _tfs->setRootIsDecorated(true);
   _tfs->setItemMargin(2);
+#endif
 
   dag_mark_coreferences(dag); crefnr = 1;
+#if 0
   dag_make_listview(_tfs, 0, 0, -1, dag, dag);
+#endif
   dag_invalidate_changes();
 
-  QVBoxLayout *vbox1 = new QVBoxLayout(this, 5, 5);
+  QVBoxLayout *vbox1 = new QVBoxLayout(this);
+  vbox1->setContentsMargins(5, 5, 5, 5);
+
   vbox1->addWidget(_tfs);
   _tfs -> show();
 
-  setCaption( caption );
+  setWindowTitle( caption );
 }
 
-void dag_mark_failure(TFSView *tfs, unification_failure *failure)
+void dag_mark_failure(TFSView *tfs, failure *fail)
 {
-  TFSViewItem *it = tfs->path_value(failure->path());
+#if 0
+    TFSViewItem *it = tfs->path_value(fail->path());
 
   if(it)
-    it -> set_failure(failure);
+    it -> set_failure(fail);
   else
     {
-      fprintf(ferr, "cannot display ");
-      failure->print(ferr);
-      fprintf(ferr, "\n");
+        std::cerr << "cannot display ";
+        fail->print(std::cerr);
+        std::cerr << std::endl;
     }
+#endif
 }
 
-DagView::DagView(dag_node *dag, list<unification_failure *> fails)
-  : QDialog(0, "dag viewer", false)
+DagView::DagView(dag_node *dag, list<failure *> fails)
+  : QDialog(0, 0)
 {
   _dag = dag;
   
   _tfs = new TFSView(this, true);
-  
+#if 0  
   _tfs->addColumn("");
   _tfs->setColumnWidthMode(0, QListView::Maximum);
   _tfs->header()->hide();
   _tfs->setSorting(-1);
   _tfs->setRootIsDecorated(true);
   _tfs->setItemMargin(2);
-
+#endif
   if(dag != FAIL)
     dag_mark_coreferences(dag);
   
   crefnr = 1;
+#if 0
   dag_make_listview(_tfs, 0, 0, -1, dag, dag);
-  
+#endif
   dag_invalidate_changes();
 
-  for(list<unification_failure *>::iterator failure = fails.begin()
+  for(list<failure *>::iterator failure = fails.begin()
         ; failure != fails.end(); failure++)
     dag_mark_failure(_tfs, *failure);
 
-  QVBoxLayout *vbox1 = new QVBoxLayout(this, 5, 5);
+  QVBoxLayout *vbox1 = new QVBoxLayout(this);
+  vbox1->setContentsMargins(5, 5, 5, 5);
   vbox1->addWidget(_tfs);
   _tfs -> show();
 
-  setCaption("Failure Viewer");
+  setWindowTitle("Failure Viewer");
 }
 

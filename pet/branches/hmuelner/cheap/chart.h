@@ -154,7 +154,7 @@ public:
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return _curr != _LI.end();
   }
 
@@ -233,7 +233,7 @@ public:
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return _curr != _LI.end();
   }
 
@@ -325,7 +325,7 @@ public:
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return _curr != _LI.end();
   }
 
@@ -364,9 +364,9 @@ public:
   /** Increase iterator */
   inline chart_iter_adj_active &operator++() {
     ++_curr;
-    if(_at_start && _curr == _LI_start.end())
+    if(_at_start && _curr == _LI_start.end()) {
       overflow();
-
+    }
     return *this;
   }
 
@@ -378,7 +378,7 @@ public:
       }
       if (_at_start) {
           return true;
-      } 
+      }
       return _curr != _LI_end.end();
   }
 
