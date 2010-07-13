@@ -35,12 +35,15 @@
 #ifdef HAVE_XML
 #include "pic-tokenizer.h"
 #include "smaf-tokenizer.h"
+#include "fsc-tokenizer.h"
 #endif
 #include "item-printer.h"
 #include "version.h"
 #include "mrs.h"
+#include "mrs-printer.h"
 #include "vpm.h"
 #include "qc.h"
+#include "pcfg.h"
 #include "configs.h"
 #include "options.h"
 #include "settings.h"
@@ -58,6 +61,9 @@
 #endif
 #ifdef HAVE_PREPROC
 #include "eclpreprocessor.h"
+#endif
+#ifdef HAVE_XMLRPC_C
+#include "server-xmlrpc.h"
 #endif
 
 #include <fstream>
@@ -287,8 +293,11 @@ void interactive() {
               fprintf(fstatus, "\n");
             }
 #ifdef HAVE_MRS
-            if(opt_mrs && (strcmp(opt_mrs, "new") != 0)) {
+          if (opt_mrs && 
+             ((strcmp(opt_mrs, "new") != 0) &&
+              (strcmp(opt_mrs, "simple") != 0))) {
               string mrs;
+            if(it->trait() != PCFG_TRAIT)
               mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
               if (mrs.empty()) {
                 fprintf(fstatus, "\n%s\n",
@@ -300,13 +309,24 @@ void interactive() {
               }
             }
 #endif
-            if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
-              mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
+          if (opt_mrs && 
+              ((strcmp(opt_mrs, "new") == 0) ||
+               (strcmp(opt_mrs, "simple") == 0))) {
+            fs f = it->get_fs();
+            // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
+            mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
               if (mrs->valid()) {
                 mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
                 if (mapped_mrs->valid()) {
                   std::cerr << std::endl;
-                  mapped_mrs->print(cerr);
+                if (strcmp(opt_mrs, "new") == 0) {
+                  MrxMRSPrinter ptr(cerr);
+                  ptr.print(mapped_mrs);
+                } else if (strcmp(opt_mrs, "simple") == 0) {
+                  SimpleMRSPrinter ptr(cerr);
+                  ptr.print(mapped_mrs);
+                }
+                //                mapped_mrs->print_simple(cerr);
                   std::cerr << std::endl;
                 }
                 delete mapped_mrs;
@@ -440,6 +460,20 @@ void cleanup() {
 void process(const char *s) {
   timer t_start;
 
+  // initialize the server mode if requested:
+#if defined(YY) && defined(SOCKET_INTERFACE)
+  if(get_opt_int("opt_server") != 0) {
+    if(cheap_server_initialize(get_opt_int("opt_server")))
+      exit(1);
+  }
+#endif
+#if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
+  std::auto_ptr<tXMLRPCServer> server;
+  if(get_opt_int("opt_server") != 0) {
+    server = std::auto_ptr<tXMLRPCServer>(new tXMLRPCServer(get_opt_int("opt_server")));
+  }
+#endif
+
   try {
     cheap_settings = new settings(raw_name(s), s, "reading");
     LOG(logAppl, INFO, "loading `" << s << "' ");
@@ -531,6 +565,17 @@ void process(const char *s) {
       exit(1);
 #endif
 
+    case TOKENIZER_FSC:
+#ifdef HAVE_XML
+      xml_initialize();
+      XMLServices = true;
+      tok = new tFSCTokenizer();
+      break;
+#else
+      LOG(logAppl, FATAL, "No XML support compiled into this cheap.");
+      exit(1);
+#endif
+
     case TOKENIZER_INVALID:
       //LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
       //    <<"\": using 'tok=string'");
@@ -588,6 +633,11 @@ void process(const char *s) {
     if(get_opt_int("opt_server") != 0)
       cheap_server(get_opt_int("opt_server"));
     else
+#endif
+#if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
+    if (get_opt_int("opt_server") != 0) {
+      server->run();
+    } else
 #endif
 #ifdef TSDBAPI
       if(get_opt_int("opt_tsdb"))

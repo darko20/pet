@@ -1,26 +1,26 @@
 /* -*- Mode: C++ -*-
-* PET
-* Platform for Experimentation with efficient HPSG processing Techniques
-* (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
-*
-*   This program is free software; you can redistribute it and/or
-*   modify it under the terms of the GNU Lesser General Public
-*   License as published by the Free Software Foundation; either
-*   version 2.1 of the License, or (at your option) any later version.
-*
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-*   Lesser General Public License for more details.
-*
-*   You should have received a copy of the GNU Lesser General Public
-*   License along with this library; if not, write to the Free Software
-*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
+ * PET
+ * Platform for Experimentation with efficient HPSG processing Techniques
+ * (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
+ *
+ *   This program is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
 /** \file item.h
-* Chart item hierarchy.
-*/
+ * Chart item hierarchy.
+ */
 
 #ifndef _ITEM_H_
 #define _ITEM_H_
@@ -28,6 +28,7 @@
 #include <limits.h>
 #include "list-int.h"
 #include "fs.h"
+#include "fs-chart.h"
 #include "grammar.h"
 #include "paths.h"
 #include "postags.h"
@@ -145,6 +146,15 @@ public:
   */
   tItem(int start, int end, const tPaths &paths, const fs &f,
     const char *printname);
+
+  /** Base constructor without feature structure
+   * \param start start position in the chart
+   * \param end start position in the chart
+   * \param paths the set of word graph paths this item belongs to
+   * \param printname a readable representation of this item
+   */
+  tItem(int start, int end, const tPaths &paths, 
+        const char *printname);
 
   virtual ~tItem();
 
@@ -272,6 +282,27 @@ public:
     return true;
   }
 
+  /** Compatibility test of a passive item and a PCFG rules */
+  inline bool compatible_pcfg(grammar_rule *pcfg_rule, int length) {
+    int arity = pcfg_rule->arity();
+    if (pcfg_rule->nth_pcfg_arg(1) != identity()) 
+        return false;
+    return _end + arity - 1 <= length;
+  }
+  
+  /** Compatibility test of a passive and an active item */
+  inline bool compatible_pcfg(tItem* active, int length) {
+    
+    if ((_trait == INPUT_TRAIT) || !inflrs_complete_p())
+      return false;
+
+    // TODO more tricks to be done here?
+    if (active->nextarg_pcfg() != identity())
+      return false;
+    int arity = active->arity();
+    return _end + arity - 1 <= length;
+  }
+  
   /** Does this active item extend to the left or right?
   *  \pre assumes \c this is an active item.
   *  \todo Remove the current restriction to binary rules. 
@@ -300,6 +331,12 @@ public:
   inline bool root(tGrammar* G, int length, type_t &rule) const
   {
     if(inflrs_complete_p() && (_start == 0) && (_end == length))
+      if(_trait == PCFG_TRAIT) {
+        bool result = G->root(identity());
+        if(result) rule = identity();
+        return result;
+      }
+      else
       return G->root(_fs, rule);
     else
       return false;
@@ -323,6 +360,9 @@ public:
   *  the next argument to be filled.
   */
   inline fs nextarg(fs &f) const { return f.nth_arg(nextarg()); }
+  /** Return the next PCFG argument */
+  inline type_t nextarg_pcfg() { return rule()->nth_pcfg_arg(first(_tofill)); }
+
   /** Return the yet to fill arguments of this item, except for the current
   *  one 
   */
@@ -391,15 +431,23 @@ public:
   /** Set the score for this item to \a score */
   void score(double score) { _score = score; }
 
+  /** Return the GM score for this item */
+  double gmscore() const { return _gmscore; }
+
+  /** Set the GM score for this item to \a score */
+  void gmscore(double gmscore) { _gmscore = gmscore; }
+
   /** @name Blocking Functions
   * Functions used to block items for packing.
   * See Oepen & Carroll 2000
   */
   /*@{*/
-  /** Mark an item as temporarily blocked and freeze all its parents. */
-  inline void frost() { block(1); }
-  /** Mark an item as permanently blocked and freeze all its parents. */
-  inline void freeze() { block(2); }
+  /** Mark an item as temporarily blocked and optionally freeze all its parents.
+   */
+  inline void frost(bool freeze_parents = true) { block(1, freeze_parents); }
+  /** Mark an item as permanently blocked and optionally freeze all its parents.
+   */
+  inline void freeze(bool freeze_parents = true) { block(2, freeze_parents); }
   /** \c true if an item is marked as blocked. */
   inline int blocked() const { return _blocked; }
   /** \c true if an item is marked as temporarily blocked. */
@@ -426,7 +474,8 @@ public:
   *
   *  \return the list of items represented by the list of \a roots
   */
-  static item_list selectively_unpack(item_list roots, int n, int end, int upedgelimit);
+  static item_list selectively_unpack(item_list roots, int n, int end,
+      int upedgelimit, long memlimit);
 
   /** Return a meaningful external name. */
   inline const char *printname() const { return _printname.c_str(); }
@@ -436,6 +485,10 @@ public:
 
   /** Return true if the given edge is a descendent of current edge */
   bool contains_p(const tItem *) const ;
+
+  /** Return true if packing current item into \a it will create a
+      cycle in the packed forest */
+  bool cyclic_p(const tItem *it) const ;
 
   /** compare two items for linear precendece; used to sort YY tokens */
   struct precedes 
@@ -472,15 +525,19 @@ protected:
   *
   *  \return the instantiated item from the hypothesis
   */
-  virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit) = 0;
+  virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit, long memlimit) = 0;
 
 private:
   tItem(); // default constructor not defined
   tItem(const tItem&); // copy constructor not defined
   tItem& operator=(const tItem&); // assignment not defined
 
-  // Internal function for packing/frosting
-  void block(int mark);
+  /**
+   * Internal function for frosting/freezing
+   * @param mark 1=frost, 2=freeze
+   * @param freeze_parents frost/freeze all parents of this item
+   */
+  void block(int mark, bool freeze_parents);
 
   static item_owner *_default_owner;
 
@@ -530,6 +587,7 @@ private:
   qc_vec _qc_vector_subs;
 
   double _score;
+  double _gmscore;
 
   const std::string _printname;
 
@@ -552,6 +610,42 @@ public:
   friend class tPhrasalItem;
 
   friend class tAbstractItemPrinter;
+
+  /**
+   * \name Generalized chart interface
+   * At the moment, tItem objects can be added to the old chart implementation
+   * or to the new generalised tChart. The start(), end(), startposition()
+   * and endposition() methods as well as the corresponding parameters in the
+   * constructors of tItem and its derived classes refer to the old chart
+   * implementation. If you want to use tItem objects with the new tChart,
+   * you have to use the following methods instead. The tChart implementation
+   * will eventually replace the old chart implementation.
+   * \see tChart::add_item()
+   */
+  //@{
+private:
+  /**
+   * Pointer to the tChart object to which this item has been added,
+   * otherwise 0.
+   */
+  tChart *_chart;
+  /**
+   * Informs this item that it has been added to or removed from the specified
+   * chart. This method is meant to be called by the chart itself.
+   */
+  void notify_chart_changed(tChart *chart);
+public:
+  /** Gets the vertex preceding this item. */
+  tChartVertex* prec_vertex();
+  /** Gets the vertex preceding this item. */
+  const tChartVertex* prec_vertex() const;
+  /** Gets the vertex succeeding this item. */
+  tChartVertex* succ_vertex();
+  /** Gets the vertex succeeding this item. */
+  const tChartVertex* succ_vertex() const;
+  //@}
+  friend class tChart; // Doxygen doesn't understand this in the member group
+
 };
 
 /** Token classes of an input item.
@@ -608,7 +702,8 @@ public:
     , int token_class = WORD_TOKEN_CLASS
     , const std::list<int> &infl_rules = std::list<int>()
     , const postags &pos = postags()
-    , modlist fsmods = modlist());
+             , modlist fsmods = modlist()
+             , const fs &token_fs = fs());
   /** Create a new input item with external start/end positions only. */
   tInputItem(std::string id, int startposition, int endposition
     , std::string surface, std::string stem
@@ -682,11 +777,29 @@ public:
   /** Return the list of feature structure modifications. */
   modlist &mods() { return _fsmods ; }
 
-  /** Set the list of feature structure modifications. */
-  void set_mods(modlist &mods) { _fsmods = mods; }
+  /**
+   * Set the list of feature structure modifications.
+   * This will recreate the token fs.
+   * \deprecated 1) Pass the fsmods to the constructor.
+   *             2) Use token feature structures in combination with chart
+   *                mapping to import information into lexical items.
+   */
+  void set_mods(modlist &mods) {
+    _fsmods = mods;
+    recreate_fs();
+  }
 
-  /** Set the postags coming from the input */
-  void set_in_postags(const postags &p) { _postags = p; }
+  /**
+   * Set the postags coming from the input
+   * This will recreate the token fs.
+   * \deprecated 1) Pass the pos tags to the constructor.
+   *             2) Use token feature structures in combination with chart
+   *                mapping to import information into lexical items.
+   */
+  void set_in_postags(const postags &p) {
+    _postags = p;
+    recreate_fs();
+  }
   /** Get the postags coming from the input */
   const postags & get_in_postags() const { return _postags; }
   /** I've got no clue. 
@@ -701,6 +814,7 @@ public:
   void set_inflrs(const std::list<int> &infl_rules) {
     free_list(_inflrs_todo);
     _inflrs_todo = copy_list(infl_rules);
+    recreate_fs();
   }
 
   /** The surface string (if available).
@@ -734,7 +848,7 @@ public:
   /** \brief tInputItem will not have items packed into them. They
   need not be unpacked. */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
   /** Return the external id associated with this item */
@@ -791,7 +905,7 @@ public:
   /** Build a new tLexItem from an active tLexItem and another tInputItem (a
   *  new daughter).
   */
-  tLexItem(tLexItem *from, tInputItem *new_dtr);
+  tLexItem(tLexItem *from, tInputItem *new_dtr, fs f = fs());
 
   ~tLexItem() {
     free_list(_inflrs_todo); 
@@ -830,6 +944,11 @@ public:
   /** Is this item passive or not? */
   bool passive() const {
     return (_ldot == 0) && (_rdot == _stem->length());
+  }
+
+  // *Is this item almost passive, i.e. missing exactly one argument */
+  bool near_passive() const {
+    return (_ldot == 1 || _rdot == _stem->length() - 1);
   }
 
   /** Is this item active and extends to the left? */
@@ -893,7 +1012,7 @@ protected:
   *   is always only one hypothesis, for a given \a path . 
   */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
 private:
@@ -950,6 +1069,13 @@ public:
   *  structure \a newfs.
   */
   tPhrasalItem(tPhrasalItem *representative, std::vector<tItem *> &dtrs, fs &newfs);
+
+  /*@{*/
+  /** Constructors for PCFG items */
+  tPhrasalItem(grammar_rule *rule, class tItem *passive);
+  tPhrasalItem(tPhrasalItem *active, class tItem *passive);
+  tPhrasalItem(tPhrasalItem *representative, std::vector<tItem *> &dtrs);
+  /*@}*/
 
   virtual ~tPhrasalItem() {
     // clear the hypotheses cache 
@@ -1055,7 +1181,7 @@ protected:
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
 
   /** Instantiatve the hypothesis */
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
 
   /** Decompose edge and return the number of decompositions 
   * All the decompositions are recorded in this->decompositions . 
@@ -1169,6 +1295,16 @@ inline bool alltrue(const class tItem* /*it*/) { return true; }
 /** Item predicate selecting all passive items. */
 inline bool onlypassives(const tItem *item) { return item->passive(); }
 
+/** Item predicate selecting all passive non-blocked items. */
+inline bool passive_unblocked(const class tItem *item) { 
+  return item->passive() && !item->blocked(); 
+}
+
+/** Item predicate selecting all passive non-blocked, non-input items. */
+inline bool passive_unblocked_non_input(const class tItem *item) { 
+  return item->passive() && !item->blocked() && item->trait() != INPUT_TRAIT; 
+}
+
 /** Item predicate selecting all passive items without pending morphographemic
 * rules. */
 inline bool passive_no_inflrs(const tItem *item) {
@@ -1197,5 +1333,54 @@ struct item_greater_than_score :
       return a->score() > b->score();
     }
 };
+
+
+// ========================================================================
+// INLINE DEFINITIONS
+// ========================================================================
+
+// =====================================================
+// class tItem
+// =====================================================
+
+inline void
+tItem::notify_chart_changed(tChart *chart)
+{
+  _chart = chart;
+}
+
+inline tChartVertex*
+tItem::prec_vertex()
+{
+  assert(_chart);
+  return (_chart->_item_to_prec_vertex.find(this))->second;
+}
+
+inline const tChartVertex*
+tItem::prec_vertex() const
+{
+  assert(_chart);
+  // "this" is const in const member functions, but since the keys in
+  // the map are not declared as const, we have to cast "this":
+  tItem* key = const_cast<tItem*>(this);
+  return (_chart->_item_to_prec_vertex.find(key))->second;
+}
+
+inline tChartVertex*
+tItem::succ_vertex()
+{
+  assert(_chart);
+  return (_chart->_item_to_succ_vertex.find(this))->second;
+}
+
+inline const tChartVertex*
+tItem::succ_vertex() const
+{
+  assert(_chart);
+  // "this" is const in const member functions, but since the keys in
+  // the map are not declared as const, we have to cast "this":
+  tItem* key = const_cast<tItem*>(this);
+  return (_chart->_item_to_succ_vertex.find(key))->second;
+}
 
 #endif
