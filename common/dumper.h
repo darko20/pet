@@ -69,8 +69,8 @@ class dumper
 
   /*@{*/
   /** Dump/Undump a \c char* string: two bytes length, then the char array. */
-  void dump_string(const char *s);
-  char *undump_string();
+  void dump_string(const std::string& s);
+  std::string undump_string();
   /*@}*/
 
   /** Reserve space for an \c int in the file and return the position where the

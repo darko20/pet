@@ -525,8 +525,8 @@ struct Tdl_list
   Term *new_type_term(int id);
   Term *new_avm_term();
   Term *add_term(Conjunction *C, Term *T);
-  Conjunction *get_feature(Avm *A, char *feat);
-  Conjunction *add_feature(Avm *A, char *feat); // TODO unused
+  Conjunction *get_feature(Avm *A, const std::string& feat);
+  Conjunction *add_feature(Avm *A, const std::string& feat); // TODO unused
 
   int nr_avm_constraints(Conjunction *C); // TODO unused
 

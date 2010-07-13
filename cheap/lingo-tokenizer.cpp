@@ -22,32 +22,31 @@
 #include "settings.h"
 #include "lingo-tokenizer.h"
 #include "utility.h"
+#include <boost/lexical_cast.hpp>
+
 #ifdef HAVE_ICU
 #include "unicode.h"
 #endif
 
 using std::string;
 using std::list;
+using boost::lexical_cast;
 
 extern settings *cheap_settings;
 
 /** Produce a set of tokens from the given string. */
 void 
-tLingoTokenizer::tokenize(string s, inp_list &result) {
+tLingoTokenizer::tokenize(string s, inp_list &result)
+{
   list<string> tokens = do_it(s);
   // logging is done by setting logLexproc's Priority to DEBUG 
-  char idstrbuf[6];
-  int i = 0, id = 0;
-  tInputItem *tok = 0;
-
-  for(list<string>::iterator pos = tokens.begin();
-      pos != tokens.end(); ++pos)
-    {
-      sprintf(idstrbuf, "%d", id++);
-      tok=new tInputItem(idstrbuf, i, i+1, *pos, "", tPaths());
-      
+  int i = 0;
+  int id = 0;
+  for(list<string>::iterator pos = tokens.begin(); pos != tokens.end(); ++pos) {
+      string idstrbuf = lexical_cast<string>(id++);
+      tInputItem* tok=new tInputItem(idstrbuf, i, i+1, *pos, "", tPaths());
       result.push_back(tok);
-      i++;
+      ++i;
     }
   
 }
