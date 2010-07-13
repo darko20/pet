@@ -41,8 +41,8 @@ dump_properties(dumper *f)
     for(std::map<std::string, std::string>::iterator it =
             grammar_properties.begin(); it != grammar_properties.end(); ++it)
     {
-        f->dump_string(it->first.c_str());
-        f->dump_string(it->second.c_str());
+        f->dump_string(it->first);
+        f->dump_string(it->second);
     }
 }
 
@@ -69,7 +69,7 @@ dump_symbol_tables(dumper *f)
 
   // status names
   for(int i = 0; i < nstatus; i++)
-    f->dump_string(statusnames[i].c_str());
+    f->dump_string(statusnames[i]);
 
   // type names and status
   for(int i = 0; i < nstatictypes; i++)
@@ -80,7 +80,7 @@ dump_symbol_tables(dumper *f)
 
   // attribute names
   for(int i = 0; i < nattrs; i++)
-    f->dump_string(attrname[i].c_str());
+    f->dump_string(attrname[i]);
 }
 
 /** Dump the type-to-featureset mappings and the feature sets for fixed arity
@@ -145,7 +145,7 @@ dump_print_names(dumper *f)
     if(get_printname(flop_type) != get_typename(flop_type))
       f->dump_string(print_name(flop_type));
     else
-      f->dump_string(0);
+      f->dump_string("");
   }
 }
 
@@ -169,7 +169,7 @@ void
 dump_inflr(dumper *f, int t, const std::string& r)
 {
   f->dump_int(t);
-  f->dump_string(r.c_str());
+  f->dump_string(r);
 }
 
 /** Dump all inflection rules. */

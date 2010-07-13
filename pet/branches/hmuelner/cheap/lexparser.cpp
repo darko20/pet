@@ -418,9 +418,9 @@ lex_parser::dependency_filter(setting *deps, bool unidirectional, bool lex_exhau
 
 typedef list< pair<int, int> > gaplist;
 
-void
-mark_recursive(tItem *item, unordered_set< tItem * > &checked
-               , unordered_map< tInputItem *, bool > &expanded){
+void mark_recursive(tItem *item, unordered_set< tItem * > &checked,
+               unordered_map< tInputItem *, bool > &expanded)
+{
   checked.insert(item);
   const list<tItem *> &dtrs = item->daughters();
   for(list<tItem *>::const_iterator it=dtrs.begin(); it != dtrs.end(); it++){
@@ -626,8 +626,8 @@ lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
   }
 }
 
-void 
-lex_parser::reset() {
+void lex_parser::reset()
+{
   // The items were created with an active default_owner and because of this
   // are correctly destroyed together with the global chart.
   for(int i = 0; i <= _maxpos; i++) {

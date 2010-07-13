@@ -362,7 +362,8 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_adj_active &operator++() {
+  inline chart_iter_adj_active &operator++()
+  {
     ++_curr;
     if(_at_start && _curr == _LI_start.end()) {
       overflow();

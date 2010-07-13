@@ -392,9 +392,8 @@ tGrammar::tGrammar(const char * filename)
     dumper dmp(filename);
     
     int version;
-    char *s = undump_header(&dmp, version);
-    if(s) LOG(logApplC, INFO, "(" << s << ") ");
-    delete[] s;
+    string s = undump_header(&dmp, version);
+    if (!s.empty()) LOG(logApplC, INFO, "(" << s << ") ");
     
     dump_toc toc(&dmp);
     
@@ -593,13 +592,10 @@ tGrammar::undump_properties(dumper *f)
     int nproperties = f->undump_int();
     for(int i = 0; i < nproperties; i++)
     {
-        char *key, *val;
-        key = f->undump_string();
-        val = f->undump_string();
+        string key = f->undump_string();
+        string val = f->undump_string();
         _properties[key] = val;
         LOG(logGrammar, DEBUG, (i ? ", " : "") << key << '=' << val);
-        delete[] key;
-        delete[] val;
     }
 
     LOG(logGrammar, DEBUG, "]");

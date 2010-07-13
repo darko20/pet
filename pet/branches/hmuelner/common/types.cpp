@@ -141,8 +141,9 @@ int lookup_type(const std::string &name) {
   // lazy initialization of typename cache:
   static bool initialized_cache = false;
   if(!initialized_cache) {
-    for(int i = 0; i < nstatictypes; i++)
+    for(int i = 0; i < typenames.size(); ++i) {
       typename_memo[typenames[i]] = i;
+    }
     initialized_cache = true;
   }
   // lookup in the cache:
@@ -303,8 +304,8 @@ void undump_printnames(dumper *f)
   printnames = std::vector<std::string>(nstatictypes);
   printnames.reserve(2 * nstatictypes); // increase capacity for dynamic types
   for(int i = 0; i < nstatictypes; i++) {
-    char *s = f->undump_string();
-    printnames[i] = std::string(s ? s : typenames[i]);
+    string s = f->undump_string();
+    printnames[i] = s.empty() ? typenames[i] : s;
   }
 }
 
@@ -425,8 +426,7 @@ void undump_tables(dumper *f)
 
 #ifndef FLOP
 /** Load the list of immediate supertypes from the grammar file */
-void
-undumpSupertypes(dumper *f)
+void undumpSupertypes(dumper *f)
 {
     for(int i = 0; i < first_leaftype; i++)
     {
@@ -441,7 +441,8 @@ undumpSupertypes(dumper *f)
     }
 }
 
-const list< type_t > &immediate_supertypes(type_t type) {
+const list< type_t > &immediate_supertypes(type_t type)
+{
   assert(is_proper_type(type)) ;
   return immediateSupertype[type];
 }
