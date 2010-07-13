@@ -33,9 +33,11 @@
 
 #include <sstream>
 #include <float.h>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
 using namespace HASH_SPACE;
+using boost::lexical_cast;
 
 int
 tSMFeature::hash() const
@@ -414,25 +416,23 @@ tMEM::parseModel()
 
     */
 
-    char *tmp;
+    string tmp;
 
     match(T_COLON, "`:' before keyword", true);
     match_keyword("begin");
     match(T_COLON, "`:' before keyword", true);
     tmp = match(T_ID, "mem|model", false);
-    if(strcmp(tmp, "mem") == 0) 
+    if(tmp == "mem") 
       _format = 0;
-    else if (strcmp(tmp, "model") == 0)
+    else if (tmp == "model")
       _format = 1;
-    else if (strcmp(tmp, "lexmem") == 0)
+    else if (tmp == "lexmem")
       _format = 2;
     else 
         syntax_error("expecting `mem|model' section", LA(0));
 
-    free(tmp);
     tmp = match(T_ID, "number of contexts", false);
-    _ctxts = string(tmp);
-    free(tmp);
+    _ctxts = tmp;
     match(T_DOT, "`.' after section opening", true);
     
     parseOptions();
@@ -441,14 +441,12 @@ tMEM::parseModel()
     match_keyword("begin");
     match(T_COLON, "`:' before keyword", true);
     tmp = match(T_ID, "features", false);
-    if(strcmp(tmp, "features") != 0)
+    if(tmp != "features")
     {
         syntax_error("expecting `features' section", LA(0));
     }
-    free(tmp);
     tmp = match(T_ID, "number of features", false);
-    int nFeatures = strtoint(tmp, "as number of features in MEM");
-    free(tmp);
+    int nFeatures = strtoint(tmp.c_str(), "as number of features in MEM");
     match(T_DOT, "`.' after section opening", true);
 
     parseFeatures(nFeatures);
@@ -457,22 +455,20 @@ tMEM::parseModel()
     match_keyword("end");
     match(T_COLON, "`:' before keyword", true);
     tmp = match(T_ID, "features", false);
-    if(strcmp(tmp, "features") != 0)
+    if(tmp != "features")
     {
         syntax_error("expecting end of `features' section", LA(0));
     }
-    free(tmp);
     match(T_DOT, "`.' after section end", true);
 
     match(T_COLON, "`:' before keyword", true);
     match_keyword("end");
     match(T_COLON, "`:' before keyword", true);
     tmp = match(T_ID, "mem|model", false);
-    if(strcmp(tmp, "mem") != 0 && strcmp(tmp, "model") != 0)
+    if(tmp != "mem" && tmp != "model")
     {
         syntax_error("expecting end of `mem|model' section", LA(0));
     }
-    free(tmp);
     match(T_DOT, "`.' after section end", true);
 }
 
@@ -483,27 +479,25 @@ tMEM::parseOptions()
     // actually parse this
 
     // for now we just skip until we get a `:' `begin'
-  char * pname;
-  char * pvalue;
+  string pname;
+  string pvalue;
   while(LA(0)->tag != T_EOF) {
     if(LA(0)->tag == T_COLON &&
        is_keyword(LA(1), "begin"))
       break;
     if (LA(0)->tag == T_ID) {
       pname = match(T_ID, "parameter name", false);
-      if(!strcmp(pname, "*feature-grandparenting*")) {
+      if(pname == "*feature-grandparenting*") {
         match(T_ISEQ, "iseq after parameter name", true);
         if (LA(0)->tag == T_COLON) consume(1);
         pvalue = match(T_ID, "parameter value", false);
         match(T_DOT, "dot after parameter value", true);
-        set_opt("opt_gplevel", (unsigned int) atoi(pvalue));
-        free(pvalue);
+        set_opt("opt_gplevel", lexical_cast<unsigned int>(pvalue));
       }
       else {
         while(LA(0)->tag != T_DOT) consume(1);
         consume(1);
       }
-      free(pname);
     }    
     else 
       consume(1);
@@ -541,7 +535,7 @@ tMEM::parseFeatures(int nFeatures)
 void
 tMEM::parseFeature(int n)
 {
-    char *tmp;
+    string tmp;
 
     LOG(logSM, DEBUG, "[" << n << "]");
 
@@ -560,17 +554,14 @@ tMEM::parseFeature(int n)
             LOG(logSM, DEBUG, " " << tmp);
 
             char *endptr;
-            int t = strtol(tmp, &endptr, 10);
+            int t = strtol(tmp.c_str(), &endptr, 10);
             if(endptr == 0 || *endptr != 0)
             {
                 // This is not an integer, so it must be a type/instance.
-                char *inst = (char *) malloc(strlen(tmp)+2);
-                strcpy(inst, "$");
-                strcat(inst, tmp);
+                string inst = "$" + tmp;
                 t = lookup_type(inst);
                 if(t == -1)
-                    t = lookup_type(inst+1);
-                free(inst);
+                    t = lookup_type(inst.c_str()+1);
                 
                 if(t == -1)
                 {
@@ -591,14 +582,12 @@ tMEM::parseFeature(int n)
                 // the new format
                 v.push_back(map()->intToSubfeature(0));
             }
-            free(tmp);
         }
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
             LOG(logSM, DEBUG, " \"" << tmp << "\"");
             v.push_back(map()->stringToSubfeature(string(tmp)));
-            free(tmp);
         }
         else if (LA(0)->tag == T_LPAREN || LA(0)->tag == T_RPAREN) {
           consume(1);
@@ -615,8 +604,7 @@ tMEM::parseFeature(int n)
     tmp = match(T_ID, "feature weight", false);
     // _fix_me_
     // check syntax of number
-    double w = strtod(tmp, NULL);
-    free(tmp);
+    double w = strtod(tmp.c_str(), NULL);
     LOG(logSM, DEBUG, ": " << w);
 
     if(good)
@@ -633,7 +621,7 @@ tMEM::parseFeature(int n)
 void
 tMEM::parseFeature2(int n)
 {
-    char *tmp;
+    string tmp;
     LOG(logSM, DEBUG, "[" << n << "]");
 
     match(T_LPAREN, "begin of feature", true);
@@ -654,17 +642,14 @@ tMEM::parseFeature2(int n)
             LOG(logSM, DEBUG, " " << tmp);
 
             char *endptr;
-            int t = strtol(tmp, &endptr, 10);
+            int t = strtol(tmp.c_str(), &endptr, 10);
             if(endptr == 0 || *endptr != 0)
             {
                 // This is not an integer, so it must be a type/instance.
-                char *inst = (char *) malloc(strlen(tmp)+2);
-                strcpy(inst, "$");
-                strcat(inst, tmp);
+                string inst = "$" + tmp;
                 t = lookup_type(inst);
                 if(t == -1)
-                    t = lookup_type(inst+1);
-                free(inst);
+                    t = lookup_type(inst.c_str()+1);
                 
                 if(t == -1)
                 {
@@ -682,14 +667,12 @@ tMEM::parseFeature2(int n)
                 // This is an integer.
                 v.push_back(map()->intToSubfeature(t));
             }
-            free(tmp);
         }
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
             LOG(logSM, DEBUG, " \"" << tmp << "\"");
-            v.push_back(map()->stringToSubfeature(string(tmp)));
-            free(tmp);
+            v.push_back(map()->stringToSubfeature(tmp));
         }
         else if (LA(0)->tag == T_CAP) {
           // This is a special 
@@ -715,8 +698,7 @@ tMEM::parseFeature2(int n)
     tmp = match(T_ID, "feature weight", false);
     // _fix_me_
     // check syntax of number
-    double w = strtod(tmp, NULL);
-    free(tmp);
+    double w = strtod(tmp.c_str(), NULL);
     LOG(logSM, DEBUG, ": " << w);
 
     if(good)
@@ -747,7 +729,7 @@ tMEM::score(const tSMFeature &f)
 void
 tMEM::parseFeature_lexpred(int n)
 {
-    char *tmp;
+    string tmp;
 
     LOG(logSM, NOTICE, "\n[" << n << "]");
 
@@ -766,17 +748,14 @@ tMEM::parseFeature_lexpred(int n)
             LOG(logSM, NOTICE, " " << tmp);
 
             char *endptr;
-            int t = strtol(tmp, &endptr, 10);
+            int t = strtol(tmp.c_str(), &endptr, 10);
             if(endptr == 0 || *endptr != 0)
             {
                 // This is not an integer, so it must be a type/instance.
-                char *inst = (char *) malloc(strlen(tmp)+2);
-                strcpy(inst, "$");
-                strcat(inst, tmp);
+                string inst = "$" + tmp;
                 t = lookup_type(inst);
                 if(t == -1)
-                    t = lookup_type(inst+1);
-                free(inst);
+                    t = lookup_type(inst.c_str()+1);
                 
                 if(t == -1)
                 {
@@ -794,14 +773,12 @@ tMEM::parseFeature_lexpred(int n)
                 // This is an integer.
                 v.push_back(map()->intToSubfeature(t));
             }
-            free(tmp);
         }
         else if(LA(0)->tag == T_STRING)
         {
             tmp = match(T_STRING, "subfeature in feature vector", false);
             LOG(logSM, NOTICE, " \"" << tmp << "\"");
-            v.push_back(map()->stringToSubfeature(string(tmp)));
-            free(tmp);
+            v.push_back(map()->stringToSubfeature(tmp));
         }
         else if (LA(0)->tag == T_CAP) {
           // This is a special 
@@ -823,8 +800,7 @@ tMEM::parseFeature_lexpred(int n)
     tmp = match(T_ID, "feature weight", false);
     // _fix_me_
     // check syntax of number
-    double w = strtod(tmp, NULL);
-    free(tmp);
+    double w = strtod(tmp.c_str(), NULL);
     LOG(logSM, NOTICE, ": " << w);
 
     if(good)

@@ -393,6 +393,7 @@ void print_grammar(int what, ostream &out) {
     }
 
     out << ";; ATTRIBUTE NAMES ===================================" << endl;
+    size_t nattrs = attrname.size();
     for(int i = 0; i < nattrs; i++) {
       out << i << "\t" << attrname[i] << endl;
     }

@@ -26,24 +26,6 @@
 
 using namespace std;
 
-int strcount(char *s, char c)
-{
-  int n = 0;
-
-  assert(c != 0);
-
-  while(s != 0)
-    {
-      if((s = strchr(s, (int) c)) != 0)
-        {
-          s++; n++;
-          if(s[0] == '\0') s = 0;
-        }
-    }
-  
-  return n;
-}
-
 map<string, int> name_type;
 
 int lookup(const string &s)
@@ -56,65 +38,27 @@ int lookup(const string &s)
 }
 
 /** the constructor of the type struct */
-struct type *new_type(const string &name, bool is_inst, bool define)
+Type *new_type(const string &name, bool is_inst, bool define)
 {
-  struct type *t;
-  t = new struct type;
-  
-  t -> status = NO_STATUS;
-  t -> defines_status = 0;
-  t -> status_giver = 0;
+    Type* t = new Type();
 
-  t -> implicit = 0;
-
-  t -> def = 0;
-
-  t -> coref = 0;
-  t -> constraint = 0;
-
-  t -> bcode = 0;
-  t -> thedag = 0;
-
-  t -> printname = 0;
-
-  if(define)
-    {
-      t->tdl_instance = is_inst;
-      t->id = types.add(name);
-      types[t->id] = t;
-      register_type(t -> id);
+    if(define) {
+        t->tdl_instance = is_inst;
+        t->id = types.add(name);
+        types[t->id] = t;
+        register_type(t->id);
     }
-  else
-    t -> id = -1;
-
-  t -> inflr = 0;
-
-  t -> parents = 0;
-
-  return t;
+    else {
+        t->id = -1;
+    }
+    return t;
 }
 
 /** Register a new builtin type with name \a name */
 int
 new_bi_type(const char *name)
 {
-    type *t = new_type(name, false);
-    t->def = new_location("builtin", 0, 0);
+    Type *t = new_type(name, false);
+    t->def.assign("builtin", 0, 0);
     return t->id;
-}
-
-char *add_inflr(char *old, char *add)
-{
-  char *s = (char *) salloc((old == 0 ? 0 : strlen(old)) + strlen(add) + 1);
-  if(old != 0)
-    {
-      strcpy(s, old);
-      free(old);
-    }
-  else
-    {
-      strcpy(s, "");
-    }
-  strcat(s, add);
-  return s;
 }
