@@ -24,26 +24,26 @@ public:
   void remove(unsigned int start = 0, unsigned int len = std::string::npos) {
     _str.erase(start, len);
   }
-  std::string str() { return _str; }
-  MChar char32At(int index) { return _str[index]; }
+  std::string str() const { return _str; }
+  MChar char32At(int index) const { return _str[index]; }
   int getChar32Start(int offset) { return offset; }
   void reverse() { std::reverse(_str.begin(), _str.end()); }
   void reverse(int start, int length) {
     std::reverse(_str.begin() + start, _str.begin() + start + length); 
   }
-  int indexOf(MChar c, int offset) { return _str.find(c, offset); }
-  int indexOf(const MString s) { return _str.find(s._str); }
+  int indexOf(MChar c, int offset) const { return _str.find(c, offset); }
+  int indexOf(const MString& s) const { return _str.find(s._str); }
   void append(MChar c) { _str += c ; }
-  void append(const MString s) { _str += s._str; }
-  const char *c_str() { return _str.c_str(); }
-  int length() { return _str.length(); }
+  void append(const MString& s) { _str += s._str; }
+  const char *c_str() const { return _str.c_str(); }
+  int length() const { return _str.length(); }
 };
 
 class StringCharacterIterator {
   std::string &_str;
   std::string::iterator _it;
 public:
-  StringCharacterIterator(MString str) : _str(str._str) {
+  StringCharacterIterator(MString& str) : _str(str._str) {
     _it = _str.begin();
   }
   bool hasNext() { return (_it != _str.end()) ; }
@@ -53,9 +53,9 @@ public:
 class Converter {
 public:
   Converter() {} 
-  std::string convert(MString s) { return s.str() ; }
-  MString convert(std::string s) { return s ; }
-  MString convert(MChar c) { return std::string() + c ; }
+  std::string convert(const MString& s) const { return s.str() ; }
+  MString convert(const std::string& s) const { return s ; }
+  MString convert(MChar c) const { return std::string(c, 1); }
 };
 
 #endif
@@ -67,7 +67,7 @@ public:
   morph_letterset() :
     _bound(0) {};
 
-    void set(std::string name, std::string elems);
+    void set(const std::string& name, const std::string& elems);
 
   const std::set<MChar> &elems() const { return _elems; }
 
@@ -90,7 +90,7 @@ class morph_lettersets
 public:
   morph_lettersets() {};
 
-  void add(std::string s);
+  void add(const std::string& s);
   morph_letterset * get(std::string name) const;
 
   void undo_bindings();
@@ -98,12 +98,12 @@ public:
   void print(std::ostream &out) const;
 
 private:
-  typedef HASH_SPACE::hash_map<std::string, morph_letterset>::iterator
+  typedef HASH_SPACE::unordered_map<std::string, morph_letterset>::iterator
     ml_iterator;
-  typedef HASH_SPACE::hash_map<std::string, morph_letterset>::const_iterator
+  typedef HASH_SPACE::unordered_map<std::string, morph_letterset>::const_iterator
     ml_const_iterator;
 
-  HASH_SPACE::hash_map<std::string, morph_letterset> _m;
+  HASH_SPACE::unordered_map<std::string, morph_letterset> _m;
 };
 
 /** This implements one element of a morphological rule specification, the

@@ -28,8 +28,10 @@
 #include "options.h"
 #include "utility.h"
 #include "logging.h"
+#include <ctime>
 
 #include <boost/graph/topological_sort.hpp>
+#include <boost/foreach.hpp>
 #include <sstream>
 
 using std::list;
@@ -191,7 +193,8 @@ void compute_code_topo()
             
             // iterate over all immediate subtypes, ignoring leaf types
             l = immediate_subtypes(current_type);
-            forallint(c, l) if(leaftypeparent[c] == -1)
+            BOOST_FOREACH(c, l) {
+                if(leaftypeparent[c] == -1)
             {
                 // check that this has already a code assigned - if not,
                 // there's a horrible flaw somewhere
@@ -203,6 +206,7 @@ void compute_code_topo()
                 *types[current_type]->bcode |= *types[c]->bcode;
             }
         }
+    }
     }
 }
 
@@ -486,13 +490,13 @@ void find_leaftypes()
             
             list<int> l = immediate_subtypes(i);
          
-            forallint(c, l)
+            BOOST_FOREACH(c, l) {
                 if(leaftypeparent[c] == -1)
                 {
                     good = false;
                     break;
                 }
-            
+            }
             if(good) 
               {
                 //fprintf(stderr, "CLT %d\n", i);
@@ -507,7 +511,7 @@ void find_leaftypes()
 
 /** Recursively print all subtypes of a given type t */
 void
-print_subtypes(std::ostream &out, int t, HASH_SPACE::hash_set<int> &visited)
+print_subtypes(std::ostream &out, int t, HASH_SPACE::unordered_set<int> &visited)
 {
     if(visited.find(t) != visited.end())
         return;
@@ -527,7 +531,7 @@ print_subtypes(std::ostream &out, int t, HASH_SPACE::hash_set<int> &visited)
 void
 print_hierarchy(std::ostream &out)
 {
-    HASH_SPACE::hash_set<int> visited;
+  HASH_SPACE::unordered_set<int> visited;
     for(int i = 1; i < types.number() ; i++)
     {
         visited.clear();

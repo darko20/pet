@@ -28,6 +28,10 @@
 #include "cheaptimer.h"
 #include <string>
 #include <list>
+#include "boost/date_time/posix_time/posix_time_types.hpp"
+
+class tItem;
+class fs_alloc_state;
 
 /** @name Ambiguity packing modes */
 //@{
@@ -43,8 +47,11 @@
  */
 extern timer TotalParseTime;
 
-extern clock_t timeout;
-extern clock_t timestamp;
+bool timeoutExpired();
+
+bool add_item(tItem *it);
+void parse_loop(fs_alloc_state &FSAS, std::list<tError> &errors, int timeout);
+void postulate(tItem *passive);
 
 /** Take some kind of input, run it through the registered preprocessing
  *  modules first and then do syntactic parsing.

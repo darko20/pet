@@ -77,6 +77,7 @@ int verbosity = 0;
 // global variables for parsing
 
 tGrammar *Grammar = 0;
+ParseNodes pn;
 settings *cheap_settings = 0;
 bool XMLServices = false;
 tVPM *vpm = 0;
@@ -266,8 +267,9 @@ void interactive() {
               ; (iter != results.end()
                  && ((opt_nresults == 0) || (opt_nresults > nres)))
               ; ++iter) {
-          //tFegramedPrinter fedprint("/tmp/fed-");
-          //tDelegateDerivationPrinter deriv(fstatus, fedprint);
+          //tFegramedPrinter baseprint("/tmp/fed-");
+          //tLabelPrinter baseprint(pn) ;
+          //tDelegateDerivationPrinter deriv(std::cerr, baseprint, 2);
           //tTSDBDerivationPrinter deriv(std::cerr, 1);
           tCompactDerivationPrinter deriv(std::cerr);
           tItem *it = *iter;
@@ -467,7 +469,7 @@ void process(const char *s) {
 
 
     // \todo this cries for a separate tokenizer factory
-    tTokenizer *tok;
+    tTokenizer *tok = 0;
     switch (get_opt<tokenizer_id>("opt_tok")) {
     case TOKENIZER_YY:
     case TOKENIZER_YY_COUNTS:
@@ -525,8 +527,9 @@ void process(const char *s) {
 #endif
 
     case TOKENIZER_INVALID:
-      LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
-          <<"\": using 'tok=string'");
+      //LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
+      //    <<"\": using 'tok=string'");
+      LOG(logAppl, WARN, "unknown tokenizer mode \"" <<"\": using 'tok=string'"); // FIXME
     case TOKENIZER_STRING:
     default:
       tok = new tLingoTokenizer(); break;
@@ -573,6 +576,8 @@ void process(const char *s) {
   }
   else {
     initialize_version();
+
+    pn.initialize();
 
 #if defined(YY) && defined(SOCKET_INTERFACE)
     if(get_opt_int("opt_server") != 0)
@@ -673,17 +678,20 @@ int main(int argc, char* argv[])
     // Initialize global options
     main_init();
 
-    char *grammar_file_name;
-#ifndef __BORLANDC__
-    if((grammar_file_name = parse_options(argc, argv)) == NULL) {
-      usage(ferr);
+    string grammar_file_name;
+    try {
+        grammar_file_name = parse_options(argc, argv);
+    }
+    catch(logic_error)
+    {
+        // wrong program options
+        exit(1); 
+    }
+    catch(...)
+    {
+        LOG(logAppl, FATAL, "unknown exception");
       exit(1);
     }
-#else
-    grammar_file_name = "english"
-    if(argc > 1)
-      grammar_file_name = argv[1];
-#endif
 
 #if defined(YY) && defined(SOCKET_INTERFACE)
     if(get_opt_int("opt_server") != 0) {
@@ -692,6 +700,9 @@ int main(int argc, char* argv[])
     }
 #endif
 
+    if (grammar_file_name.empty()) {
+        exit(1);
+    }
     string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);
     if(grammar_name.empty()) {
       throw tError("Grammar not found");

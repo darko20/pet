@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
+#include <ctime>
 
 #include "logging.h"
 

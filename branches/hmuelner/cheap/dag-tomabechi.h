@@ -529,4 +529,19 @@ dag_node *dag_partial_copy_state(dag_node *dag, R_STATE rst) {
   return copy;
 }
 
+/** start recording failures when unifying or testing subsumption. If the
+ *  \p all parameter is \c true, as many failures as possible are recorded, and
+ *  the operations may take longer as a consequence.
+ */
+void start_recording_failures(bool all = false);
+
+/** Stop failure recording and return the last failure */
+class failure * stop_recording_failures();
+
+/** Return all failures that have been recorded */
+const std::list<class failure *> &get_failures();
+
+/** Clear the list of failures and free the associated data structures */
+void clear_failures();
+
 #endif

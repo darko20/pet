@@ -27,6 +27,7 @@
 #include "types.h"
 #include <string>
 #include <set>
+#include <map>
 #include <vector>
 
 /** Implements a list of POS tags with probabilities. All string handling is
@@ -108,10 +109,11 @@ class postags
       return strcasecmp(s1.c_str(), s2.c_str()) < 0;
     }
   };
-
+  typedef std::set<std::string, ltstr> IStringSet;
+  typedef std::map<std::string, double, ltstr> IStringMap;
   /** String set with case insensitive comparison */
-  std::set<std::string, ltstr> _tags;
-  std::map<std::string, double, ltstr> _probs;
+  IStringSet _tags;
+  IStringMap _probs;
 };
 
 inline std::ostream & operator<<(std::ostream &out, const postags &tags) {

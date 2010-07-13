@@ -23,10 +23,11 @@
 #include "utility.h"
 #include "logging.h"
 #include "errors.h"
+#include <cstdlib>
 
 int save_lines = 1;
 
-/* the print_* functions return if what they printed out was complex enough to require a line
+/* the _print* functions return if what they printed out was complex enough to require a line
    of it's own */
 
 int print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref);

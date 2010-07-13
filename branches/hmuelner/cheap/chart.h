@@ -49,7 +49,7 @@ public:
   void add(tItem *);
 
   /** Remove the item in the set from the chart */
-  void remove(HASH_SPACE::hash_set<tItem *> &to_delete);
+  void remove(HASH_SPACE::unordered_set<tItem *> &to_delete);
 
   /** Print chart items using \a aip.
    *  Enable/disable printing of passive, active and blocked items.
@@ -117,9 +117,11 @@ private:
 
   int _pedges;
 
-  std::vector< std::list<tItem *> > _Cp_start, _Cp_end;
-  std::vector< std::list<tItem *> > _Ca_start, _Ca_end;
-  std::vector< std::vector < std::list<tItem*> > > _Cp_span;
+  std::vector<item_list> _Cp_start;
+  std::vector<item_list> _Cp_end;
+  std::vector<item_list> _Ca_start;
+  std::vector<item_list> _Ca_end;
+  std::vector< std::vector<item_list> > _Cp_span;
 
   std::auto_ptr<item_owner> _item_owner;
 
@@ -146,7 +148,7 @@ public:
   inline chart_iter(const chart &C) : _LI(C._Chart), _curr(_LI.begin()) { }
 
   /** Increase iterator */
-  inline chart_iter &operator++(int) {
+  inline chart_iter &operator++() {
     ++_curr;
     return *this;
   }
@@ -195,7 +197,7 @@ public:
     : chart_iter(C), _to_include(incl) { proceed(); }
   
   /** Increase iterator */
-  inline chart_iter &operator++(int) {
+  inline chart_iter &operator++() {
     ++_curr;
     proceed();
     return *this;
@@ -283,7 +285,7 @@ public:
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return (_currindex <= _max);
   }
 
@@ -317,7 +319,7 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_adj_passive &operator++(int) {
+  inline chart_iter_adj_passive &operator++() {
     ++_curr;
     return *this;
   }
@@ -360,7 +362,7 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_adj_active &operator++(int) {
+  inline chart_iter_adj_active &operator++() {
     ++_curr;
     if(_at_start && _curr == _LI_start.end())
       overflow();
@@ -369,8 +371,15 @@ public:
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
-    return _curr != _LI_end.end();
+  inline bool valid()
+  {
+      if (_at_start && _curr == _LI_start.end()) {
+          overflow();
+      }
+      if (_at_start) {
+          return true;
+      } 
+      return _curr != _LI_end.end();
   }
 
   /** If valid(), return the current item, \c NULL otherwise. */
@@ -379,10 +388,9 @@ public:
   }
 
 private:
-  item_list &_LI_start, &_LI_end;
-    
+  item_list &_LI_start;
+  item_list &_LI_end;
   bool _at_start;
-    
   item_iter _curr;
 };
 

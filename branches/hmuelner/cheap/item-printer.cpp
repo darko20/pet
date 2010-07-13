@@ -194,7 +194,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
     for(dtr = dtrs.begin(); dtr != dtrs.end(); dtr++) {
       print(*dtr);
     }
-    *_out << "draw_edge " << _chart_id << " " << _item_id 
+    *_out << "draw_edge " << _chart_id << " " << _item_id
          << " " << item->start() << " " << item->end()
          << " \"";
     print_string_escaped(*_out, item->printname(), tcl_chars_to_escape);
@@ -331,18 +331,18 @@ tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
 
 void
 tDelegateDerivationPrinter::real_print(const tInputItem *item) {
-  _itemprinter.print(item);
+  _itemprinter.print(*_out, item);
 }
 
 void 
 tDelegateDerivationPrinter::real_print(const tLexItem *item) {
-  _itemprinter.print(item);
+  _itemprinter.print(*_out, item);
   print_daughters(item);
 }
 
 void 
 tDelegateDerivationPrinter::real_print(const tPhrasalItem *item) {
-  _itemprinter.print(item);
+  _itemprinter.print(*_out, item);
   print_daughters(item);
 }
 
@@ -447,4 +447,31 @@ tLUIPrinter::print(const tItem *item) {
   get_fs(item).print(stream, _dagprinter);
   stream << " \"Edge # " << item->id() << "\"\f\n" ;
   stream.close();
+}
+
+/* ------------------------------------------------------------------------- */
+/* ----------------------------- tLabelPrinter ----------------------------- */
+/* ------------------------------------------------------------------------- */
+
+void
+tLabelPrinter::print(const tItem *arg) { arg->print_gen(this); }
+
+void
+tLabelPrinter::real_print(const tInputItem *item) {
+  // print input string (printname() is the same as orth())
+  *_out << item->orth() << endl;
+}
+
+void
+tLabelPrinter::real_print(const tLexItem *item) {
+  *_out << _parse_nodes.getLabel(get_fs(item).dag())
+        << " " << item->printname()
+        << endl;
+}
+
+void
+tLabelPrinter::real_print(const tPhrasalItem *item) {
+  *_out << _parse_nodes.getLabel(get_fs(item).dag())
+        << " " << item->printname()
+        << endl;
 }

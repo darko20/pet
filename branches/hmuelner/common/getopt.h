@@ -19,6 +19,7 @@
 #define _GETOPT_H 1
 
 #ifdef __cplusplus
+#define __STDC__ 1
 extern "C" {
 #endif
 

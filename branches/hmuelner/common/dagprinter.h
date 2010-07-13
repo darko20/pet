@@ -10,6 +10,7 @@
 
 #include <ostream>
 
+#if 0
 #ifdef HASH_SPACE
 namespace HASH_SPACE {
   template<> struct hash<const struct ::dag_node *> {
@@ -18,6 +19,7 @@ namespace HASH_SPACE {
     }
   };
 }
+#endif
 #endif
 
 class AbstractDagPrinter {
@@ -50,7 +52,7 @@ private:
   void mark_arc_targets(const dag_arc *arcs, bool temp);
   void mark_coreferences(const dag_node *dag, bool temp);
 
-  HASH_SPACE::hash_map<const dag_node *, int> _dags_visited;
+  HASH_SPACE::unordered_map<const dag_node *, int> _dags_visited;
   int _coref_nr;
 
 };

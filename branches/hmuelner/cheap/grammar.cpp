@@ -21,7 +21,7 @@
 
 #include "grammar.h"
 
-#include <sys/param.h>
+//#include <sys/Param.h>
 
 #include "cheap.h"
 #include "fs.h"
@@ -42,8 +42,11 @@
 #include "item-printer.h"
 #include "dagprinter.h"
 #include <fstream>
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
+namespace bfs = boost::filesystem;
 
 static int init();
 static bool static_init = init();
@@ -276,16 +279,16 @@ grammar_rule::print(ostream &out) const {
 
 void
 grammar_rule::lui_dump(const char *path) {
-
-  if(chdir(path)) {
+  string destinationPath(path);
+  bfs::current_path(destinationPath);
+  if(!bfs::equivalent(destinationPath, bfs::current_path())) {
     LOG(logGrammar, ERROR,
         "grammar_rule::lui_dump(): invalid target directory `"
         << path << "'.)");
     return;
   } // if
-  char name[MAXPATHLEN + 1];
-  sprintf(name, "rule.%d.lui", _id);
-  ofstream stream(name);
+  string name("rule" + boost::lexical_cast<std::string>(_id) + ".lui");
+  ofstream stream(name.c_str());
   if(! stream) { //(stream = fopen(name, "w")) == NULL) {
     LOG(logGrammar, ERROR,
         "grammar_rule::lui_dump(): unable to open `" << name 

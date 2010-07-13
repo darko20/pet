@@ -27,9 +27,11 @@
 #include "settings.h"
 #include "dag.h"
 #include "logging.h"
+#include "configs.h"
 
 #include <set>
 #include <boost/graph/topological_sort.hpp>
+#include <boost/foreach.hpp>
 
 using namespace std;
 
@@ -213,7 +215,6 @@ bool apply_appropriateness() {
  *         \c false otherwise.
  */
 bool delta_expand_types() {
-  int i, e;
   list<int> l;
   bool opt_expand_all_instances =
     get_opt_bool("opt_expand_all_instances");
@@ -222,12 +223,12 @@ bool delta_expand_types() {
   boost::topological_sort(hierarchy, std::back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
-      i = *it;
+      int i = *it;
       
       if(!pseudo_type(i) && (opt_expand_all_instances || !dont_expand(i)))
         {
           l = immediate_supertypes(i);
-          forallint(e, l)
+          BOOST_FOREACH(int e, l)
             {
               if(dag_unify3(types[e]->thedag, types[i]->thedag) == FAIL)
                 {

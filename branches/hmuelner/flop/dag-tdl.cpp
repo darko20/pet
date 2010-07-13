@@ -25,6 +25,7 @@
 #include "settings.h"
 #include "utility.h"
 #include "logging.h"
+#include "configs.h"
 
 using std::string;
 
@@ -53,7 +54,7 @@ void dagify_symtabs()
       typenames[i] = types.name(i);
       typestatus[i] = types[i]->status;
       printnames[i] = types[i]->printname;
-      if(printnames[i].empty())
+      if(printnames[i].empty() && types[i]->printname == 0)
         printnames[i] = typenames[i];
     }
 

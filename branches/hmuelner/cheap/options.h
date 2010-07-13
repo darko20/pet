@@ -27,16 +27,13 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-#include "configs.h"
+#include <string>
 
+class settings;
 extern int verbosity;
 
-void usage(FILE *f);
+std::string parse_options(int argc, char* argv[]);
 
-#ifndef __BORLANDC__
-char *parse_options(int argc, char* argv[]);
-#endif
-
-void options_from_settings(class settings *);
+void options_from_settings(settings*); // TODO: unused
 
 #endif

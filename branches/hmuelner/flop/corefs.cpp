@@ -23,6 +23,7 @@
 #include "flop.h"
 #include "logging.h"
 #include "utility.h"
+#include <cstdlib>
 
 int add_coref(struct coref_table *co, char *name)
 {

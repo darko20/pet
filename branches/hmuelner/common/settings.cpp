@@ -28,6 +28,8 @@
 
 #include "logging.h"
 
+#include <cstdlib>
+
 using std::string;
 
 settings::settings(string name, string base_dir, const char *message)
@@ -89,8 +91,7 @@ setting *settings::lookup(const char *name) {
     if(strcmp(_set[i]->name, name) == 0) {
       if(i != 0) {
         // put to front, so further lookup is faster
-        setting *tmp;
-        tmp = _set[i]; _set[i] = _set[0]; _set[0] = tmp;
+        setting *tmp = _set[i]; _set[i] = _set[0]; _set[0] = tmp;
       }
 
       _lloc = _set[0]->loc;

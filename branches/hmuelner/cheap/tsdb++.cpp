@@ -36,7 +36,7 @@
 # include "yy.h"
 #endif
 
-#include<sys/time.h>
+#include<ctime>
 #include<sstream>
 #include<fstream>
 
@@ -842,7 +842,7 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
             nmeanings, clashes, pruned);
     
     fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
-            parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
+            parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time().c_str());
 }
 
 

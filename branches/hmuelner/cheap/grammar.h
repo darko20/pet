@@ -133,7 +133,8 @@ class grammar_rule
    * edges were produced using this rule.
    */
   /*@{*/
-  int actives, passives;
+  int actives;
+  int passives;
   /*@}*/
 
  private:

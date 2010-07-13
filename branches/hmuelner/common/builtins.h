@@ -26,6 +26,8 @@
 #ifndef _BUILTINS_H_
 #define _BUILTINS_H_
 
+class settings;
+
 /** Topmost type of the hierarchy */
 extern int BI_TOP;
 
@@ -42,6 +44,6 @@ extern int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 /** Initialize special types and attributes according to settings file.
  *  defined in types.cpp
  */
-extern void initialize_specials(class settings *);
+extern void initialize_specials(settings *);
 
 #endif
