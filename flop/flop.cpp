@@ -23,6 +23,7 @@
 #include <errno.h>
 
 #include <algorithm>
+#include <utility>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -100,19 +101,20 @@ check_undefined_types()
 
 void process_conjunctive_subtype_constraints()
 {
-  Type *t;
-  Conjunction *c;
-
-  for(int i = 0; i<types.number(); i++)
-    if((c = (t = types[i])->constraint) != 0)
-      for(int j = 0; j < c->n(); j++)
-        if( c->term[j]->tag == TYPE)
-        {
-          t->parents = cons(c->term[j]->type, t->parents);
+  for(int i = 0; i<types.number(); ++i) {
+    Type* t = types[i];
+    Conjunction* c = t->constraint;
+    if (c != 0) {
+      for (int j = 0; j < c->n(); ++j) {
+        if (c->term[j]->tag == TYPE) {
+          t->parents.push_back(c->term[j]->type);
           subtype_constraint(t->id, c->term[j]->type);
           c->term[j--] = c->term[c->n()-1];
           c->term.resize(c->n()-1);
         }
+      }
+    }
+  }
 }
 
 string synth_type_name(int offset = 0)
@@ -125,46 +127,58 @@ string synth_type_name(int offset = 0)
   return name;
 }
 
-string typelist2string(list_int *l) {
+string typelist2string(const std::vector<int>& l)
+{
   ostringstream out;
-  for(; l != 0; l = rest(l)) out << " " << types.name(first(l));
+  std::vector<int>::const_iterator i = l.begin();
+  std::vector<int>::const_iterator ie = l.end();
+  for(; i != ie; ++i) {
+    out << " " << types.name(*i);
+  }
   return out.str();
 }
 
+/** Binary predicate to perform lexicographic ordering of int vectors. */
+struct vec_int_compare 
+  : public std::binary_function<vector<int>, vector<int>, bool>
+{
+  /** Comparison operator. */
+  inline bool operator() (const vector<int>& x, const vector<int>& y) const
+  {
+    return lexicographical_compare(x.begin(), x.end(), y.begin(), y.end());
+  }
+};
+
 void process_multi_instances()
 {
-  int i, n = types.number();
-  Type *t;
+  int n = types.number();
+  map<vector<int>, int, vec_int_compare> ptype;
 
-  map<list_int *, int, list_int_compare> ptype;
-
-  for(i = 0; i < n; i++)
-    if((t = types[i])->tdl_instance && length(t->parents) > 1)
-    {
+  for (int i = 0; i < n; ++i) {
+    Type* t = types[i];
+    if (t->tdl_instance && t->parents.size() > 1) {
       LOG(logSemantic, DEBUG, "TDL instance `" << types.name(i) 
         << "' has multiple parents: " << typelist2string(t->parents));
-
-      if(ptype[t->parents] == 0)
-      {
+      sort(t->parents.begin(), t->parents.end());
+      if(ptype[t->parents] == 0) {
         string name = synth_type_name();
         Type *p = new_type(name, false);
         p->def.assign("synthesized", 0, 0);
         p->parents = t->parents;
 
-        for(list_int *l = t->parents; l != 0; l = rest(l))
-          subtype_constraint(p->id, first(l));
-
+        for(vector<int>::iterator l = t->parents.begin(); l != t->parents.end(); ++l) {
+          subtype_constraint(p->id, *l);
+        }
         ptype[t->parents] = p->id;
 
         LOG(logSemantic, INFO,
           "Synthesizing new parent type `" << p->id << "'"); 
       }
-
       undo_subtype_constraints(t->id);
       subtype_constraint(t->id, ptype[t->parents]);
-
-      t->parents = cons(ptype[t->parents], 0);
+      t->parents.swap(vector<int>(1, ptype[t->parents]));
     }
+  }
 }
 
 /** The reorder_leaftypes functions fills the following arrays such that:

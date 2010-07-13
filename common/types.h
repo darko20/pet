@@ -103,11 +103,11 @@ extern std::vector<std::string> attrname;
 /** appropriate type for feature, i.e., the topmost type that introduces a
  * feature
  */
-extern type_t *apptype;
+extern std::vector<type_t> apptype;
 /** maximal appropriate type under feature, i.e., the most general type that a
  * node under this feature may bear.
  */
-extern type_t *maxapp;
+extern std::vector<type_t> maxapp;
 /*@}*/
 
 /** @name Codes

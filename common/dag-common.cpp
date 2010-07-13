@@ -40,9 +40,8 @@ bool unify_wellformed = true;
 int unification_cost;
 
 bool dag_nocasts;
-int *featset;
-int nfeatsets;
-featsetdescriptor *featsetdesc;
+vector<int> featset;
+vector<featsetdescriptor> featsetdesc;
 
 dag_node **typedag = 0; // for [ 0 .. nstatictypes [
 

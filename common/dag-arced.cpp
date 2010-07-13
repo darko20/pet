@@ -60,7 +60,7 @@ void dag_remove_arcs(struct dag_node *dag, list_int *del)
 static struct qc_node *dag_qc_undumped_nodes = NULL;
 static struct qc_arc *dag_qc_undumped_arcs = NULL;
 
-struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
+qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
 {
   int dag_dump_total_nodes, dag_dump_total_arcs;
 
@@ -183,7 +183,7 @@ bool dag_prune_qc_paths(dag_node *qc_paths)
   return true; // this node can be pruned
 }
 
-void dag_get_qc_vector(qc_node *path, dag_node *dag, type_t *qc_vector)
+void dag_get_qc_vector(qc_node *path, dag_node *dag, std::vector<type_t>& qc_vector)
 {
 #ifndef DAG_TOMABECHI
   dag = dag_deref(dag);

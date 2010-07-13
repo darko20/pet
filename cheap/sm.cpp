@@ -670,8 +670,7 @@ tMEM::parseFeature2(int n)
       consume(1);
 }
 
-double
-tMEM::score(const tSMFeature &f)
+double tMEM::score(const tSMFeature &f)
 {
     int code = map()->featureToCode(f);
     assert(code >=0);
