@@ -150,11 +150,11 @@ T * local_cap_agenda<T, LESS_THAN>::pop() {
 template <typename T, class LESS_THAN>
 void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) { 
   if (t->phrasal()) {
-    if (get_opt_int("opt_count_tasks") == 0) {
+    if (get_opt_int("opt_chart_pruning_strategy") == 0) {
       _popped[t->start()*(_max_pos+1) + t->end()]++;
-    } else if (get_opt_int("opt_count_tasks") == 1 && (result != 0)) {
+    } else if (get_opt_int("opt_chart_pruning_strategy") == 1 && (result != 0)) {
       _popped[t->start()*(_max_pos+1) + t->end()]++;
-    } else if (get_opt_int("opt_count_tasks") == 2 && (result != 0) && t->yields_passive()) {
+    } else if (get_opt_int("opt_chart_pruning_strategy") == 2 && (result != 0) && t->yields_passive()) {
       _popped[t->start()*(_max_pos+1) + t->end()]++;
     }    
   }
