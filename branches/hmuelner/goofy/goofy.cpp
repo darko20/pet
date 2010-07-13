@@ -519,8 +519,7 @@ void GoofyWindow::load_grammar(const char *fn)
 
   _rule_names.sort();
 
-  QString s;
-  s.sprintf( "Loaded `%s'", fn );
+  QString s = QString("Loaded `") + fn + "'";
 
   statusBar()->showMessage(s);  
 }

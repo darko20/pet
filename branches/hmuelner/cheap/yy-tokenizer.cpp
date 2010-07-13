@@ -1,36 +1,36 @@
 /* PET
- * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
- *   2004 Bernd Kiefer bk@dfki.de
- *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   Lesser General Public License for more details.
- *
- *   You should have received a copy of the GNU Lesser General Public
- *   License along with this library; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* Platform for Experimentation with efficient HPSG processing Techniques
+* (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+*   2004 Bernd Kiefer bk@dfki.de
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 2.1 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public
+*   License along with this library; if not, write to the Free Software
+*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 /*
 
 YY input format: 
 
-  (id, start, end, [lnk,] path, 
-   "stem" ["surface"], inflpos, inflrs
-   [, postags])*
+(id, start, end, [lnk,] path, 
+"stem" ["surface"], inflpos, inflrs
+[, postags])*
 
-  where .lnk. is a surface link, currently restricted to <i:j>, as character
-  start and end positions.
+where .lnk. is a surface link, currently restricted to <i:j>, as character
+start and end positions.
 
-  inflrs: - "null" = do internal morph analysis
-          - stems and inflrules
+inflrs: - "null" = do internal morph analysis
+- stems and inflrules
 
 */
 
@@ -42,15 +42,17 @@ YY input format:
 #include "logging.h"
 
 #include <iostream>
-
+#include <utility>
+#include <boost/lexical_cast.hpp>
 using namespace std;
+using boost::lexical_cast;
 using namespace HASH_SPACE;
 
 tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
-  : tTokenizer()
-    , _inhibit_position_mapping(false)
-    , _position_mapping(position_mapping)
-    , _class_name_char(classchar) { }
+: tTokenizer()
+, _inhibit_position_mapping(false)
+, _position_mapping(position_mapping)
+, _class_name_char(classchar) { }
 
 bool tYYTokenizer::eos()
 {
@@ -74,11 +76,11 @@ const char *tYYTokenizer::res()
 bool tYYTokenizer::adv(int n)
 {
   while(n > 0)
-    {
-      if(eos())
-        return false;
-      _yypos++; n--;
-    }
+  {
+    if(eos())
+      return false;
+    _yypos++; n--;
+  }
   return true;
 }
 
@@ -87,7 +89,7 @@ bool tYYTokenizer::read_ws()
 {
   if(eos())
     return false;
-  
+
   while(!eos() && isspace(cur())) adv();
 
   return true;
@@ -114,7 +116,7 @@ bool tYYTokenizer::read_int(int &target)
 
   if(eos())
     return false;
-  
+
   const char *begin = res();
   char *end;
 
@@ -133,7 +135,7 @@ bool tYYTokenizer::read_double(double &target)
 
   if(eos())
     return false;
-  
+
   const char *begin = res();
   char *end;
 
@@ -156,41 +158,41 @@ bool tYYTokenizer::read_string(string &target, bool quotedp, bool downcasep)
     return false;
 
   if(quotedp)
+  {
+    if(cur() != '"')
+      return false;
+    else
+      adv();
+
+    char last = (char)0;
+    while(!eos() && (cur() != '"' || last == '\\'))
     {
-      if(cur() != '"')
-        return false;
-      else
-        adv();
-
-      char last = (char)0;
-      while(!eos() && (cur() != '"' || last == '\\'))
-        {
-          if(cur() != '\\' || last == '\\') {
-            if(downcasep && (unsigned char)cur() < 127)
-              target += tolower(cur());
-            else
-              target += cur();
-          } // if
-          last = (last == '\\' ? 0 : cur());
-          adv();
-        }
-
-      if(cur() != '"')
-        return false;
-      else
-        adv();
+      if(cur() != '\\' || last == '\\') {
+        if(downcasep && (unsigned char)cur() < 127)
+          target += tolower(cur());
+        else
+          target += cur();
+      } // if
+      last = (last == '\\' ? 0 : cur());
+      adv();
     }
+
+    if(cur() != '"')
+      return false;
+    else
+      adv();
+  }
   else
+  {
+    while(!eos() && (is_idchar(cur())))
     {
-      while(!eos() && (is_idchar(cur())))
-        {
-          target +=
-            (downcasep && (unsigned char)cur() < 127 ? tolower(cur()) : cur());
-          adv();
-        }
-      if(target.empty())
-        return false;
+      target +=
+        (downcasep && (unsigned char)cur() < 127 ? tolower(cur()) : cur());
+      adv();
     }
+    if(target.empty())
+      return false;
+  }
 
   return true;
 }
@@ -205,30 +207,22 @@ bool tYYTokenizer::read_pos(string &tag, double &prob)
     return false;
 
   if(read_string(tag, true))
-    {
-      read_ws();
+  {
+    read_ws();
 
-      if(eos())
-        return false;
+    if(eos())
+      return false;
 
-      if(read_double(prob))
-        return true;
-      else
-        return false;
-    }
+    if(read_double(prob))
+      return true;
+    else
+      return false;
+  }
   else
     return false;
 }
 
-int max(int a, int b)
-{
-  int max = a>b?a:b ;
-  return max;
-}
-
-
-tInputItem *
-tYYTokenizer::read_token()
+tInputItem* tYYTokenizer::read_token()
 {
   int id, start, end, from, to, path, inflpos;
   // we usually supply the inflection information, only perform lexicon lookup
@@ -240,13 +234,13 @@ tYYTokenizer::read_token()
 
   if(!read_special('('))
     throw tError("yy_tokenizer: ill-formed token (expected '(')");
-  
+
   if(!read_int(id) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected id)");
-  
+
   if(!read_int(start) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected start vertex)");
-  
+
   if(!read_int(end) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected end vertex)");
 
@@ -267,7 +261,7 @@ tYYTokenizer::read_token()
   from = to = -1;
   if(read_special('<')) {
     if(!read_int(from) || !read_special(':') 
-       || !read_int(to) || !read_special('>') || !read_special(','))
+      || !read_int(to) || !read_special('>') || !read_special(','))
       throw tError("yy_tokenizer: ill-formed token (expected surface link)");
     _inhibit_position_mapping = true;
   } // if
@@ -276,10 +270,10 @@ tYYTokenizer::read_token()
 
   while(read_int(path))
     paths.push_back(path);
-  
+
   if(paths.empty() || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected paths)");
-  
+
   bool downcasep = true;
   if(!read_string(stem, true, downcasep))
     throw tError("yy_tokenizer: ill-formed token (expected stem)");
@@ -319,19 +313,19 @@ tYYTokenizer::read_token()
   const char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
 
   if ((ersatz_carg_path != NULL) &&
-      (stem.substr(max(0,stem.length()-ersatz_suffix.length())) 
-       == ersatz_suffix))
+    (stem.substr(std::max<int>(0,stem.length()-ersatz_suffix.length())) 
+    == ersatz_suffix))
   {
     fsmods.push_back(pair<string, type_t>(ersatz_carg_path,
-                                          retrieve_string_instance(surface)));
+      retrieve_string_instance(surface)));
   }
 
   if(!read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected , after stem)");
-  
+
   if(!read_int(inflpos) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected inflpos)");
-  
+
   string inflr;
 
   if(! read_string(inflr, true))
@@ -339,7 +333,7 @@ tYYTokenizer::read_token()
   do {
     if(inflr == "zero")
       continue;
-    
+
     if(inflr == "null") {
       if (token_class == STEM_TOKEN_CLASS) {
         // Unless signalled by a special "null" token, we expect stems and
@@ -351,40 +345,39 @@ tYYTokenizer::read_token()
       } else
         throw tError("yy_tokenizer: illegal \"null\" spec");
     }
-    
+
     type_t infl_rule = lookup_type(inflr);
     if((infl_rule >= 0) 
-       // _fix_me_ the next test seems to be desirable
-       // && (Grammar->find_rule(infl_rule)->trait() == INFL_TRAIT)
-       ) {
-      infl_rules.push_back(infl_rule);
+      // _fix_me_ the next test seems to be desirable
+      // && (Grammar->find_rule(infl_rule)->trait() == INFL_TRAIT)
+      ) {
+        infl_rules.push_back(infl_rule);
     } else {
       LOG(logLexproc, WARN, 
-          "Ignoring token containing unknown infl rule " << inflr);
+        "Ignoring token containing unknown infl rule " << inflr);
       return NULL;
     }
   } while (read_string(inflr, true)) ; 
-  
+
   postags poss;
   if(read_special(',')) {
     string tag; double prob;
     while(read_pos(tag, prob))
       poss.add(tag, prob);
   }
-  
+
   if(!read_special(')'))
     throw tError("yy_tokenizer: ill-formed token (expected ')')");
-  
+
   read_ws();
 
-  char idstrbuf[6];
-  sprintf(idstrbuf, "%d", id);
+  string idstrbuf = lexical_cast<string>(id);
 
   tInputItem *res;
   if(from >= 0 && to >= from)
     res = new tInputItem(idstrbuf, start, end, from, to,
-                         surface, stem, paths, token_class,
-                         infl_rules, poss, fsmods);
+    surface, stem, paths, token_class,
+    infl_rules, poss, fsmods);
   else
     //
     // _fix_me_
@@ -396,21 +389,20 @@ tYYTokenizer::read_token()
     // what was originally intended.                            (15-jan-09; oe)
     //
     res = new tInputItem(idstrbuf, start, end, 
-                         surface, stem, paths, token_class,
-                         infl_rules, poss, fsmods);
-      
+    surface, stem, paths, token_class,
+    infl_rules, poss, fsmods);
+
   return res;
 }
 
-void
-tYYTokenizer::tokenize(myString s, inp_list &result)
+void tYYTokenizer::tokenize(myString s, inp_list &result)
 {
   _yyinput = s;
   _yypos = 0;
 
   LOG(logLexproc, NOTICE, "received YY tokens: " << s 
-      << "[processing yy_tokenizer input]");
-  
+    << "[processing yy_tokenizer input]");
+
   tInputItem *tok = 0;
   read_ws();
   while(! eos()) {

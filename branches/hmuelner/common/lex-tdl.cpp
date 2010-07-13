@@ -567,9 +567,8 @@ string match(enum TOKEN_TAG tag, const char *s, bool readonly)
 
   if(LA(0)->tag != tag)
     {
-      char msg[80];
-      sprintf(msg, "expecting %s", s);
-      syntax_error(msg, LA(0));
+      string msg = string("expecting ") + s;
+      syntax_error(msg.c_str(), LA(0));
       // assume it was forgotten, continue
     }
   else
@@ -608,9 +607,8 @@ void match_keyword(const char *kwd)
 {
   if(!is_keyword(LA(0), kwd))
     {
-      char msg[80];
-      sprintf(msg, "expecting `%s'", kwd);
-      syntax_error(msg, LA(0));
+      string msg = string("expecting `") + kwd + "'";
+      syntax_error(msg.c_str(), LA(0));
       // assume it was forgotten, continue
     }
   else
