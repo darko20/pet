@@ -60,7 +60,7 @@ struct bitcode_hash
 
 
 int nstaticleaftypes;
-int *leaftypeparent = 0;
+std::vector<int> leaftypeparent;
 
 static vector<bitcode *> typecode;
 static unordered_map<bitcode, int, bitcode_hash> codetable;
@@ -205,10 +205,10 @@ type_t lookup_code(const bitcode &b) {
     return (*pos).second;
 }
 
-int get_special_name(settings *sett, const char *suff, bool attr = false) {
-  char *buff = new char[strlen(suff) + 25];
-  sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
-  const char *v = sett->req_value(buff);
+int get_special_name(settings *sett, const char *suff, bool attr = false)
+{
+  string s = string(attr ? "special-name-attr-" : "special-name-") + suff;
+  const char *v = sett->req_value(s.c_str());
   int id;
 #ifdef FLOP
   if(attr) {
@@ -228,12 +228,9 @@ int get_special_name(settings *sett, const char *suff, bool attr = false) {
 #else 
   id = attr ? lookup_attr(v) : lookup_type(v);
   if(id == -1) {
-    string s(buff);
-    delete[] buff;
     throw tError(s + ":=" + v + " not defined (but referenced in settings file)");
   }
 #endif
-  delete[] buff;
   return id;
 }
 
@@ -315,7 +312,6 @@ void free_type_tables()
 {
  
   delete temp_bitcode;
-  delete[] leaftypeparent;
   delete[] apptype;
   delete[] maxapp;
   delete[] featset;
@@ -364,7 +360,7 @@ void undump_hierarchy(dumper *f)
       temp_bitcode = new bitcode(codesize);
     }
 
-  leaftypeparent = new int[nstaticleaftypes];
+  leaftypeparent.resize(nstaticleaftypes);
   for(int i = 0; i < nstaticleaftypes; i++)
     leaftypeparent[i] = f->undump_int();
 }

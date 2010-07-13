@@ -1,21 +1,21 @@
 /* PET
- * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
- *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   Lesser General Public License for more details.
- *
- *   You should have received a copy of the GNU Lesser General Public
- *   License along with this library; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* Platform for Experimentation with efficient HPSG processing Techniques
+* (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 2.1 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public
+*   License along with this library; if not, write to the Free Software
+*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 /* general helper functions and classes */
 
@@ -36,15 +36,15 @@ using std::list;
 namespace fs = boost::filesystem;
 
 /** "Safe" \c malloc: call \c malloc and throw an error if
- *   it returns \c NULL.
- */
+*   it returns \c NULL.
+*/
 void *salloc(size_t size)
 {
   void *p = malloc(size);
 
   if(!p)
     throw tError("out of memory");
-  
+
   return p;
 }
 
@@ -102,27 +102,27 @@ void strtoupper(char *dest, const char *src) {
 }
 
 /** Convert a (possibly) quoted integer string \a s into an integer and issue
- *  an error if this does not succeed.
- *  \param s The input string
- *  \param errloc A description of the calling environment
- *  \param quotedp If \c true, the integer has to be enclosed in double quotes.
- *  \return the converted integer
- */
+*  an error if this does not succeed.
+*  \param s The input string
+*  \param errloc A description of the calling environment
+*  \param quotedp If \c true, the integer has to be enclosed in double quotes.
+*  \return the converted integer
+*/
 int strtoint(const char *s, const char *errloc, bool quotedp)
 {
   char *endptr = 0;
   const char *foo = NULL;
   if(quotedp)
-    {
-      if(!(*s == '"') || (foo = strrchr(s, '"')) == NULL)
-        throw tError(string("invalid quoted integer `") + string(s) +
-                     string("' ") + string(errloc));
-      s++;
-    }
+  {
+    if(!(*s == '"') || (foo = strrchr(s, '"')) == NULL)
+      throw tError(string("invalid quoted integer `") + string(s) +
+      string("' ") + string(errloc));
+    s++;
+  }
   int val = strtol(s, &endptr, 10);
   if(endptr == 0 || (quotedp ? endptr != foo :  *endptr != '\0'))
     throw tError(string("invalid integer `") + string(s) + string("' ") 
-                 + string(errloc));
+    + string(errloc));
 
   return val;
 }
@@ -132,66 +132,66 @@ string convert_escapes(const string &s)
 {
   string res = "";
   for(string::size_type i = 0; i < s.length(); i++)
+  {
+    if(s[i] != '\\')
+      res += s[i];
+    else
     {
-      if(s[i] != '\\')
+      i++;
+      if(i >= s.length())
+        return res;
+      switch(s[i])
+      {
+      case '\"':
+        res += "\"";
+        break;
+      case '\'':
+        res += "\'";
+        break;
+      case '?':
+        res += "\?";
+        break;
+      case '\\':
+        res += "\\";
+        break;
+      case 'a':
+        res += "\a";
+        break;
+      case 'b':
+        res += "\b";
+        break;
+      case 'f':
+        res += "\f";
+        break;
+      case 'n':
+        res += "\n";
+        break;
+      case 'r':
+        res += "\r";
+        break;
+      case 't':
+        res += "\t";
+        break;
+      case 'v':
+        res += "\v";
+        break;
+      default:
         res += s[i];
-      else
-        {
-          i++;
-          if(i >= s.length())
-            return res;
-          switch(s[i])
-            {
-            case '\"':
-              res += "\"";
-              break;
-            case '\'':
-              res += "\'";
-              break;
-            case '?':
-              res += "\?";
-              break;
-            case '\\':
-              res += "\\";
-              break;
-            case 'a':
-              res += "\a";
-              break;
-            case 'b':
-              res += "\b";
-              break;
-            case 'f':
-              res += "\f";
-              break;
-            case 'n':
-              res += "\n";
-              break;
-            case 'r':
-              res += "\r";
-              break;
-            case 't':
-              res += "\t";
-              break;
-            case 'v':
-              res += "\v";
-              break;
-            default:
-              res += s[i];
-              break;
-            }
-        }
+        break;
+      }
     }
+  }
   return res;
 }
 
 
 /** Escape all double quote and backslash characters in \a s with a preceding
- *  backslash.
- */
+*  backslash.
+*/
 string escape_string(const string &s)
 {
   string res;
-  
+
   for(string::const_iterator it = s.begin(); it != s.end(); ++it)
   {
     if(*it == '"' || *it == '\\')
@@ -230,80 +230,76 @@ bool file_exists_p(const std::string &fn) {
 }
 
 /** \brief Check if \a name , with or without extension \a ext, is the name of
- *  a readable file. If \base is given in addition, take the directory part of
- *  \a base as the directory component of the pathname
- *
- * \param name  the basename of the file, possibly already with extension
- * \param ext   the extension of the file
- * \param base  if given, the directory component of the pathname.
- *
- * \return the full pathname of the file, if it exists with or without
- *         extension, an empty string otherwise.
- */
+*  a readable file. If \base is given in addition, take the directory part of
+*  \a base as the directory component of the pathname
+*
+* \param name  the basename of the file, possibly already with extension
+* \param ext   the extension of the file
+* \param base  if given, the directory component of the pathname.
+*
+* \return the full pathname of the file, if it exists with or without
+*         extension, an empty string otherwise.
+*/
 string
 find_file(const std::string &name, const std::string &ext,
           const std::string &base) {
 
-  string newname = dir_name(base) + name;
+            string newname = dir_name(base) + name;
 
-  if (file_exists_p(newname)) return newname;
+            if (file_exists_p(newname)) return newname;
 
-  newname += ext;
-  //std::cerr << name << " " << ext << " " << base << ">" << newname
-  //          << std::endl;
-  return file_exists_p(newname.c_str()) ? newname : string();
+            newname += ext;
+            //std::cerr << name << " " << ext << " " << base << ">" << newname
+            //          << std::endl;
+            return file_exists_p(newname.c_str()) ? newname : string();
 }
 
 
 /** look for the file with \a name (dot) \a ext first in \a base_dir, then in 
- *  \a base_dir + SET_DIRECTORY.
- *  \return the name of the file, if it exists, an empty string otherwise.
- */
+*  \a base_dir + SET_DIRECTORY.
+*  \return the name of the file, if it exists, an empty string otherwise.
+*/
 string 
 find_set_file(const std::string &name, const std::string &ext,
               const std::string &base){
-  string fname;
-  string base_dir = dir_name(base);
+                string fname;
+                string base_dir = dir_name(base);
 
-  // fname contains the full pathname to the settings file, except for the
-  // extension, first in the directory the base path points to
-  fname = base_dir + name + ext;
+                // fname contains the full pathname to the settings file, except for the
+                // extension, first in the directory the base path points to
+                fname = base_dir + name + ext;
 
-  if(! file_exists_p(fname.c_str())) {
-    // We could not find the settings file there, so try it in the
-    // subdirectory predefined for settings
-    fname = base_dir + SET_SUBDIRECTORY + PATH_SEP + name + ext;
-  }
-  //std::cerr << name << " " << ext << " " << base_dir << ">" << fname
-  //          << std::endl;
-  return ((file_exists_p(fname.c_str())) ? fname : "");
+                if(! file_exists_p(fname.c_str())) {
+                  // We could not find the settings file there, so try it in the
+                  // subdirectory predefined for settings
+                  fname = base_dir + SET_SUBDIRECTORY + PATH_SEP + name + ext;
+                }
+                //std::cerr << name << " " << ext << " " << base_dir << ">" << fname
+                //          << std::endl;
+                return ((file_exists_p(fname.c_str())) ? fname : "");
 }
 
 /** Extract the directory component of a pathname and return it.
- *  \return an empty string, if \a pathname did not contain a path separator
- *          character, the appropriate substring otherwise
- *          (with the path separator at the end)
- */
-string dir_name(const std::string &pathname) {
-  string::size_type lastslash = pathname.rfind(PATH_SEP[0]);
-  // _prefix gets the dirname of the path encoded in base
-  string result =
-    (string::npos == lastslash) ? string() : pathname.substr(0, lastslash + 1);
-  return result;
+*  \return an empty string, if \a pathname did not contain a path separator
+*          character, the appropriate substring otherwise
+*          (with the path separator at the end)
+*/
+string dir_name(const std::string &pathname)
+{
+  fs::path full_path = fs::system_complete(fs::path(pathname));
+  string result = full_path.parent_path().string();
+  return result.empty() ? "" : result + "/";
 }
 
 
 /** Extract only the filename part from a pathname, i.e., without directory and
- *  extension components.
- */
-string raw_name(const std::string &pathname) {
+*  extension components.
+*/
+string raw_name(const std::string &pathname)
+{
   // return part between last slash and first dot after that
-  string::size_type lastslash = pathname.rfind(PATH_SEP[0]);
-  if(string::npos == lastslash) lastslash = 0; else lastslash++;
-  string::size_type dot = pathname.find('.', lastslash);
-
-  string result = pathname.substr(lastslash, dot - lastslash);
-  return result;
+  fs::path p(pathname);
+  return p.stem();
 }
 
 
@@ -313,13 +309,13 @@ string output_name(const std::string& in, const std::string& oldext, const std::
 
   string::size_type ext = out.rfind('.');
 
-    if(ext != string::npos && iequals(out.c_str() + ext, oldext))
+  if(ext != string::npos && iequals(out.c_str() + ext, oldext))
     // erase the old extension
     out.erase(ext);
 
   // add the new extension
   out += newext;
-  
+
   return out;
 }
 
@@ -331,7 +327,7 @@ string read_line(FILE *f, int commentp)
 
   if(fgets(buff, ASBS, f) == NULL)
     return string();
-  
+
   if(buff[0] == '\0' || buff[0] == '\n')
     return string();
 
@@ -353,46 +349,46 @@ string read_line(FILE *f, int commentp)
 void
 findAndReplace(string &s, const string &oldText, const string &newText)
 {
-    if(s.empty() || oldText.empty())
-        return;
-    
-    string::size_type start = 0, len;
-    len = s.length();
+  if(s.empty() || oldText.empty())
+    return;
 
-    while(len > 0 && len >= oldText.length())
-    {
-        string::size_type pos = s.find(oldText, start);
-        if(pos == string::npos)
-            break;
-        s.replace(pos, oldText.length(), newText);
-        len -= pos + oldText.length() - start;
-        start = pos + newText.length();
-    }
+  string::size_type start = 0, len;
+  len = s.length();
+
+  while(len > 0 && len >= oldText.length())
+  {
+    string::size_type pos = s.find(oldText, start);
+    if(pos == string::npos)
+      break;
+    s.replace(pos, oldText.length(), newText);
+    len -= pos + oldText.length() - start;
+    start = pos + newText.length();
+  }
 }
 
 void
 splitStrings(list<string> &strs)
 {
-    list<string> result;
-    
-    for(list<string>::iterator it = strs.begin(); it != strs.end(); ++it)
+  list<string> result;
+
+  for(list<string>::iterator it = strs.begin(); it != strs.end(); ++it)
+  {
+    string::size_type p;
+    while((p = it->find(' ')) != string::npos)
     {
-        string::size_type p;
-        while((p = it->find(' ')) != string::npos)
-        {
-            string s = it->substr(0, p);
-            it->erase(0, p + 1);
-            result.push_back(s);
-        }
-        result.push_back(*it);
+      string s = it->substr(0, p);
+      it->erase(0, p + 1);
+      result.push_back(s);
     }
-    
-    strs.swap(result);
+    result.push_back(*it);
+  }
+
+  strs.swap(result);
 }
 
 bool string_lt_case::operator()(const std::string &s, const std::string &t) const
 {
-    return boost::algorithm::ilexicographical_compare(s, t);
+  return boost::algorithm::ilexicographical_compare(s, t);
 }
 
 #ifdef __BORLANDC__
@@ -403,18 +399,18 @@ void print_borland_heap(FILE *f)
 {
   struct heapinfo hi;
   if(heapcheck() == _HEAPCORRUPT)
-    {
-      fprintf(f, "Heap is corrupted.\n");
-      return;
-    }
+  {
+    fprintf(f, "Heap is corrupted.\n");
+    return;
+  }
 
-   hi.ptr = 0;
-   fprintf(f, "   Block  Size   Status\n");
-   fprintf(f, "   -----  ----   ------\n");
-   while(heapwalk( &hi ) == _HEAPOK)
-   {
-     fprintf(f, "%7u    %s\n", hi.size, hi.in_use ? "used" : "free");
-   }
+  hi.ptr = 0;
+  fprintf(f, "   Block  Size   Status\n");
+  fprintf(f, "   -----  ----   ------\n");
+  while(heapwalk( &hi ) == _HEAPOK)
+  {
+    fprintf(f, "%7u    %s\n", hi.size, hi.in_use ? "used" : "free");
+  }
 }
 
 #endif

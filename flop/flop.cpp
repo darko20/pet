@@ -172,8 +172,8 @@ void process_multi_instances()
  *    code
  *  - given a flop type code j, flop2cheap[j] is the corresponding cheap type
  */
-int *cheap2flop = 0;
-int *flop2cheap = 0;
+std::vector<int> cheap2flop;
+std::vector<int> flop2cheap;
 
 /**
  * Returns true iff type t is a proper type.
@@ -189,15 +189,16 @@ is_proper(int t) {
  */
 void reorder_leaftypes()
 {
-  cheap2flop = (int *) malloc(nstatictypes * sizeof(int));
-  for(int i = 0; i < nstatictypes; i++)
-    cheap2flop[i] = i;
+  cheap2flop.reserve(nstatictypes);
+  for(int i = 0; i < nstatictypes; i++) {
+    cheap2flop.push_back(i);
+  }
+  stable_partition(cheap2flop.begin(), cheap2flop.end(), is_proper);
 
-  stable_partition(cheap2flop, cheap2flop + nstatictypes, is_proper);
-
-  flop2cheap = (int *) malloc(nstatictypes * sizeof(int));
-  for(int i = 0; i < nstatictypes; i++)
+  flop2cheap.resize(nstatictypes);
+  for(int i = 0; i < nstatictypes; i++) {
     flop2cheap[cheap2flop[i]] = i;
+  }
 }
 
 void assign_printnames()
@@ -512,7 +513,7 @@ int process(const std::string& ofname) {
     fill_grammar_properties();        
 
     if(pre_only) {
-      write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version.c_str());
+      write_pre_header(outf, outfname, fname, grammar_version);
       write_pre(outf);
     } else {
       dumper dmp(outf, true);

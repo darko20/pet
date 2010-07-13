@@ -1,3 +1,16 @@
+Adaptions for Visual Studio Version:
+  - boost libraries: program_options, boost::unordered, date_time, foreach, format, lexical_cast, filesystem
+
+  - use vector in setting
+  - use std::string in settings
+  - remove unused avm::is_special
+  - add some const qualifiers
+  - change some struct references from C style to C++ style
+  - change lex_parser::_carg_path to std::string
+  - provide QString versions for morph.cpp and morh-inner.h
+  - add qmake files (*.pro)
+  - add pet-config.h for Visual Studio
+  - convert goofy to Qt4 and make it compile
 v0.99.??
   - escape XML delimiters in native MRS output
   - added make target "bindist" which builds a tarball with the binaries and all

@@ -55,8 +55,7 @@ Type *new_type(const string &name, bool is_inst, bool define)
 }
 
 /** Register a new builtin type with name \a name */
-int
-new_bi_type(const char *name)
+int new_bi_type(const std::string& name)
 {
     Type *t = new_type(name, false);
     t->def.assign("builtin", 0, 0);
