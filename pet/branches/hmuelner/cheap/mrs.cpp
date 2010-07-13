@@ -23,12 +23,15 @@
 #include "types.h"
 #include "utility.h"
 
+#include <string>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
 int variable_generator = 0;
 extern settings *cheap_settings;
 
+using std::string;
+using boost::algorithm::iequals;
 
 namespace mrs {
 
@@ -287,14 +290,12 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
   // get flist (fvpairs)
   dag_arc* attribute;
   for (attribute = dag->arcs; attribute != NULL; attribute = attribute->next) {
-    char* feature = attrname[attribute->attr];
-    if (strcmp(feature,
-               cheap_settings->req_value("mrs-rel-handel-path")) != 0 &&
-        strcmp(feature,
-               cheap_settings->req_value("mrs-rel-name-path")) != 0 &&
-        !cheap_settings->member("mrs-ignored-sem-features", feature)) {
+    string feature = attrname[attribute->attr];
+    if (feature != cheap_settings->req_value("mrs-rel-handel-path") &&
+        feature != cheap_settings->req_value("mrs-rel-name-path") &&
+        !cheap_settings->member("mrs-ignored-sem-features", feature.c_str())) {
       tValue* value;
-      if (cheap_settings->member("mrs-value-feats", feature)) {
+      if (cheap_settings->member("mrs-value-feats", feature.c_str())) {
         value = new tConstant(type_name(attribute->val->type));
       } else {
         if (indexing) {// ??? what's _mrs in indexing?
@@ -465,7 +466,7 @@ create_index_property_list(dag_node* dag, std::string path, std::map<std::string
   std::string currpath = path == "" ? path : path+"."; 
   for (attribute = dag->arcs; attribute != NULL; attribute = attribute->next) { // for each attribute under current dag root node
     if (cheap_settings->member("mrs-ignored-extra-features", 
-                               attrname[attribute->attr]))
+                               attrname[attribute->attr].c_str()))
       continue;
     if (attribute->val->arcs == NULL) { // value of the attribute is atomic
       extra[currpath+attrname[attribute->attr]] = type_name(attribute->val->type);
@@ -503,9 +504,9 @@ operator()(const std::string feat1, const std::string feat2) const {
   if (f1in && f2in) {
     setting* plist = cheap_settings->lookup("mrs-feat-priority-list");
     for (int i = 0; i < plist->n(); i ++) 
-      if (strcasecmp(plist->values[i].c_str(), feat1.c_str()) == 0)
+      if (iequals(plist->values[i], feat1))
         return true;
-      else if (strcasecmp(plist->values[i].c_str(), feat2.c_str()) == 0)
+      else if (iequals(plist->values[i], feat2))
         return false;
   }
   return feat1 < feat2;
@@ -523,9 +524,9 @@ operator()(const std::string feat1, const std::string feat2) const
   if (f1in && f2in) {
     setting* plist = cheap_settings->lookup("mrs-extra-priority-list");
     for (int i = 0; i < plist->n(); i ++) 
-      if (strcasecmp(plist->values[i].c_str(), feat1.c_str()) == 0)
+      if (iequals(plist->values[i], feat1))
         return true;
-      else if (strcasecmp(plist->values[i].c_str(), feat2.c_str()) == 0)
+      else if (iequals(plist->values[i], feat2))
         return false;
   }
   return feat1 < feat2;

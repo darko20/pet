@@ -54,6 +54,7 @@ void
 dump_symbol_tables(dumper *f)
 {
   // nstatus
+  size_t nstatus = statusnames.size();
   f->dump_int(nstatus);
 
   // npropertypes
@@ -62,12 +63,13 @@ dump_symbol_tables(dumper *f)
   // nstaticleaftypes
   f->dump_int(nstaticleaftypes);
 
+  int nattrs = attrname.size();
   // nattrs
   f->dump_int(nattrs);
 
   // status names
   for(int i = 0; i < nstatus; i++)
-    f->dump_string(statusnames[i]);
+    f->dump_string(statusnames[i].c_str());
 
   // type names and status
   for(int i = 0; i < nstatictypes; i++)
@@ -78,7 +80,7 @@ dump_symbol_tables(dumper *f)
 
   // attribute names
   for(int i = 0; i < nattrs; i++)
-    f->dump_string(attrname[i]);
+    f->dump_string(attrname[i].c_str());
 }
 
 /** Dump the type-to-featureset mappings and the feature sets for fixed arity
@@ -110,6 +112,7 @@ dump_tables(dumper *f)
         f->dump_short(featsetdesc[i].attr[j]);
     }
 
+  size_t nattrs = attrname.size();
   for(int i = 0; i < nattrs; i++)
     f->dump_int(flop2cheap[apptype[i]]);
 }
@@ -163,10 +166,10 @@ dump_fullforms(dumper *f)
  *  and then the string representation of the transformation rule.
  */
 void
-dump_inflr(dumper *f, int t, char *r)
+dump_inflr(dumper *f, int t, const std::string& r)
 {
   f->dump_int(t);
-  f->dump_string(r);
+  f->dump_string(r.c_str());
 }
 
 /** Dump all inflection rules. */
@@ -176,7 +179,7 @@ dump_inflrs(dumper *f)
   int ninflr = 0;
   int ninflr_var = f->dump_int_variable();
 
-  if(global_inflrs != 0)
+  if(!global_inflrs.empty())
   {
       ninflr++;
       dump_inflr(f, -1, global_inflrs);
@@ -184,7 +187,7 @@ dump_inflrs(dumper *f)
   
   for(int i = 0; i < nstatictypes; i++)
     {
-      if(types[i]->inflr != 0)
+      if(!types[i]->inflr.empty())
         {
           ninflr++;
           dump_inflr(f, flop2cheap[i], types[i]->inflr);

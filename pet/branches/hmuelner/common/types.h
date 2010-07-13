@@ -42,11 +42,8 @@
 #define NO_STATUS 0
 #define ATOM_STATUS 1
 
-/// number of status values
-extern int nstatus;
-
 /// names of status values, [0 .. nstatus[
-extern char **statusnames;
+extern std::vector<std::string> statusnames;
 /*@}*/
 
 /** @name Types
@@ -83,7 +80,7 @@ extern type_t first_leaftype;
 extern type_t ntypes;
 
 /** A vector of status values (for each static type) */
-extern int *typestatus;
+extern std::vector<int> typestatus;
 
 /** An internal name, differing from the name given in the grammar e.g. for
  *  instances, which are prepended with a '$' character, and strings, which
@@ -99,12 +96,9 @@ extern std::vector<std::string> printnames;
 
 /** @name Attributes */
 /*@{*/
-/** The number of attributes (fixed by the grammar) */
-extern int nattrs;
 /** The vector of attribute names */
-extern char **attrname;
+extern std::vector<std::string> attrname;
 /** The lenghts of the attribute names for faster printing */
-extern int *attrnamelen;
 
 /** appropriate type for feature, i.e., the topmost type that introduces a
  * feature
@@ -334,7 +328,7 @@ inline bool is_string_instance(type_t a) {
 /** check the validity of the attribute \a attr */
 inline bool is_attr(attr_t attr) {
   assert(attr >= 0);
-  return (attr <= nattrs);
+  return (attr <= attrname.size());
 }
 
 #endif

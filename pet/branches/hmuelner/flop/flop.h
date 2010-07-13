@@ -28,8 +28,16 @@
 #include <cstdio>
 #include "types.h"
 #include "symtab.h"
+#include "lex-io.h"
 
 class settings;
+struct Conjunction;
+struct Tdl_list;
+struct Term;
+struct Param_list;
+struct Coref_table;
+struct Templ;
+struct Type;
 
 /***************************/
 /* compile time parameters */
@@ -53,14 +61,6 @@ class settings;
 /*@{*/
 /** Table size for parameters and nesting of templates */
 #define TABLE_SIZE 20
-/** _fix_me_ Fixed size table for coreferences */
-#define COREF_TABLE_SIZE 32
-/** _fix_me_ Fixed size table for conjunctions */
-#define LIST_TABLE_SIZE 12
-/** Table size for attribute value lists: this grows dynamically */
-#define AV_TABLE_SIZE 8
-/** _fix_me_ Fixed size table for terms */
-#define CONJ_TABLE_SIZE 20
 /*@}*/
 
 /* Global Data: variables & constants */
@@ -73,16 +73,16 @@ enum TERM_TAG {NONE, TYPE, ATOM, STRING, COREF, FEAT_TERM, LIST, DIFF_LIST,
  */
 /*@{*/
 /** Map name to type */
-extern symtab<struct type *> types;
+extern symtab<Type *> types;
 /** Map name to type status */
 extern symtab<int> statustable;
 /** Map name to template */
-extern symtab<struct templ *> templates;
+extern symtab<Templ *> templates;
 /** Map name to attribute */
 extern symtab<int> attributes;
 /*@}*/
 
-extern char *global_inflrs;
+extern std::string global_inflrs;
 
 /** \brief If zero, type redefinitions will issue a warning. Will be set from
  * lexer
@@ -128,58 +128,65 @@ extern std::list<class irreg_entry> irregforms;
 /* main data structures to represent TDL terms - close to the BNF */
 
 /** An element of the attribute value list for TDL input */
-struct attr_val 
+struct Attr_val 
 {
-  /** The attribute string */
-  char *attr;
-  /** The conjunction this arc points to */
-  struct conjunction *val;
+    /** The attribute string */
+    std::string attr;
+    /** The conjunction this arc points to */
+    Conjunction *val;
+
+    Attr_val() : attr(), val(NULL) {}
+    Attr_val(const Attr_val& a);
+    Attr_val& operator=(const Attr_val& a);
 };
 
 /** An attribute value matrix for TDL input */
-struct avm
+struct Avm
 {
-  /** The number of elements active in the \c attr_val list */
-  int n;
-  /** \brief The number of elements allocated in the \c attr_val list.
-   *  This is always bigger than avm::n.
-   */
-  int allocated;
   /** A list of attribute value pairs */
-  struct attr_val **av;
+    std::vector<Attr_val*> av;
+  /** The number of elements active in the \c Attr_val list */
+    size_t n() const {return av.size(); }
+    Avm() : av() {}
+    Avm(const Avm& a);
+    Avm& operator=(const Avm& a);
 };
 
 /** The internal representation of a TDL list definition for TDL input */
-struct tdl_list
+struct Tdl_list
 {
-  /** When not zero, this is a difference list */
-  int difflist;
-  /** When not zero, this is an open list (the last \c REST does not point to a
-   *  \c *NULL* value).
-   */
-  int openlist;
-  /** When not zero, the last \c REST does not point node with type \c CONS or
-   *  \c *NULL*, but to an ordinary AVM
-   */
-  int dottedpair;
-  
-  /** The number of elements in this list */
-  int n;
-  /** The members of the list itself */
-  struct conjunction **list;
+    /** When not zero, this is a difference list */
+    int difflist;
+    /** When not zero, this is an open list (the last \c REST does not point to a
+    *  \c *NULL* value).
+    */
+    int openlist;
+    /** When not zero, the last \c REST does not point node with type \c CONS or
+    *  \c *NULL*, but to an ordinary AVM
+    */
+    int dottedpair;
 
-  /** The conjunction pointed to by the last \c REST arc for dotted pair */
-  struct conjunction *rest;
+    /** The members of the list itself */
+    std::vector<Conjunction*> list;
+    /** The number of elements in this list */
+    size_t n() const { return list.size(); }
+
+    /** The conjunction pointed to by the last \c REST arc for dotted pair */
+    Conjunction *rest;
+
+    Tdl_list() : difflist(0), openlist(0), dottedpair(0), list(), rest(NULL) {}
+    Tdl_list(const Tdl_list& t);
+    Tdl_list& operator=(const Tdl_list& t);
 };
 
 /** A TDL feature term for TDL input */
-struct term
+struct Term
 {
   /** The type of the term */
   enum TERM_TAG tag;
 
   /** interpretation depens on the term type */
-  char *value;
+  std::string value;
   /** the type id of the term */
   int type;
 
@@ -187,32 +194,38 @@ struct term
   int coidx;
   
   /** contains the list if \c tag is one of \c LIST or \c DIFF_LIST */
-  struct tdl_list *L;
+  Tdl_list *L;
 
   /** contains avm if \c tag is \c FEAT_TERM */
-  struct avm *A;
+  Avm *A;
 
   /** for template call (templ_call) */
-  struct param_list *params;
+  Param_list *params;
+  Term() : tag(NONE), value(), type(0), coidx(0), L(NULL), A(NULL), params(NULL) {}
+  Term(const Term& t) ;
+  Term& operator=(const Term& t) ;
 };
 
 /** Representation for a conjunction of terms for TDL input */
-struct conjunction
+struct Conjunction
 {
-  /** The number of terms in the \c term list */
-  int n;
-  /** List of terms */
-  struct term **term;
+    /** List of terms */
+    std::vector<Term*> term;
+    /** The number of terms in the \c term list */
+    size_t n() const { return term.size(); }
+    Conjunction() : term() {}
+    Conjunction(const Conjunction& c) : term(c.term) {}
+    Conjunction& operator=(const Conjunction& c) { term = c.term; }
 };
 
 /** Representation of a type definition. for TDL input */
-struct type
+struct Type
 {
   /** Numeric type id */
   int id;
 
   /** name as defined in grammar, including capitalization etc */
-  char *printname;
+  std::string printname;
 
   /** index into statustable */
   int status;
@@ -235,15 +248,15 @@ struct type
    *  was introduced because it occured on the right hand side of some other
    *  type's definition.
    */
-  int implicit;
+  bool implicit;
   
   /** Location of this type's definition (file name, line number, etc.) */
-  struct lex_location *def;
+  Lex_location def;
 
   /** Table of coreferences for this type definition */
-  struct coref_table *coref;
+  Coref_table* coref;
   /** Internal representation of this type's TDL definition */
-  struct conjunction *constraint;
+  Conjunction* constraint;
 
   /** The bitcode representing this type in the hierarchy */
   class bitcode *bcode;
@@ -256,10 +269,17 @@ struct type
   bool tdl_instance;
 
   /** The regular inflection rule string associated with this type */
-  char *inflr;
+  std::string inflr;
 
   /** parents specified in definition */
   struct list_int *parents;
+
+  Type() : id(0), printname(), status(NO_STATUS), defines_status(false),
+      status_giver(0), implicit(false), def(), coref(NULL),
+      constraint(NULL), bcode(NULL), thedag(NULL), tdl_instance(false),
+      inflr(), parents(NULL) {}
+  Type(const Type&);
+  Type& operator=(const Type&);
 };
 
 /** @name Templates
@@ -267,48 +287,59 @@ struct type
  */
 /*@{*/
 /** A parameter name/value pair */
-struct param
+struct Param
 {
-  char *name;
-  
-  struct conjunction *value;
+    std::string name;
+    Conjunction *value;
+
+    Param() : name(), value(NULL) {};
+    Param(const std::string& name) : name(name), value(NULL) {};
+    Param(const Param&);
+    Param& operator=(const Param&);
 };
 
 /** A list of template parameters for TDL input */
-struct param_list
+struct Param_list
 {
-  int n;
-  struct param **param;
+  std::vector<Param*> param;
+  size_t n() const { return param.size();}
 };
 
 /** Internal representation of template definition for TDL input */
-struct templ
+struct Templ
 {
-  /** The name of the template */
-  char *name;
+    /** The name of the template */
+    std::string name;
 
-  /** The number of times this template has been called */
-  int calls;
+    /** The number of times this template has been called */
+    int calls;
 
-  /** The list of formal parameters of this template */
-  struct param_list *params;
-  
-  /** Internal representation of the right side of the TDL definition */
-  struct conjunction *constraint;
-  /** Table mapping coreference names in this definition to numbers */
-  struct coref_table *coref;
+    /** The list of formal parameters of this template */
+    Param_list *params;
 
-  /** Location of this template's definition (file name, line number, etc.) */
-  struct lex_location *loc;
+    /** Internal representation of the right side of the TDL definition */
+    Conjunction *constraint;
+    /** Table mapping coreference names in this definition to numbers */
+    Coref_table *coref;
+
+    /** Location of this template's definition (file name, line number, etc.) */
+    Lex_location loc;
+
+    Templ() : name(), calls(0), params(NULL), constraint(NULL), coref(NULL), loc() {}
+    Templ(const Templ&);
+    Templ& operator=(const Templ&);
 };
 
 /** Table mapping coreference names to numbers for TDL input */
-struct coref_table
+struct Coref_table
 {
-  /** Number of elements in the table */
-  int n;
-  /** List of coreference names */
-  char **coref;
+    /** List of coreference names */
+    std::vector<std::string> coref;
+    /** Number of elements in the table */
+    size_t n() const { return coref.size();}
+    Coref_table() : coref() {}
+    Coref_table(const Coref_table& c) : coref(c.coref) {}
+    Coref_table& operator=(const Coref_table& c) { coref = c.coref;}
 };
 /*@}*/
 
@@ -427,21 +458,12 @@ inline void indent (FILE *f, int nr) { fprintf (f, "%*s", nr, ""); }
 
 /** @name util.cc */
 /*@{*/
-int strcount(char *s, char c);
-/** counts occurences of \a c in \a s - \a c must be != 0. */
 
-
-struct type *new_type(const std::string &name, bool is_inst, bool define = true);
+Type *new_type(const std::string &name, bool is_inst, bool define = true);
 /** allocates memory for new type - returns pointer to initialized struct */
 
 /** Register a new builtin type with name \a name */
 int new_bi_type(const char *name);
-
-/** A special form of strcat which returns a new string containing 
- *  \a old + \a add.
- *  \a old may be NULL, then this is equal to \code strdup(add) \endcode
- */
-char *add_inflr(char *old, char *add);
 
 /** A hash function for strings */
 extern int Hash(const std::string &s);
@@ -461,12 +483,12 @@ void expand_templates();
 /** @name corefs.cc */
 /*@{*/
 /** add coref \a name to the table \a co */
-int add_coref(struct coref_table *co, char *name);
+int add_coref(Coref_table *co, const std::string& name);
 /** Start a new coref table domain for type addenda by making the old names
  *  different from any new names by adding the coref index to each name
  *  in the table
  */
-void new_coref_domain(struct coref_table *co);
+void new_coref_domain(Coref_table *co);
 /** `unify' multiple coreferences in conjunctions
     (e.g. [ #1 & #2 ] is converted to [ #1_2 ]). */
 void find_corefs();
@@ -492,25 +514,16 @@ void write_pre(FILE *f);
 
 /** @name terms.cc : Create internal representations from TDL expressions. */
 /*@{*/
-struct avm *new_avm();
-struct tdl_list *new_list();
-struct term *new_term();
-struct attr_val *new_attr_val();
-struct term *new_type_term(int id);
-struct term *new_string_term(char *s);
-struct term *new_int_term(int i);
-struct term *new_avm_term();
-struct conjunction *new_conjunction();
-struct term *add_term(struct conjunction *C, struct term *T);
-struct attr_val *add_attr_val(struct avm *A, struct attr_val *av);
-struct conjunction *add_conjunction(struct tdl_list *L, struct conjunction *C);
-struct conjunction *get_feature(struct avm *A, char *feat);
-struct conjunction *add_feature(struct avm *A, char *feat);
+Term *new_type_term(int id);
+Term *new_avm_term();
+Term *add_term(Conjunction *C, Term *T);
+Attr_val *add_attr_val(Avm *A, Attr_val *av);
+Conjunction *add_conjunction(Tdl_list *L, struct Conjunction *C);
+Conjunction *get_feature(Avm *A, char *feat);
+Conjunction *add_feature(Avm *A, char *feat);
 
-int nr_avm_constraints(struct conjunction *C);
-struct term *single_avm_constraint(struct conjunction *C);
+int nr_avm_constraints(Conjunction *C);
 
-struct conjunction *copy_conjunction(struct conjunction *C);
 /*@}*/
 
 /** from builtins.cc: Initialize the built-in data type \c BI_TOP */

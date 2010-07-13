@@ -29,19 +29,19 @@
 #include "logging.h"
 
 #include <cstdlib>
+#include <boost/algorithm/string/predicate.hpp>
 
 using std::string;
+using boost::algorithm::iequals;
 
 settings::settings(string name, string base_dir, const char *message)
-  : _li_cache() {
-  _n = 0;
-  _set = new setting*[SET_TABLE_SIZE];
+  : _li_cache(), _lloc() {
 
   _fname = find_set_file(name, SET_EXT, base_dir);
 
   _prefix = dir_name(_fname);
 
-  if(! _fname.empty()) {
+  if(!_fname.empty()) {
     push_file(_fname, message);
     const char *sv = lexer_idchars;
     lexer_idchars = "_+-*?$";
@@ -49,30 +49,24 @@ settings::settings(string name, string base_dir, const char *message)
     lexer_idchars = sv;
 
   }
-  _lloc = 0;
 }
 
 
 settings::settings(const std::string &input)
-  : _li_cache() {
-  _n = 0;
-  _set = new setting*[SET_TABLE_SIZE];
+  : _li_cache(), _lloc() {
 
   push_string(input, NULL);
   const char *sv = lexer_idchars;
   lexer_idchars = "_+-*?$";
   parse();
   lexer_idchars = sv;
-  _lloc = 0;
 }
 
 
 settings::~settings() {
-  for(int i = 0; i < _n; i++) {
+  for(int i = 0; i < _set.size(); i++) {
     delete _set[i];
   }
-
-  delete[] _set;
 
   for(std::map<std::string, struct list_int *>::iterator it = _li_cache.begin();
       it != _li_cache.end(); ++it) {
@@ -84,18 +78,17 @@ settings::~settings() {
  * matching setting.
  */
 setting *settings::lookup(const char *name) {
-  for(int i = 0; i < _n; i++)
-    if(strcmp(_set[i]->name.c_str(), name) == 0) {
+    for(int i = 0; i < _set.size(); i++)
+    if(_set[i]->_name == name) {
       if(i != 0) {
         // put to front, so further lookup is faster
         setting *tmp = _set[i]; _set[i] = _set[0]; _set[0] = tmp;
       }
 
-      _lloc = _set[0]->loc;
+      _lloc = _set[0]->_loc;
       return _set[0];
     }
 
-  _lloc = 0;
   return 0;
 }
 
@@ -131,7 +124,7 @@ bool settings::member(const char *name, const char *value)
   if(set == 0) return false;
 
   for(int i = 0; i < set->n(); i++)
-    if(strcasecmp(set->values[i].c_str(), value) == 0)
+    if(iequals(set->values[i], value))
       return true;
 
   return false;
@@ -156,7 +149,7 @@ const char *settings::assoc(const char *name, const char *key, int arity, int nt
   for(int i = 0; i < set->n(); i+=arity)
     {
       if(i+nth >= set->n()) return 0;
-      if(strcasecmp(set->values[i].c_str(), key) == 0)
+      if(iequals(set->values[i], key))
         return set->values[i+nth].c_str();
     }
 
@@ -226,7 +219,7 @@ bool settings::statusmember(const char *name, type_t key)
               else
                 l = cons(v, l);
             }
-          _li_cache[string(name)] = l;
+          _li_cache[name] = l;
         }
     }
   return contains(l, key);
@@ -234,10 +227,10 @@ bool settings::statusmember(const char *name, type_t key)
 
 void settings::parse_one()
 {
-  char *option = LA(0)->text; LA(0)->text = NULL;
+  string option = LA(0)->text;
   consume(1);
 
-  setting *set = lookup(option);
+  setting *set = lookup(option.c_str());
   if(set)
     {
       LOG(logAppl, WARN,
@@ -245,10 +238,10 @@ void settings::parse_one()
     }
   else
     {
-      assert(_n < SET_TABLE_SIZE);
-      set = _set[_n++] = new setting;
-      set->name = option;
-      set->loc = LA(0)->loc; LA(0)->loc = NULL;
+        _set.push_back(new setting());
+      set = _set.back();
+      set->_name = option;
+      set->_loc = LA(0)->loc;
     }
 
   if(LA(0)->tag != T_DOT)
@@ -261,12 +254,11 @@ void settings::parse_one()
              LA(0)->tag == T_STRING)
             {
               set->values.push_back(LA(0)->text);
-              LA(0)->text=NULL;
             }
           else
             {
-              LOG(logSyntax, WARN, LA(0)->loc->fname << ":"
-                  << LA(0)->loc->linenr << ": warning: ignoring "
+              LOG(logSyntax, WARN, LA(0)->loc.fname << ":"
+                  << LA(0)->loc.linenr << ": warning: ignoring "
                   << LA(0)->text);
             }
 
@@ -285,11 +277,11 @@ void settings::parse() {
     else if(LA(0)->tag == T_COLON) {
       consume(1);
     }
-    else if(LA(0)->tag == T_KEYWORD && strcmp(LA(0)->text, "include") == 0) {
+    else if(LA(0)->tag == T_KEYWORD && LA(0)->text == "include") {
       consume(1);
 
       if(LA(0)->tag != T_STRING) {
-        LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+        LOG(logSyntax, WARN, LA(0)->loc.fname << ":" << LA(0)->loc.linenr
             << ": warning: expecting include file name");
       }
       else {

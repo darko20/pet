@@ -29,47 +29,44 @@
 
 using std::string;
 
-int ncorefs = 0;
-struct dag_node **dagify_corefs;
+std::vector<dag_node*> dagify_corefs;
 
 void dagify_symtabs()
 {
-  int i;
+    int i;
 
-  nstatus = statustable.number();
-  statusnames = (char **) salloc(sizeof(char *) * nstatus);
+    int nstatus = statustable.number();
+    statusnames.clear();
 
-  for(i = 0; i < nstatus; i++)
-    statusnames[i] = (char *) statustable.name(i).c_str();
+    for(i = 0; i < nstatus; i++)
+        statusnames.push_back(statustable.name(i));
 
-  first_leaftype = types.number() - nstaticleaftypes;
-  nstatictypes = types.number();
-  
-  typenames = std::vector<std::string>(nstatictypes);
-  typestatus = (int *) salloc(sizeof(int) * nstatictypes);
-  printnames = std::vector<std::string>(nstatictypes);
+    first_leaftype = types.number() - nstaticleaftypes;
+    nstatictypes = types.number();
+    ntypes = nstatictypes;
 
-  for(i = 0; i < types.number(); i ++)
+    typenames.resize(nstatictypes);
+    typestatus.resize(nstatictypes);
+    printnames.resize(nstatictypes);
+
+    for(i = 0; i < types.number(); i ++)
     {
-      typenames[i] = types.name(i);
-      typestatus[i] = types[i]->status;
-      printnames[i] = types[i]->printname;
-      if(printnames[i].empty() && types[i]->printname == 0)
-        printnames[i] = typenames[i];
+        typenames[i] = types.name(i);
+        typestatus[i] = types[i]->status;
+        printnames[i] = types[i]->printname;
+        if(printnames[i].empty() && types[i]->printname.empty())
+            printnames[i] = typenames[i];
     }
 
-  nattrs = attributes.number();
-  attrname = (char **) salloc(sizeof(char *) * nattrs);
-  attrnamelen = (int *) salloc(sizeof(int) * nattrs);
-
-  for(i = 0; i < nattrs; i++)
+    int nattrs = attributes.number();
+    attrname.clear();
+    for(i = 0; i < nattrs; i++)
     {
-      attrname[i] = (char *) attributes.name(i).c_str();
-      attrnamelen[i] = strlen(attrname[i]);
+        attrname.push_back(attributes.name(i));
     }
 }
 
-struct dag_node *dagify_conjunction(struct conjunction *C, int type);
+struct dag_node *dagify_conjunction(Conjunction *C, int type);
 
 // Global variable to enable meaningful error messages
 int current_toplevel_type = 0;
@@ -79,26 +76,24 @@ int current_toplevel_type = 0;
  * \param type the type whose definition is converted
  * \param crefs the number of coreferences in this definition
  */
-struct dag_node *dagify_tdl_term(struct conjunction *C, int type, int ncr)
+struct dag_node *dagify_tdl_term(Conjunction *C, int type, int ncr)
 {
   int i;
   struct dag_node *result;
   
   current_toplevel_type = type;
 
-  ncorefs = ncr;
-  dagify_corefs = new struct dag_node * [ncorefs];
-  for(i = 0; i < ncorefs; i++) dagify_corefs[i] = 0;
+  dagify_corefs.clear();
+  dagify_corefs.resize(ncr, NULL);
   
   result = dagify_conjunction(C, type);
 
   current_toplevel_type = 0;
 
-  delete[] dagify_corefs;
   return dag_deref(result);
 }
 
-struct dag_node *dagify_avm(struct avm *A)
+struct dag_node *dagify_avm(Avm *A)
 {
   int i;
   struct dag_node *result;
@@ -109,13 +104,12 @@ struct dag_node *dagify_avm(struct avm *A)
   if (get_opt_bool("opt_no_sem"))
     sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
   
-  for(i = 0; i < A->n; i++)
+  for(i = 0; i < A->n(); i++)
     {
-      struct dag_arc *arc;
-      struct dag_node *val;
-      int attr;
+      dag_arc *arc;
+      dag_node *val;
 
-      attr = attributes.id(A->av[i]->attr);
+      int attr = attributes.id(A->av[i]->attr);
 
       
       // With the option 'no-semantics', all structures under a feature
@@ -146,11 +140,11 @@ struct dag_node *dagify_avm(struct avm *A)
   return result;
 }
 
-struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *last)
+struct dag_node *dagify_list_body(Tdl_list *L, int i, struct dag_node *last)
 {
-  struct dag_node *result, *tmp;
+  dag_node *result, *tmp;
 
-  if( i >= L->n )
+  if( i >= L->n() )
     {
       if(L->dottedpair)
         return dagify_conjunction( L->rest, BI_TOP);
@@ -181,7 +175,7 @@ struct dag_node *dagify_list_body(struct tdl_list *L, int i, struct dag_node *la
   return result;
 }
 
-struct dag_node *dagify_list(struct tdl_list *L)
+struct dag_node *dagify_list(Tdl_list *L)
 {
   struct dag_node *result;
 
@@ -205,12 +199,12 @@ struct dag_node *dagify_list(struct tdl_list *L)
   return result;
 }
 
-struct dag_node *dagify_conjunction(struct conjunction *C, int type)
+struct dag_node *dagify_conjunction(Conjunction *C, int type)
 {
   int i;
   int cref = -1;
 
-  for(i = 0; C && i < C->n; i++)
+  for(i = 0; C && i < C->n(); i++)
     if( C->term[i]->tag == TYPE || C->term[i]->tag == ATOM ||
         C->term[i]->tag == STRING )
       {
@@ -255,9 +249,9 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
 
   result = new_dag(type);
 
-  for(i = 0; C && i < C->n; i++)
+  for(i = 0; C && i < C->n(); i++)
     {
-      struct dag_node *tmp;
+      dag_node *tmp;
 
       if(C->term[i]->tag == FEAT_TERM)
         {
@@ -287,7 +281,7 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
 
   if(cref != -1)
     {
-      assert(cref < ncorefs);
+      assert(cref < dagify_corefs.size());
       if(dagify_corefs[cref] != 0)
         {
           if(dag_unify1(dagify_corefs[cref], result) == FAIL)
@@ -311,6 +305,6 @@ void dagify_types()
     {
       types[i]->thedag = dagify_tdl_term(types[i]->constraint, i,
                                          types[i]->coref ?
-                                         types[i]->coref->n : 0);
+                                         types[i]->coref->n() : 0);
     }
 }

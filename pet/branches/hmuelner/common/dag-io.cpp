@@ -80,6 +80,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
  
   if((arc = dag->arcs) != 0)
     {
+        size_t nattrs = attrname.size();
       struct dag_node **print_attrs = (struct dag_node **)
         malloc(sizeof(struct dag_node *) * nattrs);
 
@@ -90,7 +91,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
 
       while(arc)
         {
-          i = attrnamelen[arc->attr];
+          i = attrname[arc->attr].size();
           maxlen = maxlen > i ? maxlen : i;
           print_attrs[arc->attr]=arc->val;
           maxatt = arc->attr > maxatt ? arc->attr : maxatt;
@@ -102,7 +103,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
       bool first = true;
       for(int j = 0; j <= maxatt; j++) if(print_attrs[j])
         {
-          i = attrnamelen[j];
+          i = attrname[j].size();
           if(!first)
             fprintf(f, ",\n%*s",indent + 2,"");
           else

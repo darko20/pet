@@ -43,6 +43,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stack>
+#include <boost/shared_ptr.hpp>
+
 #ifdef HAVE_MMAP
 #include <sys/mman.h>
 #else
@@ -54,153 +57,148 @@
 #endif
 
 using std::string;
+using boost::shared_ptr;
 
-static lex_file file_stack[MAX_LEX_NEST];
-static int file_nest = 0;
-lex_file *CURR;
+static std::stack<shared_ptr<Lex_file> > file_stack;
+shared_ptr<Lex_file> CURR;
+
+int LLA(int n)
+{ 
+  if(CURR == NULL || CURR->pos + n >= CURR->len)
+    return EOF;
+
+  return CURR->buff[CURR->pos + n];
+}
 
 int total_lexed_lines = 0;
 
-struct lex_location *new_location(const char *fname, int linenr, int colnr)
+void push_file(const string &fname, const char *info)
 {
-  struct lex_location *loc = (struct lex_location *) malloc(sizeof(struct lex_location));
-
-  loc->fname = fname;
-  loc->linenr = linenr;
-  loc->colnr = colnr;
-
-  return loc;
-}
-
-void push_file(const string &fname, const char *info) {
-  lex_file f;
+  shared_ptr<Lex_file> f(new Lex_file());
   struct stat statbuf;
 
-  if(file_nest >= MAX_LEX_NEST)
-    throw tError(string("too many nested includes (in ") 
-                 + fname + ") - giving up");
 
 #ifndef WINDOWS
-  f.fd = open(fname.c_str(), O_RDONLY);
+  f->fd = open(fname.c_str(), O_RDONLY);
 #else
-  f.fd = open(fname.c_str(), O_RDONLY | O_BINARY);
+  f->fd = open(fname.c_str(), O_RDONLY | O_BINARY);
 #endif
 
-  if(f.fd < 0)
+  if(f->fd < 0)
     throw tError("error opening `" + fname + "': " + string(strerror(errno)));
 
-  if(fstat(f.fd, &statbuf) < 0)
+  if(fstat(f->fd, &statbuf) < 0)
     throw tError("couldn't fstat `" + fname + "': " + string(strerror(errno)));
 
-  f.len = statbuf.st_size;
+  f->len = statbuf.st_size;
 
 #ifdef HAVE_MMAP
-  f.buff = (char *) mmap(0, f.len, PROT_READ, MAP_SHARED, f.fd, 0);
+  f->buff = (char *) mmap(0, f->len, PROT_READ, MAP_SHARED, f->fd, 0);
 
-  if(f.buff == (caddr_t) -1)
+  if(f->buff == (caddr_t) -1)
     throw tError("couldn't mmap `" + fname + "': " + string(strerror(errno)));
 
 #else
-  f.buff = (char *) malloc(f.len + 1);
-  if(f.buff == 0)
+  f->buff = (char *) malloc(f->len + 1);
+  if(f->buff == 0)
     throw tError("couldn't malloc for `" + fname + "': " 
                  + string(strerror(errno)));
   
-  if((size_t) read(f.fd,f.buff,f.len) != f.len)
+  if((size_t) read(f->fd,f->buff,f->len) != f->len)
     throw tError("couldn't read from `" + fname + "': "
                  + string(strerror(errno)));
 
-  f.buff[f.len] = '\0';
+  f->buff[f->len] = '\0';
 #endif
 
-  f.fname = strdup(fname.c_str());
+  f->fname = fname;
   
-  f.pos = 0;
-  f.linenr = 1; f.colnr = 1;
-  f.info = (info != NULL ? strdup(info) : NULL);
+  if (info != NULL) {
+      f->info  = info;
+  }
 
-  file_stack[file_nest++] = f;
+  file_stack.push(f);
 
-  CURR = &(file_stack[file_nest-1]);
+  CURR = file_stack.top();
 }
 
-void push_string(const string &input, const char *info) {
-  lex_file f;
+void push_string(const string &input, const char *info)
+{
+  shared_ptr<Lex_file> f(new Lex_file());
 
-  if(file_nest >= MAX_LEX_NEST)
-    throw tError("too many nested includes (in string) - giving up");
-
-  f.buff = strdup(input.c_str());
-  if(f.buff == 0)
+  f->buff = strdup(input.c_str());
+  if(f->buff == 0)
     throw tError("couldn't strdup for string include: " 
                  + string(strerror(errno)));
   
-  f.len = strlen(f.buff);
-  f.fname = NULL;
-  f.pos = 0;
-  f.linenr = 1; f.colnr = 1;
-  f.info = (info != NULL ? strdup(info) : NULL);
+  f->len = strlen(f->buff);
 
-  file_stack[file_nest++] = f;
+  if (info != NULL) {
+      f->info  = info;
+  }
 
-  CURR = &(file_stack[file_nest-1]);
-} // push_string()
+  file_stack.push(f);
 
-int pop_file() {
-  lex_file f;
+  CURR = file_stack.top();
+}
 
-  if(file_nest <= 0) return 0;
-
-  f = file_stack[--file_nest];
-  if(file_nest > 0)
-    CURR = &(file_stack[file_nest-1]);
-  else
-    CURR = NULL;
-
+Lex_file::~Lex_file()
+{
 #ifdef HAVE_MMAP
-  if(f.fname) {
-    if(munmap(f.buff, f.len) != 0)
-      throw tError("couldn't munmap `" + string(f.fname) 
-                   + "': " + string(strerror(errno)));
-  } // if
-  else {
-    //
-    // even when mmap() is in use, includes from strings were directly copied
-    // into the input buffer.
-    //
-    free(f.buff);
-  } // else
+    if(!fname.empty()) {
+        if(munmap(buff, len) != 0)
+            throw tError("couldn't munmap `" + string(fname) 
+            + "': " + string(strerror(errno)));
+    } // if
+    else {
+        //
+        // even when mmap() is in use, includes from strings were directly copied
+        // into the input buffer.
+        //
+        free(buff);
+    } // else
 #else
-  free(f.buff);
+    free(buff);
 #endif
-  
-  if(f.fname) {
-    if(close(f.fd) != 0)
-      throw tError("couldn't close from `" + string(f.fname) 
+  if(!fname.empty()) {
+    if(close(fd) != 0)
+      throw tError("couldn't close from `" + fname 
                    + "': " + string(strerror(errno)));
   } // if
-  return 1;
+}
+
+int pop_file()
+{
+    if(file_stack.empty()) return 0;
+
+    file_stack.pop();
+    if(file_stack.empty()) {
+        CURR.reset();
+    } else {
+        CURR = file_stack.top();
+    }
+    return 1;
 }
 
 int curr_line()
 {
-  assert(file_nest > 0);
+  assert(!file_stack.empty());
   return CURR->linenr;
 }
 
 int curr_col()
 {
-  assert(file_nest > 0);
+  assert(!file_stack.empty());
   return CURR->colnr;
 }
 
-char *curr_fname()
+std::string curr_fname()
 {
-  assert(file_nest > 0);
+  assert(!file_stack.empty());
   return CURR->fname;
 }
 
-char *last_info = 0;
+std::string last_info;
 
 int LConsume(int n)
 // consume lexical input
@@ -215,7 +213,7 @@ int LConsume(int n)
       return 0;
     }
 
-  if(CURR->info)
+  if(!CURR->info.empty())
     {
       {
         if(last_info != CURR->info) {
@@ -228,7 +226,7 @@ int LConsume(int n)
       }
 
       last_info = CURR->info;
-      CURR->info = NULL;
+      CURR->info.clear();
     }
 
   for(i = 0; i < n; i++)
