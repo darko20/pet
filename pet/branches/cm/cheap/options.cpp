@@ -99,10 +99,8 @@ void usage(FILE *f)
           "allow input comments (-1 to suppress output)\n");
   fprintf(f, "  `-cm' --- "
           "enable chart mapping (token mapping and lexical filtering)\n");
-  fprintf(f, "  `-local-cap=size' --- "
-          "enable local phrasal search space restriction\n");
-  fprintf(f, "  `-count-tasks' --- "
-          "indicates which types of tasks should be counted: all (0, default), successful (1), or successful+passive (2). \n");
+  fprintf(f, "  `-cp=[strategy]limit' --- "
+          "enable chart pruning. Strategy can be (a)ll, (s)uccessful and (p)assive (default).\n");
 }
 
 #define OPTION_TSDB 0
@@ -144,8 +142,7 @@ void usage(FILE *f)
 #define OPTION_CHART_MAPPING 39
 #define OPTION_SM 40
 #define OPTION_ROBUST 41
-#define OPTION_LOCAL_CAP 42
-#define OPTION_COUNT_TASKS 43
+#define OPTION_CHART_PRUNING 42
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -205,9 +202,7 @@ char* parse_options(int argc, char* argv[])
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
     {"cm", optional_argument, 0, OPTION_CHART_MAPPING},
     {"sm", optional_argument, 0, OPTION_SM},
-    {"local-cap", required_argument, 0, OPTION_LOCAL_CAP},
-    {"count-tasks", required_argument, 0, OPTION_COUNT_TASKS},
-
+    {"cp", required_argument, 0, OPTION_CHART_PRUNING},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -418,19 +413,28 @@ char* parse_options(int argc, char* argv[])
           else
             set_opt("opt_sm", std::string("null"));
           break;
-      case OPTION_LOCAL_CAP:
-          if (optarg != NULL)
-            set_opt("opt_local_cap",
-                    (int)(strtoint(optarg, "")));
-          else 
-            set_opt("opt_local_cap", (int) 1000);
-          break;
-      case OPTION_COUNT_TASKS:
-          if (optarg != NULL)
-            set_opt("opt_count_tasks",
-                    (int)(strtoint(optarg, "")));
-          else 
-            set_opt("opt_count_tasks", (int) 0);
+      case OPTION_CHART_PRUNING:
+          if (optarg != NULL) {
+            if (optarg[0] == 'a') {
+              set_opt("opt_chart_pruning_strategy", 0);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: strategy=all; cell size=" << get_opt_int("opt_chart_pruning"));
+            } else if (optarg[0] == 's') {
+              set_opt("opt_chart_pruning_strategy", 1);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: strategy=successful; cell size=" << get_opt_int("opt_chart_pruning"));            
+            } else if (optarg[0] == 'p') { 
+              set_opt("opt_chart_pruning_strategy", 2);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: strategy=passive; cell size=" << get_opt_int("opt_chart_pruning"));
+            } else {
+              set_opt("opt_chart_pruning_strategy", 2);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: no strategy given, hence strategy=passive; cell size=" << get_opt_int("opt_chart_pruning"));
+            }
+          } else {
+            set_opt("opt_chart_pruning", (int) 400);
+          }
           break;
 
 #ifdef YY

@@ -1438,10 +1438,10 @@ tGM::tGM(class tGrammar *G, const char *fileNameIn, const char *basePath)
 {
   std::string fileName = find_file(fileNameIn, std::string("pcfg"), basePath);
   if(fileName.empty())
-    throw tError(string("Could not open GM file \"") + fileNameIn + "\"");
+    throw tError(string("Could not open PCFG file \"") + fileNameIn + "\"");
   readModel(fileName);
   calculateWeights();
-  LOG (logGM, DEBUG, std::fixed << std::setprecision(2) );
+  LOG (logChartPruning, DEBUG, std::fixed << std::setprecision(2) );
 }
 
 tGM::~tGM() {

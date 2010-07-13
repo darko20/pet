@@ -670,8 +670,8 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   inp_list input_items;
   int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
-  if (get_opt_int("opt_local_cap") != 0) {
-    Agenda = new tLocalCapAgenda (get_opt_int ("opt_local_cap"), max_pos);
+  if (get_opt_int("opt_chart_pruning") != 0) {
+    Agenda = new tLocalCapAgenda (get_opt_int ("opt_chart_pruning"), max_pos);
   } else {
     Agenda = new tExhaustiveAgenda;
   }
