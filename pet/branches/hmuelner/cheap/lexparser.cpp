@@ -30,6 +30,7 @@
 #include "settings.h"
 #include "configs.h"
 #include "logging.h"
+#include "parse.h"
 
 #include <iostream>
 
@@ -61,11 +62,6 @@ static lex_parser &init() {
   
   return global_lexparser;
 } 
-
-// functions from parse.cpp
-extern void add_item(tItem *it);
-extern void parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout);
-extern void postulate(tItem *passive);
 
 /** Perform lexparser initializations.
  *  - Set carg modification (surface string) path
@@ -375,7 +371,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
     }
   }
   
-  hash_set<tItem *> to_delete;
+  unordered_set<tItem *> to_delete;
   for(chart_iter iter2(Chart); iter2.valid(); iter2++) {
     lex = iter2.current();
     // _fix_me_ the next condition might depend on whether we did
@@ -423,21 +419,9 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
 
 typedef list< pair<int, int> > gaplist;
 
-
-
-namespace HASH_SPACE {
-  /** hash function for pointer that just looks at the pointer content */
-  template<> struct hash< tInputItem * > {
-    /** \return A hash code for a pointer */
-    inline size_t operator()(tInputItem *key) const {
-      return (size_t) key;
-    }
-  };
-}
-
 void
-mark_recursive(tItem *item, hash_set< tItem * > &checked
-               , hash_map< tInputItem *, bool > &expanded){
+mark_recursive(tItem *item, unordered_set< tItem * > &checked
+               , unordered_map< tInputItem *, bool > &expanded){
   checked.insert(item);
   const list<tItem *> &dtrs = item->daughters();
   for(list<tItem *>::const_iterator it=dtrs.begin(); it != dtrs.end(); it++){
@@ -461,8 +445,8 @@ mark_recursive(tItem *item, hash_set< tItem * > &checked
  */
 list<tInputItem *>
 find_unexpanded(chart *ch, item_predicate valid_item) {
-  hash_set< tItem * > checked;
-  hash_map< tInputItem *, bool > expanded;
+  unordered_set< tItem * > checked;
+  unordered_map< tInputItem *, bool > expanded;
 
   // only passive items, topological order is not relevant
   chart_iter_topo iter(ch);
@@ -485,7 +469,7 @@ find_unexpanded(chart *ch, item_predicate valid_item) {
   
   // collect all unexpanded input items
   list<tInputItem *> result_list;
-  for(hash_map< tInputItem *, bool >::iterator it = expanded.begin()
+  for(unordered_map< tInputItem *, bool >::iterator it = expanded.begin()
         ; it != expanded.end(); it++) {
     if(! it->second) 
       result_list.push_back(it->first);

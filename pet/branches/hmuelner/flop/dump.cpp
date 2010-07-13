@@ -225,7 +225,7 @@ void logkb(const char *what, dumper *f) {
 }
 
 /** Dump the whole grammar to a binary data file.
- * \param f low-level dumper class
+ * \param f low-level type_t class
  * \param desc readable description of the current grammar
  */
 void

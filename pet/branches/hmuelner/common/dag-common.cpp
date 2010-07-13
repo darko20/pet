@@ -24,6 +24,7 @@
 #include "dag.h"
 #include "types.h"
 
+#include <cstdlib>
 #include <cstring>
 
 using namespace std;
@@ -175,6 +176,22 @@ dag_find_paths(dag_node* dag, type_t maxapp)
   std::list<list_int*> result;
   dag_find_paths_recursion(dag, maxapp, NULL, result);
   return result;
+}
+
+struct dag_node *
+dag_get_path_value_check_dlist(struct dag_node *dag, list_int *path) {
+  while(path) {
+    if(dag == FAIL) return FAIL;
+    int feature = first(path);
+    dag_node *next = dag_get_attr_value(dag, feature);
+    if (feature == BIA_LIST) {
+      dag_node *last =  dag_get_attr_value(dag, BIA_LAST);
+      if (next == last) return FAIL;
+    }
+    dag = next;
+    path = rest(path);
+  }
+  return dag;
 }
 
 struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
@@ -349,32 +366,6 @@ struct list_int *path_to_lpath(const char *thepath) {
   free(pathroot);
   free_list(head);
   return tail;
-}
-
-
-struct list_int *path_to_lpath0(const char *path)
-{
-  if(path == 0 || strlen(path) == 0) return NULL;
-
-  const char *dot = strchr(path, '.');
-  if(dot != 0)
-    { // copy the feature name into attr and get its code
-      char *attr = new char[dot - path + 1];
-      strncpy(attr, path, dot - path);
-      attr[dot - path] = '\0';
-      attr_t feat = lookup_attr(attr);
-      delete[] attr;
-      if (feat == -1) return NULL;
-      list_int *sub = path_to_lpath(dot + 1);
-      if (sub == NULL) return NULL;
-      return cons(feat, sub);
-    }
-  else
-    {
-    attr_t feat = lookup_attr(path);
-    if (feat == -1) return NULL;
-    return cons(feat, NULL);
-    }
 }
 
 

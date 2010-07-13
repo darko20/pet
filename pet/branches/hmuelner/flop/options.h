@@ -24,15 +24,8 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
-#include <iosfwd>
+#include <string>
 
-#include "pet-config.h"
-#include "configs.h"
-
-//extern int verbosity;
-//extern int errors_to;
-
-void usage(std::ostream &);
-char *parse_options(int argc, char* argv[]);
+std::string parse_options(int argc, char* argv[]);
 
 #endif

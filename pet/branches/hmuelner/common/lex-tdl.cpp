@@ -41,7 +41,7 @@ const char *lexer_idchars = "_+-*?";
 
 int is_idchar(int c)
 {
-  return isalnum(c) || strchr(lexer_idchars, c) || c > 127 || c < 0;
+  return isalnum(c&0xFF) || strchr(lexer_idchars, c) || c > 127 || c < 0;
 }
 
 int lisp_mode = 0; // shall lexer recognize lisp expressions 

@@ -40,6 +40,7 @@
 
 #include "pet-config.h"
 #include "logging.h"
+#include "configs.h"
 
 using namespace std;
 
@@ -67,13 +68,14 @@ void
 mem_checkpoint(const char *where)
 {
     static size_t last = 0;
-
+#ifndef WIN32
     size_t current = (size_t) sbrk(0);
     LOG(logAppl, DEBUG, 
         "Memory delta " << (current - last) / 1024 << "k (total "
         << current / 1024 << "k) [" << where << "]");
 
     last = current;
+#endif
 }
 
 void
@@ -326,7 +328,7 @@ void print_infls() {
 void
 print_morph_info(std::ostream &out)
 {
-    char *path = flop_settings->value("morph-path");
+    const char* path = flop_settings->value("morph-path");
     out << ";; Morphological information" << endl;
     // find all infl rules 
     for(int i = 0; i < nstatictypes; i++)
@@ -402,7 +404,7 @@ extern int dag_dump_grand_total_nodes, dag_dump_grand_total_atomic,
 #define FILE_NOT_FOUND 3
 
 
-int process(char *ofname) {
+int process(const std::string& ofname) {
   int res = 0;
 
   clock_t t_start = clock();
@@ -570,7 +572,7 @@ void init() {
 
 int main(int argc, char* argv[])
 {
-  int retval;
+  int retval = 0;
   // set up the streams for error and status reports
 
   setlocale(LC_ALL, "" );
@@ -581,10 +583,9 @@ int main(int argc, char* argv[])
   init_logging(argv[argc-1]);
 
   try {  
-    char *grammar_file_name;
-    if((grammar_file_name = parse_options(argc, argv)) == NULL)
+      std::string grammar_file_name = parse_options(argc, argv);
+      if(grammar_file_name.empty())
       {
-        usage(cerr);
         cleanup(); exit(1);
       }
 
@@ -610,7 +611,11 @@ int main(int argc, char* argv[])
       LOG(logAppl, FATAL, "out of memory");
       cleanup(); exit(1);
     }
-
+  catch(logic_error)
+  {
+      // wrong program options
+      cleanup(); exit(1); 
+  }
   catch(...)
     {
       LOG(logAppl, FATAL, "unknown exception");

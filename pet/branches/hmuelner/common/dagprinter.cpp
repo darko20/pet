@@ -21,6 +21,7 @@
 
 #include "dagprinter.h"
 #include <iomanip>
+#include <vector>
 
 using namespace std;
 
@@ -76,9 +77,7 @@ print_arcs(ostream &out, const dag_arc *arc, bool temp, int indent) {
 
   int maxlen = 0, i, maxatt = 0;
 
-  const dag_node *print_attrs[nattrs];
-  for(i = 0; i < nattrs; i++)
-    print_attrs[i] = 0;
+  vector<const dag_node*> print_attrs(nattrs, 0);
   
   while(arc) {
     i = attrnamelen[arc->attr];

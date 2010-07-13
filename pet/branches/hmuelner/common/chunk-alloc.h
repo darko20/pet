@@ -27,6 +27,8 @@
 #include <sys/types.h>
 #include <cstdio>
 
+#include <boost/cstdint.hpp>
+
 /** The maximum number of chunks to allocate */
 #define MAX_CHUNKS 16000
 /** The desired chunk size */
@@ -34,12 +36,12 @@
 
 /** Define a type for (nasty) pointer to int conversions */
 #if SIZEOF_INT_P == 4
-typedef int32_t ptr2int_t;
-typedef u_int32_t ptr2uint_t;
+typedef boost::int32_t ptr2int_t;
+typedef boost::uint32_t ptr2uint_t;
 #else
 #if SIZEOF_INT_P == 8
-typedef int64_t ptr2int_t;
-typedef u_int64_t ptr2uint_t;
+typedef boost::int64_t ptr2int_t;
+typedef boost::uint64_t ptr2uint_t;
 #endif
 #endif
 

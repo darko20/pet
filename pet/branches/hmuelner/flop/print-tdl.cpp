@@ -25,13 +25,14 @@
 #include "list-int.h"
 #include "logging.h"
 #include "errors.h"
+#include <ctime>
 
 #include <cstdio>
 #include <cstring>
 
 int tdl_save_lines = 1;
 
-/* the print_* functions return if what they printed out was complex enough to require a line
+/* the _print* functions return if what they printed out was complex enough to require a line
    of it's own */
 
 int tdl_print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref);

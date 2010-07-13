@@ -20,7 +20,7 @@
 /* chart items */
 
 #include "pet-config.h"
-#include <sys/param.h>
+// TODO #include <sys/Param.h>
 
 #include "cheap.h"
 #include "item.h"
@@ -37,7 +37,6 @@
 
 #include <sstream>
 #include <iostream>
-#include <sys/times.h>
 
 using namespace std;
 
@@ -793,9 +792,7 @@ tItem::unpack(int upedgelimit)
 
     // Check if we reached timeout. Caller is responsible for checking
     // this to verify completeness of results.
-    if (get_opt_int("opt_timeout") > 0) {
-      timestamp = times(NULL);
-      if (timestamp >= timeout)
+    if (timeoutExpired()) {
         return res;
     }
 
@@ -980,9 +977,7 @@ tPhrasalItem::hypothesize_edge(list<tItem*> path, unsigned int i)
   tHypothesis *hypo = NULL;
 
   // check whether timeout has passed.
-  if (get_opt_int("opt_timeout") > 0) {
-    timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
-    if (timestamp >= timeout)
+  if (timeoutExpired()) {
       return hypo;
   }
 

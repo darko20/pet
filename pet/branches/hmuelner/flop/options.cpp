@@ -20,129 +20,81 @@
 /* command line options */
 
 #include "flop.h"
-#include "getopt.h"
 #include "options.h"
 #include "version.h"
 #include "utility.h"
 #include "logging.h"
+#include "pet-config.h"
+#include "configs.h"
+#include <iostream>
+#include <exception>
+#include <boost/program_options.hpp>
 
-//int verbosity;
-// int errors_to;
+namespace po = boost::program_options;
 
-void usage(std::ostream &out)
+
+std::string parse_options(int argc, char* argv[])
 {
-  out << "flop version " << version_string << std::endl
-      << "usage: `flop [options] tdl-file'; valid options are:" << std::endl
-      << "  `-pre' --- do only syntactic preprocessing" << std::endl
-      << "  `-expand-all-instances' --- expand all (even lexicon) instances"
-      << std::endl
-      << "  `-full-expansion' --- don't do partial expansion" << std::endl
-      << "  `-unfill' --- unfill after expansion" << std::endl
-      << "  `-minimal' --- minimal fixed arity encoding" << std::endl
-      << "  `-propagate-status' --- propagate status the PAGE way" << std::endl
-      << "  `-no-semantics' --- remove all semantics" << std::endl
-      << "  `-glbdebug' --- print information about glb types created"
-      << std::endl
-      << "  `-cmi=level' --- create morph info, level = 0..2, default 0"
-      << std::endl
-  //    << "  `-verbose[=n]' --- set verbosity level to n" << std::endl
-  //    << "  `-errors-to=n' --- print errors to fd n" << std::endl
-    ;
-}
+    int cmi = 0;
+    std::string filename;
+    po::options_description generic("generic options");
+    generic.add_options()
+        ("help", "produce help message")
+        ("pre", "do only syntactic preprocessing")
+        ("expand-all-instances", "expand all (even lexicon) instances")
+        ("full-expansion", "don't do partial expansion")
+        ("unfill", "unfill after expansion")
+        ("minimal", "minimal fixed arity encoding")
+        ("no-semantics", "remove all semantics")
+        ("propagate-status", "propagate status the PAGE way")
+        ("cmi", po::value<int>(&cmi)->implicit_value(0), "create morph info, level = 0..2, default 0")
+        ;
+    po::options_description hidden("hidden options");
+    hidden.add_options()
+        ("input-file", po::value<std::string>(&filename), "input file")
+    ;        
 
-#define OPTION_PRE 0
-#define OPTION_EXPAND_ALL_INSTANCES 3
-#define OPTION_FULL_EXPANSION 4
-#define OPTION_UNFILL 5
-//#define OPTION_VERBOSE 6
-//#define OPTION_ERRORS_TO 7
-#define OPTION_MINIMAL 8
-#define OPTION_NO_SEM 9
-#define OPTION_PROPAGATE_STATUS 10
-#define OPTION_GLBDEBUG 11
-#define OPTION_CMI 12
+    po::options_description cmdline_options;
+    cmdline_options.add(generic).add(hidden);
 
+    po::options_description visible("valid options are");
+    visible.add(generic);
 
-char *parse_options(int argc, char* argv[])
-{
-  int c,  res;
+    po::positional_options_description p;
+    p.add("input-file", -1);
 
-  struct option options[] = {
-    {"pre", no_argument, 0, OPTION_PRE},
-    {"expand-all-instances", no_argument, 0, OPTION_EXPAND_ALL_INSTANCES},
-    {"full-expansion", no_argument, 0, OPTION_FULL_EXPANSION},
-    {"unfill", no_argument, 0, OPTION_UNFILL},
-    {"minimal", no_argument, 0, OPTION_MINIMAL},
-    {"no-semantics", no_argument, 0, OPTION_NO_SEM},
-    {"propagate-status", no_argument, 0, OPTION_PROPAGATE_STATUS},
-    {"cmi", required_argument, 0, OPTION_CMI},
-    //{"verbose", optional_argument, 0, OPTION_VERBOSE},
-    //{"errors-to", required_argument, 0, OPTION_ERRORS_TO},
-    {0, 0, 0, 0}
-  }; /* struct option */
-  
-  managed_opt("opt_expand_all_instances",
-    "expand  expand all type definitions, except for pseudo types", false);
-  managed_opt("opt_minimal", "", false);
-  managed_opt("opt_no_sem", "", false);
+    po::variables_map vm;
+    try {
+        po::store(po::command_line_parser(argc, argv).
+            options(cmdline_options).positional(p).run(), vm);
+        po::notify(vm);
+        if (vm.count("help") || (cmi<0) || (cmi>2)) {
+            std::cout << visible << "\n";
+            return "";
+        }
+        managed_opt("opt_expand_all_instances",
+            "expand all type definitions, except for pseudo types", false);
+        managed_opt("opt_minimal", "", false);
+        managed_opt("opt_no_sem", "", false);
 
-
-  //verbosity = 0;
-  //errors_to = -1;
-  
-  while((c = getopt_long_only(argc, argv, "", options, &res)) != EOF)
-  {
-    switch(c)
-    {
-    case '?':
-      return NULL;
-      break;
-    case OPTION_PRE:
-      set_opt("opt_pre", true);
-      break;
-    case OPTION_UNFILL:
-      set_opt("opt_unfill", true);
-      break;
-    case OPTION_MINIMAL:
-      set_opt("opt_minimal", true);
-      break;
-    case OPTION_FULL_EXPANSION:
-      set_opt("opt_full_expansion", true);
-      break;
-    case OPTION_EXPAND_ALL_INSTANCES:
-      set_opt("opt_expand_all_instances", true);
-      break;
-    case OPTION_NO_SEM:
-      set_opt("opt_no_sem", true);
-      break;
-    case OPTION_PROPAGATE_STATUS:
-      set_opt("opt_propagate_status", true);
-      break;
-    case OPTION_CMI:
-      if(optarg != NULL)
-        set_opt_from_string("opt_cmi", optarg);
-      break;
-    /*
-    case OPTION_VERBOSE:
-      if(optarg != NULL)
-        verbosity = strtoint(optarg, "as argument to `-verbose'");
-      else
-        verbosity++;
-      break;
-    case OPTION_ERRORS_TO:
-      if(optarg != NULL)
-        errors_to = strtoint(optarg, "as argument to `-errors-to'");
-      break;
-    */
+        set_opt("opt_pre", vm.count("pre")>0);
+        set_opt("opt_unfill", vm.count("unfill")>0);
+        set_opt("opt_minimal", vm.count("minimal")>0);
+        set_opt("opt_full_expansion", vm.count("full-expansion")>0);
+        set_opt("opt_expand_all_instances", vm.count("expand-all-instances")>0);
+        set_opt("opt_no_sem", vm.count("no-semantics")>0);
+        set_opt("opt_propagate_status", vm.count("propagate-status")>0);
+        set_opt("opt_cmi", cmi);
     }
-  }
-  
-  if(optind != argc - 1)
-  {
-    LOG(root, ERROR,
-        "parse_options(): expecting name of TDL grammar to process");
-    return NULL;
-  }
-  
-  return argv[optind];
+    catch (po::required_option) {
+        throw std::logic_error("option error");
+    }
+    catch (std::exception &e) {
+        std::cerr << e.what() << std::endl;
+        throw std::logic_error("option error");
+    }
+    if (filename.empty()) {
+        LOG(root, FATAL, "parse_options(): expecting name of TDL grammar to process");
+    }
+    return filename;
 }

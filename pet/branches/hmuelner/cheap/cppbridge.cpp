@@ -28,6 +28,7 @@
 
 #include "cppbridge.h"
 #include "petecl.h"
+#include <cstdlib>
 
 using std::map;
 using std::string;

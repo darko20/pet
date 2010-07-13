@@ -153,6 +153,24 @@ bool dags_compatible(dag_node *dag1, dag_node *dag2) {
   return res;
 }
 
+bool dags_compatible_failures(dag_node *dag1, dag_node *dag2) {
+  bool res = true;
+
+  unification_cost = 0;
+
+  if(recfail<true>::dag_unify1(dag1, dag2) == FAIL)
+    res = false;
+
+#ifdef STRICT_LKB_COMPATIBILITY
+  else
+    res = !recfail<true>::dag_cyclic_rec(dag1);
+#endif
+
+  dag_invalidate_changes();
+
+  return res;
+}
+
 //
 // recording of failures
 //
@@ -175,12 +193,26 @@ void save_or_clear_failure() {
     clear_failure();
 }
 
-void start_recording_failures() {
+void start_recording_failures(bool all) {
+  all_failures = all;
   clear_failure();
 }
 
 failure * stop_recording_failures() {
   return last_failure;
+}
+
+const list<failure *> &get_failures() {
+  return failures;
+}
+
+void clear_failures() {
+  last_failure = 0;
+  for(list<failure *>::iterator it = failures.begin(); it != failures.end();
+      ++it) {
+    delete (*it);
+  }
+  failures.clear();
 }
 
 dag_node *dag_cyclic_copy(dag_node *src, list_int *del);

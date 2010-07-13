@@ -8,6 +8,13 @@
 #ifndef _HASHING_H
 #define _HASHING_H
 
+#if 1
+#include <boost/unordered_set.hpp>
+#include <boost/unordered_map.hpp>
+
+#define HASH_SPACE boost
+
+#else
 #include "pet-config.h"
 #include "hash.h"
 
@@ -93,5 +100,5 @@ struct bj_string_hash
     return bjhash((const ub1 *) key.data(), key.size(), 0);
   }
 };
-
+#endif
 #endif

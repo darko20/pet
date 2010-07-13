@@ -29,6 +29,7 @@
 #include "dumper.h"
 #include "types.h"
 
+class dumper;
 struct dag_node;
 
 /** A dag node pointer representing unification failure */
@@ -182,6 +183,15 @@ dag_node *dag_get_path_value(dag_node *dag, const char *path);
  *  node at the end, if it exists, \c FAIL otherwise.
  */
 dag_node *dag_get_path_value(dag_node *dag, list_int *path);
+
+/** Very much like \see dag_get_path_value(dag_node *dag, list_int *path),
+ *  except that if in an empty diff list is found, the function will return \c
+ *  FAIL instead of trying to proceed. This is necessary when a "valid" path
+ *  is required. Since there could be a nonempty feature structure under an
+ *  empty difference list, dag_get_path_value would incorrectly return a
+ *  sub-dag instead of \c FAIL
+ */
+dag_node *dag_get_path_value_check_dlist(dag_node *dag, list_int *path);
 
 /** Create a minimal feature structure that contains the arc path
  *  \a path and where the node at the bottom has type \a type.
