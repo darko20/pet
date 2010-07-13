@@ -76,16 +76,17 @@ class lex_stem
   inline int type() const { return _instance_type; }
 
   /** Return the arity of this lexicon entry */
-  inline int length() const { return _nwords; }
+  inline int length() const { return _orth.size(); }
 
   /** Return the inflected argument of this lexicon entry.
    *  \todo This has to be made variable.
    */
-  inline int inflpos() const { return _nwords - 1; }
+  inline int inflpos() const { return length() - 1; }
 
   /** Return the \a i th surface element */
-  inline const char *orth(int i) const { 
-    assert(i < _nwords);
+  inline std::string orth(int i) const
+  { 
+    assert(i < _orth.size());
     return _orth[i];
   }
   
@@ -109,10 +110,8 @@ class lex_stem
 
   // modlist _mods;
 
-  /** length of _orth */
-  int _nwords;
   /** array of _nwords strings */
-  char **_orth;
+  std::vector<std::string> _orth;
 
   std::vector<std::string> get_stems();
 

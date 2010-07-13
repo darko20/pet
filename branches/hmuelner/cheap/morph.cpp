@@ -1220,10 +1220,10 @@ tFullformMorphology::tFullformMorphology(dumper &dmp) {
       // It seems to me to be modelled wrongly and rather belong to the stem.
       // lstem->keydtr(offset);
 
-      const char *stem = lstem->orth(offset);
+      string stem = lstem->orth(offset);
       list<string> forms;
-      forms.push_front(string(stem));
-      forms.push_back(string(s));
+      forms.push_front(stem);
+      forms.push_back(s);
       tMorphAnalysis new_morph(forms, affixes);
 
       bool found = false;

@@ -188,9 +188,6 @@
 /* Define to 1 if you have the `strtol' function. */
 #define HAVE_STRTOL 1
 
-/* Define to 1 if you have the `strdup' function. */
-#define HAVE_STRDUP 1
-
 /* Define to 1 if the system has the type `struct ecl_base_string'. */
 #define HAVE_STRUCT_ECL_BASE_STRING 1
 

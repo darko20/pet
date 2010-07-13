@@ -99,10 +99,7 @@ void push_file(const string &fname, const char *info)
     throw tError("couldn't mmap `" + fname + "': " + string(strerror(errno)));
 
 #else
-  f->buff = (char *) malloc(f->len + 1);
-  if(f->buff == 0)
-    throw tError("couldn't malloc for `" + fname + "': " 
-                 + string(strerror(errno)));
+  f->buff = new char[f->len + 1];
   
   if((size_t) read(f->fd,f->buff,f->len) != f->len)
     throw tError("couldn't read from `" + fname + "': "
@@ -125,13 +122,9 @@ void push_file(const string &fname, const char *info)
 void push_string(const string &input, const char *info)
 {
   shared_ptr<Lex_file> f(new Lex_file());
-
-  f->buff = strdup(input.c_str());
-  if(f->buff == 0)
-    throw tError("couldn't strdup for string include: " 
-                 + string(strerror(errno)));
-  
-  f->len = strlen(f->buff);
+  f->buff = new char[input.size()+1];
+  strcpy(f->buff, input.c_str());
+  f->len = input.size();
 
   if (info != NULL) {
       f->info  = info;
@@ -155,16 +148,16 @@ Lex_file::~Lex_file()
         // even when mmap() is in use, includes from strings were directly copied
         // into the input buffer.
         //
-        free(buff);
+        delete[] buff;
     } // else
 #else
-    free(buff);
+    delete[] buff;
 #endif
   if(!fname.empty()) {
     if(close(fd) != 0)
       throw tError("couldn't close from `" + fname 
                    + "': " + string(strerror(errno)));
-  } // if
+  }
 }
 
 int pop_file()

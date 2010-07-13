@@ -185,52 +185,7 @@ tSM::~tSM() {
   delete _map;
 }
 
-/*
-char *
-tSM::findFile(const char *fileName, const char *basePath)
-{
-    // _fix_me_
-    // This piece of uglyness (copied from settings::settings())
-    // should be factored out and encapsulated.
-
-    char *res = 0;
-
-    if(basePath)
-    {
-        char *slash = strrchr((char *) basePath, '/');
-        char *prefix = (char *) malloc(strlen(basePath) + 1
-                                       + strlen(SET_SUBDIRECTORY) + 1);
-        if(slash)
-        {
-            strncpy(prefix, basePath, slash - basePath + 1);
-            prefix[slash - basePath + 1] = '\0';
-        }
-        else
-        {
-            strcpy(prefix, "");
-        }
-
-        char *fname = (char *) malloc(strlen(prefix) + 1
-                                      + strlen(fileName) + 1);
-        strcpy(fname, prefix);
-        strcat(fname, fileName);
-      
-        res = find_file(fname, SM_EXT);
-
-        free(prefix);
-    }
-    else
-    {
-        res = (char *) malloc(strlen(fileName) + 1);
-        strcpy(res, fileName);
-    }
-  
-    return res;
-}
-*/
-
-double
-tSM::scoreLocalTree(grammar_rule *R, vector<tItem *> dtrs)
+double tSM::scoreLocalTree(grammar_rule *R, vector<tItem *> dtrs)
 {
   vector<int> v1, v2;
   v1.push_back(map()->intToSubfeature(1));
