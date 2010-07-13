@@ -50,17 +50,17 @@ private:
 
   unsigned int _counts_to_positions;
 
-  posmap _Chart;
+  posmap _chart;
 
   /** Get the chart node corresponding to input position \a pos, if there is
    *  one, or create one if necessary.
    */
   poschartnode *get_or_add_node(int pos) {
     poschartnode *chartnode;
-    posmap::iterator it = _Chart.find(pos);
-    if (it == _Chart.end()) {
+    posmap::iterator it = _chart.find(pos);
+    if (it == _chart.end()) {
       chartnode = new poschartnode();
-      _Chart.insert(std::pair<int, poschartnode *>(pos, chartnode));
+      _chart.insert(std::pair<int, poschartnode *>(pos, chartnode));
     } else {
       chartnode = it->second;
     }
@@ -70,7 +70,7 @@ private:
   /** Stamp the chart positions into all input items stored in the chart */
   void set_all_chartpositions() {
     posmap::iterator it;
-    for (it = _Chart.begin(); it != _Chart.end(); it++) {
+    for (it = _chart.begin(); it != _chart.end(); it++) {
       it->second->set_chartpositions();
     }
   }
@@ -82,7 +82,7 @@ public:
    */
   position_mapper(bool counts) {
     _counts_to_positions = (counts ? 1 : 0);
-    _Chart.clear();
+    _chart.clear();
   }
 
   /** Add an input item \c item to this position_mapper */
@@ -103,7 +103,7 @@ public:
     posmap::iterator it;
     std::list<poschartnode *> pending_nodes;
     int currentpos = 0;
-    for (it = _Chart.begin(); it != _Chart.end(); it++) {
+    for (it = _chart.begin(); it != _chart.end(); it++) {
       poschartnode *current_node = it->second;
       if (current_node->out_edges.empty()) {
         // This node has incoming edges only

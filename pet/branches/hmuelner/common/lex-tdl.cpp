@@ -34,6 +34,8 @@
 
 using std::string;
 
+TDL_MODE tdl_mode = STANDARD_TDL;
+
 const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
 "end", "end!", "errorp", "expand-all-instances", "include", "leval",
@@ -51,7 +53,7 @@ int lisp_mode = 0; // shall lexer recognize lisp expressions
 void print_token(std::ostream &out, struct lex_token *t);
 
 lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
-                      int rlen = -1)
+                      int rlen = -1, bool regex = false)
 {
   lex_token *t = new lex_token();;
 
@@ -185,6 +187,28 @@ lex_token *get_next_token()
     t = make_token(T_STRING, start + 1, i - 2, l);
     LConsume(i);
   }
+  else if((c == '^') && (tdl_mode == STANDARD_TDL))
+    { // regular expression
+      const char *start = LMark();
+      int i = 1;
+
+      while(LLA(i) != EOF && LLA(i) != '$')
+        {
+          if (LLA(i) == '\\') // skip escaped character
+            i++;
+          i++;
+        }
+
+      if(LLA(i) == EOF)
+        {
+          throw tError("runaway regular expression", curr_fname(),
+                      curr_line(), curr_col());
+        }
+
+      i += 1; // for '$'
+      t = make_token(T_STRING, start, i);
+      LConsume(i);
+    }
   else if(c == '(' && lisp_mode)
   { // LISP expression
     const char* start = LMark();
@@ -307,6 +331,7 @@ lex_token *get_next_token()
       tag = T_AT;
       break;
     case '^':
+          assert(tdl_mode == SM_TDL);
       tag = T_CAP;
       break;
     case '$':

@@ -473,6 +473,12 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
 
   dag_alloc_mark(s);
 
+  // asserting that the dags are valid. or should it be possible to unify
+  // with invalid dags, resulting in an invalid dag??    (pead01, 12 Sep 2008)
+  assert(root._dag);
+  assert(a._dag);
+  assert(b._dag);
+
   struct dag_node *res = dag_unify(root._dag, a._dag, b._dag, del);
 
   if(res == FAIL) {
@@ -519,6 +525,12 @@ fs
 unify_np(fs &root, const fs &a, fs &b)
 {
   struct dag_node *res;
+
+    // asserting that the dags are valid. or should it be possible to unify
+    // with invalid dags, resulting in an invalid dag??    (pead01, 12 Sep 2008)
+    assert(root._dag);
+    assert(a._dag);
+    assert(b._dag);
 
   res = dag_unify_temp(root._dag, a._dag, b._dag);
 

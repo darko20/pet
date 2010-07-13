@@ -32,7 +32,7 @@ static bool statics_initialized = init();
 
 /** choose tokenizer */
 std::string tokenizer_names[] = { 
-  "string", "yy", "yy_counts", "pic", "pic_counts", "fsr", "smaf", "INVALID"
+  "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "fsr", "smaf", "INVALID"
 } ;
 //@}
 
@@ -94,6 +94,7 @@ tTokenizer::tTokenizer() {
 #endif
 
   _translate_iso_chars = cheap_settings->lookup("translate-iso-chars");
+  _case_sensitive = cheap_settings->lookup("case-sensitive");
 }
 
 bool tTokenizer::punctuationp(const string &s)

@@ -13,80 +13,88 @@
 #include <string>
 #include <iostream>
 
-namespace mrs {
+namespace mrs
+{
 
-struct ltfeat {
+struct ltfeat
+{
   bool operator()(const std::string feat1, const std::string feat2) const; 
 };
 
-struct ltextra {
+struct ltextra
+{
   bool operator()(const std::string feat1, const std::string feat2) const;
 };
 
-class tValue {
+class tValue
+{
 public:
-  
-  virtual ~tValue() {
+ 
+  virtual ~tValue()
+  {
   }
-
-  virtual void print(std::ostream &out) = 0;
-  virtual void print_full(std::ostream &out) = 0;
-  
 };
 
-class tConstant : public tValue {
+class tConstant : public tValue
+{
 public:
-  tConstant() {
+  tConstant()
+  {
   }
 
-  tConstant(std::string v) : value(v) {
+  tConstant(std::string v) : value(v)
+  {
   }
 
   std::string value;
-  
-  virtual void print(std::ostream &out);
-  virtual void print_full(std::ostream &out);
 };
 
-class tBaseVar : public tValue {
+class tBaseVar : public tValue
+{
 public:
 
-  tBaseVar() {
+  tBaseVar()
+  {
   }
   
-  tBaseVar(std::string t) : type(t) {
+  tBaseVar(std::string t) : type(t)
+  {
   }
   std::string type;
   std::map<std::string,std::string> extra; // extra agreements
 };
 
-class tVar : public tBaseVar {
+class tVar : public tBaseVar
+{
 public:
-  tVar() {
+  tVar()
+  {
   }
   
-  tVar(int vid) : id(vid) {
+  tVar(int vid) : id(vid)
+  {
   }
 
-  tVar(int vid, std::string t) : tBaseVar(t), id(vid) {
+  tVar(int vid, std::string t) : tBaseVar(t), id(vid)
+  {
   } 
 
   tVar(int vid, dag_node* dag, bool indexing);
 
   int id;
-  
-  virtual void print(std::ostream &out);
-  virtual void print_full(std::ostream &out);
 };
 
-class tGrammarVar : public tBaseVar {
+class tGrammarVar : public tBaseVar
+{
  public:
 };
 
-class tHCons {
+class tHCons
+{
 public:
   
-  tHCons() {
+  tHCons()
+  {
   }
   
   tHCons(struct dag_node* dag, class tBaseMRS* mrs=NULL);
@@ -95,20 +103,19 @@ public:
   
   tHCons(std::string hreln, class tBaseMRS* mrs);
 
-  virtual ~tHCons() {
+  virtual ~tHCons()
+  {
   }
   
   enum tHConsRelType {QEQ, LHEQ, OUTSCOPES};
   tHConsRelType relation;
   tVar* scarg;
   tVar* outscpd;
-  
-  virtual void print(std::ostream &out);
-  
   class tBaseMRS* _mrs;
 };
 
-class tHook {
+class tHook
+{
 public:
   tVar* index;
   tVar* ltop;
@@ -116,46 +123,51 @@ public:
   //int anchor;
 };
 
-class tSlot {
+class tSlot
+{
 public: 
   tHook* hook;
   int name;
 };
 
 
-class tBaseRel {
+class tBaseRel
+{
 public:
-  tBaseRel() {
+  tBaseRel()
+  {
   }
   
-  tBaseRel(class tBaseMRS *mrs) : _mrs(mrs) {
+  tBaseRel(class tBaseMRS *mrs) : _mrs(mrs)
+  {
   }
   
-  virtual ~tBaseRel() {
+  virtual ~tBaseRel()
+  {
   }
 
   std::string pred;
   std::map<std::string,tValue*> flist;
-
-  virtual void print(std::ostream &out) { }
-
-
   /* reference to the parent mrs */
   class tBaseMRS *_mrs;
 
 };
 
-class tRel : public tBaseRel {
+class tRel : public tBaseRel
+{
 public:
-  tRel() {
+  tRel()
+  {
   }
 
-  tRel(class tBaseMRS *mrs) : tBaseRel(mrs) {
+  tRel(class tBaseMRS *mrs) : tBaseRel(mrs)
+  {
   }
 
   tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs=NULL);
 
-  virtual ~tRel() {
+  virtual ~tRel()
+  {
   }
   
   std::string str;
@@ -169,18 +181,17 @@ public:
 
   /** collect paramerter strings from the flist */
   void collect_param_strings();
-
-  virtual void print(std::ostream &out);
-
 };
 
 /**
  * Basic MRS class
  */
-class tBaseMRS {
+class tBaseMRS
+{
 public:
 
-  tBaseMRS() : _vid_generator(1) {
+  tBaseMRS() : _vid_generator(1)
+  {
   }
   
   virtual ~tBaseMRS();
@@ -217,9 +228,6 @@ public:
    * create a constant and register it
    */
   tConstant* request_constant(std::string value);
-  
-  virtual void print(std::ostream &out) { }
-  
   bool valid() { return _valid; }
 
   // note that the variable names are scoped within one MRS
@@ -233,19 +241,21 @@ public:
   int _vid_generator;
 };
 
-class tPSOA : public tBaseMRS {
+class tPSOA : public tBaseMRS
+{
 public:
-  tPSOA() {
+  tPSOA()
+  {
     _vid_generator = 1;
   }
   
   tPSOA(struct dag_node* dag);
 
   tVar* index;
-  virtual void print(std::ostream &out);
 };
 
-class tSemEnt : public tBaseMRS {
+class tSemEnt : public tBaseMRS
+{
 public:
   tHook* hook;
   std::vector<tSlot*> slots;
@@ -253,12 +263,14 @@ public:
 };
 
 
-class tIndexLbl {
+class tIndexLbl
+{
   int index;
   int lbl;
 };
 
-class tDisjCons {
+class tDisjCons
+{
 public: 
   tIndexLbl index_lbl;
   std::list<tIndexLbl> target;
@@ -274,8 +286,10 @@ void create_index_property_list(struct dag_node* dag, std::string path, std::map
   
 }
 
-struct ltrel {
-  bool operator()(const mrs::tRel* ra, const mrs::tRel* rb) const {
+struct ltrel
+{
+  bool operator()(const mrs::tRel* ra, const mrs::tRel* rb) const
+  {
     if (ra->pred < rb->pred) // ra->pred < rb->pred
       return true;
     else 

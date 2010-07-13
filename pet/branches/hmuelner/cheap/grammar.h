@@ -49,7 +49,7 @@
                    for rules: a lexical rule without morphographemic conditions
     -- SYNTAX_TRAIT a phrasal item or rule
  */
-enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT, INPUT_TRAIT };
+enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT, INPUT_TRAIT, PCFG_TRAIT };
 
 /** A rule from the HPSG grammar */
 class grammar_rule
@@ -61,6 +61,9 @@ class grammar_rule
    *  for the given type otherwise.
    */
   static grammar_rule* make_grammar_rule(type_t t);
+
+  /** Contstructor for PCFG rules */
+  static grammar_rule* make_pcfg_grammar_rule(std::vector<type_t> v);
 
   /** destructor */
   ~grammar_rule();
@@ -102,6 +105,9 @@ class grammar_rule
   /** Return the feature structure corresponding to the next argument */
   inline fs nextarg(const fs &f) const { return f.nth_arg(first(_tofill)); }
 
+  /** Return the type of the next argument in PCFG rule */
+  inline type_t nextarg_pcfg() { return _pcfg_args[first(_tofill) - 1]; }
+  
   /** Return all of the arguments but the current one in the order in which
    *  they should be filled.
    */
@@ -129,6 +135,9 @@ class grammar_rule
    */
   inline bool spanningonly() { return _spanningonly; }
 
+  /** Return the type of the nth argument in the pcfg rule */
+  inline type_t nth_pcfg_arg(int n) { return _pcfg_args[n - 1]; }
+
   /** @name Rule Statistics
    * How many active (incomplete) and passive (complete)
    * edges were produced using this rule.
@@ -140,6 +149,7 @@ class grammar_rule
 
  private:
   grammar_rule(type_t t);
+  grammar_rule(std::vector<type_t> v);
   grammar_rule() { }
 
   int _id;
@@ -147,6 +157,7 @@ class grammar_rule
   rule_trait _trait;
   int _arity;
   list_int *_tofill;
+  std::vector<type_t> _pcfg_args;
   
   fs _f_restriced;  // The feature structure corresponding to this rule
                     // with the packing restrictor applied.
@@ -254,6 +265,7 @@ public:
    * return the type of this root node in \a rule.
    */
   bool root(const fs &f, type_t &rule) const;
+  bool root(int type) const;
 
   /** Return the list of attributes that should be deleted in the root dags of
    *  passive items.
@@ -299,6 +311,9 @@ public:
   /** Return list of lexical rules in this grammar */
   inline const rulelist &lexrules() { return _lex_rules; }
 
+  /** Return list of PCFG rubust parsing rules in this grammar */
+  inline rulelist &pcfg_rules() { return _pcfg_rules; }  
+
   /** Return the number of hyperactive rules in this grammar */
   int nhyperrules();
   
@@ -331,8 +346,16 @@ public:
   /** Return the statistic maxent model of this grammar */
   inline class tSM *sm() { return _sm; }
 
+  inline void sm(tSM* m) { _sm = m; }
+
   /** Return the lexical type predictor ME model */
   inline class tSM *lexsm() { return _lexsm; }
+
+  /** Return the PCFG scoring model for robust parsing */
+  inline class tSM *pcfgsm() { return _pcfgsm; }
+
+  /** Return the generative model for agenda manipulation */
+  inline class tGM *gm() { return _gm; } 
 
   /** deactivate all rules */
   void deactivate_all_rules() {
@@ -369,6 +392,17 @@ public:
     }
   }
 
+  /** Return the list of all loaded token mapping rules.
+   * \see chart-mapping.h */
+  const std::list<class tChartMappingRule*> &tokmap_rules() {
+    return _tokmap_rules;
+  }
+  /** Return the list of all loaded lexical filtering rules.
+   * \see chart-mapping.h*/
+  const std::list<class tChartMappingRule*> &lexflt_rules() {
+    return _lexfil_rules;
+  }
+
  private:
   std::map<std::string, std::string> _properties;
 
@@ -393,8 +427,16 @@ public:
   /** The set of lexical rules */
   rulelist _lex_rules;
 
+  /** The list of pcfg robust rules */
+  rulelist _pcfg_rules;
+
   /** Map the rule type back to the rule structure */
   std::map<type_t, grammar_rule *> _rule_dict;
+
+  /** The set of input mapping rules */
+  std::list<class tChartMappingRule*> _tokmap_rules;
+  /** The set of lexical mapping rules */
+  std::list<class tChartMappingRule*> _lexfil_rules;
 
   list_int *_root_insts;
 
@@ -420,6 +462,12 @@ public:
 
   // Lexical type predictor model.
   class tSM *_lexsm;
+
+  // Robust PCFG parsing model.
+  class tSM *_pcfgsm;
+
+  // Generative model for agenda manipulation. 
+  class tGM *_gm; 
 
   void undump_properties(dumper *f);
   void init_parameters();

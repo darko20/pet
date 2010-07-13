@@ -60,7 +60,7 @@ class bitcode {
   int compare(const bitcode &S2) const {
     CODEWORD *p, *q;
     
-    for(p = V, q = S2.V; p < end() ; p++, q++) {
+    for(p = V, q = S2.V; p < end() ; ++p, ++q) {
       if(*p != *q) {
         if (*p < *q) return -1; else return 1;
       }
@@ -72,7 +72,7 @@ class bitcode {
   bitcode& join(const bitcode& b) {
     assert(sz == b.sz);
     CODEWORD *p, *q;
-    for(p = V, q = b.V; p < end(); p++, q++) *p |= *q;
+    for(p = V, q = b.V; p < end(); ++p, ++q) *p |= *q;
     return *this;
   }
 
@@ -80,7 +80,7 @@ class bitcode {
   bitcode& intersect(const bitcode& b) {
     assert(sz == b.sz);
     CODEWORD *p, *q;
-    for(p = V, q = b.V; p < end(); p++, q++) *p &= *q;
+    for(p = V, q = b.V; p < end(); ++p, ++q) *p &= *q;
     return *this;
   }
 
@@ -128,7 +128,7 @@ class bitcode {
   
   /** Test if the bitvector only contains zeros */
   bool empty() const {
-    for(CODEWORD *p = V; p < end(); p++) if(*p != 0) return false;
+    for(CODEWORD *p = V; p < end(); ++p) if(*p != 0) return false;
     return true;
   }
 
@@ -138,7 +138,7 @@ class bitcode {
 
   /** Print bitcode for debugging purposes */
   void print(FILE *f) const {
-    for(CODEWORD *p = V; p < end(); p++)
+    for(CODEWORD *p = V; p < end(); ++p)
       fprintf(f, "%.8X", *p);
   }
 
@@ -175,7 +175,7 @@ class bitcode {
   bitcode& operator&=(const bitcode& s) { return intersect(s); }
   /** Destructive bitwise NOT */
   bitcode& complement(){
-    for(CODEWORD *p = V; p<end(); p++) *p = ~(*p);
+    for(CODEWORD *p = V; p<end(); ++p) *p = ~(*p);
     /* Delete the bits that are not used because they are beyond max()
     --p; 
     *p &= (((CODEWORD) -1) >> SIZE_OF_WORD - (sz % SIZE_OF_WORD))
@@ -212,7 +212,7 @@ class bitcode {
   bool operator==(const bitcode& T) const {
     CODEWORD *p, *q;
     assert(sz == T.sz);
-    for(p = V, q = T.V; p < end(); p++, q++)
+    for(p = V, q = T.V; p < end(); ++p, ++q)
       if(*p != *q) return 0;
     
     return 1;

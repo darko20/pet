@@ -36,6 +36,8 @@ namespace po = boost::program_options;
 std::string parse_options(int argc, char* argv[])
 {
     int cmi = 0;
+    int local_cap = 1000;
+    int count_tasks = 0;
     std::string filename;
     po::options_description generic("generic options");
     generic.add_options()
@@ -48,6 +50,8 @@ std::string parse_options(int argc, char* argv[])
         ("no-semantics", "remove all semantics")
         ("propagate-status", "propagate status the PAGE way")
         ("cmi", po::value<int>(&cmi)->implicit_value(0), "create morph info, level = 0..2, default 0")
+        ("local-cap", po::value<int>(&local_cap), "enable local phrasal search space restriction")
+        ("count-tasks", po::value<int>(&count_tasks) ,"indicates which types of tasks should be counted: all (0, default), successful (1), or successful+passive (2).");
         ;
     po::options_description hidden("hidden options");
     hidden.add_options()
@@ -85,6 +89,8 @@ std::string parse_options(int argc, char* argv[])
         set_opt("opt_no_sem", vm.count("no-semantics")>0);
         set_opt("opt_propagate_status", vm.count("propagate-status")>0);
         set_opt("opt_cmi", cmi);
+        set_opt("opt_local_cap", local_cap);
+        set_opt("opt_count_tasks", count_tasks);
     }
     catch (po::required_option) {
         throw std::logic_error("option error");

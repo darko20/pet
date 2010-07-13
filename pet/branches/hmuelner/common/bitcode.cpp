@@ -58,7 +58,7 @@ bitcode& bitcode::operator=(const bitcode& b)
       stop = V + n;
     }
 
-  for(CODEWORD *p = V, *q = b.V; p < end(); p++, q++) *p = *q;
+  for(CODEWORD *p = V, *q = b.V; p < end(); ++p, ++q) *p = *q;
 
   return *this;
 }
@@ -67,7 +67,7 @@ bitcode& bitcode::operator=(const bitcode& b)
 void bitcode::find_relevant_parts()
 {
   first_set = last_set = -1;
-  for(CODEWORD *p = V; p < end() && last_set == -1; p++)
+  for(CODEWORD *p = V; p < end() && last_set == -1; ++p)
   {
     if(first_set == -1)
     {
@@ -95,12 +95,12 @@ list_int *bitcode::get_elements()
   int i;
   list_int *l = 0;
 
-  for(p = V, i = 0; p < end(); p++, i++)
+  for(p = V, i = 0; p < end(); ++p, ++i)
     if(*p)
       {
         w = *p;
 
-        for(int j = 0; j < SIZE_OF_WORD; j++)
+        for(int j = 0; j < SIZE_OF_WORD; ++j)
           {
             if((w & (CODEWORD)1) == 1)
               l = cons(i*SIZE_OF_WORD + j, l);
@@ -120,7 +120,7 @@ subset_bidir(const bitcode&A, const bitcode &B, bool &a, bool &b)
     CODEWORD *cA, *cB;
     a = b = true;
 
-    for(cA = A.V, cB = B.V; cA < A.end(); cA++, cB++)
+    for(cA = A.V, cB = B.V; cA < A.end(); ++cA, ++cB)
     {
         CODEWORD join = *cA & *cB;
         if(join != *cA) a = false;
@@ -136,7 +136,7 @@ bool intersect_empty(const bitcode &A, const bitcode &B, bitcode *C)
   CODEWORD *p, *q, *s;
   bool empty;
 
-  for(p = A.V, q = B.V, s = C -> V, empty = true; p < A.end(); p++, q++, s++)
+  for(p = A.V, q = B.V, s = C->V, empty = true; p < A.end(); ++p, ++q, ++s)
     if((*s = *p & *q) != 0) empty = false;
 
   return empty;
@@ -147,7 +147,7 @@ bool bitcode::subset(const bitcode &supposed_superset)
   assert(sz == supposed_superset.sz);
   CODEWORD *sub, *super;
 
-  for(sub = V, super = supposed_superset.V; sub < end(); sub++, super++)
+  for(sub = V, super = supposed_superset.V; sub < end(); ++sub, ++super)
     if((*sub & *super) != *sub) return false;
 
   return true;
@@ -161,7 +161,7 @@ void bitcode::dump(dumper *f)
 
   f->dump_short(s);
 
-  for(CODEWORD *p = V; p < end(); p++)
+  for(CODEWORD *p = V; p < end(); ++p)
     f->dump_int(*p);
 }
 
@@ -176,7 +176,7 @@ void bitcode::undump(dumper *f)
     LOG(logAppl, WARN, "bitcode: mismatch " << s << "!=" << 1+sz/SIZE_OF_WORD);
   }
 
-  for(CODEWORD *p = V; p < end(); p++)
+  for(CODEWORD *p = V; p < end(); ++p)
     *p = f->undump_int();
 }
 
@@ -195,14 +195,14 @@ void bitcode::dump(dumper *f)
           int j = i + 1;
 
           while(j < n && V[j] == 0)
-            j++;
+            ++j;
 
           f->dump_short((short int) (j - i));
 
           i = j;
         }
       else
-        i++;
+        ++i;
     }
 
   f->dump_int(0);
@@ -223,13 +223,13 @@ void bitcode::undump(dumper *f)
 
           while(--l > 0)
             {
-              i++;
+              ++i;
               if(i >= n)
                 throw tError("invalid compressed bitcode (too long)");
               V[i] = 0;
             }
         }
-      i++;
+      ++i;
     }
 
   if( f->undump_int() != 0 || f->undump_short() != 0)
@@ -241,10 +241,10 @@ void bitcode::undump(dumper *f)
 int Hash(const bitcode &C)
 {
   
-  for(CODEWORD *p = C.V; p < C.end(); p++)
+  for(CODEWORD *p = C.V; p < C.end(); ++p)
     if(*p != 0)
       {
-        for(int j = 0; j < C.SIZE_OF_WORD ; j++)
+        for(int j = 0; j < C.SIZE_OF_WORD ; ++j)
           {
             if(*p & (1 << j))
               return (p - C.V) * C.sz + j;
@@ -252,7 +252,7 @@ int Hash(const bitcode &C)
       }
 
   //  CODEWORD *stop = C.V + C.sz/C.SIZE_OF_WORD + 1;
-  //  for(CODEWORD *p = C.V; p < stop; p++)
+  //  for(CODEWORD *p = C.V; p < stop; ++p)
   //    if(*p != 0) return *p;
   
   return 0;
@@ -260,7 +260,7 @@ int Hash(const bitcode &C)
 
 std::ostream& operator<<(std::ostream& O, const bitcode& C)
 {
-  for(int i=0; i < C.sz; i++)
+  for(int i=0; i < C.sz; ++i)
     {
       if(C.member(i)) O << i << " "; 
     }
