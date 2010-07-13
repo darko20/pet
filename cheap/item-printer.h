@@ -150,7 +150,7 @@ public:
    *  distinguished by the chart display.
    */
   tTclChartPrinter(std::ostream &out, int chart_id = 0)
-    : tAbstractItemPrinter(out), _chart_id(chart_id) {}
+    : tAbstractItemPrinter(out), _chart_id(chart_id), _item_id(0) {}
   
   virtual ~tTclChartPrinter() {}
 

@@ -661,7 +661,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   stats.reset();
   stats.id = id;
 
-  auto_ptr<item_owner> owner(new item_owner);
+  boost::shared_ptr<item_owner> owner(new item_owner);
   tItem::default_owner(owner.get());
 
   unify_wellformed = true;

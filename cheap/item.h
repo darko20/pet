@@ -1,26 +1,26 @@
 /* -*- Mode: C++ -*-
- * PET
- * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
- *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   Lesser General Public License for more details.
- *
- *   You should have received a copy of the GNU Lesser General Public
- *   License along with this library; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* PET
+* Platform for Experimentation with efficient HPSG processing Techniques
+* (C) 1999 - 2003 Ulrich Callmeier uc@coli.uni-sb.de
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 2.1 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public
+*   License along with this library; if not, write to the Free Software
+*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 /** \file item.h
- * Chart item hierarchy.
- */
+* Chart item hierarchy.
+*/
 
 #ifndef _ITEM_H_
 #define _ITEM_H_
@@ -41,32 +41,32 @@
 #include <string>
 #include <vector>
 
+class item_owner;
+class tItem;
+class tInputItem;
+class tLexItem;
+class grammar_rule;
+class tGrammar;
+class tAbstractItemPrinter;
+
 /** this is a hoax to get the cfrom and cto values into the mrs */
 void init_characterization();
-
-/** Inhibit assignment operator and copy constructor(always throws an error) */
-#define INHIBIT_COPY_ASSIGN(___Type) \
-  virtual ___Type &operator=(const ___Type &) { \
-    throw tError("unexpected call to assignment of ___Type"); } \
-  ___Type() { \
-    throw tError("unexpected call to default constructor of ___Type"); }
-
 
 /* Some typedef abbreviations for commonly used item container types */
 
 /** A list of chart items */
-typedef std::list< class tItem * > item_list;
+typedef std::list<tItem* > item_list;
 /** Iterator for item_list */
-typedef std::list< class tItem * >::iterator item_iter;
+typedef item_list::iterator item_iter;
 /** Iterator for const item list */
-typedef std::list< class tItem * >::const_iterator item_citer;
+typedef item_list::const_iterator item_citer;
 /** A list of input items */
-typedef std::list< class tInputItem * > inp_list;
+typedef std::list<tInputItem*> inp_list;
 /** Iterator for inp_list */
-typedef std::list< class tInputItem * >::iterator inp_iterator;
+typedef inp_list::iterator inp_iterator;
 
 /** Represent a possible (not necessarily valid) decomposition of an
-    item. */
+item. */
 struct tDecomposition
 {
 public:
@@ -102,8 +102,8 @@ public:
     hypo_dtrs = dtrs;
     hypo_parents.clear();
     for (std::list<tHypothesis*>::iterator dtr = hypo_dtrs.begin();
-         dtr != hypo_dtrs.end(); dtr ++) {
-      (*dtr)->hypo_parents.push_back(this);
+      dtr != hypo_dtrs.end(); dtr ++) {
+        (*dtr)->hypo_parents.push_back(this);
     }
   }
   tHypothesis(tItem* e)
@@ -131,30 +131,29 @@ public:
 // #define CFGAPPROX_LEXGEN 1
 
 /** Represent an item in a chart. Conceptually there are input items,
- *  lexical items and phrasal items. 
- */
-class tItem {
+*  lexical items and phrasal items. 
+*/
+class tItem
+{
 public:
   /** Base constructor with feature structure
-   * \param start start position in the chart (node number)
-   * \param end end position in the chart (node number)
-   * \param paths the set of word graph paths this item belongs to
-   * \param f the items feature structure
-   * \param printname a readable representation of this item
-   */
+  * \param start start position in the chart (node number)
+  * \param end end position in the chart (node number)
+  * \param paths the set of word graph paths this item belongs to
+  * \param f the items feature structure
+  * \param printname a readable representation of this item
+  */
   tItem(int start, int end, const tPaths &paths, const fs &f,
-        const char *printname);
+    const char *printname);
 
   virtual ~tItem();
 
-  INHIBIT_COPY_ASSIGN(tItem);
-
   /** Set the owner of all created items to be able to handle destruction
-   *  properly.
-   */
-  static void default_owner(class item_owner *o) { _default_owner = o; }
+  *  properly.
+  */
+  static void default_owner(item_owner *o) { _default_owner = o; }
   /** Return the owner of all created items. */
-  static class item_owner *default_owner() { return _default_owner; }
+  static item_owner *default_owner() { return _default_owner; }
 
   /** Reset the global counter for the creation of unique internal item ids */
   static void reset_ids() { _next_id = 1; }
@@ -162,16 +161,16 @@ public:
   /** Return the unique internal id of this item */
   inline int id() const { return _id; }
   /** Return the trait of this item, which may be:
-      -- \c INPUT_TRAIT an input item, still without feature structure
-      -- \c LEX_TRAIT a lexical item with all inflection rules applied
-      -- \c SYNTAX_TRAIT a phrasal item
-      \warning Note that \c INFL_TRAIT is not used in items. 
+  -- \c INPUT_TRAIT an input item, still without feature structure
+  -- \c LEX_TRAIT a lexical item with all inflection rules applied
+  -- \c SYNTAX_TRAIT a phrasal item
+  \warning Note that \c INFL_TRAIT is not used in items. 
   */
   inline rule_trait trait() const { return _trait; }
 
   /** Return \c true if there are no more pending inflectional rules
-   *  for this item.
-   */
+  *  for this item.
+  */
   inline bool inflrs_complete_p() const { return _inflrs_todo == 0; }
 
   /** Return \c true if this item has all of its arguments filled. */
@@ -196,64 +195,65 @@ public:
   void set_end(int pos) { _end = pos ; }
 
   /** Was this item produced by a rule that may only create items spanning the
-   *  whole chart?
-   */
+  *  whole chart?
+  */
   bool spanningonly() const { return _spanningonly; }
 
   /** Cheap compatibility tests of a passive item and a grammar rule.
-   *
-   * -- INFL items may only be combined with matching inflection or lexical
-   *    rules
-   * -- rules that may only create items spanning the whole chart check for
-   *    appropriate start and end positions
-   * -- passive items at the borders of the chart do not combine with rules
-   *    that would try to extend them past the border
-   */
-  inline bool compatible(class grammar_rule *R, int length) const {
+  *
+  * -- INFL items may only be combined with matching inflection or lexical
+  *    rules
+  * -- rules that may only create items spanning the whole chart check for
+  *    appropriate start and end positions
+  * -- passive items at the borders of the chart do not combine with rules
+  *    that would try to extend them past the border
+  */
+  inline bool compatible(grammar_rule *R, int length) const
+  {
     if(R->trait() == INFL_TRAIT) {
       if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
         return false;
     }
 #ifdef CFGAPPROX_LEXGEN
     else if((R->trait() == SYNTAX_TRAIT) ||
-            ((R->trait() == LEX_TRAIT) && (inflrs_complete_p())))
+      ((R->trait() == LEX_TRAIT) && (inflrs_complete_p())))
       return false;
 #endif
     else if(R->trait() == SYNTAX_TRAIT) {
       if(! inflrs_complete_p())
         return false;
     }
-      
+
     if(R->spanningonly()) {
       if(R->nextarg() == 1 && _start != 0)
         return false;
-      
+
       if(R->nextarg() == R->arity() && _end != length)
         return false;
     }
-      
+
     if(opt_shaping == false)
       return true;
-      
+
     if(R->left_extending())
       return _end + R->arity() - 1 <= length;
     else
       return _start - (R->arity() - 1) >= 0;
   }
-  
+
   /** Cheap compatibility tests of a passive and an active item.
-   *
-   * -- \c INFL and \c INPUT items do not combine with active items
-   * -- rules that may only create items spanning the whole chart check for
-   *    appropriate start and end positions
-   * -- when doing lattice parsing, check the compatiblity of the path sets
-   * \return \c false if not compatible
-   */
+  *
+  * -- \c INFL and \c INPUT items do not combine with active items
+  * -- rules that may only create items spanning the whole chart check for
+  *    appropriate start and end positions
+  * -- when doing lattice parsing, check the compatiblity of the path sets
+  * \return \c false if not compatible
+  */
   inline bool compatible(tItem *active, int length) const
   {
     if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
-    
+
     if(active->spanningonly()) {
       if(active->nextarg() == 1) {  // is it the first arg?
         if(_start != 0)
@@ -265,45 +265,46 @@ public:
             return false;
         }
     }
-    
+
     if(opt_lattice && !_paths.compatible(active->_paths))
       return false;
-    
+
     return true;
   }
-  
+
   /** Does this active item extend to the left or right?
-   *  \pre assumes \c this is an active item.
-   *  \todo Remove the current restriction to binary rules. 
-   */
+  *  \pre assumes \c this is an active item.
+  *  \todo Remove the current restriction to binary rules. 
+  */
   inline bool left_extending() const
   {
     return _tofill == 0 || first(_tofill) == 1;
   }
 
   /** Return \c true if the passive item is at the `open' end of this active
-   *  item.
-   * \pre assumes \c this is an active item.
-   */
-  inline bool adjacent(class tItem *passive) const
+  *  item.
+  * \pre assumes \c this is an active item.
+  */
+  inline bool adjacent(tItem* passive) const
   {
     return (left_extending() ? (_start == passive->_end)
-            : (_end == passive->_start));
+      : (_end == passive->_start));
   }
 
   /** Check if this item is a parse result.
-   *
-   * \return \c true if the item is phrasal, spans the whole \a length and is
-   * compatible with one of the root FS nodes. Furthermore, the root node is
-   * returned in \a rule.
-   */
-  inline bool root(class tGrammar *G, int length, type_t &rule) const {
+  *
+  * \return \c true if the item is phrasal, spans the whole \a length and is
+  * compatible with one of the root FS nodes. Furthermore, the root node is
+  * returned in \a rule.
+  */
+  inline bool root(tGrammar* G, int length, type_t &rule) const
+  {
     if(inflrs_complete_p() && (_start == 0) && (_end == length))
       return G->root(_fs, rule);
     else
       return false;
   }
-  
+
   /** Return the feature structure of this item. */
   virtual fs get_fs(bool full = false) = 0;
 
@@ -313,18 +314,18 @@ public:
     // possibilities of get_fs()
     return const_cast<tItem *>(this)->get_fs().type();
   }
-  
+
   /** Return the number of next argument to fill, ranging from one to
-   *  arity().
-   */
+  *  arity().
+  */
   inline int nextarg() const { return first(_tofill); }
   /** Return the substructure of this item's feature structure that represents
-   *  the next argument to be filled.
-   */
+  *  the next argument to be filled.
+  */
   inline fs nextarg(fs &f) const { return f.nth_arg(nextarg()); }
   /** Return the yet to fill arguments of this item, except for the current
-   *  one 
-   */
+  *  one 
+  */
   inline list_int *restargs() const { return rest(_tofill); }
   /** The number of arguments still to be filled */
   inline int arity() const { return length(_tofill); }
@@ -340,17 +341,17 @@ public:
   virtual std::string get_yield() = 0;
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tAbstractItemPrinter class
-   */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const = 0;
+  *  dispatch. \see tAbstractItemPrinter class
+  */
+  virtual void print_gen(tAbstractItemPrinter* ip) const = 0;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids) = 0;
 
   /** \brief Collect all (transitive) children into \a result.
-   * \attention Uses frosting mechanism \em outside the packing functionality
-   * to avoid duplicates in \a result.
-   */
+  * \attention Uses frosting mechanism \em outside the packing functionality
+  * to avoid duplicates in \a result.
+  */
   virtual void collect_children(item_list &result) = 0;
 
   /** Return \c true if this item contributes to a result */
@@ -359,26 +360,26 @@ public:
   inline void set_result_contrib() { _result_contrib = true; }
 
   /** Return the root node type that licensed this item as result, or 
-   *  T_BOTTOM, if this item is not a result.
-   */
+  *  T_BOTTOM, if this item is not a result.
+  */
   inline type_t result_root() const { return _result_root; }
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule );
-  
+
   /** Return the unification quick check vector of this item.
-   * For active items, this is the quick check vector corresponding to the next
-   * daughter that has to be filled, while for passive items, this is the qc
-   * vector of the mother.
-   */
+  * For active items, this is the quick check vector corresponding to the next
+  * daughter that has to be filled, while for passive items, this is the qc
+  * vector of the mother.
+  */
   inline const qc_vec &qc_vector_unif() const { return _qc_vector_unif; }
   /** \brief Return the subsumption quick check vector of this item. Only
-   *  passive items can have this qc vector.
-   */
+  *  passive items can have this qc vector.
+  */
   inline const qc_vec &qc_vector_subs() const { return _qc_vector_subs; }
 
   /** \brief Return the rule this item was built from. This returns values
-   *  different from \c NULL only for phrasal items.
-   */
+  *  different from \c NULL only for phrasal items.
+  */
   virtual grammar_rule *rule() const = 0;
 
   /** Return node identity for this item, suitable for MEM features */
@@ -391,9 +392,9 @@ public:
   void score(double score) { _score = score; }
 
   /** @name Blocking Functions
-   * Functions used to block items for packing.
-   * See Oepen & Carroll 2000
-   */
+  * Functions used to block items for packing.
+  * See Oepen & Carroll 2000
+  */
   /*@{*/
   /** Mark an item as temporarily blocked and freeze all its parents. */
   inline void frost() { block(1); }
@@ -410,21 +411,21 @@ public:
   /*@}*/
 
   /** \brief Base selective unpacking function that unpacks \a n best
-   *  readings of the item (including the readings for items packed
-   *  into this item). Stops unpacking when \a upedgelimit edges have
-   *  been unpacked.
-   *
-   *  \return the list of items represented by this item
-   */
+  *  readings of the item (including the readings for items packed
+  *  into this item). Stops unpacking when \a upedgelimit edges have
+  *  been unpacked.
+  *
+  *  \return the list of items represented by this item
+  */
   //  virtual item_list selectively_unpack(int n, int upedgelimit) = 0;
 
   /** \brief Selective unpacking function that unpacks \a n best
-   *   readings from the list of \a root items. Stop unpacking when \a
-   *   upedgelimit edges have been unpacked. It also checks if the
-   *   item's \a end to see if it is qualified to be a root.
-   *
-   *  \return the list of items represented by the list of \a roots
-   */
+  *   readings from the list of \a root items. Stop unpacking when \a
+  *   upedgelimit edges have been unpacked. It also checks if the
+  *   item's \a end to see if it is qualified to be a root.
+  *
+  *  \return the list of items represented by the list of \a roots
+  */
   static item_list selectively_unpack(item_list roots, int n, int end, int upedgelimit);
 
   /** Return a meaningful external name. */
@@ -439,45 +440,49 @@ public:
   /** compare two items for linear precendece; used to sort YY tokens */
   struct precedes 
     : public std::binary_function<bool, tItem *, tItem *> {
-    bool operator() (tItem *foo, tItem *bar) const {
-      return foo->startposition() < bar->startposition();
-    }
+      bool operator() (tItem *foo, tItem *bar) const {
+        return foo->startposition() < bar->startposition();
+      }
   };
 
 protected:
   /** Return the complete fs for this item. This may be more than a simple
-   *  access, e.g. in cases of hyperactive parsing and temporary dags.
-   *  This function may only be called for phrasal items.
-   */
+  *  access, e.g. in cases of hyperactive parsing and temporary dags.
+  *  This function may only be called for phrasal items.
+  */
   virtual void recreate_fs() = 0;
 
   /** \brief Base unpacking function called by unpack for each item. Stops
-   *  unpacking when \a limit edges have been unpacked.
-   *
-   * \return the list of items represented by this item
-   */
+  *  unpacking when \a limit edges have been unpacked.
+  *
+  * \return the list of items represented by this item
+  */
   virtual item_list unpack1(int limit) = 0;
 
   /** \brief Base function called by selectively_unpack to generate
-   *   the \a i th best hypothesys with specific head \a path .
-   *
-   *  \return the \a i th best hypothesis of the item
-   */
+  *   the \a i th best hypothesys with specific head \a path .
+  *
+  *  \return the \a i th best hypothesis of the item
+  */
   virtual tHypothesis * hypothesize_edge(item_list path, unsigned int i) = 0;
 
   /** \brief Base function that instantiate the hypothesis (and
-   *   recursively instantiate its sub-hypotheses) until \a upedgelimit
-   *   edges have been exhausted.
-   *
-   *  \return the instantiated item from the hypothesis
-   */
+  *   recursively instantiate its sub-hypotheses) until \a upedgelimit
+  *   edges have been exhausted.
+  *
+  *  \return the instantiated item from the hypothesis
+  */
   virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit) = 0;
 
 private:
+  tItem(); // default constructor not defined
+  tItem(const tItem&); // copy constructor not defined
+  tItem& operator=(const tItem&); // assignment not defined
+
   // Internal function for packing/frosting
   void block(int mark);
 
-  static class item_owner *_default_owner;
+  static item_owner *_default_owner;
 
   static int _next_id;
 
@@ -509,7 +514,7 @@ private:
 
   int _nfilled;
 
-  class tLexItem *_key_item;
+  tLexItem *_key_item;
 
   /** List of inflection rules that must be applied to get a valid lex item */
   list_int *_inflrs_todo;
@@ -517,8 +522,8 @@ private:
   type_t _result_root;
 
   /** if \c true, this item contributes to some result tree 
-   * \todo check if this description is correct 
-   */
+  * \todo check if this description is correct 
+  */
   bool _result_contrib;
 
   qc_vec _qc_vector_unif;
@@ -532,14 +537,14 @@ private:
 
   int _blocked;
   item_list *_unpack_cache;
-  
+
 public:
   /** The parents of this node */
   item_list parents;
 
   /** If this list is not empty, this item is a representative of a class of
-   *  packed items.
-   */
+  *  packed items.
+  */
   item_list packed;
 
   friend class tInputItem;
@@ -550,129 +555,128 @@ public:
 };
 
 /** Token classes of an input item.
- * - WORD_TOKEN_CLASS: analyze the surface form of this token
- *              morpologically to get all appropriate lexicon entries.
- * - STEM_TOKEN_CLASS: this item has already been analyzed morphologically,
- *              use the given stem to do lexicon access.
- * - SKIP_TOKEN_CLASS: ignore this token (e.g., punctuation).
- */
+* - WORD_TOKEN_CLASS: analyze the surface form of this token
+*              morpologically to get all appropriate lexicon entries.
+* - STEM_TOKEN_CLASS: this item has already been analyzed morphologically,
+*              use the given stem to do lexicon access.
+* - SKIP_TOKEN_CLASS: ignore this token (e.g., punctuation).
+*/
 enum tok_class { SKIP_TOKEN_CLASS = -3, WORD_TOKEN_CLASS, STEM_TOKEN_CLASS };
 
 /**
- * tInputItems represent items from the tokenization/input format reading
- * process.
- * 
- * tInputItems can only have daughters that are tInputItems. That could
- * represent a named entity consisting of several other input tokens.
- * A tInputItem may never be a daughter of a tPhrasalItem, but only of a
- * tLexItem.
- * tItem must be the superclass to be able to add these items to the chart.
- * These items are the results of tokenization and NE recognition, possibly
- * with different slots filled
- */
-class tInputItem : public tItem {
+* tInputItems represent items from the tokenization/input format reading
+* process.
+* 
+* tInputItems can only have daughters that are tInputItems. That could
+* represent a named entity consisting of several other input tokens.
+* A tInputItem may never be a daughter of a tPhrasalItem, but only of a
+* tLexItem.
+* tItem must be the superclass to be able to add these items to the chart.
+* These items are the results of tokenization and NE recognition, possibly
+* with different slots filled
+*/
+class tInputItem : public tItem
+{
 public:
   /**
-   * \name Constructors
-   * Create a new input item.
-   * \param id A unique external id
-   * \param start The start position (node number, -1 if not yet determined)
-   * \param end The end position (node number, -1 if not yet determined)
-   * \param startposition The external start position
-   * \param endposition The external end position
-   * \param surface The surface form for this entry.
-   * \param stem The base form for this entry (only used if \a token_class is
-   *             \c STEM_TOKEN_CLASS)
-   * \param paths The paths (ids) in the input graph this item belongs to.
-   * \param token_class One of \c SKIP_TOKEN_CLASS, \c WORD_TOKEN_CLASS
-   *                    (perform morphological analysis and lexicon lookup;
-   *                    the default), \c STEM_TOKEN_CLASS (lookup lexical item
-   *                    by parameter \a stem) or a valid HPSG type (direct
-   *                    lexical lookup with \a token_class as the type).
-   * \param fsmods A list of feature structure modifications which are applied
-   *               to the feature structure of the lexical item (default: no
-   *               modifications).
-   */
+  * \name Constructors
+  * Create a new input item.
+  * \param id A unique external id
+  * \param start The start position (node number, -1 if not yet determined)
+  * \param end The end position (node number, -1 if not yet determined)
+  * \param startposition The external start position
+  * \param endposition The external end position
+  * \param surface The surface form for this entry.
+  * \param stem The base form for this entry (only used if \a token_class is
+  *             \c STEM_TOKEN_CLASS)
+  * \param paths The paths (ids) in the input graph this item belongs to.
+  * \param token_class One of \c SKIP_TOKEN_CLASS, \c WORD_TOKEN_CLASS
+  *                    (perform morphological analysis and lexicon lookup;
+  *                    the default), \c STEM_TOKEN_CLASS (lookup lexical item
+  *                    by parameter \a stem) or a valid HPSG type (direct
+  *                    lexical lookup with \a token_class as the type).
+  * \param fsmods A list of feature structure modifications which are applied
+  *               to the feature structure of the lexical item (default: no
+  *               modifications).
+  */
   //@{
   /** Create a new input item with internal and external start/end positions. */
   tInputItem(std::string id
-             , int start, int end, int startposition, int endposition
-             , std::string surface, std::string stem
-             , const tPaths &paths = tPaths()
-             , int token_class = WORD_TOKEN_CLASS
-             , const std::list<int> &infl_rules = std::list<int>()
-             , const postags &pos = postags()
-             , modlist fsmods = modlist());
+    , int start, int end, int startposition, int endposition
+    , std::string surface, std::string stem
+    , const tPaths &paths = tPaths()
+    , int token_class = WORD_TOKEN_CLASS
+    , const std::list<int> &infl_rules = std::list<int>()
+    , const postags &pos = postags()
+    , modlist fsmods = modlist());
   /** Create a new input item with external start/end positions only. */
   tInputItem(std::string id, int startposition, int endposition
-             , std::string surface, std::string stem
-             , const tPaths &paths = tPaths()
-             , int token_class = WORD_TOKEN_CLASS
-             , const std::list<int> &infl_rules = std::list<int>()
-             , const postags &pos = postags()
-             , modlist fsmods = modlist());
+    , std::string surface, std::string stem
+    , const tPaths &paths = tPaths()
+    , int token_class = WORD_TOKEN_CLASS
+    , const std::list<int> &infl_rules = std::list<int>()
+    , const postags &pos = postags()
+    , modlist fsmods = modlist());
   /**
-   * Create a new complex input item (an input item with input item
-   * daughters as it can be defined in PIC).
-   */
+  * Create a new complex input item (an input item with input item
+  * daughters as it can be defined in PIC).
+  */
   tInputItem(std::string id, const inp_list &dtrs
-             , std::string stem
-             , int token_class = WORD_TOKEN_CLASS
-             , const std::list<int> &infl_rules = std::list<int>()
-             , const postags &pos = postags()
-             , modlist fsmods = modlist());
+    , std::string stem
+    , int token_class = WORD_TOKEN_CLASS
+    , const std::list<int> &infl_rules = std::list<int>()
+    , const postags &pos = postags()
+    , modlist fsmods = modlist());
   //@}
-  
+
   ~tInputItem() {
     free_list(_inflrs_todo); 
   }
-
-  INHIBIT_COPY_ASSIGN(tInputItem);
 
   /** Print the yield of this item */
   virtual std::string get_yield();
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tAbstractItemPrinter class
-   */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
+  *  dispatch. \see tAbstractItemPrinter class
+  */
+  virtual void print_gen(tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
   /** \brief Collect all (transitive) children into \a result.
-   * \attention Uses frosting mechanism \em outside the packing functionality
-   * to avoid duplicates in \a result.
-   */
+  * \attention Uses frosting mechanism \em outside the packing functionality
+  * to avoid duplicates in \a result.
+  */
   virtual void collect_children(item_list &result);
 
   /** Always returns \c NULL */
   virtual grammar_rule *rule() const;
 
   /** I've got no clue.
-   * \todo i will fix this when i know what "description" ought to do
-   */
+  * \todo i will fix this when i know what "description" ought to do
+  */
   std::string description() const { return _surface; }
-  
+
   /** Return the string(s) that is (are) the input to this item */
   std::string orth() const;
 
   /** Tell me if this token should be skipped before chart positions are
-   *  computed.
-   */
+  *  computed.
+  */
   bool is_skip_token() const { return (_class == SKIP_TOKEN_CLASS); }
 
   /** Tell me if morphology and lexicon access should be called for this token.
-   */
+  */
   bool is_word_token() const { return (_class == WORD_TOKEN_CLASS); }
 
   /** Tell me if lexicon access should be called for this token (morphological
-   *  analysis is already included
-   */
+  *  analysis is already included
+  */
   bool is_stem_token() const { return (_class == STEM_TOKEN_CLASS); }
 
   /** Return the class (hopefully the type id of a valid HPSG lexical type,
-   *  i.e., \c lex_stem)
-   */
+  *  i.e., \c lex_stem)
+  */
   type_t tclass() const { return _class ; }
 
   /** Return the list of feature structure modifications. */
@@ -686,8 +690,8 @@ public:
   /** Get the postags coming from the input */
   const postags & get_in_postags() const { return _postags; }
   /** I've got no clue. 
-   * \todo I'll fix this when i have an idea where supplied postags come from 
-   */
+  * \todo I'll fix this when i have an idea where supplied postags come from 
+  */
   const postags &get_supplied_postags() const { return _postags; }
 
   /** Get the inflrs_todo (inflection rules <-> morphology) */
@@ -700,54 +704,57 @@ public:
   }
 
   /** The surface string (if available).
-   * If this input item represents a named entity, this string may be empty,
-   * although the item represents a nonempty string.
-   */
+  * If this input item represents a named entity, this string may be empty,
+  * although the item represents a nonempty string.
+  */
   std::string form() const { return _surface; }
 
   /** The base (uninflected) form of this item (if available).
-   */
+  */
   std::string stem() const { return _stem; }
 
   /** Return the feature structure of this item. */
-  virtual fs get_fs(bool full = false) { return _fs; }
+  virtual fs get_fs(bool /*full*/ = false) { return _fs; }
 
   /** Return generic lexical entries for this input token. If \a onlyfor is 
-   * non-empty, only those generic entries corresponding to one of those
-   * POS tags are postulated. The correspondence is defined in posmapping.
-   */
+  * non-empty, only those generic entries corresponding to one of those
+  * POS tags are postulated. The correspondence is defined in posmapping.
+  */
   std::list<lex_stem *> generics(postags onlyfor = postags());
 
   /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const { return _class; }
 
   /** \brief Since a tInputItem does not have a feature structure, and can thus
-   * have no other items packed into them, they need not be unpacked. Unpacking
-   * does not proceed past tLexItem.
-   */
+  * have no other items packed into them, they need not be unpacked. Unpacking
+  * does not proceed past tLexItem.
+  */
   virtual item_list unpack1(int limit);
 
   /** \brief tInputItem will not have items packed into them. They
-      need not be unpacked. */
+  need not be unpacked. */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
   /** Return the external id associated with this item */
   const std::string &external_id() const { return _input_id; }
-  
+
 protected:
   /** This method always throws an error */
   virtual void recreate_fs();
 
 private:  
+  tInputItem(); // default constructor not defined
+  tInputItem(const tInputItem&); // copy constructor not defined
+  tInputItem& operator=(const tInputItem&); // assignment not defined
   std::string _input_id; /// external ID
 
   int _class; /// token or NE-class (an HPSG type code), or one of tok_class
 
   /** The surface form, as delivered by the tokenizer. May possibly be put into
-   *  tItem's printname 
-   */
+  *  tItem's printname 
+  */
   std::string _surface;
 
   /** for morphologized items, to be able to do lexicon access */
@@ -764,26 +771,26 @@ private:
 };
 
 /** An item created from an input item with a corresponding lexicon
- *  entry or a lexical or morphological rule
- *  This contains also morphological and part of speech information. The
- *  \c tLexItems with only tInputItems as daughters are there to lexical 
- *  entries, maybe for multi word expressions. Otherwise, \c tLexItems are the
- *  results of applications of morphological or lexical rules and have
- *  \c tLexItems as daughters. A \c tLexItem can also be a daughter of a
- *  \c tPhrasalItem.
- */
+*  entry or a lexical or morphological rule
+*  This contains also morphological and part of speech information. The
+*  \c tLexItems with only tInputItems as daughters are there to lexical 
+*  entries, maybe for multi word expressions. Otherwise, \c tLexItems are the
+*  results of applications of morphological or lexical rules and have
+*  \c tLexItems as daughters. A \c tLexItem can also be a daughter of a
+*  \c tPhrasalItem.
+*/
 class tLexItem : public tItem
 {
- public:
+public:
   /** Build a new tLexitem from \a stem and morph info in \a inflrs_todo,
-   *  together with the first daughter \a first_dtr.
-   */
+  *  together with the first daughter \a first_dtr.
+  */
   tLexItem(lex_stem *stem, tInputItem *first_dtr
-           , fs &f, const list_int *inflrs_todo);
+    , fs &f, const list_int *inflrs_todo);
 
   /** Build a new tLexItem from an active tLexItem and another tInputItem (a
-   *  new daughter).
-   */
+  *  new daughter).
+  */
   tLexItem(tLexItem *from, tInputItem *new_dtr);
 
   ~tLexItem() {
@@ -791,22 +798,20 @@ class tLexItem : public tItem
     delete _hypo;
   }
 
-  INHIBIT_COPY_ASSIGN(tLexItem);
-
   /** Print the yield of this item */
   virtual std::string get_yield();
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tAbstractItemPrinter class
-   */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
+  *  dispatch. \see tAbstractItemPrinter class
+  */
+  virtual void print_gen(tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
 
   /** \brief Collect all (transitive) children into \a result. Uses frosting
-   * mechanism.
-   */
+  * mechanism.
+  */
   virtual void collect_children(item_list &result);
 
   /** Always return NULL */
@@ -831,14 +836,14 @@ class tLexItem : public tItem
   bool left_extending() const {
     return _ldot > 0;
   }
-  
+
   /** Return the next argument position to fill */
   int nextarg() const {
     return left_extending() ? _ldot - 1 : _rdot;
   }
 
   /** The surface string of this item: the string encoded in its lex_entry.
-   */
+  */
   std::string form(int pos) const {
     return _stem->orth(pos);
   }
@@ -859,13 +864,13 @@ class tLexItem : public tItem
 
   /** Return node identity for this item, suitable for MEM features */
   virtual int identity() const { return _fs.type(); }
-  
+
   /** Cheap compatibility tests of an active tLexItem and a tInputItem.
-   *  -- The input items surface string must match the string of the next
-   *     argument.
-   *  -- This item may not have produced an item with the same start and end
-   *     position as the new potential result.
-   */
+  *  -- The input items surface string must match the string of the next
+  *     argument.
+  *  -- This item may not have produced an item with the same start and end
+  *     position as the new potential result.
+  */
   bool compatible(tInputItem *inp) const {
     if (form(nextarg()) != inp->form()) return false;
 
@@ -880,18 +885,22 @@ protected:
   virtual void recreate_fs();
 
   /** \brief Return a list of items that is represented by this item. For this
-   *  class of items, the list always contains only the item itself
-   */
+  *  class of items, the list always contains only the item itself
+  */
   virtual item_list unpack1(int limit);
 
   /** \brief Return the \a i th best hypothesis. For tLexItem, there
-   *   is always only one hypothesis, for a given \a path . 
-   */
+  *   is always only one hypothesis, for a given \a path . 
+  */
   virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
 private:
+  tLexItem(); // default constructor not defined
+  tLexItem(const tLexItem&); // copy constructor not defined
+  tLexItem& operator=(const tLexItem&); // assignment not defined
+
   void init();
 
   int _ldot;
@@ -904,11 +913,11 @@ private:
   fs _mod_stem_fs;
 
   /** This list registers all immediate expansions of this items to avoid
-   *  duplicate multi word entries.
-   *
-   * Since different active items emerging from a tLexItem can only differ in
-   * start resp. end position, we only need to register the new start/endpoint.
-   */
+  *  duplicate multi word entries.
+  *
+  * Since different active items emerging from a tLexItem can only differ in
+  * start resp. end position, we only need to register the new start/endpoint.
+  */
   std::list< int > _expanded;
 
   postags _supplied_pos;
@@ -923,69 +932,68 @@ private:
 };
 
 /** An item build from a grammar rule and arguments (tPhrasalItem or tLexItem).
- *  May be active or passive.
- */
-class tPhrasalItem : public tItem {
+*  May be active or passive.
+*/
+class tPhrasalItem : public tItem
+{
 public:
   /** Build a new phrasal item from the (successful) combination of \a rule and
-   *  \a passive, which already produced \a newfs
-   */
-  tPhrasalItem(grammar_rule *rule, class tItem *passive, fs &newfs);
+  *  \a passive, which already produced \a newfs
+  */
+  tPhrasalItem(grammar_rule *rule, tItem *passive, fs &newfs);
   /** Build a new phrasal item from the (successful) combination of \a active
-   *  and \a passive, which already produced \a newfs
-   */
-  tPhrasalItem(tPhrasalItem *active, class tItem *passive, fs &newfs);
+  *  and \a passive, which already produced \a newfs
+  */
+  tPhrasalItem(tPhrasalItem *active, tItem *passive, fs &newfs);
   /** Constructor for unpacking: Build a new passive phrasal item from the
-   *  \a representative with the daughters \a dtrs and the new feature
-   *  structure \a newfs.
-   */
+  *  \a representative with the daughters \a dtrs and the new feature
+  *  structure \a newfs.
+  */
   tPhrasalItem(tPhrasalItem *representative, std::vector<tItem *> &dtrs, fs &newfs);
 
   virtual ~tPhrasalItem() {
     // clear the hypotheses cache 
     for (std::vector<tHypothesis*>::iterator h = _hypotheses.begin();
-         h != _hypotheses.end(); h ++)
+      h != _hypotheses.end(); h ++)
       delete *h;
 
     // clear the decomposition cache
     for (std::list<tDecomposition*>::iterator d = decompositions.begin();
-         d != decompositions.end(); d ++)
+      d != decompositions.end(); d ++)
       delete *d;
   }
-
-  INHIBIT_COPY_ASSIGN(tPhrasalItem);
 
   /** get the yield of this item */
   virtual std::string get_yield();
 
   /** Function to enable printing through printer object \a ip via double
-   *  dispatch. \see tAbstractItemPrinter class
-   */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
+  *  dispatch. \see tAbstractItemPrinter class
+  */
+  virtual void print_gen(tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
 
   /** \brief Collect all (transitive) children into \a result.
-   * \attention Uses frosting mechanism \em outside the packing functionality
-   * to avoid duplicates in \a result.
-   */
+  * \attention Uses frosting mechanism \em outside the packing functionality
+  * to avoid duplicates in \a result.
+  */
   virtual void collect_children(item_list &result);
 
   /** Set the root node licensing this item as result */
   virtual void set_result_root(type_t rule);
 
   /** \brief Return the rule this item was built from. This returns values
-   *  different from \c NULL only for phrasal items.
-   */
+  *  different from \c NULL only for phrasal items.
+  */
   virtual grammar_rule *rule() const ;
 
   /** Return the feature structure of this item.
-   * \todo This function is only needed because some items may have temporary
-   * dags, which have not been copied after unification. This functionality is
-   * rather messy and should be cleaned up.
-   */
-  virtual fs get_fs(bool full = false) {
+  * \todo This function is only needed because some items may have temporary
+  * dags, which have not been copied after unification. This functionality is
+  * rather messy and should be cleaned up.
+  */
+  virtual fs get_fs(bool /*full*/ = false) {
     if(_fs.temp() && _fs.temp() != unify_generation)
       recreate_fs();
     return _fs;
@@ -1001,46 +1009,46 @@ public:
 
 protected:
   /** Return the complete fs for this item. This may be more than a simple
-   *  access, e.g. in cases of hyperactive parsing and temporary dags.
-   *  This function may only be called for phrasal items.
-   */
+  *  access, e.g. in cases of hyperactive parsing and temporary dags.
+  *  This function may only be called for phrasal items.
+  */
   virtual void recreate_fs();
 
   /** @name Unpacking Functions
-   * This is the complex case where daughter combinations have to be 
-   * considered.
-   */
+  * This is the complex case where daughter combinations have to be 
+  * considered.
+  */
   /*@{*/
   /** Return a list of items that is represented by this item. 
-   * This requires first the unpacking of all daughters, and then generate all
-   * possible combinations to compute the unpacked items represented here.
-   */
+  * This requires first the unpacking of all daughters, and then generate all
+  * possible combinations to compute the unpacked items represented here.
+  */
   virtual item_list unpack1(int limit);
 
   /** Apply the rule that built this item to all combinations of the daughter
-   *  items in \a dtrs and collect the results in \a res.
-   *  \param dtrs The unpacked daughter items for each argument position
-   *  \param index The argument position that is considered in this recursive
-   *               call to unpack_cross. If \a index is equal to the rule
-   *               arity, \a config has been filled completely and this
-   *               configuration is applied to the rule to (potentially)
-   *               generate a new unpacked item.
-   *  \param config Contains a (possibly partial) combination of daughters from
-   *                \a dtrs
-   *  \param res contains all successfully built items.
-   */
+  *  items in \a dtrs and collect the results in \a res.
+  *  \param dtrs The unpacked daughter items for each argument position
+  *  \param index The argument position that is considered in this recursive
+  *               call to unpack_cross. If \a index is equal to the rule
+  *               arity, \a config has been filled completely and this
+  *               configuration is applied to the rule to (potentially)
+  *               generate a new unpacked item.
+  *  \param config Contains a (possibly partial) combination of daughters from
+  *                \a dtrs
+  *  \param res contains all successfully built items.
+  */
   void unpack_cross(std::vector<item_list> &dtrs,
-                    int index, std::vector<tItem *> &config,
-                    item_list &res);
+    int index, std::vector<tItem *> &config,
+    item_list &res);
 
   /** Try to fill the rule of this item with the arguments in \a config. */
   tItem *unpack_combine(std::vector<tItem *> &config);
   /*@}*/
 
   /** \brief Selectively unpack the n-best results of this item.
-   *
-   * \return The list of unpacked results (up to \a n items)
-   */
+  *
+  * \return The list of unpacked results (up to \a n items)
+  */
   //  virtual item_list selectively_unpack(int n, int upedgelimit);
 
   /** Get the \i th best hypothesis of the item with \a path to root. */
@@ -1050,8 +1058,8 @@ protected:
   virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit);
 
   /** Decompose edge and return the number of decompositions 
-   * All the decompositions are recorded in this->decompositions . 
-   */
+  * All the decompositions are recorded in this->decompositions . 
+  */
   virtual int decompose_edge();
 
   /** Generate a new hypothesis and add it onto the local agendas. */
@@ -1059,6 +1067,10 @@ protected:
 
 
 private:
+  tPhrasalItem(); // default constructor not defined
+  tPhrasalItem(const tPhrasalItem&); // copy constructor not defined
+  tPhrasalItem& operator=(const tPhrasalItem&); // assignment not defined
+
   /** The active item that created this item */
   tItem * _adaughter;
   grammar_rule *_rule;
@@ -1081,18 +1093,18 @@ private:
 };
 
 /** Recursively propagate instantiation failure of the hypothesis to
- * parents.
- */
+* parents.
+*/
 void propagate_failure(tHypothesis *hypo);
 
 /** Advance the indices vector.
- * e.g. <0 2 1> -> {<1 2 1> <0 3 1> <0 2 2>}
- */
+* e.g. <0 2 1> -> {<1 2 1> <0 3 1> <0 2 2>}
+*/
 std::list<std::vector<int> > advance_indices(std::vector<int> indices);
 
 /** Insert hypothesis into agenda. Agenda is sorted descendingly
- *
- */
+*
+*/
 void hagenda_insert(std::list<tHypothesis*> &agenda, tHypothesis* hypo, std::list<tItem*> path);
 
 // \todo _fix_me_
@@ -1101,9 +1113,9 @@ class greater_than_score {
 public:
   greater_than_score(tSM *sm)
     : _sm(sm) {}
-  
+
   bool operator() (tItem *i, tItem *j) {
-      return i->score(_sm) > j->score(_sm);
+    return i->score(_sm) > j->score(_sm);
   }
 private:
   tSM *_sm;
@@ -1112,11 +1124,11 @@ private:
 
 
 /** Manage proper release of chart items.
- * Destruction of the owner will destroy all items owned by it.
- */ 
+* Destruction of the owner will destroy all items owned by it.
+*/ 
 class item_owner
 {
- public:
+public:
   item_owner() {}
   ~item_owner() {
     for(item_iter curr = _list.begin(); curr != _list.end(); ++curr)
@@ -1130,7 +1142,7 @@ class item_owner
         stream << *it << std::endl;
       } // if
   } // print()
- private:
+private:
   item_list _list;
 };
 
@@ -1147,33 +1159,33 @@ namespace HASH_SPACE {
 #endif
 
 /** a function type for functions returning true for wanted and false for
- *  unwanted items
- */
+*  unwanted items
+*/
 typedef bool (*item_predicate)(const class tItem *);
 
 /** Default predicate, selecting all items. */
-inline bool alltrue(const class tItem *it) { return true; }
+inline bool alltrue(const class tItem* /*it*/) { return true; }
 
 /** Item predicate selecting all passive items. */
 inline bool onlypassives(const tItem *item) { return item->passive(); }
 
 /** Item predicate selecting all passive items without pending morphographemic
- * rules. */
+* rules. */
 inline bool passive_no_inflrs(const tItem *item) {
   return item->passive() && item->inflrs_complete_p();
 }
 
 /** \brief This predicate should be used in find_unexpanded if lexical
- *  processing is not exhaustive. All non-input items are valid.
- */
+*  processing is not exhaustive. All non-input items are valid.
+*/
 inline bool non_input(const tItem *item) {
   return item->trait() != INPUT_TRAIT;
 }
 
 /** \brief This predicate should be used in find_unexpanded if lexical
- *  processing is exhaustive. All items that are not input items and have
- *  satisified all inflection rules are valid.
- */
+*  processing is exhaustive. All items that are not input items and have
+*  satisified all inflection rules are valid.
+*/
 inline bool lex_complete(const tItem *item) {
   return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
 }
@@ -1181,9 +1193,9 @@ inline bool lex_complete(const tItem *item) {
 /** A function object comparing two items based on their score */
 struct item_greater_than_score :
   public std::binary_function<bool, tItem*, tItem*> {
-  bool operator()(tItem *a, tItem *b) const {
-    return a->score() > b->score();
-  }
+    bool operator()(tItem *a, tItem *b) const {
+      return a->score() > b->score();
+    }
 };
 
 #endif

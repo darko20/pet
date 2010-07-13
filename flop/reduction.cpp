@@ -90,7 +90,7 @@ acyclicTransitiveReduction(tHierarchy &G) {
     sort(target.begin(), target.end()
          , inv_position_compare(vertex_topo_position));
     
-    for(vector<int>::iterator it = target.begin(); it != target.end(); it++) {
+    for(vector<int>::iterator it = target.begin(); it != target.end(); ++it) {
       tHierarchyVertex w = *it;
       if(! reached.member(w)) {  // e is in the transitive reduction
         std::list<tHierarchyVertex> &Rw = closure[w];

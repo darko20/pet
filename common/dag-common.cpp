@@ -109,7 +109,7 @@ list<dag_node*> dag_get_list(dag_node* first)
   return L;
 }
 
-dag_node *dag_get_attr_value(dag_node* dag, const char *attr)
+dag_node *dag_get_attr_value(dag_node* dag, const string& attr)
 {
   int a = lookup_attr(attr);
   if(a == -1) return FAIL;
@@ -196,7 +196,8 @@ dag_node* dag_get_path_value_check_dlist(dag_node *dag, list_int *path)
   return dag;
 }
 
-dag_node *dag_get_path_value(dag_node *dag, list_int *path) {
+dag_node *dag_get_path_value(dag_node *dag, list_int *path)
+{
   while(path) {
     if(dag == FAIL) return FAIL;
     dag = dag_get_attr_value(dag, first(path));
@@ -205,19 +206,16 @@ dag_node *dag_get_path_value(dag_node *dag, list_int *path) {
   return dag;
 }
 
-dag_node *dag_get_path_value(dag_node *dag, const char *path)
+dag_node *dag_get_path_value(dag_node *dag, const string& path)
 {
-  if(path == 0 || strlen(path) == 0) return dag;
+  if (path.empty()) return dag;
 
-  const char *dot = strchr(path, '.');
-  if(dot != 0) {
-    char *attr = new char[strlen(path)+1];
-    strncpy(attr, path, dot - path);
-    attr[dot - path] = '\0';
+  string::size_type dot = path.find('.');
+  if(dot != string::npos) {
+    string attr(path, 0, dot);
     dag_node *f = dag_get_attr_value(dag, attr);
-    delete[] attr;
     if(f == FAIL) return FAIL;
-    return dag_get_path_value(f, dot + 1);
+    return dag_get_path_value(f, path.substr(dot + 1));
   } else
     return dag_get_attr_value(dag, path);
 }

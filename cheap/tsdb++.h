@@ -1,26 +1,26 @@
 /* -*- Mode: C++ -*- */
 /* PET
- * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
- *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   Lesser General Public License for more details.
- *
- *   You should have received a copy of the GNU Lesser General Public
- *   License along with this library; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* Platform for Experimentation with efficient HPSG processing Techniques
+* (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 2.1 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public
+*   License along with this library; if not, write to the Free Software
+*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 /** \file tsdb++.h
- * Interface to the [incr tsdb()] system.
- */
+* Interface to the [incr tsdb()] system.
+*/
 
 #ifndef _ITSDB_H_
 #define _ITSDB_H_
@@ -36,34 +36,35 @@ extern "C" {
 }
 
 /** Attach to a (hopefully) running pvm server and initialize [incr tsdb()]
- *  functionality.
- */
+*  functionality.
+*/
 void tsdb_mode();
 /** Deliver the tsdb run statistics to the server */
 void cheap_tsdb_summarize_run();
 #endif
 
 /** Create a summary for a successful parse.
- * \param Chart the chart of the last parse
- * \param length the length of the chart 
- * \param treal the real time used for the parse
- * \param nderivations i've got no clue
- * \param tp the data structure where the data is collected (the result) 
- */
+* \param Chart the chart of the last parse
+* \param length the length of the chart 
+* \param treal the real time used for the parse
+* \param nderivations i've got no clue
+* \param tp the data structure where the data is collected (the result) 
+*/
 void cheap_tsdb_summarize_item(class chart &Chart, int length, int treal,
                                int nderivations, class tsdb_parse &tp);
 
 /** Create a summary for an unsuccessful parse.
- * \param treal the real time used for the parse
- * \param tp the data structure where the data is collected (the result) 
- */
+* \param treal the real time used for the parse
+* \param tp the data structure where the data is collected (the result) 
+*/
 void cheap_tsdb_summarize_error(std::list<tError> &, int treal,
-                                class tsdb_parse &tp);
+class tsdb_parse &tp);
 
 /** Statistics for one parse */
 class statistics
 {
- public:
+public:
+  statistics();
   /** item id */
   int id;
   /** nr of trees (packed readings) */
@@ -165,89 +166,90 @@ void initialize_version();
 /** tsdb statistics for one parse result */
 class tsdb_result
 {
- public:
+public:
   tsdb_result() :
-    parse_id(-1), result_id(-1), time(-1), r_ctasks(-1), r_ftasks(-1),
-    r_etasks(-1), r_stasks(-1), size(-1), r_aedges(-1), r_pedges(-1),
-    derivation(), edge_id(-1), surface(), tree(), mrs(), scored(false), flags()
-    {
-    }    
+      parse_id(-1), result_id(-1), time(-1), r_ctasks(-1), r_ftasks(-1),
+        r_etasks(-1), r_stasks(-1), size(-1), r_aedges(-1), r_pedges(-1),
+        derivation(), edge_id(-1), surface(), tree(), mrs(), scored(false),
+        score(0.0), flags()
+      {
+      }    
 
-  void file_print(FILE *f);
+      void file_print(FILE *f);
 
 #ifdef TSDBAPI
-  void capi_print();
+      void capi_print();
 #endif
 
-  int parse_id;
-  /** unique result identifier */
-  int result_id;
-  /** time to find this result (msec) */
-  int time;
-  /** parser contemplated tasks */
-  int r_ctasks;
-  /** parser filtered tasks */
-  int r_ftasks;
-  /** parser executed tasks */
-  int r_etasks;
-  /** parser succeeding tasks */
-  int r_stasks;
-  /** size of feature structure */
-  int size;
-  /** active items for this result */
-  int r_aedges;
-  /** passive items in this result */
-  int r_pedges;
+      int parse_id;
+      /** unique result identifier */
+      int result_id;
+      /** time to find this result (msec) */
+      int time;
+      /** parser contemplated tasks */
+      int r_ctasks;
+      /** parser filtered tasks */
+      int r_ftasks;
+      /** parser executed tasks */
+      int r_etasks;
+      /** parser succeeding tasks */
+      int r_stasks;
+      /** size of feature structure */
+      int size;
+      /** active items for this result */
+      int r_aedges;
+      /** passive items in this result */
+      int r_pedges;
 
-  /** derivation tree for this reading (v1) */
-  std::string derivation;
+      /** derivation tree for this reading (v1) */
+      std::string derivation;
 
-  /** edge id for derivation (v2) */
-  int edge_id;
+      /** edge id for derivation (v2) */
+      int edge_id;
 
-  /** surface string (e.g. realization) */
-  std::string surface;
-  /** phrase structure tree (CSLI labels) */
-  std::string tree;
-  /** mrs for this reading */
-  std::string mrs;
-  /** has a score been assigned? */
-  bool scored;
-  /** score assigned by stochastic model */
-  double score;
-  /** arbitrary annotation (e.g. BLEU) */
-  std::string flags;
+      /** surface string (e.g. realization) */
+      std::string surface;
+      /** phrase structure tree (CSLI labels) */
+      std::string tree;
+      /** mrs for this reading */
+      std::string mrs;
+      /** has a score been assigned? */
+      bool scored;
+      /** score assigned by stochastic model */
+      double score;
+      /** arbitrary annotation (e.g. BLEU) */
+      std::string flags;
 };
 
 /** The tsdb representation of a chart edge */
 class tsdb_edge
 {
- public:
-    tsdb_edge()
-        : id(-1), label(), score(-1.0), start(-1), end(-1), status(0), 
-        daughters()
-    {
-    }
+public:
+  tsdb_edge()
+    : id(-1), label(), score(-1.0), start(-1), end(-1), status(0), 
+    daughters()
+  {
+  }
 #ifdef TSDBAPI
-    void capi_print();
+  void capi_print();
 #endif  
 
-    int id;
-    std::string label;
-    double score;
-    int start, end;
-    int status;
-    std::string daughters;
+  int id;
+  std::string label;
+  double score;
+  int start, end;
+  int status;
+  std::string daughters;
 };
 
 /** Statistics for a single rule */
 class tsdb_rule_stat
 {
- public:
+public:
   tsdb_rule_stat()
     : rule(), actives(-1), passives(-1)
-    {
-    }
+  {
+  }
 
 #ifdef TSDBAPI
   void capi_print();
@@ -261,47 +263,47 @@ class tsdb_rule_stat
 /** tsdb statistics for one parse */
 class tsdb_parse
 {
- public:
-    tsdb_parse()
-        : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
-        mtcpu(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), 
-        words(-1),
-        l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
-        aedges(-1), pedges(-1), raedges(-1), rpedges(-1),
-        unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1),
-        gcs(-1), i_load(-1), a_load(-1),
-        date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
-        subsumptions(-1), p_equivalent(-1), p_proactive(-1),
-        p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
-        p_hypotheses(-1), p_upedges(-1),
-        results(), edges(), rule_stats(), i_input(), i_length(-1)
-        {
-        }
+public:
+  tsdb_parse()
+    : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
+    mtcpu(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), 
+    words(-1),
+    l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
+    aedges(-1), pedges(-1), raedges(-1), rpedges(-1),
+    unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1),
+    gcs(-1), i_load(-1), a_load(-1),
+    date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
+    subsumptions(-1), p_equivalent(-1), p_proactive(-1),
+    p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
+    p_hypotheses(-1), p_upedges(-1),
+    results(), edges(), rule_stats(), i_input(), i_length(-1)
+  {
+  }
 
   void push_result(class tsdb_result &r)
-    {
-      results.push_back(r);
-    }
+  {
+    results.push_back(r);
+  }
 
   void push_edge(class tsdb_edge &e)
-    {
-      edges.push_back(e);
-    }
+  {
+    edges.push_back(e);
+  }
 
   void push_rule_stat(class tsdb_rule_stat &r)
-    {
-      rule_stats.push_back(r);
-    }
+  {
+    rule_stats.push_back(r);
+  }
 
   void set_input(const std::string &s)
-    {
-      i_input = s;
-    }
+  {
+    i_input = s;
+  }
 
   void set_i_length(int l)
-    {
-      i_length = l;
-    }
+  {
+    i_length = l;
+  }
 
   void file_print(FILE *f_parse, FILE *f_result, FILE *f_item);
 
@@ -376,7 +378,7 @@ class tsdb_parse
   int clashes;
   /** number of pruned lexical entries */
   int pruned;
-    
+
   int subsumptions;
   int p_equivalent;
   int p_proactive;
@@ -387,9 +389,9 @@ class tsdb_parse
   int p_hypotheses;
   /** passive items in unpacking  */
   int p_upedges;
-    
- private:
-    
+
+private:
+
   std::list<tsdb_result> results;
   std::list<tsdb_edge> edges;
   std::list<tsdb_rule_stat> rule_stats;
@@ -398,13 +400,13 @@ class tsdb_parse
 };
 
 /** A class to dump incr[tsdb] data directly to database files without
- *  connection to the server.
- */
+*  connection to the server.
+*/
 class tTsdbDump {
 public:
   /** Create the tsdb dump database in \a directory.
-   * If \a directory is the empty string, this dumper remains inactive.
-   */
+  * If \a directory is the empty string, this dumper remains inactive.
+  */
   tTsdbDump(std::string directory);
 
   ~tTsdbDump();

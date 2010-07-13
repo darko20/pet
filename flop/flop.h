@@ -450,7 +450,9 @@ struct Tdl_list
     void dump(dumper *f);
 
   private:
-    std::string _form, _infl, _stem;
+    std::string _form;
+    std::string _infl;
+    std::string _stem;
 
   };
   /*@}*/

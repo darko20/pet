@@ -32,6 +32,7 @@ extern settings *cheap_settings;
 
 using std::string;
 using boost::algorithm::iequals;
+using boost::algorithm::to_upper_copy;
 
 namespace mrs {
 
@@ -344,10 +345,8 @@ print(std::ostream &out) {
   if (pred[0] == '"')
     out << "<spred>" << xml_escape(pred.substr(1,pred.length()-2)) << "</spred>";
   else {
-    char* uppred = new char[pred.length()+1];
-    strtoupper(uppred, pred.c_str());
+    string uppred = to_upper_copy(pred);
     out << "<pred>" << xml_escape(uppred) << "</pred>"; //pred;
-    delete uppred;
   }
   out << boost::format("<label vid='%d'/>") % handel->id;
   std::list<std::string> feats;
@@ -450,12 +449,10 @@ print_full(std::ostream &out) {
   feats.sort(ltextra());
   for (std::list<std::string>::iterator feat = feats.begin();
        feat != feats.end(); feat ++) {
-    char* upvalue = new char[extra[*feat].length()+1];
-    strtoupper(upvalue, extra[*feat].c_str());
+    string upvalue = to_upper_copy(extra[*feat]);
     out << std::endl << "<extrapair><path>" << xml_escape(*feat)
           << "</path><value>"
           << xml_escape(upvalue) << "</value></extrapair>";
-    delete upvalue;
   }
   out << "</var>";
 }

@@ -35,48 +35,6 @@ using std::list;
 
 namespace fs = boost::filesystem;
 
-/** Convert all characters in \a s to lower case */
-void strtolower(char *s)
-{
-  if(s == NULL) return;
-  while(*s)
-  {
-    *s = tolower(*s);
-    s++;
-  }
-}
-
-/** Convert all characters in \a s to upper case */
-void strtoupper(char *s)
-{
-  if(s == NULL) return;
-  while(*s)
-  {
-    *s = toupper(*s);
-    s++;
-  }
-}
-
-/** Convert all characters in \a src to lower case and copy to \a dest */
-void strtolower(char *dest, const char *src) {
-  if (src == NULL || dest == NULL) return;
-  while (*src) {
-    *dest = tolower(*src);
-    src++, dest++;
-  }
-  *dest = *src;
-}
-
-/** Convert all characters in \a src to upper case and copy to \a dest */
-void strtoupper(char *dest, const char *src) {
-  if (src == NULL || dest == NULL) return;
-  while (*src) {
-    *dest = toupper(*src);
-    src++, dest++;
-  }
-  *dest = *src;
-}
-
 /** Convert a (possibly) quoted integer string \a s into an integer and issue
 *  an error if this does not succeed.
 *  \param s The input string

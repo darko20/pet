@@ -35,27 +35,6 @@
 #define WINDOWS
 #endif
 
-// define the path separator char with the configure utility
-#ifdef WINDOWS
-#define strcasecmp stricmp
-#endif
-
-/** @name Case Conversion
- * Destructively convert string to all lower/upper case.
- */
-/*@{*/
-void strtolower(char *s);
-void strtoupper(char *s);
-/*@}*/
-
-/** @name Nondestructive Case Conversion
- * Nondesctructively convert and copy string to all lower/upper case.
- */
-/*@{*/
-void strtolower(char *dest, const char *src);
-void strtoupper(char *dest, const char *src);
-/*@}*/
-
 /** Convert a (possibly) quoted integer string \a s into an integer and issue
  *  an error if this does not succeed.
  *  \param s The input string
