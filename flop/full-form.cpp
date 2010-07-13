@@ -200,7 +200,7 @@ void read_morph(string fname)
 
 bool parse_irreg(string line)
 {
-  static char *suf = flop_settings->value("lex-rule-suffix");
+  static const char *suf = flop_settings->value("lex-rule-suffix");
   
   string s1, s2, s3;
   unsigned int p = 0, p1;

@@ -413,15 +413,6 @@ int print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
           if((l = strlen(A -> av[j] -> attr)) > maxl) maxl = l;
         }
 
-      if(A -> is_special)
-        {
-          if(strcasecmp(A -> av[0] -> attr, "REST") == 0 || strcasecmp(A -> av[0] -> attr, "LAST") == 0)
-            {
-              /* order is not OK */
-              featorder[0] = 1; featorder[1] = 0;
-            }
-        }
-      
       fprintf(f, "[ ");
       
       for(j = 0; j < A -> n; j++)

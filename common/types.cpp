@@ -206,7 +206,7 @@ type_t lookup_code(const bitcode &b) {
 int get_special_name(settings *sett, const char *suff, bool attr = false) {
   char *buff = new char[strlen(suff) + 25];
   sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
-  char *v = sett->req_value(buff);
+  const char *v = sett->req_value(buff);
   int id;
 #ifdef FLOP
   if(attr) {

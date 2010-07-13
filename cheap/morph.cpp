@@ -369,8 +369,8 @@ bool morph_subrule::establish_and_check_bindings(MString matched)
  * valid base form ?
  * If so, return the reduced form in \a result.
  */
-bool morph_subrule::base_form(MString matched,
-                              MString rest,
+bool morph_subrule::base_form(const MString& matched,
+                              const MString& rest,
                               MString &result)
 {
   // Check the co-occurence restrictions introduced by the lettersets on the
@@ -421,7 +421,7 @@ trie_node::~trie_node() {
     delete it->second;
 }
 
-void trie_node::add_path(MString path, morph_subrule *rule,
+void trie_node::add_path(const MString& path, morph_subrule *rule,
                          const morph_lettersets &lettersets)
 {
   if(path.length() == 0)
@@ -676,8 +676,8 @@ tMorphAnalyzer::tMorphAnalyzer()
     _prefixrules(this, false),
     _irregs_only(false),
     _duplicate_filter_p(false), _maximal_depth(0), _minimal_stem_length(0) {
-  char *foo;
-  if((foo = cheap_settings->value("orthographemics-maximum-chain-depth")) != 0)
+  const char *foo = cheap_settings->value("orthographemics-maximum-chain-depth");
+  if(foo != 0)
     _maximal_depth 
       = strtoint(foo, "as value of orthographemics-maximum-chain-depth");
   if((foo = cheap_settings->value("orthographemics-minimum-stem-length")) != 0)
@@ -956,9 +956,9 @@ void tMorphAnalyzer::analyze1(tMorphAnalysis form, list<tMorphAnalysis> &result)
     } // for
 
     if(! cyclep) {
-      rules.push_front(candidate);
-      forms.push_front(it->second->base());
-      pre.push_back(tMorphAnalysis(forms, rules));
+    rules.push_front(candidate);
+    forms.push_front(it->second->base());
+    pre.push_back(tMorphAnalysis(forms, rules));
     }
 
   } // for

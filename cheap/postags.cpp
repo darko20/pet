@@ -130,17 +130,18 @@ string postags::getPrintString() const {
 
 // Determine if given type is licensed under posmapping
 // Find first matching tuple in mapping.
-bool postags::contains(type_t t, const class setting *set) const {
+bool postags::contains(type_t t, const setting *set) const {
   if(_tags.empty())
     return false;
   
-  for(int i = 0; i < set->n; i+=2) {
-    if(i+2 > set->n) {
+  for(int i = 0; i < set->n(); i+=2) {
+    if(i+2 > set->n()) {
       LOG(logAppl, WARN, "incomplete last entry in POS mapping - ignored");
       break;
     }
             
-    char *lhs = set->values[i], *rhs = set->values[i+1];
+    const char* lhs = set->values[i].c_str();
+    const char* rhs = set->values[i+1].c_str();
             
     int type = lookup_type(rhs);
     if(type == -1) {
@@ -153,12 +154,14 @@ bool postags::contains(type_t t, const class setting *set) const {
   return false;
 }
 
-bool postags::contains(type_t t) const {
+bool postags::contains(type_t t) const
+{
   setting *set = cheap_settings->lookup("posmapping");
   return ((set != NULL) && contains(t, set));
 }
   
-bool postags::license(type_t t) const {
+bool postags::license(type_t t) const
+{
   setting *set = cheap_settings->lookup("posmapping");
   return ((set == 0) || contains(t, set));
 }

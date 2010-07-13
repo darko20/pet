@@ -183,7 +183,7 @@ grammar_rule::grammar_rule(type_t t)
               "warning: both keyarg-marker-path and rule-keyargs "
               "supply information on key argument...");
         }
-        char *s = cheap_settings->assoc("rule-keyargs", type_name(t));
+        const char *s = cheap_settings->assoc("rule-keyargs", type_name(t));
         if(s && strtoint(s, "in `rule-keyargs'"))
         {
             keyarg = strtoint(s, "in `rule-keyargs'");
@@ -334,10 +334,9 @@ undump_dags(dumper *f) {
   init_constraint_cache(nstatictypes);
 #endif
 
-  char *v;
   type_t qc_inst_unif = T_BOTTOM;
-  if((v = cheap_settings->value("qc-structure-unif")) != 0
-     || (v = cheap_settings->value("qc-structure")) != 0)
+  const char *v = cheap_settings->value("qc-structure-unif");
+  if(v != 0 || (v = cheap_settings->value("qc-structure")) != 0)
     qc_inst_unif = lookup_type(v);
   if(get_opt_int("opt_nqc_unif") != 0 && qc_inst_unif == T_BOTTOM) {
     LOG(logAppl, INFO, "[ disabling unification quickcheck ] ");
@@ -537,8 +536,8 @@ tGrammar::tGrammar(const char * filename)
         }
       }
     } // if
-    char *lexsm_file;
-    if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
+    const char *lexsm_file = cheap_settings->value("lexsm");
+    if (lexsm_file != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
       catch(tError &e) {
         LOG(logGrammar, ERROR, e.getMessage());
@@ -619,11 +618,11 @@ tGrammar::property(string key)
 void
 tGrammar::init_parameters()
 {
-    struct setting *set;
-    if((set = cheap_settings->lookup("start-symbols")) != 0)
+    setting *set = cheap_settings->lookup("start-symbols");
+    if(set != 0)
     {
         _root_insts = 0;
-        for(int i = set->n-1; i >= 0; i--)
+        for(int i = set->n()-1; i >= 0; i--)
         {
             _root_insts = cons(lookup_type(set->values[i]), _root_insts);
             if(first(_root_insts) == -1)
@@ -642,10 +641,10 @@ tGrammar::init_parameters()
     set = cheap_settings->lookup("deleted-daughters");
     if(set)
     {
-        for(int i = 0; i < set->n; i++)
+        for(int i = 0; i < set->n(); i++)
         {
             int a;
-            if((a = lookup_attr(set->values[i])) != -1)
+            if((a = lookup_attr(set->values[i].c_str())) != -1)
                 _deleted_daughters = cons(a, _deleted_daughters);
             else
               LOG(logGrammar, WARN, "ignoring unknown attribute `"
@@ -662,9 +661,9 @@ tGrammar::init_parameters()
       // if extended is true at the end of the loop, restrictor paths of
       // length > 1 have been specified
       bool extended = false;
-      for(int i = 0; i < set->n; i++)
+      for(int i = 0; i < set->n(); i++)
         {
-          if((del_attrs = path_to_lpath(set->values[i])) != NULL) {
+          if((del_attrs = path_to_lpath(set->values[i].c_str())) != NULL) {
             // is there a path with length > 1 ??
             extended = extended || (rest(del_attrs) != NULL) ;
             del_paths.push_front(del_attrs);
@@ -692,7 +691,7 @@ tGrammar::init_parameters()
     }
     else 
     {
-      char *restname = cheap_settings->value("dag-restrictor");
+      const char *restname = cheap_settings->value("dag-restrictor");
       if ((restname != NULL) && is_type(lookup_type(restname))) {
         _packing_restrictor = 
           new dag_restrictor(type_dag(lookup_type(restname)));
@@ -924,10 +923,10 @@ tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
 
   if(!input.empty()) {
     settings foo(input);
-    struct setting *set;
-    if((set = foo.lookup("start-symbols")) != 0) {
+    setting *set = foo.lookup("start-symbols");
+    if(set != 0) {
       grammar->_root_insts = 0;
-      for(int i = set->n-1; i >= 0; --i) {
+      for(int i = set->n()-1; i >= 0; --i) {
         grammar->_root_insts 
           = cons(lookup_type(set->values[i]), grammar->_root_insts);
         if(first(grammar->_root_insts) == -1)
