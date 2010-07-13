@@ -36,6 +36,7 @@
 #include "options.h"
 #include "logging.h"
 
+#include <cstdlib>
 #include <cassert>
 #include <cstring>
 #include <errno.h>
@@ -44,6 +45,12 @@
 #include <fcntl.h>
 #ifdef HAVE_MMAP
 #include <sys/mman.h>
+#else
+#include <io.h>
+#endif
+
+#ifdef WIN32
+#define WINDOWS
 #endif
 
 using std::string;

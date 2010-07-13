@@ -31,6 +31,9 @@
 #include <cstdio>
 
 #define SET_SUBDIRECTORY "pet"
+#ifdef WIN32
+#define WINDOWS
+#endif
 
 // define the path separator char with the configure utility
 #ifdef WINDOWS
@@ -77,7 +80,7 @@ std::string convert_escapes(const std::string &s);
 std::string escape_string(const std::string &s);
 
 /** return current date and time in static string; client must not free() */
-const char *current_time(void);
+std::string current_time();
 
 /** Return \c true if \a filename exists and is not a directory */
 bool file_exists_p(const std::string &filename);
@@ -125,8 +128,7 @@ find_set_file(const std::string &name, const std::string &ext,
  *  \return the new string
  */
 std::string
-output_name(const std::string &name, const char *oldextension,
-            const char *newextension);
+output_name(const std::string& in, const std::string& oldext, const std::string& newext);
 
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.
@@ -180,9 +182,7 @@ struct string_lt {
  * case.
  */
 struct string_lt_case {
-  bool operator()(const std::string &s, const std::string &t) const {
-    return strcasecmp(s.c_str(), t.c_str()) < 0;
-  }
+  bool operator()(const std::string &s, const std::string &t) const;
 };
 
 #ifdef __BORLANDC__

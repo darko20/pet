@@ -246,7 +246,7 @@ void print_analyses(std::ostream &out, list<tMorphAnalysis> res)
 // Letterset
 //
 
-void morph_letterset::set(string name, string elems_u8) {
+void morph_letterset::set(const string& name, const string& elems_u8) {
   _name = name;
   MString elems = Conv->convert(elems_u8);
   
@@ -269,8 +269,8 @@ void morph_letterset::print(std::ostream &out) const {
   out << "!" << _name << " -> ";
   for(std::set<MChar>::const_iterator it = _elems.begin();
       it != _elems.end(); ++it)
-    out << Conv->convert(*it);
-  out << " [" << Conv->convert(_bound) << "]";
+    out << Conv->convert(*it).c_str();
+  out << " [" << Conv->convert(_bound).c_str() << "]";
 }
 
 
@@ -278,17 +278,17 @@ void morph_letterset::print(std::ostream &out) const {
 // Lettersets (collection)
 //
 
-void morph_lettersets::add(string s)
+void morph_lettersets::add(const string& s)
 {
   // s consists of the name and the characters making up the set
   // seperated by whitespace
   
   unsigned int p = 0;
-  while(!isspace(s[p]) && p < s.length()) p++;
+  while(!isspace(s[p] & 0xFF) && p < s.length()) p++;
   if(p < s.length())
   {
     string name = s.substr(1, p - 1);
-    while(isspace(s[p]) && p < s.length()) p++;
+    while(isspace(s[p] & 0xFF) && p < s.length()) p++;
     if(p < s.length())
     {
       string elems = s.substr(p, s.length() - p); 
@@ -474,7 +474,7 @@ void trie_node::print(std::ostream &out, int depth) const {
 
   for(tn_const_iterator it = _s.begin(); it != _s.end(); ++it) {
     out << std::setw(depth) << "" 
-        << "[" << Conv->convert(it->first) << "]" << endl;
+        << "[" << Conv->convert(it->first).c_str() << "]" << endl;
     it->second->print(out, depth+2);
   }
 }
@@ -488,7 +488,7 @@ void reverse_subrule(MString &s)
 {
   s.reverse();
   
-  int32_t off = 0;
+  int off = 0;
   while((off = s.indexOf((MChar) LETTERSET_CHAR, off)) != -1)
     s.reverse(s.getChar32Start(off-1), 2);
 }
@@ -498,7 +498,7 @@ void morph_trie::add_subrule(grammar_rule *rule, string subrule)
   string left_u8, right_u8;
 
   string::size_type curr = 0;
-  while(curr < subrule.length() && !isspace(subrule[curr])) ++curr;
+  while(curr < subrule.length() && !isspace(subrule[curr] & 0xFF)) ++curr;
 
   if(curr == subrule.length())
     throw tError("Invalid subrule `" + subrule + "' in rule " 
@@ -509,11 +509,11 @@ void morph_trie::add_subrule(grammar_rule *rule, string subrule)
     left_u8 = "";
 
   // strip blanks at the beginning of the left part of a morph subrule
-  while(curr < subrule.length() && isspace(subrule[curr])) ++curr;
+  while(curr < subrule.length() && isspace(subrule[curr] & 0xFF)) ++curr;
 
   // strip blanks at the end of the left part of a morph subrule
   string::size_type rule_end = subrule.length() - 1;
-  while(rule_end >= curr && isspace(subrule[rule_end])) --rule_end;
+  while(rule_end >= curr && isspace(subrule[rule_end] & 0xFF)) --rule_end;
 
   if(curr > rule_end)
     throw tError("Invalid subrule `" + subrule + "' in rule " 
@@ -621,11 +621,12 @@ list<tMorphAnalysis> morph_trie::analyze(tMorphAnalysis analysis) {
                   && (_analyzer->_duplicate_filter_p || *form == st));
       }
       if(!cyclep) {
-        rules.push_front(candidate);
-        forms.push_front(st);
-        res.push_back(tMorphAnalysis(forms, rules));
-      }
+      rules.push_front(candidate);
+      forms.push_front(st);
+      
+      res.push_back(tMorphAnalysis(forms, rules));
     }
+  }
   }
 
   return res;
@@ -931,6 +932,7 @@ void tMorphAnalyzer::analyze1(tMorphAnalysis form, list<tMorphAnalysis> &result)
 
   for(multimap<string, tMorphAnalysis *>::iterator it = eq.first;
       it != eq.second; ++it) {
+
     //
     // _fix_me_
     // the following largely duplicates code from morph_trie::analyze(): here,
@@ -946,7 +948,6 @@ void tMorphAnalyzer::analyze1(tMorphAnalysis form, list<tMorphAnalysis> &result)
     list<string> forms = form.forms();
     ruleiter rule;
     list<string>::iterator form;
-
     bool cyclep = false;
     for(rule = rules.begin(), form = forms.begin();
         !cyclep && rule != rules.end() && form != forms.end();

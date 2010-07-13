@@ -25,9 +25,15 @@
 
 #include <cstdlib>
 #include <sys/stat.h>
+#include <ctime>
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
+using boost::algorithm::iequals;
 using std::string;
 using std::list;
+
+namespace fs = boost::filesystem;
 
 /** "Safe" \c malloc: call \c malloc and throw an error if
  *   it returns \c NULL.
@@ -108,7 +114,7 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   const char *foo = NULL;
   if(quotedp)
     {
-      if(!*s == '"' || (foo = strrchr(s, '"')) == NULL)
+      if(!(*s == '"') || (foo = strrchr(s, '"')) == NULL)
         throw tError(string("invalid quoted integer `") + string(s) +
                      string("' ") + string(errloc));
       s++;
@@ -200,7 +206,7 @@ string escape_string(const string &s)
 
 
 /** Return the current date and time in a static char array */
-const char *current_time(void)
+std::string current_time()
 {
   time_t foo = time(0);
   struct tm *now = localtime(&foo);
@@ -220,10 +226,7 @@ const char *current_time(void)
 
 /** Return \c true if \a filename exists and is not a directory */
 bool file_exists_p(const std::string &fn) {
-  const char *filename = fn.c_str();
-  struct stat sb;
-  return ((access(filename, R_OK) == 0) && (stat(filename, &sb) != -1)
-          && ((sb.st_mode & S_IFDIR) == 0));
+  return fs::exists(fn) && fs::is_regular_file(fn) && !fs::is_directory(fn);
 }
 
 /** \brief Check if \a name , with or without extension \a ext, is the name of
@@ -304,12 +307,13 @@ string raw_name(const std::string &pathname) {
 }
 
 
-string output_name(const string &in, const char *oldext, const char *newext) {
+string output_name(const std::string& in, const std::string& oldext, const std::string& newext)
+{
   string out = in;
 
   string::size_type ext = out.rfind('.');
 
-  if(ext && strcasecmp(out.c_str() + ext, oldext) == 0)
+    if(ext != string::npos && iequals(out.c_str() + ext, oldext))
     // erase the old extension
     out.erase(ext);
 
@@ -384,6 +388,11 @@ splitStrings(list<string> &strs)
     }
     
     strs.swap(result);
+}
+
+bool string_lt_case::operator()(const std::string &s, const std::string &t) const
+{
+    return boost::algorithm::ilexicographical_compare(s, t);
 }
 
 #ifdef __BORLANDC__

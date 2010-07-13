@@ -46,7 +46,7 @@ void init_characterization();
 
 /** Inhibit assignment operator and copy constructor(always throws an error) */
 #define INHIBIT_COPY_ASSIGN(___Type) \
-  virtual ___Type &operator=(const ___Type &i) { \
+  virtual ___Type &operator=(const ___Type &) { \
     throw tError("unexpected call to assignment of ___Type"); } \
   ___Type() { \
     throw tError("unexpected call to default constructor of ___Type"); }
@@ -489,11 +489,13 @@ private:
   rule_trait _trait;
 
   /** chart node positions */ /*@{*/
-  int _start, _end;
+  int _start;
+  int _end;
   /*@}*/
 
   /** external positions */ /*@{*/
-  int _startposition, _endposition;
+  int _startposition;
+  int _endposition;
   /*@}*/
 
   bool _spanningonly;
@@ -786,9 +788,7 @@ class tLexItem : public tItem
 
   ~tLexItem() {
     free_list(_inflrs_todo); 
-
-    if (_hypo != NULL)
-      delete _hypo;
+    delete _hypo;
   }
 
   INHIBIT_COPY_ASSIGN(tLexItem);
@@ -894,12 +894,14 @@ protected:
 private:
   void init();
 
-  int _ldot, _rdot;
+  int _ldot;
+  int _rdot;
   tInputItem *_keydaughter;
 
   lex_stem * _stem;
 
-  fs _mod_form_fs, _mod_stem_fs;
+  fs _mod_form_fs;
+  fs _mod_stem_fs;
 
   /** This list registers all immediate expansions of this items to avoid
    *  duplicate multi word entries.
@@ -916,7 +918,7 @@ private:
   /** Cache for the hypothesis */
   tHypothesis* _hypo;
 
-  friend class tPhrasalItem; // to get access to the _mod...fs
+  friend class tPhrasalItem; // to get access to the mod...fs
   friend class tAbstractItemPrinter;
 };
 
@@ -1132,6 +1134,7 @@ class item_owner
   item_list _list;
 };
 
+#if 0
 namespace HASH_SPACE {
   /** hash function for pointer that just looks at the pointer content */
   template<> struct hash< tItem * > {
@@ -1141,6 +1144,7 @@ namespace HASH_SPACE {
     }
   };
 }
+#endif
 
 /** a function type for functions returning true for wanted and false for
  *  unwanted items

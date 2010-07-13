@@ -272,7 +272,7 @@ private:
 class tFullformMorphology : public tMorphology {
 private:
   
-  typedef HASH_SPACE::hash_map<std::string, std::list<tMorphAnalysis> > ffdict ;
+  typedef HASH_SPACE::unordered_map<std::string, std::list<tMorphAnalysis> > ffdict ;
 
   /** Prerequisite: The dumper must be set to the beginning of the (existing)
    *  fullform section

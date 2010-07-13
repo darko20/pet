@@ -40,11 +40,30 @@
 using namespace std;
 using namespace HASH_SPACE;
 
+struct bitcode_equal_to
+    : std::binary_function<bitcode, bitcode, bool>
+{
+    bool operator()(const bitcode& x, const bitcode& y) const
+    {
+        return x==y;
+    }
+};
+
+struct bitcode_hash
+    : std::unary_function<bitcode, std::size_t>
+{
+    std::size_t operator()(const bitcode &key) const
+    {
+        return Hash(key);
+    }
+};
+
+
 int nstaticleaftypes;
 int *leaftypeparent = 0;
 
 static vector<bitcode *> typecode;
-static hash_map<bitcode, int> codetable;
+static unordered_map<bitcode, int, bitcode_hash> codetable;
 
 static bitcode *temp_bitcode = NULL;
 static int codesize;
@@ -63,7 +82,7 @@ type_t ntypes;
 std::vector<std::string> typenames;
 std::vector<std::string> printnames;
 int *typestatus = 0;
-typedef hash_map<string, type_t, simple_string_hash, string_eq> string_map;
+typedef unordered_map<std::string, type_t> string_map;
 string_map typename_memo;
 
 type_t BI_TOP, BI_SYMBOL, BI_STRING, BI_CONS, BI_LIST, BI_NIL, BI_DIFF_LIST;
@@ -176,7 +195,7 @@ int lookup_status(const char *s) {
 }
 
 type_t lookup_code(const bitcode &b) {
-  hash_map<bitcode, int>::const_iterator pos = codetable.find(b);
+    unordered_map<bitcode, int>::const_iterator pos = codetable.find(b);
 
   if(pos == codetable.end())
     return -1;
@@ -455,7 +474,7 @@ const list< type_t > &immediate_supertypes(type_t type) {
  *  including \a type itself.
  *  This is an internal helper function for all_supertypes.
  */
-void get_all_supertypes(type_t type, hash_set< type_t > &result) {
+void get_all_supertypes(type_t type, unordered_set< type_t > &result) {
   // top is a supertype of every type, so we do not add this redundant
   // information 
   if((type == BI_TOP) || (result.find(type) != result.end())) return;
@@ -470,14 +489,14 @@ void get_all_supertypes(type_t type, hash_set< type_t > &result) {
   }
 }
 
-typedef hash_map< type_t, list< type_t > > super_map;
+typedef unordered_map< type_t, list< type_t > > super_map;
 
 super_map all_supertypes_cache;
 
 /** Return the list of all supertypes of \a type */
 const list< type_t > &all_supertypes(type_t type) {
   if(all_supertypes_cache.find(type) == all_supertypes_cache.end()) {
-    hash_set< type_t > supertypes;
+    unordered_set< type_t > supertypes;
     get_all_supertypes(type, supertypes);
     list<type_t> supers(supertypes.begin(), supertypes.end());
     all_supertypes_cache[type] = supers;

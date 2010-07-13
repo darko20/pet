@@ -24,10 +24,12 @@
 #ifndef _FLOP_H_
 #define _FLOP_H_
 
-#include "symtab.h"
-#include "types.h"
 #include <list>
 #include <cstdio>
+#include "types.h"
+#include "symtab.h"
+
+class settings;
 
 /***************************/
 /* compile time parameters */
@@ -60,12 +62,6 @@
 /** _fix_me_ Fixed size table for terms */
 #define CONJ_TABLE_SIZE 20
 /*@}*/
-
-
-/// macro to ease conversion from L E D A to STL - can be used like the
-/// forall macro from L E D A, but only on list<int> containers
-
-#define forallint(V,L) V=L.front(); for(list<int>::iterator _iterator = L.begin(); _iterator != L.end(); ++_iterator,V=*_iterator)
 
 /* Global Data: variables & constants */
 /** flop.cc: kinds of terms */
@@ -338,21 +334,21 @@ class ff_entry
            int inflpos, std::string filename = "unknown", int line = 0) 
     : _preterminal(preterminal), _affix(affix), _form(form), _inflpos(inflpos),
     _fname(filename), _line(line)
-    {};
+    {}
   
   /** Copy constructor */
   ff_entry(const ff_entry &C)
     : _preterminal(C._preterminal), _affix(C._affix), _form(C._form),
     _inflpos(C._inflpos), _fname(C._fname), _line(C._line)
-    {};
+    {}
 
   /** Constructor setting only preterminal \a pre (type name of base form) */
   ff_entry(std::string pre)
     : _preterminal(pre)
-    {};
+    {}
 
   /** Default constructor */
-  ff_entry() {};
+  ff_entry() {}
 
   /** Set the location were this full form entry was specified (file name and
    *  line number).
@@ -617,7 +613,7 @@ list_int *fully_expand(struct dag_node *dag, bool full);
 /*@}*/
 
 /** dump.cc: Dump the whole grammar to a binary data file.
- * \param f low-level dumper class
+ * \param f low-level type_t class
  * \param desc readable description of the current grammar
  */
 void dump_grammar(dumper *f, const char *desc);

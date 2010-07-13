@@ -19,6 +19,7 @@
 
 /* pseudo files kept in memory */
 
+#if 0
 #include <stdlib.h>
 #ifdef SMARTHEAP
 #include <smrtheap.h>
@@ -107,4 +108,4 @@ int mprintf( struct MFILE *f, char *format, ... )
   return n;
 }
 
-
+#endif

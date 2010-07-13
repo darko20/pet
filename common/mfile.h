@@ -23,7 +23,7 @@
 
 #ifndef _MFILE_H_
 #define _MFILE_H_
-
+#if 0
 #include <stdarg.h>
 
 #define MFILE_BUFF_SIZE 1048576
@@ -52,5 +52,5 @@ char *mstring(struct MFILE *);
 #ifdef __cplusplus
 }
 #endif
-
+#endif
 #endif

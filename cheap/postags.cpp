@@ -72,7 +72,7 @@ void postags::add(string s, double prob) {
 }
 
 void postags::add(const postags &s) {
-  for(set<string>::const_iterator iter = s._tags.begin();
+  for(IStringSet::const_iterator iter = s._tags.begin();
       iter != s._tags.end(); ++iter) {
     add(*iter);
   }
@@ -103,17 +103,17 @@ void postags::remove(string s) {
 }
 
 void postags::remove(const postags &s) {
-  for(set<string>::const_iterator iter = s._tags.begin();
+  for(IStringSet::const_iterator iter = s._tags.begin();
       iter != s._tags.end(); ++iter) {        
     remove(*iter);
   }
 }
 
 void postags::print(std::ostream &out) const {
-  for(set<string>::const_iterator iter = _tags.begin(); iter != _tags.end();
+  for(IStringSet::const_iterator iter = _tags.begin(); iter != _tags.end();
       ++iter) {
     out << *iter;
-    map<string, double>::const_iterator p = _probs.find(*iter);
+    IStringMap::const_iterator p = _probs.find(*iter);
     if(p != _probs.end())
       out << " " << std::setprecision(2) << p->second;
     if (iter == _tags.end()) break;

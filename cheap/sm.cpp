@@ -29,6 +29,7 @@
 #include "grammar.h"
 #include "item.h"
 #include "logging.h"
+#include "configs.h"
 
 #include <sstream>
 #include <float.h>
@@ -80,15 +81,14 @@ inline bool
 operator==(const tSMFeature& a, const tSMFeature &b)
 { return compare(a, b) == 0; }
 
-namespace HASH_SPACE {
-    template<> struct hash<tSMFeature>
-    {
-        inline size_t operator()(const tSMFeature &key) const
+struct tSMFeature_hash
+    : std::unary_function<tSMFeature, std::size_t>
+{
+    std::size_t operator()(const tSMFeature &key) const
         {
             return key.hash();
         }
-    };
-}
+};
 
 /** Maintains a mapping between features (instances of tSMFeature) and codes.
  *  Also maintains map from types, integers and strings to integers.
@@ -121,11 +121,11 @@ class tSMMap
     /* Mapping between codes and features */
     int _n;
     vector<tSMFeature> _codeToFeature;
-    hash_map<tSMFeature, int> _featureToCode;
+    unordered_map<tSMFeature, int, tSMFeature_hash> _featureToCode;
 
     /* Subfeature mapping */
     int _next_subfeature;
-    hash_map<string, int, bj_string_hash> _stringToSubfeature;
+    unordered_map<string, int> _stringToSubfeature;
 };
 
 int
@@ -133,7 +133,7 @@ tSMMap::featureToCode(const tSMFeature &feature)
 {
     LOG(logSM, DEBUG, "featureToCode(" << feature << ") -> ");
 
-    hash_map<tSMFeature, int>::iterator itMatch = _featureToCode.find(feature);
+    unordered_map<tSMFeature, int>::iterator itMatch = _featureToCode.find(feature);
     if(itMatch != _featureToCode.end())
     {
         LOG(logSM, DEBUG, itMatch->second);
@@ -159,7 +159,7 @@ tSMMap::codeToFeature(int code) const
 int
 tSMMap::stringToSubfeature(const string &s)
 {
-    hash_map<string, int, bj_string_hash>::iterator itMatch =
+    unordered_map<string, int>::iterator itMatch =
       _stringToSubfeature.find(s);
     if(itMatch != _stringToSubfeature.end())
     {

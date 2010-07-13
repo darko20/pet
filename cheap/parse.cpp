@@ -35,10 +35,9 @@
 
 #include <sstream>
 #include <iostream>
-#include <sys/times.h>
-#include <unistd.h>
 
 using namespace std;
+using namespace boost::posix_time;
 
 #ifdef YY
 #include "yy.h"
@@ -55,7 +54,7 @@ chart *Chart;
 tAgenda *Agenda;
 
 timer ParseTime;
-timer TotalParseTime(false);
+timer TotalParseTime;
 
 static bool parser_init();
 //options managed by configuration subsystem
@@ -102,9 +101,22 @@ static bool parser_init() {
  * therefore it is more suitable to use TIMES(2)
  */
 //@{
-clock_t timeout;
-clock_t timestamp;
+int timeout; // in seconds
+ptime timestamp; // starting time
 //@}
+
+bool timeoutExpired()
+{
+    if (timeout == 0) {
+        return false;
+    }
+    return time_period(timestamp, second_clock::local_time()).length() > time_duration(0,0,timeout);
+}
+
+void timestampNow()
+{
+    timestamp = second_clock::local_time();
+}
 
 //
 // filtering
@@ -209,7 +221,7 @@ void
 fundamental_for_passive(tItem *passive)
 {
     // iterate over all active items adjacent to passive and try combination
-    for(chart_iter_adj_active it(Chart, passive); it.valid(); it++)
+    for(chart_iter_adj_active it(Chart, passive); it.valid(); ++it)
     {
         tItem *active = it.current();
         if(active->adjacent(passive))
@@ -224,7 +236,7 @@ void
 fundamental_for_active(tPhrasalItem *active) {
   // iterate over all passive items adjacent to active and try combination
 
-  for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
+  for(chart_iter_adj_passive it(Chart, active); it.valid(); ++it)
     if(!it.current()->blocked())
       if(it.current()->compatible(active, Chart->rightmost()))
         if(filter_combine_task(active, it.current()))
@@ -232,9 +244,6 @@ fundamental_for_active(tPhrasalItem *active) {
                        active_and_passive_task(Chart, Agenda,
                                                active, it.current()));
 }
-
-extern void start_recording_failures();
-extern class failure * stop_recording_failures();
 
 bool
 packed_edge(tItem *newitem) {
@@ -415,15 +424,15 @@ bool add_item(tItem *it) {
 }
 
 inline bool
-resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
+resources_exhausted(int pedgelimit, long memlimit, int timeout)
 {
   return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) ||
     (memlimit > 0 && t_alloc.max_usage() >= memlimit) ||
-    (timeout > 0 && timestamp >= timeout );
+    timeoutExpired();
 }
 
 void
-parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
+parse_loop(fs_alloc_state &FSAS, list<tError> &errors, int timeout) {
   long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
   int pedgelimit = get_opt_int("opt_pedgelimit");
 
@@ -433,7 +442,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
   // of trees found equals the number of requested solutions.
   //
   while(! Agenda->empty() &&
-        ! resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
+        ! resources_exhausted(pedgelimit, memlimit, timeout)) {
 
     basic_task* t = Agenda->pop();
 #ifdef PETDEBUG
@@ -441,8 +450,9 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 #endif
     tItem *it = t->execute();
     delete t;
+    ::timeout = timeout;
     if (timeout > 0)
-      timestamp = times(NULL);
+      timestampNow();
     // add_item checks all limits that have to do with the number of
     // analyses. If it returns true that means that one of these limits has
     // been reached
@@ -458,7 +468,7 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
                        ,timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0)
-    timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
+    timestampNow();
 
   // selectively unpacking
   list<tItem*> uroots;
@@ -502,12 +512,13 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
 int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
                         , timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
-  if (get_opt_int("opt_timeout") > 0) 
-    timestamp = times(NULL);
+  if (get_opt_int("opt_timeout") > 0) {
+    timestampNow();
+  }
   for(vector<tItem *>::iterator tree = trees.begin();
       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
         && tree != trees.end(); ++tree) {
-    if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout)
+    if (timeoutExpired())
       break;
     if(! (*tree)->blocked()) {
 
@@ -569,10 +580,10 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
         errors.push_back(s.str());
       }
 
-      if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
+      if (timeoutExpired()) {
         ostringstream s;
         s << "timed out (" 
-          << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
+          << get_opt_int("opt_timeout")
           << " s)";
         errors.push_back(s.str());
       }
@@ -596,10 +607,9 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
 
 
 void
-parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
+parse_finish(fs_alloc_state &FSAS, list<tError> &errors, int timeout) {
   long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
   int pedgelimit = get_opt_int("opt_pedgelimit");
-  clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
   
   stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
   
@@ -609,7 +619,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
   get_unifier_stats();
   Chart->get_statistics();
   
-  if(resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
+  if(resources_exhausted(pedgelimit, memlimit, timeout)) {
     ostringstream s;
     if (memlimit > 0 && t_alloc.max_usage() >= memlimit) {
       s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
@@ -618,7 +628,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
       s << "edge limit exhausted (" << pedgelimit << " pedges)";
     }
     else {
-      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
+      s << "timed out (" << get_opt_int("opt_timeout")
           << " s)";
     }
     errors.push_back(s.str());
@@ -669,9 +679,9 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
   TotalParseTime.start();
   ParseTime.reset(); ParseTime.start();
-  if (get_opt_int("opt_timeout") > 0) {
-    timestamp = times(NULL);
-    timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
+  timeout = get_opt_int("opt_timeout");
+  if (timeout > 0) {
+    timestampNow();
   }
 
   Lexparser.lexical_processing(input_items

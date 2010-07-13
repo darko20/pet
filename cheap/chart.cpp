@@ -23,6 +23,7 @@
 #include "tsdb++.h"
 #include "item-printer.h"
 #include "logging.h"
+#include "hashing.h"
 
 using namespace std;
 using namespace HASH_SPACE;
@@ -73,18 +74,18 @@ void chart::add(tItem *it)
 /** A predicate testing the existence of some item in a hash_set */
 class contained : public unary_function< bool, tItem *> {
 public:
-  contained(hash_set<tItem *> &the_set) : _set(the_set) { } 
+  contained(unordered_set<tItem *> &the_set) : _set(the_set) { } 
   bool operator()(tItem *arg) { return _set.find(arg) != _set.end(); }
 private:
-  hash_set<tItem *> _set;
+  unordered_set<tItem *> _set;
 };
 
 /** Remove the items in the set from the chart */
-void chart::remove(hash_set<tItem *> &to_delete)
+void chart::remove(unordered_set<tItem *> &to_delete)
 { 
     _Chart.erase(remove_if(_Chart.begin(), _Chart.end(), contained(to_delete))
                  , _Chart.end());
-    for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
+    for(unordered_set<tItem *>::const_iterator hit = to_delete.begin()
           ; hit != to_delete.end(); hit++) {
 #ifdef PETDEBUG
       it->print(DEBUGLOGGER); DEBUGLOGGER << "removed " << endl;

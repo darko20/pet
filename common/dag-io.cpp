@@ -22,6 +22,7 @@
 #include "dumper.h"
 #include "dag.h"
 #include "types.h"
+#include <cstdlib>
 
 //
 // readable output of dag in OSF format
