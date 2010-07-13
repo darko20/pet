@@ -56,7 +56,7 @@ class fs
   /** Construct minimal fs containing \a path ending in typedag for \a type.
    *  \attention there are no checks whether the resulting fs is valid!
    */
-  fs(char *path, type_t type);
+  fs(const std::string& path, type_t type);
   /** Construct minimal fs containing \a path ending in typedag for \a type.
    *  \attention there are no checks whether the resulting fs is valid!
    */
@@ -91,7 +91,7 @@ class fs
   fs get_attr_value(int attr) const;
   /** Return a new fs representing the subdag under \a attr, if this Attribute
       is in the root fs. */
-  fs get_attr_value(char *attr) const;
+  fs get_attr_value(const std::string& attr) const;
 
   /** Return a new fs representing the subdag under \a path, if this Path
       exists in the fs. */

@@ -30,7 +30,7 @@
 
 #include <string>
 #include <list>
-#include <memory>
+#include <boost/shared_ptr.hpp>
 #include <queue>
 
 /** Chart data structure for parsing, aka dynamic programming */
@@ -40,7 +40,7 @@ public:
    *  proper destruction of items on chart destruction.
    *  \attention The function length() will return \a len + 1.
    */
-  chart(int len, std::auto_ptr<item_owner> owner);
+  chart(int len, boost::shared_ptr<item_owner> owner);
   ~chart();
 
   /** Add item to the appropriate internal data structures, depending on its
@@ -109,8 +109,6 @@ public:
   bool connected(item_predicate valid);
 
 private:
-  static int _next_stamp;
-
   std::vector<tItem *> _Chart;
   std::vector<tItem *> _trees;
   std::vector<tItem *> _readings;
@@ -123,7 +121,7 @@ private:
   std::vector<item_list> _Ca_end;
   std::vector< std::vector<item_list> > _Cp_span;
 
-  std::auto_ptr<item_owner> _item_owner;
+  boost::shared_ptr<item_owner> _item_owner;
 
   friend class chart_iter;
   friend class chart_iter_span_passive;

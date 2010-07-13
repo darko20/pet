@@ -30,7 +30,7 @@ using namespace HASH_SPACE;
 
 //#define PETDEBUG
 
-chart::chart(int len, auto_ptr<item_owner> owner)
+chart::chart(int len, boost::shared_ptr<item_owner> owner)
     : _Chart(), _trees(), _readings(), _pedges(0),
       _Cp_start(len + 1), _Cp_end(len + 1),
       _Ca_start(len + 1), _Ca_end(len + 1),

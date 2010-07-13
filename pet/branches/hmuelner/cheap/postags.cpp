@@ -35,16 +35,18 @@ using std::map;
 using std::set;
 using std::vector;
 
-postags::postags(const vector<string> &tags, const vector<double> &probs) {
+postags::postags(const vector<string> &tags, const vector<double> &probs)
+: _tags(), _probs()
+{
   assert(tags.size() == probs.size());        
-  for(vector<string>::const_iterator it = tags.begin(); it != tags.end();
-      ++it) {
+  for(vector<string>::const_iterator it = tags.begin(); it != tags.end(); ++it) {
     _tags.insert(*it);
     _probs[*it] = probs[it - tags.begin()];
   }
 }
 
-postags::postags(const class lex_stem * ls) {
+postags::postags(const lex_stem * ls)
+{
   if(ls != NULL) {
     set<string> tags = cheap_settings->smap("type-to-pos", ls->type());
     

@@ -103,7 +103,7 @@ private:
     _dmp->dump_int(item->id());
     _dmp->dump_int(item->start());
     _dmp->dump_int(item->end());
-    _dmp->dump_string(name.c_str());
+    _dmp->dump_string(name);
     item_list dtrs = item->daughters();
     _dmp->dump_short(dtrs.size());
     for(item_citer it = dtrs.begin(); it != dtrs.end(); ++it) {
@@ -214,7 +214,11 @@ void interactive() {
       << get_opt_string("opt_tsdb_dir"));
   }
 
-  while(Lexparser.next_input(std::cin, input)) {
+  string infile = get_opt_string("opt_infile");
+  ifstream ifs;
+  ifs.open(infile.c_str());
+  istream& lexinput = ifs ? ifs : std::cin;
+  while(Lexparser.next_input(lexinput, input)) {
     chart *Chart = 0;
 
     tsdb_dump.start();
@@ -633,6 +637,10 @@ void main_init() {
 
   managed_opt("opt_tsdb_dir",
     "write [incr tsdb()] item, result and parse files to this directory",
+    ((std::string) ""));
+
+  managed_opt("opt_infile",
+    "read text input from this file",
     ((std::string) ""));
 
   managed_opt("opt_jxchg_dir",

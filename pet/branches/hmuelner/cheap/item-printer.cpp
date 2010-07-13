@@ -204,7 +204,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
       *_out << _items[(long int) *dtr] << " ";
     }
     *_out << "}" << std::endl;
-    _items[(long int) item] = _item_id;
+    _items[reinterpret_cast<size_t>(item)] = _item_id;
     _item_id++;
   }
 }

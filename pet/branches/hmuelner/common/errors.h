@@ -37,7 +37,8 @@ class tError
         : _message(message)
     {}
    
-    tError(std::string message, std::string filename, int line, int col=0) {
+    tError(std::string message, std::string filename, int line, int /*col*/ = 0)
+    {
       std::ostringstream errmsg;
       errmsg << filename << ":" << line << ":" << " error: " << message;
       message = errmsg.str();

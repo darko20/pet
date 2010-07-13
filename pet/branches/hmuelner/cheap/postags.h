@@ -29,6 +29,7 @@
 #include <set>
 #include <map>
 #include <vector>
+#include <boost/algorithm/string/predicate.hpp>
 
 struct setting;
 
@@ -66,6 +67,7 @@ class postags
   void operator=(const postags &b) 
   {
     _tags = b._tags;
+    _probs = b._probs;
   }
 
   /** Return true, if the tag sets are equal */
@@ -108,7 +110,7 @@ class postags
 
   struct ltstr {
     bool operator()(const std::string &s1, const std::string &s2) const {
-      return strcasecmp(s1.c_str(), s2.c_str()) < 0;
+      return boost::ilexicographical_compare(s1, s2);
     }
   };
   typedef std::set<std::string, ltstr> IStringSet;

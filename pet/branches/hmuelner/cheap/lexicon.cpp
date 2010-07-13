@@ -34,10 +34,7 @@ using std::string;
 using std::list;
 using std::vector;
 
-int lex_stem::next_id = 0;
-
-fs
-lex_stem::instantiate()
+fs lex_stem::instantiate()
 {
     fs e(_lexical_type);
 
@@ -155,7 +152,7 @@ void lex_stem::print(std::ostream &out) const
 lex_stem::lex_stem(type_t instance_type //, const modlist &mods
                    , type_t lex_type
                    , const std::list<std::string> &orths)
-  : _id(next_id++), _instance_type(instance_type)
+  : _instance_type(instance_type)
   , _lexical_type(lex_type == -1 ? leaftype_parent(instance_type) : lex_type)
                   // , _mods(mods)
   , _orth(0) {
