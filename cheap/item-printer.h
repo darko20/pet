@@ -322,23 +322,20 @@ private:
  */
 class tFegramedPrinter : public tAbstractItemPrinter {
 public:
-  tFegramedPrinter(): _out(NULL), _filename_prefix(NULL) {}
+  tFegramedPrinter(): _out(NULL), _filename_prefix() {}
 
   /** Specify a \a prefix that is prepended to all filenames, e.g., a directory
    *  prefix.
    */
   tFegramedPrinter(const char *prefix) {
     _out = NULL;
-    _filename_prefix = strdup(prefix);
+    _filename_prefix = prefix ? prefix : "";
   }
   
   virtual ~tFegramedPrinter() {
     if (_out != NULL) { 
       fclose(_out);
       _out = NULL;
-    }
-    if (_filename_prefix != NULL) {
-      free(_filename_prefix);
     }
   }
 
@@ -364,20 +361,17 @@ private:
    *  \param name The name to append to the given prefix.
    */
   void open_stream(const char *name = "") {
-    if (_filename_prefix != NULL) {
+    if (!_filename_prefix.empty()) {
       if (_out != NULL) { 
         fclose(_out);
         _out = NULL;
       }
-      char *unique = new char[strlen(_filename_prefix) + strlen(name) + 7];
-      strcpy(unique, _filename_prefix);
-      strcpy(unique + strlen(_filename_prefix), name);
-      strcpy(unique + strlen(_filename_prefix) + strlen(name), "XXXXXX");
-      int fildes = mkstemp(unique);
+      std::string unique = _filename_prefix + name + "XXXXXX";
+      //int fildes = mkstemp(unique);
+      int fildes = 1;
       if ((fildes == -1) || ((_out = fdopen(fildes, "w")) == NULL)) {
         throw(tError((std::string) "could not open file" + unique));
       }
-      delete[] unique;
     }
   }
 
@@ -393,7 +387,7 @@ private:
   }
 
   FILE *_out;
-  char *_filename_prefix;
+  std::string _filename_prefix;
 };
 #endif
 
@@ -403,19 +397,16 @@ private:
  */
 class tFegramedPrinter : public tAbstractItemPrinter {
 public:
-  tFegramedPrinter(): _out(), _filename_prefix(NULL) {}
+  tFegramedPrinter(): _out(), _filename_prefix() {}
 
   /** Specify a \a prefix that is prepended to all filenames, e.g., a directory
    *  prefix.
    */
   tFegramedPrinter(const char *prefix) 
-    : _out(), _filename_prefix(strdup(prefix)) { }
+      : _out(), _filename_prefix(prefix ? prefix : "") { }
   
   virtual ~tFegramedPrinter() {
     close_stream();
-    if (_filename_prefix != NULL) {
-      free(_filename_prefix);
-    }
   }
 
   /** We don't need the second dispatch here because everything is available
@@ -441,17 +432,13 @@ private:
    */
   void open_stream(const char *name = "") {
     close_stream();
-    if (_filename_prefix != NULL) {
-      char *unique = new char[strlen(_filename_prefix) + strlen(name) + 7];
-      strcpy(unique, _filename_prefix);
-      strcpy(unique + strlen(_filename_prefix), name);
-      strcpy(unique + strlen(_filename_prefix) + strlen(name), "XXXXXX");
+    if (!_filename_prefix.empty()) {
+        std::string unique = _filename_prefix + name + "XXXXXX";
       // int fildes = mkstemp(unique); TODO
       int fildes = 0;
-      if ((fildes == -1) || (_out.open(unique) , ! _out.good())) {
+      if ((fildes == -1) || (_out.open(unique.c_str()) , ! _out.good())) {
         throw(tError((std::string) "could not open file" + unique));
       }
-      delete[] unique;
     }
   }
 
@@ -465,7 +452,7 @@ private:
 
   std::ofstream _out;
   FegramedDagPrinter fp;
-  char *_filename_prefix;
+  std::string _filename_prefix;
 };
 
 

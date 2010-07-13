@@ -128,7 +128,7 @@ SOURCES += chart.cpp \
            ../common/lex-io.cpp \
 	   ../common/lex-tdl.cpp \
 	   ../common/logging.cpp \
-           ../common/mfile.c \
+           ../common/mfile.cpp \
 	   ../common/settings.cpp \
 	   ../common/types.cpp \
 	   ../common/utility.cpp \

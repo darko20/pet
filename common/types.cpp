@@ -68,12 +68,11 @@ static unordered_map<bitcode, int, bitcode_hash> codetable;
 static bitcode *temp_bitcode = NULL;
 static int codesize;
 
-type_t *apptype = 0;
-type_t *maxapp = 0;
+type_t *apptype = 0; // TODO vector
+type_t *maxapp = 0; // TODO vector
 
 // status
-int nstatus;
-char **statusnames = 0;
+std::vector<std::string> statusnames;
 
 // types
 type_t nstatictypes;
@@ -81,7 +80,7 @@ type_t first_leaftype;
 type_t ntypes;
 std::vector<std::string> typenames;
 std::vector<std::string> printnames;
-int *typestatus = 0;
+std::vector<int> typestatus;
 typedef unordered_map<std::string, type_t> string_map;
 string_map typename_memo;
 
@@ -92,9 +91,8 @@ vector<list<int> > immediateSupertype;
 #endif
 
 // attributes
-char **attrname = 0;
-int nattrs;
-int *attrnamelen = 0;
+std::vector<std::string> attrname;
+
 int BIA_FIRST, BIA_REST, BIA_LIST, BIA_LAST, BIA_ARGS;
 
 void initialize_codes(int n) {
@@ -171,8 +169,9 @@ attr_t lookup_attr(const char *s) {
   if(pos != _attrname_memo.end())
     return (*pos).second;
 
-  for(int i = 0; i < nattrs; i++) {
-    if(strcmp(attrname[i], s) == 0) {
+  size_t nattrs = attrname.size();
+  for(size_t i = 0; i < nattrs; i++) {
+    if(attrname[i] == s) {
       _attrname_memo[s] = i;
       return i;
     }
@@ -185,13 +184,16 @@ attr_t lookup_attr(const char *s) {
 /** \brief Check, if the given status name \a s is mentioned in the grammar. If
  *  so, return its code.
  */
-int lookup_status(const char *s) {
-  for(int i = 0; i < nstatus; i++) {
-    if(strcmp(statusnames[i], s) == 0) {
-      return i;
+int lookup_status(const char *s)
+{
+    size_t nstatus = statusnames.size();
+
+    for(size_t i = 0; i < nstatus; i++) {
+        if(statusnames[i] == s) {
+            return i;
+        }
     }
-  }
-  return -1;
+    return -1;
 }
 
 type_t lookup_code(const bitcode &b) {
@@ -217,7 +219,7 @@ int get_special_name(settings *sett, const char *suff, bool attr = false) {
   else {
     id = types.id(v);
     if(id == -1) {
-      struct type *t = new_type(v, false);
+      Type *t = new_type(v, false);
       t->def = sett->lloc();
       t->implicit = true;
       id = types.id(v);
@@ -257,7 +259,7 @@ void initialize_specials(settings *sett)
 void undump_symbol_tables(dumper *f)
 {
   // nstatus
-  nstatus = f->undump_int();
+  int nstatus = f->undump_int();
 
   // npropertypes
   first_leaftype = f->undump_int();
@@ -268,28 +270,28 @@ void undump_symbol_tables(dumper *f)
   ntypes = nstatictypes;
 
   // nattrs
-  nattrs = f->undump_int();
+  int nattrs = f->undump_int();
 
-  statusnames = (char **) malloc(sizeof(char *) * nstatus);
+  statusnames.clear();
+  statusnames.reserve(nstatus);
 
   for(int i = 0; i < nstatus; i++)
-    statusnames[i] = f->undump_string();
+    statusnames.push_back(f->undump_string());
 
-  typenames = std::vector<std::string>(nstatictypes);
-  typenames.reserve(2 * nstatictypes); // increase capacity for dynamic types
-  typestatus = (int *) malloc(sizeof(int) * nstatictypes);
+  typenames.clear();
+  typenames.reserve(nstatictypes);
+  typestatus.clear();
+  typestatus.reserve(nstatictypes);
 
   for(int i = 0; i < nstatictypes; i++) {
-    typenames[i] = f->undump_string();
-    typestatus[i] = f->undump_int();
+    typenames.push_back(f->undump_string());
+    typestatus.push_back(f->undump_int());
   }
 
-  attrname = (char **) malloc(sizeof(char *) * nattrs);
-  attrnamelen = (int *) malloc(sizeof(int) * nattrs);
-
+  attrname.clear();
+  attrname.reserve(nattrs);
   for(int i = 0; i < nattrs; i++) {
-    attrname[i] = f->undump_string();
-    attrnamelen[i] = strlen(attrname[i]);
+    attrname.push_back(f->undump_string());
   }
 
   initialize_specials(cheap_settings);
@@ -311,31 +313,7 @@ void undump_printnames(dumper *f)
 
 void free_type_tables()
 {
-  if(statusnames != 0)
-  {
-    for(int i = 0; i < nstatus; i++)
-      delete[] statusnames[i];
-    free(statusnames);
-    statusnames = 0;
-  }
-  typenames.clear();
-  printnames.clear();
-  if(typestatus != 0)
-  {
-    free(typestatus);
-    typestatus = 0;
-  }
-  if(attrname != 0)
-  {
-    free(attrname);
-    attrname = 0;
-  }
-  if(attrnamelen != 0)
-  {
-    free(attrnamelen);
-    attrnamelen = 0;
-  }
-
+ 
   delete temp_bitcode;
   delete[] leaftypeparent;
   delete[] apptype;
@@ -394,6 +372,7 @@ void undump_hierarchy(dumper *f)
 void
 initialize_maxapp()
 {
+    size_t nattrs = attrname.size();
     maxapp = new int[nattrs];
     for(int i = 0; i < nattrs; i++)
     {
@@ -442,6 +421,7 @@ void undump_tables(dumper *f)
 
   // read appropriate sorts table
 
+  size_t nattrs = attrname.size();
   apptype = new int[nattrs];
   for(int i = 0; i < nattrs; i++)
     apptype[i] = f->undump_int();

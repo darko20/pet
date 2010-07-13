@@ -77,10 +77,11 @@ print_arcs(ostream &out, const dag_arc *arc, bool temp, int indent) {
 
   int maxlen = 0, i, maxatt = 0;
 
+  size_t nattrs = attrname.size();
   vector<const dag_node*> print_attrs(nattrs, 0);
   
   while(arc) {
-    i = attrnamelen[arc->attr];
+    i = attrname[arc->attr].size();
     maxlen = maxlen > i ? maxlen : i;
     print_attrs[arc->attr]=arc->val;
     maxatt = arc->attr > maxatt ? arc->attr : maxatt;
@@ -98,7 +99,7 @@ print_arcs(ostream &out, const dag_arc *arc, bool temp, int indent) {
         out << "," << endl << setw(indent) << "";
       else
         nonfirst = true;
-      out << attrname[j] << setw(maxlen - attrnamelen[j]) << "";
+      out << attrname[j] << setw(maxlen - attrname[j].size()) << "";
       print_dag_rec(out, print_attrs[j], temp, newindent);
     }
   }

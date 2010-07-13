@@ -29,8 +29,10 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 #include <iomanip>
+
+using std::string;
 
 const char *keywords[N_KEYWORDS] = { "declare", "domain", "instance", "lisp",
 "template", "type", "begin", "defdomain", "deldomain", "delete-package-p",
@@ -48,50 +50,45 @@ int lisp_mode = 0; // shall lexer recognize lisp expressions
 
 void print_token(std::ostream &out, struct lex_token *t);
 
-struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
+lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
     int rlen = -1)
 {
-  struct lex_token *t;
+    lex_token *t = new lex_token();;
 
-  t = (struct lex_token *) malloc(sizeof(struct lex_token));
-
-  if(tag != T_EOF)
+    if(tag != T_EOF)
     {
-      t->loc = new_location(curr_fname(), curr_line(), curr_col());
+        t->loc.assign(curr_fname(), curr_line(), curr_col());
     }
-  else
+    else
     {
-      t->loc = new_location("unknown", 0, 0);
+        t->loc.assign("unknown", 0, 0);
     }
 
-  t->tag = tag;
+    t->tag = tag;
 
-  if(s == NULL)
+    if(s == NULL)
     {
-      t->text = NULL;
+        t->text.clear();
     }
-  else
+    else
     {
-      if (rlen == -1)
-        rlen = len;
-      char *dest = t->text = (char *) malloc(rlen + 1);
-      if (rlen == len)
-        strncpy(dest, s, len);
-      else // s contains a string with escaped characters
+        if (rlen == -1)
+            rlen = len;
+
+        if (rlen == len) {
+            t->text = string(s, len);
+        } else // s contains a string with escaped characters
         {
-          int j = 0;
-          for (int i = 0; i < len; i++)
-            {
-              if (s[i] == '\\')
-                i++; // skip, copy following character
-              dest[j++] = s[i];
+            for (int i = 0; i < len; i++) {
+                if (s[i] == '\\') {
+                    i++; // skip, copy following character
+                }
+                t->text += s[i];
             }
-          assert(j == rlen);
+            assert(t->text.size() == rlen);
         }
-      dest[rlen] = '\0';
     }
-
-  return t;
+    return t;
 }
 
 void check_id(struct lex_token *t)
@@ -100,7 +97,7 @@ void check_id(struct lex_token *t)
 
   for(i = 0; i< N_KEYWORDS; i++)
     {
-      if(strcmp(t->text, keywords[i]) == 0)
+      if(t->text == keywords[i])
         {
           t->tag = T_KEYWORD;
           break;
@@ -108,10 +105,10 @@ void check_id(struct lex_token *t)
     }
 }
 
-struct lex_token *get_next_token()
+lex_token *get_next_token()
 {
   int c;
-  struct lex_token *t;
+  lex_token *t;
 
   c = LLA(0);
 
@@ -144,9 +141,9 @@ struct lex_token *get_next_token()
 #ifdef FLOP
       if(t->text[1] == '%')
         {
-          if(strncmp(t->text+2, "+redefine", 9) == 0)
+          if(strncmp(t->text.c_str()+2, "+redefine", 9) == 0)
             allow_redefinitions = 1;
-          else if(strncmp(t->text, "-redefine", 9) == 0)
+          else if(strncmp(t->text.c_str(), "-redefine", 9) == 0)
             allow_redefinitions = 0;
         }
 #endif
@@ -509,9 +506,7 @@ void consume1()
     }
   else
     {
-      if(LA_BUF[0]->text != NULL) free(LA_BUF[0]->text);
-      if(LA_BUF[0]->loc != NULL) free(LA_BUF[0]->loc);
-      free(LA_BUF[0]);
+      delete LA_BUF[0];
     }
 
   for(i = 0; i < MAX_LA; i++)
@@ -539,15 +534,10 @@ void syntax_error(const char *msg, struct lex_token *t)
     {
       LOG(logSyntax, ERROR, "error: syntax error at end of input: " << msg);
     }
-  else if(t->loc == NULL)
-    {
-      LOG(logSyntax, ERROR, "error: syntax error - got `" << std::setw(20)
-          << t->text << "', " << msg);
-    }
   else
     {
-      LOG(logSyntax, ERROR, t->loc->fname << ":" << t->loc->linenr << ":"
-          << t->loc->colnr << ": error: (syntax) - got `" << std::setw(20)
+      LOG(logSyntax, ERROR, t->loc.fname << ":" << t->loc.linenr << ":"
+          << t->loc.colnr << ": error: (syntax) - got `" << std::setw(20)
           << t->text << "', " << msg);
     }
 }
@@ -568,9 +558,9 @@ void recover(enum TOKEN_TAG tag)
   last_t = LA(0);
 }
 
-char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
+string match(enum TOKEN_TAG tag, const char *s, bool readonly)
 {
-  char *text = NULL;
+  string text;
   
   if(tag == T_ID && LA(0)->tag == T_KEYWORD)
     LA(0)->tag = T_ID;
@@ -587,7 +577,6 @@ char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
       if(!readonly)
         {
           text = LA(0)->text;
-          LA(0)->text = NULL;
         }
 
       consume(1);
@@ -609,7 +598,7 @@ bool consume_if(enum TOKEN_TAG tag)
 
 int is_keyword(struct lex_token *t, const char *kwd)
 {
-  if(t->tag == T_KEYWORD && strcmp(t->text, kwd) == 0)
+  if(t->tag == T_KEYWORD && t->text == kwd)
     return 1;
   else
     return 0;

@@ -44,11 +44,11 @@ enum TOKEN_TAG {
 struct lex_token
 {
   /** the token value, verbatim */
-  char *text;
+    std::string text;
   /** the token type */
   enum TOKEN_TAG tag;
   /** location where the token occured */
-  struct lex_location *loc;
+    Lex_location loc;
 };
 
 /** The number of consumed tokens, except for whitespace and comments */
@@ -78,7 +78,7 @@ bool consume_if(enum TOKEN_TAG tag);
  *  \param readonly If \c false, the surface string of the token is returned,
  *                  \c NULL otherwise.
  */
-char *match(enum TOKEN_TAG tag, const char *s, bool readonly);
+std::string match(enum TOKEN_TAG tag, const char *s, bool readonly);
 /**  \brief Match and consume the keyword with surface string \a kwd. Issue a
  *  syntax error if the next token does not fit.
  */

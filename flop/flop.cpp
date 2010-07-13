@@ -41,20 +41,22 @@
 #include "pet-config.h"
 #include "logging.h"
 #include "configs.h"
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
+using boost::lexical_cast;
 
 /*** global variables ***/
 
 const char * version_string = VERSION ;
 const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
 
-symtab<struct type *> types;
+symtab<Type *> types;
 symtab<int> statustable;
-symtab<struct templ *> templates;
+symtab<Templ *> templates;
 symtab<int> attributes;
 
-char *global_inflrs = 0;
+string global_inflrs;
 // Grammar properties - these are dumped into the binary representation
 std::map<std::string, std::string> grammar_properties;
 
@@ -62,7 +64,7 @@ settings *flop_settings = 0;
 
 /*** variables local to module */
 
-static const char *grammar_version;
+static std::string grammar_version;
 
 void
 mem_checkpoint(const char *where)
@@ -85,12 +87,12 @@ check_undefined_types()
     {
       if(types[i]->implicit)
         {
-          lex_location *loc = types[i]->def;
+          Lex_location loc = types[i]->def;
 
-          if(loc == 0)
-            loc = new_location("unknown", 0, 0);
+          if(loc.fname.empty())
+            loc = Lex_location("unknown", 0, 0);
 
-          LOG(logSyntax, WARN, loc->fname << ":" << loc->linenr 
+          LOG(logSyntax, WARN, loc.fname << ":" << loc.linenr 
               << ": warning: type `" << types.name(i) << "' has no definition");
         }
     }
@@ -98,30 +100,29 @@ check_undefined_types()
 
 void process_conjunctive_subtype_constraints()
 {
-  int i, j;
-  struct type *t;
-  struct conjunction *c;
+  Type *t;
+  Conjunction *c;
   
-  for(i = 0; i<types.number(); i++)
+  for(int i = 0; i<types.number(); i++)
     if((c = (t = types[i])->constraint) != 0)
-      for(j = 0; j < c->n; j++)
+      for(int j = 0; j < c->n(); j++)
         if( c->term[j]->tag == TYPE)
           {
             t->parents = cons(c->term[j]->type, t->parents);
             subtype_constraint(t->id, c->term[j]->type);
-            c->term[j--] = c->term[--c->n];
+            c->term[j--] = c->term[c->n()-1];
+            c->term.resize(c->n()-1);
           }
 }
 
-char *synth_type_name(int offset = 0)
+string synth_type_name(int offset = 0)
 {
-  char name[80];
-  sprintf(name, "synth%d", types.number() + offset);
+  string name = "synth" + lexical_cast<string>(types.number() + offset);
 
   if(types.id(name) != -1)
     return synth_type_name(offset + (int) (10.0*rand()/(RAND_MAX+1.0)));
 
-  return strdup(name);
+  return name;
 }
 
 string typelist2string(list_int *l) {
@@ -133,7 +134,7 @@ string typelist2string(list_int *l) {
 void process_multi_instances()
 {
   int i, n = types.number();
-  struct type *t;
+  Type *t;
 
   map<list_int *, int, list_int_compare> ptype;
 
@@ -145,9 +146,9 @@ void process_multi_instances()
 
         if(ptype[t->parents] == 0)
           {
-            char *name = synth_type_name();
-            struct type *p = new_type(name, false);
-            p->def = new_location("synthesized", 0, 0);
+            string name = synth_type_name();
+            Type *p = new_type(name, false);
+            p->def.assign("synthesized", 0, 0);
             p->parents = t->parents;
             
             for(list_int *l = t->parents; l != 0; l = rest(l))
@@ -202,8 +203,8 @@ void reorder_leaftypes()
 void assign_printnames()
 {
   for(int i = 0; i < types.number(); i++)
-    if(types[i]->printname == 0)
-      types[i]->printname = strdup(types.name(i).c_str());
+    if(types[i]->printname.empty())
+      types[i]->printname = types.name(i);
 }
 
 void preprocess_types()
@@ -357,8 +358,9 @@ print_morph_info(std::ostream &out)
     //    print_all_subleaftypes(f, lookup_type("gen-dat-val"));
 }
 
-char *parse_version() {
-  char *version = 0;
+string parse_version()
+{
+  string version;
 
   const char *fname_set = flop_settings->value("version-file");
   if(fname_set) {
@@ -368,14 +370,14 @@ char *parse_version() {
     push_file(fname, "reading");
     while(LA(0)->tag != T_EOF) {
       if(LA(0)->tag == T_ID 
-         && flop_settings->member("version-string", LA(0)->text)) {
+         && flop_settings->member("version-string", LA(0)->text.c_str())) {
         consume(1);
         if(LA(0)->tag != T_STRING) {
-          LOG(logSyntax, WARN, LA(0)->loc->fname << ":" <<  LA(0)->loc->linenr
+          LOG(logSyntax, WARN, LA(0)->loc.fname << ":" <<  LA(0)->loc.linenr
               << ": warning: string expected for version");
         }
         else {
-          version = LA(0)->text; LA(0)->text = 0;
+          version = LA(0)->text;
         }
       } 
       consume(1);
@@ -425,7 +427,7 @@ int process(const std::string& ofname) {
   flop_settings = new settings("flop", fname);
 
   grammar_version = parse_version();
-  if(grammar_version == 0) grammar_version = "unknown";
+  if(grammar_version.empty()) grammar_version = "unknown";
 
   bool pre_only = get_opt_bool("opt_pre");
   string outfname 
@@ -510,12 +512,12 @@ int process(const std::string& ofname) {
     fill_grammar_properties();        
 
     if(pre_only) {
-      write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version);
+      write_pre_header(outf, outfname.c_str(), fname.c_str(), grammar_version.c_str());
       write_pre(outf);
     } else {
       dumper dmp(outf, true);
       LOG(logApplC, INFO, "dumping grammar (");
-      dump_grammar(&dmp, grammar_version);
+      dump_grammar(&dmp, grammar_version.c_str());
       LOG(logAppl, INFO, ")");
       LOG(logAppl, DEBUG, dag_dump_grand_total_nodes << "[" 
           << dag_dump_grand_total_atomic << "]/"

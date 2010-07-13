@@ -29,8 +29,13 @@
 #include "utility.h"
 #include "list-int.h"
 #include "logging.h"
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/lexical_cast.hpp>
 
 using std::string;
+using boost::algorithm::to_upper;
+using boost::algorithm::to_lower;
+using boost::lexical_cast;
 
 int default_status = NO_STATUS; /* for section-wide default status values */
 
@@ -56,7 +61,7 @@ void tdl_domainname() {
 
 int tdl_opt_inst_status()
 {
-  char *statusname = NULL;
+  string statusname;
   
   if(LA(0)->tag == T_COLON && is_keyword(LA(1), "status"))
     {
@@ -64,9 +69,9 @@ int tdl_opt_inst_status()
       statusname = match(T_ID, "status value", false);
     }
 
-  if(statusname)
+  if(!statusname.empty())
     {
-      strtolower(statusname);
+      to_lower(statusname);
       if(statustable.id(statusname) == -1)
         statustable.add(statusname);
       return statustable.id(statusname);
@@ -77,7 +82,7 @@ int tdl_opt_inst_status()
 
 int tdl_option(bool readonly) {
 // returns value of last `status option, if any
-  char *statusname = NULL;
+  string statusname;
 
   if(LA(0)->tag != T_KEYWORD) {
     syntax_error("option expected", LA(0));
@@ -93,8 +98,8 @@ int tdl_option(bool readonly) {
     }
   }
   
-  if(statusname != NULL) {
-    strtolower(statusname);
+  if(!statusname.empty()) {
+    to_lower(statusname);
     if(statustable.id(statusname) == -1)
       statustable.add(statusname);
     
@@ -105,49 +110,45 @@ int tdl_option(bool readonly) {
 }
 
 
-void tdl_subtype_def(char *name, char *printname) {
+void tdl_subtype_def(const std::string& sname, const std::string& printname) {
   int nr = 0;
-  struct type *subt = NULL;
+  Type *subt = NULL;
   bool readonly = false;
-
+  string name = sname;
   while(consume_if(T_ISA)) {
-    char *super = match(T_ID, "name of supertype", readonly);
+    string super = match(T_ID, "name of supertype", readonly);
     
-    if(super) {
+    if(!super.empty()) {
       // name ISA super
-      strtolower(super);
+      to_lower(super);
       
-      int sub, sup;
-      struct type *supt;
+      int sup;
+      Type *supt;
       
-      sub = types.id(name); sup = types.id(super);
+      int sub = types.id(name); sup = types.id(super);
       
       if(!readonly) {
         if(sub == -1) {
           subt = new_type(name, false);
-          subt->def = LA(0)->loc; LA(0)->loc = NULL;
+          subt->def = LA(0)->loc;
         } else {
           subt = types[sub];
           if(subt->implicit == false) {
             if(!allow_redefinitions)
               LOG(logSyntax, WARN,
-                  LA(0)->loc->fname << ":" << LA(0)->loc->linenr 
+                  LA(0)->loc.fname << ":" << LA(0)->loc.linenr 
                   << ": warning: redefinition of `" << types.name(sub) << "'");
             undo_subtype_constraints(subt->id);
             
             subt->constraint = NULL;
           }
         }
-        subt->printname = printname; printname = 0;
+        subt->printname = printname;
         subt->implicit = false;
         
         if(sup == -1) {
           supt = new_type(super, false);
-          if(LA(0)->loc) {
-            supt->def = LA(0)->loc; LA(0)->loc = NULL;
-          }
-          else
-            supt->def = subt->def;
+          supt->def = LA(0)->loc;
           supt->implicit = true;
         } else {
           supt = types[sup];
@@ -156,7 +157,8 @@ void tdl_subtype_def(char *name, char *printname) {
         subt->parents = cons(supt->id, subt->parents);
       }
     }
-    nr ++; name = super;
+    ++nr;
+    name = super;
   }
   
   if(nr < 1) syntax_error("at least one supertype expected", LA(0));
@@ -175,81 +177,78 @@ void tdl_subtype_def(char *name, char *printname) {
   }
 }
 
-struct param *tdl_templ_par(struct coref_table *, bool readonly);
-void tdl_template_def(char *name);
+Param *tdl_templ_par(Coref_table *, bool readonly);
+void tdl_template_def(const std::string& name);
 
-char *tdl_attribute(struct coref_table *co, bool readonly) {
-  char *s = NULL;
-  if(LA(0)->tag == T_DOLLAR) { 
-    struct param *par = tdl_templ_par(co, readonly);
-    
-    if(par->value != NULL) {
-      syntax_error("unexpected assignment to template parameter within body",
-                   LA(0));
-    }
+string tdl_attribute(Coref_table *co, bool readonly)
+{
+    string s;
+    if(LA(0)->tag == T_DOLLAR) { 
+        Param *par = tdl_templ_par(co, readonly);
 
-    s = (char *) salloc(strlen(par->name) + 2);
-    strcpy(s, "$");
-    strcat(s, par->name);
-  } else {
-    s = match(T_ID, "attribute", readonly);
-    if(s != NULL) {
-      strtoupper(s);
-          
-      if(attributes.id(s) == -1)
-        attributes.add(s);
+        if(par->value != NULL) {
+            syntax_error("unexpected assignment to template parameter within body",
+                LA(0));
+        }
+
+        s = "$" + par->name;
+    } else {
+        s = match(T_ID, "attribute", readonly);
+        to_upper(s);
+
+        if(attributes.id(s) == -1)
+            attributes.add(s);
     }
-  }
-  return s;
+    return s;
 }
 
-struct conjunction *tdl_conjunction(struct coref_table *, bool readonly);
-struct conjunction *tdl_add_conjunction(struct coref_table *,
-                                        struct conjunction *, bool readonly);
+Conjunction *tdl_conjunction(Coref_table *, bool readonly);
+Conjunction *tdl_add_conjunction(Coref_table *, Conjunction *, bool readonly);
 
-struct attr_val *tdl_attr_val(struct coref_table *co, bool readonly) {
-  struct attr_val *av = NULL, *av_inner = NULL, *av_outer = NULL;
+Attr_val *tdl_attr_val(Coref_table *co, bool readonly) {
+  Attr_val *av = NULL, *av_inner = NULL, *av_outer = NULL;
 
-  char *attribute = tdl_attribute(co, readonly);
+  string attribute = tdl_attribute(co, readonly);
 
   if(!readonly) {
-    av = new_attr_val();
+    av = new Attr_val();
     av->attr = attribute;
     av_inner = av_outer = av;
   }
 
   while(consume_if(T_DOT)) {
-    // build a "path" of attribute-value structs, av_inner is the attr_val
+    // build a "path" of attribute-value structs, av_inner is the Attr_val
     // struct at the bottom, av_outer at the top of the path
-    struct term *T = NULL;
+    Term *T = NULL;
     
     attribute = tdl_attribute(co, readonly);
     if(!readonly) {
-      av_inner = new_attr_val();
-      av_outer->val = new_conjunction();
+      av_inner = new Attr_val();
+      av_outer->val = new Conjunction();
       T = add_term(av_outer->val, new_avm_term());
-      T->A->n = 1;
-      T->A->av[0] = av_inner;
+      T->A->av.clear();
+      T->A->av.push_back(av_inner);
       av_inner->attr = attribute;
       av_outer = av_inner;
     }
   }
 
-  conjunction *conj = tdl_conjunction(co, readonly); 
+  Conjunction *conj = tdl_conjunction(co, readonly); 
   if(!readonly)
     av_inner->val = conj;
 
   return av;
 }
 
-struct avm *tdl_feature_term(struct coref_table *co, bool readonly) {
-  struct avm *A = NULL;
+Avm *tdl_feature_term(Coref_table *co, bool readonly)
+{
+  Avm *A = NULL;
 
   // T_LBRACKET already consumed !
-  if(!readonly) A = new_avm();
+  if(!readonly) A = new Avm();
   
   if(LA(0)->tag != T_RBRACKET) {
-    attr_val *av;
+    Attr_val *av;
     do {
       av = tdl_attr_val(co, readonly);
       if(!readonly)
@@ -263,17 +262,17 @@ struct avm *tdl_feature_term(struct coref_table *co, bool readonly) {
   return A;
 }
 
-struct tdl_list *tdl_diff_list(struct coref_table *co, bool readonly) {
-  struct tdl_list *L = NULL;
+Tdl_list *tdl_diff_list(Coref_table *co, bool readonly) {
+  Tdl_list *L = NULL;
 
   // T_LDIFF already consumed !!
   if(!readonly) {
-    L = new_list();
+    L = new Tdl_list();
     L->difflist = 1;
   }
 
   if(LA(0)->tag != T_RDIFF) {
-    conjunction *conj;
+    Conjunction *conj;
     do {
       conj = tdl_conjunction(co, readonly);
       if(!readonly)
@@ -287,15 +286,15 @@ struct tdl_list *tdl_diff_list(struct coref_table *co, bool readonly) {
   return L;
 }
 
-struct tdl_list *tdl_list(struct coref_table *co, bool readonly) {
-  struct tdl_list *L = NULL;
+Tdl_list *tdl_list(Coref_table *co, bool readonly) {
+  Tdl_list *L = NULL;
   int openlist = 0;
 
   // T_LANGLE already consumed 
-  if(!readonly) L = new_list();
+  if(!readonly) L = new Tdl_list();
 
   if(LA(0)->tag != T_RANGLE) {
-    conjunction *conj = tdl_conjunction(co, readonly);
+    Conjunction *conj = tdl_conjunction(co, readonly);
     if(!readonly)
       add_conjunction(L, conj);
       
@@ -329,57 +328,51 @@ struct tdl_list *tdl_list(struct coref_table *co, bool readonly) {
   return L;
 }
 
-int tdl_coref(struct coref_table *co, bool readonly) {
+int tdl_coref(Coref_table *co, bool readonly) {
   // T_HASH already consumed !!
-  char *name = match(T_ID, "coreference name", readonly);
-  if(name != NULL)
+  string name = match(T_ID, "coreference name", readonly);
+  if(!name.empty())
     return add_coref(co, name);
 
   return -1;
 }
 
-struct param *tdl_templ_par(struct coref_table *co, bool readonly) {
-  struct param *p = NULL;
+Param *tdl_templ_par(Coref_table *co, bool readonly) {
+  Param *p = NULL;
 
   match(T_DOLLAR, "`$' at start of templ_par", true);
 
-  char *name = match(T_ID, "templ-var", readonly);
+  string name = match(T_ID, "templ-var", readonly);
   if(!readonly) {
-    p = (struct param *) salloc(sizeof(struct param));
-    p->value = NULL;
-    p->name = name;
+    p = new Param(name);
   }
   
   if(consume_if(T_EQUALS)) {
-    conjunction *conj = tdl_conjunction(co, readonly);
+    Conjunction *conj = tdl_conjunction(co, readonly);
     if(!readonly)
       p->value = conj;
-  }
-  
+  }  
   return p;
 }
 
-struct param_list *tdl_templ_par_list(struct coref_table *co, bool readonly)
+Param_list *tdl_templ_par_list(Coref_table *co, bool readonly)
 {
-  struct param_list *pl = NULL;
+  Param_list *pl = NULL;
 
   int save = template_mode;
   template_mode = 1;
 
   if(!readonly) {
-    pl = (struct param_list *) salloc(sizeof(struct param_list));
-    pl->n = 0;
-    pl->param = (struct param **) salloc(TABLE_SIZE * sizeof(struct param*));
+    pl = new Param_list();
   }
 
   match(T_LPAREN, "`(' starting template parameter list", true);
 
   if(LA(0)->tag != T_RPAREN) {
     do {
-      struct param *par = tdl_templ_par(co, readonly);
+      Param *par = tdl_templ_par(co, readonly);
       if(!readonly) {
-        assert(pl->n < TABLE_SIZE);
-        pl->param[pl->n++] = par;
+        pl->param.push_back(par);
         }
     } while (consume_if(T_COMMA)) ;
   }
@@ -391,19 +384,19 @@ struct param_list *tdl_templ_par_list(struct coref_table *co, bool readonly)
   return pl;
 }
 
-struct templ *tdl_templ_call(struct coref_table *co, bool readonly)
+Templ *tdl_templ_call(Coref_table *co, bool readonly)
 {
-  struct templ *t = NULL;
+  Templ *t = NULL;
   // T_AT already consumed !!
 
-  char *name = match(T_ID, "template name", readonly);
-  param_list *params = tdl_templ_par_list(co, readonly);
+  string name = match(T_ID, "template name", readonly);
+  Param_list *params = tdl_templ_par_list(co, readonly);
 
   if(!readonly) {
-    t = (struct templ *) salloc(sizeof(struct templ));
+    t = new Templ();
     t->name = name;
     if(templates.id(t->name) == -1) {
-      LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+      LOG(logSyntax, WARN, LA(0)->loc.fname << ":" << LA(0)->loc.linenr
           << ": warning: call to undefined template `" << t->name << "'");
     }
     t->params = params;
@@ -414,24 +407,25 @@ struct templ *tdl_templ_call(struct coref_table *co, bool readonly)
 }
 
 
-struct term *tdl_term(struct coref_table *co, bool readonly) {
-  struct term *t = NULL;
+Term *tdl_term(Coref_table *co, bool readonly)
+{
+  Term *t = NULL;
 
-  if(!readonly) t = new_term();
+  if(!readonly) t = new Term();
 
   if(LA(0)->tag == T_ID) { // type name
     if(!readonly) {
       int id = -1;
-      struct type *typ = NULL;
+      Type *typ = NULL;
       
       t->tag = TYPE;
-      t->value = LA(0)->text; LA(0)->text = NULL;
-      strtolower(t->value);
+      t->value = LA(0)->text;
+      to_lower(t->value);
       
       id = types.id(t->value);
       if(id == -1 && !template_mode) {
         typ = new_type(t->value, false);
-        typ->def = LA(0)->loc; LA(0)->loc = NULL;
+        typ->def = LA(0)->loc;
         id = typ->id;
         typ->implicit = true;
       }
@@ -442,35 +436,32 @@ struct term *tdl_term(struct coref_table *co, bool readonly) {
     consume(1);
   }
   else if(consume_if(T_QUOTE)) { // atom
-    char *value = match(T_ID, "atom expected (term)", readonly);
+    string value = match(T_ID, "atom expected (term)", readonly);
     if(!readonly) {
       t->tag = ATOM;
       t->value = value;
-      char *printname = strdup(t->value);
-      strtolower(t->value);
+      string printname = t->value;
+      to_lower(t->value);
       
-      string s = "'" + string(t->value);
+      string s = "'" + t->value;
       if(types.id(s) == -1) {
-        struct type *ty = new_type(s, false);
-        ty->def = LA(0)->loc; LA(0)->loc = NULL;
+        Type *ty = new_type(s, false);
         subtype_constraint(ty->id, BI_SYMBOL);
         ty->status = ATOM_STATUS;
-        ty->printname = printname; printname = 0;
+        ty->printname = printname;
       }
-      
-      if(printname) free(printname);
     }
   }
   else if(LA(0)->tag == T_STRING) { // atom
     if(!readonly) {
       t->tag = STRING;
-      t->value = LA(0)->text; LA(0)->text = NULL;
+      t->value = LA(0)->text;
       
-      string s = "\"" + string(t->value) + "\"";
+      string s = "\"" + t->value + "\"";
       
       if(types.id(s) == -1) {
-        struct type *ty = new_type(s, false);
-        ty->def = LA(0)->loc; LA(0)->loc = NULL;
+        Type *ty = new_type(s, false);
+        ty->def = LA(0)->loc;
         subtype_constraint(ty->id, BI_STRING);
         ty->status = ATOM_STATUS;
         ty->printname = t->value;
@@ -480,21 +471,21 @@ struct term *tdl_term(struct coref_table *co, bool readonly) {
     consume(1);
   }
   else if(consume_if(T_LBRACKET)) {
-    struct avm *new_avm = tdl_feature_term(co,readonly);
+    Avm *new_avm = tdl_feature_term(co,readonly);
     if(!readonly) {
       t->tag = FEAT_TERM;
       t->A = new_avm;
     }
   }
   else if(consume_if(T_LDIFF)) {
-    struct tdl_list *new_list = tdl_diff_list(co, readonly);
+    Tdl_list *new_list = tdl_diff_list(co, readonly);
     if(!readonly) {
       t->tag = DIFF_LIST;
       t->L = new_list;
     }
   }
   else if(consume_if(T_LANGLE)) {
-    struct tdl_list *new_list = tdl_list(co,readonly);
+    Tdl_list *new_list = tdl_list(co,readonly);
     if(!readonly) {
       t->tag = LIST;
       t->L = new_list;
@@ -508,7 +499,7 @@ struct term *tdl_term(struct coref_table *co, bool readonly) {
     }
   }
   else if(consume_if(T_AT)) {
-    struct templ *temp = tdl_templ_call(co, readonly);
+    Templ *temp = tdl_templ_call(co, readonly);
     if(!readonly) {
       t->tag = TEMPL_CALL;
       t->value = temp->name;
@@ -516,7 +507,7 @@ struct term *tdl_term(struct coref_table *co, bool readonly) {
     }
   }
   else if(LA(0)->tag == T_DOLLAR) {
-    struct param *par = tdl_templ_par(co, readonly);
+    Param *par = tdl_templ_par(co, readonly);
     if(!readonly) {
       if(par->value != NULL)
         syntax_error("unexpected assignment to template parameter within body",
@@ -535,18 +526,17 @@ struct term *tdl_term(struct coref_table *co, bool readonly) {
 }
 
 
-struct conjunction *tdl_conjunction(struct coref_table *co, bool readonly) {
+Conjunction *tdl_conjunction(Coref_table *co, bool readonly) {
   return tdl_add_conjunction(co, NULL, readonly);
 }
 
-struct conjunction *
-tdl_add_conjunction(struct coref_table *co, struct conjunction *con,
-                    bool readonly)
+Conjunction *
+tdl_add_conjunction(Coref_table *co, Conjunction *con, bool readonly)
 {
   if(!readonly && con == NULL)
-    con = new_conjunction();
+    con = new Conjunction();
 
-  term * currterm;
+  Term * currterm;
   do {
     currterm = tdl_term(co, readonly);
     if (!readonly)
@@ -556,19 +546,7 @@ tdl_add_conjunction(struct coref_table *co, struct conjunction *con,
   return con;
 }
 
-struct coref_table *new_coref_table()
-{
-  struct coref_table *t;
-
-  t = (struct coref_table *) salloc(sizeof(struct coref_table));
-  
-  t->n = 0;
-  t->coref = (char **) salloc(COREF_TABLE_SIZE * sizeof(char *));
-
-  return t;
-}
-
-void tdl_opt_inflr(struct type *t)
+void tdl_opt_inflr(Type *t)
 {
   while(LA(0)->tag == T_INFLR)
     {
@@ -577,16 +555,16 @@ void tdl_opt_inflr(struct type *t)
           << ">: `" << LA(0)->text << "'");
 
       if(t == 0)
-        global_inflrs = add_inflr(global_inflrs, LA(0)->text);
+        global_inflrs += LA(0)->text;
       else
-        t->inflr = add_inflr(t->inflr, LA(0)->text);
+        t->inflr += LA(0)->text;
 
       consume(1);
     }
 }
 
 
-void tdl_avm_constraints(type *t, bool is_instance, bool readonly) {
+void tdl_avm_constraints(Type *t, bool is_instance, bool readonly) {
   int status = NO_STATUS;
 
   if(!readonly)
@@ -606,14 +584,14 @@ void tdl_avm_constraints(type *t, bool is_instance, bool readonly) {
       if (! readonly)
         {
           // read the list and build the ARGS attribute value pair
-          struct attr_val *attrval = new_attr_val();
-          attrval->val = new_conjunction();
+          Attr_val *attrval = new Attr_val();
+          attrval->val = new Conjunction();
           add_term(attrval->val, tdl_term(t->coref, readonly));
-          char *s = (char *) malloc(strlen("ARGS") + 1);
-          attrval->attr = strcpy(s, "ARGS");
-          struct avm *A = new_avm();
+          string s("ARGS");
+          attrval->attr = s;
+          Avm *A = new Avm();
           add_attr_val(A, attrval);
-          struct term *T = new_term();
+          Term *T = new Term();
           T->tag = FEAT_TERM;
           T->A = A;
           add_term(t->constraint, T);
@@ -639,10 +617,10 @@ void tdl_avm_constraints(type *t, bool is_instance, bool readonly) {
 }
 
 
-void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
+void tdl_avm_def(const std::string& name, const std::string& printname, bool is_instance, bool readonly)
 {
   int t_id;
-  struct type *t = NULL;
+  Type *t = NULL;
 
   match(T_ISEQ, "avm definition starting with `:='", true);
 
@@ -658,7 +636,7 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
             {
               if(!allow_redefinitions)
                 LOG(logSyntax, WARN,
-                    LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+                    LA(0)->loc.fname << ":" << LA(0)->loc.linenr
                     << ": warning: redefinition of `" << name << "'");
               
               undo_subtype_constraints(t->id);
@@ -670,11 +648,11 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
           t = new_type(name, is_instance);
         }
 
-      t->def = LA(0)->loc; LA(0)->loc = NULL;
+      t->def = LA(0)->loc;
       t->implicit = false;
-      t->printname = printname; printname = 0;
+      t->printname = printname;
 
-      t->coref = new_coref_table();
+      t->coref = new Coref_table();
       t->constraint = NULL;
     }
   
@@ -696,10 +674,10 @@ void tdl_avm_def(char *name, char *printname, bool is_instance, bool readonly)
     i assume yes
  The location of the addition is lost, might affect grammar debugging
 */
-void tdl_avm_add(char *name, char *printname, bool is_instance, bool readonly)
+void tdl_avm_add(const std::string& name, const std::string& printname, bool is_instance, bool readonly)
 {
   int t_id;
-  struct type *t = NULL;
+  Type *t = NULL;
 
   match(T_ISPLUS, "avm definition starting with `:+'", true);
 
@@ -715,16 +693,16 @@ void tdl_avm_add(char *name, char *printname, bool is_instance, bool readonly)
         }
       else
         {
-          LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr
+          LOG(logSyntax, WARN, LA(0)->loc.fname << ":" << LA(0)->loc.linenr
               << ": warning: defining type `" << name << "' with `:+'");
               
           t = new_type(name, is_instance);
 
-          t->def = LA(0)->loc; LA(0)->loc = NULL;
+          t->def = LA(0)->loc;
           t->implicit = false;
-          t->printname = printname; printname = 0;
+          t->printname = printname;
 
-          t->coref = new_coref_table();
+          t->coref = new Coref_table();
         }
     }
   
@@ -734,19 +712,20 @@ void tdl_avm_add(char *name, char *printname, bool is_instance, bool readonly)
 }
 
 void tdl_type_def(bool instance) {
-  char *name , *printname;
+  string name;
+  string printname;
   bool readonly = false;
   const char *what = (instance ? "instance name" : "type name");
 
   if(LA(0)->tag == T_STRING) {
     name = match(T_STRING, what, readonly);
-    string s = "\"" + string(name) + "\"";
+    string s = "\"" + name + "\"";
     printname = name;
-    name = strdup(s.c_str());
+    name = s;
   } else {
     name = match(T_ID, what, readonly);
-    printname = strdup(name);
-    strtolower(name);
+    printname = name;
+    to_lower(name);
   }
   
   if (! instance) {
@@ -760,15 +739,12 @@ void tdl_type_def(bool instance) {
       tdl_subtype_def(name, printname);
     }
     else {
-      free(printname);
       syntax_error("avm or subtype definition expected", LA(0));
       recover(T_DOT);
     }
   } else {
-    char *iname = (char *) salloc(strlen(name) + 2);
-    sprintf(iname, "$%s", name);
+    string iname = "$" + name;
     tdl_avm_def(iname, printname, true, readonly);
-    free(iname);
   }
 
   match(T_DOT, (instance 
@@ -778,22 +754,19 @@ void tdl_type_def(bool instance) {
 }
 
 
-void tdl_template_def(char *name)
+void tdl_template_def(const std::string& name)
 {
-  struct templ *t;
   int old = -1;
-
   template_mode = 1;
 
-  t = (struct templ *) salloc(sizeof(struct templ));
-
+  Templ* t = new Templ();
   t->name = name;
   t->calls = 0;
 
   if((old = templates.id(t->name)) >= 0)
     {
       if(!allow_redefinitions)
-        LOG(logSyntax, WARN, LA(0)->loc->fname << ":" << LA(0)->loc->linenr 
+        LOG(logSyntax, WARN, LA(0)->loc.fname << ":" << LA(0)->loc.linenr 
             << ": warning: redefinition of template `" << t->name << "'");
       templates[old] = t;
     }
@@ -802,12 +775,12 @@ void tdl_template_def(char *name)
       templates[templates.add(t->name)] = t;
     }
 
-  t->loc = LA(0)->loc; LA(0)->loc = NULL;
+  t->loc = LA(0)->loc;
   t->params = tdl_templ_par_list(NULL, false);
 
   match(T_ISEQ, "`:=' in template definition", true);
   
-  t->coref = new_coref_table();
+  t->coref = new Coref_table();
 
   t->constraint = tdl_conjunction(t->coref, false);
 
@@ -820,25 +793,20 @@ void tdl_template_def(char *name)
   template_mode = 0;
 }
 
-void block_not_closed(const char *kind, const char *fname, int lnr)
+void block_not_closed(const std::string& kind, const std::string& fname, int lnr)
 {
-  char *msg;
-
-  msg = (char *) salloc(strlen(kind) + strlen(fname) + 80);
-  sprintf(msg, "missing `end' for %s block starting at %s:%d", kind, fname, lnr);
-  syntax_error(msg, LA(0));
-  free(msg);
+    string msg = "missing `end' for " + kind + " block starting at " + fname + ":"
+        + lexical_cast<string>(lnr);
+    syntax_error(msg.c_str(), LA(0));
 }
 
 void tdl_block()
 {
-  char *b_fname;
-  int b_lnr;
 
   static int nesting = 0;
 
-  b_fname = curr_fname();
-  b_lnr = curr_line();
+  string b_fname = curr_fname();
+  int b_lnr = curr_line();
 
   nesting++;
 
@@ -979,8 +947,7 @@ void tdl_block()
       do
         if(LA(0)->tag == T_ID)
           {
-            char *name;
-            name = match(T_ID, "template name", false);
+            string name = match(T_ID, "template name", false);
             tdl_template_def(name);
             match(T_DOT, "`.' at the end of template definition", true);
           }
@@ -1119,9 +1086,7 @@ void tdl_statement() {
       recover(T_DOT);
     }
     else {
-      char *ofname;
-
-      ofname = LA(0)->text; LA(0)->text = NULL;
+      string ofname = LA(0)->text;
       consume(1);
 
       match(T_DOT, "`.'", true);

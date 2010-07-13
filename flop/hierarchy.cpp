@@ -32,11 +32,15 @@
 
 #include <boost/graph/topological_sort.hpp>
 #include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
+#include <string>
 #include <sstream>
 
 using std::list;
 using std::map;
 using std::vector;
+using std::string;
+using boost::lexical_cast;
 
 void acyclicTransitiveReduction(tHierarchy &G);
 
@@ -304,17 +308,15 @@ void make_semilattice()
           // correspond to a type, we have to introduce a glb type
           if(!empty && lookup_code(*temp) == -1)
             {
-              struct type *glbtype;
-              char *name;
+              Type *glbtype;
               
               // make up a name
-              name = (char *) salloc(20);
-              sprintf(name, "glbtype%d", glbtypes++);
+              string name = "glbtype" + lexical_cast<string>(glbtypes++);
               
               // create new type using this name and the result of the
               // intersection as its bitcode
               glbtype = new_type(name, false);
-              glbtype->def = new_location("synthesized", 0, 0);
+              glbtype->def.assign("synthesized", 0, 0);
               glbtype->bcode = temp;
 
              LOG(logSemantic, DEBUG,
@@ -544,8 +546,6 @@ print_hierarchy(std::ostream &out)
 
 void propagate_status()
 {
-    struct type *t, *chld;
-    
     LOG(logSemantic, INFO, "- status values");
     
     vector<int> topo;
@@ -553,14 +553,14 @@ void propagate_status()
     
     for(vector<int>::iterator it = topo.begin(); it != topo.end(); ++it)
     {
-      t = types[*it];
+      Type* t = types[*it];
         
         if(t->status != NO_STATUS)
         {
             boost::graph_traits<tHierarchy>::out_edge_iterator ei, ei_end;
             for(tie(ei, ei_end) = boost::out_edges(*it, hierarchy); ei != ei_end; ++ei)
             {
-                chld = types[boost::target(*ei, hierarchy)];
+                Type* chld = types[boost::target(*ei, hierarchy)];
                 
                 if(chld->defines_status == 0)
                     if(chld->status == NO_STATUS || !flop_settings->member("weak-status-values", statustable.name(t->status).c_str()))

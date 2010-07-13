@@ -28,37 +28,43 @@
 #include <cstdio>
 #include <string>
 
-/** maximal nesting depth of include files */
-#define MAX_LEX_NEST 16 
-
 /** Total number of lines processed by lexer */
 extern int total_lexed_lines;
 
 /** Custom lexer file structure */
-typedef struct 
+struct Lex_file
 {
   char *buff;
   int fd;
   size_t len;
   size_t pos;
-  char *fname;
-  int linenr, colnr;
-  char *info;
-} lex_file;
-
-/** Object to store a file location with line and column number */
-struct lex_location 
-{
-  /** The file name */
-  const char *fname;
-  /** line nr */
+  std::string fname;
   int linenr;
-  /** column nr */
   int colnr;
+  std::string info;
+  Lex_file() : buff(NULL), fd(-1), len(0), pos(0), fname(), linenr(1), colnr(1), info() {}
+  ~Lex_file();
 };
 
-/** Build a new location object with the given parameters. */
-struct lex_location *new_location(const char *fname, int linenr, int colnr);
+/** Object to store a file location with line and column number */
+struct Lex_location 
+{
+    /** The file name */
+    std::string fname;
+    /** line nr */
+    int linenr;
+    /** column nr */
+    int colnr;
+    Lex_location() : fname(), linenr(1), colnr(1) {}
+    Lex_location(const std::string& infname, int inlinenr, int incolnr)
+        : fname(infname), linenr(inlinenr), colnr(incolnr) {}
+    void assign(const std::string& infname, int inlinenr, int incolnr)
+    {
+        fname = infname;
+        linenr = inlinenr;
+        colnr = incolnr;
+    }
+};
 
 /** Push file \a fname onto include stack, where \a info provides a hint in
  *  which context the function is used.
@@ -79,23 +85,14 @@ int pop_file();
 /** Return the current location parameters of the lexer */
 int curr_line();
 int curr_col();
-char *curr_fname();
+std::string curr_fname();
 /*@}*/
-
-/** The file stream the lexer is currently working on */
-extern lex_file *CURR;
 
 /** lexical lookahead of \a n characters. 
  *  \return \c EOF if past end of file, the character \a n positions away from
  *  the current file pointer otherwise.
  */
-inline int LLA(int n)
-{ 
-  if(CURR == NULL || CURR->pos + n >= CURR->len)
-    return EOF;
-
-  return CURR->buff[CURR->pos + n];
-}
+extern int LLA(int n);
 
 /** Consume \a n characters */
 int LConsume(int n);

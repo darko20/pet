@@ -35,14 +35,14 @@ int tdl_save_lines = 1;
 /* the _print* functions return if what they printed out was complex enough to require a line
    of it's own */
 
-int tdl_print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref);
-int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_table *coref);
+int tdl_print_avm(FILE *f, int level, Avm *A, Coref_table *coref);
+int tdl_print_conjunction(FILE *f, int level, Conjunction *C, Coref_table *coref);
 
-int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_table *coref)
+int tdl_print_list_body(FILE *f, int level, Tdl_list *L, Coref_table *coref)
 {
   int i, complex = 0, last_complex = 0;
 
-  for(i = 0; i < L -> n; i++)
+  for(i = 0; i < L -> n(); i++)
     {
       if(i != 0)
         {
@@ -58,16 +58,16 @@ int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_tab
           complex = 1;
         }
       
-      last_complex = tdl_print_conjunction(f, level, L -> list[i], coref);
+      last_complex = tdl_print_conjunction(f, level, L->list[i], coref);
     }
 
-  if(L -> openlist)
+  if(L->openlist)
     {
       if(i != 0) fprintf(f, ", ");
 
       fprintf(f, "...");
     }
-  else if( L -> dottedpair)
+  else if(L->dottedpair)
     {
       fprintf(f, " .");
       if(last_complex)
@@ -80,17 +80,17 @@ int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_tab
 
       complex = 1;
       
-      tdl_print_conjunction(f, level, L -> rest, coref);
+      tdl_print_conjunction(f, level, L->rest, coref);
     }
 
   return complex;
 }
 
-int tdl_print_list(FILE *f, int level, struct tdl_list *L, struct coref_table *coref)
+int tdl_print_list(FILE *f, int level, Tdl_list *L, Coref_table *coref)
 {
   int complex = 0, ind = 0;
 
-  if(L -> difflist)
+  if(L->difflist)
     fprintf(f, "<! "), ind = 3;
   else
     fprintf(f, "< "), ind = 2;
@@ -104,7 +104,7 @@ int tdl_print_list(FILE *f, int level, struct tdl_list *L, struct coref_table *c
     }
   else fprintf(f, " ");
   
-  if(L -> difflist)
+  if(L->difflist)
     fprintf(f, "!>");
   else
     fprintf(f, ">");
@@ -112,17 +112,17 @@ int tdl_print_list(FILE *f, int level, struct tdl_list *L, struct coref_table *c
   return complex;
 }
 
-int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_table *coref)
+int tdl_print_conjunction(FILE *f, int level, Conjunction *C, Coref_table *coref)
 {
   int i, complex = 0;
 
-  if(C == 0 || C->n == 0)
+  if(C == 0 || C->n() == 0)
     {
       fprintf(f, "[ ]");
       return complex;
     }
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n(); i++)
     {
       if(i > 0)
         {
@@ -131,29 +131,29 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
           indent(f, level);
         }
 
-      switch(C -> term[i] -> tag)
+      switch(C->term[i]->tag)
         {
         case COREF:
-          assert(C->term[i]->coidx < coref->n);
-          fprintf(f, "#%s", coref -> coref[C -> term[i] -> coidx]);
+          assert(C->term[i]->coidx < coref->n());
+          fprintf(f, "#%s", coref->coref[C->term[i]->coidx]);
           break;
         case TYPE:
           {
-            fprintf(f, "%s", types[C -> term[i] -> type]->printname);
+            fprintf(f, "%s", types[C->term[i]->type]->printname);
             break;
           }
         case ATOM:
-          fprintf(f, "'%s", C -> term[i] -> value);
+          fprintf(f, "'%s", C->term[i]->value);
           break;
         case STRING:
-          fprintf(f, "\"%s\"",  C -> term[i] -> value);
+          fprintf(f, "\"%s\"",  C->term[i]->value);
           break;
         case FEAT_TERM:
-          complex = tdl_print_avm(f, level, C -> term[i] -> A, coref) || complex;
+          complex = tdl_print_avm(f, level, C->term[i]->A, coref) || complex;
           break;
         case LIST:
         case DIFF_LIST:
-          complex = tdl_print_list(f, level, C -> term[i] -> L, coref) || complex;
+          complex = tdl_print_list(f, level, C->term[i]->L, coref) || complex;
           break;
         case TEMPL_PAR:
         case TEMPL_CALL:
@@ -161,7 +161,7 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
           break;
         default:
           LOG(logSyntax, ERROR,
-              "unknown term tag `" << C -> term[i] -> tag << "'"); 
+              "unknown term tag `" << C->term[i]->tag << "'"); 
           break;
         }
     }
@@ -169,39 +169,39 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
   return complex;
 }
 
-int tdl_print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
+int tdl_print_avm(FILE *f, int level, Avm *A, Coref_table *coref)
 {
   int complex = 0;
 
-  if(A != NULL && A -> n > 0)
+  if(A != NULL && A -> n() > 0)
     {
       int j, l,  maxl;
 
       // find widest feature name
       maxl = 0;
-      for (j = 0; j < A -> n; ++j)
+      for (j = 0; j < A -> n(); ++j)
         {
-          if((l = strlen(A -> av[j] -> attr)) > maxl) maxl = l;
+          if((l = A->av[j]->attr.size()) > maxl) maxl = l;
         }
       
       fprintf(f, "[ ");
       
-      for(j = 0; j < A -> n; j++)
+      for(j = 0; j < A -> n(); j++)
         {
           if(j != 0)
             {
               indent(f, level + 2); complex = 1;
             }
 
-          fprintf(f, "%s", A -> av[j] -> attr);
-          l = strlen(A -> av[j] -> attr);
+          fprintf(f, "%s", A->av[j]->attr.c_str());
+          l = A->av[j]->attr.size();
 
           indent(f, maxl - l + 1);
 
-          if(tdl_print_conjunction(f, level + 2 + maxl + 1, A -> av[j] -> val, coref))
+          if(tdl_print_conjunction(f, level + 2 + maxl + 1, A->av[j]->val, coref))
             complex = 1;
 
-          if(j == A -> n -1)
+          if(j == A -> n() -1)
             {
               if(complex && !tdl_save_lines)
                 {
@@ -227,25 +227,25 @@ int tdl_print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
   return complex;
 }
 
-void tdl_print_constraint(FILE *f, struct type *t, const char *name)
+void tdl_print_constraint(FILE *f, Type *t, const char *name)
 {
-  struct conjunction *c;
+  Conjunction *c;
 
   fprintf(f, "%s :=", name);
   
   list_int *l = t->parents;
   while(l)
     {
-      fprintf(f, " %s &", types[first(l)]->printname);
+      fprintf(f, " %s &", types[first(l)]->printname.c_str());
       l = rest(l);
     }
 
   fprintf(f, "\n");
 
-  c = t-> constraint;
+  c = t->constraint;
   
   indent(f, 2);
-  tdl_print_conjunction(f, 2, c, t -> coref);
+  tdl_print_conjunction(f, 2, c, t->coref);
 
   if(t->status != NO_STATUS)
     {
@@ -266,7 +266,7 @@ void write_pre_header(FILE *outf, const char *outfname, const char *fname
 void write_pre(FILE *f)
 {
   int i;
-  struct type *t;
+  Type *t;
 
   fprintf(f, ":begin :type.\n\n");
   for(i = 0; i < types.number(); i++)
@@ -274,8 +274,8 @@ void write_pre(FILE *f)
       t = types[i];
       if(!t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
         {
-          fprintf(f, ";; type definition from %s:%d\n", t->def->fname, t->def->linenr);
-          tdl_print_constraint(f, t, types[i]->printname);
+          fprintf(f, ";; type definition from %s:%d\n", t->def.fname, t->def.linenr);
+          tdl_print_constraint(f, t, types[i]->printname.c_str());
           fprintf(f, "\n");
         }
     }
@@ -287,8 +287,8 @@ void write_pre(FILE *f)
       t = types[i];
       if(t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
         {
-          fprintf(f, ";; instance definition from %s:%d\n", t->def->fname, t->def->linenr);
-          tdl_print_constraint(f, t, types[i]->printname);
+          fprintf(f, ";; instance definition from %s:%d\n", t->def.fname, t->def.linenr);
+          tdl_print_constraint(f, t, types[i]->printname.c_str());
           fprintf(f, "\n");
         }
     }
