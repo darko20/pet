@@ -191,7 +191,7 @@ fs::modify(modlist &mods)
 {
     for(modlist::iterator mod = mods.begin(); mod != mods.end(); ++mod)
     {
-        dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
+        dag_node *p = dag_create_path_value((mod->first), mod->second);
         _dag = dag_unify(_dag, p, _dag, 0);
         if(_dag == FAIL)
             return false;
@@ -210,7 +210,7 @@ fs::modify_eagerly(const modlist &mods) {
   dag_node *curr = _dag;
   dag_node *newdag;
   for(modlist::const_iterator mod = mods.begin(); mod != mods.end(); ++mod) {
-    dag_node *p = dag_create_path_value((mod->first).c_str(), mod->second);
+    dag_node *p = dag_create_path_value((mod->first), mod->second);
     if (p == FAIL) {
       cerr << "; WARNING: failed to create dag for new path-value ("
            << (mod->first).c_str() << " = " << print_name(mod->second) << ")"

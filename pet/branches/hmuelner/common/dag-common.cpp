@@ -25,9 +25,13 @@
 #include "types.h"
 
 #include <cstdlib>
-#include <cstring>
+#include <string>
+#include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 using namespace std;
+using boost::algorithm::split;
+using boost::algorithm::is_any_of;
 
 /* global variables */
 
@@ -40,7 +44,7 @@ int *featset;
 int nfeatsets;
 featsetdescriptor *featsetdesc;
 
-struct dag_node **typedag = 0; // for [ 0 .. nstatictypes [
+dag_node **typedag = 0; // for [ 0 .. nstatictypes [
 
 //
 // external representation
@@ -82,14 +86,14 @@ void initialize_dags(int n)
   for(i = 0; i < n; i++) typedag[i] = 0;
 }
 
-void register_dag(int i, struct dag_node *dag)
+void register_dag(int i, dag_node* dag)
 {
   typedag[i] = dag;
 }
 
-list<struct dag_node *> dag_get_list(struct dag_node* first)
+list<dag_node*> dag_get_list(dag_node* first)
 {
-  list <struct dag_node *> L;
+  list <dag_node*> L;
 
 #ifdef DAG_SIMPLE
   if(first && first != FAIL) first = dag_deref(first);
@@ -105,7 +109,7 @@ list<struct dag_node *> dag_get_list(struct dag_node* first)
   return L;
 }
 
-struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr)
+dag_node *dag_get_attr_value(dag_node* dag, const char *attr)
 {
   int a = lookup_attr(attr);
   if(a == -1) return FAIL;
@@ -116,7 +120,7 @@ struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr)
 // This is basically the prior dag_nth_arg with the only difference
 // being that the attribute can be specified. Made inline so that there will
 // be no difference in performance.
-inline struct dag_node *dag_nth_element(struct dag_node *dag, int attr, int n)
+inline dag_node *dag_nth_element(dag_node *dag, int attr, int n)
 {
   int i;
   dag_node *arg;
@@ -135,7 +139,7 @@ inline struct dag_node *dag_nth_element(struct dag_node *dag, int attr, int n)
   return arg;
 }
 
-struct dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n)
+dag_node *dag_nth_element(dag_node *dag, list_int *path, int n)
 {
   // follow the path:
   if (dag == FAIL)
@@ -149,13 +153,12 @@ struct dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n)
   return dag_nth_element(dag, attr, n); // inline call
 }
 
-struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
+dag_node *dag_nth_arg(dag_node *dag, int n)
 {
   return dag_nth_element(dag, BIA_ARGS, n); // inline call
 }
 
-static void
-dag_find_paths_recursion(dag_node* dag, type_t maxapp,
+static void dag_find_paths_recursion(dag_node* dag, type_t maxapp,
     list_int *lpath, std::list<list_int*> &result)
 {
   assert(dag != NULL);
@@ -170,16 +173,15 @@ dag_find_paths_recursion(dag_node* dag, type_t maxapp,
   }
 }
 
-std::list<list_int*>
-dag_find_paths(dag_node* dag, type_t maxapp)
+std::list<list_int*> dag_find_paths(dag_node* dag, type_t maxapp)
 {
   std::list<list_int*> result;
   dag_find_paths_recursion(dag, maxapp, NULL, result);
   return result;
 }
 
-struct dag_node *
-dag_get_path_value_check_dlist(struct dag_node *dag, list_int *path) {
+dag_node* dag_get_path_value_check_dlist(dag_node *dag, list_int *path)
+{
   while(path) {
     if(dag == FAIL) return FAIL;
     int feature = first(path);
@@ -194,7 +196,7 @@ dag_get_path_value_check_dlist(struct dag_node *dag, list_int *path) {
   return dag;
 }
 
-struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
+dag_node *dag_get_path_value(dag_node *dag, list_int *path) {
   while(path) {
     if(dag == FAIL) return FAIL;
     dag = dag_get_attr_value(dag, first(path));
@@ -203,7 +205,7 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
   return dag;
 }
 
-struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
+dag_node *dag_get_path_value(dag_node *dag, const char *path)
 {
   if(path == 0 || strlen(path) == 0) return dag;
 
@@ -231,8 +233,8 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
  *          starting at \a dag, and the subpath that could not be found in 
  *          path.
  */
-struct dag_node *
-dag_get_path_avail(struct dag_node *dag, list_int **path) {
+dag_node* dag_get_path_avail(dag_node *dag, list_int **path)
+{
   while(NULL != *path) {
     dag_node *next_dag = dag_get_attr_value(dag, first(*path));
     // if this is how far we get, *path has the correct value
@@ -247,19 +249,18 @@ dag_get_path_avail(struct dag_node *dag, list_int **path) {
 #ifndef FLOP
 
 // create dag node with one attribute .attr.
-struct dag_node *dag_create_attr_value(attr_t attr, dag_node *val)
+dag_node *dag_create_attr_value(attr_t attr, dag_node *val)
 {
-  dag_node *res;
   assert(is_attr(attr) && is_type(apptype[attr]));
 
-  res = dag_full_copy(type_dag(apptype[attr]));
+  dag_node* res = dag_full_copy(type_dag(apptype[attr]));
   dag_invalidate_changes();
   dag_set_attr_value(res, attr, val);
 
   return res;
 }
 
-struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
+dag_node *dag_create_attr_value(const string& attr, dag_node *val)
 {
   if(val == FAIL) return FAIL;
   int a = lookup_attr(attr);
@@ -268,35 +269,28 @@ struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
   return dag_create_attr_value(a, val);
 }
 
-struct dag_node *dag_create_path_value(const char *path, type_t type) {
+dag_node *dag_create_path_value(const string& path, type_t type)
+{
   if(! is_type(type) || type_dag(type) == 0) return FAIL;
-  dag_node *res = 0;
 
   // base case
-  if(path == 0 || strlen(path) == 0) {
-    res = dag_full_copy(type_dag(type));
+  if (path.empty()) {
+    dag_node* res = dag_full_copy(type_dag(type));
     dag_invalidate_changes();
     return res;
   }
 
-  const char *dot = strchr(path, '.');
-  if(dot != 0) {
-    char *firstpart = new char[strlen(path)+1];
-    strncpy(firstpart, path, dot - path);
-    firstpart[dot - path] = '\0';
-
-    res = dag_create_attr_value(firstpart
-                                , dag_create_path_value(dot + 1, type));
-    delete[] firstpart;
-    return res;
+  size_t dot = path.find('.');
+  if(dot != string::npos) {
+    string firstpart = path.substr(0, dot);
+    string secondpart = path.substr(dot+1);
+    return dag_create_attr_value(firstpart, dag_create_path_value(secondpart, type));
   } else
-    return dag_create_attr_value(path, 
-                                 dag_create_path_value((const char *)NULL
-                                                       , type));
+    return dag_create_attr_value(path, dag_create_path_value("", type));
 }
 
 
-struct dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
+dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
   dag_node *subdag = dag_get_path_avail(root, &path);
   if (path != NULL) {
     // We did not manage to get to the end: create a new dag for the rest of
@@ -310,7 +304,7 @@ struct dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
 }
 
 
-struct dag_node *dag_create_path_value(list_int *path, type_t type)
+dag_node *dag_create_path_value(list_int *path, type_t type)
 {
   if(! is_type(type) || type_dag(type) == NULL) return FAIL;
   if(path == 0) {
@@ -324,7 +318,7 @@ struct dag_node *dag_create_path_value(list_int *path, type_t type)
 }
 
 //_fix_me_ the dag should be unified at the end
-struct dag_node *dag_create_path_value(list_int *path, dag_node *dag)
+dag_node *dag_create_path_value(list_int *path, dag_node *dag)
 {
   if(path == 0) {
       return dag;
@@ -334,36 +328,29 @@ struct dag_node *dag_create_path_value(list_int *path, dag_node *dag)
   }
 }
 
-struct list_int *path_to_lpath(const char *thepath) {
-  if(thepath == 0 || strlen(thepath) == 0) return NULL;
-  char *path, *pathroot; // we need pathroot to be able to free the memory
-  path = pathroot = strdup(thepath);
-  char *pathend = path + strlen(path); // points to the \0 char
+list_int *path_to_lpath(const string& thepath)
+{
+  if (thepath.empty()) return NULL;
+  string pathroot(thepath); // we need pathroot to be able to free the memory
+  string path(thepath);
 
-  list_int *head, *tail;
-  head = tail = cons((attr_t) 0, NULL);
+  list_int *head = cons((attr_t) 0, NULL);
+  list_int *tail = head;
 
-  attr_t feat;
-  do {
-    char *dot = strchr(path, '.');
-    if (dot == NULL)
-      dot = pathend;
-    else 
-      *dot = '\0';
-    feat = lookup_attr(path);
+  vector<string> elements;
+  split(elements, thepath, is_any_of("."));
+
+  BOOST_FOREACH(string path, elements) {
+    attr_t feat = lookup_attr(path);
     if (feat == -1) {
-      free(pathroot);
       free_list(head);
       return NULL;
     }
     tail->next = cons(feat, NULL);
     tail = tail->next;
-    path = dot + 1;
-  } while (path < pathend);
+  }
   tail = head->next;
   head->next = NULL;
-
-  free(pathroot);
   free_list(head);
   return tail;
 }

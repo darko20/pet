@@ -40,14 +40,6 @@
 #define strcasecmp stricmp
 #endif
 
-/** allocates \a size bytes of memory - throw error when out of memory */
-void *salloc(size_t size);
-
-#ifndef HAVE_STRDUP
-/** duplicate string \a s into newly allocated memory */
-char *strdup(const char *s);
-#endif
-
 /** @name Case Conversion
  * Destructively convert string to all lower/upper case.
  */

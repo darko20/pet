@@ -839,7 +839,7 @@ class tLexItem : public tItem
 
   /** The surface string of this item: the string encoded in its lex_entry.
    */
-  const char *form(int pos) const {
+  std::string form(int pos) const {
     return _stem->orth(pos);
   }
 

@@ -162,7 +162,7 @@ dag_node *dag_get_attr_value(dag_node *dag, const char *attr);
  *          arc will be a copy of the typedag of the attribute's appropriate
  *          type.
  */
-dag_node *dag_create_attr_value(const char *attr, dag_node *val);
+dag_node *dag_create_attr_value(const std::string& attr, dag_node *val);
 
 /** Add a new arc with attribute \a attr to the dag \a val.
  *  \return The dag node the new arc points to, if \a attr is a known
@@ -198,7 +198,7 @@ dag_node *dag_get_path_value_check_dlist(dag_node *dag, list_int *path);
  *  \a path must to be a list of (known) attribute names, separated by dots.
  *  \return The root node of the new dag on success, \c FAIL otherwise
  */
-dag_node *dag_create_path_value(const char *path, type_t type);
+dag_node *dag_create_path_value(const std::string& path, type_t type);
 
 /** Create a minimal feature structure that contains the arc path \a path and
  * where the node at the bottom has type \a type. 
@@ -218,7 +218,7 @@ dag_node *dag_create_path_value(list_int *path, struct dag_node *dag);
  *  \return the pointer to the list if all attributes are known, \c NULL
  *          otherwise 
  */
-list_int *path_to_lpath(const char *path);
+list_int *path_to_lpath(const std::string& path);
 
 /** Convert a list encoded in a feature structure into a STL list of dag
  *  nodes.

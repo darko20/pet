@@ -37,8 +37,10 @@
 
 #include <sstream>
 #include <iostream>
+#include <boost/algorithm/string/predicate.hpp>
 
 using namespace std;
+using boost::algorithm::iequals;
 
 //#define PETDEBUG
 //#define PETDEBUGPOS
@@ -315,10 +317,9 @@ tInputItem::generics(postags onlyfor)
       type_name(gen));
     if (suffix) {
       if(_surface.length() <= strlen(suffix) ||
-        strcasecmp(suffix,
-        _surface.c_str() + _surface.length() - strlen(suffix))
-        != 0)
-        continue;
+        !iequals(suffix, _surface.c_str() + _surface.length() - strlen(suffix))) {
+          continue;
+      }
     }
 
     if(_postags.license(gen) && (onlyfor.empty() || onlyfor.contains(gen)))
@@ -353,8 +354,8 @@ void tLexItem::init() {
     // into the right position of the orth list
     if (_keydaughter->form().size() > 0) {
       _mod_form_fs
-        = fs(dag_create_path_value(orth_path.c_str()
-        , retrieve_string_instance(_keydaughter->form())));
+        = fs(dag_create_path_value(orth_path,
+        retrieve_string_instance(_keydaughter->form())));
     } else {
       _mod_form_fs = fs(FAIL);
     }
@@ -362,8 +363,8 @@ void tLexItem::init() {
     // Create two feature structures to put the base resp. the surface form
     // (if there is one) into the right position of the orth list
     _mod_stem_fs
-      = fs(dag_create_path_value(orth_path.c_str()
-      , retrieve_string_instance(_stem->orth(_stem->inflpos()))));
+      = fs(dag_create_path_value(orth_path,
+      retrieve_string_instance(_stem->orth(_stem->inflpos()))));
 
     characterize(_fs_full, _startposition, _endposition);
 

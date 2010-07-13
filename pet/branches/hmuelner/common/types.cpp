@@ -137,7 +137,8 @@ void clear_dynamic_types() {
 }
 #endif // DYNAMIC_SYMBOLS
 
-int lookup_type(const std::string &name) {
+int lookup_type(const std::string &name)
+{
   // lazy initialization of typename cache:
   static bool initialized_cache = false;
   if(!initialized_cache) {
@@ -151,7 +152,8 @@ int lookup_type(const std::string &name) {
   return (pos != typename_memo.end()) ? (*pos).second : T_BOTTOM;
 }
 
-int retrieve_type(const std::string &name) {
+int retrieve_type(const std::string &name)
+{
   int type = lookup_type(name);
 #ifdef DYNAMIC_SYMBOLS
   if (type == T_BOTTOM) {
@@ -165,7 +167,8 @@ int retrieve_type(const std::string &name) {
 
 map<string, attr_t> _attrname_memo; 
 
-attr_t lookup_attr(const char *s) {
+attr_t lookup_attr(const string& s)
+{
   map<string, int>::iterator pos = _attrname_memo.find(s);
   if(pos != _attrname_memo.end())
     return (*pos).second;
