@@ -95,14 +95,10 @@ class lex_stem
 
  private:
   /** Inhibited copy constructor */
-  lex_stem(const lex_stem &le) {}
+  lex_stem(const lex_stem &le);
   /** Inhibited assignment operator */
-  lex_stem & operator=(const lex_stem &le) { return *this; } 
+  lex_stem& operator=(const lex_stem&);
 
-  static int next_id;
-
-  /** unique internal id */
-  int _id;
   /** type id of the instance */
   int _instance_type;
   /** type id of the lexical class */

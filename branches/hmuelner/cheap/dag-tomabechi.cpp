@@ -354,7 +354,8 @@ dag_node *new_p_dag(type_t s) {
   return dag;
 }
 
-dag_arc *new_p_arc(attr_t attr, dag_node *val, dag_arc *next = NULL) {
+dag_arc *new_p_arc(attr_t attr, dag_node *val, dag_arc *next = NULL)
+{
   dag_arc *newarc = dag_alloc_p_arc();
   newarc->attr = attr;
   newarc->val = val;
@@ -362,7 +363,8 @@ dag_arc *new_p_arc(attr_t attr, dag_node *val, dag_arc *next = NULL) {
   return newarc;
 }
 
-dag_node *dag_full_p_copy(dag_node *dag) {
+dag_node *dag_full_p_copy(dag_node *dag)
+{
   dag_node *copy;
   copy = dag_get_copy(dag);
 
@@ -393,8 +395,9 @@ constraint_info **constraint_cache = NULL;
 /** Initialize the constraint cache to the given \a size (must be the number
  *  of static types).
  */
-void init_constraint_cache(type_t size) {
-  if (constraint_cache) { delete[] constraint_cache; }
+void init_constraint_cache(type_t size)
+{
+  delete[] constraint_cache;
   constraint_cache = new constraint_info *[size];
   for(type_t i = 0; i < size; i++) constraint_cache[i] = NULL;
 }

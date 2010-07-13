@@ -35,6 +35,7 @@
 
 #include <string>
 #include <list>
+#include <vector>
 #include <map>
 #include <ostream>
 #include <cassert>
@@ -169,11 +170,12 @@ typedef std::list<grammar_rule *>::const_iterator ruleiter;
 class rulefilter {
 private:
   int _nrules;
-  char * _filtermatrix;
+  std::vector<char> _filtermatrix;
     
-  inline char * access(grammar_rule *mother, grammar_rule *daughter) {
+  inline char* access(grammar_rule *mother, grammar_rule *daughter)
+  {
     assert(valid() && daughter->id() < _nrules && mother->id() < _nrules);
-    return _filtermatrix + daughter->id() + _nrules * mother->id();
+    return &_filtermatrix[0] + daughter->id() + _nrules * mother->id();
   }
     
 public:
@@ -182,15 +184,14 @@ public:
     
   void resize(int n) {
     _nrules = n;
-    delete _filtermatrix;
-    _filtermatrix = new char[n * n];
-    memset(_filtermatrix, 0, n * n);
+    _filtermatrix.clear();
+    _filtermatrix.resize(n * n, 0);
   }
 
-  ~rulefilter() { delete[] _filtermatrix; }
+  ~rulefilter() { }
 
   /** \return \c true only if this filter is initialized properly */
-  inline bool valid() { return (_filtermatrix != NULL); }
+  inline bool valid() { return !_filtermatrix.empty(); }
 
   /** is \a daughter compatible with \a mother in the \a arg'th (1..8)
    *  argument position

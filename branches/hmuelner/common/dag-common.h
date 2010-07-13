@@ -177,7 +177,7 @@ dag_node *dag_create_attr_value(attr_t attr, dag_node *val);
  *  \return the dag node at the end of the path, if it exists, \c FAIL
  *          otherwise.
  */
-dag_node *dag_get_path_value(dag_node *dag, const char *path);
+dag_node *dag_get_path_value(dag_node *dag, const std::string& path);
 
 /** Follow the \a path of attributes starting at \a dag and return the
  *  node at the end, if it exists, \c FAIL otherwise.

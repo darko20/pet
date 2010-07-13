@@ -24,7 +24,6 @@
 #include "parse.h"
 #include "chart.h"
 #include "qc.h"
-#include "cppbridge.h"
 #include "version.h"
 #include "item-printer.h"
 #include "sm.h"
@@ -32,6 +31,10 @@
 #include "configs.h"
 #include "logging.h"
 #include <boost/lexical_cast.hpp>
+
+#ifdef HAVE_ECL
+#include "cppbridge.h"
+#endif
 
 #ifdef YY
 # include "yy.h"
@@ -58,8 +61,12 @@ static bool init(){
 
 statistics stats;
 
-void
-statistics::reset()
+statistics::statistics()
+{
+  reset();
+}
+
+void statistics::reset()
 {
   id = 0;
   trees = 0;
@@ -104,10 +111,12 @@ statistics::reset()
   p_stat_bytes = 0;
 
   // rule stuff
-  for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
-    rule++) {
-      grammar_rule *R = *rule;
-      R->actives = R->passives = 0;
+  if (Grammar) {
+    for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
+      rule++) {
+        grammar_rule *R = *rule;
+        R->actives = R->passives = 0;
+    }
   }
 }
 

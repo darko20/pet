@@ -29,19 +29,18 @@
 #include <functional>
 
 /** Minimum overhead single linked lists of integers */
-typedef struct list_int {
+struct list_int
+{
   /** The first of this cons */
   int val;
   /** The rest of this cons */
   list_int *next;
-} list_int;
+};
 
 /** create a new cons cell with value = \a v and successor \a n */
 inline list_int *cons(int v, list_int *n)
 {
-  list_int *c;
-
-  c = new list_int;
+  list_int *c = new list_int;
   c->next = n;
   c->val = v;
   
@@ -66,11 +65,9 @@ inline list_int *rest(const list_int *l)
  */
 inline list_int *pop_first(list_int *l)
 {
-  list_int *res;
-
   if(!l) return 0;
 
-  res = rest(l);
+  list_int* res = rest(l);
   delete l;
   return res;
 }
@@ -84,7 +81,8 @@ inline list_int * pop_last(list_int *l)
 {
   if (!l)
     return NULL;
-  list_int *curr = l, *prec = NULL;
+  list_int* curr = l;
+  list_int* prec = NULL;
   while (rest(curr)) {
     prec = curr;
     curr = rest(curr);
@@ -144,7 +142,10 @@ inline list_int *append(list_int *l, int e)
 inline int length(const list_int *l)
 {
   int n = 0;
-  while(l) n++, l = rest(l);
+  while(l) {
+    ++n;
+    l = rest(l);
+  }
   return n;
 }
 

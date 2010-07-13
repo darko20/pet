@@ -160,7 +160,7 @@ void ff_entry::dump(dumper *f)
   f->dump_int(preterminal);
   f->dump_int(affix);
   f->dump_char(inflpos);
-  f->dump_string(_form.c_str());
+  f->dump_string(_form);
 }
 
 void read_morph(string fname)
@@ -246,7 +246,7 @@ void read_irregs(string fname)
 
 void irreg_entry::dump(dumper *f)
 {
-  f->dump_string(_form.c_str());
-  f->dump_string(_infl.c_str());
-  f->dump_string(_stem.c_str());
+  f->dump_string(_form);
+  f->dump_string(_infl);
+  f->dump_string(_stem);
 }
