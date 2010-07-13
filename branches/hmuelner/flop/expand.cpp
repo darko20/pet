@@ -62,36 +62,25 @@ bool dont_expand(type_t i) {
  * array \c apptype is filled with the maximally appropriate types, i.e., \c
  * apptype[j] is the first subtype of \c *top* that introduces feature \c j.
  */
-bool compute_appropriateness() {
-  int i, attr;
-
+bool compute_appropriateness()
+{
   bool fail = false;
-
   LOG(logAppl, INFO, "- computing appropriateness");
-
-  apptype = new int[attributes.number()];
-
-  for(i = 0; i < attributes.number(); i++)
-    apptype[i] = BI_TOP;
+  apptype.clear();
+  apptype.resize(attributes.number(), BI_TOP);
 
   vector<int> topo;
   boost::topological_sort(hierarchy, std::back_inserter(topo));
-  for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
+  for (vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
-      struct dag_arc *arc;
-      i = *it;
-        
-      if(!pseudo_type(i))
-        {
-          arc = dag_deref(types[i]->thedag)->arcs;
+      int i = *it;
+      if(!pseudo_type(i)) {
+          dag_arc* arc = dag_deref(types[i]->thedag)->arcs;
           while(arc) // look at all top level features of type
             {
-              attr = arc->attr;
-              
-              if(apptype[attr] != BI_TOP)
-                {
-                  if(!subtype(i, apptype[attr]))
-                    {
+              int attr = arc->attr;
+              if(apptype[attr] != BI_TOP) {
+                  if(!subtype(i, apptype[attr])) {
                       LOG(logSemantic, ERROR, "feature `" << attrname[attr]
                           << "' introduced at `" << type_name(i) << "' and `"
                           << type_name(apptype[attr]) << "'." << endl);
@@ -111,7 +100,7 @@ bool compute_appropriateness() {
   if(get_opt_bool("opt_no_sem"))
     sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
 
-  for(i = 0; i < attributes.number(); i++)
+  for (int i = 0; i < attributes.number(); i++)
     {
       if(apptype[i] == BI_TOP)
         {
@@ -140,20 +129,17 @@ bool compute_appropriateness() {
  * \return \c true if the dag is consistent with the appropriateness
  * conditions required by the features, \c false otherwise
  */
-bool apply_appropriateness_rec(struct dag_node *dag) {
+bool apply_appropriateness_rec(dag_node *dag)
+{
   dag = dag_deref(dag);
 
-  if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) { // not yet visited
-
-    int new_type, old_type;
-    struct dag_arc *arc;
-
-    new_type = dag->type;
-    arc = dag->arcs;
+  if (dag_set_visit(dag, dag_get_visit(dag) + 1) == 1) { // not yet visited
+    int new_type = dag->type;
+    dag_arc* arc = dag->arcs;
 
       while(arc)
         {
-          old_type = new_type;
+          int old_type = new_type;
           new_type = glb(new_type, apptype[arc->attr]);
           
           if(new_type == -1)
@@ -427,7 +413,7 @@ bool fully_expand_types(bool full_expansion)
 // maximal appropriate type computation
 //
 
-extern int *maxapp;
+extern vector<int> maxapp;
 map<int, int> nintro; // no of introduced features
 
 /** Compute the number of features introduced by each type and the maximal
@@ -437,20 +423,18 @@ map<int, int> nintro; // no of introduced features
  * supertype of every dag \c f points to. It is defined by the type of the
  * subdag \c f points to where \c f is introduced.
  */
-void compute_maxapp() {
-  int i;
-
-  maxapp = new int[attributes.number()];
-
+void compute_maxapp()
+{
   // initialize nintro array to number of features introduced by that type
-  for(i = 0; i < types.number(); i++)
-    for(int j = 0; j < attributes.number(); j++)
+  for (int i = 0; i < types.number(); i++) {
+    for(int j = 0; j < attributes.number(); j++) {
       if(apptype[j] == i) nintro[i]++;
-  
+    }
+  }
   // initialize maxapp array to max appropriate type per feature 
-  for(i = 0; i < attributes.number(); i++)
-    {
-      maxapp[i] = 0;
+  maxapp.clear();
+  maxapp.resize(attributes.number(), 0);
+  for (int i = 0; i < attributes.number(); ++i) {
       struct dag_node *cval = dag_get_attr_value(types[apptype[i]]->thedag, i);
       if(cval && cval != FAIL)
         maxapp[i] = dag_type(cval);
@@ -622,12 +606,13 @@ void merge_partitions(int t, int p, tPartition &P, int s) {
   }
 }
 
-int *featconf; /* minimal feature configuration id for each type */
+vector<int> featconf; /* minimal feature configuration id for each type */
 
 map<int, list_int *> theconf;
 map<int, list_int *> theset;
 
-void bottom_up_partitions() {
+void bottom_up_partitions()
+{
   assert(types.number() == (int) boost::num_vertices(hierarchy));
   tPartition part(types.number());
 
@@ -640,9 +625,10 @@ void bottom_up_partitions() {
       merge_partitions(i, part(i), part, 0);
   }
 
-  map<int, bool> reached;
+  map<int, bool> reached; // TODO use a set
 
-  nfeatsets = 0;
+  int nfeatsets = 0;
+  featset.clear();
   for(int i = 0; i < types.number(); i++)
     if(!reached[i]) {
         list_int *feats = 0;
@@ -652,7 +638,7 @@ void bottom_up_partitions() {
         for(int j = 0; j < types.number(); j++)
           if(!reached[j] && part.same_set(i, j))
             {
-              featset[j] = nfeatsets;
+              featset.push_back(nfeatsets);
               reached[j] = true;
               LOG(logSemantic, DEBUG, "  " << types.name(j) << "");
                 
@@ -676,73 +662,63 @@ void bottom_up_partitions() {
 }
 
 // featconf and featset computation
-
-int si_compare(const void *a, const void *b) {
-  return *((short int *) a) - *((short int *) b);
-}
-
-void generate_featsetdescs(int nconfs, map<int, list_int*> &conf) {
+void generate_featsetdescs(int nconfs, map<int, list_int*> &conf)
+{
   // generate feature table descriptors
-
-  featsetdesc = new featsetdescriptor[nconfs];
-
+  featsetdesc.clear();
+  featsetdesc.resize(nconfs);
   for(int i = 0; i < nconfs; i++) {
     list_int *l = conf[i];
     int n = length(l);
-    featsetdesc[i].n = n;
-    featsetdesc[i].attr = n > 0 ? new short int [n] : 0;
-
+    featsetdesc[i].attr.reserve(n);
     int j = 0;
     while(l) {
-      featsetdesc[i].attr[j++] = first(l);
+      featsetdesc[i].attr.push_back(first(l));
       l = rest(l);
     }
 
     if(n > 0)
-      qsort(featsetdesc[i].attr, n, sizeof(short int), si_compare);
+      std::sort(featsetdesc[i].attr.begin(), featsetdesc[i].attr.end());
   }
 }
 
-void compute_feat_sets(bool minimal) {
+void compute_feat_sets(bool minimal)
+{
   map<list_int *, int> feature_confs;
   int feature_conf_id = 0;
-  int i;
+  featconf.clear();
+  featconf.resize(types.number(), 0);
+  featset.clear();
+  featset.reserve(types.number());
 
-  featconf = new int[types.number()];
-  featset = new int[types.number()];
-
-  for(i = 0; i < types.number(); i++) {
+  for (int i = 0; i < types.number(); ++i) {
     int nf = 0;
     list_int *feats = 0;
 
-    for(int j = 0; j < attributes.number(); j++) {
+    for (int j = 0; j < attributes.number(); j++) {
       if(subtype(i, apptype[j])) {
         nf++;
         feats = cons(j, feats);
       }
     }
 
-    if(feats) {
+    if (feats) {
       if((featconf[i] = feature_confs[feats]) == 0) {
         featconf[i] = (feature_confs[feats] = ++feature_conf_id);
         theconf[feature_conf_id] = feats;
       }
     }
-    else
-      featconf[i] = 0;
-
     nfeat[i] = nf;
-
     if(LOG_ENABLED(logSemantic, DEBUG) && nintro[i] > 0) {
 #if 0
       int nsub = DFS(hierarchy, i, reached).length();
 
       fprintf(fstatus, "type `%s': nsub: %d nfeat: %d fconf: %d nintro: %d",
-              types.name(i).c_str(),
-              nsub,
-              nf,
-              featconf[i],
-              nintro[i]);
+        types.name(i).c_str(),
+        nsub,
+        nf,
+        featconf[i],
+        nintro[i]);
 
       int sumintro = 0;
       for(int j = 0; j < types.number(); j++)
@@ -761,7 +737,7 @@ void compute_feat_sets(bool minimal) {
 
   if (LOG_ENABLED(logSemantic, DEBUG)) {
     ostringstream sdeb;
-    for(i = 0; i < feature_conf_id; i++) {
+    for (int i = 0; i < feature_conf_id; i++) {
       sdeb << "feature configuration " << i << ":";
       for(list_int *l = theconf[i]; l != NULL; l = rest(l))
         sdeb << " " << attributes.name(first(l));
@@ -772,15 +748,12 @@ void compute_feat_sets(bool minimal) {
 
   if(!minimal) {
     bottom_up_partitions();
+    int nfeatsets = featset.size();
     generate_featsetdescs(nfeatsets, theset);
   }
   else {
-    nfeatsets = feature_conf_id + 1;
-
-    for(int i = 0; i < types.number(); i++) {
-      featset[i] = featconf[i];
-    }
-
+    int nfeatsets = feature_conf_id + 1;
+    featset.insert(featset.end(), featconf.begin(), featconf.end());
     generate_featsetdescs(nfeatsets, theconf);
   }
 }

@@ -253,8 +253,8 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 }
 
 // former tPhrasalItem::print_derivation
-void 
-tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
+void tCompactDerivationPrinter::real_print(const tPhrasalItem *item)
+{
   *_out << "("
        << item->id() << " "
        << item->printname() << " "

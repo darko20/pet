@@ -86,22 +86,19 @@ void undump_arc(dumper *, dag_arc_dump *);
 extern bool dag_nocasts;
 
 /** gives featset id for each type */
-extern int *featset;
+extern std::vector<int> featset;
 
 /** describes features of one feature set */
 struct featsetdescriptor
 {
   /** number of features */
-  short int n;
+  size_t n() const { return attr.size(); }
   /** feature id for each position */
-  short int *attr;
+  std::vector<short int> attr;
 };
 
-/** total number of featsets */
-extern int nfeatsets;
-
 /** vector of descriptors for each feature set */
-extern featsetdescriptor *featsetdesc;
+extern std::vector<featsetdescriptor> featsetdesc;
 /*@}*/
 
 /** @name Constraint cache
@@ -119,7 +116,7 @@ struct constraint_info
   /** The generation counter indicating if this info is used */
   int gen;
   /** The list structure link */
-  struct constraint_info *next;
+  constraint_info *next;
 };
 
 /** The constraint cache: an array containing as many elements as there are
@@ -323,8 +320,7 @@ dag_node *dag_full_copy(dag_node *dag);
  *             root node of the result.
  * \return A copy of the result, if the unificaton succeeds, \c FAIL otherwise.
  */
-dag_node *
-dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del);
+dag_node* dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del);
 
 
 /** Unify \a arg into \a root at subdag under path \a path.  
@@ -333,8 +329,7 @@ dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del);
  * add it. If the unification succeeds, return a (possibly partial, i.e.,
  * structure sharing) copy of the result.
  */
-struct dag_node *
-dag_unify(dag_node *root, dag_node *arg, list_int *path);
+dag_node* dag_unify(dag_node *root, dag_node *arg, list_int *path);
 
 
 /** Return \c true if \a dag1 and \a dag2 are unifiable, \c false otherwise.
@@ -388,7 +383,7 @@ qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len);
  * \pre \a qc_vector must be of appropriate length. This is not tested.
  * \return A quick check vector of \a dag in \a qc_vector.
  */
-void dag_get_qc_vector(qc_node *root, dag_node *dag, type_t *qc_vector);
+void dag_get_qc_vector(qc_node *root, dag_node *dag, std::vector<type_t>& qc_vector);
 
 /** Release the global data structures related to the quick check tree */
 void dag_qc_free();

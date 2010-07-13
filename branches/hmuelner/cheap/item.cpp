@@ -154,8 +154,6 @@ tItem::tItem(int start, int end, const tPaths &paths,
 
 tItem::~tItem()
 {
-  delete[] _qc_vector_unif;
-  delete[] _qc_vector_subs;
   // free_list(_inflrs_todo); // This is now only done in tLexItem
   delete _unpack_cache;
 }

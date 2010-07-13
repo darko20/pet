@@ -34,55 +34,56 @@
 /** A setting from the settings file (in TDL format) */
 struct setting
 {
-    std::string _name;
-    std::vector<std::string> values;
-    Lex_location _loc;
-    size_t n() const { return values.size(); }
-    setting() : _name(), values(), _loc() {}
-    setting(const setting&);
-    setting& operator=(const setting&);
+  std::string _name;
+  std::vector<std::string> values;
+  Lex_location _loc;
+  size_t n() const { return values.size(); }
+  setting() : _name(), values(), _loc() {}
+  setting(const setting&);
+  setting& operator=(const setting&);
 };
 
 /** a set of settings with access functions */
 class settings
 {
 public:
-    settings(std::string name, std::string base, const char *message = 0);
-    settings(const std::string &input);
-    ~settings();
+  settings(std::string name, std::string base, const char *message = 0);
+  settings(const std::string &input);
+  ~settings();
 
-    setting *lookup(const char *name);
+  setting *lookup(const char *name);
 
-    const char *value(const char *name);
-    const char *req_value(const char *name);
+  const char *value(const char *name);
+  const char *req_value(const char *name);
 
-    // string equality based member test
-    bool member(const char *name, const char *value);
+  // string equality based member test
+  bool member(const char *name, const char *value);
 
-    // type status based member test
-    bool statusmember(const char *name, type_t key);
+  // type status based member test
+  bool statusmember(const std::string& name, type_t key);
 
-    // string equality based assoc
-    const char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
+  // string equality based assoc
+  const char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
 
 #ifndef FLOP
-    // subtype based map
-    std::set<std::string> smap(const char *name, int key_type);
+  // subtype based map
+  std::set<std::string> smap(const char *name, int key_type);
 #endif
 
-    Lex_location lloc() { return _lloc; }
+  Lex_location lloc() { return _lloc; }
 
 private:
-    std::vector<setting*> _set;
-    std::string _fname;
-    std::string _prefix;
-    Lex_location _lloc;
+  std::vector<setting*> _set;
+  std::string _fname;
+  std::string _prefix;
+  Lex_location _lloc;
 
-    /** cache for settings converted to lists of integers (e.g. status values) */
-    std::map<std::string, struct list_int *> _li_cache;
+  /** cache for settings converted to lists of integers (e.g. status values) */
+  typedef std::map<std::string, std::vector<int> > CacheType;
+  CacheType _li_cache;
 
-    void parse();
-    void parse_one();
+  void parse();
+  void parse_one();
 };
 
 #endif

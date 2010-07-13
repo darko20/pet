@@ -245,8 +245,8 @@ dag_node *dag_unify_temp(dag_node *root, dag_node *dag1, dag_node *dag2);
  *  This routine must also take into account the generation protected members
  *  of the dag nodes.
  */
-void dag_get_qc_vector_temp(struct qc_node *qc_paths, dag_node *dag,
-                            type_t *qc_vector);
+void dag_get_qc_vector_temp(qc_node *qc_paths, dag_node *dag,
+                            std::vector<type_t>& qc_vector);
 
 /**
  * Get the substructure under <attr>.REST*(n-1).FIRST if it exists, \c FAIL

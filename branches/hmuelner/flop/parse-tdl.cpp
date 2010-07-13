@@ -154,7 +154,7 @@ void tdl_subtype_def(const std::string& sname, const std::string& printname) {
           supt = types[sup];
         }
         subtype_constraint(subt->id, supt->id);
-        subt->parents = cons(supt->id, subt->parents);
+        subt->parents.push_back(supt->id);
       }
     }
     ++nr;

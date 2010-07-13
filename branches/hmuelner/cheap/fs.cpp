@@ -130,7 +130,7 @@ fs fs::get_attr_value(const string& attr) const
   int a = lookup_attr(attr);
   if(a == -1) return fs();
 
-  struct dag_node *v = dag_get_attr_value(_dag, a);
+  dag_node *v = dag_get_attr_value(_dag, a);
   return fs(v);
 }
 
@@ -144,8 +144,7 @@ fs fs::get_path_value(const char *path) const
   return fs(dag_get_path_value(_dag, path));
 }
 
-std::list<fs>
-fs::get_list() const
+std::list<fs> fs::get_list() const
 {
   list<fs> fs_list;
   fs current = *this;
@@ -645,28 +644,27 @@ compatible(const fs &a, const fs &b) {
 
 /* \todo why isn't this a method of fs?
 */
-int
-compare(const fs &a, const fs &b)
+int compare(const fs &a, const fs &b)
 {
   return a._dag - b._dag;
 }
 
-qc_vec fs::get_qc_vector(qc_node *qc_paths, int qc_len) const {
-  if (qc_len == 0) return NULL;
-  qc_vec vector = new type_t [qc_len];
-  memset(vector, 0, qc_len * sizeof(type_t));
-
-  if(temp()) // && opt_hyper temporary dags only during hyperactive parsing
-    dag_get_qc_vector_temp(qc_paths, _dag, vector);
-  else
-    dag_get_qc_vector(qc_paths, _dag, vector);
-
-  return vector;
+qc_vec fs::get_qc_vector(qc_node *qc_paths, int qc_len) const
+{
+  qc_vec v(qc_len, 0);
+  if (qc_len == 0) return v;
+  if (temp()) {
+    // && opt_hyper temporary dags only during hyperactive parsing
+    dag_get_qc_vector_temp(qc_paths, _dag, v);
+  } else {
+    dag_get_qc_vector(qc_paths, _dag, v);
+  }
+  return v;
 }
 
 /** Initialize the static variables for quick check appropriately */
-void
-fs::init_qc_unif(dumper *f, bool subs_too) {
+void fs::init_qc_unif(dumper *f, bool subs_too)
+{
   int nqc_unif = get_opt_int("opt_nqc_unif");
   _qc_paths_unif = dag_read_qc_paths(f, nqc_unif, _qc_len_unif);
   if (subs_too) {
@@ -680,8 +678,8 @@ fs::init_qc_unif(dumper *f, bool subs_too) {
     _qc_len_unif = nqc_unif;
 }
 
-void
-fs::init_qc_subs(dumper *f) {
+void fs::init_qc_subs(dumper *f)
+{
   int nqc_subs = get_opt_int("opt_nqc_subs");
   _qc_paths_subs = dag_read_qc_paths(f, nqc_subs, _qc_len_subs);
   if(nqc_subs > 0 && nqc_subs < _qc_len_subs)

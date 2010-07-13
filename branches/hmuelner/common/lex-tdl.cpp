@@ -114,10 +114,10 @@ lex_token *get_next_token()
   {
     t = make_token(T_EOF, NULL, 0);
   }
-  else if(isspace(c))
+  else if(isspace(c &0xFF))
   { // whitespace
     int i = 1;
-    while(isspace(LLA(i))) i++;
+    while(isspace(LLA(i) & 0xFF)) i++;
 
     t = make_token(T_WS, NULL, i);
     LConsume(i);

@@ -86,14 +86,12 @@ predle_status(type_t t)
                                       typestatus[t]);
 }
 
-bool
-rule_status(type_t t)
+bool rule_status(type_t t)
 {
   return cheap_settings->statusmember("rule-status-values", typestatus[t]);
 }
 
-bool 
-lex_rule_status(type_t t)
+bool lex_rule_status(type_t t)
 {
   return cheap_settings->statusmember("lexrule-status-values", typestatus[t]);
 }
@@ -129,10 +127,8 @@ grammar_rule::grammar_rule(type_t t)
     // Determine arity, determine head and key daughters.
     // 
     
-    struct dag_node *dag, *head_dtr;
-    list <struct dag_node *> argslist;
-
-    dag = dag_get_path_value(type_dag(t),
+    list<dag_node*> argslist;
+    dag_node* dag = dag_get_path_value(type_dag(t),
                              cheap_settings->req_value("rule-args-path"));
    
     if(dag == FAIL)
@@ -141,16 +137,13 @@ grammar_rule::grammar_rule(type_t t)
                     + " does not contain "
                     + string(cheap_settings->req_value("rule-args-path")));
     }       
-
     argslist = dag_get_list(dag);
-    
     _arity = argslist.size();
-
     if(_arity == 0) {
         throw tError("Rule " + string(type_name(t)) + " has arity zero");
     }
     
-    head_dtr = dag_get_path_value(type_dag(t),
+    dag_node* head_dtr = dag_get_path_value(type_dag(t),
                                   cheap_settings->req_value("head-dtr-path"));
     
     int n = 1, keyarg = -1, head = -1;
@@ -190,7 +183,8 @@ grammar_rule::grammar_rule(type_t t)
         }
     }
     
-    _qc_vector_unif = new qc_vec[_arity];
+    _qc_vector_unif.clear();
+    _qc_vector_unif.resize(_arity);
     
     //
     // Build the _tofill list which determines the order in which arguments
@@ -229,7 +223,7 @@ grammar_rule::grammar_rule(type_t t)
     }
     
     for(int i = 0; i < _arity; i++)
-        _qc_vector_unif[i] = 0;
+        _qc_vector_unif[i].clear();
     
     //
     // Disable hyper activity if this is a more than binary-branching
@@ -251,14 +245,13 @@ grammar_rule::grammar_rule(type_t t)
 
 }
 
-grammar_rule::~grammar_rule() {
+grammar_rule::~grammar_rule()
+{
   free_list(_tofill);
-  for (int i = 0; i < _arity; ++i) delete[] _qc_vector_unif[i];
-  delete[] _qc_vector_unif;
 }
 
-grammar_rule *
-grammar_rule::make_grammar_rule(type_t t) {
+grammar_rule* grammar_rule::make_grammar_rule(type_t t)
+{
   try {
     return new grammar_rule(t);
   }
@@ -268,8 +261,8 @@ grammar_rule::make_grammar_rule(type_t t) {
   return NULL;
 }
 
-void
-grammar_rule::print(ostream &out) const {
+void grammar_rule::print(ostream &out) const
+{
   out << print_name(_type) << "/" << _arity;
   if (_hyper == false) out << "[-HA]" ;
   for (list_int *l = _tofill; l != NULL; l = rest(l)) 
@@ -277,8 +270,8 @@ grammar_rule::print(ostream &out) const {
   out << ")";
 } 
 
-void
-grammar_rule::lui_dump(const char *path) {
+void grammar_rule::lui_dump(const char *path)
+{
   string destinationPath(path);
   bfs::current_path(destinationPath);
   if(!bfs::equivalent(destinationPath, bfs::current_path())) {
@@ -300,11 +293,10 @@ grammar_rule::lui_dump(const char *path) {
   instantiate(true).print(stream, ldp);
   stream << " \"Rule # " << _id << " (" << printname() << ")\"\f\n";
   stream.close();
-} // grammar_rule::lui_dump()
+}
 
 
-fs
-grammar_rule::instantiate(bool full)
+fs grammar_rule::instantiate(bool full)
 {
   if(opt_packing && !full)
     return _f_restriced;
@@ -312,8 +304,8 @@ grammar_rule::instantiate(bool full)
     return fs(_type);
 }
 
-void
-grammar_rule::init_qc_vector_unif() {
+void grammar_rule::init_qc_vector_unif()
+{
   fs_alloc_state FSAS;
   fs f = instantiate();
   for(int i = 1; i <= _arity; i++) {
@@ -323,9 +315,9 @@ grammar_rule::init_qc_vector_unif() {
 }
 
 /** pass T_BOTTOM for an invalid/unavailable qc structure */
-void
-undump_dags(dumper *f) {
-  struct dag_node *dag;
+void undump_dags(dumper *f)
+{
+  dag_node* dag;
   // allocate an array holding nstatictypes pointers to the typedags
   initialize_dags(nstatictypes);
     

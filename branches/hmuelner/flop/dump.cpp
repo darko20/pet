@@ -1,21 +1,21 @@
 /* PET
- * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
- *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   Lesser General Public License for more details.
- *
- *   You should have received a copy of the GNU Lesser General Public
- *   License along with this library; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* Platform for Experimentation with efficient HPSG processing Techniques
+* (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 2.1 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public
+*   License along with this library; if not, write to the Free Software
+*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 /* dumping the grammar to binary form for cheap*/
 
@@ -30,26 +30,26 @@
 using std::list;
 
 /** dump a bunch of string pairs that describe various properties of the
- *  grammar.
- */
+*  grammar.
+*/
 void
 dump_properties(dumper *f)
 {
-    // nproperties
-    f->dump_int(grammar_properties.size());
-    
-    for(std::map<std::string, std::string>::iterator it =
-            grammar_properties.begin(); it != grammar_properties.end(); ++it)
-    {
-        f->dump_string(it->first);
-        f->dump_string(it->second);
-    }
+  // nproperties
+  f->dump_int(grammar_properties.size());
+
+  for(std::map<std::string, std::string>::iterator it =
+    grammar_properties.begin(); it != grammar_properties.end(); ++it)
+  {
+    f->dump_string(it->first);
+    f->dump_string(it->second);
+  }
 }
 
 /** Dump information about the number of status values, leaftypes, types, and
- *  attributes as well as the tables of status value names, type names and
- *  their status, and attribute names.
- */
+*  attributes as well as the tables of status value names, type names and
+*  their status, and attribute names.
+*/
 void
 dump_symbol_tables(dumper *f)
 {
@@ -73,10 +73,10 @@ dump_symbol_tables(dumper *f)
 
   // type names and status
   for(int i = 0; i < nstatictypes; i++)
-    {
-      f->dump_string(type_name(cheap2flop[i]));
-      f->dump_int(typestatus[cheap2flop[i]]);
-    }
+  {
+    f->dump_string(type_name(cheap2flop[i]));
+    f->dump_int(typestatus[cheap2flop[i]]);
+  }
 
   // attribute names
   for(int i = 0; i < nattrs; i++)
@@ -84,8 +84,8 @@ dump_symbol_tables(dumper *f)
 }
 
 /** Dump the type-to-featureset mappings and the feature sets for fixed arity
- *  encoding, as well as the table of appropriate types for all attributes.
- */
+*  encoding, as well as the table of appropriate types for all attributes.
+*/
 void
 dump_tables(dumper *f)
 {
@@ -97,20 +97,19 @@ dump_tables(dumper *f)
 
   // write set for each type
   // _fix_doc_ Why only for non-leaftypes ??
-  for(int i = 0; i < first_leaftype; i++)
-    {
-      f->dump_int(featset[cheap2flop[i]]);
-    }
-
+  for(int i = 0; i < first_leaftype; i++) {
+    f->dump_int(featset[cheap2flop[i]]);
+  }
+  int nfeatsets = featset.size();
   f->dump_int(nfeatsets);
   // write descriptor for each set
   for(int i = 0; i < nfeatsets; i++)
-    {
-      short int n = featsetdesc[i].n;
-      f->dump_short(n);
-      for(int j = 0; j < n; j++)
-        f->dump_short(featsetdesc[i].attr[j]);
-    }
+  {
+    short int n = featsetdesc[i].n();
+    f->dump_short(n);
+    for(int j = 0; j < n; j++)
+      f->dump_short(featsetdesc[i].attr[j]);
+  }
 
   size_t nattrs = attrname.size();
   for(int i = 0; i < nattrs; i++)
@@ -124,18 +123,18 @@ dump_supertypes(dumper *f)
 {
   for(int i = 0; i < first_leaftype; i++) // i is a cheap type code
   {
-      list<int> supertypes = immediate_supertypes(cheap2flop[i]);
-      f->dump_short(supertypes.size());
-      for(list<int>::iterator it = supertypes.begin(); it != supertypes.end();
-          ++it)
-          f->dump_int(flop2cheap[*it]);
+    list<int> supertypes = immediate_supertypes(cheap2flop[i]);
+    f->dump_short(supertypes.size());
+    for(list<int>::iterator it = supertypes.begin(); it != supertypes.end();
+      ++it)
+      f->dump_int(flop2cheap[*it]);
   }
 }
 
 /** \brief Dump print name for every type. The print name is only dumped if it
- *  differs from the type name, which is primarily true for instances, where a
- *  '$' character is prepended to the typename.
- */
+*  differs from the type name, which is primarily true for instances, where a
+*  '$' character is prepended to the typename.
+*/
 void
 dump_print_names(dumper *f)
 {
@@ -150,21 +149,21 @@ dump_print_names(dumper *f)
 }
 
 /** Dump the full form table. Here, dumping is delegated to the full form
- *   objects.
- */
+*   objects.
+*/
 void
 dump_fullforms(dumper *f)
 {
   f->dump_int(fullforms.size());
-  
+
   for(list<ff_entry>::iterator currentff = fullforms.begin();
-      currentff != fullforms.end(); ++currentff)
+    currentff != fullforms.end(); ++currentff)
     currentff->dump(f);
 }
 
 /** Dump a single inflection rule, first the type of the feature structure rule
- *  and then the string representation of the transformation rule.
- */
+*  and then the string representation of the transformation rule.
+*/
 void
 dump_inflr(dumper *f, int t, const std::string& r)
 {
@@ -181,37 +180,37 @@ dump_inflrs(dumper *f)
 
   if(!global_inflrs.empty())
   {
-      ninflr++;
-      dump_inflr(f, -1, global_inflrs);
+    ninflr++;
+    dump_inflr(f, -1, global_inflrs);
   }
-  
+
   for(int i = 0; i < nstatictypes; i++)
+  {
+    if(!types[i]->inflr.empty())
     {
-      if(!types[i]->inflr.empty())
-        {
-          ninflr++;
-          dump_inflr(f, flop2cheap[i], types[i]->inflr);
-        }
+      ninflr++;
+      dump_inflr(f, flop2cheap[i], types[i]->inflr);
     }
-  
+  }
+
   f->set_int_variable(ninflr_var, ninflr);
 }
 
 /** Dump the irregular forms table. Here, dumping is delegated to the irregular
- *  form objects.
- */
+*  form objects.
+*/
 void
 dump_irregs(dumper *f)
 {
   f->dump_int(irregforms.size());
   for(list<irreg_entry>::iterator it = irregforms.begin();
-      it != irregforms.end(); ++it)
+    it != irregforms.end(); ++it)
     it->dump(f);
 }
 
 /** Return the number of kilobytes written since the last call of this
- *  function.
- */
+*  function.
+*/
 int
 kbwritten(dumper *f)
 {
@@ -228,9 +227,9 @@ void logkb(const char *what, dumper *f) {
 }
 
 /** Dump the whole grammar to a binary data file.
- * \param f low-level type_t class
- * \param desc readable description of the current grammar
- */
+* \param f low-level type_t class
+* \param desc readable description of the current grammar
+*/
 void
 dump_grammar(dumper *f, const char *desc)
 {

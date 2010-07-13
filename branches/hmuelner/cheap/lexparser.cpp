@@ -158,8 +158,8 @@ void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
  *  passive), or to our private mini chart if it still lacks arguments in form
  *  of input items, and in this case, create the appropriate tasks.
  */
-void
-lex_parser::add(tLexItem *lex) {
+void lex_parser::add(tLexItem *lex)
+{
   if(lex->passive()) {
     // add new item to the global chart
     add_item(lex);  // from parse.cpp

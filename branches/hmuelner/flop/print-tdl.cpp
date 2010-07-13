@@ -29,6 +29,9 @@
 
 #include <cstdio>
 #include <cstring>
+#include <vector>
+
+using namespace std;
 
 int tdl_save_lines = 1;
 
@@ -232,26 +235,25 @@ void tdl_print_constraint(FILE *f, Type *t, const char *name)
   Conjunction *c;
 
   fprintf(f, "%s :=", name);
-  
-  list_int *l = t->parents;
-  while(l)
-    {
-      fprintf(f, " %s &", types[first(l)]->printname.c_str());
-      l = rest(l);
-    }
+
+  vector<int>::const_iterator l = t->parents.begin();
+  vector<int>::const_iterator le = t->parents.end();
+  for ( ; l != le; ++l) {
+    fprintf(f, " %s &", types[*l]->printname.c_str());
+  }
 
   fprintf(f, "\n");
 
   c = t->constraint;
-  
+
   indent(f, 2);
   tdl_print_conjunction(f, 2, c, t->coref);
 
   if(t->status != NO_STATUS)
-    {
-      fprintf(f, ", status: %s", statustable.name(t->status).c_str());
-    }
-  
+  {
+    fprintf(f, ", status: %s", statustable.name(t->status).c_str());
+  }
+
   fprintf(f, ".\n");
 }
 
@@ -273,7 +275,7 @@ void write_pre(FILE *f)
   for(i = 0; i < types.number(); i++)
     {
       t = types[i];
-      if(!t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
+      if(!t->tdl_instance && (t->constraint != NULL || !t->parents.empty()))
         {
           fprintf(f, ";; type definition from %s:%d\n", t->def.fname, t->def.linenr);
           tdl_print_constraint(f, t, types[i]->printname.c_str());
@@ -286,7 +288,7 @@ void write_pre(FILE *f)
   for(i = 0; i < types.number(); i++)
     {
       t = types[i];
-      if(t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
+      if(t->tdl_instance && (t->constraint != NULL || !t->parents.empty()))
         {
           fprintf(f, ";; instance definition from %s:%d\n", t->def.fname, t->def.linenr);
           tdl_print_constraint(f, t, types[i]->printname.c_str());
