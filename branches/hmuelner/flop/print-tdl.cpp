@@ -255,12 +255,13 @@ void tdl_print_constraint(FILE *f, Type *t, const char *name)
   fprintf(f, ".\n");
 }
 
-void write_pre_header(FILE *outf, const char *outfname, const char *fname
-                      , const char *grammar_version) {
+void write_pre_header(FILE *outf, const std::string& outfname, const std::string& fname,
+                      const std::string& grammar_version)
+{
   time_t t = time(NULL);
   
   fprintf(outf, ";;; `%s' -- generated from `%s' (%s) on %s\n",
-          outfname, fname, grammar_version, ctime(&t));
+          outfname.c_str(), fname.c_str(), grammar_version.c_str(), ctime(&t));
 }
 
 void write_pre(FILE *f)

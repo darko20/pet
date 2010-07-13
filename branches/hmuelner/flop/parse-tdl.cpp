@@ -252,7 +252,7 @@ Avm *tdl_feature_term(Coref_table *co, bool readonly)
     do {
       av = tdl_attr_val(co, readonly);
       if(!readonly)
-        add_attr_val(A, av);
+        A->add_attr_val(av);
     }
     while(consume_if(T_COMMA));
   }
@@ -276,7 +276,7 @@ Tdl_list *tdl_diff_list(Coref_table *co, bool readonly) {
     do {
       conj = tdl_conjunction(co, readonly);
       if(!readonly)
-        add_conjunction(L, conj);
+        L->add_conjunction(conj);
     }
     while(consume_if(T_COMMA));
   }
@@ -296,7 +296,7 @@ Tdl_list *tdl_list(Coref_table *co, bool readonly) {
   if(LA(0)->tag != T_RANGLE) {
     Conjunction *conj = tdl_conjunction(co, readonly);
     if(!readonly)
-      add_conjunction(L, conj);
+      L->add_conjunction(conj);
       
     while(consume_if(T_COMMA)) {
         if(consume_if(T_DOT)) {
@@ -306,7 +306,7 @@ Tdl_list *tdl_list(Coref_table *co, bool readonly) {
         } else {
           conj = tdl_conjunction(co, readonly);
           if(!readonly)
-            add_conjunction(L, conj);
+            L->add_conjunction(conj);
         }
     }
       
@@ -590,7 +590,7 @@ void tdl_avm_constraints(Type *t, bool is_instance, bool readonly) {
           string s("ARGS");
           attrval->attr = s;
           Avm *A = new Avm();
-          add_attr_val(A, attrval);
+          A->add_attr_val(attrval);
           Term *T = new Term();
           T->tag = FEAT_TERM;
           T->A = A;

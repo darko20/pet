@@ -21,13 +21,19 @@
 #define GOOFY_H
 
 #include <qdialog.h>
-#include <qdragobject.h>
 #include <qlineedit.h>
 #include <qlistview.h>
 #include <qmainwindow.h>
 #include <qstring.h>
-#include <qtooltip.h>
 #include <qtimer.h>
+#include <QTextStream>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QDragLeaveEvent>
+#include <QMouseEvent>
+#include <QMenu>
+#include <QDragEnterEvent>
+#include <QListWidget>
 
 #include <string>
 #include <list>
@@ -38,13 +44,13 @@ using std::list;
 #include "grammar.h"
 #include "dag.h"
 
-class QListBox;
-class QMultiLineEdit;
-class QPopupMenu;
+class QTextEdit;
+class QMenu;
 class QSocketNotifier;
 class QString;
 class QTextStream;
 class QTimer;
+class QTooltip;
 
 class GoofyWindow: public QMainWindow
 {
@@ -58,10 +64,15 @@ class GoofyWindow: public QMainWindow
 
 protected:
 
-  QPopupMenu *mFile, *mView, *mParse, *mOptions, *mHelp;
+  QMenu *mFile, *mView, *mParse, *mOptions, *mHelp;
 
-  int id_ViewType, id_ViewInstance, id_ViewLexentry, id_ViewRule;
-  int id_ParseInput, id_ParseFile, id_ParseChart;
+  QAction* viewTypeAction;
+  QAction* viewInstanceAction;
+  QAction* viewLexentryAction;
+  QAction* viewRuleAction;
+  QAction* parseInputAction;
+  QAction* parseFileAction;
+  QAction* parseChartAction;
 
   void set_menu_state(bool);
   void not_implemented();
@@ -91,7 +102,7 @@ private slots:
   void data_received(int fd);
 
 private:
-  QMultiLineEdit *e;
+  QTextEdit *e;
   QString filename;
   QStringList _sort_names;
   QStringList _inst_names;
@@ -116,7 +127,7 @@ class StringSelDialog : public QDialog
   void setselected(const QString &name) { _selected = name; }
 
  private:
-  QListBox* _list_box; 
+  QListWidget* _list_box; 
   QString _selected;
 };
 
@@ -134,21 +145,21 @@ class StringInputDialog : public QDialog
 };
 
 // this passes pointers --> doesn't work across applications
-class TFSDrag : public QStoredDrag
-{
- public:
-  TFSDrag(dag_node *dag, QWidget *parent, const char *name = 0);
-  ~TFSDrag() {}
-
-  static bool canDecode(QDropEvent* e);
-  static bool decode(QDropEvent* e, dag_node * &dag);
-};
-
-class TFSViewItem : public QObject, public QListViewItem
+//class TFSDrag : public Q3StoredDrag
+//{
+// public:
+//  TFSDrag(dag_node *dag, QWidget *parent, const char *name = 0);
+//  ~TFSDrag() {}
+//
+//  static bool canDecode(QDropEvent* e);
+//  static bool decode(QDropEvent* e, dag_node * &dag);
+//};
+#if 0
+class TFSViewItem : public QObject, public QListWidget
 {
   Q_OBJECT
  public:
-  TFSViewItem(QListView *parent, TFSViewItem *after, dag_node *, dag_node *root,
+  TFSViewItem(QListWidget *parent, TFSViewItem *after, dag_node *, dag_node *root,
               int tag = -1, int sort = -1);
   TFSViewItem(TFSViewItem *parent, TFSViewItem *after, dag_node *, dag_node *root,
               int attr, int tag = -1, int sort = -1);
@@ -159,9 +170,9 @@ class TFSViewItem : public QObject, public QListViewItem
 
   void paintCell(QPainter *p, const QColorGroup &cg, int column, int width, int align);
   void paintFocus(QPainter *p, const QColorGroup &cg, const QRect &r);
-  int width(const QFontMetrics &fm, const QListView *lv, int c) const;
+  int width(const QFontMetrics &fm, const QListWidget *lv, int c) const;
 
-  void set_failure(unification_failure *f);
+  void set_failure(failure *f);
   void register_coref(TFSViewItem *next);
 
   class TFSViewItem *deref();
@@ -205,15 +216,16 @@ class TFSViewItem : public QObject, public QListViewItem
 
   class TFSViewItem *_next_cref;
 
-  unification_failure *_failure;
+  failure *_failure;
 
-  QPopupMenu *_popupmenu;
+  QMenu *_popupmenu;
   
   class TFSView *_tfs;
 
   void setup_text();
   
 };
+#endif
 
 class TFSView : public QListView
 {
@@ -223,11 +235,12 @@ class TFSView : public QListView
   TFSView( QWidget * parent, bool failure, const char * name = 0 );
   ~TFSView();
 
+#if 0
   void new_coref(int tag, TFSViewItem *item);
   void register_coref(int tag, TFSViewItem *item);
   TFSViewItem *coref(int tag);
   TFSViewItem *path_value(list_int *path);
-
+#endif
  signals:
   void message( const QString& );
 
@@ -242,14 +255,16 @@ class TFSView : public QListView
   void do_unification(dag_node *root, dag_node *a, dag_node *b, list_int *p);
 
   int _ncorefs; int _corefs_alloc;
+#if 0
   TFSViewItem **_corefs;
-
+#endif
   bool _failure;
 
   QPoint presspos;
-  QListViewItem *oldCurrent;
+  QListWidgetItem *oldCurrent;
+#if 0
   TFSViewItem *dropItem;
-  
+#endif
   QTimer autoopen_timer;
 
  protected slots:
@@ -262,8 +277,6 @@ class TFSView : public QListView
   int autoscroll_time;
   int autoscroll_accel;
 
-  class TFSTip *_tip;
-
  public slots:
   void startAutoScroll();
   void stopAutoScroll();
@@ -273,24 +286,13 @@ class TFSView : public QListView
 
 };
 
-class TFSTip : public QToolTip
-{
- public:
-  TFSTip(TFSView *parent);
-
- protected:
-  void maybeTip(const QPoint &);
-
-  class TFSView *_tfsview;
-};
-
 class DagView : public QDialog
 {
   Q_OBJECT
 
  public:
   DagView(dag_node *dag, QString cap);
-  DagView(dag_node *dag, list<unification_failure *> fails);
+  DagView(dag_node *dag, list<failure *> fails);
 
  private:
   dag_node *_dag;

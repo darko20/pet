@@ -137,7 +137,8 @@ extern std::vector< std::list<int> > immediateSupertype;
 /** Tables containing a reordering function for types, from the new (cheap) 
  *  type id to the old (flop) one and the inverse.
  */
-extern int *cheap2flop, *flop2cheap;
+extern std::vector<int> cheap2flop;
+extern std::vector<int> flop2cheap;
 /*@}*/
 #endif
 
