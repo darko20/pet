@@ -55,6 +55,7 @@ enum position_map { NO_POSITION_MAP = 0, STANDOFF_POINTS, STANDOFF_COUNTS};
 enum tokenizer_id {
   TOKENIZER_STRING, TOKENIZER_YY, TOKENIZER_YY_COUNTS
   , TOKENIZER_PIC, TOKENIZER_PIC_COUNTS
+  , TOKENIZER_FSC
   , TOKENIZER_FSR, TOKENIZER_SMAF, TOKENIZER_INVALID
 };
 
@@ -140,6 +141,12 @@ protected:
    * status stream, otherwise just strip them.
    */
   int _comment_passthrough;
+  
+  /**
+   * If \c true, always keep case as it is, otherwise convert every form to
+   * lower case.
+   */
+  bool _case_sensitive;
 };
 
 /** Call a Named Entity Recognizer.

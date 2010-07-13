@@ -69,8 +69,12 @@ public:
   int id;
   /** nr of trees (packed readings) */
   int trees;
+  /** nr of pseudo-trees (packed pseudo-readings) */
+  int rtrees;
   /** nr of readings */
   int readings;
+  /** nr of pseudo-readings */
+  int rreadings;
   /** nr of words */
   int words;
   /** nr of words pruned by chart manipulation */
@@ -275,7 +279,7 @@ public:
     date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
     subsumptions(-1), p_equivalent(-1), p_proactive(-1),
     p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
-    p_hypotheses(-1), p_upedges(-1),
+        p_hypotheses(-1), p_upedges(-1), rtrees(-1), rreadings(-1),
     results(), edges(), rule_stats(), i_input(), i_length(-1)
   {
   }
@@ -390,7 +394,12 @@ public:
   /** passive items in unpacking  */
   int p_upedges;
 
-private:
+  //
+  // statistics from the second, robust parsing phase
+  //
+  int rtrees;
+  int rreadings;
+ private:
 
   std::list<tsdb_result> results;
   std::list<tsdb_edge> edges;

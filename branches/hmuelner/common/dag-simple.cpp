@@ -77,7 +77,7 @@ int dag_type(dag_node *dag)
 void dag_set_type(dag_node *dag, int s)
 {
   dag = dag_deref(dag);
-  dag -> type = s;
+  dag->type = s;
 }
 
 dag_node *dag_get_attr_value(dag_node *dag, int attr)
@@ -104,7 +104,7 @@ struct dag_node *make_nth_arg(int n, dag_node *v)
   t1 = new_dag(BI_TOP);
   dag_add_arc(res, new_arc(BIA_ARGS, t1)); 
   
-  for(int i = 1; i < n ; i++)
+  for(int i = 1; i < n ; ++i)
     {
       t2 = new_dag(BI_TOP);
       dag_add_arc(t1, new_arc(BIA_REST, t2));
@@ -164,7 +164,7 @@ dag_node *dag_unify1_rec(dag_node *dag1, dag_node *dag2)
   int new_type;
   dag_arc *arc1, *arc2;
 
-  unification_cost++;
+  ++unification_cost;
 
   dag1 = dag_deref(dag1); dag2 = dag_deref(dag2);
 
@@ -218,7 +218,7 @@ dag_node *dag_copy_rec(dag_node *src, int generation)
   dag_node *copy;
   dag_arc *arc;
 
-  unification_cost++;
+  ++unification_cost;
 
   src = dag_deref(src);
 
@@ -282,7 +282,7 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
   dag_arc *arc1, *arc2;
   dag_node *copy1, *copy2, *result, *wdag2;
 
-  unification_cost++;
+  ++unification_cost;
 
   dag1 = dag_deref(dag1);
   dag2 = dag_deref(dag2);
@@ -371,7 +371,7 @@ dag_node * dag_unify3_rec(dag_node *dag1, dag_node *dag2, int generation)
   dag_arc *arc1, *arc2;
   dag_node *copy;
 
-  unification_cost++;
+  ++unification_cost;
 
   dag1 = dag_deref(dag1);
   dag2 = dag_deref(dag2);
@@ -481,7 +481,7 @@ bool dag_cyclic_rec(dag_node *dag)
 {
   int v;
   
-  unification_cost++;
+  ++unification_cost;
 
   dag = dag_deref(dag);
 

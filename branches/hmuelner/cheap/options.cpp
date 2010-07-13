@@ -30,6 +30,7 @@
 #include "version.h"
 #include "logging.h"
 #include "configs.h"
+#include "lexparser.h"
 
 #include <string>
 #include <boost/program_options.hpp>
@@ -45,6 +46,7 @@ std::string parse_options(int argc, char* argv[])
   string inputfilename;
   int opt_tsdb = 1;
   int nsolutions = 1;
+  string default_les("tradtional");
   string defaultOutputFile("/tmp/qc.tdl");
   int server = CHEAP_SERVER_PORT;
   int key = 0;
@@ -89,7 +91,9 @@ std::string parse_options(int argc, char* argv[])
     ("no-derivation", "disable output of derivations")
     ("rulestats", "enable tsdb output of rule statistics")
     ("no-chart-man", "disable chart manipulation")
-    ("default-les", "enable use of default lexical entries")
+    ("default-les", po::value<string>(&default_les)->implicit_value("traditional"), "enable use of default lexical entries [=all|traditional]\n"
+    "         * all: try to instantiate all default les for all input fs\n"
+    "         * traditional (default): determine default les by posmapping for all lexical gaps")
     ("predict-les", po::value<int>(&predict_les)->implicit_value(1), "enable use of type predictor for lexical gaps")
     ("lattice", "word lattice parsing")
     ("no-online-morph", "no online morphology")
@@ -138,7 +142,16 @@ std::string parse_options(int argc, char* argv[])
 
     set_opt("opt_tsdb", opt_tsdb);
     set_opt("opt_nsolutions", nsolutions);
-    set_opt("opt_default_les", vm.count("default-les")>0);
+    int dles = 0;
+    if (vm.count("default-les")>0) {
+      string dl = vm["default-les"].as<string>();
+      if (dl == "traditional") {
+        dles = 1;
+      } else if (dl == "all") {
+        dles = 2;
+      }
+    }
+    set_opt("opt_default_les", static_cast<default_les_strategy>(dles));
     set_opt("opt_chart_man", vm.count("no-chart-man")==0); 
     set_opt("opt_server", server);
     set_opt("opt_shrink_mem", vm.count("no-shrink-mem")==0);

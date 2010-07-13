@@ -329,7 +329,7 @@ inline bool is_string_instance(type_t a) {
 /** check the validity of the attribute \a attr */
 inline bool is_attr(attr_t attr) {
   assert(attr >= 0);
-  return (attr <= attrname.size());
+  return (attr <= static_cast<int>(attrname.size()));
 }
 
 #endif

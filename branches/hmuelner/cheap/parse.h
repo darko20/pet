@@ -24,6 +24,7 @@
 #ifndef _PARSE_H_
 #define _PARSE_H_
 
+#include "item.h"
 #include "errors.h"
 #include "cheaptimer.h"
 #include <string>
@@ -39,6 +40,7 @@ class fs_alloc_state;
 #define PACKING_PRO   (1 << 1)
 #define PACKING_RETRO (1 << 2)
 #define PACKING_SELUNPACK (1 << 3)
+#define PACKING_PCFGEQUI (1 << 4)
 #define PACKING_NOUNPACK (1 << 7)
 //@}
 
@@ -48,6 +50,7 @@ class fs_alloc_state;
 extern timer TotalParseTime;
 
 bool timeoutExpired();
+bool resources_exhausted(int pedgelimit, long memlimit, int timeout);
 
 bool add_item(tItem *it);
 void parse_loop(fs_alloc_state &FSAS, std::list<tError> &errors, int timeout);
@@ -65,5 +68,14 @@ void postulate(tItem *passive);
  */
 void analyze(std::string input, class chart *&C, class fs_alloc_state &FSAS,
              std::list<tError> &errors, int id = 0);
+
+/** selective unpacking */
+int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
+                       long memlimit, int nsolutions, 
+                       timer *UnpackTime , std::vector<tItem *> &readings);
+
+/** exhaustive unpacking */
+int unpack_exhaustively(std::vector<tItem*> &trees, int upedgelimit,
+                        timer *UnpackTime, std::vector<tItem *> &readings);
 
 #endif

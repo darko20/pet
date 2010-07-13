@@ -43,6 +43,15 @@ public:
   chart(int len, boost::shared_ptr<item_owner> owner);
   ~chart();
 
+  /**
+   * Resets the chart, removing all items, but leaving _trees and _readings
+   * untouched.
+   * This method is only needed for mapping the new chart (tChart) to this
+   * old chart implementation.
+   * TODO remove this method if tChart is not used anymore
+   */
+  void reset(int len);
+
   /** Add item to the appropriate internal data structures, depending on its
    *  activity.
    */
@@ -146,7 +155,8 @@ public:
   inline chart_iter(const chart &C) : _LI(C._Chart), _curr(_LI.begin()) { }
 
   /** Increase iterator */
-  inline chart_iter &operator++() {
+  inline chart_iter &operator++()
+  {
     ++_curr;
     return *this;
   }
@@ -206,7 +216,8 @@ public:
  * \attention iterators must return items in order of `stamp', so the
  * `excursion' works.
  */
-class chart_iter_span_passive {
+class chart_iter_span_passive
+{
 public:
   /** Create an iterator for all passive items in \a C starting at \a i1 and
    *  ending at \a i2.
@@ -225,7 +236,7 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_span_passive &operator++(int) {
+  inline chart_iter_span_passive &operator++() {
     ++_curr;
     return *this;
   }
@@ -276,7 +287,8 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_topo &operator++(int) {
+  inline chart_iter_topo &operator++()
+  {
     _curr++;
     next();
     return *this;

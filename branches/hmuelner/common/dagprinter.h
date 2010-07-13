@@ -158,6 +158,16 @@ protected:
 };
 
 
+class ItsdbDagPrinter : public CompactDagPrinter {
+protected:
+  virtual void print_arc(std::ostream &out, const dag_arc *arc, bool temp);
+  virtual void print_coref_reference(std::ostream &out, int coref_nr);
+  virtual void print_coref_definition(std::ostream &out, int coref_nr);
+  virtual void print_dag_node_start(std::ostream &out, const dag_node *dag);
+  virtual void print_dag_node_end(std::ostream &out, const dag_node *dag);
+};
+
+
 class FegramedDagPrinter : public CompactDagPrinter {
 protected:
   virtual void print_null_dag(std::ostream &out) { out << "NIL"; }

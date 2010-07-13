@@ -1,22 +1,22 @@
 /* PET
-* Platform for Experimentation with efficient HPSG processing Techniques
-* (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
-*   2004 Bernd Kiefer bk@dfki.de
-*
-*   This program is free software; you can redistribute it and/or
-*   modify it under the terms of the GNU Lesser General Public
-*   License as published by the Free Software Foundation; either
-*   version 2.1 of the License, or (at your option) any later version.
-*
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-*   Lesser General Public License for more details.
-*
-*   You should have received a copy of the GNU Lesser General Public
-*   License along with this library; if not, write to the Free Software
-*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
+ * Platform for Experimentation with efficient HPSG processing Techniques
+ * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
+ *   2004 Bernd Kiefer bk@dfki.de
+ *
+ *   This program is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
 /*
 
@@ -274,8 +274,7 @@ tInputItem* tYYTokenizer::read_token()
   if(paths.empty() || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected paths)");
 
-  bool downcasep = true;
-  if(!read_string(stem, true, downcasep))
+  if(!read_string(stem, true, !_case_sensitive))
     throw tError("yy_tokenizer: ill-formed token (expected stem)");
 
   // translate iso-8859-1 german umlaut and sz
@@ -342,7 +341,10 @@ tInputItem* tYYTokenizer::read_token()
         token_class = WORD_TOKEN_CLASS;
         surface = stem;
         break;
-      } else
+      } 
+      else if(token_class == SKIP_TOKEN_CLASS)
+	break;
+      else
         throw tError("yy_tokenizer: illegal \"null\" spec");
     }
 

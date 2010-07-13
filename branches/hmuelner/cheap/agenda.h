@@ -26,32 +26,139 @@
 #include <queue>
 #include <vector>
 
+#include "item.h"
+#include "options.h"
+#include "task.h"
+
+
 /** agenda: a priority queue adapter */
-template <typename T, typename LESS_THAN > class agenda {
+template <typename T, typename LESS_THAN > class abstract_agenda {
 public:
 
-  agenda() : _A() {}
+  virtual ~abstract_agenda() {}
 
-  ~agenda() { while(!this->empty()) delete this->pop(); }
+  virtual void push(T *t) = 0;
+  virtual T * top() = 0;
+  virtual T * pop() = 0;     // Responsibility to delete the task is for the caller. 
+  virtual bool empty() = 0;
+  virtual void feedback (T *t, tItem *result) = 0; 
   
-  /** Push \a t onto agenda */
-  void push(T *t) { _A.push(t); }
+};
     
-  /** Return the topmost (best) element from the agenda */
-  T * top() { return _A.top(); }
 
-  /** Remove the topmost element from the agenda and return it */
-  T * pop() { T *t = top(); _A.pop(); return t; }
+template <typename T, typename LESS_THAN > class exhaustive_agenda : public abstract_agenda<T, LESS_THAN > {
+public : 
 
-  /** Test if agenda is empty */
+  exhaustive_agenda() : _A() {}
+  ~exhaustive_agenda() { while(!this->empty()) delete this->pop(); }
+
+  void push(T *t) { _A.push(t); }
+  T * top()       { return _A.top(); }
+  T * pop()       { T *t = top(); _A.pop(); return t; }
   bool empty() { return _A.empty(); }
-
-  /** Return the number of tasks in the agenda */
-  int size() { return _A.size();}
+  void feedback (T *t, tItem *result) {}
 
 private:
 
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
 };
+
+
+
+
+
+/*
+ * LOCAL CAP AGENDA
+ */
+
+template <typename T, typename LESS_THAN > class local_cap_agenda : public abstract_agenda<T, LESS_THAN > {
+/* This class provides functionality to define a per-cell cap on the number of tasks to be executed. */
+
+public : 
+
+  local_cap_agenda(int cell_size, int max_pos) : _A(), _popped((max_pos+1)*(max_pos+1)), _max_pos(max_pos), _cell_size(cell_size),
+                                                 _exec((max_pos+1)*(max_pos+1)), _succ((max_pos+1)*(max_pos+1)), _pass((max_pos+1)*(max_pos+1)) { 
+  }
+  ~local_cap_agenda();
+  
+  void push(T *t) {
+    _A.push(t); 
+  }
+  T * top();
+  T * pop(); 
+  bool empty() { return top() == NULL; }
+  void feedback (T *t, tItem *result);
+
+private:
+
+  std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
+  std::vector<int> _popped;
+  int _max_pos;
+  int _cell_size;
+  
+  std::vector<int> _exec;
+  std::vector<int> _succ;
+  std::vector<int> _pass; 
+};
+
+
+/*
+ * (implementation here, due to use of templates)
+ */
+
+template <typename T, class LESS_THAN>
+local_cap_agenda<T, LESS_THAN>::~local_cap_agenda() {
+  while (!_A.empty()) {
+    T* t = _A.top();
+    delete t;
+    _A.pop();
+  }
+}
+
+template <typename T, class LESS_THAN>
+T * local_cap_agenda<T, LESS_THAN>::top() {
+  T* t;
+  bool found = false;
+  while (!found) {
+    if (!_A.empty()) {
+      t = _A.top();
+      if (t->phrasal() && _popped[t->start()*(_max_pos+1) + t->end()] >= _cell_size) {
+        // This span reached the limit, so continue searching for a new task. 
+        // Inflectional and lexical rules are always carried out. 
+        delete t;
+        _A.pop();
+      } else {
+        found = true;
+      }
+    } else {
+      t = NULL;
+      break;
+    }
+  }
+  return t;
+}
+
+template <typename T, class LESS_THAN>
+T * local_cap_agenda<T, LESS_THAN>::pop() { 
+  T *t = top(); 
+  if (t != NULL) { 
+    _A.pop(); 
+  }
+  return t; 
+}
+
+template <typename T, class LESS_THAN>
+void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) { 
+  if (t->phrasal()) {
+    if (get_opt_int("opt_count_tasks") == 0) {
+      _popped[t->start()*(_max_pos+1) + t->end()]++;
+    } else if (get_opt_int("opt_count_tasks") == 1 && (result != 0)) {
+      _popped[t->start()*(_max_pos+1) + t->end()]++;
+    } else if (get_opt_int("opt_count_tasks") == 2 && (result != 0) && t->yields_passive()) {
+      _popped[t->start()*(_max_pos+1) + t->end()]++;
+    }    
+  }
+}
+
 
 #endif
