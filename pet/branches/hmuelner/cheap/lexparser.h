@@ -57,7 +57,7 @@ class lex_parser {
   friend class lex_task;
 
 public:
-  lex_parser() : _maxpos(-1), _carg_path(NULL) { }
+  lex_parser() : _maxpos(-1), _carg_path() { }
   
   ~lex_parser() {
     free_modules(_tokenizers);
@@ -186,7 +186,7 @@ private:
    * \param lex_exhaustive specifies whether we have performed an exhaustive
    *                       lexical processing before.
    */
-  void dependency_filter(struct setting *deps, bool unidirectional
+  void dependency_filter(setting *deps, bool unidirectional
                          , bool lex_exhaustive);
 
   /** Add generic entries for uncovered input items.
@@ -278,7 +278,7 @@ private:
   /** Feature structure modification path for surface (relation) specification
    *  in genenric entries.
    */
-  char *_carg_path;
+  std::string _carg_path;
 };
 
 

@@ -105,8 +105,8 @@ static bool charz_use = false;
 
 /** Set characterization paths and modlist. */
 void init_characterization() {
-  char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
-  char *cto_path = cheap_settings->value("mrs-cto-path");
+  const char *cfrom_path = cheap_settings->value("mrs-cfrom-path");
+  const char *cto_path = cheap_settings->value("mrs-cto-path");
   if ((cfrom_path != NULL) && (cto_path != NULL)) {
     cfrom.set(cfrom_path);
     cto.set(cto_path);
@@ -311,7 +311,7 @@ tInputItem::generics(postags onlyfor)
     {
         int gen = first(gens);
 
-        char *suffix = cheap_settings->assoc("generic-le-suffixes",
+        const char *suffix = cheap_settings->assoc("generic-le-suffixes",
                                              type_name(gen));
         if(suffix)
           if(_surface.length() <= strlen(suffix) ||

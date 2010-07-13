@@ -128,7 +128,7 @@ public:
    *  sub-rule?
    *  If this is the case, return the reduced form in \a result.
    */
-  bool base_form(MString matched, MString rest,
+  bool base_form(const MString& matched, const MString& rest,
                  MString &result);
 
   void print(std::ostream &) const;
@@ -161,7 +161,7 @@ public:
     return it->second;
   }
 
-  void add_path(MString path, morph_subrule *rule, const morph_lettersets &ls);
+  void add_path(const MString& path, morph_subrule *rule, const morph_lettersets &ls);
 
   bool has_rules() const { return ! _rules.empty(); }
   const std::vector<morph_subrule *> &rules() const { return _rules; }

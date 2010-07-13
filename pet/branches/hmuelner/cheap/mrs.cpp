@@ -145,7 +145,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
 
   // extract top-h
   struct dag_node* d = FAIL;
-  char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
+  const char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
   if (!psoa_top_h_path || strcmp(psoa_top_h_path, "") == 0) 
     top_h = request_var("h");
   else { 
@@ -502,17 +502,18 @@ operator()(const std::string feat1, const std::string feat2) const {
     return false;
   if (f1in && f2in) {
     setting* plist = cheap_settings->lookup("mrs-feat-priority-list");
-    for (int i = 0; i < plist->n; i ++) 
-      if (strcasecmp(plist->values[i], feat1.c_str()) == 0)
+    for (int i = 0; i < plist->n(); i ++) 
+      if (strcasecmp(plist->values[i].c_str(), feat1.c_str()) == 0)
         return true;
-      else if (strcasecmp(plist->values[i], feat2.c_str()) == 0)
+      else if (strcasecmp(plist->values[i].c_str(), feat2.c_str()) == 0)
         return false;
   }
   return feat1 < feat2;
 }
 
 bool ltextra::
-operator()(const std::string feat1, const std::string feat2) const {
+operator()(const std::string feat1, const std::string feat2) const
+{
   bool f1in = cheap_settings->member("mrs-extra-priority-list", feat1.c_str());
   bool f2in = cheap_settings->member("mrs-extra-priority-list", feat2.c_str());
   if (f1in && !f2in)
@@ -521,10 +522,10 @@ operator()(const std::string feat1, const std::string feat2) const {
     return false;
   if (f1in && f2in) {
     setting* plist = cheap_settings->lookup("mrs-extra-priority-list");
-    for (int i = 0; i < plist->n; i ++) 
-      if (strcasecmp(plist->values[i], feat1.c_str()) == 0)
+    for (int i = 0; i < plist->n(); i ++) 
+      if (strcasecmp(plist->values[i].c_str(), feat1.c_str()) == 0)
         return true;
-      else if (strcasecmp(plist->values[i], feat2.c_str()) == 0)
+      else if (strcasecmp(plist->values[i].c_str(), feat2.c_str()) == 0)
         return false;
   }
   return feat1 < feat2;

@@ -148,9 +148,8 @@ list<tMorphAnalysis> lex_parser::morph_analyze(string form) {
 // _fix_me_
 void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
 #ifdef DYNAMIC_SYMBOLS
-  if (_carg_path != NULL) {
-    mods.push_back(pair<string, int>(_carg_path
-                                     , retrieve_string_instance(carg)));
+  if (!_carg_path.empty()) {
+    mods.push_back(pair<string, int>(_carg_path.c_str(), retrieve_string_instance(carg)));
   }
 #endif
 }
@@ -328,12 +327,12 @@ int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
 
 
 void
-lex_parser::dependency_filter(struct setting *deps, bool unidirectional
-                              , bool lex_exhaustive) {
+lex_parser::dependency_filter(setting *deps, bool unidirectional, bool lex_exhaustive)
+{
   if(deps == 0 || !get_opt_bool("opt_chart_man"))
     return;
 
-  vector<set <int> > satisfied(deps->n);
+  vector<set <int> > satisfied(deps->n());
   multimap<tItem *, pair <int, int> > requires;
 
   tItem *lex;
@@ -351,8 +350,8 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
       LOG(logLexproc, DEBUG, "dependency information for " << 
           lex->printname() << ":");
     
-      for(int j = 0; j < deps->n; j++) {
-        fs v = f.get_path_value(deps->values[j]);
+      for(int j = 0; j < deps->n(); j++) {
+        fs v = f.get_path_value(deps->values[j].c_str());
         if(v.valid()) {
           LOG(logLexproc, DEBUG, "  " << deps->values[j] << " : " << v.name());
 

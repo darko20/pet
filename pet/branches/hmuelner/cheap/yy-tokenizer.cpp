@@ -316,7 +316,7 @@ tYYTokenizer::read_token()
   // add surface form of ersatzes to fsmod, if necessary
   string ersatz_suffix("ersatz"); 
   modlist fsmods = modlist() ;
-  char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
+  const char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
 
   if ((ersatz_carg_path != NULL) &&
       (stem.substr(max(0,stem.length()-ersatz_suffix.length())) 

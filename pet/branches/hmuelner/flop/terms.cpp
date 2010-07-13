@@ -32,7 +32,6 @@ struct avm *new_avm()
 
   A = (struct avm *) salloc(sizeof (struct avm));
 
-  A -> is_special = 0;
   A -> n = 0;
   A -> allocated = AV_TABLE_SIZE;
   A -> av = (struct attr_val **) salloc(A -> allocated * sizeof(struct attr_val*));
@@ -250,7 +249,6 @@ struct avm* copy_avm(struct avm *A)
   A1 = (struct avm *) salloc(sizeof(struct avm));
 
   A1 -> n = A -> n;
-  A1 -> is_special = A -> is_special;
   A1 -> allocated = A -> n;
   A1 -> av = (struct attr_val **) salloc(A1 -> allocated * sizeof(struct attr_val*));
 

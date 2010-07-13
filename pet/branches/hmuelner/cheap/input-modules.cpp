@@ -80,7 +80,7 @@ using std::list;
 extern settings *cheap_settings;
 
 tTokenizer::tTokenizer() {
-  char *s = cheap_settings->value("punctuation-characters");
+  const char *s = cheap_settings->value("punctuation-characters");
   string pcs;
   if(s == 0)
     pcs = " \t?!.:;,()-+*$\n";

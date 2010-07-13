@@ -35,11 +35,10 @@
 /** A setting from the settings file (in TDL format) */
 struct setting
 {
-  char *name;
-  int n, allocated;
-  char **values;
-
-  struct lex_location* loc;
+    std::string name;
+    std::vector<std::string> values;
+    struct lex_location* loc;
+    size_t n() const { return values.size(); }
 };
 
 /** a set of settings with access functions */
@@ -52,8 +51,8 @@ class settings
 
   setting *lookup(const char *name);
 
-  char *value(const char *name);
-  char *req_value(const char *name);
+  const char *value(const char *name);
+  const char *req_value(const char *name);
 
   // string equality based member test
   bool member(const char *name, const char *value);
@@ -62,7 +61,7 @@ class settings
   bool statusmember(const char *name, type_t key);
 
   // string equality based assoc
-  char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
+  const char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
 
 #ifndef FLOP
   // subtype based map
@@ -74,7 +73,8 @@ class settings
  private:
   int _n;
   setting **_set;
-  std::string _fname, _prefix;
+  std::string _fname;
+  std::string _prefix;
   struct lex_location *_lloc;
 
   /** cache for settings converted to lists of integers (e.g. status values) */

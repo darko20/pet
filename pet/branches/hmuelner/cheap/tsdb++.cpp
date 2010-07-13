@@ -188,11 +188,11 @@ initialize_version()
     if(qcss == NULL) qcss = "";
     
     string sts("");
-    struct setting *set;
+    setting *set = cheap_settings->lookup("start-symbols");
     
-    if((set = cheap_settings->lookup("start-symbols")) != 0)
+    if(set != 0)
     {
-        for(int i = 0; i < set->n; i++)
+        for(int i = 0; i < set->n(); i++)
         {
             if(i!=0) sts += string(", ");
             sts += string(set->values[i]);
