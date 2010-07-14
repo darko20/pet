@@ -62,12 +62,12 @@ static int init() {
   managed_opt("opt_sm",
               "parse selection model (`null' for none)",
               std::string(""));
-  managed_opt("opt_local_cap",
-              "Restrict agenda, based on a generative model",
-              0); 
-  managed_opt("opt_count_tasks",
-              "Determines which tasks are count when retricting the parse process: 0=all tasks; 1=all successful tasks; 2=all passive items",
-              0);
+  managed_opt("opt_chart_pruning",
+              "enables the chart pruning agenda",
+              400); 
+  managed_opt("opt_chart_pruning_strategy",
+              "determines the chart pruning strategy: 0=all tasks; 1=all successful tasks; 2=all passive items (default)",
+              2);
   return true;
 }
 
@@ -609,7 +609,7 @@ tGrammar::tGrammar(const char * filename)
     if (pcfg_file != 0) {
       try { 
         _pcfgsm = new tPCFG(this, pcfg_file, filename); 
-        // delete pcfgsm; // only pcfg rules are loaded, not their weights TODO: what was happening here?
+        // delete pcfgsm; /// only pcfg rules are loaded, not their weights \todo what was happening here?
       } catch (tError &e) {
         LOG(logGrammar, ERROR, e.getMessage());
         // LOG(logGrammar, ERROR, e.getMessage());

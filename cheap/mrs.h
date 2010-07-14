@@ -258,7 +258,7 @@ class tSemEnt : public tBaseMRS
 {
 public:
   tHook* hook;
-  std::vector<tSlot*> slots;
+  std::vector<tSlot*> slots_;
   //equalities; // don't know what this is yet
 };
 

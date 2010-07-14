@@ -57,12 +57,13 @@
 #include "errors.h"
 #include "settings.h"
 #include "configs.h"
-
+#include "vpm.h"
 // #define _POSIX_OPEN_MAX 10
 
 const char * version_string = VERSION ;
 settings *cheap_settings = 0;
 tGrammar *Grammar = 0;
+tVPM *vpm = 0; // TODO add code to read the vpm file to some menu
 
 extern int BI_TOP, BI_ATOM, BI_NIL, BIA_FIRST, BIA_REST;
 extern int BIA_ARGS;
@@ -73,8 +74,6 @@ int capi_register(int (*)(char *, int, char *, int, char *),
                                  int, int, int),
                          int (*)(char *),
                          int (*)(int, char *)) { return 0 ;}
-
-FILE *fstatus;
 
 int main(int argc, char *argv[])
 {
@@ -135,8 +134,6 @@ int main(int argc, char *argv[])
         false);
 
     QApplication Goofy(argc, argv);
-
-    fstatus = stderr;
 
     GoofyWindow *Main = new GoofyWindow();
 

@@ -97,7 +97,7 @@ qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
       
           val = strtoint(type_name(dump_n.type), "in qc structure", true);
 
-          if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
+          if(val < 0 || val > 1024) /// \todo 1024 is arbitrary
             throw tError("invalid node (value too large) in qc structure");
 
           val += 1;
@@ -145,8 +145,7 @@ void dag_qc_free()
   }
 }
 
-// _fix_me_ todo: implement this for the new scheme
-
+/// \todo implement this for the new scheme
 bool dag_prune_qc_paths(dag_node *qc_paths)
 {
   bool useful = false;

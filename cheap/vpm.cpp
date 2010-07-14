@@ -1,8 +1,9 @@
 #include "vpm.h"
 
 #include <cstring>
-
-extern FILE* ferr;
+#include <istream>
+#include <fstream>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -12,96 +13,79 @@ tVPM::~tVPM() {
     delete *pm;
 }
 
-bool tVPM::
-read_vpm(const string &filename, string id) {
+bool tVPM::read_vpm(const string &filename, string id)
+{
   this->id = id;
   tPM* pm = NULL;
-  char* line = new char[MAXVPMLINE];
-  FILE* f = fopen(filename.c_str(), "r");
-  while (!feof(f)) {
-    fgets(line, MAXVPMLINE, f);
-    size_t length = strspn(line, " \t\n");
-    if (length == strlen(line)) // empty line;
+  string line;
+  ifstream f(filename.c_str());
+  while (f.good()) {
+    getline(f, line);
+    size_t length = strspn(line.c_str(), " \t\n");
+    if (length == line.size()) // empty line;
       continue;
     else if (line[length] == ';') // comment line;
       continue;
-    if (strchr(line, ':') != NULL) {
+    if (line.find(':') != string::npos) {
       // beginning line of a pm
-      if (pm != NULL)
+      if (pm != NULL) {
         pms.push_back(pm);
+      }
       pm = new tPM();
-      char* tok = strtok(line, " \t\n");
-      bool onleft = true;
-      while (tok != NULL) {
-        if (strcmp(tok, ":") == 0)
-          onleft = false;
-        else {
-          if (onleft) 
-            pm->lhs.push_back(tok);
-          else 
-            pm->rhs.push_back(tok);
+      vector<string> pmdef;
+      boost::split(pmdef, line, boost::is_any_of(":"));
+      boost::trim(pmdef[0]);
+      boost::trim(pmdef[1]);
+      boost::split(pm->lhs, pmdef[0], boost::is_any_of("\t \n"));
+      boost::split(pm->rhs, pmdef[1], boost::is_any_of("\t \n"));
+    } else {
+      size_t sepPos = line.find_first_of("<>=");
+      if (sepPos != string::npos) {
+        // a line of mapping rule, being it for types or parameters
+        tMR* mr = new tMR();
+        size_t sepLength = strspn(line.c_str()+sepPos, "<>=");
+        string sep  = line.substr(sepPos, sepLength);
+        if (sepLength <2 || sepLength >3) { 
+          cerr << "Invalid direction (must be 2 or 3 chars): `" << sep << "'" << endl;
+          delete mr;
+          return false;
         }
-        tok = strtok(NULL, " \t\n");
-      }
-    } else if (strpbrk(line, "<>=") != NULL) {
-      // a line of mapping rule, being it for types or parameters
-      tMR* mr = new tMR();
-      char* tok = strtok(line, " \t\n");
-      bool onleft = true;
-      while (tok != NULL) {
-        if (strpbrk(tok, "<>=") != NULL) {
-          int len = strlen(tok);
-          if (len <2 || len >3) { 
-            fprintf(ferr, "Invalid direction (must be 2 or 3 chars): `%s'\n", tok);
-            return false;
-          }
-          if (strcmp(tok, "==") == 0) {
-            mr->forward = true;
-            mr->backward = true;
-          }
-          if (strchr(tok, '>') != NULL)
-            mr->forward = true;
-          if (strchr(tok, '<') != NULL)
-            mr->backward = true;
-          if (strchr(tok, '=') != NULL)
-            mr->eqtest = true;
-          if (strspn(tok, "<>=") != strlen(tok)) {
-            fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", tok);
-            return false;
-          }
-          onleft = false;
+        string left = line.substr(0, sepPos);
+        string right = line.substr(sepPos+sepLength);
+        boost::trim(left);
+        boost::trim(right);
+        if (sep == "==") {
+          mr->forward = true;
+          mr->backward = true;
         } else {
-          if (onleft) 
-            mr->left.push_back(tok);
-          else 
-            mr->right.push_back(tok);
+          mr->forward = (sep.find('>') != string::npos);
+          mr->backward = (sep.find('<') != string::npos);
+          mr->eqtest = (sep.find('=') != string::npos);
         }
-        tok = strtok(NULL, " \t\n");
-      }
-      if (pm == NULL && mr->left.size() == 1 && mr->right.size() == 1)
-        // it's a variable type mapping
-        tms.push_back(mr);
-      else if (mr->left.size() == pm->lhs.size() ||
-               mr->right.size() == pm->rhs.size())
-        pm->pmrs.push_back(mr);
-      else {
-        // a bad mapping rule with unmatched lhs or rhs
-        fprintf(ferr, "The pm rule is not valid.\n");
-        return false;
+        boost::split(mr->left, left, boost::is_any_of("\t \n"));
+        boost::split(mr->right, right, boost::is_any_of("\t \n"));
+        if (pm == NULL && mr->left.size() == 1 && mr->right.size() == 1)
+          // it's a variable type mapping
+          tms.push_back(mr);
+        else if (mr->left.size() == pm->lhs.size() ||
+          mr->right.size() == pm->rhs.size())
+          pm->pmrs.push_back(mr);
+        else {
+          // a bad mapping rule with unmatched lhs or rhs
+          cerr << "The pm rule is not valid." << endl;
+          return false;
+        }
       }
     }
   }
-  if (pm != NULL)
+  if (pm != NULL) {
     pms.push_back(pm);
-
-  fclose(f);
-  delete[] line;
+  }
   return true;
-
 }
 
-tPSOA* tVPM::
-map_mrs(tPSOA* mrs_in, bool forwardp) {
+tPSOA* tVPM::map_mrs(tPSOA* mrs_in, bool forwardp)
+{
   tPSOA* mrs_new = new tPSOA();
   mrs_new->top_h = map_variable(mrs_in->top_h, mrs_new, forwardp);
   mrs_new->index = map_variable(mrs_in->index, mrs_new, forwardp);
@@ -140,8 +124,8 @@ map_mrs(tPSOA* mrs_in, bool forwardp) {
   return mrs_new;
 }
 
-tVar* tVPM::
-map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
+tVar* tVPM::map_variable(tVar* var_in, tPSOA* mrs, bool forwardp)
+{
 
   if (_vv_map.find(var_in) != _vv_map.end()) // already mapped
     return _vv_map[var_in];
@@ -208,8 +192,8 @@ tPM::~tPM() {
     delete *pmr;
 }
 
-bool tMR::
-test(string type, list<string> values, bool forwardp) {
+bool tMR::test(string type, list<string> values, bool forwardp)
+{
   if (forwardp && !forward)
     return false;
   if (!forwardp && !backward)

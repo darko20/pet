@@ -31,14 +31,13 @@
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
+using std::string;
 
-
-std::string parse_options(int argc, char* argv[])
+string parse_options(int argc, char* argv[])
 {
     int cmi = 0;
-    int local_cap = 1000;
-    int count_tasks = 0;
-    std::string filename;
+    string cp;
+    string filename;
     po::options_description generic("generic options");
     generic.add_options()
         ("help", "produce help message")
@@ -50,12 +49,13 @@ std::string parse_options(int argc, char* argv[])
         ("no-semantics", "remove all semantics")
         ("propagate-status", "propagate status the PAGE way")
         ("cmi", po::value<int>(&cmi)->implicit_value(0), "create morph info, level = 0..2, default 0")
-        ("local-cap", po::value<int>(&local_cap), "enable local phrasal search space restriction")
-        ("count-tasks", po::value<int>(&count_tasks) ,"indicates which types of tasks should be counted: all (0, default), successful (1), or successful+passive (2).");
+        ("cp", po::value<string>(&cp), "enable local phrasal search space restriction\n"
+        "format is [strategy]limit\n"
+        "enable chart pruning. Strategy can be (a)ll, (s)uccessful and (p)assive (default)")
         ;
     po::options_description hidden("hidden options");
     hidden.add_options()
-        ("input-file", po::value<std::string>(&filename), "input file")
+        ("input-file", po::value<string>(&filename), "input file")
     ;        
 
     po::options_description cmdline_options;
@@ -89,8 +89,24 @@ std::string parse_options(int argc, char* argv[])
         set_opt("opt_no_sem", vm.count("no-semantics")>0);
         set_opt("opt_propagate_status", vm.count("propagate-status")>0);
         set_opt("opt_cmi", cmi);
-        set_opt("opt_local_cap", local_cap);
-        set_opt("opt_count_tasks", count_tasks);
+        if (cp.empty()) {
+          cp = "p400";
+        }
+        if (!(cp[0]=='a' || cp[0]=='s' || cp[0]=='p')) {
+          cp = "p" + cp;
+        }
+        int cpi = strtoint(cp.c_str()+1, "");
+        set_opt("opt_chart_pruning", cpi);
+        if (cp[0] == 'a') {
+          set_opt("opt_chart_pruning_strategy", 0);
+          LOG (logChartPruning, INFO, "Chart pruning: strategy=all; cell size=" << cpi);
+        } else if (cp[0] == 's') {
+          set_opt("opt_chart_pruning_strategy", 1);
+          LOG (logChartPruning, INFO, "Chart pruning: strategy=successful; cell size=" << cpi);
+        } else if (cp[0] == 'p') {
+          set_opt("opt_chart_pruning_strategy", 2);
+          LOG (logChartPruning, INFO, "Chart pruning: strategy=passive; cell size=" << cpi);
+        }
     }
     catch (po::required_option) {
         throw std::logic_error("option error");

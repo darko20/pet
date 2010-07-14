@@ -24,7 +24,7 @@ public:
    * empty dag node with the maximal appropriate type of the feature pointing
    * to it.
    */
-  virtual class dag_node *dag_partial_copy (class dag_node *) const = 0;
+  virtual dag_node *dag_partial_copy (dag_node*) const = 0;
 };
 
 /** A restrictor that prunes all arcs that bear an attribute contained in a set
@@ -46,7 +46,7 @@ public:
     return contains(_del_arcs, attr);
   }
 
-  virtual class dag_node *dag_partial_copy (class dag_node * dag) const {
+  virtual dag_node *dag_partial_copy (dag_node* dag) const {
     return dag_partial_copy_stateless(dag, *this);
   }
 };
@@ -197,7 +197,8 @@ public:
 
   virtual ~path_restrictor() {}
  
-  virtual class dag_node *dag_partial_copy (class dag_node *dag) const {
+  virtual dag_node* dag_partial_copy (dag_node* dag) const
+  {
     return dag_partial_copy_state(dag, _root_state);
   }
 };
@@ -207,7 +208,7 @@ template< typename R_STATE > bool empty(const R_STATE &state);
 template< typename R_STATE > R_STATE walk_arc(const R_STATE &state, attr_t attr);
 
 template<> inline bool
-copy_full(const path_restrictor::state &state) { return false; }
+copy_full(const path_restrictor::state&) { return false; }
 
 template<> inline bool
 empty(const path_restrictor::state &state) { return state.empty(); }
@@ -235,33 +236,34 @@ class dag_restrictor : public restrictor {
 public:
   static type_t DEL_TYPE, ONLY_TYPE;
 
-  static const dag_node *_copyall;
-  static const dag_node *_deletearc;
+  static const dag_node* _copyall;
+  static const dag_node* _deletearc;
 
-  const dag_node *_root;
+  const dag_node* _root;
 
 public:
   /** Create a restrictor object that is encoded in the dag \a del */
-  dag_restrictor(class dag_node *del){ _root = del; }
+  dag_restrictor(dag_node* del){ _root = del; }
 
   virtual ~dag_restrictor() { }
 
-  virtual class dag_node *dag_partial_copy (class dag_node *dag) const {
+  virtual dag_node *dag_partial_copy (dag_node* dag) const
+  {
     return dag_partial_copy_state(dag, _root); 
   }
 };
 
 template<> inline bool
-copy_full(const dag_node * const &dag) {
+copy_full(const dag_node* const &dag) {
   return dag == dag_restrictor::_copyall;
 }
 
 template<> inline bool
-empty(const dag_node * const &dag) {
+empty(const dag_node* const &dag) {
   return dag == dag_restrictor::_deletearc;
 }
 
 template<> const dag_node *
-walk_arc(const dag_node * const &dag, attr_t attr);
+walk_arc(const dag_node* const &dag, attr_t attr);
 
 #endif

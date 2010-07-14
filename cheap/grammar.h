@@ -331,9 +331,6 @@ public:
   void clear_dynamic_stems();
 #endif
   
-  // _fix_me_ becomes obsolete when yy.cpp does
-  //std::list<full_form> lookup_form(const std::string form);
-
   /** Return the list of generic lexicon entries in this grammar */
   list_int *generics() { return _generics; }
 

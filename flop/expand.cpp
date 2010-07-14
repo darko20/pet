@@ -70,7 +70,7 @@ bool compute_appropriateness()
   apptype.resize(attributes.number(), BI_TOP);
 
   vector<int> topo;
-  boost::topological_sort(hierarchy, std::back_inserter(topo));
+  boost::topological_sort(hierarchy, back_inserter(topo));
   for (vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
       int i = *it;
@@ -206,7 +206,7 @@ bool delta_expand_types() {
     get_opt_bool("opt_expand_all_instances");
 
   vector<int> topo;
-  boost::topological_sort(hierarchy, std::back_inserter(topo));
+  boost::topological_sort(hierarchy, back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
       int i = *it;
@@ -315,7 +315,7 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
   return NULL;
 }
 
-std::string attrlist2string(list_int *l, std::string sep) {
+string attrlist2string(list_int *l, string sep) {
   ostringstream out;
   list_int *start = l;
   while (true) {
@@ -373,7 +373,7 @@ bool fully_expand_types(bool full_expansion)
   unify_reset_visited = true;
 
   vector<int> topo;
-  boost::topological_sort(G, std::back_inserter(topo));
+  boost::topological_sort(G, back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
       i = *it;
@@ -625,17 +625,18 @@ void bottom_up_partitions()
       merge_partitions(i, part(i), part, 0);
   }
 
-  map<int, bool> reached; // TODO use a set
+  // map<int, bool> reached;
+  vector<int> reached(types.numer(), 0); /// \todo check performance difference to using a map or a set or an unordered_set
 
   int nfeatsets = 0;
   featset.clear();
-  for(int i = 0; i < types.number(); i++)
+  for(int i = 0; i < types.number(); ++i)
     if(!reached[i]) {
         list_int *feats = 0;
         LOG(logSemantic, DEBUG, 
             "partition " << nfeatsets << " (`" << types.name(part(i)) << "'):");
 
-        for(int j = 0; j < types.number(); j++)
+        for(int j = 0; j < types.number(); ++j)
           if(!reached[j] && part.same_set(i, j))
             {
               featset.push_back(nfeatsets);
@@ -654,8 +655,7 @@ void bottom_up_partitions()
             << attrlist2string(feats, " "));
 
         theset[nfeatsets] = feats;
-
-        nfeatsets++;
+        ++nfeatsets;
       }
 
   LOG(logAppl, INFO, "(" << nfeatsets << " partitions)");
@@ -678,7 +678,7 @@ void generate_featsetdescs(int nconfs, map<int, list_int*> &conf)
     }
 
     if(n > 0)
-      std::sort(featsetdesc[i].attr.begin(), featsetdesc[i].attr.end());
+      sort(featsetdesc[i].attr.begin(), featsetdesc[i].attr.end());
   }
 }
 
@@ -713,24 +713,21 @@ void compute_feat_sets(bool minimal)
 #if 0
       int nsub = DFS(hierarchy, i, reached).length();
 
-      fprintf(fstatus, "type `%s': nsub: %d nfeat: %d fconf: %d nintro: %d",
-        types.name(i).c_str(),
-        nsub,
-        nf,
-        featconf[i],
-        nintro[i]);
+      cerr << "type `" << types.name(i) << "': nsub: " 
+        << nsub << " nfeat: " << nf << " fconf: "
+        << featconf[i] << " nintro: " << nintro[i];
 
       int sumintro = 0;
       for(int j = 0; j < types.number(); j++)
         if(reached[j]) sumintro += nintro[j];
 
-      fprintf(fstatus, " sumintro: %d", sumintro);
+      cerr << " sumintro: " << sumintro;
 
       for(int j = 0; j < attributes.number(); j++)
         if(apptype[j] == i)
-          fprintf(fstatus, " %s", attributes.name(j).c_str());
+          cerr << " " << attributes.name(j);
 
-      fprintf(fstatus, "\n");
+      cerr << endl;
 #endif
     }
   }

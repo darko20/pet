@@ -18,8 +18,6 @@
 #include "pet-config.h"
 #include "hash.h"
 
-// TODO switch to <tr1/unordered_map> and <tr1/unordered_set>
-// cf. http://gcc.gnu.org/gcc-4.3/changes.html
 #ifdef HAVE_HASH_MAP
 #include <hash_map>
 #include <hash_set>

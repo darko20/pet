@@ -27,18 +27,15 @@
 #include "version.h"
 #include "item-printer.h"
 #include "sm.h"
+#include "mrs.h"
+#include "vpm.h"
+#include "mrs-printer.h"
 #include "settings.h"
 #include "configs.h"
 #include "logging.h"
 #include <boost/lexical_cast.hpp>
 
-#ifdef HAVE_ECL
-#include "cppbridge.h"
-#endif
-
-#ifdef YY
-# include "yy.h"
-#endif
+extern tVPM* vpm;
 
 #include<ctime>
 #include<sstream>
@@ -115,7 +112,7 @@ void statistics::reset()
   // rule stuff
   if (Grammar) {
     for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
-      rule++) {
+      ++rule) {
         grammar_rule *R = *rule;
         R->actives = R->passives = 0;
     }
@@ -123,44 +120,53 @@ void statistics::reset()
 }
 
 void
-statistics::print(FILE *f)
+statistics::print(ostream& f)
 {
-  fprintf (f,
-           "id: %d\ntrees: %d\nrtrees: %d\nreadings: %d\nrreadings: %d\n"
-           "words: %d\nwords_pruned: %d\n"
-    "mtcpu: %d\nfirst: %d\ntcpu: %d\nutcpu: %d\n"
-    "ftasks_fi: %d\nftasks_qc: %d\n"
-    "fsubs_fi: %d\nfsubs_qc: %d\n"
-    "etasks: %d\nstasks: %d\n"
-    "aedges: %d\npedges: %d\nupedges: %d\n"
-    "raedges: %d\nrpedges: %d\n"
-    "medges: %d\n"
-    "unifications_succ: %d\nunifications_fail: %d\n"
-    "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
-    "dyn_bytes: %ld\nstat_bytes: %ld\n"
-    "p_dyn_bytes: %ld\np_nstat_bytes: %ld\n"
-    "cycles: %d\nfssize: %d\n"
-    "unify_cost_succ: %d\nunify_cost_fail: %d\n"
-    "equivalent: %d\nproactive: %d\nretroactive: %d\n"
-    "frozen: %d\nfailures: %d\nhypotheses: %d\n",
-           id, trees, rtrees, readings, rreadings, 
-           words, words_pruned,
-    mtcpu, first, tcpu, p_utcpu,
-    ftasks_fi, ftasks_qc,
-    fsubs_fi, fsubs_qc,
-    etasks, stasks,
-    aedges, pedges, p_upedges, 
-    raedges, rpedges,
-    medges,
-    unifications_succ, unifications_fail,
-    subsumptions_succ, subsumptions_fail, copies,
-    dyn_bytes, stat_bytes,
-    p_dyn_bytes, p_stat_bytes,
-    cycles, fssize,
-    unify_cost_succ, unify_cost_fail,
-    p_equivalent, p_proactive, p_retroactive,
-    p_frozen, p_failures, p_hypotheses
-    );
+  f
+    << "id: " << id
+    << "\ntrees: " << trees
+    << "\nrtrees: " << rtrees
+    << "\nreadings: " << readings
+    << "\nrreadings: " << rreadings
+    << "\nwords: " << words
+    << "\nwords_pruned: " << words_pruned
+    << "\nmtcpu: " << mtcpu
+    << "\nfirst: " << first
+    << "\ntcpu: " << tcpu
+    << "\nutcpu: " << p_utcpu
+    << "\nftasks_fi: " << ftasks_fi
+    << "\nftasks_qc: " << ftasks_qc
+    << "\nfsubs_fi: " << fsubs_fi
+    << "\nfsubs_qc: " << fsubs_qc
+    << "\netasks: " << etasks
+    << "\nstasks: " << stasks
+    << "\naedges: " << aedges
+    << "\npedges: " << pedges
+    << "\nupedges: " << p_upedges
+    << "\nraedges: " << raedges
+    << "\nrpedges: " << rpedges
+    << "\nmedges: " << medges
+    << "\nunifications_succ: " << unifications_succ
+    << "\nunifications_fail: " << unifications_fail
+    << "\nsubsumptions_succ: " << subsumptions_succ
+    << "\nsubsumptions_fail: " << subsumptions_fail
+    << "\ncopies: " << copies
+    << "\ndyn_bytes: " << dyn_bytes
+    << "\nstat_bytes: " << stat_bytes
+    << "\np_dyn_bytes: " << p_dyn_bytes
+    << "\np_nstat_bytes: " << p_stat_bytes
+    << "\ncycles: " << cycles
+    << "\nfssize: " << fssize
+    << "\nunify_cost_succ: " << unify_cost_succ
+    << "\nunify_cost_fail: " << unify_cost_fail
+    << "\nequivalent: " << p_equivalent
+    << "\nproactive: " << p_proactive
+    <<  "\nretroactive: " << p_retroactive
+    << "\nfrozen: " << p_frozen
+    << "\nfailures: " << p_failures
+    << "\nhypotheses: "
+    << p_hypotheses
+    << endl;
 }
 
 string CHEAP_VERSION;
@@ -206,7 +212,7 @@ initialize_version()
 
   if(set != 0)
   {
-    for(int i = 0; i < set->n(); i++)
+    for(int i = 0; i < set->n(); ++i)
     {
       if(i!=0) sts += string(", ");
       sts += string(set->values[i]);
@@ -319,7 +325,7 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
     list<tError> errors;
     analyze(i_input, Chart, FSAS, errors, i_id);
 
-    nprocessed++;
+    ++nprocessed;
 
     gettimeofday(&tB, NULL);
 
@@ -550,6 +556,8 @@ tsdb_parse::capi_print()
     "(:upedges . %d) " 
     "(:failures . %d) "
     "(:hypotheses . %d) "
+    "(:rtrees . %d) "
+    "(:rreadings . %d) "
     "\")",
     nmeanings, 
     mtcpu,
@@ -641,20 +649,42 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
           tsdb_parse_collect_edges(T, *iter);
         }
 
+                if(! get_opt_string("opt_mrs").empty()) {
+                  if ((strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) ||
+                      (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0)) {
+                    fs f = (*iter)->get_fs();
+                    mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+                    if (mrs->valid()) {
+                      mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+                      ostringstream out;
+                      if (mapped_mrs->valid()) {
+                        if (strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) {
+                          MrxMRSPrinter ptr(out);
+                          ptr.print(mapped_mrs);
+                        } else if (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0) {
+                          SimpleMRSPrinter ptr(out);
+                          ptr.print(mapped_mrs);
+                        }
+                      }
+                      R.mrs = out.str();
+                      delete mapped_mrs;
+                    }
+                    delete mrs;
+                  }
 #ifdef HAVE_MRS
-        if(! get_opt_string("opt_mrs").empty())
-        {
+                  else {
           R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
             get_opt_string("opt_mrs").c_str());
         }
 #endif
+                }
         T.push_result(R);
-        nres++;
+        ++nres;
       }
     }
     else // report all passive edges
     {
-      for(chart_iter it(Chart); it.valid(); it++)
+      for(chart_iter it(Chart); it.valid(); ++it)
       {
         if(it.current()->passive())
         {
@@ -673,7 +703,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
   if(get_opt_bool("opt_rulestatistics"))
   {
     for(ruleiter rule = Grammar->rules().begin();
-      rule != Grammar->rules().end(); rule++)
+      rule != Grammar->rules().end(); ++rule)
     {
       tsdb_rule_stat S;
       grammar_rule *R = *rule;
@@ -691,7 +721,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
   T.parse_id = tsdb_unique_id;
   T.i_id = tsdb_unique_id;
   T.date = string(current_time());
-  tsdb_unique_id++;
+  ++tsdb_unique_id;
 
   T.readings = stats.readings;
   T.words = stats.words;
@@ -742,7 +772,7 @@ cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
   T.parse_id = tsdb_unique_id;
   T.i_id = tsdb_unique_id;
   T.date = string(current_time());
-  tsdb_unique_id++;
+  ++tsdb_unique_id;
 
   T.readings = -1;
   T.pedges = stats.pedges;

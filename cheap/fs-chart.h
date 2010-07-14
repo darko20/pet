@@ -68,8 +68,8 @@ bool alltrue(const class tItem *it);
 class tChart
 {
 
-  friend class tItem; // TODO necessary??
-  friend class tChartVertex; // TODO necessary??
+  friend class tItem;
+  friend class tChartVertex;
 
 private:
   std::list<tChartVertex*> _vertices;
@@ -80,9 +80,10 @@ private:
   std::map<tItem*, tChartVertex* > _item_to_succ_vertex;
 
   /**
-   * Copy construction is disallowed.
+   * Copy construction and assignment are disallowed.
    */
-  tChart(const tChart &chart);
+  tChart(const tChart&);
+  tChart& operator=(const tChart&);
 
 public:
 

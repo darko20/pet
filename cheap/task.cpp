@@ -200,7 +200,7 @@ rule_and_passive_task::rule_and_passive_task(chart *C, tAbstractAgenda *A,
                               C->rightmost(), R->arity() > 1));
     }
 
-  LOG (logGM, DEBUG, "EX MAKE    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+  LOG (logChartPruning, DEBUG, "EX MAKE    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
 
 }
 
@@ -214,7 +214,7 @@ rule_and_passive_task::execute()
     _A->feedback (this, result);
     if(result) 
     {
-      LOG (logGM, DEBUG, "SUCCESS    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+      LOG (logChartPruning, DEBUG, "SUCCESS    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
       if (Grammar->gm()) {
         if (_R->arity() == 1) {
           // P(R, X) = P(R->X) P(X)
@@ -231,7 +231,7 @@ rule_and_passive_task::execute()
         result->gmscore(priority());
       }
     } else {
-      LOG (logGM, DEBUG, "EX FAIL    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
+      LOG (logChartPruning, DEBUG, "EX FAIL    rule_and_passive: " << id() << " (" << start() << ", " << end() << ") " << _R->printname() << "  " << _p);
     }
 
     return result;
@@ -270,7 +270,7 @@ active_and_passive_task::active_and_passive_task(chart *C, tAbstractAgenda *A,
     }
     }
 
-  LOG (logGM, DEBUG, "MAKE       active_and_passive: " << id() << " ("
+  LOG (logChartPruning, DEBUG, "MAKE       active_and_passive: " << id() << " ("
                                                     << _active->start()  << ", " << _active->end()  << ")  (" 
                                                     << _passive->start() << ", " << _passive->end() << ")  "
                                                     << _active->rule()->printname() << "  " << _p );
@@ -286,7 +286,7 @@ active_and_passive_task::execute()
     _A->feedback (this, result);
     if(result) 
     {
-      LOG (logGM, DEBUG, "EX SUCCESS active_and_passive: " << id() << " ("
+      LOG (logChartPruning, DEBUG, "EX SUCCESS active_and_passive: " << id() << " ("
                                                            << _active->start()  << ", " << _active->end()  << ")  (" 
                                                            << _passive->start() << ", " << _passive->end() << ")  "
                                                            << _active->rule()->printname() << "  " << _p );
@@ -308,17 +308,15 @@ active_and_passive_task::execute()
         result->gmscore(priority());
       }
     } else {
-      LOG (logGM, DEBUG, "EX FAIL    active_and_passive: " << id() << " ("
+      LOG (logChartPruning, DEBUG, "EX FAIL    active_and_passive: " << id() << " ("
                                                         << _active->start()  << ", " << _active->end()  << ")  (" 
                                                         << _passive->start() << ", " << _passive->end() << ")  "
                                                         << _active->rule()->printname() << "  " << _p );
     }
-
     return result;
 }
 
-void
-basic_task::print(std::ostream &out)
+void basic_task::print(std::ostream &out)
 {
   out << "task #" << _id << " (" << std::setprecision(2) << _p << ")";
 }

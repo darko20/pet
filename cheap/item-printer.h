@@ -14,6 +14,9 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip> 
+#include <boost/lexical_cast.hpp>
+
+using boost::lexical_cast;
 
 /** A virtual base class to have a generic print service for chart items.
  *
@@ -70,7 +73,7 @@ protected:
   /*@{*/
   int get_id(const tItem *item) { return item->_id; }
   const fs &get_fs(const tItem *item) {
-    // \todo cast is not nice, but the best we can do
+    /// \todo cast is not nice, but the best we can do
     return const_cast<tItem *>(item)->_fs;
   }
   const list_int *inflrs_todo(const tItem *item) { return item->_inflrs_todo; }
@@ -433,10 +436,12 @@ private:
   void open_stream(const char *name = "") {
     close_stream();
     if (!_filename_prefix.empty()) {
-        std::string unique = _filename_prefix + name + "XXXXXX";
-      // int fildes = mkstemp(unique); TODO
-      int fildes = 0;
-      if ((fildes == -1) || (_out.open(unique.c_str()) , ! _out.good())) {
+      static int fildes = 0;
+      ++fildes;
+      //  std::string unique = _filename_prefix + name + "XXXXXX";
+      // int fildes = mkstemp(unique); TODO ??
+      std::string unique = _filename_prefix + name + lexical_cast<std::string>(fildes);
+      if (_out.open(unique.c_str()) , ! _out.good()) {
         throw(tError((std::string) "could not open file" + unique));
       }
     }

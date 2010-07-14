@@ -55,7 +55,6 @@ std::string parse_options(int argc, char* argv[])
   int memlimit = 0;
   int timeout = 0;
   int packing = 15;
-  string logfile;
   string pg;
   string mrs("simple");
   string tsdbdump;
@@ -85,7 +84,7 @@ std::string parse_options(int argc, char* argv[])
     ("compute-qc", po::value<string>()->implicit_value(defaultOutputFile), "compute quickcheck paths (output to file)")
     ("compute-qc-unif", po::value<string>()->implicit_value(defaultOutputFile), "compute quickcheck paths only for unificaton (output to file)")
     ("compute-qc-subs", po::value<string>()->implicit_value(defaultOutputFile), "compute quickcheck paths only for subsumption (output to file)")
-    ("mrs", po::value<string>(&mrs)->implicit_value("mrs"), "compute MRS semantics [mrs|mrx|rmrs|rmrx]") // TODO use a validate function
+    ("mrs", po::value<string>(&mrs)->implicit_value("mrs"), "compute MRS semantics [mrs|mrx|rmrs|rmrx]") /// \todo use a validate function
     ("key", po::value<int>(&key), "select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)")
     ("no-hyper", "disable hyper-active parsing")
     ("no-derivation", "disable output of derivations")
@@ -106,7 +105,6 @@ std::string parse_options(int argc, char* argv[])
     ("interactive-online-morph", "morphology only")
     ("pg", po::value<string>(&pg), "print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)")
     ("packing", po::value<int>(&packing)->implicit_value(15), "set packing to n (bit coded; default: 15)")
-    ("log", po::value<string>(&logfile), "log server mode activity to `file' (`+' appends)")
     ("tsdbdump", po::value<string>(&tsdbdump), "write [incr tsdb()] item, result and parse files to `directory'")
     ("jxchgdump", po::value<string>(&jxchgdump), "write jxchg/approximation chart files to `directory'")
     ("partial", "print partial results in case of parse failure")
@@ -161,8 +159,9 @@ std::string parse_options(int argc, char* argv[])
     set_opt("opt_rulestatistics", vm.count("rulestats")>0);
     if (vm.count("compute-qc")>0) {
       set_opt("opt_compute_qc", vm["compute-qc"]);
-      // TODO: this is maybe the first application for a callback option to
-      // handle the three cases
+      /** \todo this is maybe the first application for a callback option to
+      * handle the three cases
+      */
       set_opt("opt_compute_qc_unif", true);
       set_opt("opt_compute_qc_subs", true);
     }
@@ -203,10 +202,6 @@ std::string parse_options(int argc, char* argv[])
     }
     if (vm.count("timeout")>0) {
       set_opt("opt_timeout", timeout);
-    }
-    if (vm.count("log")>0) {
-      if(logfile[0] == '+') flog = fopen(&logfile[1], "a");
-      else flog = fopen(logfile.c_str(), "w");
     }
     set_opt("opt_online_morph", vm.count("no-online-morph")==0);
     set_opt("opt_packing", packing);
@@ -290,7 +285,7 @@ int int_setting(settings *set, const char *s)
   return i;
 }
 
-void options_from_settings(settings *set) // TODO: unused
+void options_from_settings(settings *set) /// \todo unused
 {
   if(bool_setting(set, "one-solution"))
     set_opt("opt_nsolutions", 1);

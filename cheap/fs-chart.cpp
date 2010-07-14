@@ -343,7 +343,7 @@ init_lpath(list_int*& lpath, string name, string &errors)
   if (val && (lpath == 0)) {
     errors.append("Invalid path in setting `" + name + "'.\n");
   }
-  // TODO also check whether the type at the end of lpath has the required type
+  /// \todo also check whether the type at the end of lpath has the required type
   return val && lpath;
 }
 
@@ -460,7 +460,7 @@ tChartUtil::create_input_item(const fs &token_fs)
     try {
       cfrom = boost::lexical_cast<int>(
           token_fs.get_path_value(_token_from_path).printname());
-    } catch(boost::bad_lexical_cast &error) {
+    } catch(boost::bad_lexical_cast&) {
       // should only happen if the value is not set. ignore!
     }
   }
@@ -468,7 +468,7 @@ tChartUtil::create_input_item(const fs &token_fs)
     try {
       cto = boost::lexical_cast<int>(
           token_fs.get_path_value(_token_to_path).printname());
-    } catch(boost::bad_lexical_cast &error) {
+    } catch(boost::bad_lexical_cast&) {
       // should only happen if the value is not set. ignore!
     }
   }
@@ -482,7 +482,7 @@ tChartUtil::create_input_item(const fs &token_fs)
     }
   }
   if (_token_entry_path) {
-    // TODO deprecated! this only exists because of PIC
+    /// \todo deprecated! this only exists because of PIC
     type_t t = token_fs.get_path_value(_token_entry_path).type();
     if (t != BI_STRING) { // if the entry is set to a string literal
       string entry = get_printname(t);
@@ -593,7 +593,7 @@ tChartUtil::create_input_fs(tInputItem* item)
     input_fs = unify(input_fs,input_fs.get_path_value(_token_rules_path),rules);
   }
   if (_token_postags_path && _token_posprobs_path) {
-    // TODO I need fs::create_list(std::list<fs>)
+    /// \todo I need fs::create_list(std::list<fs>)
     fs tags_f(BI_LIST);
     fs probs_f(BI_LIST);
     std::vector<std::string> tags;
@@ -666,7 +666,7 @@ tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
 {
   processed.clear();
   std::list<tChartVertex*> vertices = chart.start_vertices();
-  if (vertices.size() > 1) // TODO how do we deal with several start vertices?
+  if (vertices.size() > 1) /// \todo how do we deal with several start vertices?
     LOG(logChart, WARN,
         "Several start vertices present. Only using the first start vertex.");
   int max_value = -1; // will be set accordingly by topological_order()
@@ -707,7 +707,7 @@ tChartUtil::map_chart(inp_list &input_items, tChart &chart)
     // fix vfrom and vto in case that the position_mapper has not performed its
     // job yet:
     if (vfrom == -1 || vto == -1) {
-      // TODO check: is this ok in all situations?
+      /// \todo check: is this ok in all situations?
       vfrom = cfrom;
       vto = cto;
     }

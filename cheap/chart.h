@@ -48,7 +48,7 @@ public:
    * untouched.
    * This method is only needed for mapping the new chart (tChart) to this
    * old chart implementation.
-   * TODO remove this method if tChart is not used anymore
+   * \todo remove this method if tChart is not used anymore
    */
   void reset(int len);
 

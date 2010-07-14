@@ -136,9 +136,10 @@ class tSM
 class tMEM : public tSM
 {
  public:
-    // _fix_me_
-    // We'd prefer not to have to pass fileName and basePath here.
-    // There should be a central placed to to this sort of thing.
+    /** \todo
+    * We'd prefer not to have to pass fileName and basePath here.
+    * There should be a central placed to to this sort of thing.
+    */
     tMEM(class tGrammar *G, const char *fileName, const char *basePath);
     virtual ~tMEM();
 
@@ -201,9 +202,9 @@ class tMEM : public tSM
 class tPCFG : public tSM
 {
  public:
-    // _fix_me_
-    // We'd prefer not to have to pass fileName and basePath here.
-    // There should be a central placed to to this sort of thing.
+    /** \todo We'd prefer not to have to pass fileName and basePath here.
+     * There should be a central place to to this sort of thing.
+     */
     tPCFG(class tGrammar *G, const char *fileName, const char *basePath);
     virtual ~tPCFG();
 
@@ -211,7 +212,7 @@ class tPCFG : public tSM
     score(const tSMFeature &);
 
     virtual double
-    neutralScore() // TODO: this should not be used
+    neutralScore() /// \todo this should not be used
     { return 0.0; }
 
     virtual double

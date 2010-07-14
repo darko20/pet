@@ -34,6 +34,6 @@ extern int verbosity;
 
 std::string parse_options(int argc, char* argv[]);
 
-void options_from_settings(settings*); // TODO: unused
+void options_from_settings(settings*); /// \todo: unused function
 
 #endif
