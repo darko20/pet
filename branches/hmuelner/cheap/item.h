@@ -296,7 +296,7 @@ public:
     if ((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
 
-    // TODO more tricks to be done here?
+    /// \todo more tricks to be done here?
     if (active->nextarg_pcfg() != identity())
       return false;
     int arity = active->arity();
@@ -347,8 +347,9 @@ public:
 
   /** Return the root type of this item's feature structure */
   type_t type() const {
-    // \todo this is not nice. Should be solved by looking into the
-    // possibilities of get_fs()
+    /** \todo this is not nice. Should be solved by looking into the
+    * possibilities of get_fs()
+    */
     return const_cast<tItem *>(this)->get_fs().type();
   }
 
@@ -1233,7 +1234,7 @@ std::list<std::vector<int> > advance_indices(std::vector<int> indices);
 */
 void hagenda_insert(std::list<tHypothesis*> &agenda, tHypothesis* hypo, std::list<tItem*> path);
 
-// \todo _fix_me_
+/// \todo fix me
 #if 0
 class greater_than_score {
 public:

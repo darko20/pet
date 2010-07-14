@@ -51,7 +51,7 @@ Term *add_term(Conjunction *C, Term *T)
   return T;
 }
 
-Conjunction *get_feature(Avm *A, const std::string& feat) // TODO only used in add_feature
+Conjunction *get_feature(Avm *A, const std::string& feat) /// \todo only used in add_feature
 {
   for(int i = 0; i < A -> n(); i ++)
   {
@@ -61,7 +61,7 @@ Conjunction *get_feature(Avm *A, const std::string& feat) // TODO only used in a
   return NULL;
 }
 
-Conjunction *add_feature(Avm *A, const std::string& feat) // TODO unused
+Conjunction *add_feature(Avm *A, const std::string& feat) /// \todo unused function
 {
   assert(A != NULL);
   if(attributes.id(feat) == -1) {
@@ -78,7 +78,7 @@ Conjunction *add_feature(Avm *A, const std::string& feat) // TODO unused
   return av->val;
 }
 
-int nr_avm_constraints(Conjunction *C) // TODO unused
+int nr_avm_constraints(Conjunction *C) /// \todo unused
 {
   int cnt = 0;
 

@@ -150,7 +150,7 @@ public:
   /** Set type of the root node to \a s */
   void set_type(type_t s) { dag_set_type(_dag, s); }
 
-  /** Return size of this fs. _fix_me_ not implemented */
+  /** Return size of this fs. \todo not implemented */
   inline int size() const { return 1; /* dag_size(_dag); */ }
 
   /** Return internal representation of fs */

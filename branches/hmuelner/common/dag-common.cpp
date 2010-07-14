@@ -314,7 +314,7 @@ dag_node *dag_create_path_value(list_int *path, type_t type)
   }
 }
 
-//_fix_me_ the dag should be unified at the end
+/// \todo the dag should be unified at the end
 dag_node *dag_create_path_value(list_int *path, dag_node *dag)
 {
   if(path == 0) {

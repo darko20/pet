@@ -106,9 +106,8 @@ int cheap_server_initialize(int port) {
 
   _log_channels.clear();
 #if defined(SOCKETDEBUG) && defined(FOREGROUND)
-  _log_channels.push_front(ferr);
+  _log_channels.push_front(cerr);
 #endif
-  if(flog != NULL) _log_channels.push_front(flog);
 
 #if !defined(FOREGROUND)
 
@@ -132,7 +131,6 @@ int cheap_server_initialize(int port) {
     LOG(logServer, ERROR,
         "server_initialize(): unable to change process group ["
         << errno << "].");
-    fflush(flog)
     return -1;
   } /* if */
   else if(i > 0) {
@@ -145,7 +143,6 @@ int cheap_server_initialize(int port) {
         "unable to change process group [" << errno << "].");
     LOG(logServer, ERROR, "server_initialize(): "
         "unable to change process group [" << errno << "].");
-    fflush(flog);
     return -1;
   } /* if */
   if((i = open("/dev/tty", O_RDWR)) >= 0) {
@@ -176,11 +173,6 @@ int cheap_server_initialize(int port) {
   fclose(stdout);
 
   for(i = 0; i < NOFILE; i++) {
-#if defined(SOCKETDEBUG)
-    if(i == fileno(ferr)) {
-      continue;
-    } /* if */
-#endif
     close(i);
   } /* for */
 #endif /* !defined(FOREGROUND) */

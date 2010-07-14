@@ -105,7 +105,7 @@ public:
    *        looking for gaps and chart dependencies. This allows to catch more
    *        complex problems and properties.
    * \param FSAS the allocation state for the whole parse
-   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   * \param errors a list of eventual errors ??? \todo fix me if i'm sure
    */
   void lexical_processing(inp_list &inp_tokens
                           , bool chart_mapping, bool lex_exhaustive
@@ -168,7 +168,7 @@ private:
    *        looking for gaps and chart dependencies. This allows to catch more
    *        complex problems and properties.
    * \param FSAS the allocation state for the whole parse
-   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   * \param errors a list of eventual errors ??? \todo fix me if i'm sure
    */
   void lexical_parsing(inp_list &inp_tokens,
                        bool chart_mapping, bool lex_exhaustive, 

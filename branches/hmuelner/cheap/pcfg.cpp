@@ -333,8 +333,8 @@ void parse_loop_pcfg()
   }
 }
 
-/* TODO this should be a member of tItem
-fs instantiate_robust(tItem* root) {
+/// \todo this should be a member of tItem
+/* fs instantiate_robust(tItem* root) {
   if (root->trait() != PCFG_TRAIT) {
     return root->get_fs(true);
   } else {
@@ -401,7 +401,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
        res != results.end(); res ++) {
     readings.push_back(*res);
     if(LOG_ENABLED(logLexproc, INFO)) {
-      // TODO also use logging for this code
+      /// \todo also use logging for this code
       cerr << "unpacked[" << nres << "] (" << setprecision(1)
            << ((float) UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
            << "): ";

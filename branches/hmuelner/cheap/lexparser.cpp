@@ -249,25 +249,25 @@ debug_combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules) {
  */
 void 
 lex_parser::combine(lex_stem *stem, tInputItem *i_item
-                    , const list_int *infl_rules, const modlist &mods) {
-  // _fix_me_
-  // TODO what should be fixed here?? (pead)
+                    , const list_int *infl_rules, const modlist &mods)
+{
+  /// \todo somebody thought a fix is needed here
   fs newfs = stem->instantiate();
   // Add modifications coming from the input
   newfs.modify_eagerly(mods);
 
-  //
-  // _fix_me_
-  // for non-MWE lexical entries, unify the input feature structure into the
-  // `tokens' path.  this may fail, e.g. for generic lexical entries that put
-  // constraints on their tokens.  for MWEs, however, we let the creation of
-  // lexical items run its course, until lexical parsing has fully instantiated
-  // the argument slots of the lexical entry.  regrettably, something similar
-  // to the code below is then applied in lex_and_inp_task::execute().  i find
-  // it tricky to identify the right time and place for this unification to be
-  // attempted: we need all the pieces, but it must happen prior to invoking
-  // the tLexItem constructor on the passive item.              (16-jan-09; oe)
-  //
+   /** \todo
+   *for non-MWE lexical entries, unify the input feature structure into the
+   *`tokens' path.  this may fail, e.g. for generic lexical entries that put
+   *constraints on their tokens.  for MWEs, however, we let the creation of
+   *lexical items run its course, until lexical parsing has fully instantiated
+   *the argument slots of the lexical entry.  regrettably, something similar
+   *to the code below is then applied in lex_and_inp_task::execute().  i find
+   *it tricky to identify the right time and place for this unification to be
+   *attempted: we need all the pieces, but it must happen prior to invoking
+   *the tLexItem constructor on the passive item.              (16-jan-09; oe)
+   */
+  
   if (stem->length() == 1 
       && tChartUtil::lexicon_tokens_path() != 0
       && tChartUtil::lexicon_last_token_path() != 0) {
@@ -685,15 +685,16 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
     //                                                          (12-sep-08; oe)
     //
     if (!gens.empty()) {
-      // TODO: is it sensible here to apply the (guessed) inflection rules here
-      // to the generics??
-
-      // re-do morphology computation. 
-      // TODO: check if this uses up significant processing time. There is
-      // another way to do this (store the previous result in the tInputItem),
-      // but that messes up the whole failed stem token thing and all
-
-      // get morphs
+      /* \todo is it sensible here to apply the (guessed) inflection rules here
+      * to the generics??
+      *
+      * re-do morphology computation. 
+      * \todo check if this uses up significant processing time. There is
+      * another way to do this (store the previous result in the tInputItem),
+      * but that messes up the whole failed stem token thing and all
+      *
+      * get morphs
+      */
       list<tMorphAnalysis> morphs;
       if((*it)->is_word_token()) morphs = morph_analyze((*it)->form());
 
@@ -704,7 +705,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
         modlist in_mods = (*it)->mods();
         // _fix_me_
         add_surface_mod((*it)->orth(), in_mods);
-        if (morphs.empty()) { // TODO as far as I can see, this will never be the case (pead)
+        if (morphs.empty()) { /// \todo as far as I can see, this will never be the case (pead)
           combine(*ls, *it, (*it)->inflrs(), in_mods);
         } else {
           for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
@@ -819,7 +820,7 @@ bool lex_parser::next_input(std::istream &in, std::string &result) {
 
 int
 lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping) {
-  // TODO get rid of this logging control; use proper logging instead
+  /// \todo get rid of this logging control; use proper logging instead
   int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
   
   // Tokenize the input
@@ -872,7 +873,7 @@ void
 lex_parser::lexical_parsing(inp_list &inp_tokens,
                             bool chart_mapping, bool lex_exhaustive, 
                             fs_alloc_state &FSAS, list<tError> &errors){
-  // TODO get rid of this logging control; use proper logging instead
+  /// \todo get rid of this logging control; use proper logging instead
   int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
   
   // if lex_exhaustive, process inflectional and lexical rules first and

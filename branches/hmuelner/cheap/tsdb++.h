@@ -29,6 +29,7 @@
 #include "errors.h"
 #include <list>
 #include <string>
+#include <iosfwd>
 
 #ifdef TSDBAPI
 extern "C" {
@@ -157,7 +158,7 @@ public:
   /*@}*/
 
   void reset();
-  void print(FILE *f);
+  void print(std::ostream& f);
 };
 
 extern statistics stats;

@@ -20,8 +20,6 @@
 /* chart items */
 
 #include "pet-config.h"
-// TODO #include <sys/Param.h>
-
 #include "cheap.h"
 #include "fs-chart.h"
 #include "item.h"
@@ -862,7 +860,7 @@ tItem::block(int mark, bool freeze_parents)
 int unpacking_level;
 
 inline bool unpacking_resources_exhausted(long memlimit) {
-  // TODO add other limits
+  /// \todo add other limits
   return memlimit > 0 && t_alloc.max_usage() >= memlimit;
 }
 

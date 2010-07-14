@@ -28,10 +28,6 @@
 
 /** The global settings for this process, read from the settings file */
 extern class settings *cheap_settings;
-/** The file stream to direct log messages to.
- * \todo replace this with a general logging facility, e.g., log4cxx.
- */
-extern FILE *flog;
 /** The global grammar for this process, which means: only one language/grammar
  *  per CHEAP process.
  */

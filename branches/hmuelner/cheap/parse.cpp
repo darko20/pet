@@ -476,9 +476,10 @@ int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
   // selectively unpacking
   list<tItem*> uroots;
   for (vector<tItem*>::iterator tree = trees.begin();
-       // TODO: this should be checked beforehand, because it does not change
-       // in the loop, and will either lead to no or all trees ending up in
-       // uroots, or am i wrong??
+       /** \todo this should be checked beforehand, because it does not change
+       * in the loop, and will either lead to no or all trees ending up in
+       * uroots, or am i wrong??
+       */
        (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
        // END TODO 
          && tree != trees.end(); ++tree) {
@@ -683,8 +684,8 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   inp_list input_items;
   int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
-  if (get_opt_int("opt_local_cap") != 0) {
-    Agenda = new tLocalCapAgenda (get_opt_int ("opt_local_cap"), max_pos);
+  if (get_opt_int("opt_chart_pruning") != 0) {
+    Agenda = new tLocalCapAgenda (get_opt_int ("opt_chart_pruning"), max_pos);
   } else {
     Agenda = new tExhaustiveAgenda;
   }

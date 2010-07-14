@@ -102,8 +102,9 @@ fs::fs(const string& path, type_t type)
   if(! is_type(type)) {
     throw tError("construction of non-existent dag requested");
   }
-  // TODO: as of rev 339, there are no checks whether the resulting dag
-  // is a valid type!
+  /** \todo as of rev 339, there are no checks whether the resulting dag
+  * is a valid type!
+  */
   _dag = dag_create_path_value(path, type);
   _temp = 0;
 }
@@ -113,10 +114,10 @@ fs::fs(const list_int *path, type_t type)
   if(! is_type(type))
     throw tError("construction of non-existent dag requested");
 
-  // TODO: as of rev 339, there are no checks whether the resulting dag
-  // is a valid type!
+  /** \todo as of rev 339, there are no checks whether the resulting dag
+  * is a valid type!
+  */
   _dag = dag_create_path_value(const_cast<list_int*>(path), type);
-
   _temp = 0;
 }
 

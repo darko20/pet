@@ -251,7 +251,7 @@ dag_node *dag_copy(dag_node *src)
 
 dag_node *dag_current_or_copy(dag_node *src, int generation)
 {
-  // _fix_me_ eigentlich rekursiv
+  /// \todo eigentlich rekursiv
   if(dag_current(src))
     return src;
   else
@@ -526,9 +526,10 @@ bool dag_cyclic(dag_node *dag)
 
 dag_node *dag_expand(dag_node *dag)
 {
-    // _fix_me_: this is not yet implemented
-    // but refer to fully_expand in flop/expand.cpp which contains
-    // the necessary code 
+    /** \todo this is not yet implemented
+    * but refer to fully_expand in flop/expand.cpp which contains
+    * the necessary code 
+    */
     return FAIL;
 }
 
