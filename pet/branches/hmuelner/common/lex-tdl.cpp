@@ -240,15 +240,16 @@ lex_token *get_next_token()
   else if(is_idchar(c)) // "_+-*?" or isalnum
   { /* identifier/number (or command etc.) */
 
-    // _fix_me_
-    // This isn't particularly elegant or robust. The error
-    // handling is not good. There's no clear way to integrate
-    // general numbers seamlessly into TDL...
+    /** \todo
+    * This isn't particularly elegant or robust. The error
+    * handling is not good. There's no clear way to integrate
+    * general numbers seamlessly into TDL...
+    */
 
     int i = 0;
     const char* start = LMark();
     while(is_idchar(LLA(i)) || LLA(i) == '!') i++;
-    // TODO if it is a floating point number (are those allowed in TDL?)
+    /// \todo check if it is necessary to check for floating point numbers (are those allowed in TDL?)
     if (i == 0) {
       string str = string(1, c) + "'";
       throw tError("unexpected character '" + str,

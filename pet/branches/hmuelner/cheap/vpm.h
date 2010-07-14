@@ -8,8 +8,6 @@
 #include <string>
 #include <list>
 
-#define MAXVPMLINE 1024
-
 using namespace mrs;
 
 class tVPM {

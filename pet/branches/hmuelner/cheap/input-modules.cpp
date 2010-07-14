@@ -22,9 +22,9 @@
 #include "input-modules.h"
 #include "settings.h"
 #include "configs.h"
+#include <iostream>
 
-extern FILE *fstatus;
-
+using namespace std;
 /** @name Tokenization options */
 //@{
 static bool init();
@@ -166,7 +166,7 @@ bool tTokenizer::next_input(std::istream &in, string &result) {
     std::getline(in, result);
     if(_comment_passthrough && ((result[0] == '/' && result[1] == '/')
                                 || result[0] == '#')) {
-      if(_comment_passthrough > 0) fprintf(fstatus, "%s\n", result.c_str());
+      if(_comment_passthrough > 0) cerr << result << endl;
       done = false;
     } // if
   } while (! done);

@@ -51,9 +51,8 @@ tLingoTokenizer::tokenize(string s, inp_list &result)
   
 }
 
-list<string>
-tLingoTokenizer::do_it(string s) {
-
+list<string> tLingoTokenizer::do_it(string s)
+{
   // translate iso-8859-1 german umlaut and sz
   translate_iso(s);
 
@@ -63,7 +62,7 @@ tLingoTokenizer::do_it(string s) {
     if(punctuation_char(s[i], _punctuation_characters))
       s[i] = ' ';
     else 
-      //TODO: provide a flag that makes it possible to use the upcase chars
+      /// \todo provide a flag that makes it possible to use the upcase chars
       if (true) 
         s[i] = tolower(s[i]);
   }
@@ -81,7 +80,7 @@ tLingoTokenizer::do_it(string s) {
       Res.append(c);
   }
   
-  //TODO: provide a flag that makes it possible to use the upcase chars
+  /// \todo provide a flag that makes it possible to use the upcase chars
   if(true)
     Res.toLower();
 

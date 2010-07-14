@@ -47,6 +47,7 @@
 #include "configs.h"
 #include "options.h"
 #include "settings.h"
+#include <boost/format.hpp>
 
 #ifdef YY
 #include "yy.h"
@@ -72,11 +73,10 @@
 #include "logging.h"
 
 using namespace std;
+using boost::format;
 
 const char * version_string = VERSION ;
 const char * version_change_string = VERSION_CHANGE " " VERSION_DATETIME ;
-
-FILE *ferr, *fstatus, *flog;
 
 int verbosity = 0;
 
@@ -105,7 +105,7 @@ class ChartDumper : public tAbstractItemPrinter {
 private:
   dumper *_dmp;
 
-  virtual void print_common(const tItem * item, const std::string &name, dag_node *dag) {
+  virtual void print_common(const tItem * item, const string &name, dag_node *dag) {
     _dmp->dump_int(item->id());
     _dmp->dump_int(item->start());
     _dmp->dump_int(item->end());
@@ -223,7 +223,7 @@ void interactive() {
   string infile = get_opt_string("opt_infile");
   ifstream ifs;
   ifs.open(infile.c_str());
-  istream& lexinput = ifs ? ifs : std::cin;
+  istream& lexinput = ifs ? ifs : cin;
   while(Lexparser.next_input(lexinput, input)) {
     chart *Chart = 0;
 
@@ -237,22 +237,26 @@ void interactive() {
       if(!errors.empty())
         throw errors.front();
 
-      // TODO Who needs this? Can we remove it? (pead 01.04.2008)
+      /// \todo Who needs this? Can we remove it? (pead 01.04.2008)
       if(verbosity == -1)
         fprintf(stdout, "%d\t%d\t%d\n",
         stats.id, stats.readings, stats.pedges);
 
       string surface = Chart->get_surface_string();
 
-      fprintf(fstatus,
-        "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
-        stats.id, surface.c_str(),
-        get_opt_int("opt_pedgelimit"), stats.readings,
-        stats.first/1000., stats.tcpu / 1000.,
-        stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-        TotalParseTime.elapsed_ts() / 10.);
-
-      if(verbosity > 0) stats.print(fstatus);
+      double sf = stats.first/1000.;
+      double tcpu = stats.tcpu / 1000.;
+      cerr
+        << "(" << stats.id
+        << ") `" << surface
+        << "' [" << get_opt_int("opt_pedgelimit")
+        << "] --- " << stats.readings
+        << format("(%.2f|%.2fs)") % sf % tcpu
+        << "<" << stats.words
+        << ":" << stats.pedges
+        << ">" << format("(%.1fK) [%.1fs]") % (stats.dyn_bytes / 1024.0 ) % (TotalParseTime.elapsed_ts() / 10.)
+        << endl;
+      if(verbosity > 0) stats.print(cerr);
 
       tsdb_dump.finish(Chart, surface);
       dump_jxchg(surface, Chart);
@@ -279,18 +283,18 @@ void interactive() {
           ; ++iter) {
             //tFegramedPrinter baseprint("/tmp/fed-");
             //tLabelPrinter baseprint(pn) ;
-            //tDelegateDerivationPrinter deriv(std::cerr, baseprint, 2);
-            //tTSDBDerivationPrinter deriv(std::cerr, 1);
-            tCompactDerivationPrinter deriv(std::cerr);
+            //tDelegateDerivationPrinter deriv(cerr, baseprint, 2);
+            //tTSDBDerivationPrinter deriv(cerr, 1);
+            tCompactDerivationPrinter deriv(cerr);
             tItem *it = *iter;
 
             nres++;
-            fprintf(fstatus, "derivation[%d]", nres);
-            fprintf(fstatus, " (%.4g)", it->score());
-            fprintf(fstatus, ":%s\n", it->get_yield().c_str());
+            cerr << "derivation[" << nres << "]";
+            cerr << format(" (%.4g)") % it->score();
+            cerr << ":" << it->get_yield() << endl;
             if(verbosity > 2) {
               deriv.print(it);
-              fprintf(fstatus, "\n");
+              cerr << endl;
             }
 #ifdef HAVE_MRS
           if (opt_mrs && 
@@ -300,12 +304,11 @@ void interactive() {
             if(it->trait() != PCFG_TRAIT)
               mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
               if (mrs.empty()) {
-                fprintf(fstatus, "\n%s\n",
-                  ((strcmp(opt_mrs, "rmrx") == 0)
+                cerr << endl << ((strcmp(opt_mrs, "rmrx") == 0)
                   ? "<rmrs cfrom='-2' cto='-2'>\n</rmrs>"
-                  : "No MRS"));
+                  : "No MRS") << endl;
               } else {
-                fprintf(fstatus, "%s\n", mrs.c_str());
+                cerr << mrs << endl;
               }
             }
 #endif
@@ -318,7 +321,7 @@ void interactive() {
               if (mrs->valid()) {
                 mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
                 if (mapped_mrs->valid()) {
-                  std::cerr << std::endl;
+                  cerr << endl;
                 if (strcmp(opt_mrs, "new") == 0) {
                   MrxMRSPrinter ptr(cerr);
                   ptr.print(mapped_mrs);
@@ -327,7 +330,7 @@ void interactive() {
                   ptr.print(mapped_mrs);
                 }
                 //                mapped_mrs->print_simple(cerr);
-                  std::cerr << std::endl;
+                  cerr << endl;
                 }
                 delete mapped_mrs;
               }
@@ -339,32 +342,31 @@ void interactive() {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (opt_mrs != NULL && strcmp(opt_mrs, "rmrx") == 0);
 #ifdef HAVE_MRS
-          if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
+          bool rmrs_xml = (opt_mrs != NULL && strcmp(opt_mrs, "rmrx") == 0);
+          if (rmrs_xml) cerr << "\n<rmrs-list>\n";
           for(item_iter it = partials.begin(); it != partials.end(); ++it) {
             if(opt_mrs) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
                 string mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs);
                 if (! mrs.empty()) {
-                  fprintf(fstatus, "%s\n", mrs.c_str());
+                  cerr << mrs << endl;
                 }
               }
             }
           }
-          if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
-          else fprintf(fstatus, "EOM\n");
+          if (rmrs_xml) cerr << "</rmrs-list>" << enld;
+          else cerr <<"EOM" << endl;
 #endif
         }
       }
     } /* try */
 
     catch(tError e) {
-      // shouldn't this be fstatus?? it's a "return value"
-      fprintf(ferr, "%s\n", e.getMessage().c_str());
+      cerr << e.getMessage() << endl;
       if (verbosity > 0)
-        stats.print(fstatus);
+        stats.print(cerr);
       stats.readings = -1;
 
       if (Chart != NULL) {
@@ -374,8 +376,7 @@ void interactive() {
       }
     }
 
-    fflush(fstatus);
-
+    cerr.flush();
     if(Chart != 0) delete Chart;
 
     id++;
@@ -390,7 +391,7 @@ void interactive() {
 void interactive_morphology() {
   string input;
 
-  while(Lexparser.next_input(std::cin, input)) {
+  while(Lexparser.next_input(cin, input)) {
     timer clock;
     list<tMorphAnalysis> res = Lexparser.morph_analyze(input);
 
@@ -402,7 +403,7 @@ void interactive_morphology() {
         cout << endl;
     } // for
     LOG(logAppl, INFO, endl << res.size() << " chains in "
-      << std::setprecision(2) << clock.convert2ms(clock.elapsed()) / 1000.
+      << setprecision(2) << clock.convert2ms(clock.elapsed()) / 1000.
       << " s\n");
   } // while
 
@@ -468,9 +469,9 @@ void process(const char *s) {
   }
 #endif
 #if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
-  std::auto_ptr<tXMLRPCServer> server;
+  auto_ptr<tXMLRPCServer> server;
   if(get_opt_int("opt_server") != 0) {
-    server = std::auto_ptr<tXMLRPCServer>(new tXMLRPCServer(get_opt_int("opt_server")));
+    server = auto_ptr<tXMLRPCServer>(new tXMLRPCServer(get_opt_int("opt_server")));
   }
 #endif
 
@@ -617,9 +618,9 @@ void process(const char *s) {
   ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
 #endif // HAVE_ECL
 
-  LOG(logAppl, INFO, nstatictypes << " types in " << std::setprecision(2)
+  LOG(logAppl, INFO, nstatictypes << " types in " << setprecision(2)
     << t_start.convert2ms(t_start.elapsed()) / 1000. << " s" << endl);
-  fflush(fstatus);
+  cerr.flush();
 
   if(get_opt_char("opt_pg") != '\0') {
     print_grammar(get_opt_char("opt_pg"), cout);
@@ -687,22 +688,22 @@ void main_init() {
 
   managed_opt("opt_tsdb_dir",
     "write [incr tsdb()] item, result and parse files to this directory",
-    ((std::string) ""));
+    string());
 
   managed_opt("opt_infile",
     "read text input from this file",
-    ((std::string) ""));
+    string());
 
   managed_opt("opt_jxchg_dir",
     "write parse charts in jxchg format to the given directory",
-    std::string());
+    string());
 
   /** @name Output control */
   //@{
   managed_opt("opt_mrs",
     "determines if and which kind of MRS output is generated. "
     "(modes: C implementation, LKB bindings via ECL; default: no)",
-    std::string());
+    string());
   managed_opt("opt_nresults",
     "print at most n (full) results "
     "(should be the argument of an API function)", 0);
@@ -725,9 +726,6 @@ int real_main(int argc, char* argv[])
 int main(int argc, char* argv[])
 #endif
 {
-  ferr = stderr;
-  fstatus = stderr;
-  flog = (FILE *)NULL;
   try {
     setlocale(LC_ALL, "C" );
 
@@ -776,7 +774,6 @@ int main(int argc, char* argv[])
     exit(1);
   }
 
-  if(flog != NULL) fclose(flog);
   return 0;
 }
 
