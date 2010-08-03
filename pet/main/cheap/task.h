@@ -30,7 +30,9 @@
 #include <iosfwd>
 
 /** Parser agenda: a queue of prioritized tasks */
-typedef agenda< class basic_task, class task_priority_less > tAgenda;
+typedef abstract_agenda< class basic_task, class task_priority_less > tAbstractAgenda;
+typedef exhaustive_agenda< class basic_task, class task_priority_less > tExhaustiveAgenda;
+typedef local_cap_agenda< class basic_task, class task_priority_less > tLocalCapAgenda;
 
 /** Pure virtual base class for tasks */
 class basic_task {
@@ -41,12 +43,15 @@ public:
   static int next_id;
 
   /** Base constructor */
-  inline basic_task(class chart *C, tAgenda *A) 
+  inline basic_task(class chart *C, tAbstractAgenda *A) 
     : _id(next_id++), _Chart(C), _A(A), _p(0.0)
   {}
 
   /** Execute the task */
   virtual class tItem * execute() = 0;
+
+  /** Return ID counter */
+  inline int id() {return _id;}
     
   /** Return the priority of this task. 
    *
@@ -60,6 +65,12 @@ public:
   inline void priority(double p)
   { _p = p; }
 
+  /** Return start and end positions of the possibly resulting edge. */
+  virtual int start () = 0;
+  virtual int end () = 0;
+  virtual bool phrasal () = 0;
+  virtual bool yields_passive () = 0;
+
   /** Print task readably to \a f for debugging purposes */
   virtual void print(std::ostream &out);
 
@@ -70,7 +81,7 @@ protected:
   /** The chart this task operates on */
   class chart *_Chart;
   /** The agenda this task came from */
-  tAgenda *_A;
+  tAbstractAgenda *_A;
   
   /** The priority of this task */
   double _p;
@@ -87,11 +98,18 @@ class rule_and_passive_task : public basic_task
     /** Create a task with a grammar rule and passive item that will be
      *  executed later on.
      */
-    rule_and_passive_task(class chart *C, tAgenda *A,
+    rule_and_passive_task(class chart *C, tAbstractAgenda *A,
                           class grammar_rule *R, class tItem *passive);
     
     /** See basic_task::execute() */
     virtual class tItem *execute();
+
+    /** Return start and end positions of the possibly resulting edge. */
+    int start () { return _passive->start();}
+    int end ()   { return _passive->end();}
+    inline bool phrasal () { return _R->trait() == SYNTAX_TRAIT;}
+    inline bool yields_passive () { return _R->arity() == 1;}
+
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
     
@@ -109,11 +127,18 @@ class active_and_passive_task : public basic_task
     /** Create a task with an active and a passive item that will be
      *  executed later on.
      */
-    active_and_passive_task(class chart *C, tAgenda *A,
+    active_and_passive_task(class chart *C, tAbstractAgenda *A,
                             class tItem *active, class tItem *passive);
 
     /** See basic_task::execute() */
     virtual tItem *execute();
+    
+    /** Return start and end positions of the possibly resulting edge. */
+    int start () { return std::min(_passive->start(), _active->start());}
+    int end ()   { return std::max(_passive->end(),   _active->end());}
+    inline bool phrasal () { return true;}
+    inline bool yields_passive () { return true; }
+        
     /** See basic_task::print() */
     virtual void print(std::ostream &out);
 

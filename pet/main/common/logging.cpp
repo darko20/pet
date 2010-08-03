@@ -43,6 +43,7 @@ Category &root = log4cpp::Category::getRoot(),
   &logAppl = log4cpp::Category::getInstance(std::string("logAppl")),
   &logApplC = log4cpp::Category::getInstance(std::string("logApplC")),
   &logChart = log4cpp::Category::getInstance(std::string("logChart")),
+  &logChartMapping = log4cpp::Category::getInstance(std::string("logChartMapping")),
   &logGenerics = log4cpp::Category::getInstance(std::string("logGenerics")),
   &logGrammar = log4cpp::Category::getInstance(std::string("logGrammar")),
   &logLexproc = log4cpp::Category::getInstance(std::string("logLexproc")),
@@ -51,6 +52,7 @@ Category &root = log4cpp::Category::getRoot(),
   &logPack = log4cpp::Category::getInstance(std::string("logPack")),
   &logParse = log4cpp::Category::getInstance(std::string("logParse")),
   &logSM = log4cpp::Category::getInstance(std::string("logSM")),
+  &logChartPruning = log4cpp::Category::getInstance(std::string("logChartPruning")),
   &logSemantic = log4cpp::Category::getInstance(std::string("logSemantic")),
   &logSyntax = log4cpp::Category::getInstance(std::string("logSyntax")),
   &logTsdb = log4cpp::Category::getInstance(std::string("logTsdb")),
@@ -122,6 +124,7 @@ Category &root = Logger::addCat("rootCategory", WARN, 1),
   &logAppl = Logger::addCat("logAppl", INFO, 2),
   &logApplC = Logger::addCat("logApplC", INFO, 3),
   &logChart = Logger::addCat("logChart", NOTSET, 0),
+  &logChartMapping = Logger::addCat("logChartMapping", NOTSET, 0),
   &logGenerics = Logger::addCat("logGenerics", NOTSET, 0),
   &logGrammar = Logger::addCat("logGrammar", NOTSET, 0),
   &logLexproc = Logger::addCat("logLexproc", NOTSET, 0),
@@ -130,6 +133,7 @@ Category &root = Logger::addCat("rootCategory", WARN, 1),
   &logPack = Logger::addCat("logPack", NOTSET, 0),
   &logParse = Logger::addCat("logParse", NOTSET, 0),
   &logSM = Logger::addCat("logSM", NOTSET, 0),
+  &logChartPruning = Logger::addCat("logChartPruning", NOTSET, 0),
   &logSemantic = Logger::addCat("logSemantic", NOTSET, 0),
   &logSyntax = Logger::addCat("logSyntax", NOTSET, 2),
   &logTsdb = Logger::addCat("logTsdb", NOTSET, 0),
@@ -177,7 +181,7 @@ Logger::loggerendl::print(std::ostream &out) const {
   }
 }
 
-Priority getPrio(const std::string &prio) {
+Priority getPrio(const std::string prio) {
   if (prio.empty()) return NOTSET;
   if (prio == "EMERG") return EMERG;
   for (unsigned int i = 0; i <= sizeof(prio_names) / sizeof(std::string); ++i) {
@@ -186,7 +190,7 @@ Priority getPrio(const std::string &prio) {
   return ILLEGAL;
 }
 
-int getPrinter(const std::string &printer) {
+int getPrinter(const std::string printer) {
   for (int i = 0 ; i <= 2; ++i) {
     if (printer == printer_names[i]) return i+1;
   }

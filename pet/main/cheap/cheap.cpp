@@ -35,12 +35,15 @@
 #ifdef HAVE_XML
 #include "pic-tokenizer.h"
 #include "smaf-tokenizer.h"
+#include "fsc-tokenizer.h"
 #endif
 #include "item-printer.h"
 #include "version.h"
 #include "mrs.h"
+#include "mrs-printer.h"
 #include "vpm.h"
 #include "qc.h"
+#include "pcfg.h"
 #include "configs.h"
 #include "options.h"
 #include "settings.h"
@@ -58,6 +61,9 @@
 #endif
 #ifdef HAVE_PREPROC
 #include "eclpreprocessor.h"
+#endif
+#ifdef HAVE_XMLRPC_C
+#include "server-xmlrpc.h"
 #endif
 
 #include <fstream>
@@ -118,7 +124,9 @@ public:
   virtual ~ChartDumper() {}
 
   /** The top level function called by the user */
-  virtual void print(const tItem *arg) { arg->print_gen(this); }
+  virtual void print(const tItem *arg) { 
+    arg->print_gen(this); 
+  }
 
   /** Base printer function for a tInputItem */
   virtual void real_print(const tInputItem *item) {
@@ -235,9 +243,10 @@ void interactive() {
       string surface = Chart->get_surface_string();
 
       fprintf(fstatus,
-              "(%d) `%s' [%d] --- %d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
+              "(%d) `%s' [%d] --- %s%d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs]\n",
               stats.id, surface.c_str(),
-              get_opt_int("opt_pedgelimit"), stats.readings,
+              get_opt_int("opt_pedgelimit"),
+              (stats.readings && stats.rreadings ? "*" : ""), stats.readings,
               stats.first/1000., stats.tcpu / 1000.,
               stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
               TotalParseTime.elapsed_ts() / 10.);
@@ -283,9 +292,12 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
 #ifdef HAVE_MRS
-          if(opt_mrs && (strcmp(opt_mrs, "new") != 0)) {
+          if (opt_mrs && 
+             ((strcmp(opt_mrs, "new") != 0) &&
+              (strcmp(opt_mrs, "simple") != 0))) {
             string mrs;
-            mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
+            if(it->trait() != PCFG_TRAIT)
+              mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
             if (mrs.empty()) {
               fprintf(fstatus, "\n%s\n",
                       ((strcmp(opt_mrs, "rmrx") == 0)
@@ -296,13 +308,24 @@ void interactive() {
             }
           }
 #endif
-          if (opt_mrs && (strcmp(opt_mrs, "new") == 0)) {
-            mrs::tPSOA* mrs = new mrs::tPSOA(it->get_fs().dag());
+          if (opt_mrs && 
+              ((strcmp(opt_mrs, "new") == 0) ||
+               (strcmp(opt_mrs, "simple") == 0))) {
+            fs f = it->get_fs();
+            // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
+            mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
             if (mrs->valid()) {
               mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
               if (mapped_mrs->valid()) {
                 std::cerr << std::endl;
-                mapped_mrs->print(cerr);
+                if (strcmp(opt_mrs, "new") == 0) {
+                  MrxMRSPrinter ptr(cerr);
+                  ptr.print(mapped_mrs);
+                } else if (strcmp(opt_mrs, "simple") == 0) {
+                  SimpleMRSPrinter ptr(cerr);
+                  ptr.print(mapped_mrs);
+                }
+                //                mapped_mrs->print_simple(cerr);
                 std::cerr << std::endl;
               }
               delete mapped_mrs;
@@ -435,6 +458,20 @@ void cleanup() {
 void process(const char *s) {
   timer t_start;
 
+  // initialize the server mode if requested:
+#if defined(YY) && defined(SOCKET_INTERFACE)
+  if(get_opt_int("opt_server") != 0) {
+    if(cheap_server_initialize(get_opt_int("opt_server")))
+      exit(1);
+  }
+#endif
+#if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
+  std::auto_ptr<tXMLRPCServer> server;
+  if(get_opt_int("opt_server") != 0) {
+    server = std::auto_ptr<tXMLRPCServer>(new tXMLRPCServer(get_opt_int("opt_server")));
+  }
+#endif
+
   try {
     cheap_settings = new settings(raw_name(s), s, "reading");
     LOG(logAppl, INFO, "loading `" << s << "' ");
@@ -526,6 +563,17 @@ void process(const char *s) {
       exit(1);
 #endif
 
+    case TOKENIZER_FSC:
+#ifdef HAVE_XML
+      xml_initialize();
+      XMLServices = true;
+      tok = new tFSCTokenizer();
+      break;
+#else
+      LOG(logAppl, FATAL, "No XML support compiled into this cheap.");
+      exit(1);
+#endif
+
     case TOKENIZER_INVALID:
       LOG(logAppl, WARN, "unknown tokenizer mode \"" << optarg
           <<"\": using 'tok=string'");
@@ -582,6 +630,11 @@ void process(const char *s) {
     if(get_opt_int("opt_server") != 0)
       cheap_server(get_opt_int("opt_server"));
     else
+#endif
+#if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
+    if (get_opt_int("opt_server") != 0) {
+      server->run();
+    } else
 #endif
 #ifdef TSDBAPI
       if(get_opt_int("opt_tsdb"))
@@ -687,13 +740,6 @@ int main(int argc, char* argv[])
     grammar_file_name = "english"
     if(argc > 1)
       grammar_file_name = argv[1];
-#endif
-
-#if defined(YY) && defined(SOCKET_INTERFACE)
-    if(get_opt_int("opt_server") != 0) {
-      if(cheap_server_initialize(get_opt_int("opt_server")))
-        exit(1);
-    }
 #endif
 
     string grammar_name = find_file(grammar_file_name, GRAMMAR_EXT);

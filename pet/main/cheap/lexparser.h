@@ -66,7 +66,7 @@ public:
     free_modules(_morphs);
     free_modules(_lexica);
   }
-    
+  
   /** Perform lexparser initializations.
    *  - Set carg modification (surface string) path
    */
@@ -91,22 +91,7 @@ public:
    *  \return The rightmost position of the parsing chart that has to be
    *  created. 
    */
-  int process_input(std::string input, inp_list &inp_tokens);
-
-  /** The first stage of lexical processing, without chart dependencies and
-   * unknown lex entries processing.
-   *
-   * Do lexicon access and morphology, complete active multi word lexemes
-   *
-   * \param inp_tokens The input tokens coming from process_input
-   * \param lex_exhaustive If true, do exhaustive lexical processing before
-   *        looking for gaps and chart dependencies. This allows to catch more
-   *        complex problems and properties.
-   * \param FSAS the allocation state for the whole parse
-   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
-   */
-  void lexical_parsing(inp_list &inp_tokens, bool lex_exhaustive, 
-                       fs_alloc_state &FSAS, std::list<tError> &errors);
+  int process_input(std::string input, inp_list &inp_tokens, bool chart_mapping);
 
   /** \brief Perform lexical processing. 
    *
@@ -122,7 +107,8 @@ public:
    * \param FSAS the allocation state for the whole parse
    * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
    */
-  void lexical_processing(inp_list &inp_tokens, bool lex_exhaustive
+  void lexical_processing(inp_list &inp_tokens
+                          , bool chart_mapping, bool lex_exhaustive
                           , fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** Do a morphological analysis of \a form and return the results.
@@ -172,6 +158,22 @@ private:
    */
   int map_positions(inp_list &tokens, position_map position_mapping);
 
+  /** The first stage of lexical processing, without chart dependencies and
+   * unknown lex entries processing.
+   *
+   * Do lexicon access and morphology, complete active multi word lexemes
+   *
+   * \param inp_tokens The input tokens coming from process_input
+   * \param lex_exhaustive If true, do exhaustive lexical processing before
+   *        looking for gaps and chart dependencies. This allows to catch more
+   *        complex problems and properties.
+   * \param FSAS the allocation state for the whole parse
+   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   */
+  void lexical_parsing(inp_list &inp_tokens,
+                       bool chart_mapping, bool lex_exhaustive, 
+                       fs_alloc_state &FSAS, std::list<tError> &errors);
+
   /** Check the chart dependencies.
    * Chart dependencies allow the user to express certain cooccurrence
    * restrictions for two items in the chart. A chart dependency is a pair of
@@ -189,8 +191,18 @@ private:
   void dependency_filter(struct setting *deps, bool unidirectional
                          , bool lex_exhaustive);
 
-  /** Add generic entries for uncovered input items.
-   * This is only applied if the option \c opt_default_les is \c true.
+  /** Add generic entries for uncovered input items in the traditional
+   * scenario (as opposed to the chart mapping scenario), i.e. when
+   * \c opt_default_les is \c true:
+   * Basically, for each unknown token in the input all generic entries are
+   * postulated. Optionally, there are two devices to filter out generic
+   * entries: suffix-based and by virtue of POS tag information. Generic
+   * entries that require a certain suffix (`generic-le-suffixes') only fire
+   * if the input form has the suffix. If the input word has one more more
+   * POS tags associated to it, these are looked up in the `posmapping' table:
+   * this table is a list of pairs (tag, gle) where `gle' is the name of one
+   * of the generic items in `generic-les'. A non-empty `posmapping' table will
+   * filter all generic entries that are not explicitly licensed by a POS tag.
    */
   void add_generics(inp_list &unexpanded);
 
@@ -309,16 +321,7 @@ public:
     : _lex_item(lex), _inp_item(inp) {};
 
   /** Combine a tInputItem with an active tLexItem. Create new tasks. */
-  virtual void execute(class lex_parser &parser) {
-    // the lex item already has its infl position filled (as long as the
-    // MW extension infl AND keypos is not done)
-    // check if the current orthography matches the one of the input item
-    // and that the same combination was not executed before
-    if (_lex_item->compatible(_inp_item)) {
-      // add the lex item to the chart and create appropriate tasks
-      add(parser, new tLexItem(_lex_item, _inp_item));
-    }
-  }
+  virtual void execute(class lex_parser &parser);
 
 private:
   tLexItem *_lex_item;
@@ -327,5 +330,16 @@ private:
 
 /** Global lex_parser instance for input lexicon processing */
 extern lex_parser &Lexparser;
+
+/**
+ * Different strategies for instantiating default lexical entries
+ * (aka generics).
+ */
+enum default_les_strategy { 
+  NO_DEFAULT_LES = 0,
+  DEFAULT_LES_POSMAP_LEXGAPS,
+  DEFAULT_LES_ALL,
+  DEFAULT_LES_INVALID
+};
 
 #endif

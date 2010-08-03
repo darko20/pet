@@ -136,6 +136,10 @@ void tItemPrinter::real_print(const tInputItem *item) {
   *_out << "}]";
 
   *_out << " < blk: " << item->blocked() << " >";
+
+  if (_dag_printer != NULL) {
+    print_fs(*_out, get_fs(item));
+  }
 }
 
 inline void tItemPrinter::print_fs(ostream &out, const fs &f) {
@@ -240,7 +244,7 @@ tCompactDerivationPrinter::print_inflrs(const tItem* item) {
 // former tLexItem::print_derivation
 void
 tCompactDerivationPrinter::real_print(const tLexItem *item) {
-  *_out << "("
+  *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
        << item->id() << " "
        << stem(item)->printname() << "/"
        << print_name(item->type()) << " "
@@ -255,7 +259,7 @@ tCompactDerivationPrinter::real_print(const tLexItem *item) {
 // former tPhrasalItem::print_derivation
 void
 tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
-  *_out << "("
+  *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
        << item->id() << " "
        << item->printname() << " "
        << std::setprecision(4) << item->score() << " "
@@ -289,27 +293,32 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
 
 void
 tTSDBDerivationPrinter::real_print(const tInputItem *item) {
-  *_out << "(\"" << escape_string(item->orth())
-       << "\" " << item->start() << " " << item->end() << "))" << flush;
+  ostringstream buffer;
+  ItsdbDagPrinter dag_printer;
+  get_fs(item).print(buffer, dag_printer);
+  // escaping token fs since it is embedded as a string
+  *_out << " " << item->id() 
+        << " \"" << escape_string(buffer.str()) << "\"";
 }
 
 void
 tTSDBDerivationPrinter::real_print(const tLexItem *item) {
-  *_out << "("
+  *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
        << item->id() << " "
        << item->stem()->printname()
        << " " << item->score() << " " << item->start() <<  " " << item->end()
-       << " (\"" << escape_string(item->orth()) << "\" "
-       << item->start() << " " << item->end() << "))" << flush;
+       << " (\"" << escape_string(item->orth()) << "\"";
+  print_daughters(item);
+  *_out << "))" << flush; 
 }
 
 void
 tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
   if(_level == 0 && item->result_root() > -1)
-    *_out << "("
+    *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
          << print_name(item->result_root()) << " ";
 
-  *_out << "("
+  *_out << (item->trait() == PCFG_TRAIT ? "(* " : "(")
        << item->id() << " " << item->printname() << " " << item->score()
        << " " << item->start() << " " << item->end();
 

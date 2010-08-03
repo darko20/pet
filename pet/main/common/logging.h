@@ -38,6 +38,7 @@ extern class log4cpp::Category
   &logAppl,
   &logApplC,
   &logChart,
+  &logChartMapping,
   &logGenerics,
   &logGrammar,
   &logLexproc,
@@ -46,6 +47,7 @@ extern class log4cpp::Category
   &logPack,
   &logParse,
   &logSM,
+  &logChartPruning,
   &logSemantic,
   &logSyntax,
   &logTsdb,
@@ -78,6 +80,7 @@ extern class Category
   &logAppl,
   &logApplC,
   &logChart,
+  &logChartMapping,
   &logGenerics,
   &logGrammar,
   &logLexproc,
@@ -86,6 +89,7 @@ extern class Category
   &logPack,
   &logParse,
   &logSM,
+  &logChartPruning,
   &logSemantic,
   &logSyntax,
   &logTsdb,
@@ -99,7 +103,7 @@ class Category {
   std::string _name;
 
 public:
-  Category() : _printer(0) { }
+  Category() { }
   Category(const std::string &name, Priority prio, int printer) : _name(name) {
     set(prio, printer);
   }
@@ -144,10 +148,10 @@ public:
                  (name, Category(name, prio, printer)));
     return _cats[name];
   }
-  static bool hasCat(const std::string &name) {
+  static bool hasCat(const std::string name) {
     return (_cats.find(name) != _cats.end());
   }
-  static Category &getCat(const std::string &name) {
+  static Category &getCat(const std::string name) {
     std::map<std::string, Category>::iterator it = _cats.find(name);
     if (it != _cats.end()) return _cats[name];
     else throw tError("unknown logging category requested");

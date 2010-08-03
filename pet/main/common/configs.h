@@ -209,7 +209,7 @@ void managed_opt(const std::string &key, const std::string &docstring,
  *  sensible grouping in a GUI, for example.
  */
 template<class T>
-void reference_opt(const std::string &key, const std::string &docstring, 
+void reference_opt(const std::string key, const std::string docstring, 
                    T &initialValue) {
   Config::get_instance()->addReference<T>(key, docstring, initialValue);
 }
@@ -220,7 +220,7 @@ void reference_opt(const std::string &key, const std::string &docstring,
  *  like to change a data member inside an object instead of the object itself.
  */
 template<class T>
-void callback_opt(const std::string &key, const std::string &docstring,
+void callback_opt(const std::string key, const std::string docstring,
                   Callback<T> *cb) {
   Config::get_instance()->addCallback<T>(key, docstring, cb);
 }

@@ -1,0 +1,16 @@
+include "common".
+include "cm".
+
+start-symbols := $start.
+
+punctuation-characters := "". ; don't let the tokenizer throw away punctuation
+case-sensitive.               ; be case sensitive in string and yy tokenizer
+trivial-tokenizer.            ; for Lingo-style tokenizer "string"
+
+;;
+;; suppress results of regular morphology rules if an irregular form exists.
+;;
+irregular-forms-only.
+
+lex-entries-can-fail.
+

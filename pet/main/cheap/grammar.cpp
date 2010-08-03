@@ -25,6 +25,9 @@
 
 #include "cheap.h"
 #include "fs.h"
+#include "fs-chart.h"
+#include "chart-mapping.h"
+#include "input-modules.h"
 #include "parse.h"
 #include "utility.h"
 #include "dumper.h"
@@ -56,6 +59,12 @@ static int init() {
   managed_opt("opt_sm",
               "parse selection model (`null' for none)",
               std::string(""));
+  managed_opt("opt_chart_pruning",
+              "enables the chart pruning agenda",
+              400); 
+  managed_opt("opt_chart_pruning_strategy",
+              "determines the chart pruning strategy: 0=all tasks; 1=all successful tasks; 2=all passive items (default)",
+              2);
   return true;
 }
 
@@ -93,6 +102,20 @@ bool
 lex_rule_status(type_t t)
 {
   return cheap_settings->statusmember("lexrule-status-values", typestatus[t]);
+}
+
+bool
+inpmap_rule_status(type_t t)
+{
+  return cheap_settings->statusmember("token-mapping-rule-status-values",
+        typestatus[t]);
+}
+
+bool
+lexmap_rule_status(type_t t)
+{
+  return cheap_settings->statusmember("lexical-filtering-rule-status-values",
+        typestatus[t]);
 }
 
 grammar_rule::grammar_rule(type_t t)
@@ -248,16 +271,53 @@ grammar_rule::grammar_rule(type_t t)
 
 }
 
+// PCFG rule constructor
+grammar_rule::grammar_rule(std::vector<type_t> v)
+  : _tofill(0), _hyper(true), _spanningonly(false) {
+
+  _type = v[0];
+  _trait = PCFG_TRAIT;
+  
+  //
+  // Determine arity, determine head and key daughters.
+  // 
+    
+  _arity = v.size() - 1;
+  
+  if(_arity == 0) {
+    throw tError("Rule " + string(type_name(v[0])) + " has arity zero");
+  }
+  
+  for(int i = 1; i <= _arity; i++) {
+    _tofill = append(_tofill, i);
+    _pcfg_args.push_back(v[i]);
+  }
+  
+}
+
 grammar_rule::~grammar_rule() {
   free_list(_tofill);
-  for (int i = 0; i < _arity; ++i) delete[] _qc_vector_unif[i];
-  delete[] _qc_vector_unif;
+  if (_trait != PCFG_TRAIT) {
+    for (int i = 0; i < _arity; ++i) delete[] _qc_vector_unif[i];
+    delete[] _qc_vector_unif;
+  }
 }
 
 grammar_rule *
 grammar_rule::make_grammar_rule(type_t t) {
   try {
     return new grammar_rule(t);
+  }
+  catch (tError e) {
+    LOG(logGrammar, ERROR, e.getMessage());
+  }
+  return NULL;
+}
+
+grammar_rule *
+grammar_rule::make_pcfg_grammar_rule(std::vector<type_t> v) {
+  try {
+    return new grammar_rule(v);
   }
   catch (tError e) {
     LOG(logGrammar, ERROR, e.getMessage());
@@ -374,7 +434,7 @@ undump_dags(dumper *f) {
 tGrammar::tGrammar(const char * filename)
     : _properties(), _root_insts(0), _generics(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0), _lexsm(0)
+      _sm(0), _pcfgsm(0), _lexsm(0), _gm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
@@ -422,6 +482,11 @@ tGrammar::tGrammar(const char * filename)
     
     init_parameters();
 
+    // initialize cm-specific parameters:
+    if ((get_opt<tokenizer_id>("opt_tok") == TOKENIZER_FSC)
+        || get_opt_int("opt_chart_mapping"))
+      tChartUtil::initialize();
+    
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
     undump_dags(&dmp);
@@ -467,6 +532,22 @@ tGrammar::tGrammar(const char * filename)
             if (R != NULL) {
               _lex_rules.push_back(R);
               _rule_dict[i] = R;
+            }
+        }
+        else if (inpmap_rule_status(i) && (get_opt_int("opt_chart_mapping") > 0))
+        {
+            tChartMappingRule *R = tChartMappingRule::create(i,
+                tChartMappingRule::TMR_TRAIT);
+            if (R != NULL) {
+              _tokmap_rules.push_back(R);
+            }
+        }
+        else if (lexmap_rule_status(i) && (get_opt_int("opt_chart_mapping") > 0))
+        {
+            tChartMappingRule *R = tChartMappingRule::create(i,
+                tChartMappingRule::LFR_TRAIT);
+            if (R != NULL) {
+              _lexfil_rules.push_back(R);
             }
         }
         else if(genle_status(i))
@@ -534,6 +615,28 @@ tGrammar::tGrammar(const char * filename)
         }
       }
     } // if
+    char *pcfg_file;
+    if ((pcfg_file = cheap_settings->value("pcfg")) != 0) {
+      try { 
+        _pcfgsm = new tPCFG(this, pcfg_file, filename); 
+        // delete pcfgsm; // only pcfg rules are loaded, not their weights TODO: what was happening here?
+      } catch (tError &e) {
+        LOG(logGrammar, ERROR, e.getMessage());
+        // LOG(logGrammar, ERROR, e.getMessage());
+        _pcfgsm = 0;
+      }
+    }
+
+    char *gm_file;
+    if ((gm_file = cheap_settings->value("gm")) != 0) {
+      try { 
+        _gm = new tGM(this, gm_file, filename); 
+      } catch (tError &e) {
+        LOG(logGrammar, ERROR, e.getMessage());
+        _gm = 0;
+      }
+    }
+
     char *lexsm_file;
     if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
@@ -543,6 +646,10 @@ tGrammar::tGrammar(const char * filename)
       }
     }
 
+    // check validity of cm-specific parameters:
+    if ((get_opt<tokenizer_id>("opt_tok") == TOKENIZER_FSC)
+        || get_opt_int("opt_chart_mapping"))
+      tChartUtil::check_validity();
 
 #ifdef HAVE_EXTDICT
     try
@@ -582,6 +689,7 @@ tGrammar::tGrammar(const char * filename)
     for(ruleiter rule = _rules.begin(); rule != _rules.end(); ++rule)
       (*rule)->lui_dump();
 #endif
+
 }
 
 void
@@ -776,10 +884,16 @@ tGrammar::~tGrammar()
       grammar_rule *r = *pos;
       delete r;
     }
+    
+    for(ruleiter pos = _pcfg_rules.begin(); pos != _pcfg_rules.end(); ++pos) {
+      grammar_rule *r = *pos;
+      delete r;
+    }
 
     dag_qc_free();
 
     delete _sm;
+    delete _pcfgsm;
     delete _lexsm;
 
 #ifdef CONSTRAINT_CACHE
@@ -821,6 +935,16 @@ tGrammar::root(const fs &candidate, type_t &rule) const
     }
     return false;
 }
+
+bool
+tGrammar::root(int type) const
+{
+  list_int *roots;
+  for(roots = _root_insts; roots != 0; roots = rest(roots)) {
+    if(first(roots) == type) return true;
+  } // for
+  return false;
+} // tGrammar::root()
 
 lex_stem *
 tGrammar::find_stem(type_t inst_key)

@@ -40,7 +40,19 @@ struct dag_alloc_state
  * These functions are used to estimate PET's memory usage.
  */
 /*@{*/
+/**
+ * Reports how much memory (in bytes) is required for storing all permanent
+ * or temporary dags that have been created so far (as if memory was not
+ * reused). The value can be reset by dag_alloc_clear_stats().
+ * \todo is documentation this correct?? 
+ */
 long dag_alloc_dynamic_mem();
+/**
+ * Reports how much memory (in bytes) is currently allocated for storing
+ * temporary dags. The value can be reset by dag_alloc_clear_stats(), which
+ * has only a visible effect if allocated memory may shrink.
+ * \todo is documentation this correct?? 
+ */
 long dag_alloc_static_mem();
 /** Reset the statistics of static and dynamic memory usage */
 void dag_alloc_clear_stats();

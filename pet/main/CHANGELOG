@@ -1,3 +1,23 @@
+specific to chart-mapping branch:
+  - activate all rules after lex-exhaustive parsing (not just syntactic rules)
+    for compatibility with LKB
+  - regular expression literals introduced with slashes in TDL
+  - assert that fss in unify(), unify_restrict() and unify_np() are valid
+  - added preliminary XML-RPC server mode
+  - added chart mapping engine:
+    * chart mapping rules are resource-sensitive rewrite rules
+    * chart mapping rules operate on a generalized chart
+    * two phases: token mapping and lexical filtering
+  - new generic instantiation mode `default-les=all': try to instantiate
+    all available generics for all available input items. selection should
+    then be accomplished by constraints on the input fs
+  - new tokenizer for the XML-based feature structure chart format (FSC)
+  - input fs can optionally be unified into a lexical item's fs
+  - input items can now be described by input feature structures
+  - case-sensitive string and YY tokenizer
+  - memory limit is respected during unpacking
+  - added unit tests for types
+
 v0.99.??
   - added the ParseNodes class to be able to produce nice small parse trees as
     in the online demo, and an item printer to test it

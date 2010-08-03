@@ -2,12 +2,11 @@
 # Use autoreconf -i && config.status --recheck after changing this file.
 
 AC_PREREQ(2.59)
-AC_INIT([PET], [0.99.14svn], [kiefer@dfki.de])
+AC_INIT([PET], [0.99.14svn_cm], [Peter.Adolphs@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.7 foreign])
 dnl dejagnu dist-bzip2 no-dependencies
@@ -106,8 +105,7 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_AWK
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL
-# AC_PROG_RANLIB
+AC_PROG_RANLIB
 
 # Check for doxygen to generate documentation
 AC_PATH_PROG([DOXYGEN],[doxygen])
@@ -234,31 +232,6 @@ unset CHEAPCPPFLAGS CHEAPCXXFLAGS CHEAPLDFLAGS CHEAPLIBS
 
 
 # --------------------------------------------------------------------
-# Boost libraries
-# --------------------------------------------------------------------
-
-# Boost.Graph:
-AX_BOOST_BASE([], [boost="yes"], [boost="no"])
-if test "$boost" = "yes" ; then
-  CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
-  AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp \
-                    boost/graph/topological_sort.hpp \
-                    boost/lambda/lambda.hpp ],
-                   [],
-                   [ boost="no" ])
-  CPPFLAGS="${savedCPPFLAGS}"
-fi
-if test "$boost" = "yes" ; then
-  FLOPCPPFLAGS="${BOOST_CPPFLAGS} ${FLOPCPPFLAGS}"
-  FLOPLDFLAGS="${BOOST_LDFLAGS} ${FLOPLDFLAGS}"
-  CHEAPCPPFLAGS="${BOOST_CPPFLAGS} ${CHEAPCPPFLAGS}"
-  CHEAPLDFLAGS="${BOOST_LDFLAGS} ${CHEAPLDFLAGS}"
-else
-  AC_MSG_ERROR([boost graph library required to build flop and cheap])
-fi
-
-
-# --------------------------------------------------------------------
 # IBM ICU library.
 # --------------------------------------------------------------------
 
@@ -271,6 +244,44 @@ AX_LIB_ICU([],
   ],
   [icu=no])
 AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
+
+
+# --------------------------------------------------------------------
+# Boost libraries
+# --------------------------------------------------------------------
+
+AX_BOOST_BASE([], [boost="yes"], [boost="no"])
+AX_BOOST_REGEX([], [boost=no])
+if test "$boost" = "yes" ; then
+  CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
+  AC_CHECK_HEADERS([boost/format.hpp \
+                    boost/graph/adjacency_list.hpp \
+                    boost/graph/topological_sort.hpp \
+                    boost/lambda/lambda.hpp \
+                    boost/lexical_cast.hpp \
+                    boost/regex.hpp \
+                    boost/tuple/tuple.hpp \
+                    boost/tuple/tuple_comparison.hpp ],
+                   [],
+                   [ boost="no" ])
+  if test "x$icu" = "xyes" ; then
+    AC_CHECK_HEADERS([boost/regex/icu.hpp],
+                     [],
+                     [AC_MSG_WARN([Boost::Regex is not configured for ICU.
+                                   No Unicode-support in regular expressions.])],
+                     [])
+  fi
+  CPPFLAGS="${savedCPPFLAGS}"
+fi
+if test "$boost" = "yes" ; then
+  FLOPCPPFLAGS="${BOOST_CPPFLAGS} ${FLOPCPPFLAGS}"
+  FLOPLDFLAGS="${BOOST_LDFLAGS} ${FLOPLDFLAGS}"
+  CHEAPCPPFLAGS="${BOOST_CPPFLAGS} ${CHEAPCPPFLAGS}"
+  CHEAPLDFLAGS="${BOOST_LDFLAGS} ${CHEAPLDFLAGS}"
+  CHEAPLIBS="${BOOST_REGEX_LIBS} ${CHEAPLIBS}"
+else
+  AC_MSG_ERROR([required Boost libraries are missing or incomplete])
+fi
 
 
 # --------------------------------------------------------------------
@@ -550,6 +561,19 @@ AC_SUBST(PREPROCDIR)
 
 
 # --------------------------------------------------------------------
+# XMLRPC for C and C++ library (xmlrpc-c)
+# --------------------------------------------------------------------
+
+AX_LIB_XMLRPC_C([c++2 abyss-server], [xmlrpc_c="yes"], [xmlrpc_c="no"])
+if test x$xmlrpc_c = xyes; then
+  CHEAPCPPFLAGS="$XMLRPC_C_CPPFLAGS_SEARCHPATH $CHEAPCPPFLAGS"
+  CHEAPLDFLAGS="$XMLRPC_C_LDFLAGS_SEARCHPATH $CHEAPLDFLAGS"
+  CHEAPLIBS="$XMLRPC_C_LIBS $CHEAPLIBS"
+fi
+AM_CONDITIONAL(XMLRPC_C, [test x$xmlrpc_c = xyes])
+
+
+# --------------------------------------------------------------------
 # Unit testing with CppUnit
 # --------------------------------------------------------------------
 
@@ -770,6 +794,7 @@ echo "Embeddable Common-Lisp processor (ECL)          $ecl"
 echo "ICU library (Unicode support)                   $icu"
 echo "log4cpp library (extended logging support)      $log4cpp"
 echo "Xerces C++ (XML input modes)                    $xml"
+echo "XML-RPC for C/C++ (XML-RPC server mode)         $xmlrpc_c"
 echo "CppUnit (unit testing)                          $cppunit"
 echo "Grammar dumping in LUI format                   $lui"
 echo "Memory allocation with mmap                     $mmapalloc"

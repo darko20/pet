@@ -1,4 +1,6 @@
-+- make << operator for tItemPrinters to allow modifier stream like usage
+- use logging framework for chart-mapping
+
+- make << operator for tItemPrinters to allow modifier stream like usage
    - check if making the stream an argument of the print function decreases
      performance, if not, remove the global pointer to the stream used and
      replace it with a method argument 
@@ -78,6 +80,9 @@
   Idea: Make sure that permanent dags avoid using one of the slots that are 
         used for unification and mark it with a special value. After some 
         thinking, i would say that this might not be feasible.
+
+- extension of TDL syntax to type extension and comments (ticket #1 by Emily
+  Bender)
 
 - remove all uses of negative values as `marker'-values, especially where casts
   from integers to pointers and back are involved. 

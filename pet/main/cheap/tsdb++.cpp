@@ -28,6 +28,9 @@
 #include "version.h"
 #include "item-printer.h"
 #include "sm.h"
+#include "mrs.h"
+#include "vpm.h"
+#include "mrs-printer.h"
 #include "settings.h"
 #include "configs.h"
 #include "logging.h"
@@ -41,6 +44,8 @@
 #include<fstream>
 
 using namespace std;
+
+extern tVPM* vpm;
 
 static bool init();
 static bool tsdb_init = init();
@@ -61,7 +66,9 @@ statistics::reset()
 {
   id = 0;
   trees = 0;
+  rtrees = 0;
   readings = 0;
+  rreadings = 0;
   words = 0;
   words_pruned = 0;
   mtcpu = 0;
@@ -113,7 +120,8 @@ void
 statistics::print(FILE *f)
 {
   fprintf (f,
-           "id: %d\ntrees: %d\nreadings: %d\nwords: %d\nwords_pruned: %d\n"
+           "id: %d\ntrees: %d\nrtrees: %d\nreadings: %d\nrreadings: %d\n"
+           "words: %d\nwords_pruned: %d\n"
            "mtcpu: %d\nfirst: %d\ntcpu: %d\nutcpu: %d\n"
            "ftasks_fi: %d\nftasks_qc: %d\n"
            "fsubs_fi: %d\nfsubs_qc: %d\n"
@@ -129,7 +137,8 @@ statistics::print(FILE *f)
            "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\nhypotheses: %d\n",
-           id, trees, readings, words, words_pruned,
+           id, trees, rtrees, readings, rreadings, 
+           words, words_pruned,
            mtcpu, first, tcpu, p_utcpu,
            ftasks_fi, ftasks_qc,
            fsubs_fi, fsubs_qc,
@@ -387,7 +396,7 @@ tsdb_result::capi_print()
     capi_printf("(:result-id . %d) ", result_id);
 
     if(scored)
-        capi_printf("(:score . %.g) ", score);
+        capi_printf("(:score . %.4g) ", score);
 
     if(get_opt_int("opt_tsdb") == 1)
     {
@@ -531,6 +540,8 @@ tsdb_parse::capi_print()
                 "(:upedges . %d) " 
                 "(:failures . %d) "
                 "(:hypotheses . %d) "
+                "(:rtrees . %d) "
+                "(:rreadings . %d) "
                 "\")",
                 nmeanings, 
                 mtcpu,
@@ -545,7 +556,8 @@ tsdb_parse::capi_print()
                 p_utcpu,
                 p_upedges,
                 p_failures,
-                p_hypotheses);
+                p_hypotheses,
+                rtrees, rreadings);
 }
 
 #endif
@@ -621,13 +633,35 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     tsdb_parse_collect_edges(T, *iter);
                 }
                 
+                if(! get_opt_string("opt_mrs").empty()) {
+                  if ((strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) ||
+                      (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0)) {
+                    fs f = (*iter)->get_fs();
+                    mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+                    if (mrs->valid()) {
+                      mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+                      ostringstream out;
+                      if (mapped_mrs->valid()) {
+                        if (strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) {
+                          MrxMRSPrinter ptr(out);
+                          ptr.print(mapped_mrs);
+                        } else if (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0) {
+                          SimpleMRSPrinter ptr(out);
+                          ptr.print(mapped_mrs);
+                        }
+                      }
+                      R.mrs = out.str();
+                      delete mapped_mrs;
+                    }
+                    delete mrs;
+                  }
 #ifdef HAVE_MRS
-                if(! get_opt_string("opt_mrs").empty())
-                {
-                  R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-					      get_opt_string("opt_mrs").c_str());
-                }
+                  else {
+                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
+                                                get_opt_string("opt_mrs").c_str());
+                  }
 #endif
+                }
                 T.push_result(R);
                 nres++;
             }
@@ -710,6 +744,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
     T.p_hypotheses = stats.p_hypotheses;
+
+    T.rtrees = stats.rtrees;
+    T.rreadings = stats.rreadings;
 }
 
 void
