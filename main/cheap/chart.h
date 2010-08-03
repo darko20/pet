@@ -43,6 +43,15 @@ public:
   chart(int len, std::auto_ptr<item_owner> owner);
   ~chart();
 
+  /**
+   * Resets the chart, removing all items, but leaving _trees and _readings
+   * untouched.
+   * This method is only needed for mapping the new chart (tChart) to this
+   * old chart implementation.
+   * TODO remove this method if tChart is not used anymore
+   */
+  void reset(int len);
+
   /** Add item to the appropriate internal data structures, depending on its
    *  activity.
    */

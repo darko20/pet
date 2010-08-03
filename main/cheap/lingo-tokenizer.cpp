@@ -64,8 +64,7 @@ tLingoTokenizer::do_it(string s) {
     if(punctuation_char(s[i], _punctuation_characters))
       s[i] = ' ';
     else 
-      //TODO: provide a flag that makes it possible to use the upcase chars
-      if (true) 
+      if (!_case_sensitive) 
         s[i] = tolower(s[i]);
   }
 #else
@@ -82,8 +81,7 @@ tLingoTokenizer::do_it(string s) {
       Res.append(c);
   }
   
-  //TODO: provide a flag that makes it possible to use the upcase chars
-  if(true)
+  if(!_case_sensitive)
     Res.toLower();
 
   s = Conv->convert(Res);
@@ -135,7 +133,7 @@ tLingoTokenizer::do_it(string s) {
           if(s.find('\'', apo+1) != std::string::npos)
               throw tError("tokenizer: more than one apostroph in word");
           
-          if(apo == 0 || apo == s.length() - 1)
+          if(apo == 0)
           {
               words2.push_back(s);
           }

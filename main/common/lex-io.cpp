@@ -38,6 +38,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>

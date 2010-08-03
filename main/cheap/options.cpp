@@ -30,6 +30,7 @@
 #include "utility.h"
 #include "version.h"
 #include "logging.h"
+#include "lexparser.h"
 #include <string>
 #include <unistd.h>
 
@@ -65,11 +66,13 @@ void usage(FILE *f)
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
   fprintf(f, "  `-rulestats' --- enable tsdb output of rule statistics\n");
   fprintf(f, "  `-no-chart-man' --- disable chart manipulation\n");
-  fprintf(f, "  `-default-les' --- enable use of default lexical entries\n");
+  fprintf(f, "  `-default-les[=all|traditional]' --- enable use of default lexical entries\n" 
+             "         * all: try to instantiate all default les for all input fs\n"
+             "         * traditional (default): determine default les by posmapping for all lexical gaps\n");
   fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
-#ifdef YY
   fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
+#ifdef YY
   fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth]\n"
              "                         valid semantic formula\n");
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
@@ -87,11 +90,17 @@ void usage(FILE *f)
              "write jxchg/approximation chart files to `directory'\n");
   fprintf(f, "  `-partial' --- "
              "print partial results in case of parse failure\n");
+  fprintf(f, "  `-robust[=1]' --- "
+             "try robust PCFG parsing, in case of full parse failure\n");
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");
   fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
              "select input method (default `string')\n");
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
+  fprintf(f, "  `-cm' --- "
+          "enable chart mapping (token mapping and lexical filtering)\n");
+  fprintf(f, "  `-cp=[strategy]limit' --- "
+          "enable chart pruning. Strategy can be (a)ll, (s)uccessful and (p)assive (default).\n");
 }
 
 #define OPTION_TSDB 0
@@ -130,7 +139,10 @@ void usage(FILE *f)
 #define OPTION_COMMENT_PASSTHROUGH 36
 #define OPTION_PREDICT_LES 37
 #define OPTION_TIMEOUT 38
+#define OPTION_CHART_MAPPING 39
 #define OPTION_SM 40
+#define OPTION_ROBUST 41
+#define OPTION_CHART_PRUNING 42
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -165,7 +177,7 @@ char* parse_options(int argc, char* argv[])
     {"no-derivation", no_argument, 0, OPTION_NO_DERIVATION},
     {"rulestats", no_argument, 0, OPTION_RULE_STATISTICS},
     {"no-chart-man", no_argument, 0, OPTION_NO_CHART_MAN},
-    {"default-les", no_argument, 0, OPTION_DEFAULT_LES},
+    {"default-les", optional_argument, 0, OPTION_DEFAULT_LES},
     {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
@@ -181,13 +193,16 @@ char* parse_options(int argc, char* argv[])
     {"mrs", optional_argument, 0, OPTION_MRS},
     {"tsdbdump", required_argument, 0, OPTION_TSDB_DUMP},
     {"partial", no_argument, 0, OPTION_PARTIAL},
+    {"robust", optional_argument, 0, OPTION_ROBUST},
     {"results", required_argument, 0, OPTION_NRESULTS},
     {"tok", optional_argument, 0, OPTION_TOK},
     {"compute-qc-unif", optional_argument, 0, OPTION_COMPUTE_QC_UNIF},
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
     {"comment-passthrough", optional_argument, 0, OPTION_COMMENT_PASSTHROUGH},
+    {"cm", optional_argument, 0, OPTION_CHART_MAPPING},
     {"sm", optional_argument, 0, OPTION_SM},
+    {"cp", required_argument, 0, OPTION_CHART_PRUNING},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -225,8 +240,11 @@ char* parse_options(int argc, char* argv[])
             set_opt("opt_nsolutions", 1);
           break;
       case OPTION_DEFAULT_LES:
-          set_opt("opt_default_les", true);
-          break;
+        if(optarg != NULL)
+          set_opt_from_string("opt_default_les", optarg);
+        else
+          set_opt("opt_default_les", DEFAULT_LES_POSMAP_LEXGAPS);
+        break;
       case OPTION_NO_CHART_MAN:
           set_opt("opt_chart_man", false);
           break;
@@ -352,6 +370,12 @@ char* parse_options(int argc, char* argv[])
       case OPTION_PARTIAL:
           set_opt("opt_partial", true);
           break;
+      case OPTION_ROBUST:
+          if (optarg != NULL)
+            set_opt_from_string("opt_robust", optarg);
+          else
+            set_opt("opt_robust", 1);
+          break;
       case OPTION_NRESULTS:
           if(optarg != NULL)
             set_opt_from_string("opt_nresults", optarg);
@@ -377,12 +401,42 @@ char* parse_options(int argc, char* argv[])
         else
           set_opt("opt_predict_les", (int) 1);
         break;
+      case OPTION_CHART_MAPPING:
+          if (optarg != NULL)
+            set_opt_from_string("opt_chart_mapping", optarg);
+          else 
+            set_opt("opt_chart_mapping", 128);
+          break;
       case OPTION_SM:
           if (optarg != NULL)
             set_opt("opt_sm", std::string(optarg));
           else
             set_opt("opt_sm", std::string("null"));
           break;
+      case OPTION_CHART_PRUNING:
+          if (optarg != NULL) {
+            if (optarg[0] == 'a') {
+              set_opt("opt_chart_pruning_strategy", 0);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: strategy=all; cell size=" << get_opt_int("opt_chart_pruning"));
+            } else if (optarg[0] == 's') {
+              set_opt("opt_chart_pruning_strategy", 1);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: strategy=successful; cell size=" << get_opt_int("opt_chart_pruning"));            
+            } else if (optarg[0] == 'p') { 
+              set_opt("opt_chart_pruning_strategy", 2);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: strategy=passive; cell size=" << get_opt_int("opt_chart_pruning"));
+            } else {
+              set_opt("opt_chart_pruning_strategy", 2);
+              set_opt("opt_chart_pruning", (int)(strtoint(optarg, "")));
+              LOG (logChartPruning, INFO, "Chart pruning: no strategy given, hence strategy=passive; cell size=" << get_opt_int("opt_chart_pruning"));
+            }
+          } else {
+            set_opt("opt_chart_pruning", (int) 400);
+          }
+          break;
+
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
@@ -445,7 +499,9 @@ void options_from_settings(settings *set)
   set_opt("pedgelimit", int_setting(set, "limit"));
   set_opt("memlimit", int_setting(set, "memlimit"));
   set_opt("opt_hyper", bool_setting(set, "hyper"));
-  set_opt("opt_default_les", bool_setting(set, "default-les"));
+  // opt_default_les is not a bool setting anymore but since this function
+  // isn't called anywhere, I don't care to evaluate properly here (pead)
+  //set_opt("opt_default_les", bool_setting(set, "default-les"));
   set_opt("opt_predict_les", int_setting(set, "predict-les"));
 #ifdef YY
   set_opt("opt_nth_meaning", (bool_setting(set, "one-meaning")) ? 1 : 0);

@@ -1,0 +1,80 @@
+;;;
+;;; Token mapping rules (chart mapping)
+;;;
+
+; split off 's (possessive 's vs contracted auxiliary):
+split-contracted-s-rule := inpmap-102-rule &
+  [ +CONTEXT < [ +FORM ^([A-Z][a-z]+)('s)$  , +TNT #tnt ] > ,
+    +OUTPUT  < [ +FORM "${C1:+FORM:1}" , +TNT #tnt ],
+               [ +FORM "${C1:+FORM:2}" , +TNT <> ] >,
+    +POSITION "O1<O2, C1@O1, C1@O2" ].
+
+; split contracted compounds:
+split-compounds-rule := inpmap-x12-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM ^(cat)(dog)$ ] > ,
+    +OUTPUT  < [ +FORM "${I1:+FORM:1}" ], [ +FORM "${I1:+FORM:2}" ] >,
+    +POSITION "O1<O2, I1@O1, I1@O2" ].
+
+; replacing in context:
+dag-rule := inpmap-x11-rule &
+  [ +CONTEXT < [ +FORM "the" ], [ +FORM "barks" ]> ,
+    +INPUT   < [ +FORM "dag" ] > ,
+    +OUTPUT  < [ +FORM "dog" ] > ,
+    +POSITION "C1<I1<C2, O1@I1" ].
+
+; introducing items:
+switch-determiner-rule := inpmap-101-rule &
+  [ +CONTEXT < [ +FORM  "this" ] > ,
+    +OUTPUT  < [ +FORM  "that"] > ,
+    +POSITION "O1@C1" ].
+
+; blocking in the same chart cell:
+block-sth-rule := inpmap-rule &
+  [ +CONTEXT < [ +FORM "that" ], [ +FORM "dog"  ] >,
+    +INPUT   < [ +FORM "this" ] >,
+    +OUTPUT  < > ,
+    +POSITION "C1<C2, I1@C1" ].
+
+; map dates:
+dates-rule := inpmap-x11-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM ^[0-9]{1,2}[\/-][0-9]{1,2}[\/-][0-9]{4}$ , +TNT #tnt ] >,
+    +OUTPUT  < [ +FORM "DateErsatz" , +TNT #tnt ] >,
+    +POSITION "O1@I1" ].
+
+; replace HTML entities:
+xml-mdash-rule := inpmap-x11-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM ^([A-Za-z0-9]+)(&mdash;)([A-Za-z0-9]*)$ , +TNT #tnt ] >,
+    +OUTPUT  < [ +FORM "${I1:+FORM:1}-${I1:+FORM:3}" , +TNT #tnt ] >,
+    +POSITION "O1@I1" ].
+
+; fix broken tokenization
+tokenization-rule := inpmap-x21-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM  ^(.*)$ , +TNT #tnt ],
+               [ +FORM  ^([.,;?!])$ ] > ,
+    +OUTPUT  < [ +FORM "${I1:+FORM:1}${I2:+FORM:1}" , +TNT #tnt ] > ,
+    +POSITION "I1<I2, O1@I1, O1@I2" ].
+
+; make everything lower case:
+lower-case-rule := inpmap-x11-rule &
+  [ +CONTEXT < > ,
+    +INPUT   < [ +FORM ^(.*[A-ZÄÜÖ].*)$ , +TNT #tnt ] > ,
+    +OUTPUT  < [ +FORM "${lc(I1:+FORM:1)}" , +TNT #tnt ] > ,
+    +POSITION "O1@I1" ].
+
+; create input item for each TNT reading:
+explode-tnt-rule := inpmap-012-rule &
+  [ +INPUT   < [ +FORM #form ,
+                 +TNT.+TAGS [ FIRST #tag , REST #tagrest & *cons* ],
+                 +TNT.+PRBS [ FIRST #prb , REST #prbrest & *cons* ] ] > ,
+    +OUTPUT  < [ +FORM #form,
+                 +TNT.+TAGS < #tag >,
+                 +TNT.+PRBS < #prb > ] ,
+               [ +FORM #form,
+                 +TNT.+TAGS #tagrest,
+                 +TNT.+PRBS #prbrest ] > ,
+    +POSITION "I1@O1, O1@O2" ].
+

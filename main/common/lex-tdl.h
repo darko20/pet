@@ -26,6 +26,14 @@
 
 #include "lex-io.h"
 
+/**
+ * The variant of TDL to be parsed. The following modes are available:
+ * - STANDARD_TDL where ^ signals start of a regular expression
+ * - SM_TDL used in statistical models where ^ signals the left context 
+ */ 
+enum TDL_MODE { STANDARD_TDL, SM_TDL };
+extern TDL_MODE tdl_mode;
+
 /** The number of predefined keywords of the TDL syntax. */
 #define N_KEYWORDS 18
 /** The predefined TDL keywords */

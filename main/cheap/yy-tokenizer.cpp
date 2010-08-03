@@ -36,6 +36,7 @@ YY input format:
 
 #include "yy-tokenizer.h"
 #include "cheap.h"
+#include "configs.h"
 #include "hashing.h"
 #include "lex-tdl.h"
 #include "settings.h"
@@ -280,8 +281,7 @@ tYYTokenizer::read_token()
   if(paths.empty() || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected paths)");
   
-  bool downcasep = true;
-  if(!read_string(stem, true, downcasep))
+  if(!read_string(stem, true, !_case_sensitive))
     throw tError("yy_tokenizer: ill-formed token (expected stem)");
 
   // translate iso-8859-1 german umlaut and sz
@@ -318,7 +318,7 @@ tYYTokenizer::read_token()
   modlist fsmods = modlist() ;
   char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
 
-  if ((ersatz_carg_path != NULL) &&
+  if (!get_opt_int("opt_chart_mapping") && (ersatz_carg_path != NULL) &&
       (stem.substr(max(0,stem.length()-ersatz_suffix.length())) 
        == ersatz_suffix))
   {
@@ -348,7 +348,10 @@ tYYTokenizer::read_token()
         token_class = WORD_TOKEN_CLASS;
         surface = stem;
         break;
-      } else
+      } 
+      else if(token_class == SKIP_TOKEN_CLASS)
+	break;
+      else
         throw tError("yy_tokenizer: illegal \"null\" spec");
     }
     

@@ -21,6 +21,7 @@
 
 #include "parse.h"
 #include "cheap.h"
+#include "pcfg.h"
 #include "fs.h"
 #include "item.h"
 #include "item-printer.h"
@@ -52,7 +53,7 @@ using namespace std;
 //
 
 chart *Chart;
-tAgenda *Agenda;
+tAbstractAgenda *Agenda;
 
 timer ParseTime;
 timer TotalParseTime(false);
@@ -194,6 +195,7 @@ filter_combine_task(tItem *active, tItem *passive)
  */
 void
 postulate(tItem *passive) {
+  assert(!passive->blocked());
   // iterate over all the rules in the grammar
   for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
       rule++) {
@@ -451,8 +453,9 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
  * Unpacks the parse forest selectively (using the max-ent model).
  * \return number of unpacked trees
  */
-int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
-                       ,timer *UnpackTime , vector<tItem *> &readings) {
+int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
+                       long memlimit, int nsolutions, 
+                       timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0)
     timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
@@ -473,7 +476,7 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
   }
   list<tItem*> results
     = tItem::selectively_unpack(uroots, nsolutions
-                                , Chart->rightmost(), upedgelimit);
+                                , Chart->rightmost(), upedgelimit, memlimit);
 
   static tCompactDerivationPrinter cdp;
   for (list<tItem*>::iterator res = results.begin();
@@ -496,8 +499,8 @@ int unpack_selectively(vector<tItem*> &trees, int upedgelimit, int nsolutions
  * \return number of unpacked trees
  * \todo why is opt_nsolutions not honored here
  */
-int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
-                        , timer *UnpackTime, vector<tItem *> &readings) {
+int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit,
+                        timer *UnpackTime, vector<tItem *> &readings) {
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0)
     timestamp = times(NULL);
@@ -537,7 +540,8 @@ int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit
 
 vector<tItem*>
 collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
-                 int pedgelimit, int nsolutions, vector<tItem*> &trees) {
+                 int pedgelimit, long memlimit, int nsolutions,
+                 vector<tItem*> &trees) {
   vector<tItem *> readings;
 
   if(opt_packing && !(opt_packing & PACKING_NOUNPACK)) {
@@ -553,10 +557,18 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
       if ((opt_packing & PACKING_SELUNPACK)
           && nsolutions > 0
           && Grammar->sm()) {
-        nres = unpack_selectively(trees, upedgelimit, nsolutions,
-                                  UnpackTime, readings);
+        try {
+          nres = unpack_selectively(trees, upedgelimit, memlimit, nsolutions,
+                                    UnpackTime, readings);
+        } catch(tError e) {
+          errors.push_back(e);
+        }
       } else { // unpack exhaustively
-        nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
+        try {
+          nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
+        } catch(tError e) {
+          errors.push_back(e);
+        }
       }
 
       if(upedgelimit > 0 && stats.p_upedges > upedgelimit) {
@@ -623,8 +635,8 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 
   LOG(logParse, DEBUG, *Chart);
 
-  Chart->readings() = collect_readings(FSAS, errors,
-                                       pedgelimit, opt_nsolutions,
+  Chart->readings() = collect_readings(FSAS, errors, 
+                                       pedgelimit, memlimit, opt_nsolutions,
                                        Chart->trees());
   stats.readings = Chart->readings().size();
 
@@ -653,10 +665,17 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
   unify_wellformed = true;
 
+  bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
+  
   inp_list input_items;
-  int max_pos = Lexparser.process_input(input, input_items);
+  int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
-  Agenda = new tAgenda;
+  if (get_opt_int("opt_chart_pruning") != 0) {
+    Agenda = new tLocalCapAgenda (get_opt_int ("opt_chart_pruning"), max_pos);
+  } else {
+    Agenda = new tExhaustiveAgenda;
+  }
+  
   C = Chart = new chart(max_pos, owner);
 
   //
@@ -671,9 +690,11 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
   }
 
-  Lexparser.lexical_processing(input_items
-                               , cheap_settings->lookup("lex-exhaustive")
-                               , FSAS, errors);
+  Lexparser.lexical_processing(input_items,
+                               chart_mapping,
+                               (chart_mapping
+                                || cheap_settings->lookup("lex-exhaustive")),
+                               FSAS, errors);
 
   // during lexical processing, the appropriate tasks for the syntactic stage
   // are already created
@@ -683,6 +704,9 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   TotalParseTime.stop();
 
   parse_finish(FSAS, errors, timeout);
+
+  if(get_opt_int("opt_robust") != 0 && (Chart->readings().empty()))
+    analyze_pcfg(Chart, FSAS, errors);
 
   Lexparser.reset();
   // clear_dynamic_types(); // too early

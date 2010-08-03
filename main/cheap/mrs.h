@@ -29,9 +29,6 @@ public:
   virtual ~tValue() {
   }
 
-  virtual void print(std::ostream &out) = 0;
-  virtual void print_full(std::ostream &out) = 0;
-  
 };
 
 class tConstant : public tValue {
@@ -44,8 +41,6 @@ public:
 
   std::string value;
   
-  virtual void print(std::ostream &out);
-  virtual void print_full(std::ostream &out);
 };
 
 class tBaseVar : public tValue {
@@ -75,8 +70,6 @@ public:
 
   int id;
   
-  virtual void print(std::ostream &out);
-  virtual void print_full(std::ostream &out);
 };
 
 class tGrammarVar : public tBaseVar {
@@ -102,8 +95,6 @@ public:
   tHConsRelType relation;
   tVar* scarg;
   tVar* outscpd;
-  
-  virtual void print(std::ostream &out);
   
   class tBaseMRS* _mrs;
 };
@@ -137,9 +128,6 @@ public:
   std::string pred;
   std::map<std::string,tValue*> flist;
 
-  virtual void print(std::ostream &out) { }
-
-
   /* reference to the parent mrs */
   class tBaseMRS *_mrs;
 
@@ -169,8 +157,6 @@ public:
 
   /** collect paramerter strings from the flist */
   void collect_param_strings();
-
-  virtual void print(std::ostream &out);
 
 };
 
@@ -218,8 +204,6 @@ public:
    */
   tConstant* request_constant(std::string value);
   
-  virtual void print(std::ostream &out) { }
-  
   bool valid() { return _valid; }
 
   // note that the variable names are scoped within one MRS
@@ -242,7 +226,6 @@ public:
   tPSOA(struct dag_node* dag);
 
   tVar* index;
-  virtual void print(std::ostream &out);
 };
 
 class tSemEnt : public tBaseMRS {

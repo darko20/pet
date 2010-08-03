@@ -23,6 +23,7 @@
 #include <sys/param.h>
 
 #include "cheap.h"
+#include "fs-chart.h"
 #include "item.h"
 #include "item-printer.h"
 #include "parse.h"
@@ -145,8 +146,21 @@ tItem::tItem(int start, int end, const tPaths &paths,
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
-      _score(0.0), _printname(printname),
-      _blocked(0), _unpack_cache(0), parents(), packed()
+      _score(0.0), _gmscore(0.0), _printname(printname),
+      _blocked(0), _unpack_cache(0), parents(), packed(), _chart(0)
+{
+    if(_default_owner) _default_owner->add(this);
+}
+
+tItem::tItem(int start, int end, const tPaths &paths,
+             const char *printname)
+    : _id(_next_id++),
+      _start(start), _end(end), _spanningonly(false), _paths(paths),
+      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
+      _result_root(-1), _result_contrib(false),
+      _qc_vector_unif(0), _qc_vector_subs(0),
+      _score(0.0), _gmscore(0.0), _printname(printname),
+      _blocked(0), _unpack_cache(0), parents(), packed(), _chart(0)
 {
     if(_default_owner) _default_owner->add(this);
 }
@@ -179,8 +193,9 @@ tInputItem::tInputItem(string id
                        , int token_class
                        , const std::list<int> &infl_rules
                        , const postags &pos
-                       , modlist fsmods)
-  : tItem(start, end, paths, fs(), surface.c_str())
+                       , modlist fsmods
+                       , const fs &token_fs)
+  : tItem(start, end, paths, token_fs, surface.c_str())
     , _input_id(id), _class(token_class), _surface(surface), _stem(stem)
     , _fsmods(fsmods), _postags(pos)
 {
@@ -188,8 +203,9 @@ tInputItem::tInputItem(string id
   _endposition = endposition;
   _trait = INPUT_TRAIT;
   _inflrs_todo = copy_list(infl_rules);
+  if (!token_fs.valid()) // i.e. if no token fs has been specified
+    recreate_fs(); // create the token fs
 }
-
 
 // constructor with external start/end positions only
 tInputItem::tInputItem(string id, int startposition, int endposition
@@ -207,6 +223,7 @@ tInputItem::tInputItem(string id, int startposition, int endposition
   _endposition = endposition;
   _trait = INPUT_TRAIT;
   _inflrs_todo = copy_list(infl_rules);
+  recreate_fs(); // create the token fs
 }
 
 // constructor for complex input items
@@ -230,6 +247,7 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
   }
   _trait = INPUT_TRAIT;
   _inflrs_todo = copy_list(infl_rules);
+  recreate_fs(); // create the token fs
 }
 
 void
@@ -262,7 +280,7 @@ tInputItem::rule() const
 void
 tInputItem::recreate_fs()
 {
-    throw tError("cannot rebuild input item's feature structure");
+    _fs = tChartUtil::create_input_fs(this);
 }
 
 /** \brief Since tInputItems do not have a feature structure, they need not be
@@ -326,6 +344,7 @@ tInputItem::generics(postags onlyfor)
           LOG(logGenerics, DEBUG,
               "  ==> " << print_name(gen) 
               << " [" << (suffix == 0 ? "*" : suffix)<< "]");
+
           result.push_back(Grammar->find_stem(gen));
         }
     }
@@ -405,7 +424,7 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
                    , fs &f, const list_int *inflrs_todo)
   : tItem(i_item->start(), i_item->end(), i_item->paths()
           , f, stem->printname())
-  , _ldot(stem->inflpos()), _rdot(stem->inflpos() + 1)
+  , _ldot(stem->inflpos())
   , _stem(stem), _fs_full(f), _hypo(NULL)
 {
   _rdot = (_ldot ? stem->length() : 1);
@@ -418,12 +437,11 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
   init();
 }
 
-tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr)
-  : tItem(-1, -1, from->paths().common(newdtr->paths())
-          , from->get_fs(), from->printname())
-    , _ldot(from->_ldot), _rdot(from->_rdot)
-    , _keydaughter(from->_keydaughter)
-  , _stem(from->_stem), _fs_full(from->get_fs()), _hypo(NULL)
+tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr, fs f)
+  : tItem(-1, -1, from->paths().common(newdtr->paths()), 
+          (f.valid() ? f : from->get_fs()), from->printname()),
+  _ldot(from->_ldot), _rdot(from->_rdot), _keydaughter(from->_keydaughter),
+  _stem(from->_stem), _fs_full(f.valid() ? f : from->get_fs()), _hypo(NULL)
 {
   _daughters = from->_daughters;
   _inflrs_todo = copy_list(from->_inflrs_todo);
@@ -566,6 +584,62 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
     _trait = SYNTAX_TRAIT;
     _nfilled = dtrs.size();
     _result_root = sponsor->result_root();
+}
+
+
+tPhrasalItem::tPhrasalItem(grammar_rule *rule, tItem *pasv) 
+  : tItem(pasv->_start, pasv->_end, pasv->_paths, rule->printname()),
+    _adaughter(0), _rule(rule) {
+  _startposition = pasv->startposition();
+  _endposition = pasv->endposition();
+  _tofill = rule->restargs();
+  _nfilled = 1;
+  _daughters.push_back(pasv);
+  _key_item = pasv->_key_item;
+
+  _trait = PCFG_TRAIT;
+  
+  _spanningonly = rule->spanningonly();
+  
+  pasv->parents.push_back(this);
+  if (passive()) {
+    rule->passives++;
+  }
+}
+
+tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv)
+  : tItem(-1, -1, active->_paths.common(pasv->_paths), active->printname()),
+    _adaughter(active), _rule(active->_rule) {
+  _daughters = active->_daughters;
+  _start = active->_start;
+  _startposition = active->startposition();
+  _end = pasv->_end;
+  _endposition = pasv->endposition();
+  _daughters.push_back(pasv);
+  
+  pasv->parents.push_back(this);
+  active->parents.push_back(this);
+  
+  _tofill = active->restargs();
+  _nfilled = active->nfilled() + 1;
+
+  _trait = PCFG_TRAIT;
+  
+  if (passive()) {
+    active->rule()->passives++;
+  } else {
+    active->rule()->actives++;
+  }
+}
+
+tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, std::vector<tItem *> &dtrs)
+  : tItem(sponsor->start(), sponsor->end(), sponsor->_paths, sponsor->printname()),
+    _adaughter(0), _rule(sponsor->rule()) {
+  for(vector<tItem *>::iterator it = dtrs.begin(); it != dtrs.end(); it ++)
+    _daughters.push_back(*it);
+  _trait = PCFG_TRAIT;
+  _nfilled = dtrs.size();
+  _result_root = sponsor->result_root();
 }
 
 void
@@ -730,28 +804,55 @@ tItem::contains_p(const tItem *it) const
   }
 }
 
+
+/** check if packing current item into \a it 
+    will create a cycle in the packed forest */
+bool
+tItem::cyclic_p(const tItem *it) const {
+  list<const tItem*> ilist;
+  const tItem *pit = this;
+  ilist.push_back(pit);
+  while (!ilist.empty()) {
+    pit = ilist.front();
+    ilist.pop_front();
+    if (it->startposition() != pit->startposition() ||
+        it->endposition() != pit->endposition() ||
+        pit->_daughters.size() != 1)
+      continue;
+    else if (it->id() == pit->id())
+      return true;
+    else {
+      pit = pit->daughters().front();
+      ilist.push_back(pit);
+      for (item_citer iter = pit->packed.begin();
+           iter != pit->packed.end();
+           iter ++)
+        ilist.push_back(*iter);
+    }
+  }
+  return false;
+}
+
 //
 // Blocking (frosting and freezing) for packing
 //
 
 void
-tItem::block(int mark)
+tItem::block(int mark, bool freeze_parents)
 {
-    LOG(logPack, DEBUG,
-        (mark == 1 ? "frost" : "freez") << "ing" << endl << *this) ;
+  LOG(logPack, DEBUG,
+      (mark == 1 ? "frost" : "freez") << "ing" << endl << *this) ;
+  if (!blocked() || mark == 2) {
+    if (mark == 2)
+      stats.p_frozen++;
 
-    if(!blocked() || mark == 2)
-    {
-        if(mark == 2)
-            stats.p_frozen++;
-
-        _blocked = mark;
+    _blocked = mark;
+  }
+  if (freeze_parents) {
+    for (item_iter p = parents.begin(); p != parents.end(); ++p) {
+      (*p)->freeze();
     }
-
-    for(item_iter parent = parents.begin(); parent != parents.end(); ++parent)
-    {
-      (*parent)->freeze();
-    }
+  }
 }
 
 //
@@ -760,6 +861,11 @@ tItem::block(int mark)
 
 // for printing debugging output
 int unpacking_level;
+
+inline bool unpacking_resources_exhausted(long memlimit) {
+  // TODO add other limits
+  return memlimit > 0 && t_alloc.max_usage() >= memlimit;
+}
 
 list<tItem *>
 tItem::unpack(int upedgelimit)
@@ -914,13 +1020,15 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
 // should be factored out.
 tItem *
 tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  
   fs_alloc_state FSAS(false);
 
   fs res = rule()->instantiate(true);
 
   list_int *tofill = rule()->allargs();
-  
-  while(res.valid() && tofill) {
+
+  while (res.valid() && tofill && !unpacking_resources_exhausted(memlimit)) {
     fs arg = res.nth_arg(first(tofill));
     if(res.temp())
       unify_generation = res.temp();
@@ -935,6 +1043,13 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
                            Grammar->deleted_daughters());
     }
     tofill = rest(tofill);
+  }
+
+  if (unpacking_resources_exhausted(memlimit)) {
+    ostringstream s;
+    s << "memory limit exhausted (" << memlimit / (1024 * 1024)
+      << " MB)";
+    throw tError(s.str());
   }
 
   if(!res.valid()) {
@@ -1246,7 +1361,7 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
  * \return a list of the best, at most \a n unpacked trees
  */
 list<tItem *>
-tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
+tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, long memlimit)
 {
   item_list results;
   if (n <= 0)
@@ -1289,12 +1404,13 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
   while (!ragenda.empty() && n > 0) {
     aitem = ragenda.front();
     ragenda.pop_front();
-    tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit);
+    tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit, memlimit);
     if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
       return results;
     }
     type_t rule;
-    if (result && result->root(Grammar, end, rule)) {
+    if (result && 
+        (result->trait() == PCFG_TRAIT || result->root(Grammar, end, rule))) {
       result->set_result_root(rule);
       results.push_back(result);
       n --;
@@ -1303,6 +1419,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
         break;
       }
     }
+  
     hypo = aitem->edge->hypothesize_edge(path, aitem->indices[0]+1);
     if (hypo) {
       //Grammar->sm()->score_hypothesis(hypo);
@@ -1322,19 +1439,19 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit)
 }
 
 tItem*
-tInputItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit) {
+tInputItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit) {
   score(hypo->scores[path]);
   return this;
 }
 
 tItem *
-tLexItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit) {
+tLexItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit) {
   score(hypo->scores[path]);
   return this;
 }
 
 tItem *
-tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit)
+tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit)
 {
 
   // Check if we reached the unpack edge limit. Caller is responsible for
@@ -1366,7 +1483,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
   // Instantiate all the sub hypotheses.
   for (list<tHypothesis*>::iterator subhypo = hypo->hypo_dtrs.begin();
        subhypo != hypo->hypo_dtrs.end(); subhypo++) {
-    tItem* dtr = (*subhypo)->edge->instantiate_hypothesis(newpath, *subhypo, upedgelimit);
+    tItem* dtr = (*subhypo)->edge->instantiate_hypothesis(newpath, *subhypo, upedgelimit, memlimit);
     if (dtr)
       daughters.push_back(dtr);
     else {
@@ -1375,37 +1492,51 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
     }
   }
   
-  // Replay the unification.
-  fs res = rule()->instantiate(true);
-  list_int *tofill = rule()->allargs();
-  while (res.valid() && tofill) {
-    fs arg = res.nth_arg(first(tofill));
-    if (res.temp())
-      unify_generation = res.temp();
-    if (rest(tofill)) {
-      res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
-    } else {
-      res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
-                           arg,
-                           Grammar->deleted_daughters());
+  tPhrasalItem *result;
+  if (trait() != PCFG_TRAIT) {
+    // Replay the unification.
+    fs res = rule()->instantiate(true);
+    list_int *tofill = rule()->allargs();
+    while (res.valid() && tofill && !unpacking_resources_exhausted(memlimit)) {
+      fs arg = res.nth_arg(first(tofill));
+      if (res.temp())
+        unify_generation = res.temp();
+      if (rest(tofill)) {
+        res = unify_np(res, daughters[first(tofill)-1]->get_fs(true), arg);
+      } else {
+        res = unify_restrict(res, daughters[first(tofill)-1]->get_fs(true),
+                             arg,
+                             Grammar->deleted_daughters());
+      }
+      tofill = rest(tofill);
     }
-    tofill = rest(tofill);
-  }
-  if (!res.valid()) {
-    //    FSAS.release();
-    //hypo->inst_failed = true;//
+  
+    if (unpacking_resources_exhausted(memlimit)) {
+      ostringstream s;
+      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
+        << " MB)";
+      throw tError(s.str());
+    }
+    
+    if (!res.valid()) {
+      //    FSAS.release();
+      //hypo->inst_failed = true;//
 #ifdef INSTFC
-    propagate_failure(hypo);
+      propagate_failure(hypo);
 #endif
-    stats.p_failures ++;
-    return NULL;
-  }
-  if (passive()) {
-    characterize(res, _startposition, _endposition);
+      stats.p_failures ++;
+      return NULL;
+    }
+    if (passive()) {
+      characterize(res, _startposition, _endposition);
+    }
+    
+    result = new tPhrasalItem(this, daughters, res);
+  } else {
+    result = new tPhrasalItem(this, daughters);
   }
 
   stats.p_upedges++;
-  tPhrasalItem *result = new tPhrasalItem(this, daughters, res);
   result->score(hypo->scores[path]);
   hypo->inst_edge = result;
   return result;
