@@ -33,6 +33,7 @@
 #include <string>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 XERCES_CPP_NAMESPACE_USE
 
@@ -48,15 +49,22 @@ bool
 tFSCTokenizer::next_input(std::istream &in, std::string &input)
 {
   input.clear();
-  
+
   string nextline;
   do {
     if (in.eof())
       return false;
     std::getline(in, nextline);
+    boost::trim(nextline);
+    if (input.empty() && (! nextline.empty())) {
+      if (nextline.at(0) != '<') {
+        input = nextline;
+        return true;
+      }
+    }
     input.append(nextline);
   } while ((nextline.find("</fsc>") == string::npos));
-  
+
   // stuff string after end tag back into stream
   size_t end = input.find("</fsc>") + 6;
   size_t real_end = input.length();
@@ -64,7 +72,7 @@ tFSCTokenizer::next_input(std::istream &in, std::string &input)
     in.putback(input.at(i));
   }
   input.erase(end, real_end - end);
-  
+
   return !input.empty();
 }
 
@@ -78,10 +86,19 @@ tFSCTokenizer::tokenize(std::string s, inp_list &result)
 
 void
 tFSCTokenizer::tokenize(std::string s, tChart &result)
-{  
+{
   tFSCHandler fsc_handler(result);
-  MemBufInputSource xml_input((const XMLByte *) s.c_str(), s.length(), "STDIN");
-  parse_file(xml_input, &fsc_handler);
+  InputSource *i;
+  if (s.at(0) == '<') {
+    MemBufInputSource xml_input((const XMLByte *) s.c_str(), s.length(),
+                                "STDIN");
+    parse_file(xml_input, &fsc_handler);
+  }
+  else {
+    XMLCh * XMLFilename = XMLString::transcode(s.c_str());
+    LocalFileInputSource inputfile(XMLFilename);
+    parse_file(inputfile, &fsc_handler);
+  }
 }
 
 
@@ -230,7 +247,7 @@ tFSCStateFactory::create_state(const std::string &name)
 // =====================================================
 
 namespace fsc {
-  
+
   // =====================================================
   // abstract state for parsing FSC files
   // =====================================================
@@ -238,11 +255,11 @@ namespace fsc {
   tFSCState::tFSCState()
   : _name("")
   { }
-  
+
   tFSCState::tFSCState(std::string name)
   : _name(name)
   { }
-  
+
   tFSCState::~tFSCState()
   { }
 
@@ -251,7 +268,7 @@ namespace fsc {
   {
     return _name;
   }
-  
+
   void
   tFSCState::reject(tFSCState *s, tFSCState *t)
   {
@@ -277,7 +294,7 @@ namespace fsc {
   { tFSCState::reject(source, this); }
   void tFSCState::enter(tFSCState_str *source, AttributeList &attrs)
   { tFSCState::reject(source, this); }
-  
+
   void tFSCState::leave(tFSCBottomState *target)
   { tFSCState::reject(this, target); }
   void tFSCState::leave(tFSCState_fsc *target)
@@ -296,13 +313,13 @@ namespace fsc {
   { tFSCState::reject(this, target); }
   void tFSCState::leave(tFSCState_str *target)
   { tFSCState::reject(this, target); }
-  
+
   void
   tFSCState::characters(std::string chars)
   {
     throw tError("Characters are not allowed at this place.");
   }
-  
+
   // =====================================================
   // bottom state
   // =====================================================
@@ -310,31 +327,31 @@ namespace fsc {
   tFSCBottomState::tFSCBottomState()
   : tFSCState("*bottom*")
   { }
-  
+
   tFSCBottomState*
   tFSCBottomState::clone() const
   { return new tFSCBottomState(*this); }
-  
+
   void
   tFSCBottomState::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCBottomState::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCBottomState::set_chart(tChart *chart)
   {
     _chart = chart;
   }
-  
+
   tChart*
   tFSCBottomState::get_chart()
   {
     return _chart;
   }
-  
+
   // =====================================================
   // state "fsc"
   // =====================================================
@@ -342,38 +359,38 @@ namespace fsc {
   tFSCState_fsc::tFSCState_fsc()
   : tFSCState("fsc")
   { }
-  
+
   tFSCState_fsc*
   tFSCState_fsc::clone() const
   { return new tFSCState_fsc(*this); }
-  
+
   void
   tFSCState_fsc::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_fsc::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_fsc::enter(tFSCBottomState *source, AttributeList &attrs)
   {
     // cerr << "<" + name() + ">\n";
     _chart = source->get_chart();
   }
-  
+
   void
   tFSCState_fsc::leave(tFSCBottomState *target)
   {
     // cerr << "</" + name()  + ">\n";
   }
-  
+
   tChart*
   tFSCState_fsc::get_chart()
   {
     return _chart;
   }
-  
+
   // =====================================================
   // state "chart"
   // =====================================================
@@ -385,34 +402,34 @@ namespace fsc {
   tFSCState_chart*
   tFSCState_chart::clone() const
   { return new tFSCState_chart(*this); }
-  
+
   void
   tFSCState_chart::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_chart::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_chart::enter(tFSCState_fsc *source, AttributeList &attrs)
   {
     // cerr << "<" + name() + ">\n";
     _chart = source->get_chart();
   }
-  
+
   void
   tFSCState_chart::leave(tFSCState_fsc *target)
   {
     // cerr << "</" + name()  + ">\n";
   }
-  
+
   tChart*
   tFSCState_chart::get_chart()
   {
     return _chart;
   }
-  
+
   // =====================================================
   // state "text"
   // =====================================================
@@ -424,33 +441,33 @@ namespace fsc {
   tFSCState_text*
   tFSCState_text::clone() const
   { return new tFSCState_text(*this); }
-  
+
   void
   tFSCState_text::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_text::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_text::enter(tFSCState_chart *source, AttributeList &attrs)
   {
     // cerr << "<" + name() + ">\n";
   }
-  
+
   void
   tFSCState_text::leave(tFSCState_chart *target)
   {
     // cerr << "</" + name()  + ">\n";
   }
-  
+
   void
   tFSCState_text::characters(std::string chars)
   {
     // ignore
   }
-  
+
   // =====================================================
   // state "lattice"
   // =====================================================
@@ -462,15 +479,15 @@ namespace fsc {
   tFSCState_lattice*
   tFSCState_lattice::clone() const
   { return new tFSCState_lattice(*this); }
-  
+
   void
   tFSCState_lattice::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_lattice::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_lattice::enter(tFSCState_chart *source, AttributeList &attrs)
   {
@@ -478,13 +495,13 @@ namespace fsc {
     _chart = source->get_chart();
     _vertex_map.clear();
  }
-  
+
   void
   tFSCState_lattice::leave(tFSCState_chart *target)
   {
     // cerr << "</" + name()  + ">\n";
   }
-  
+
   void
   tFSCState_lattice::add_item(fs f, string vfrom_name, string vto_name)
   {
@@ -496,7 +513,7 @@ namespace fsc {
     _chart->add_item(item, _vertex_map[vfrom_name], _vertex_map[vto_name]);
    }
 
-  
+
   // =====================================================
   // state "edge"
   // =====================================================
@@ -504,19 +521,19 @@ namespace fsc {
   tFSCState_edge::tFSCState_edge()
   : tFSCState("edge")
   { }
-  
+
   tFSCState_edge*
   tFSCState_edge::clone() const
   { return new tFSCState_edge(*this); }
-  
+
   void
   tFSCState_edge::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_edge::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_edge::enter(tFSCState_lattice *source, AttributeList &attrs)
   {
@@ -529,20 +546,20 @@ namespace fsc {
     _vfrom_name = XMLCh2Native(src_vertex);
     _vto_name = XMLCh2Native(tgt_vertex);
   }
-  
+
   void
   tFSCState_edge::leave(tFSCState_lattice *target)
   {
     // cerr << "</" + name()  + ">\n";
     target->add_item(_fs, _vfrom_name, _vto_name);
   }
-  
+
   void
   tFSCState_edge::set_fs(fs f)
   {
     _fs = f;
   }
-  
+
   // =====================================================
   // state "fs"
   // =====================================================
@@ -554,15 +571,15 @@ namespace fsc {
   tFSCState_fs*
   tFSCState_fs::clone() const
   { return new tFSCState_fs(*this); }
-  
+
   void
   tFSCState_fs::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_fs::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_fs::enter(tFSCState_edge *source, AttributeList &attrs)
   {
@@ -576,14 +593,14 @@ namespace fsc {
       throw tError("Unknown type \"" + XMLCh2Native(n) + "\".");
     _fs = fs(type);
   }
-  
+
   void
   tFSCState_fs::leave(tFSCState_edge *target)
   {
     target->set_fs(_fs);
     // cerr << "</" + name()  + ">\n";
   }
-  
+
   void
   tFSCState_fs::enter(tFSCState_f *source, AttributeList &attrs)
   {
@@ -591,26 +608,26 @@ namespace fsc {
     // same as when coming from edge:
     enter((tFSCState_edge*)source, attrs);
   }
-  
+
   void
   tFSCState_fs::leave(tFSCState_f *target)
   {
     // cerr << "</" + name()  + ">\n";
     target->add_value(_fs);
   }
-  
+
   void
   tFSCState_fs::set_fs(fs f)
   {
     _fs = f;
   }
-  
+
   fs
   tFSCState_fs::get_fs()
   {
-    return _fs; 
+    return _fs;
   }
-  
+
   // =====================================================
   // state "f"
   // =====================================================
@@ -622,15 +639,15 @@ namespace fsc {
   tFSCState_f*
   tFSCState_f::clone() const
   { return new tFSCState_f(*this); }
-  
+
   void
   tFSCState_f::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_f::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_f::enter(tFSCState_fs *source, AttributeList &attrs)
   {
@@ -647,16 +664,16 @@ namespace fsc {
     _is_list = (o != 0);
     _parent = source;
   }
-  
+
   void
   tFSCState_f::leave(tFSCState_fs *target)
   {
     // cerr << "</" + name()  + ">\n";
-    
+
     // determine value (an HPSG list if org="list" or a single value, otherwise)
     fs value(BI_TOP);
     if (_is_list) {
-      // TODO this code should be put into fs or --better-- some utility class:
+      // \todo this code should be put into fs or --better-- some utility class:
       // convert std::list to HPSG list; use as value for _attr:
       list_int *anchor_path = 0;
       fs anchor;
@@ -674,12 +691,12 @@ namespace fsc {
       assert(value.valid());
       free_list(anchor_path);
     } else { // no list
-      if (!_values.empty()) 
+      if (!_values.empty())
         value = _values.front();
       else
         return; // no value provided. ignore.
     }
-    
+
     // unify value into the root fs:
     fs root = _parent->get_fs();
     fs anchor = root.get_attr_value(_attr);
@@ -690,7 +707,7 @@ namespace fsc {
       throw tError("Invalid value for feature `"+string(attrname[_attr])+"'.");
     _parent->set_fs(root);
   }
-  
+
   void
   tFSCState_f::add_value(fs value)
   {
@@ -706,37 +723,37 @@ namespace fsc {
   tFSCState_str::tFSCState_str()
   : tFSCState("str")
   { }
-  
+
   tFSCState_str*
   tFSCState_str::clone() const
   { return new tFSCState_str(*this); }
-  
+
   void
   tFSCState_str::change_to(tFSCState *target, AttributeList &attrs)
   { target->enter(this, attrs); }
-  
+
   void
   tFSCState_str::change_from(tFSCState *source)
   { source->leave(this); }
-  
+
   void
   tFSCState_str::enter(tFSCState_f *source, AttributeList &attrs)
   {
     // cerr << "<" + name() + ">\n";
     _value = BI_STRING;
   }
-  
+
   void
   tFSCState_str::leave(tFSCState_f *target)
   {
     // cerr << "</" + name()  + ">\n";
     target->add_value(_value);
   }
-  
+
   void
   tFSCState_str::characters(std::string chars)
   {
     _value = retrieve_string_instance(chars);
   }
-  
+
 }

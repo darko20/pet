@@ -51,7 +51,7 @@ using namespace std;
 static int init();
 static bool static_init = init();
 static int init() {
-  managed_opt("opt_filter", 
+  managed_opt("opt_filter",
               "Use the static rule filter (see Kiefer et al 1999)", true);
   managed_opt("opt_key",
               "What is the key daughter used in parsing?"
@@ -61,7 +61,7 @@ static int init() {
               std::string(""));
   managed_opt("opt_chart_pruning",
               "enables the chart pruning agenda",
-              400); 
+              400);
   managed_opt("opt_chart_pruning_strategy",
               "determines the chart pruning strategy: 0=all tasks; 1=all successful tasks; 2=all passive items (default)",
               2);
@@ -98,7 +98,7 @@ rule_status(type_t t)
   return cheap_settings->statusmember("rule-status-values", typestatus[t]);
 }
 
-bool 
+bool
 lex_rule_status(type_t t)
 {
   return cheap_settings->statusmember("lexrule-status-values", typestatus[t]);
@@ -122,14 +122,14 @@ grammar_rule::grammar_rule(type_t t)
     : _tofill(0), _hyper(true), _spanningonly(false)
 {
     _type = t;
-    
+
     // _trait = INFL_TRAIT will be set by tLKBMorphology::undump_inflrs() later
-    
+
     if(cheap_settings->statusmember("lexrule-status-values", typestatus[t]))
         _trait = LEX_TRAIT;
     else
         _trait = SYNTAX_TRAIT;
-    
+
     if(opt_packing)
         _f_restriced = packing_partial_copy(fs(_type),
                                             Grammar->packing_restrictor(),
@@ -147,32 +147,32 @@ grammar_rule::grammar_rule(type_t t)
 
     //
     // Determine arity, determine head and key daughters.
-    // 
-    
+    //
+
     struct dag_node *dag, *head_dtr;
     list <struct dag_node *> argslist;
 
     dag = dag_get_path_value(type_dag(t),
                              cheap_settings->req_value("rule-args-path"));
-   
+
     if(dag == FAIL)
     {
         throw tError("Feature structure of rule " + string(type_name(t))
                     + " does not contain "
                     + string(cheap_settings->req_value("rule-args-path")));
-    }       
+    }
 
     argslist = dag_get_list(dag);
-    
+
     _arity = argslist.size();
 
     if(_arity == 0) {
         throw tError("Rule " + string(type_name(t)) + " has arity zero");
     }
-    
+
     head_dtr = dag_get_path_value(type_dag(t),
                                   cheap_settings->req_value("head-dtr-path"));
-    
+
     int n = 1, keyarg = -1, head = -1;
     for(list<dag_node *>::iterator currentdag = argslist.begin();
         currentdag != argslist.end(); ++ currentdag)
@@ -180,21 +180,21 @@ grammar_rule::grammar_rule(type_t t)
         if(cheap_settings->lookup("keyarg-marker-path"))
         {
             struct dag_node *k;
-            
+
             k = dag_get_path_value(*currentdag,
                                    cheap_settings->value("keyarg-marker-path"));
-            
+
             if(k != FAIL && dag_type(k) ==
                lookup_type(cheap_settings->req_value("true-type")))
                 keyarg = n;
         }
-        
+
         if(*currentdag == head_dtr)
             head = n;
-        
+
         n++;
     }
-    
+
     if(cheap_settings->lookup("rule-keyargs"))
     {
         if(keyarg != -1)
@@ -209,34 +209,34 @@ grammar_rule::grammar_rule(type_t t)
             keyarg = strtoint(s, "in `rule-keyargs'");
         }
     }
-    
+
     _qc_vector_unif = new qc_vec[_arity];
-    
+
     //
     // Build the _tofill list which determines the order in which arguments
     // are filled. The opt_key option determines the strategy:
     // 0: key-driven, 1: l-r, 2: r-l, 3: head-driven
     //
 
-    // \todo 
-    // this is wrong for more than binary branching rules, 
+    // \todo
+    // this is wrong for more than binary branching rules,
     // since adjacency is not guarantueed.
-    
+
     int opt_key;
     get_opt("opt_key", opt_key);
     if(opt_key == 0) // take key arg specified in fs
     {
-        if(keyarg != -1) 
+        if(keyarg != -1)
             _tofill = append(_tofill, keyarg);
     }
     else if(opt_key == 3) // take head daughter
     {
-        if(head != -1) 
+        if(head != -1)
             _tofill = append(_tofill, head);
-        else if(keyarg != -1) 
+        else if(keyarg != -1)
             _tofill = append(_tofill, keyarg);
     }
-    
+
     if(opt_key != 2) // right to left, 2 is left to right
     {
         for(int i = 1; i <= _arity; i++)
@@ -247,10 +247,10 @@ grammar_rule::grammar_rule(type_t t)
         for(int i = _arity; i >= 1; i--)
             if(!contains(_tofill, i)) _tofill = append(_tofill, i);
     }
-    
+
     for(int i = 0; i < _arity; i++)
         _qc_vector_unif[i] = 0;
-    
+
     //
     // Disable hyper activity if this is a more than binary-branching
     // rule or if it's explicitely disabled by a setting.
@@ -266,7 +266,7 @@ grammar_rule::grammar_rule(type_t t)
     {
         _spanningonly = true;
     }
-    
+
     LOG(logGrammar, DEBUG, *this);
 
 }
@@ -277,22 +277,22 @@ grammar_rule::grammar_rule(std::vector<type_t> v)
 
   _type = v[0];
   _trait = PCFG_TRAIT;
-  
+
   //
   // Determine arity, determine head and key daughters.
-  // 
-    
+  //
+
   _arity = v.size() - 1;
-  
+
   if(_arity == 0) {
     throw tError("Rule " + string(type_name(v[0])) + " has arity zero");
   }
-  
+
   for(int i = 1; i <= _arity; i++) {
     _tofill = append(_tofill, i);
     _pcfg_args.push_back(v[i]);
   }
-  
+
 }
 
 grammar_rule::~grammar_rule() {
@@ -329,10 +329,10 @@ void
 grammar_rule::print(ostream &out) const {
   out << print_name(_type) << "/" << _arity;
   if (_hyper == false) out << "[-HA]" ;
-  for (list_int *l = _tofill; l != NULL; l = rest(l)) 
+  for (list_int *l = _tofill; l != NULL; l = rest(l))
     out << " " << first(l);
   out << ")";
-} 
+}
 
 void
 grammar_rule::lui_dump(const char *path) {
@@ -348,7 +348,7 @@ grammar_rule::lui_dump(const char *path) {
   ofstream stream(name);
   if(! stream) { //(stream = fopen(name, "w")) == NULL) {
     LOG(logGrammar, ERROR,
-        "grammar_rule::lui_dump(): unable to open `" << name 
+        "grammar_rule::lui_dump(): unable to open `" << name
         << "' (in `" << path << "').");
     return;
   } // if
@@ -385,7 +385,7 @@ undump_dags(dumper *f) {
   struct dag_node *dag;
   // allocate an array holding nstatictypes pointers to the typedags
   initialize_dags(nstatictypes);
-    
+
 #ifdef CONSTRAINT_CACHE
   // allocate an array holding nstatictypes pointers to typedag caches
   init_constraint_cache(nstatictypes);
@@ -400,7 +400,7 @@ undump_dags(dumper *f) {
     LOG(logAppl, INFO, "[ disabling unification quickcheck ] ");
     set_opt("opt_nqc_unif", 0);
   }
- 
+
   type_t qc_inst_subs = T_BOTTOM;
   if((v = cheap_settings->value("qc-structure-subs")) != 0
      || (v = cheap_settings->value("qc-structure")) != 0)
@@ -425,7 +425,7 @@ undump_dags(dumper *f) {
     }
     else
       dag = dag_undump(f);
-        
+
     register_dag(i, dag);
   }
 }
@@ -434,28 +434,28 @@ undump_dags(dumper *f) {
 tGrammar::tGrammar(const char * filename)
     : _properties(), _root_insts(0), _generics(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0), _pcfgsm(0), _lexsm(0), _gm(0)
+      _sm(0), _lexsm(0), _pcfgsm(0), _gm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
 #endif
 
     // _fix_me_
-    // This is ugly. All grammar objects (rules, stems etc) should have a 
-    // pointer back to the grammar. Until we have that, we use a global 
+    // This is ugly. All grammar objects (rules, stems etc) should have a
+    // pointer back to the grammar. Until we have that, we use a global
     // variable, which we have to initialize here so that it's already
     // set when stems and rules are constructed.
     Grammar = this;
 
     dumper dmp(filename);
-    
+
     int version;
     char *s = undump_header(&dmp, version);
     if(s) LOG(logApplC, INFO, "(" << s << ") ");
     delete[] s;
-    
+
     dump_toc toc(&dmp);
-    
+
     // properties
     if(toc.goto_section(SEC_PROPERTIES))
         undump_properties(&dmp);
@@ -465,28 +465,28 @@ tGrammar::tGrammar(const char * filename)
     undump_symbol_tables(&dmp);
     toc.goto_section(SEC_PRINTNAMES);
     undump_printnames(&dmp);
-    
+
     // hierarchy
     toc.goto_section(SEC_HIERARCHY);
     undump_hierarchy(&dmp);
-    
+
     toc.goto_section(SEC_FEATTABS);
     undump_tables(&dmp);
-    
+
     // supertypes
     if(toc.goto_section(SEC_SUPERTYPES))
         undumpSupertypes(&dmp);
 
     // call unifier specific initialization
     dag_initialize();
-    
+
     init_parameters();
 
     // initialize cm-specific parameters:
     if ((get_opt<tokenizer_id>("opt_tok") == TOKENIZER_FSC)
         || get_opt_int("opt_chart_mapping"))
       tChartUtil::initialize();
-    
+
     // constraints
     toc.goto_section(SEC_CONSTRAINTS);
     undump_dags(&dmp);
@@ -508,7 +508,7 @@ tGrammar::tGrammar(const char * filename)
             _lexicon[i] = st;
             _stemlexicon.insert(make_pair(st->orth(st->inflpos()), st));
 #if defined(YY)
-            if(get_opt_bool("opt_yy") && st->length() > 1) 
+            if(get_opt_bool("opt_yy") && st->length() > 1)
                 // for multiwords, insert additional index entry
             {
                 string full = st->orth(0);
@@ -596,13 +596,13 @@ tGrammar::tGrammar(const char * filename)
 
     //
     // the parse selection can be supplied on the command line, or through the
-    // settings file.  and furthermore, even when a setting is present, the 
+    // settings file.  and furthermore, even when a setting is present, the
     // command line can take precedence, including disabling parse ranking by
     // virtue of a special `null' model.
     //
     const std::string opt_sm = get_opt_string("opt_sm");
     if (opt_sm.empty() || opt_sm != "null") {
-      const char *sm_file 
+      const char *sm_file
         = (opt_sm.size() ? opt_sm.c_str() : cheap_settings->value("sm"));
       if(sm_file != 0) {
         // _fix_me_
@@ -617,8 +617,8 @@ tGrammar::tGrammar(const char * filename)
     } // if
     char *pcfg_file;
     if ((pcfg_file = cheap_settings->value("pcfg")) != 0) {
-      try { 
-        _pcfgsm = new tPCFG(this, pcfg_file, filename); 
+      try {
+        _pcfgsm = new tPCFG(this, pcfg_file, filename);
         // delete pcfgsm; // only pcfg rules are loaded, not their weights TODO: what was happening here?
       } catch (tError &e) {
         LOG(logGrammar, ERROR, e.getMessage());
@@ -629,8 +629,8 @@ tGrammar::tGrammar(const char * filename)
 
     char *gm_file;
     if ((gm_file = cheap_settings->value("gm")) != 0) {
-      try { 
-        _gm = new tGM(this, gm_file, filename); 
+      try {
+        _gm = new tGM(this, gm_file, filename);
       } catch (tError &e) {
         LOG(logGrammar, ERROR, e.getMessage());
         _gm = 0;
@@ -655,7 +655,7 @@ tGrammar::tGrammar(const char * filename)
     try
     {
         _extdict_discount = 0;
-    
+
         char *v;
         if((v = cheap_settings->value("extdict-discount")) != 0)
         {
@@ -795,11 +795,11 @@ tGrammar::init_parameters()
         free_list(del_attrs);
       }
     }
-    else 
+    else
     {
       char *restname = cheap_settings->value("dag-restrictor");
       if ((restname != NULL) && is_type(lookup_type(restname))) {
-        _packing_restrictor = 
+        _packing_restrictor =
           new dag_restrictor(type_dag(lookup_type(restname)));
         dag_restrictor::DEL_TYPE
           = lookup_type(cheap_settings->value("restrictor-delete"));
@@ -826,7 +826,7 @@ tGrammar::initialize_filter() {
     fs_alloc_state S1;
     grammar_rule *daughter = *daughters;
     fs daughter_fs = copy(daughter->instantiate());
-      
+
     for(ruleiter mothers = _rules.begin(); mothers != _rules.end();
         ++mothers) {
       grammar_rule *mother = *mothers;
@@ -835,24 +835,24 @@ tGrammar::initialize_filter() {
         fs_alloc_state S2;
         fs mother_fs = mother->instantiate();
         list_int_restrictor restr(Grammar->deleted_daughters());
-                
+
         if(arg == 1) {
           bool forward = true, backward = false;
           fs a = packing_partial_copy(daughter_fs, restr, false);
           fs b = packing_partial_copy(mother_fs, restr, false);
-                    
+
           subsumes(a, b, forward, backward);
-                    
-          if(forward) 
+
+          if(forward)
             _subsumption_filter.set(mother, daughter);
-                    
+
           /*
             fprintf(stderr, "SF %s %s %c\n",
             daughter->printname(), mother->printname(),
             forward ? 't' : 'f');
           */
         }
-                
+
         fs arg_fs = mother_fs.nth_arg(arg);
 
         if(unify(mother_fs, daughter_fs, arg_fs).valid()) {
@@ -884,7 +884,7 @@ tGrammar::~tGrammar()
       grammar_rule *r = *pos;
       delete r;
     }
-    
+
     for(ruleiter pos = _pcfg_rules.begin(); pos != _pcfg_rules.end(); ++pos) {
       grammar_rule *r = *pos;
       delete r;
@@ -917,7 +917,7 @@ tGrammar::nhyperrules() {
   int n = 0;
   for(ruleiter iter = _rules.begin(); iter != _rules.end(); iter++)
     if((*iter)->hyperactive()) n++;
-  
+
   return n;
 }
 
@@ -963,11 +963,11 @@ tGrammar::lookup_stem(string s)
 #ifdef HAVE_EXTDICT
     set<type_t> native_types;
 #endif
-  
+
     pair<multimap<string, lex_stem *>::iterator,
         multimap<string, lex_stem *>::iterator> eq =
         _stemlexicon.equal_range(s);
-  
+
     for(multimap<string, lex_stem *>::iterator it = eq.first;
         it != eq.second; ++it)
     {
@@ -979,7 +979,7 @@ tGrammar::lookup_stem(string s)
         }
 #endif
     }
-  
+
 #ifdef HAVE_EXTDICT
     if(!_extDict)
         return results;
@@ -1039,7 +1039,7 @@ tGrammar::clear_dynamic_stems()
 #endif
 
 
-tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input) 
+tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
   : _grammar(grammar), _original_roots(grammar->_root_insts)
 {
 
@@ -1049,19 +1049,19 @@ tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
     if((set = foo.lookup("start-symbols")) != 0) {
       grammar->_root_insts = 0;
       for(int i = set->n-1; i >= 0; --i) {
-        grammar->_root_insts 
+        grammar->_root_insts
           = cons(lookup_type(set->values[i]), grammar->_root_insts);
         if(first(grammar->_root_insts) == -1)
           throw tError(string("undefined start symbol `")
                        + string(set->values[i]) + string("'"));
       } // for
     } // if
-    else 
+    else
       _original_roots = NULL;
   } // if
   else
     _original_roots = NULL;
-  
+
 } // tGrammarUpdate::tGrammarUpdate()
 
 tGrammarUpdate::~tGrammarUpdate() {

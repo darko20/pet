@@ -101,7 +101,7 @@ class tSM
     /** Return the score for the hypothesis */
     virtual double 
     score_hypothesis(struct tHypothesis* hypo, std::list<tItem*> path,
-                     int gplevel);
+                     unsigned int gplevel);
     
     /** Return the best predicted lexical (entry) types for the given
      * context.
