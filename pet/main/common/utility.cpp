@@ -25,7 +25,13 @@
 
 #include <cstdlib>
 #include <sys/stat.h>
+#ifdef HAVE_BOOST_FILESYSTEM
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+#endif
+#include <boost/algorithm/string/predicate.hpp>
 
+using boost::algorithm::iequals;
 using std::string;
 using std::list;
 
@@ -38,7 +44,7 @@ void *salloc(size_t size)
 
   if(!p)
     throw tError("out of memory");
-  
+
   return p;
 }
 
@@ -108,14 +114,14 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
   const char *foo = NULL;
   if(quotedp)
     {
-      if(!*s == '"' || (foo = strrchr(s, '"')) == NULL)
+      if(!(*s == '"') || (foo = strrchr(s, '"')) == NULL)
         throw tError(string("invalid quoted integer `") + string(s) +
                      string("' ") + string(errloc));
       s++;
     }
   int val = strtol(s, &endptr, 10);
   if(endptr == 0 || (quotedp ? endptr != foo :  *endptr != '\0'))
-    throw tError(string("invalid integer `") + string(s) + string("' ") 
+    throw tError(string("invalid integer `") + string(s) + string("' ")
                  + string(errloc));
 
   return val;
@@ -185,7 +191,7 @@ string convert_escapes(const string &s)
 string escape_string(const string &s)
 {
   string res;
-  
+
   for(string::const_iterator it = s.begin(); it != s.end(); ++it)
   {
     if(*it == '"' || *it == '\\')
@@ -219,11 +225,15 @@ const char *current_time(void)
 
 
 /** Return \c true if \a filename exists and is not a directory */
-bool file_exists_p(const std::string &fn) {
+bool file_exists_p(const string &fn) {
+#ifdef HAVE_BOOST_FILESYSTEM
+  return fs::exists(fn) && fs::is_regular_file(fn) && !fs::is_directory(fn);
+#else
   const char *filename = fn.c_str();
   struct stat sb;
   return ((access(filename, R_OK) == 0) && (stat(filename, &sb) != -1)
           && ((sb.st_mode & S_IFDIR) == 0));
+#endif
 }
 
 /** \brief Check if \a name , with or without extension \a ext, is the name of
@@ -238,27 +248,23 @@ bool file_exists_p(const std::string &fn) {
  *         extension, an empty string otherwise.
  */
 string
-find_file(const std::string &name, const std::string &ext,
-          const std::string &base) {
+find_file(const string &name, const string &ext, const string &base) {
 
   string newname = dir_name(base) + name;
 
   if (file_exists_p(newname)) return newname;
 
   newname += ext;
-  //std::cerr << name << " " << ext << " " << base << ">" << newname
-  //          << std::endl;
-  return file_exists_p(newname.c_str()) ? newname : string();
+  return file_exists_p(newname) ? newname : string();
 }
 
 
-/** look for the file with \a name (dot) \a ext first in \a base_dir, then in 
+/** look for the file with \a name (dot) \a ext first in \a base_dir, then in
  *  \a base_dir + SET_DIRECTORY.
  *  \return the name of the file, if it exists, an empty string otherwise.
  */
-string 
-find_set_file(const std::string &name, const std::string &ext,
-              const std::string &base){
+string
+find_set_file(const string &name, const string &ext, const string &base){
   string fname;
   string base_dir = dir_name(base);
 
@@ -281,11 +287,17 @@ find_set_file(const std::string &name, const std::string &ext,
  *          character, the appropriate substring otherwise
  *          (with the path separator at the end)
  */
-string dir_name(const std::string &pathname) {
+string dir_name(const string &pathname) {
+#ifdef HAVE_BOOST_FILESYSTEM
+  fs::path full_path = fs::system_complete(fs::path(pathname));
+  string result = full_path.parent_path().string();
+  if (! result.empty()) result += "/";
+#else
   string::size_type lastslash = pathname.rfind(PATH_SEP[0]);
   // _prefix gets the dirname of the path encoded in base
   string result =
     (string::npos == lastslash) ? string() : pathname.substr(0, lastslash + 1);
+#endif
   return result;
 }
 
@@ -293,29 +305,35 @@ string dir_name(const std::string &pathname) {
 /** Extract only the filename part from a pathname, i.e., without directory and
  *  extension components.
  */
-string raw_name(const std::string &pathname) {
+string raw_name(const string &pathname) {
   // return part between last slash and first dot after that
+#ifdef HAVE_BOOST_FILESYSTEM
+  fs::path p(pathname);
+  return p.stem();
+#else
   string::size_type lastslash = pathname.rfind(PATH_SEP[0]);
   if(string::npos == lastslash) lastslash = 0; else lastslash++;
   string::size_type dot = pathname.find('.', lastslash);
 
   string result = pathname.substr(lastslash, dot - lastslash);
   return result;
+#endif
 }
 
 
-string output_name(const string &in, const char *oldext, const char *newext) {
+string output_name(const string& in, const string& oldext, const string& newext)
+{
   string out = in;
 
   string::size_type ext = out.rfind('.');
 
-  if(ext && strcasecmp(out.c_str() + ext, oldext) == 0)
+  if(ext != string::npos && iequals(out.c_str() + ext, oldext))
     // erase the old extension
     out.erase(ext);
 
   // add the new extension
   out += newext;
-  
+
   return out;
 }
 
@@ -327,7 +345,7 @@ string read_line(FILE *f, int commentp)
 
   if(fgets(buff, ASBS, f) == NULL)
     return string();
-  
+
   if(buff[0] == '\0' || buff[0] == '\n')
     return string();
 
@@ -351,7 +369,7 @@ findAndReplace(string &s, const string &oldText, const string &newText)
 {
     if(s.empty() || oldText.empty())
         return;
-    
+
     string::size_type start = 0, len;
     len = s.length();
 
@@ -370,7 +388,7 @@ void
 splitStrings(list<string> &strs)
 {
     list<string> result;
-    
+
     for(list<string>::iterator it = strs.begin(); it != strs.end(); ++it)
     {
         string::size_type p;
@@ -382,30 +400,6 @@ splitStrings(list<string> &strs)
         }
         result.push_back(*it);
     }
-    
+
     strs.swap(result);
 }
-
-#ifdef __BORLANDC__
-
-#include <alloc.h>
-
-void print_borland_heap(FILE *f)
-{
-  struct heapinfo hi;
-  if(heapcheck() == _HEAPCORRUPT)
-    {
-      fprintf(f, "Heap is corrupted.\n");
-      return;
-    }
-
-   hi.ptr = 0;
-   fprintf(f, "   Block  Size   Status\n");
-   fprintf(f, "   -----  ----   ------\n");
-   while(heapwalk( &hi ) == _HEAPOK)
-   {
-     fprintf(f, "%7u    %s\n", hi.size, hi.in_use ? "used" : "free");
-   }
-}
-
-#endif

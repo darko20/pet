@@ -93,8 +93,7 @@ void usage(FILE *f)
   fprintf(f, "  `-robust[=1]' --- "
              "try robust PCFG parsing, in case of full parse failure\n");
   fprintf(f, "  `-results=n' --- print at most n (full) results\n");
-  fprintf(f, "  `-tok=string|fsr|yy|yy_counts|pic|pic_counts|smaf' --- "
-             "select input method (default `string')\n");
+  fprintf(f, "%s\n", option_description("opt_tok").c_str());
   fprintf(f, "  `-comment-passthrough[=1]' --- "
           "allow input comments (-1 to suppress output)\n");
   fprintf(f, "  `-cm' --- "
@@ -458,12 +457,6 @@ char* parse_options(int argc, char* argv[])
         }
     }
 
-  if(optind != argc - 1) {
-    LOG(logAppl, FATAL, "could not parse options: "
-        "expecting grammar-file as last parameter");
-    return NULL;
-  }
-
   if( get_opt_bool("opt_hyper") &&
       get_opt_charp("opt_compute_qc") != NULL)
   {
@@ -472,13 +465,19 @@ char* parse_options(int argc, char* argv[])
       set_opt("opt_hyper", false);
   }
 
+  if(optind != argc - 1) {
+    LOG(logAppl, FATAL, "could not parse options: "
+        "expecting grammar-file as last parameter");
+    return NULL;
+  }
+
   return argv[optind];
 }
 #endif
 
 bool bool_setting(settings *set, const char *s)
 {
-  char *v = set->value(s);
+  const char *v = set->value(s);
   if(v == 0 || strcmp(v, "0") == 0 || strcasecmp(v, "false") == 0 ||
      strcasecmp(v, "nil") == 0)
     return false;
@@ -488,7 +487,7 @@ bool bool_setting(settings *set, const char *s)
 
 int int_setting(settings *set, const char *s)
 {
-  char *v = set->value(s);
+  const char *v = set->value(s);
   if(v == 0)
     return 0;
   int i = strtoint(v, "in settings file");

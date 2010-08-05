@@ -36,7 +36,7 @@ bin_PROGRAMS = cheap
 #bin_PROGRAMS += mtest
 
 cheap_SOURCES = cheap.cpp cheap.h
-cheap_LDADD   = libcheap.a
+cheap_LDADD = libcheap.la
 
 #dumpgram_SOURCES = dumpgram.cpp \
 #                   $(top_srcdir)/common/errors.h \
@@ -47,15 +47,15 @@ cheap_LDADD   = libcheap.a
 
 # Convenience library (makes building several executables easier and is
 # a tiny step towards a general pet library):
-noinst_LIBRARIES = libcheap.a
+noinst_LTLIBRARIES = libcheap.la
 
 # The include-file dependencies are automatically computed by Automake
 # (`Automatic dependency tracking'). Thus, the headers do not need to be listed
 # for compilation, but they need to be found for making a distribution.
 # Note that the headers in $(top_srcdir)/common are always included
 # (cf. $(top_srcdir)/common/Makefile.am) and are therefore not listed here.
-libcheap_a_SOURCES = \
-	agenda.h \
+libcheap_la_SOURCES = \
+	agenda.h api.h \
 	chart.cpp chart.h \
 	chart-mapping.cpp chart-mapping.h \
 	cheaptimer.h \
@@ -77,6 +77,7 @@ libcheap_a_SOURCES = \
 	position-mapper.h \
 	postags.cpp postags.h \
 	restrictor.cpp restrictor.h \
+	sessionmanager.cpp sessionmanager.h \
 	sm.cpp sm.h \
 	task.cpp task.h \
 	tsdb++.h tsdb++.cpp \
@@ -106,21 +107,21 @@ libcheap_a_SOURCES = \
 
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI
-libcheap_a_SOURCES += dag-tomabechi.cpp dag-tomabechi.h failure.cpp failure.h \
+libcheap_la_SOURCES += dag-tomabechi.cpp dag-tomabechi.h failure.cpp failure.h \
                       qc.h qc.cpp
 endif
 if SIMPLE_UNIFIER
 DEFS += -DDAG_SIMPLE -DWROBLEWSKI2
-libcheap_a_SOURCES += $(top_srcdir)/common/dag-simple.cpp
+libcheap_la_SOURCES += $(top_srcdir)/common/dag-simple.cpp
 endif
 
 if ECL
-libcheap_a_SOURCES += petecl.c petecl.h
+libcheap_la_SOURCES += petecl.c petecl.h
 endif
 if ECLPREPROC
 if ICU
-libcheap_a_SOURCES += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
-cheap_LDADD += ../fspp/libfspp.a -lpreprocessor ../fspp/libfspp.a #fix_me
+libcheap_la_SOURCES += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
+cheap_LDADD += ../fspp/libfspp.la -lpreprocessor #fix_me
 LDFLAGS += -L../fspp
 CPPFLAGS += -I../fspp
 else
@@ -129,7 +130,7 @@ else
 endif
 endif
 if ECLMRS
-libcheap_a_SOURCES += cppbridge.cpp cppbridge.h petmrs.h petmrs.c
+libcheap_la_SOURCES += cppbridge.cpp cppbridge.h petmrs.h petmrs.c
 cheap_LDADD += libmrs.a
 endif
 
@@ -137,8 +138,8 @@ endif
 # Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 MOSTLYCLEANFILES = libmrs.a
 
-../fspp/libfspp.a:
-	make -C ../fspp libfspp.a
+../fspp/libfspp.la:
+	make -C ../fspp libfspp.la
 
 libmrs.a:
 	( \
@@ -151,7 +152,7 @@ libmrs.a:
 	) | $(ECL)
 
 if XML
-libcheap_a_SOURCES += pic-handler.cpp pic-handler.h pic-states.h \
+libcheap_la_SOURCES += pic-handler.cpp pic-handler.h pic-states.h \
                       pic-tokenizer.h pic-tokenizer.cpp \
                       xmlparser.cpp xmlparser.h \
                       smaf-tokenizer.h smaf-tokenizer.cpp \
@@ -159,31 +160,31 @@ libcheap_a_SOURCES += pic-handler.cpp pic-handler.h pic-states.h \
 endif
 
 if ICU
-libcheap_a_SOURCES += unicode.h unicode.cpp
+libcheap_la_SOURCES += unicode.h unicode.cpp
 endif
 
 if XMLRPC_C
-libcheap_a_SOURCES += server-xmlrpc.cpp server-xmlrpc.h
+libcheap_la_SOURCES += server-xmlrpc.cpp server-xmlrpc.h
 endif
 
 # if LEXDB
-# libcheap_a_SOURCES += psqllex.h psqllex.cpp
+# libcheap_la_SOURCES += psqllex.h psqllex.cpp
 # endif
 
 if YY
-libcheap_a_SOURCES += yy.h yy.cpp
+libcheap_la_SOURCES += yy.h yy.cpp
 endif
 
 #if EXTDICT
-#libcheap_a_SOURCES += extdict.cpp extdict.h
+#libcheap_la_SOURCES += extdict.cpp extdict.h
 #endif
 
 #if RCU
 # QC_PATH_COMP could be done robustly, ie with weights.  The aim would be
 # to find the paths that most quickly find out the biggest losses.
 #DEFS += -DROBUST
-#libcheap_a_SOURCES += rcu-types.h rcu-types.cpp rcu-dag-node.h
-#nodist_libcheap_a_SOURCES += dag-chunk-alloc.h dag-chunk-alloc.cpp \
+#libcheap_la_SOURCES += rcu-types.h rcu-types.cpp rcu-dag-node.h
+#nodist_libcheap_la_SOURCES += dag-chunk-alloc.h dag-chunk-alloc.cpp \
 #                             type-chunk-alloc.cpp type-chunk-alloc.h \
 #                             type-alloc.h type-alloc.cpp
 # Not done for fair comparison

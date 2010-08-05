@@ -27,13 +27,14 @@ extern FILE *fstatus;
 
 /** @name Tokenization options */
 //@{
-static bool init();
-static bool statics_initialized = init();
-
 /** choose tokenizer */
-std::string tokenizer_names[] = { 
+std::string tokenizer_names[] = {
   "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "fsr", "smaf", "INVALID"
 } ;
+
+static bool init(std::string tok_names[]);
+static bool statics_initialized = init(tokenizer_names);
+
 //@}
 
 tokenizer_id string2tokenizerid(const std::string &s) {
@@ -65,8 +66,27 @@ class TokenizerIDConverter : public AbstractConverter<tokenizer_id> {
     \todo maybe we should split that into init()s for the modules, but it's
     ok for now.
 */
-static bool init() {
-  managed_opt<tokenizer_id>("opt_tok", "", TOKENIZER_STRING,
+static bool init(std::string tokenizer_names[]) {
+  tokenizer_id def = TOKENIZER_STRING;
+  std::string doc = "  `-tok=" + tokenizer_names[0];
+  for (int i = 1; i < TOKENIZER_INVALID; ++i) {
+#ifndef HAVE_XML
+    if (TOKENIZER_PIC == i || TOKENIZER_PIC_COUNTS == i
+        || TOKENIZER_FSC ==i || TOKENIZER_SMAF == i)
+      continue;
+#endif
+#ifndef HAVE_ICU
+    if (TOKENIZER_FSR == i || TOKENIZER_SMAF == i)
+      continue;
+#endif
+#ifndef HAVE_PREPROC
+    if (TOKENIZER_FSR == i)
+      continue;
+#endif
+    doc += "|"; doc += tokenizer_names[i];
+  }
+  doc += "' --- select input method (default `" + tokenizer_names[def] + "')";
+  managed_opt<tokenizer_id>("opt_tok", doc, TOKENIZER_STRING,
                             //string2tokenizerid, tokenizerid2string
                             new TokenizerIDConverter()
                             );
@@ -80,13 +100,13 @@ using std::list;
 extern settings *cheap_settings;
 
 tTokenizer::tTokenizer() {
-  char *s = cheap_settings->value("punctuation-characters");
+  const char *s = cheap_settings->value("punctuation-characters");
   string pcs;
   if(s == 0)
     pcs = " \t?!.:;,()-+*$\n";
   else
     pcs = convert_escapes(string(s));
-  
+
 #ifndef HAVE_ICU
   _punctuation_characters = pcs;
 #else
@@ -94,7 +114,7 @@ tTokenizer::tTokenizer() {
 #endif
 
   _translate_iso_chars = cheap_settings->lookup("translate-iso-chars");
-  
+
   _case_sensitive = cheap_settings->lookup("case-sensitive");
 }
 
@@ -103,16 +123,16 @@ bool tTokenizer::punctuationp(const string &s)
 #ifndef HAVE_ICU
   if(_punctuation_characters.empty())
     return false;
-    
+
   for(string::size_type i = 0; i < s.length(); i++)
     if(! punctuation_char(s[i], _punctuation_characters))
       return false;
-    
+
   return true;
 #else
   UnicodeString U = Conv->convert(s);
   StringCharacterIterator it(U);
-    
+
   UChar32 c;
   while(it.hasNext())
     {
@@ -120,7 +140,7 @@ bool tTokenizer::punctuationp(const string &s)
       if(! punctuation_char(c, _punctuation_characters))
         return false;
     }
-    
+
   return true;
 #endif
 }
