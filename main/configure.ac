@@ -7,6 +7,7 @@ AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.7 foreign])
 dnl dejagnu dist-bzip2 no-dependencies
@@ -105,7 +106,8 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_AWK
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
+AC_PROG_LIBTOOL
+# AC_PROG_RANLIB
 
 # Check for doxygen to generate documentation
 AC_PATH_PROG([DOXYGEN],[doxygen])
@@ -126,7 +128,7 @@ AC_HEADER_ASSERT
 # defines STDC_HEADERS if there are C header files conforming to ANSI C89
 AC_HEADER_STDC
 
-# defines HAVE_SYS_WAIT_H if there is a Posix-compatible `sys/wait.h' 
+# defines HAVE_SYS_WAIT_H if there is a Posix-compatible `sys/wait.h'
 AC_HEADER_SYS_WAIT
 
 # defines TIME_WITH_SYS_TIME if there are `time.h' and `sys/time.h'
@@ -252,6 +254,7 @@ AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
 
 AX_BOOST_BASE([], [boost="yes"], [boost="no"])
 AX_BOOST_REGEX([], [boost=no])
+# AX_BOOST_FILESYSTEM([], [boost=no]) # maybe later
 if test "$boost" = "yes" ; then
   CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
   AC_CHECK_HEADERS([boost/format.hpp \
@@ -323,7 +326,7 @@ AC_ARG_WITH(xml,
 if test "x$xml" = "xyes" && test "x${XERCESCDIR}" != "x" ; then
   if test -d "${XERCESCDIR}" ; then
     LDFLAGS="-L${XERCESCDIR}/lib $LDFLAGS"
-  else 
+  else
     AC_MSG_WARN([directory ${XERCESCDIR} not found for --with-xml; DISABLED])
     xml="no"
   fi
@@ -377,18 +380,18 @@ check_tsdb() {
     AC_MSG_RESULT([yes])
     CPPFLAGS="-I${ITSDBDIR}/include $CPPFLAGS"
     AC_CHECK_HEADERS([itsdb.h], [], [ return 1 ], [])
-  else 
+  else
     AC_MSG_RESULT([no])
     AC_MSG_WARN([directory ${ITSDBDIR}/include for --with-tsdb not found; DISABLED])
     return 1
-  fi 
-  
+  fi
+
   AC_MSG_CHECKING([directory ${ITSDBDIR}/lib/${OS} presence])
   if test -d ${ITSDBDIR}/lib/${OS} ; then
       AC_MSG_RESULT([yes])
       LDFLAGS="-L${ITSDBDIR}/lib/${OS} $LDFLAGS"
       export LDFLAGS
-      AC_CHECK_LIB([itsdb], [capi_register], [ return 0 ], 
+      AC_CHECK_LIB([itsdb], [capi_register], [ return 0 ],
         [
           AC_MSG_WARN([itsdb library not found for --with-tsdb; DISABLED])
           return 1
@@ -429,7 +432,7 @@ MRSDIR=$ITSDBDIR
 
 AC_ARG_WITH(mrs,
   [AC_HELP_STRING(
-    [--with-mrs@<:@=ARG@:>@], 
+    [--with-mrs@<:@=ARG@:>@],
     [build with MRS Lisp sources from a standard DELPH-IN location (ARG=yes),
      from the specified location (ARG=<path>),
      or disable it (ARG=no)
@@ -472,7 +475,7 @@ PREPROCDIR=$ITSDBDIR
 
 AC_ARG_WITH([preproc],
   [AC_HELP_STRING(
-    [--with-preproc@<:@=ARG@:>@], 
+    [--with-preproc@<:@=ARG@:>@],
     [build with preprocessing Lisp sources from a standard DELPH-IN location (ARG=yes),
      from the specified location (ARG=<path>),
      or disable it (ARG=no)
@@ -581,7 +584,7 @@ AM_CONDITIONAL(XMLRPC_C, [test x$xmlrpc_c = xyes])
 cppunit="no"
 # check whether user requests the use of cppunit:
 AC_ARG_WITH(cppunit,
-    [AC_HELP_STRING([--with-cppunit], 
+    [AC_HELP_STRING([--with-cppunit],
                      [use the CppUnit library (enables unit tests)])],
     [AS_IF([test "$withval" = "yes" -o "$withval" = "no"],
            [cppunit=$withval],
@@ -638,11 +641,11 @@ dnl ], [ lexdb="yes" ])
 
 check_psql() {
   if test x$PSQLDIR != x ; then
-      if test -d ${PSQLDIR} && test -d $PSQLDIR/include && test -d $PSQLDIR/lib ; then 
+      if test -d ${PSQLDIR} && test -d $PSQLDIR/include && test -d $PSQLDIR/lib ; then
           LDFLAGS="$LDFLAGS -L${PSQLDIR}/lib"
           export LDFLAGS
           CPPFLAGS="$CPPFLAGS -I${PSQLDIR}/include"
-      else 
+      else
           AC_MSG_WARN([directory ${PSQLDIR}, ${PSQLDIR}/lib or ${PSQLDIR}/include not found for --with-lexdb; DISABLED])
           return 1
       fi
@@ -666,7 +669,7 @@ dnl       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
 dnl       CHEAPLDFLAGS="$CHEAPLDFLAGS -L${PSQLDIR}/lib"
 dnl    fi
 dnl    CHEAPLIBS="-lpq $CHEAPLIBS"
-dnl    AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database]) 
+dnl    AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database])
 dnl else
 dnl    lexdb="no"
 dnl fi
@@ -687,7 +690,7 @@ AC_ARG_ENABLE(yy,
     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-yy) ;;
    esac ],
   [yy="yes"])
-if test x$yy = xyes; then 
+if test x$yy = xyes; then
   AC_DEFINE(YY, [1], [Include some YY specific code])
 fi
 AM_CONDITIONAL(YY, [test x$yy = xyes])
@@ -706,7 +709,7 @@ AC_ARG_ENABLE(instfc,
     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-instfc) ;;
    esac],
  [instfc="yes"])
-if test "x$instfc" = "xyes"; then 
+if test "x$instfc" = "xyes"; then
   AC_DEFINE(INSTFC, [1], [Include instantiation failure cache code])
 fi
 AM_CONDITIONAL(INSTFC, [test "x$instfc" = "xyes"])
@@ -724,7 +727,7 @@ AC_ARG_ENABLE(lui,
     *)   AC_MSG_ERROR(bad value ${enableval} for --enable-lui) ;;
   esac],
   [lui="no"])
-if test "x$lui" = "xyes"; then 
+if test "x$lui" = "xyes"; then
   AC_DEFINE(LUI, [1], [Enable grammar dumping in LUI format])
 fi
 

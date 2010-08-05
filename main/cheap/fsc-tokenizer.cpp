@@ -88,7 +88,6 @@ void
 tFSCTokenizer::tokenize(std::string s, tChart &result)
 {
   tFSCHandler fsc_handler(result);
-  InputSource *i;
   if (s.at(0) == '<') {
     MemBufInputSource xml_input((const XMLByte *) s.c_str(), s.length(),
                                 "STDIN");

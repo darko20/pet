@@ -26,7 +26,7 @@
 #define _UTILITY_H_
 
 #include <cstring>
-#include <list> 
+#include <list>
 #include <string>
 #include <cstdio>
 
@@ -105,28 +105,27 @@ std::string raw_name(const std::string &pathname);
  * \return the full pathname of the file, if it exists with or without
  *         extension, an empty string otherwise.
  */
-std::string 
+std::string
 find_file(const std::string &name, const std::string &extension,
           const std::string &base = std::string());
 
 /** \brief look for the file with \a name (dot) \a ext first in \a base_dir,
  *  then in \a base_dir + SET_DIRECTORY. \a base_dir must be a directory
  *  specification only.
- *  
+ *
  *  \return the name of the file, if it exists, an empty string otherwise.
  */
 std::string
 find_set_file(const std::string &name, const std::string &ext,
               const std::string &base_dir);
 
-/** Produce an output file name from an input file name \a in by replacing the 
- *  \a oldextension (if existent) by \a newextension or appending the 
+/** Produce an output file name from an input file name \a in by replacing the
+ *  \a oldextension (if existent) by \a newextension or appending the
  *  \a newextension otherwise.
  *  \return the new string
  */
-std::string
-output_name(const std::string &name, const char *oldextension,
-            const char *newextension);
+std::string output_name(const std::string& in, const std::string& oldext,
+                        const std::string& newext);
 
 /** \brief Read one line from specified file. Returns empty string when no line
  *  can be read.
@@ -164,7 +163,7 @@ struct cstr_lt_case {
 
 /** A function object comparing two strings for equality */
 struct string_eq : public std::binary_function<std::string, std::string, bool> {
-  inline bool operator()(const std::string &s1, const std::string &s2) {
+  inline bool operator()(const std::string &s1, const std::string &s2) const {
     return s1 == s2;
   }
 };
