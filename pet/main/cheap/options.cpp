@@ -66,7 +66,7 @@ void usage(FILE *f)
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
   fprintf(f, "  `-rulestats' --- enable tsdb output of rule statistics\n");
   fprintf(f, "  `-no-chart-man' --- disable chart manipulation\n");
-  fprintf(f, "  `-default-les[=all|traditional]' --- enable use of default lexical entries\n" 
+  fprintf(f, "  `-default-les[=all|traditional]' --- enable use of default lexical entries\n"
              "         * all: try to instantiate all default les for all input fs\n"
              "         * traditional (default): determine default les by posmapping for all lexical gaps\n");
   fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
@@ -101,6 +101,8 @@ void usage(FILE *f)
           "enable chart mapping (token mapping and lexical filtering)\n");
   fprintf(f, "  `-cp=[strategy]limit' --- "
           "enable chart pruning. Strategy can be (a)ll, (s)uccessful and (p)assive (default).\n");
+  fprintf(f, "  `-inputfile=file' --- "
+          "name of input file to read from instead of standard input\n");
 }
 
 #define OPTION_TSDB 0
@@ -143,6 +145,7 @@ void usage(FILE *f)
 #define OPTION_SM 40
 #define OPTION_ROBUST 41
 #define OPTION_CHART_PRUNING 42
+#define OPTION_INPUT_FILE 43
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -203,6 +206,7 @@ char* parse_options(int argc, char* argv[])
     {"cm", optional_argument, 0, OPTION_CHART_MAPPING},
     {"sm", optional_argument, 0, OPTION_SM},
     {"cp", required_argument, 0, OPTION_CHART_PRUNING},
+    {"inputfile", required_argument, 0, OPTION_INPUT_FILE},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -404,7 +408,7 @@ char* parse_options(int argc, char* argv[])
       case OPTION_CHART_MAPPING:
           if (optarg != NULL)
             set_opt_from_string("opt_chart_mapping", optarg);
-          else 
+          else
             set_opt("opt_chart_mapping", 128);
           break;
       case OPTION_SM:
@@ -422,8 +426,8 @@ char* parse_options(int argc, char* argv[])
             } else if (optarg[0] == 's') {
               set_opt("opt_chart_pruning_strategy", 1);
               set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
-              LOG (logChartPruning, INFO, "Chart pruning: strategy=successful; cell size=" << get_opt_int("opt_chart_pruning"));            
-            } else if (optarg[0] == 'p') { 
+              LOG (logChartPruning, INFO, "Chart pruning: strategy=successful; cell size=" << get_opt_int("opt_chart_pruning"));
+            } else if (optarg[0] == 'p') {
               set_opt("opt_chart_pruning_strategy", 2);
               set_opt("opt_chart_pruning", (int)(strtoint(optarg+1, "")));
               LOG (logChartPruning, INFO, "Chart pruning: strategy=passive; cell size=" << get_opt_int("opt_chart_pruning"));
@@ -436,7 +440,9 @@ char* parse_options(int argc, char* argv[])
             set_opt("opt_chart_pruning", (int) 400);
           }
           break;
-
+      case OPTION_INPUT_FILE:
+          set_opt("opt_infile", std::string(optarg));
+          break;
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
