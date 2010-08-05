@@ -71,7 +71,7 @@ void push_file(const string &fname, const char *info) {
   struct stat statbuf;
 
   if(file_nest >= MAX_LEX_NEST)
-    throw tError(string("too many nested includes (in ") 
+    throw tError(string("too many nested includes (in ")
                  + fname + ") - giving up");
 
 #ifndef WINDOWS
@@ -97,9 +97,9 @@ void push_file(const string &fname, const char *info) {
 #else
   f.buff = (char *) malloc(f.len + 1);
   if(f.buff == 0)
-    throw tError("couldn't malloc for `" + fname + "': " 
+    throw tError("couldn't malloc for `" + fname + "': "
                  + string(strerror(errno)));
-  
+
   if((size_t) read(f.fd,f.buff,f.len) != f.len)
     throw tError("couldn't read from `" + fname + "': "
                  + string(strerror(errno)));
@@ -108,7 +108,7 @@ void push_file(const string &fname, const char *info) {
 #endif
 
   f.fname = strdup(fname.c_str());
-  
+
   f.pos = 0;
   f.linenr = 1; f.colnr = 1;
   f.info = (info != NULL ? strdup(info) : NULL);
@@ -126,11 +126,12 @@ void push_string(const string &input, const char *info) {
 
   f.buff = strdup(input.c_str());
   if(f.buff == 0)
-    throw tError("couldn't strdup for string include: " 
+    throw tError("couldn't strdup for string include: "
                  + string(strerror(errno)));
-  
+
   f.len = strlen(f.buff);
   f.fname = NULL;
+  f.fd = -1;
   f.pos = 0;
   f.linenr = 1; f.colnr = 1;
   f.info = (info != NULL ? strdup(info) : NULL);
@@ -154,7 +155,7 @@ int pop_file() {
 #ifdef HAVE_MMAP
   if(f.fname) {
     if(munmap(f.buff, f.len) != 0)
-      throw tError("couldn't munmap `" + string(f.fname) 
+      throw tError("couldn't munmap `" + string(f.fname)
                    + "': " + string(strerror(errno)));
   } // if
   else {
@@ -167,10 +168,10 @@ int pop_file() {
 #else
   free(f.buff);
 #endif
-  
+
   if(f.fname) {
     if(close(f.fd) != 0)
-      throw tError("couldn't close from `" + string(f.fname) 
+      throw tError("couldn't close from `" + string(f.fname)
                    + "': " + string(strerror(errno)));
   } // if
   return 1;
@@ -213,7 +214,7 @@ int LConsume(int n)
     {
       {
         if(last_info != CURR->info) {
-          LOG(logApplC, INFO, 
+          LOG(logApplC, INFO,
               CURR->info << " `" << CURR->fname << "'... ");
         }
         else {

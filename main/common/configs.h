@@ -26,10 +26,10 @@ public:
 /** @brief Exception thrown when string conversion not available. */
 class ConversionException : public ConfigException {
 public:
-  ConversionException(std::string convertername) 
+  ConversionException(std::string convertername)
     : ConfigException(convertername) {};
-  ConversionException(std::string key, std::string value, 
-                      std::string convertername) 
+  ConversionException(std::string key, std::string value,
+                      std::string convertername)
     : ConfigException("`" + value +  "' can not be converted " +
                       "to fit the type of " + key
                       + " (" + convertername +")") {};
@@ -38,10 +38,10 @@ public:
 /** Thrown when the specified option is not registered. */
 class NoSuchOptionException : public ConfigException {
 public:
-  NoSuchOptionException(std::string message) 
+  NoSuchOptionException(std::string message)
     : ConfigException("no such option: " + message) {};
 };
- 
+
 /** Thrown when option is registered more than once. */
 class DuplicateOptionException : public ConfigException {
 public:
@@ -62,20 +62,21 @@ public:
     representations */
 template<class T> class AbstractConverter {
 public:
+  virtual ~AbstractConverter() {}
   virtual std::string toString(const T &val) = 0;
   virtual T fromString(const std::string &s) = 0;
 };
 
 
 /** Helper class for managing options with callback functions.
- * 
+ *
  * Methods of this class are called when value of an option is read or written.
  * An inheriting class is responsible for storing a value of an option.
  */
 template<class T> class Callback {
 public:
   virtual ~Callback() {}
-  
+
   /** Set new value of the option to \a val */
   virtual void set(const T& val) = 0;
 
@@ -118,7 +119,7 @@ template<class T> void get_opt(const std::string& key, T& place) {
  *  \throw NoSuchOptionException wrong key
  *  \throw WrongTypeException the option \key has a type different from \c T
  *  This function has shortcuts for the most common simple types, like
- *  get_opt_bool, get_opt_int 
+ *  get_opt_bool, get_opt_int
  */
 template<class T> const  T& get_opt(const std::string& key) {
   return Config::get_instance()->get<T>(key);
@@ -128,7 +129,7 @@ template<class T> const  T& get_opt(const std::string& key) {
  *  form, accepted by set_opt_from_string.
  *  \throw NoSuchOptionException wrong key
  *  \throw ConversionException the value for \a key can not be converted to a
- *                             string 
+ *                             string
  */
 inline std::string get_opt_as_string(const std::string& key) {
   return Config::get_instance()->get_as_string(key);
@@ -141,7 +142,7 @@ inline const char &get_opt_char(const std::string& key) { return get_opt<char>(k
 
 inline const int &get_opt_int(const std::string& key) { return get_opt<int>(key); }
 
-inline const char * const &get_opt_charp(const std::string& key) { 
+inline const char * const &get_opt_charp(const std::string& key) {
   return get_opt<const char *>(key);
 }
 
@@ -155,7 +156,7 @@ inline const std::string &get_opt_string(const std::string& key) {
  *  \throw WrongTypeException the option \key requires a type different
  *                            from \c T
  */
-template<class T> void 
+template<class T> void
 set_opt(const std::string& key, const T& value, int prio = 0){
   Config::get_instance()->set<T>(key, value, prio);
 }
@@ -167,7 +168,7 @@ set_opt(const std::string& key, const T& value, int prio = 0){
  *         type for the given option
  *  \todo maybe find a better name for the function
  */
-inline void 
+inline void
 set_opt_from_string(const std::string& key, const std::string& value,
                     int prio = 0){
   Config::get_instance()->set_from_string(key, value, prio);
@@ -209,7 +210,7 @@ void managed_opt(const std::string &key, const std::string &docstring,
  *  sensible grouping in a GUI, for example.
  */
 template<class T>
-void reference_opt(const std::string key, const std::string docstring, 
+void reference_opt(const std::string key, const std::string docstring,
                    T &initialValue) {
   Config::get_instance()->addReference<T>(key, docstring, initialValue);
 }

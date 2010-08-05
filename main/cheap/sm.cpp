@@ -301,11 +301,11 @@ tSM::scoreLeaf(tLexItem *it)
 }
 
 double
-tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path, int gplevel)
+tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path, unsigned int gplevel)
 {
   vector<int> v1, v2;
   double total = neutralScore();
-  int level = path.size();
+  size_t level = path.size();
   if (level > gplevel)  // we can only those levels we have ancestors for
     level = gplevel;
   // collect grand-parenting features
