@@ -898,7 +898,7 @@ int main(int argc, char* argv[]) {
        usage(stderr);
        exit(1);
      }
-     take_process(grammar_file_name);
+     process(grammar_file_name);
   }
   catch (tError err) {
     cerr << err.getMessage();
