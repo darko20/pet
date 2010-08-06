@@ -140,6 +140,9 @@ findAndReplace(std::string &s, const std::string &oldText, const std::string &ne
 void
 splitStrings(std::list<std::string> &strs);
 
+/** Escape xml delimiters. */
+std::string xml_escape(std::string s);
+
 /** Predicate comparing two plain C strings for equality */
 struct cstr_eq {
   bool operator()(const char* s, const char* t) const {

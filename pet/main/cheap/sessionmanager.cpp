@@ -3,6 +3,7 @@
 #include "sessionmanager.h"
 #include "parse.h"
 #include "chart.h"
+#include "logging.h"
 
 #include <vector>
 
@@ -45,7 +46,7 @@ bool SessionManager::remove_session(int session_id) {
       return true;
     }
   }
-  return NULL;
+  return false;
 }
 
 SessionManager::~SessionManager() {
@@ -72,7 +73,13 @@ int SessionManager::start_parse(const string &input) {
 int SessionManager::run_parser(int session_id) {
   Session *curr = find_session(session_id);
   if (curr == NULL) return NO_SUCH_SESSION;
-  analyze(curr->input, curr->chart, curr->FSAS, curr->errors, curr->id);
+  try {
+    analyze(curr->input, curr->chart, curr->FSAS, curr->errors, curr->id);
+  }
+  catch(tError err) {
+    LOG(logAppl, ERROR, err.getMessage());
+    return RUNTIME_ERROR;
+  }
   return (curr->errors.empty()) ? NO_ERRORS : ERRORS_PRESENT;
 }
 
@@ -83,6 +90,16 @@ int SessionManager::results(int session_id) {
   return curr->chart->readings().size();
 }
 
+/** return specified result item, or NULL, if illegal */
+class tItem * SessionManager::get_result_item(int session_id, size_t no) {
+  Session *curr = find_session(session_id);
+  if (curr != NULL && no < curr->chart->readings().size()) {
+    return curr->chart->readings()[no];
+  }
+  return NULL;
+}
+
+
 /** Get result number \c result_no of session \c session_id in the specified
  *  \c format, which is one of:
  *  "fs-readable", "fs-compact", "fs-jxchg"
@@ -90,11 +107,10 @@ int SessionManager::results(int session_id) {
  *  "mrs-new", "mrs-simple"
  */
 string SessionManager::get_result(int session_id, size_t no, string format) {
-  Session *curr = find_session(session_id);
-  if (curr == NULL) return "";
-  if (no < curr->chart->readings().size()) {
+  tItem *result = get_result_item(session_id, no);
+  if (result != NULL) {
     ostringstream out;
-    print_result_as(format, curr->chart->readings()[no], out);
+    print_result_as(format, result, out);
     return out.str();
   }
   return string();

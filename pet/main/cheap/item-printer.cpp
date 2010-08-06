@@ -297,7 +297,7 @@ tTSDBDerivationPrinter::real_print(const tInputItem *item) {
   ItsdbDagPrinter dag_printer;
   get_fs(item).print(buffer, dag_printer);
   // escaping token fs since it is embedded as a string
-  *_out << " " << item->id() 
+  *_out << " " << item->id()
         << " \"" << escape_string(buffer.str()) << "\"";
 }
 
@@ -309,7 +309,7 @@ tTSDBDerivationPrinter::real_print(const tLexItem *item) {
        << " " << item->score() << " " << item->start() <<  " " << item->end()
        << " (\"" << escape_string(item->orth()) << "\"";
   print_daughters(item);
-  *_out << "))" << flush; 
+  *_out << "))" << flush;
 }
 
 void
@@ -340,18 +340,18 @@ tTSDBDerivationPrinter::real_print(const tPhrasalItem *item) {
 
 void
 tDelegateDerivationPrinter::real_print(const tInputItem *item) {
-  _itemprinter.print(*_out, item);
+  _itemprinter.print_to(*_out, item);
 }
 
 void
 tDelegateDerivationPrinter::real_print(const tLexItem *item) {
-  _itemprinter.print(*_out, item);
+  _itemprinter.print_to(*_out, item);
   print_daughters(item);
 }
 
 void
 tDelegateDerivationPrinter::real_print(const tPhrasalItem *item) {
-  _itemprinter.print(*_out, item);
+  _itemprinter.print_to(*_out, item);
   print_daughters(item);
 }
 
@@ -483,4 +483,30 @@ tLabelPrinter::real_print(const tPhrasalItem *item) {
   *_out << _parse_nodes.getLabel(get_fs(item).dag())
         << " " << item->printname()
         << endl;
+}
+
+/* ------------------------------------------------------------------------- */
+/* --------------------------- tXmlLabelPrinter ---------------------------- */
+/* ------------------------------------------------------------------------- */
+
+void XmlLabelPrinter::print(const tItem *arg) { arg->print_gen(this); }
+
+void XmlLabelPrinter::real_print(const tInputItem *item) {
+  // print input string (printname() is the same as orth())
+  *_out << "<word form=\"" << xml_escape(item->orth()) << "\"/>"<< endl;
+}
+
+void XmlLabelPrinter::real_print(const tLexItem *item) {
+  *_out << "<node label=\""
+        << xml_escape(_parse_nodes.getLabel(get_fs(item).dag()))
+        << "\" rule=\"" << xml_escape(item->printname()) << "\">" << endl;
+  print_daughters(item);
+  *_out << "</node>" << endl;
+}
+
+void XmlLabelPrinter::real_print(const tPhrasalItem *item) {
+  *_out << "<node label=\"" <<  xml_escape(_parse_nodes.getLabel(get_fs(item).dag()))
+        << "\" rule=\"" <<  xml_escape(item->printname()) << "\">" << endl;
+  print_daughters(item);
+  *_out << "</node>" << endl;
 }

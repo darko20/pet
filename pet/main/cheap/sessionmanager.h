@@ -58,6 +58,7 @@ public:
   static const int NO_SUCH_SESSION = -2;
   static const int NO_ERRORS = 0;
   static const int ERRORS_PRESENT = -1;
+  static const int RUNTIME_ERROR = -3;
 
   int start_parse(const std::string &input);
 
@@ -70,6 +71,12 @@ public:
 
   /** Return the number of results found */
   int results(int session_id);
+
+  /** Get result item number \c result_no of session \c session_id
+   *  \return NULL if either the session id is not valid or there is no such
+   *          result
+   */
+  class tItem * get_result_item(int session_id, size_t no);
 
   /** Get result number \c result_no of session \c session_id in the specified
    *  \c format, which is one of:

@@ -30,6 +30,7 @@
 namespace fs = boost::filesystem;
 #endif
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string.hpp>
 
 using boost::algorithm::iequals;
 using std::string;
@@ -402,4 +403,17 @@ splitStrings(list<string> &strs)
     }
 
     strs.swap(result);
+}
+
+/**
+ * Escape XML delimiters.
+ */
+std::string
+xml_escape(std::string s) {
+  boost::replace_all(s, "<", "&lt;");
+  boost::replace_all(s, ">", "&gt;");
+  boost::replace_all(s, "&", "&amp;");
+  boost::replace_all(s, "'", "&apos;");
+  boost::replace_all(s, "\"", "&quot;");
+  return s;
 }

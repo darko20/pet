@@ -48,6 +48,8 @@
 #include "options.h"
 #include "settings.h"
 
+#include "api.h"
+
 #ifdef YY
 #include "yy.h"
 #endif
@@ -214,9 +216,9 @@ void print_mrs_as(char format, const fs &f, ostream &out) {
       out << endl;
       switch (format) {
       case 'n':
-        { MrxMRSPrinter ptr(cerr); ptr.print(mapped_mrs); break; }
+        { MrxMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
       case 's':
-        { SimpleMRSPrinter ptr(cerr); ptr.print(mapped_mrs); break; }
+        { SimpleMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
       }
       out << endl;
     }
@@ -797,6 +799,95 @@ int shutdown() {
   return 0;
 }
 
+string massage_infilename(string inputfile, string suffix) {
+  string::size_type lastdot = inputfile.rfind('.');
+  if (lastdot != string::npos) {
+    return inputfile.substr(0, lastdot) + "-" + suffix
+      + inputfile.substr(lastdot);
+  }
+  return inputfile + "-" + suffix;
+}
+
+void take_process(const char *grammar_file_name) {
+  // initialization
+  load_grammar(grammar_file_name);
+
+  // batch_process input
+  string input;
+
+  string infile = get_opt_string("opt_infile");
+  ifstream ifs;
+  ifs.open(infile.c_str());
+  istream& lexinput = ifs ? ifs : cin;
+  XmlLabelPrinter xlpr(pn);
+  while(Lexparser.next_input(lexinput, input)) {
+    int session_id = start_parse(input);
+    int error_present = run_parser(session_id);
+    if (error_present != SessionManager::RUNTIME_ERROR) {
+      int result_no = results(session_id);
+      int error_no = errors(session_id);
+
+      fprintf(fstatus,
+              "(%d) `%s' [%d] --- %s%d (%.2f|%.2fs) <%d:%d> (%.1fK) [%.1fs] %s\n",
+              stats.id, input.c_str(),
+              get_opt_int("opt_pedgelimit"),
+              (stats.readings && stats.rreadings ? "*" : ""), stats.readings,
+              stats.first/1000., stats.tcpu / 1000.,
+              stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
+              TotalParseTime.elapsed_ts() / 10.,
+              ((error_no > 0) ? get_error(session_id, 0).c_str() : ""));
+
+      ofstream mrs_out(massage_infilename(input, "mrs").c_str());
+      ofstream tree_out(massage_infilename(input, "tree").c_str());
+      mrs_out << "<results tcpu=\"" << stats.tcpu / 1000.0 << "\">" << endl;
+      tree_out << "<results tcpu=\"" << stats.tcpu / 1000.0 << "\">" << endl;
+      for (int i = 1; i < result_no; ++i) {
+        tItem *res = get_result_item(session_id, i);
+
+        mrs_out << "<result nr=\"" << i << "\" score=\"" << res->score()
+                << "\">" << endl;
+        print_mrs_as('n', res->get_fs(), mrs_out);
+        mrs_out << "</result>" << endl;
+
+        tree_out << "<result nr=\"" << i << "\" score=\"" << res->score()
+                 << "\">" << endl;
+        xlpr.print_to(tree_out, res);
+        tree_out << "</result>" << endl;
+      }
+
+      for (int i = 1; i < error_no; ++i) {
+        string err = "<error>" + xml_escape(get_error(session_id, i))
+          + "</error>" ;
+        mrs_out << err << endl;
+        tree_out << err << endl;
+      }
+
+      mrs_out << "</results>" << endl;
+      tree_out << "</results>" << endl;
+      mrs_out.close();
+      tree_out.close();
+    }
+    end_parse(session_id);
+  }
+}
+
+void process(const char *grammar_file_name) {
+  if(get_opt_char("opt_pg") != '\0') {
+    if (! load_grammar(grammar_file_name)) {
+      print_grammar(get_opt_char("opt_pg"), cout);
+    }
+  } else {
+    // will not return if a server was started
+    eventually_start_server(grammar_file_name);
+
+    load_grammar(grammar_file_name);
+    if(get_opt_bool("opt_interactive_morph"))
+      interactive_morphology();
+    else
+      interactive();
+  }
+}
+
 int main(int argc, char* argv[]) {
   // initialization
   try {
@@ -807,21 +898,7 @@ int main(int argc, char* argv[]) {
        usage(stderr);
        exit(1);
      }
-     if(get_opt_char("opt_pg") != '\0') {
-       if (! load_grammar(grammar_file_name)) {
-         print_grammar(get_opt_char("opt_pg"), cout);
-         return shutdown();
-       }
-     } else {
-       // will not return if a server was started
-       eventually_start_server(grammar_file_name);
-     }
-
-     load_grammar(grammar_file_name);
-     if(get_opt_bool("opt_interactive_morph"))
-       interactive_morphology();
-     else
-       interactive();
+     take_process(grammar_file_name);
   }
   catch (tError err) {
     cerr << err.getMessage();
@@ -830,4 +907,3 @@ int main(int argc, char* argv[]) {
 
   return shutdown();
 }
-

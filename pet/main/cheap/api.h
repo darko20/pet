@@ -40,6 +40,9 @@ int start_parse(std::string input) {
  *  \todo it would be nice if it would be possible to run the parser up to
  *        the first result, restart it, etc., maybe even add new input, or
  *        activate other robustness processing in case it can find no result
+ *  \return NO_ERRORS if no errors occurred during parsing, or ERRORS_PRESENT
+ *        If ERRORS_PRESENT is returned, the collected errors can be requested
+ *        using the errors and get_errors functions.
  */
 int run_parser(int session_id) {
   return SessionManager::getManager().run_parser(session_id);
@@ -48,6 +51,10 @@ int run_parser(int session_id) {
 /** Return the number of results found */
 int results(int session_id) {
   return SessionManager::getManager().results(session_id);
+}
+
+class tItem *get_result_item(int session_id, size_t result_no) {
+  return SessionManager::getManager().get_result_item(session_id, result_no);
 }
 
 /** Get result number \c result_no of session \c session_id in the specified
