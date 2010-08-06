@@ -9,19 +9,6 @@
 using namespace mrs;
 
 
-/**
- * Escape XML delimiters.
- */
-std::string
-xml_escape(std::string s) {
-  boost::replace_all(s, "<", "&lt;");
-  boost::replace_all(s, ">", "&gt;");
-  boost::replace_all(s, "&", "&amp;");
-  boost::replace_all(s, "'", "&apos;");
-  boost::replace_all(s, "\"", "&quot;");
-  return s;
-}
-
 void MrxMRSPrinter::
 print(tPSOA* mrs) {
   *_out << "<mrs>\n";
@@ -40,13 +27,13 @@ print(tPSOA* mrs) {
     print(*acons);
   }
   *_out << "</mrs>\n";
-} 
+}
 
 void MrxMRSPrinter::
 print(tRel* rel) {
   *_out << boost::format("<ep cfrom='%d' cto='%d'>") % rel->cfrom % rel->cto;
   if (rel->pred[0] == '"')
-    *_out << "<spred>" << xml_escape(rel->pred.substr(1,rel->pred.length()-2)) 
+    *_out << "<spred>" << xml_escape(rel->pred.substr(1,rel->pred.length()-2))
           << "</spred>";
   else {
     char* uppred = new char[rel->pred.length()+1];
@@ -57,7 +44,7 @@ print(tRel* rel) {
   *_out << boost::format("<label vid='%d'/>") % rel->handel->id;
   std::list<std::string> feats;
   for (std::map<std::string,tValue*>::iterator fvpair = rel->flist.begin();
-       fvpair != rel->flist.end(); fvpair ++) 
+       fvpair != rel->flist.end(); fvpair ++)
     feats.push_back((*fvpair).first);
   feats.sort(ltfeat());
   for (std::list<std::string>::iterator feat = feats.begin();
@@ -159,7 +146,7 @@ print(tPSOA* mrs) {
     *_out << " ";
     print(*hcons);
   }
-  *_out << " >"; 
+  *_out << " >";
   // _todo_ i'm not sure how acons (if any) are printed in the simple format (yi)
   if (!mrs->a_cons.empty()) {
     *_out << std::endl << "   ACONS: <";
@@ -180,7 +167,7 @@ print(tRel* rel) {
   *_out << boost::format("            LBL: %s%d") % rel->handel->type % rel->handel->id;
   std::list<std::string> feats;
   for (std::map<std::string,tValue*>::iterator fvpair = rel->flist.begin();
-       fvpair != rel->flist.end(); fvpair ++) 
+       fvpair != rel->flist.end(); fvpair ++)
     feats.push_back((*fvpair).first);
   feats.sort(ltfeat());
   for (std::list<std::string>::iterator feat = feats.begin();

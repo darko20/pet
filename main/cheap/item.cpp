@@ -54,12 +54,12 @@ extern int opt_packing;
 
 bool tItem::init_item() {
   tItem::opt_shaping = true;
-  reference_opt("opt_shaping", 
+  reference_opt("opt_shaping",
                 "Filter items that would reach beyond the chart",
                 tItem::opt_shaping);
   /** word lattice parsing (permissible token paths, cf tPath class) */
   tItem::opt_lattice = false;
-  reference_opt("opt_lattice", 
+  reference_opt("opt_lattice",
                 "use the lattice structure specified in the input "
                 "to restrict the search space in parsing",
                 tItem::opt_lattice);
@@ -342,7 +342,7 @@ tInputItem::generics(postags onlyfor)
         if(_postags.license(gen) && (onlyfor.empty() || onlyfor.contains(gen)))
         {
           LOG(logGenerics, DEBUG,
-              "  ==> " << print_name(gen) 
+              "  ==> " << print_name(gen)
               << " [" << (suffix == 0 ? "*" : suffix)<< "]");
 
           result.push_back(Grammar->find_stem(gen));
@@ -438,7 +438,7 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
 }
 
 tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr, fs f)
-  : tItem(-1, -1, from->paths().common(newdtr->paths()), 
+  : tItem(-1, -1, from->paths().common(newdtr->paths()),
           (f.valid() ? f : from->get_fs()), from->printname()),
   _ldot(from->_ldot), _rdot(from->_rdot), _keydaughter(from->_keydaughter),
   _stem(from->_stem), _fs_full(f.valid() ? f : from->get_fs()), _hypo(NULL)
@@ -543,7 +543,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv, fs &f)
     }
 
 #ifdef PETDEBUG
-    LOG(logParse, DEBUG, 
+    LOG(logParse, DEBUG,
         "A " << pasv->id() << " " <<  active->id() << " < " << id());
 #endif
     pasv->parents.push_back(this);
@@ -587,7 +587,7 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *sponsor, vector<tItem *> &dtrs, fs &f)
 }
 
 
-tPhrasalItem::tPhrasalItem(grammar_rule *rule, tItem *pasv) 
+tPhrasalItem::tPhrasalItem(grammar_rule *rule, tItem *pasv)
   : tItem(pasv->_start, pasv->_end, pasv->_paths, rule->printname()),
     _adaughter(0), _rule(rule) {
   _startposition = pasv->startposition();
@@ -598,9 +598,9 @@ tPhrasalItem::tPhrasalItem(grammar_rule *rule, tItem *pasv)
   _key_item = pasv->_key_item;
 
   _trait = PCFG_TRAIT;
-  
+
   _spanningonly = rule->spanningonly();
-  
+
   pasv->parents.push_back(this);
   if (passive()) {
     rule->passives++;
@@ -616,15 +616,15 @@ tPhrasalItem::tPhrasalItem(tPhrasalItem *active, tItem *pasv)
   _end = pasv->_end;
   _endposition = pasv->endposition();
   _daughters.push_back(pasv);
-  
+
   pasv->parents.push_back(this);
   active->parents.push_back(this);
-  
+
   _tofill = active->restargs();
   _nfilled = active->nfilled() + 1;
 
   _trait = PCFG_TRAIT;
-  
+
   if (passive()) {
     active->rule()->passives++;
   } else {
@@ -805,7 +805,7 @@ tItem::contains_p(const tItem *it) const
 }
 
 
-/** check if packing current item into \a it 
+/** check if packing current item into \a it
     will create a cycle in the packed forest */
 bool
 tItem::cyclic_p(const tItem *it) const {
@@ -977,7 +977,7 @@ debug_unpack(tItem *combined, int motherid, vector<tItem *> &config) {
   for(; it != config.end(); ++it)
     cdeb << " " << (*it)->id();
   cdeb << "]" << endl;
-  if (combined != NULL) { 
+  if (combined != NULL) {
     cdeb << *combined << endl;
     if(LOG_ENABLED(logUnpack, DEBUG))
       cdeb << combined->get_fs().dag();
@@ -1021,7 +1021,7 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
 tItem *
 tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
   long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
-  
+
   fs_alloc_state FSAS(false);
 
   fs res = rule()->instantiate(true);
@@ -1361,10 +1361,11 @@ tPhrasalItem::selectively_unpack(int n, int upedgelimit)
  * \return a list of the best, at most \a n unpacked trees
  */
 list<tItem *>
-tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, long memlimit)
+tItem::selectively_unpack(list<tItem*> roots, int nsolutions,
+                          int end, int upedgelimit, long memlimit)
 {
   item_list results;
-  if (n <= 0)
+  if (nsolutions <= 0)
     return results;
 
   list<tHypothesis*> ragenda;
@@ -1401,7 +1402,7 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
     }
   }
 
-  while (!ragenda.empty() && n > 0) {
+  while (!ragenda.empty() && nsolutions > 0) {
     aitem = ragenda.front();
     ragenda.pop_front();
     tItem *result = aitem->edge->instantiate_hypothesis(path, aitem->hypo_dtrs.front(), upedgelimit, memlimit);
@@ -1409,17 +1410,17 @@ tItem::selectively_unpack(list<tItem*> roots, int n, int end, int upedgelimit, l
       return results;
     }
     type_t rule;
-    if (result && 
+    if (result &&
         (result->trait() == PCFG_TRAIT || result->root(Grammar, end, rule))) {
       result->set_result_root(rule);
       results.push_back(result);
-      n --;
-      if (n == 0) {
+      --nsolutions;
+      if (nsolutions == 0) {
         delete aitem;
         break;
       }
     }
-  
+
     hypo = aitem->edge->hypothesize_edge(path, aitem->indices[0]+1);
     if (hypo) {
       //Grammar->sm()->score_hypothesis(hypo);
@@ -1491,7 +1492,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
       return NULL;
     }
   }
-  
+
   tPhrasalItem *result;
   if (trait() != PCFG_TRAIT) {
     // Replay the unification.
@@ -1510,14 +1511,14 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
       }
       tofill = rest(tofill);
     }
-  
+
     if (unpacking_resources_exhausted(memlimit)) {
       ostringstream s;
       s << "memory limit exhausted (" << memlimit / (1024 * 1024)
         << " MB)";
       throw tError(s.str());
     }
-    
+
     if (!res.valid()) {
       //    FSAS.release();
       //hypo->inst_failed = true;//
@@ -1530,7 +1531,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
     if (passive()) {
       characterize(res, _startposition, _endposition);
     }
-    
+
     result = new tPhrasalItem(this, daughters, res);
   } else {
     result = new tPhrasalItem(this, daughters);

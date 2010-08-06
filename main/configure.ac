@@ -6,7 +6,7 @@ AC_INIT([PET], [0.99.14svn_cm], [Peter.Adolphs@dfki.de])
 AC_REVISION($LastChangedRevision$)
 AC_CONFIG_SRCDIR([pet-config.h.in])
 AC_CONFIG_HEADERS([pet-config.h])
-AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_AUX_DIR([aux-build])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.7 foreign])
@@ -106,6 +106,9 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_AWK
 AC_PROG_MAKE_SET
+# turn this off during development to speed up compilation. May also be turned
+# on/off by using --enable/disable-shared during configure
+AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
 # AC_PROG_RANLIB
 

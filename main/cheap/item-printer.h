@@ -43,8 +43,15 @@ public:
   /** The top level function called by the user */
   virtual void print(const tItem *arg) = 0;
 
-  /** The top level function called by the user */
-  virtual void print(std::ostream &out, const tItem *arg) {
+  /** The top level function called by the user.
+   *
+   *  Is not named print so we  do'nt run into the problem of dominance: when
+   *  deriving from this class and overwriting the pure virtual print, the
+   *  derived print method will dominate another print method with different
+   *  arguments that has not been overwritten, effectively making it not usable
+   *  anymore without explicit qualification of the superclass.
+   */
+  virtual void print_to(std::ostream &out, const tItem *arg) {
     _out = &out; print(arg);
   }
 
@@ -528,11 +535,36 @@ private:
 };
 
 
+/** Print an item's label only, as specified by the parse nodes. */
+class XmlLabelPrinter : public tAbstractDerivationPrinter {
+public:
+  /** Print items into files that are under \a path. */
+  XmlLabelPrinter(ParseNodes &pn, std::ostream &out)
+    : tAbstractDerivationPrinter(out), _parse_nodes(pn) {}
+
+  /** Print items into files that are under \a path. */
+  XmlLabelPrinter(ParseNodes &pn) : _parse_nodes(pn) {}
+
+  virtual ~XmlLabelPrinter() {}
+
+  virtual void print(const tItem *arg);
+
+  virtual void real_print(const tInputItem *item) ;
+  virtual void real_print(const tLexItem *item) ;
+  virtual void real_print(const tPhrasalItem *item) ;
+
+protected:
+  virtual void print_separator() {}
+
+  ParseNodes &_parse_nodes;
+};
+
+
 /** use an item_printer like a modifier */
 inline std::ostream &
 operator<<(std::ostream &out,
            const std::pair<tAbstractItemPrinter *, const tItem *> &p) {
-  p.first->print(out, p.second);
+  p.first->print_to(out, p.second);
   return out;
 }
 
