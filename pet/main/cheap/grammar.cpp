@@ -192,7 +192,7 @@ grammar_rule::grammar_rule(type_t t)
         if(*currentdag == head_dtr)
             head = n;
 
-        n++;
+        ++n;
     }
 
     if(cheap_settings->lookup("rule-keyargs"))
@@ -203,7 +203,7 @@ grammar_rule::grammar_rule(type_t t)
               "warning: both keyarg-marker-path and rule-keyargs "
               "supply information on key argument...");
         }
-        char *s = cheap_settings->assoc("rule-keyargs", type_name(t));
+        const char *s = cheap_settings->assoc("rule-keyargs", type_name(t));
         if(s && strtoint(s, "in `rule-keyargs'"))
         {
             keyarg = strtoint(s, "in `rule-keyargs'");
@@ -239,7 +239,7 @@ grammar_rule::grammar_rule(type_t t)
 
     if(opt_key != 2) // right to left, 2 is left to right
     {
-        for(int i = 1; i <= _arity; i++)
+        for(int i = 1; i <= _arity; ++i)
             if(!contains(_tofill, i)) _tofill = append(_tofill, i);
     }
     else
@@ -248,7 +248,7 @@ grammar_rule::grammar_rule(type_t t)
             if(!contains(_tofill, i)) _tofill = append(_tofill, i);
     }
 
-    for(int i = 0; i < _arity; i++)
+    for(int i = 0; i < _arity; ++i)
         _qc_vector_unif[i] = 0;
 
     //
@@ -288,7 +288,7 @@ grammar_rule::grammar_rule(std::vector<type_t> v)
     throw tError("Rule " + string(type_name(v[0])) + " has arity zero");
   }
 
-  for(int i = 1; i <= _arity; i++) {
+  for(int i = 1; i <= _arity; ++i) {
     _tofill = append(_tofill, i);
     _pcfg_args.push_back(v[i]);
   }
@@ -373,7 +373,7 @@ void
 grammar_rule::init_qc_vector_unif() {
   fs_alloc_state FSAS;
   fs f = instantiate();
-  for(int i = 1; i <= _arity; i++) {
+  for(int i = 1; i <= _arity; ++i) {
     fs arg = f.nth_arg(i);
     _qc_vector_unif[i-1] = arg.get_unif_qc_vector();
   }
@@ -382,7 +382,7 @@ grammar_rule::init_qc_vector_unif() {
 /** pass T_BOTTOM for an invalid/unavailable qc structure */
 void
 undump_dags(dumper *f) {
-  struct dag_node *dag;
+  dag_node *dag;
   // allocate an array holding nstatictypes pointers to the typedags
   initialize_dags(nstatictypes);
 
@@ -391,7 +391,7 @@ undump_dags(dumper *f) {
   init_constraint_cache(nstatictypes);
 #endif
 
-  char *v;
+  const char *v;
   type_t qc_inst_unif = T_BOTTOM;
   if((v = cheap_settings->value("qc-structure-unif")) != 0
      || (v = cheap_settings->value("qc-structure")) != 0)
@@ -410,7 +410,7 @@ undump_dags(dumper *f) {
     set_opt("opt_nqc_subs", 0);
   }
 
-  for(int i = 0; i < nstatictypes; i++) {
+  for(int i = 0; i < nstatictypes; ++i) {
     if(i == qc_inst_unif) {
       LOG(logGrammar, DEBUG,
           "[qc unif structure `" << print_name(qc_inst_unif) << "'] ");
@@ -450,7 +450,7 @@ tGrammar::tGrammar(const char * filename)
     dumper dmp(filename);
 
     int version;
-    char *s = undump_header(&dmp, version);
+    const char *s = undump_header(&dmp, version);
     if(s) LOG(logApplC, INFO, "(" << s << ") ");
     delete[] s;
 
@@ -500,7 +500,7 @@ tGrammar::tGrammar(const char * filename)
     stop_creating_permanent_dags();
 
     // find grammar rules and stems
-    for(type_t i = 0; i < nstatictypes; i++)
+    for(type_t i = 0; i < nstatictypes; ++i)
     {
         if(lexentry_status(i))
         {
@@ -512,7 +512,7 @@ tGrammar::tGrammar(const char * filename)
                 // for multiwords, insert additional index entry
             {
                 string full = st->orth(0);
-                for(int i = 1; i < st->length(); i++)
+                for(int i = 1; i < st->length(); ++i)
                     full += string(" ") + string(st->orth(i));
                 _stemlexicon.insert(make_pair(full.c_str(), st));
             }
@@ -572,7 +572,7 @@ tGrammar::tGrammar(const char * filename)
     /*
     // print the rule dictionary
     for (map<type_t, grammar_rule*>::iterator it = _rule_dict.begin();
-         it != _rule_dict.end(); it++) {
+         it != _rule_dict.end(); ++it) {
       printf("%d %s %s\n", (*it).first, print_name((*it).first)
              , type_name((*it).first));
     }
@@ -615,8 +615,8 @@ tGrammar::tGrammar(const char * filename)
         }
       }
     } // if
-    char *pcfg_file;
-    if ((pcfg_file = cheap_settings->value("pcfg")) != 0) {
+    const char *pcfg_file = cheap_settings->value("pcfg");
+    if (pcfg_file != 0) {
       try {
         _pcfgsm = new tPCFG(this, pcfg_file, filename);
         // delete pcfgsm; // only pcfg rules are loaded, not their weights TODO: what was happening here?
@@ -627,8 +627,8 @@ tGrammar::tGrammar(const char * filename)
       }
     }
 
-    char *gm_file;
-    if ((gm_file = cheap_settings->value("gm")) != 0) {
+    const char *gm_file = cheap_settings->value("gm");
+    if (gm_file != 0) {
       try {
         _gm = new tGM(this, gm_file, filename);
       } catch (tError &e) {
@@ -637,8 +637,8 @@ tGrammar::tGrammar(const char * filename)
       }
     }
 
-    char *lexsm_file;
-    if ((lexsm_file = cheap_settings->value("lexsm")) != 0) {
+    const char *lexsm_file = cheap_settings->value("lexsm");
+    if (lexsm_file != 0) {
       try { _lexsm = new tMEM(this, lexsm_file, filename); }
       catch(tError &e) {
         LOG(logGrammar, ERROR, e.getMessage());
@@ -656,14 +656,14 @@ tGrammar::tGrammar(const char * filename)
     {
         _extdict_discount = 0;
 
-        char *v;
-        if((v = cheap_settings->value("extdict-discount")) != 0)
+        const char *v = cheap_settings->value("extdict-discount");
+        if(v != 0)
         {
             _extdict_discount = strtoint(v, "as value of extdict-discount");
         }
 
-        char *extdictpath = cheap_settings->value("extdict-path");
-        char *mappath = cheap_settings->value("extdict-mapping");
+        const char *extdictpath = cheap_settings->value("extdict-path");
+        const char *mappath = cheap_settings->value("extdict-mapping");
         if(extdictpath != 0 && mappath)
         {
             _extDict = new extDictionary(extdictpath, mappath);
@@ -697,7 +697,7 @@ tGrammar::undump_properties(dumper *f)
 {
     LOG(logGrammar, DEBUG, '[');
     int nproperties = f->undump_int();
-    for(int i = 0; i < nproperties; i++)
+    for(int i = 0; i < nproperties; ++i)
     {
         char *key, *val;
         key = f->undump_string();
@@ -724,8 +724,8 @@ tGrammar::property(string key)
 void
 tGrammar::init_parameters()
 {
-    struct setting *set;
-    if((set = cheap_settings->lookup("start-symbols")) != 0)
+    setting *set = cheap_settings->lookup("start-symbols");
+    if(set != 0)
     {
         _root_insts = 0;
         for(int i = set->n-1; i >= 0; i--)
@@ -747,10 +747,10 @@ tGrammar::init_parameters()
     set = cheap_settings->lookup("deleted-daughters");
     if(set)
     {
-        for(int i = 0; i < set->n; i++)
+        for(int i = 0; i < set->n; ++i)
         {
-            int a;
-            if((a = lookup_attr(set->values[i])) != -1)
+            int a = lookup_attr(set->values[i]);
+            if(a != -1)
                 _deleted_daughters = cons(a, _deleted_daughters);
             else
               LOG(logGrammar, WARN, "ignoring unknown attribute `"
@@ -767,9 +767,10 @@ tGrammar::init_parameters()
       // if extended is true at the end of the loop, restrictor paths of
       // length > 1 have been specified
       bool extended = false;
-      for(int i = 0; i < set->n; i++)
+      for(int i = 0; i < set->n; ++i)
         {
-          if((del_attrs = path_to_lpath(set->values[i])) != NULL) {
+          del_attrs = path_to_lpath(set->values[i]);
+          if(del_attrs != NULL) {
             // is there a path with length > 1 ??
             extended = extended || (rest(del_attrs) != NULL) ;
             del_paths.push_front(del_attrs);
@@ -787,7 +788,7 @@ tGrammar::init_parameters()
         // iterator
         del_attrs = NULL;
         for(list< list_int * >::iterator it = del_paths.begin()
-              ; it != del_paths.end(); it++) {
+              ; it != del_paths.end(); ++it) {
           (*it)->next = del_attrs;
           del_attrs = *it;
         }
@@ -797,7 +798,7 @@ tGrammar::init_parameters()
     }
     else
     {
-      char *restname = cheap_settings->value("dag-restrictor");
+      const char *restname = cheap_settings->value("dag-restrictor");
       if ((restname != NULL) && is_type(lookup_type(restname))) {
         _packing_restrictor =
           new dag_restrictor(type_dag(lookup_type(restname)));
@@ -831,7 +832,7 @@ tGrammar::initialize_filter() {
         ++mothers) {
       grammar_rule *mother = *mothers;
 
-      for(int arg = 1; arg <= mother->arity(); arg++) {
+      for(int arg = 1; arg <= mother->arity(); ++arg) {
         fs_alloc_state S2;
         fs mother_fs = mother->instantiate();
         list_int_restrictor restr(Grammar->deleted_daughters());
@@ -915,8 +916,8 @@ tGrammar::~tGrammar()
 int
 tGrammar::nhyperrules() {
   int n = 0;
-  for(ruleiter iter = _rules.begin(); iter != _rules.end(); iter++)
-    if((*iter)->hyperactive()) n++;
+  for(ruleiter iter = _rules.begin(); iter != _rules.end(); ++iter)
+    if((*iter)->hyperactive()) ++n;
 
   return n;
 }
@@ -1045,8 +1046,8 @@ tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
 
   if(!input.empty()) {
     settings foo(input);
-    struct setting *set;
-    if((set = foo.lookup("start-symbols")) != 0) {
+    setting *set = foo.lookup("start-symbols");
+    if(set != 0) {
       grammar->_root_insts = 0;
       for(int i = set->n-1; i >= 0; --i) {
         grammar->_root_insts

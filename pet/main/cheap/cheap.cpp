@@ -461,12 +461,12 @@ static void interactive_morphology() {
 void print_grammar(int what, ostream &out) {
   if(what == 's' || what == 'a') {
     out << ";; TYPE NAMES (PRINT NAMES) ==========================" << endl;
-    for(int i = 0; i < nstatictypes; i++) {
+    for(int i = 0; i < nstatictypes; ++i) {
       out << i << "\t" << type_name(i) << " (" << print_name(i) << ")" << endl;
     }
 
     out << ";; ATTRIBUTE NAMES ===================================" << endl;
-    for(int i = 0; i < nattrs; i++) {
+    for(int i = 0; i < nattrs; ++i) {
       out << i << "\t" << attrname[i] << endl;
     }
   }
@@ -474,9 +474,9 @@ void print_grammar(int what, ostream &out) {
   out << ";; GLBs ================================================" << endl;
   if(what == 'g' || what == 'a') {
     int i, j;
-    for(i = 0; i < nstatictypes; i++) {
+    for(i = 0; i < nstatictypes; ++i) {
       prune_glbcache();
-      for(j = 0; j < i; j++)
+      for(j = 0; j < i; ++j)
         if(glb(i,j) != -1) out << i << ' ' << j << ' ' << glb(i,j) << endl;
     }
   }
@@ -484,7 +484,7 @@ void print_grammar(int what, ostream &out) {
   if(what == 't' || what == 'a') {
     out << endl << " ;; TYPE DAGS ================================" << endl;
     ReadableDagPrinter dp;
-    for(int i = 0; i < nstatictypes; i++) {
+    for(int i = 0; i < nstatictypes; ++i) {
       out << '(' << i << ") " ;
       if (type_name(i)[0] == '$')
         out << "[" << type_name(i) << ']' << endl ;
@@ -866,6 +866,11 @@ void take_process(const char *grammar_file_name) {
       tree_out << "</results>" << endl;
       mrs_out.close();
       tree_out.close();
+    }
+    else {
+      fprintf(fstatus,
+              "!%d! `%s' --- %s\n",
+              stats.id, input.c_str(), get_error(session_id, 0).c_str());
     }
     end_parse(session_id);
   }

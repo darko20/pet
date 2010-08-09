@@ -315,7 +315,7 @@ char* parse_options(int argc, char* argv[])
           if(optarg != NULL)
               verbosity = strtoint(optarg, "as argument to `-verbose'");
           else
-              verbosity++;
+              ++verbosity;
           break;
       case OPTION_NQC_UNIF:
           if(optarg != NULL)

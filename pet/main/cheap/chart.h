@@ -18,7 +18,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/** \file chart.h 
+/** \file chart.h
  * Chart data structure for parsing in dynamic programming style.
  */
 
@@ -94,7 +94,7 @@ public:
    *
    * This function can for example be used to get the best partial results or
    * to extract an input item sequence. \c weight_t is the numeric type
-   * returned by \a weight_fn, i.e., weight_fn has to be of type 
+   * returned by \a weight_fn, i.e., weight_fn has to be of type
    * \code unary_function< tItem *, weight_t >
    * \param result a list of items constituting the minimum overall weight path
    * \param weight_fn a \code unary_function< tItem *, weight_t > \endcode
@@ -126,9 +126,9 @@ private:
 
   int _pedges;
 
-  std::vector< std::list<tItem *> > _Cp_start, _Cp_end;
-  std::vector< std::list<tItem *> > _Ca_start, _Ca_end;
-  std::vector< std::vector < std::list<tItem*> > > _Cp_span;
+  std::vector< item_list > _Cp_start, _Cp_end;
+  std::vector< item_list > _Ca_start, _Ca_end;
+  std::vector< std::vector < item_list > > _Cp_span;
 
   std::auto_ptr<item_owner> _item_owner;
 
@@ -155,13 +155,13 @@ public:
   inline chart_iter(const chart &C) : _LI(C._Chart), _curr(_LI.begin()) { }
 
   /** Increase iterator */
-  inline chart_iter &operator++(int) {
+  inline chart_iter &operator++() {
     ++_curr;
     return *this;
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return _curr != _LI.end();
   }
 
@@ -202,9 +202,9 @@ public:
   /** see above */
   inline chart_iter_filtered(const chart &C, item_predicate incl)
     : chart_iter(C), _to_include(incl) { proceed(); }
-  
+
   /** Increase iterator */
-  inline chart_iter &operator++(int) {
+  inline chart_iter &operator++() {
     ++_curr;
     proceed();
     return *this;
@@ -234,13 +234,13 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_span_passive &operator++(int) {
+  inline chart_iter_span_passive &operator++() {
     ++_curr;
     return *this;
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return _curr != _LI.end();
   }
 
@@ -285,14 +285,15 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_topo &operator++(int) {
-    _curr++;
+  inline chart_iter_topo &operator++()
+  {
+    ++_curr;
     next();
     return *this;
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return (_currindex <= _max);
   }
 
@@ -326,13 +327,13 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_adj_passive &operator++(int) {
+  inline chart_iter_adj_passive &operator++() {
     ++_curr;
     return *this;
   }
 
   /** Is the iterator still valid? */
-  inline bool valid() {
+  inline bool valid() const {
     return _curr != _LI.end();
   }
 
@@ -369,7 +370,7 @@ public:
   }
 
   /** Increase iterator */
-  inline chart_iter_adj_active &operator++(int) {
+  inline chart_iter_adj_active &operator++() {
     ++_curr;
     if(_at_start && _curr == _LI_start.end())
       overflow();
@@ -379,6 +380,12 @@ public:
 
   /** Is the iterator still valid? */
   inline bool valid() {
+    if (_at_start && _curr == _LI_start.end()) {
+      overflow();
+    }
+    if (_at_start) {
+      return true;
+    }
     return _curr != _LI_end.end();
   }
 
@@ -389,20 +396,20 @@ public:
 
 private:
   item_list &_LI_start, &_LI_end;
-    
+
   bool _at_start;
-    
+
   item_iter _curr;
 };
 
 
 //
-// shortest path algorithm for chart 
+// shortest path algorithm for chart
 // Bernd Kiefer (kiefer@dfki.de)
 //
 
 /** Implemenation of shortest path function template */
-template< typename weight_t, typename weight_fn_t > 
+template< typename weight_t, typename weight_fn_t >
 void chart::shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
                           , bool all) {
   // unary_function< tItem *, weight_t >
@@ -419,12 +426,12 @@ void chart::shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
 
   // compute the minimal distance and minimal distance predecessor nodes for
   // each node
-  for (u = 1 ; u <= size ; u++) { distance[u] = UINT_MAX ; }
+  for (u = 1 ; u <= size ; ++u) { distance[u] = UINT_MAX ; }
   distance[0] = 0 ;
 
-  for (u = 0 ; u < size ; u++) {
+  for (u = 0 ; u < size ; ++u) {
     /* this is topologically sorted order */
-    for (curr = _Cp_start[u].begin() ; curr != _Cp_start[u].end() ; curr++) {
+    for (curr = _Cp_start[u].begin() ; curr != _Cp_start[u].end() ; ++curr) {
       passive = *curr ;
       v = passive->end() ; new_dist = distance[u] + weight_fn(passive) ;
       if (distance[v] >= new_dist) {
@@ -433,26 +440,26 @@ void chart::shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
           pred[v].clear() ;
         }
         pred[v].push_front(u) ;
-      } 
+      }
     }
   }
 
   /** Extract all best paths */
   std::queue < weight_t > current ;
   bool *unseen = new bool[size + 1] ;
-  for (u = 0 ; u <= size ; u++) unseen[u] = true ;
+  for (u = 0 ; u <= size ; ++u) unseen[u] = true ;
 
   current.push(size - 1) ;
   while (! current.empty()) {
     u = current.front() ; current.pop() ;
-    for (curr = _Cp_end[u].begin() ; curr != _Cp_end[u].end() ; curr++) {
+    for (curr = _Cp_end[u].begin() ; curr != _Cp_end[u].end() ; ++curr) {
       passive = *curr ;
       v = passive->start() ;
       if ((find (pred[u].begin(), pred[u].end(), v) != pred[u].end())
           && (distance[u] == weight_fn(passive) + distance[v])) {
         result.push_front(passive) ;
         if (unseen[v]) { current.push(v) ; unseen[v] = false ; }
-        if (! all) break; // only extract one path  
+        if (! all) break; // only extract one path
       }
     }
   }

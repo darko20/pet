@@ -198,7 +198,7 @@ postulate(tItem *passive) {
   assert(!passive->blocked());
   // iterate over all the rules in the grammar
   for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
-      rule++) {
+      ++rule) {
     grammar_rule *R = *rule;
 
     if(passive->compatible(R, Chart->rightmost()))
@@ -211,7 +211,7 @@ void
 fundamental_for_passive(tItem *passive)
 {
     // iterate over all active items adjacent to passive and try combination
-    for(chart_iter_adj_active it(Chart, passive); it.valid(); it++)
+    for(chart_iter_adj_active it(Chart, passive); it.valid(); ++it)
     {
         tItem *active = it.current();
         if(active->adjacent(passive))
@@ -226,7 +226,7 @@ void
 fundamental_for_active(tPhrasalItem *active) {
   // iterate over all passive items adjacent to active and try combination
 
-  for(chart_iter_adj_passive it(Chart, active); it.valid(); it++)
+  for(chart_iter_adj_passive it(Chart, active); it.valid(); ++it)
     if(!it.current()->blocked())
       if(it.current()->compatible(active, Chart->rightmost()))
         if(filter_combine_task(active, it.current()))
@@ -240,7 +240,7 @@ packed_edge(tItem *newitem) {
   if(! newitem->inflrs_complete_p()) return false;
 
   for(chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
-      iter.valid(); iter++) {
+      iter.valid(); ++iter) {
     bool forward, backward;
     tItem *olditem = iter.current();
 
@@ -454,7 +454,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
  * \return number of unpacked trees
  */
 int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
-                       long memlimit, int nsolutions, 
+                       long memlimit, int nsolutions,
                        timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
   if (get_opt_int("opt_timeout") > 0)
@@ -480,7 +480,7 @@ int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
 
   static tCompactDerivationPrinter cdp;
   for (list<tItem*>::iterator res = results.begin();
-       res != results.end(); res++) {
+       res != results.end(); ++res) {
     readings.push_back(*res);
     LOG(logParse, DEBUG,
         "unpacked[" << nres << "] (" << setprecision(1)
@@ -635,7 +635,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 
   LOG(logParse, DEBUG, *Chart);
 
-  Chart->readings() = collect_readings(FSAS, errors, 
+  Chart->readings() = collect_readings(FSAS, errors,
                                        pedgelimit, memlimit, opt_nsolutions,
                                        Chart->trees());
   stats.readings = Chart->readings().size();
@@ -666,7 +666,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   unify_wellformed = true;
 
   bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
-  
+
   inp_list input_items;
   int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
@@ -675,7 +675,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   } else {
     Agenda = new tExhaustiveAgenda;
   }
-  
+
   C = Chart = new chart(max_pos, owner);
 
   //

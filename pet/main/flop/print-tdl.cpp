@@ -41,7 +41,7 @@ int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_tab
 {
   int i, complex = 0, last_complex = 0;
 
-  for(i = 0; i < L -> n; i++)
+  for(i = 0; i < L -> n; ++i)
     {
       if(i != 0)
         {
@@ -56,7 +56,7 @@ int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_tab
 
           complex = 1;
         }
-      
+
       last_complex = tdl_print_conjunction(f, level, L -> list[i], coref);
     }
 
@@ -78,7 +78,7 @@ int tdl_print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_tab
         fprintf(f, " ");
 
       complex = 1;
-      
+
       tdl_print_conjunction(f, level, L -> rest, coref);
     }
 
@@ -102,7 +102,7 @@ int tdl_print_list(FILE *f, int level, struct tdl_list *L, struct coref_table *c
       indent(f, level);
     }
   else fprintf(f, " ");
-  
+
   if(L -> difflist)
     fprintf(f, "!>");
   else
@@ -121,7 +121,7 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
       return complex;
     }
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       if(i > 0)
         {
@@ -160,7 +160,7 @@ int tdl_print_conjunction(FILE *f, int level, struct conjunction *C, struct core
           break;
         default:
           LOG(logSyntax, ERROR,
-              "unknown term tag `" << C -> term[i] -> tag << "'"); 
+              "unknown term tag `" << C -> term[i] -> tag << "'");
           break;
         }
     }
@@ -182,10 +182,10 @@ int tdl_print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
         {
           if((l = strlen(A -> av[j] -> attr)) > maxl) maxl = l;
         }
-      
+
       fprintf(f, "[ ");
-      
-      for(j = 0; j < A -> n; j++)
+
+      for(j = 0; j < A -> n; ++j)
         {
           if(j != 0)
             {
@@ -209,7 +209,7 @@ int tdl_print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
                 }
               else
                 fprintf(f, " ");
-              
+
               fprintf(f, "]");
             }
           else
@@ -231,7 +231,7 @@ void tdl_print_constraint(FILE *f, struct type *t, const char *name)
   struct conjunction *c;
 
   fprintf(f, "%s :=", name);
-  
+
   list_int *l = t->parents;
   while(l)
     {
@@ -242,7 +242,7 @@ void tdl_print_constraint(FILE *f, struct type *t, const char *name)
   fprintf(f, "\n");
 
   c = t-> constraint;
-  
+
   indent(f, 2);
   tdl_print_conjunction(f, 2, c, t -> coref);
 
@@ -250,14 +250,14 @@ void tdl_print_constraint(FILE *f, struct type *t, const char *name)
     {
       fprintf(f, ", status: %s", statustable.name(t->status).c_str());
     }
-  
+
   fprintf(f, ".\n");
 }
 
 void write_pre_header(FILE *outf, const char *outfname, const char *fname
                       , const char *grammar_version) {
   time_t t = time(NULL);
-  
+
   fprintf(outf, ";;; `%s' -- generated from `%s' (%s) on %s\n",
           outfname, fname, grammar_version, ctime(&t));
 }
@@ -268,7 +268,7 @@ void write_pre(FILE *f)
   struct type *t;
 
   fprintf(f, ":begin :type.\n\n");
-  for(i = 0; i < types.number(); i++)
+  for(i = 0; i < types.number(); ++i)
     {
       t = types[i];
       if(!t->tdl_instance && (t->constraint != NULL || t->parents != NULL))
@@ -281,7 +281,7 @@ void write_pre(FILE *f)
   fprintf(f, ":end :type.\n");
 
   fprintf(f, "\n:begin :instance.\n\n");
-  for(i = 0; i < types.number(); i++)
+  for(i = 0; i < types.number(); ++i)
     {
       t = types[i];
       if(t->tdl_instance && (t->constraint != NULL || t->parents != NULL))

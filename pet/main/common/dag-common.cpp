@@ -39,7 +39,7 @@ int *featset;
 int nfeatsets;
 featsetdescriptor *featsetdesc;
 
-struct dag_node **typedag = 0; // for [ 0 .. nstatictypes [
+dag_node **typedag = 0; // for [ 0 .. nstatictypes [
 
 //
 // external representation
@@ -78,17 +78,17 @@ void initialize_dags(int n)
   int i;
   typedag = new dag_node *[n];
 
-  for(i = 0; i < n; i++) typedag[i] = 0;
+  for(i = 0; i < n; ++i) typedag[i] = 0;
 }
 
-void register_dag(int i, struct dag_node *dag)
+void register_dag(int i, dag_node *dag)
 {
   typedag[i] = dag;
 }
 
-list<struct dag_node *> dag_get_list(struct dag_node* first)
+list<dag_node *> dag_get_list(dag_node* first)
 {
-  list <struct dag_node *> L;
+  list <dag_node *> L;
 
 #ifdef DAG_SIMPLE
   if(first && first != FAIL) first = dag_deref(first);
@@ -104,7 +104,7 @@ list<struct dag_node *> dag_get_list(struct dag_node* first)
   return L;
 }
 
-struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr)
+dag_node *dag_get_attr_value(dag_node *dag, const char *attr)
 {
   int a = lookup_attr(attr);
   if(a == -1) return FAIL;
@@ -115,7 +115,7 @@ struct dag_node *dag_get_attr_value(struct dag_node *dag, const char *attr)
 // This is basically the prior dag_nth_arg with the only difference
 // being that the attribute can be specified. Made inline so that there will
 // be no difference in performance.
-inline struct dag_node *dag_nth_element(struct dag_node *dag, int attr, int n)
+inline dag_node *dag_nth_element(dag_node *dag, int attr, int n)
 {
   int i;
   dag_node *arg;
@@ -123,7 +123,7 @@ inline struct dag_node *dag_nth_element(struct dag_node *dag, int attr, int n)
   if((arg = dag_get_attr_value(dag, attr)) == FAIL)
     return FAIL;
 
-  for(i = 1; i < n && arg && arg != FAIL && !subtype(dag_type(arg), BI_NIL); i++)
+  for(i = 1; i < n && arg && arg != FAIL && !subtype(dag_type(arg), BI_NIL); ++i)
     arg = dag_get_attr_value(arg, BIA_REST);
 
   if(i != n)
@@ -134,7 +134,7 @@ inline struct dag_node *dag_nth_element(struct dag_node *dag, int attr, int n)
   return arg;
 }
 
-struct dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n)
+dag_node *dag_nth_element(dag_node *dag, list_int *path, int n)
 {
   // follow the path:
   if (dag == FAIL)
@@ -148,7 +148,7 @@ struct dag_node *dag_nth_element(struct dag_node *dag, list_int *path, int n)
   return dag_nth_element(dag, attr, n); // inline call
 }
 
-struct dag_node *dag_nth_arg(struct dag_node *dag, int n)
+dag_node *dag_nth_arg(dag_node *dag, int n)
 {
   return dag_nth_element(dag, BIA_ARGS, n); // inline call
 }
@@ -177,8 +177,8 @@ dag_find_paths(dag_node* dag, type_t maxapp)
   return result;
 }
 
-struct dag_node *
-dag_get_path_value_check_dlist(struct dag_node *dag, list_int *path) {
+dag_node *
+dag_get_path_value_check_dlist(dag_node *dag, list_int *path) {
   while(path) {
     if(dag == FAIL) return FAIL;
     int feature = first(path);
@@ -193,7 +193,7 @@ dag_get_path_value_check_dlist(struct dag_node *dag, list_int *path) {
   return dag;
 }
 
-struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
+dag_node *dag_get_path_value(dag_node *dag, list_int *path) {
   while(path) {
     if(dag == FAIL) return FAIL;
     dag = dag_get_attr_value(dag, first(path));
@@ -202,7 +202,7 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, list_int *path) {
   return dag;
 }
 
-struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
+dag_node *dag_get_path_value(dag_node *dag, const char *path)
 {
   if(path == 0 || strlen(path) == 0) return dag;
 
@@ -230,8 +230,8 @@ struct dag_node *dag_get_path_value(struct dag_node *dag, const char *path)
  *          starting at \a dag, and the subpath that could not be found in
  *          path.
  */
-struct dag_node *
-dag_get_path_avail(struct dag_node *dag, list_int **path) {
+dag_node *
+dag_get_path_avail(dag_node *dag, list_int **path) {
   while(NULL != *path) {
     dag_node *next_dag = dag_get_attr_value(dag, first(*path));
     // if this is how far we get, *path has the correct value
@@ -246,7 +246,7 @@ dag_get_path_avail(struct dag_node *dag, list_int **path) {
 #ifndef FLOP
 
 // create dag node with one attribute .attr.
-struct dag_node *dag_create_attr_value(attr_t attr, dag_node *val)
+dag_node *dag_create_attr_value(attr_t attr, dag_node *val)
 {
   dag_node *res;
   assert(is_attr(attr) && is_type(apptype[attr]));
@@ -258,7 +258,7 @@ struct dag_node *dag_create_attr_value(attr_t attr, dag_node *val)
   return res;
 }
 
-struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
+dag_node *dag_create_attr_value(const char *attr, dag_node *val)
 {
   if(val == FAIL) return FAIL;
   int a = lookup_attr(attr);
@@ -267,7 +267,7 @@ struct dag_node *dag_create_attr_value(const char *attr, dag_node *val)
   return dag_create_attr_value(a, val);
 }
 
-struct dag_node *dag_create_path_value(const char *path, type_t type) {
+dag_node *dag_create_path_value(const char *path, type_t type) {
   if(! is_type(type) || type_dag(type) == 0) return FAIL;
   dag_node *res = 0;
 
@@ -295,7 +295,7 @@ struct dag_node *dag_create_path_value(const char *path, type_t type) {
 }
 
 
-struct dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
+dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
   dag_node *subdag = dag_get_path_avail(root, &path);
   if (path != NULL) {
     // We did not manage to get to the end: create a new dag for the rest of
@@ -309,7 +309,7 @@ struct dag_node *dag_unify(dag_node *root, dag_node *arg, list_int *path) {
 }
 
 
-struct dag_node *dag_create_path_value(list_int *path, type_t type)
+dag_node *dag_create_path_value(list_int *path, type_t type)
 {
   if(! is_type(type) || type_dag(type) == NULL) return FAIL;
   if(path == 0) {
@@ -323,7 +323,7 @@ struct dag_node *dag_create_path_value(list_int *path, type_t type)
 }
 
 //_fix_me_ the dag should be unified at the end
-struct dag_node *dag_create_path_value(list_int *path, dag_node *dag)
+dag_node *dag_create_path_value(list_int *path, dag_node *dag)
 {
   if(path == 0) {
       return dag;
@@ -334,7 +334,7 @@ struct dag_node *dag_create_path_value(list_int *path, dag_node *dag)
 }
 
 // this looks a bit complicated at first, but avoids memory leaks
-struct list_int *path_to_lpath(const char *thepath) {
+list_int *path_to_lpath(const char *thepath) {
   if(thepath == 0 || strlen(thepath) == 0) return NULL;
   char *path, *pathroot; // we need pathroot to be able to free the memory
   path = pathroot = strdup(thepath);

@@ -278,7 +278,7 @@ public:
                        , (_paths.empty() ? tPaths() : tPaths(_paths))
                        , tokenclass, infls, _pos, mods);
     new_item->score(prio);
-    _items++;
+    ++_items;
     _reader->add_item(new_item);
   }
 
@@ -359,7 +359,7 @@ public:
     tInputItem *new_item = new tInputItem(id, _dtrs, stem, tokenclass,
         infls, _pos, mods);
     new_item->score(prio);
-    _items++;
+    ++_items;
     _reader->add_item(new_item);
     _dtrs.clear();
   }
@@ -596,7 +596,7 @@ class pic_state_factory {
   };
 
   struct xmlstring_equal {
-    bool operator()(const XMLCh *s1, const XMLCh *s2) {
+    bool operator()(const XMLCh *s1, const XMLCh *s2) const {
       return (XERCES_CPP_NAMESPACE_QUALIFIER XMLString::compareString(s1, s2) == 0);
     }
   };

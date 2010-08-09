@@ -21,12 +21,12 @@
 // This module implements the link to an external lexical database.
 //
 
-/* 
+/*
  * Open issues:
  * - role of instance name?? in build_lex_stem!! continue there!!
  * - Cache functionality needed!
  * - maybe test this with full lexicon preloading (tables only vs. with fs)
- * 
+ *
  * + Massage slot values according to slot type (sym, str, mixed, ...)
  *   addressed in dagify_slot_value etc.
  */
@@ -50,7 +50,7 @@ void warn(const string &message) {
 
 using namespace std;
 
-#if 0 
+#if 0
 #include<map>
 
 type_t currtype = 0;
@@ -75,11 +75,11 @@ string lookup_typename(type_t tcode) {
 ostream &lex_stem::print(ostream &out) {
   out << "[" << type_name(_instance_type) << ","
       << type_name(_lex_type) << "|";
-  for(list<string>::iterator it = _orth.begin(); it != _orth.end(); it++){
+  for(list<string>::iterator it = _orth.begin(); it != _orth.end(); ++it){
     out << *it << " ";
   }
   out << endl;
-  for(modlist::iterator it = _mods.begin(); it != _mods.end(); it++) {
+  for(modlist::iterator it = _mods.begin(); it != _mods.end(); ++it) {
     out << it->first << ":" << type_name(it->second) << endl;
   }
   out << "]" << endl;
@@ -97,10 +97,10 @@ const char * const tPSQLLex::field_spec::_typestrings[] = {
   "dlst",       // unsupported
   "lst-t",      // unsupported
   "dlst-t",     // unsupported
-  // the rest is deprecated 
+  // the rest is deprecated
   "symbol",             // sym
   "string",             // str
-  "string-list",        // str-rawlst  
+  "string-list",        // str-rawlst
   "string-fs",          // str-lst
   "string-diff-fs",     // str-dlst
   "mixed-fs",           // lst
@@ -126,14 +126,14 @@ list_int *tPSQLLex::lisp2petpath(char *pathstring) {
     // look up feature id an check that it exists
     attr_t feature_id = lookup_attr(featurename.c_str());
     if (-1 == feature_id) {
-      warn((string) "Unknown feature " + featurename 
+      warn((string) "Unknown feature " + featurename
            + " in lexdb path specification");
       free_list(result);
       return (list_int *) -1;
     }
     last->next = cons(feature_id, NULL);
     last = last->next;
-    pathstring++;
+    ++pathstring;
   }
   // remove the first cons, which is only a placeholder to avoid extra checks
   last = result->next;
@@ -144,14 +144,14 @@ list_int *tPSQLLex::lisp2petpath(char *pathstring) {
 tPSQLLex::field_spec::field_spec(const char *fieldname, list_int *fspath
                                  , const char *fieldtype) {
   if (_type_table.empty()) {
-    for (int i = 0; *(_typestrings[i]) != '\0'; i++) {
+    for (int i = 0; *(_typestrings[i]) != '\0'; ++i) {
       _type_table[_typestrings[i]] = i;
     }
   }
 
   name = fieldname;
   path = fspath;
-  
+
   // Get the field type from the database
   ttmap::const_iterator it = _type_table.find(fieldtype);
   if (it == _type_table.end()) {
@@ -173,7 +173,7 @@ tPSQLLex::field_spec::field_spec(const char *fieldname, list_int *fspath
 
 ostream& tPSQLLex::print(ostream& out) {
   for(field_list::iterator fspecit = grammar_field.begin();
-      fspecit != grammar_field.end(); fspecit++) {
+      fspecit != grammar_field.end(); ++fspecit) {
     fspecit->print(out);
     out << endl;
   }
@@ -198,7 +198,7 @@ tPSQLLex::tPSQLLex(const string &connection_info, const string &mode)
       close_connection();
       return ;
     }
-    
+
   // Obtain descriptor table.
   read_slot_specs(_mode.c_str());
 }
@@ -206,7 +206,7 @@ tPSQLLex::tPSQLLex(const string &connection_info, const string &mode)
 void tPSQLLex::entry_error(const string msg, PGresult *res, int row_no) {
   string errstr = msg;
   int nFields = PQnfields(res);
-  for (int j = 0; j < nFields; j++)
+  for (int j = 0; j < nFields; ++j)
     errstr += (string)" |" + PQgetvalue(res, row_no, j) + "|";
   throw tError(errstr);
 }
@@ -215,9 +215,9 @@ void tPSQLLex::entry_error(const string msg, PGresult *res, int row_no) {
 void tPSQLLex::read_slot_specs(const char *mode) {
   char *realmode = new char[2*(strlen(mode) + 1)];
   PQescapeString (realmode, mode, strlen(mode));
-    
-  string command = 
-    (string) "SELECT slot,field,path,type FROM dfn WHERE mode='" 
+
+  string command =
+    (string) "SELECT slot,field,path,type FROM dfn WHERE mode='"
     + realmode + "' OR mode IS NULL";
   PGresult *res = PQexec(_conn, command.c_str());
   delete[] realmode;
@@ -228,9 +228,9 @@ void tPSQLLex::read_slot_specs(const char *mode) {
       PQclear(res);
       return;
     }
-  
+
   _fieldlist = "";
-  
+
   // These fields are fixed. `type' has to be a unifs field with empty path,
   // `orthography' will also be passed directly to the constructor of lex_stem.
   // Because of this, they are put into fixed positions
@@ -239,10 +239,10 @@ void tPSQLLex::read_slot_specs(const char *mode) {
   // These are the names of the fixed fields
   string instance_name_field, orthography_field, type_name_field;
 
-  /* build the field list to be retrieved for lexicon entries and 
+  /* build the field list to be retrieved for lexicon entries and
    * the field specs
    */
-  for (int row = 0; row < PQntuples(res); row++) {
+  for (int row = 0; row < PQntuples(res); ++row) {
     char *slotname = PQgetvalue(res, row, NAME_COLUMN);
     // Is it the `name' field, i.e., the instance name of the lexicon entry?
     if (strcmp(PQgetvalue(res, row, SLOT_COLUMN), "id") == 0) {
@@ -267,7 +267,7 @@ void tPSQLLex::read_slot_specs(const char *mode) {
         } else {
           if (strcmp(PQgetvalue(res, row, PATH_COLUMN), "nil") == 0) {
             // This is the field for the lexical type of the entry
-            grammar_field[1] 
+            grammar_field[1]
               = field_spec(slotname, NULL, PQgetvalue(res, row, TYPE_COLUMN));
             type_name_field = slotname;
           } else {
@@ -321,7 +321,7 @@ list<string> tPSQLLex::split_ws(const char *ws_separated_strings) {
 }
 
 /** Turn a whitespace separated list of typenames into a fs list of those
- *  types. 
+ *  types.
  */
 dag_node * dag_listify_internal(const char *typenamelist, dag_node **last) {
   int len = strlen(typenamelist);
@@ -368,7 +368,7 @@ dag_node *dag_difflistify_string(const char *typenamelist) {
   dag_node *result = new_dag(BI_DIFF_LIST);
   dag_add_arc(result, new_arc(BIA_LIST, list));
   dag_add_arc(result, new_arc(BIA_LAST, last));
-  return result;  
+  return result;
 }
 
 
@@ -397,8 +397,8 @@ dag_node *tPSQLLex::dagify_slot_value(string slot_value, field_t slot_type) {
   case COL_STRING_DIFFLIST:
     return dag_difflistify_string(slot_value.c_str());
   default:
-    warn((string) "Unhandled slot type occurs in database: " 
-         + field_spec::field_name(slot_type) 
+    warn((string) "Unhandled slot type occurs in database: "
+         + field_spec::field_name(slot_type)
          + " (or deprecated equivalent)");
     break;
   }
@@ -407,7 +407,7 @@ dag_node *tPSQLLex::dagify_slot_value(string slot_value, field_t slot_type) {
 
 
 /** Employ the least  possible effort to add the path/value into the root
- * feature structure destructively. 
+ * feature structure destructively.
  */
 dag_node *dag_add_path(dag_node *root, list_int *path, dag_node *value) {
   if (path == NULL) {
@@ -460,16 +460,16 @@ tPSQLLex::build_instance_fs(PGresult *res, int row_no, int col) {
         // report during instantiate
         instance_fs = dag_add_path(instance_fs, it->path, value);
         if (instance_fs == FAIL)
-          throw tError((string) "Inconsistent lexicon entry " 
+          throw tError((string) "Inconsistent lexicon entry "
                        + PQgetvalue(res, row_no, 0));
       }
       else
-        throw tError((string) "Unknown type in lexicon entry " 
+        throw tError((string) "Unknown type in lexicon entry "
                      + PQgetvalue(res, row_no, 0));
-      
+
     }
-    col++;
-    it++;
+    ++col;
+    ++it;
   }
   dag_node *result = dag_full_p_copy(instance_fs);
   dag_alloc_release(s);
@@ -487,24 +487,24 @@ lex_stem *tPSQLLex::build_lex_stem(PGresult *res, int row_no) {
   try {
     // get the instance name of the lexicon entry
     char *currval = PQgetvalue(res, row_no, 0);
-    if (currval == NULL) 
+    if (currval == NULL)
       entry_error("Wrong entry in lexdb: no name", res, row_no);
     // The instance type is potentially a dynamic type
     type_t instance_type = retrieve_type(currval);
 
     // get the type name and retrieve the type code
     currval = PQgetvalue(res, row_no, 1);
-    if (currval == NULL) 
+    if (currval == NULL)
       entry_error("Wrong entry in lexdb: no stem type", res, row_no);
-      
+
     type_t stem_type = lookup_type(currval);
     if (stem_type == -1)
       entry_error("Unknown stem type in lexdb", res, row_no);
-      
+
     char *currorth = PQgetvalue(res, row_no, 2);
     if (currorth == NULL || currorth[0] == '\0')
       entry_error("No orthography in entry", res, row_no);
-    
+
     // This fs would be the `type dag of instance_type', if it were in the
     // ordinary grammar
     dag_node *instance_fs = build_instance_fs(res, row_no, 2);
@@ -543,7 +543,7 @@ list< lex_stem * > tPSQLLex::retrieve_lex_stems(const string &plain_stem) {
    * memory leaks
    */
   PQclear(res);
-    
+
   // Quote the stem string
   char *stem = new char[2*(plain_stem.size() + 1)];
   PQescapeString(stem, plain_stem.c_str(), plain_stem.size());
@@ -564,14 +564,14 @@ list< lex_stem * > tPSQLLex::retrieve_lex_stems(const string &plain_stem) {
   }
   // treat the resulting rows from the database
   lex_stem *rowresult;
-  for (int row = 0; row < PQntuples(res); row++) {
+  for (int row = 0; row < PQntuples(res); ++row) {
     rowresult = build_lex_stem(res, row);
     if (rowresult != NULL) result.push_back(rowresult);
   }
 
   // free the current result
   PQclear(res);
-    
+
   /* commit the transaction */
   res = PQexec(_conn, "COMMIT");
   PQclear(res);

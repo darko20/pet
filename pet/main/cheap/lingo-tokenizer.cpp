@@ -32,10 +32,10 @@ using std::list;
 extern settings *cheap_settings;
 
 /** Produce a set of tokens from the given string. */
-void 
+void
 tLingoTokenizer::tokenize(string s, inp_list &result) {
   list<string> tokens = do_it(s);
-  // logging is done by setting logLexproc's Priority to DEBUG 
+  // logging is done by setting logLexproc's Priority to DEBUG
   char idstrbuf[6];
   int i = 0, id = 0;
   tInputItem *tok = 0;
@@ -45,11 +45,11 @@ tLingoTokenizer::tokenize(string s, inp_list &result) {
     {
       sprintf(idstrbuf, "%d", id++);
       tok=new tInputItem(idstrbuf, i, i+1, *pos, "", tPaths());
-      
+
       result.push_back(tok);
-      i++;
+      ++i;
     }
-  
+
 }
 
 list<string>
@@ -60,11 +60,11 @@ tLingoTokenizer::do_it(string s) {
 
   // replace all punctuation characters by blanks
 #ifndef HAVE_ICU
-  for(string::size_type i = 0; i < s.length(); i++) {
+  for(string::size_type i = 0; i < s.length(); ++i) {
     if(punctuation_char(s[i], _punctuation_characters))
       s[i] = ' ';
-    else 
-      if (!_case_sensitive) 
+    else
+      if (!_case_sensitive)
         s[i] = tolower(s[i]);
   }
 #else
@@ -80,32 +80,32 @@ tLingoTokenizer::do_it(string s) {
     else
       Res.append(c);
   }
-  
+
   if(!_case_sensitive)
     Res.toLower();
 
   s = Conv->convert(Res);
-#endif  
+#endif
 
   // add some padding at the end
   s += " ";
-  
+
   // split into words seperated by blanks
   list<string> words;
   string::size_type start = 0, end = 0;
-  
+
   while(start < s.length())
     {
-      while(start < s.length() && s[start] == ' ') start++;
-      
+      while(start < s.length() && s[start] == ' ') ++start;
+
       end = start;
-      
-      while(end < s.length() && s[end] != ' ') end++;
+
+      while(end < s.length() && s[end] != ' ') ++end;
       if(end < s.length()) end--;
-      
+
       if(end < s.length() && start <= end)
         words.push_back(s.substr(start, end - start + 1));
-      
+
       start = end + 1;
     }
 
@@ -113,11 +113,11 @@ tLingoTokenizer::do_it(string s) {
   // if trivial tokenization is all we need, we are done here
   //
   if(cheap_settings->lookup("trivial-tokenizer")) return words;
-  
+
   // handle apostrophs
   list<string> words2;
   string::size_type apo;
-  
+
   for(list<string>::iterator pos = words.begin(); pos != words.end(); ++pos)
   {
       s = *pos;
@@ -132,7 +132,7 @@ tLingoTokenizer::do_it(string s) {
       {
           if(s.find('\'', apo+1) != std::string::npos)
               throw tError("tokenizer: more than one apostroph in word");
-          
+
           if(apo == 0)
           {
               words2.push_back(s);

@@ -53,7 +53,7 @@ inline bool cpu_little_endian()
 inline void print_verbosely(int i)
 {
   unsigned char *p = (unsigned char *) &i;
-  for(int j = 0; j < 4; j++) printf("%02x ",(int) p[j]);
+  for(int j = 0; j < 4; ++j) printf("%02x ",(int) p[j]);
   printf("[%d]\n", i);
 }
 

@@ -37,7 +37,7 @@ dump_properties(dumper *f)
 {
     // nproperties
     f->dump_int(grammar_properties.size());
-    
+
     for(std::map<std::string, std::string>::iterator it =
             grammar_properties.begin(); it != grammar_properties.end(); ++it)
     {
@@ -66,18 +66,18 @@ dump_symbol_tables(dumper *f)
   f->dump_int(nattrs);
 
   // status names
-  for(int i = 0; i < nstatus; i++)
+  for(int i = 0; i < nstatus; ++i)
     f->dump_string(statusnames[i]);
 
   // type names and status
-  for(int i = 0; i < nstatictypes; i++)
+  for(int i = 0; i < nstatictypes; ++i)
     {
       f->dump_string(type_name(cheap2flop[i]));
       f->dump_int(typestatus[cheap2flop[i]]);
     }
 
   // attribute names
-  for(int i = 0; i < nattrs; i++)
+  for(int i = 0; i < nattrs; ++i)
     f->dump_string(attrname[i]);
 }
 
@@ -95,22 +95,22 @@ dump_tables(dumper *f)
 
   // write set for each type
   // _fix_doc_ Why only for non-leaftypes ??
-  for(int i = 0; i < first_leaftype; i++)
+  for(int i = 0; i < first_leaftype; ++i)
     {
       f->dump_int(featset[cheap2flop[i]]);
     }
 
   f->dump_int(nfeatsets);
   // write descriptor for each set
-  for(int i = 0; i < nfeatsets; i++)
+  for(int i = 0; i < nfeatsets; ++i)
     {
       short int n = featsetdesc[i].n;
       f->dump_short(n);
-      for(int j = 0; j < n; j++)
+      for(int j = 0; j < n; ++j)
         f->dump_short(featsetdesc[i].attr[j]);
     }
 
-  for(int i = 0; i < nattrs; i++)
+  for(int i = 0; i < nattrs; ++i)
     f->dump_int(flop2cheap[apptype[i]]);
 }
 
@@ -119,7 +119,7 @@ dump_tables(dumper *f)
 void
 dump_supertypes(dumper *f)
 {
-  for(int i = 0; i < first_leaftype; i++) // i is a cheap type code
+  for(int i = 0; i < first_leaftype; ++i) // i is a cheap type code
   {
       list<int> supertypes = immediate_supertypes(cheap2flop[i]);
       f->dump_short(supertypes.size());
@@ -137,7 +137,7 @@ void
 dump_print_names(dumper *f)
 {
   // print names (in cheap order, i is a cheap type code)
-  for(int i = 0; i < nstatictypes; i++) {
+  for(int i = 0; i < nstatictypes; ++i) {
     int flop_type = cheap2flop[i];
     if(get_printname(flop_type) != get_typename(flop_type))
       f->dump_string(print_name(flop_type));
@@ -153,7 +153,7 @@ void
 dump_fullforms(dumper *f)
 {
   f->dump_int(fullforms.size());
-  
+
   for(list<ff_entry>::iterator currentff = fullforms.begin();
       currentff != fullforms.end(); ++currentff)
     currentff->dump(f);
@@ -181,8 +181,8 @@ dump_inflrs(dumper *f)
       ninflr++;
       dump_inflr(f, -1, global_inflrs);
   }
-  
-  for(int i = 0; i < nstatictypes; i++)
+
+  for(int i = 0; i < nstatictypes; ++i)
     {
       if(types[i]->inflr != 0)
         {
@@ -190,7 +190,7 @@ dump_inflrs(dumper *f)
           dump_inflr(f, flop2cheap[i], types[i]->inflr);
         }
     }
-  
+
   f->set_int_variable(ninflr_var, ninflr);
 }
 
@@ -281,7 +281,7 @@ dump_grammar(dumper *f, const char *desc)
 
   toc.start_section(SEC_CONSTRAINTS);
 
-  for(int i = 0; i < types.number(); i++)
+  for(int i = 0; i < types.number(); ++i)
     dag_dump(f, types[cheap2flop[i]]->thedag);
   logkb(", types", f);
 

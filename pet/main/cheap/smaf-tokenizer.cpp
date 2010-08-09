@@ -41,7 +41,7 @@ XERCES_CPP_NAMESPACE_USE
 void downcase(string &s) {
   unsigned int i;
 
-  for (i=0; i!=s.length(); i++)
+  for (i=0; i!=s.length(); ++i)
     {
       if ((unsigned char)s[i] < 127)
         {
@@ -55,7 +55,7 @@ void downcase(string &s) {
 void upcase(string &s) {
   unsigned int i;
 
-  for (i=0; i!=s.length(); i++)
+  for (i=0; i!=s.length(); ++i)
     {
       if ((unsigned char)s[i] < 127)
         {
@@ -71,7 +71,7 @@ list<string> splitOnSpc(string str)
   list<string> out;
 
   string str2="";
-  for (string::iterator it=str.begin(); it != str.end(); it++)
+  for (string::iterator it=str.begin(); it != str.end(); ++it)
     {
       if (*it==' ')
         {
@@ -106,7 +106,7 @@ bool whitespace(char c)
 // out: true if str contains only whitespace (see above)
 bool whitespace(const string &str)
   {
-    for (string::const_iterator it = str.begin(); it != str.end(); it++)
+    for (string::const_iterator it = str.begin(); it != str.end(); ++it)
     {
       if (not(whitespace(*it)))
         return false;
@@ -117,7 +117,7 @@ bool whitespace(const string &str)
 // walk forwards from position i in str til we hit non-whitespace
 int skipWhitespace(const string &str, unsigned int i)
 {
-  for (; i<str.size(); i++)
+  for (; i<str.size(); ++i)
     {
       if (!whitespace(str[i]))
         return i;
@@ -128,7 +128,7 @@ int skipWhitespace(const string &str, unsigned int i)
 // walk forwards from position i in str til we hit whitespace
 int findWhitespace(const string &str, unsigned int i)
 {
-  for (; i<str.size(); i++)
+  for (; i<str.size(); ++i)
     {
       if (whitespace(str[i]))
         return i;
@@ -359,7 +359,7 @@ string dottedString(const list<string> &s)
 {
   string out;
   bool flag=true;
-  for (list<string>::const_iterator it=s.begin(); it!=s.end(); it++)
+  for (list<string>::const_iterator it=s.begin(); it!=s.end(); ++it)
     // construct dotted list
     {
       if (flag)
@@ -414,7 +414,7 @@ bool tSMAFTokenizer::processGMapContent(const string &name, const tSaf &saf, mod
 bool tSMAFTokenizer::processAllGMapContent(const tSaf &saf, modlist &fsmods)
 {
   bool flag=true;
-  for (list<string>::const_iterator it=saf.gMapNames.begin(); it!=saf.gMapNames.end(); it++)
+  for (list<string>::const_iterator it=saf.gMapNames.begin(); it!=saf.gMapNames.end(); ++it)
     // process each gMapName
     {
       if (processGMapContent(*it,saf,fsmods)==false)
@@ -513,7 +513,7 @@ tInputItem* tSMAFTokenizer::getInputItemFromSaf(const tSaf &saf){
 tInputItem* tSMAFTokenizer::getItemById(const string &id, const inp_list &items)
 {
   for(list<tInputItem *>::const_iterator it = items.begin()
-        ; it != items.end(); it++) {
+        ; it != items.end(); ++it) {
       if (((*it)->external_id())==id)
         {
           return *it;
@@ -667,7 +667,7 @@ void tSMAFTokenizer::processEdges(const DOMDocument &dom, list<tSaf*> &tEdges, l
     }
 
   // LOCAL CONTENT
-  for (list<tSaf*>::iterator it=_mySafs.begin(); it!=_mySafs.end(); it++)
+  for (list<tSaf*>::iterator it=_mySafs.begin(); it!=_mySafs.end(); ++it)
     {
       // set local content
       tSaf* saf=*it;
@@ -693,7 +693,7 @@ void tSMAFTokenizer::processEdges(const DOMDocument &dom, list<tSaf*> &tEdges, l
 void tSMAFTokenizer::clearMySafs()
 {
   //cerr << "* CLEAR MYSAFS *" << endl;
-  for (list<tSaf*>::iterator it=_mySafs.begin(); it!=_mySafs.end(); it++)
+  for (list<tSaf*>::iterator it=_mySafs.begin(); it!=_mySafs.end(); ++it)
     {
       // release individual saf
       delete *it;
@@ -707,7 +707,7 @@ void tSMAFTokenizer::renumberNodes(inp_list &result)
   // rename nodes in forward seq to avoid seg fault later (!)
   map<int,int> nodePoint;
   // construct node point map
-  for(inp_iterator it = result.begin(); it != result.end(); it++)
+  for(inp_iterator it = result.begin(); it != result.end(); ++it)
     {
       int from=(*it)->start(), to=(*it)->end();
       int cfrom=(*it)->startposition(), cto=(*it)->endposition();
@@ -721,7 +721,7 @@ void tSMAFTokenizer::renumberNodes(inp_list &result)
     }
   // construct sorted point node map
   map<int,int> pointNode;
-  for (map<int,int>::iterator it = nodePoint.begin(); it != nodePoint.end(); it++)
+  for (map<int,int>::iterator it = nodePoint.begin(); it != nodePoint.end(); ++it)
     {
       int node=it->first;
       int point=it->second;
@@ -731,7 +731,7 @@ void tSMAFTokenizer::renumberNodes(inp_list &result)
   // construct node rename mapping
   map<int,int> nodeRename;
   int i=0;
-  for (map<int,int>::iterator it = pointNode.begin(); it != pointNode.end(); it++)
+  for (map<int,int>::iterator it = pointNode.begin(); it != pointNode.end(); ++it)
     {
       int node=it->second;
 
@@ -740,7 +740,7 @@ void tSMAFTokenizer::renumberNodes(inp_list &result)
     }
 
   // finally, rename the nodes
-  for(inp_iterator it = result.begin(); it != result.end(); it++)
+  for(inp_iterator it = result.begin(); it != result.end(); ++it)
     {
       // retrieve new values
       int from=(*it)->start(), to=(*it)->end();
@@ -774,7 +774,7 @@ void tSMAFTokenizer::tokenize(string input, inp_list &result) {
       processEdges(*dom,tokEdges,morphEdges);
 
       // tokEdges
-      for (list<tSaf*>::iterator it=tokEdges.begin(); it!=tokEdges.end(); it++)
+      for (list<tSaf*>::iterator it=tokEdges.begin(); it!=tokEdges.end(); ++it)
         {
           tSaf *saf = *it;
           // get new tInputItem
@@ -791,7 +791,7 @@ void tSMAFTokenizer::tokenize(string input, inp_list &result) {
         }
 
       // morphEdges
-      for (list<tSaf*>::iterator it=morphEdges.begin(); it!=morphEdges.end(); it++)
+      for (list<tSaf*>::iterator it=morphEdges.begin(); it!=morphEdges.end(); ++it)
         {
           tSaf *saf = *it;
           // update tInputItems
@@ -802,7 +802,7 @@ void tSMAFTokenizer::tokenize(string input, inp_list &result) {
   // sanity check
   // to avoid seg fault later (why??) there must be an edge with start=0
   bool flag=false;
-  for(inp_iterator it = result.begin(); it != result.end(); it++)
+  for(inp_iterator it = result.begin(); it != result.end(); ++it)
     {
       if ((*it)->start()==0)
         flag=true;
@@ -875,7 +875,7 @@ void tSMAFTokenizer::setLocalContent(tSaf &saf)
 {
   map<string,string> localContent;
 
-  for (list<tSafConf>::const_iterator it=_safConfs.begin(); it!=_safConfs.end(); it++)
+  for (list<tSafConf>::const_iterator it=_safConfs.begin(); it!=_safConfs.end(); ++it)
     // walk thru safConf
     {
       tSafConf safConf=*it;
@@ -894,7 +894,7 @@ bool tSMAFTokenizer::updateLocalContent(map<string,string> &localContent, const 
       //safConf.print();
       for (list<tSafConfNvpair>::const_iterator it=safConf.nvPairs.begin();
            it!=safConf.nvPairs.end();
-           it++)
+           ++it)
         // walk thru nvPairs of saf conf
         {
           if (it->val!=NULL)
@@ -927,7 +927,7 @@ string tSMAFTokenizer::getContentVal (const map<string,string> &content, const s
 tSaf* tSMAFTokenizer::getSafById(const string &dep) const
 {
   //cerr << "MYSAFS size=" << _mySafs.size() << endl;
-  for (list<tSaf*>::const_iterator it=_mySafs.begin(); it!=_mySafs.end(); it++)
+  for (list<tSaf*>::const_iterator it=_mySafs.begin(); it!=_mySafs.end(); ++it)
     {
       tSaf *saf=*it;
       string id=*(saf->id);
@@ -948,7 +948,7 @@ string tSMAFTokenizer::resolveDeps(const string &var, const tSaf &saf)
   //saf.print();
 
   bool flag=true;
-  for (list<string>::const_iterator it=saf.deps.begin(); it!=saf.deps.end(); it++)
+  for (list<string>::const_iterator it=saf.deps.begin(); it!=saf.deps.end(); ++it)
     {
       string dep=*it;
 
@@ -1001,7 +1001,7 @@ bool tSMAFTokenizer::match(tSafConfMatch match, tSaf saf)
 
   for (list<tSafConfNvpair>::iterator it=match.restrictions.begin();
        it!=match.restrictions.end();
-       it++)
+       ++it)
     // check each RESTRICTION
     {
       if (it->val==NULL)
@@ -1215,7 +1215,7 @@ tSafConf* tSMAFTokenizer::processSafConfLine(const string &line)
 
         // POST: nvPairs
         list<string> nvPairs = splitOnSpc(post);
-        for (list<string>::iterator it=nvPairs.begin(); it!=nvPairs.end(); it++)
+        for (list<string>::iterator it=nvPairs.begin(); it!=nvPairs.end(); ++it)
           {
             tSafConfNvpair* nvPair = extractNvpair(*it);
             if (nvPair!=NULL)
@@ -1323,7 +1323,7 @@ tSafConfMatch* tSMAFTokenizer::processSafConfLinePre(const string &pre)
 
   // set RESTRICTIONS
   list<tSafConfNvpair> restrs;
-  for (list<string>::iterator it=restrStrs.begin(); it!=restrStrs.end(); it++)
+  for (list<string>::iterator it=restrStrs.begin(); it!=restrStrs.end(); ++it)
     // walk thru nvPair strings
     {
       tSafConfNvpair* nvPair = extractNvpair(*it);
@@ -1353,7 +1353,7 @@ void tSafConfMatch::print() const
 
   // restrictions
   cerr << "match.restrictions=[";
-  for (list<tSafConfNvpair>::const_iterator it=restrictions.begin(); it!=restrictions.end(); it++)
+  for (list<tSafConfNvpair>::const_iterator it=restrictions.begin(); it!=restrictions.end(); ++it)
     {
       it->print();
     }
@@ -1388,7 +1388,7 @@ void tSafConf::print() const
   // match
   match.print();
   // nvPairs
-  for (list<tSafConfNvpair>::const_iterator it=nvPairs.begin(); it!=nvPairs.end(); it++)
+  for (list<tSafConfNvpair>::const_iterator it=nvPairs.begin(); it!=nvPairs.end(); ++it)
     {
       it->print();
     }
@@ -1436,7 +1436,7 @@ void tSaf::print() const
 
   // deps
   cerr << "saf.deps=[";
-  for (list<string>::const_iterator it=deps.begin(); it!=deps.end(); it++)
+  for (list<string>::const_iterator it=deps.begin(); it!=deps.end(); ++it)
     {
       cerr << *it << " ";
     }
@@ -1444,7 +1444,7 @@ void tSaf::print() const
 
   // content
   cerr << "saf.content=[";
-  for (map<string,string>::const_iterator it=content.begin(); it!=content.end(); it++)
+  for (map<string,string>::const_iterator it=content.begin(); it!=content.end(); ++it)
     {
       cerr << it->first << ":" << it->second << " ";
     }
@@ -1452,7 +1452,7 @@ void tSaf::print() const
 
   // local content
   cerr << "saf.lContent=[";
-  for (map<string,string>::const_iterator it=lContent.begin(); it!=lContent.end(); it++)
+  for (map<string,string>::const_iterator it=lContent.begin(); it!=lContent.end(); ++it)
     {
       cerr << it->first << ":" << it->second << " ";
     }
@@ -1551,7 +1551,7 @@ bool tSMAFTokenizer::processSafConfDefine(const string &line)
 
 ostream &operator<<(ostream& os, const list<string> &s)
 {
-  for (list<string>::const_iterator it=s.begin(); it!=s.end(); it++)
+  for (list<string>::const_iterator it=s.begin(); it!=s.end(); ++it)
     {
       os << *it << " ";
     }
@@ -1589,7 +1589,7 @@ pair<gMapPath,gMapType> tGMap::get(const string &name) const
 
 void tGMap::print() const
 {
-  for (map<string,pair<gMapPath,gMapType> >::const_iterator it=_gMap.begin(); it!=_gMap.end(); it++)
+  for (map<string,pair<gMapPath,gMapType> >::const_iterator it=_gMap.begin(); it!=_gMap.end(); ++it)
     {
       string name=it->first;
       gMapPath path=it->second.first;
@@ -1603,7 +1603,7 @@ void tGMap::print() const
 list<string> tSMAFTokenizer::getGMapNames (const map<string,string> &lContent)
 {
   list<string> out;
-  for (map<string, string>::const_iterator it = lContent.begin(); it!=lContent.end(); it++)
+  for (map<string, string>::const_iterator it = lContent.begin(); it!=lContent.end(); ++it)
     {
       string name=it->first;
       if (name.substr(0,5)=="gMap.")

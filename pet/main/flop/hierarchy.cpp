@@ -72,7 +72,7 @@ void subtype_constraint(int sub, int super)
     }
     else
     {
-        assert(sub >= 0 && super >= 0); 
+        assert(sub >= 0 && super >= 0);
         boost::add_edge(super, sub, hierarchy);
     }
 }
@@ -130,7 +130,7 @@ list<int> immediate_subtypes(int t)
     std::pair<boost::graph_traits<tHierarchy>::out_edge_iterator,
               boost::graph_traits<tHierarchy>::out_edge_iterator>
         e(boost::out_edges(t, hierarchy));
-    
+
     list<int> l;
     std::transform(e.first, e.second, std::front_inserter(l),
                    EdgeTargetExtractor());
@@ -156,14 +156,14 @@ list<int> immediate_supertypes(int t)
 map<int,int> idbit_type;
 
 /** compute the transitive closure encoding */
-void compute_code_topo() 
+void compute_code_topo()
 {
     // the code to be assigned next
     int codenr = codesize - 1;
-    
+
     // used to iterate over the children
     list<int> l; int c;
-    
+
     // iterate over the nodes in the hierarchy in reverse topological order
     vector<int> topo;
     boost::topological_sort(hierarchy, std::back_inserter(topo));
@@ -171,7 +171,7 @@ void compute_code_topo()
     {
         // get the corresponding type id
         int current_type = *it;
-      
+
         if(leaftypeparent[current_type] == -1) // leaf types don't get a code
         {
             // check if this has already been visited - cannot happen
@@ -179,7 +179,7 @@ void compute_code_topo()
             if(types[current_type]->bcode != NULL)
               throw tError("conception error: " + types.name(current_type)
                            + " already visited...");
-            
+
             // create a new bitcode, it's initialized to all zeroes
             types[current_type]->bcode = new bitcode(codesize);
 
@@ -188,7 +188,7 @@ void compute_code_topo()
 
             idbit_type[codenr] = current_type;
             codenr--;
-            
+
             // iterate over all immediate subtypes, ignoring leaf types
             l = immediate_subtypes(current_type);
             forallint(c, l) if(leaftypeparent[c] == -1)
@@ -196,9 +196,9 @@ void compute_code_topo()
                 // check that this has already a code assigned - if not,
                 // there's a horrible flaw somewhere
                 if(types[c]->bcode == NULL)
-                  throw tError("conception error: " + types.name(c) 
+                  throw tError("conception error: " + types.name(c)
                                + " not yet computed...");
-                
+
                 // combine with subtypes bitcode using binary or
                 *types[current_type]->bcode |= *types[c]->bcode;
             }
@@ -213,7 +213,7 @@ std::string debug_print_subtypes(bitcode *b) {
   for(list_int *c = l; c != NULL; c = rest(c)) {
     out << " " << types.name(idbit_type[first(c)]);
   }
-           
+
   free_list(l);
   return out.str();
 }
@@ -237,7 +237,7 @@ public:
     {
         _has_cycle = true;
     }
-    
+
 protected:
     bool& _has_cycle;
 };
@@ -288,25 +288,25 @@ void make_semilattice()
 
     // main loop: consider all ordered pairs of non-leaf types in the
     // range low ... high
-    for(i = low; i < high; i++) if(leaftypeparent[i] == -1)
-      for(j = i + 1; j < high; j++) if(leaftypeparent[j] == -1)
+    for(i = low; i < high; ++i) if(leaftypeparent[i] == -1)
+      for(j = i + 1; j < high; ++j) if(leaftypeparent[j] == -1)
         {
           // combine i's and j's bitcodes by binary and, and check
           // if result is all zeroes
           bool empty = intersect_empty(*types[i]->bcode,
                                        *types[j]->bcode, temp);
-          
+
           // if we have a non empty intersection, and it does not
           // correspond to a type, we have to introduce a glb type
           if(!empty && lookup_code(*temp) == -1)
             {
               struct type *glbtype;
               char *name;
-              
+
               // make up a name
               name = (char *) salloc(20);
               sprintf(name, "glbtype%d", glbtypes++);
-              
+
               // create new type using this name and the result of the
               // intersection as its bitcode
               glbtype = new_type(name, false);
@@ -336,7 +336,7 @@ void make_semilattice()
 
     // mark the new types as non leaftypes
     leaftypeparent = (int *) realloc(leaftypeparent, high * sizeof(int));
-    for(i = low; i < high; i++) leaftypeparent[i] = -1;
+    for(i = low; i < high; ++i) leaftypeparent[i] = -1;
 
   } while(changed);
 
@@ -344,7 +344,7 @@ void make_semilattice()
 
   // register the codes corresponding to non-leaf types
   resize_codes(types.number());
-  for(i = 0; i < types.number(); i++)
+  for(i = 0; i < types.number(); ++i)
     {
       if(leaftypeparent[i] == -1)
         register_typecode(i, types[i]->bcode);
@@ -365,10 +365,10 @@ void make_semilattice()
   // and check if they're in subtype relation
 
   boost::remove_edge_if(fixedPred<tHierarchyEdge, true>(), hierarchy);
-  
-  for(i = 0; i < types.number(); i++)
+
+  for(i = 0; i < types.number(); ++i)
   {
-      for(j = i + 1; j < types.number(); j++)
+      for(j = i + 1; j < types.number(); ++j)
           if(core_subtype(i, j))
               subtype_constraint(i, j);
           else if(core_subtype(j, i))
@@ -382,7 +382,7 @@ void make_semilattice()
 
   list_int *subtypes, *l;
 
-  for(i = oldntypes; i < types.number(); i++)
+  for(i = oldntypes; i < types.number(); ++i)
     {
       l = subtypes = types[i]->bcode->get_elements();
       while(l)
@@ -393,8 +393,8 @@ void make_semilattice()
           l = rest(l);
         }
       free_list(subtypes);
-      
-      for(j = 1; j < types.number(); j++) if(leaftypeparent[j] == -1)
+
+      for(j = 1; j < types.number(); ++j) if(leaftypeparent[j] == -1)
         if(i != j && core_subtype(i, j))
           subtype_constraint(i, j);
     }
@@ -415,7 +415,7 @@ void make_semilattice()
   LOG(logSemantic, DEBUG, " (" << clock() << ")");
 
   // do a few sanity checks:
-  
+
   if(!is_simple(hierarchy)) {
     throw tError("conception error - making hierarchy simple");
   }
@@ -450,18 +450,18 @@ inline void mark_leaftype(int i)
 void find_leaftypes()
 {
     int i;
-    
+
     // initialize the leaftype array to all -1
     leaftypeparent = (int *) salloc(types.number() * sizeof(int));
-    for(i = 0; i < types.number(); i++) leaftypeparent[i] = -1;
-    
+    for(i = 0; i < types.number(); ++i) leaftypeparent[i] = -1;
+
 #ifdef ONLY_SIMPLE_LEAFTYPES
-    
+
     // a type is a leaf type if it has no children and exactly one parent
-    for(i = 0; i < types.number() ; i++)
+    for(i = 0; i < types.number() ; ++i)
         if(simple_leaftype(i))
             mark_leaftype(i);
-    
+
 #else
 
     // a type is a leaf type if it has exactly one parent, and a) it has no
@@ -483,17 +483,17 @@ void find_leaftypes()
         {
             // check if all children are leaftypes
             int c; bool good = true;
-            
+
             list<int> l = immediate_subtypes(i);
-         
+
             forallint(c, l)
                 if(leaftypeparent[c] == -1)
                 {
                     good = false;
                     break;
                 }
-            
-            if(good) 
+
+            if(good)
               {
                 //fprintf(stderr, "CLT %d\n", i);
                 mark_leaftype(i);
@@ -511,7 +511,7 @@ print_subtypes(std::ostream &out, int t, HASH_SPACE::hash_set<int> &visited)
 {
     if(visited.find(t) != visited.end())
         return;
-    
+
     visited.insert(t);
     out << " " << types.name(t);
 
@@ -528,7 +528,7 @@ void
 print_hierarchy(std::ostream &out)
 {
     HASH_SPACE::hash_set<int> visited;
-    for(int i = 1; i < types.number() ; i++)
+    for(int i = 1; i < types.number() ; ++i)
     {
         visited.clear();
         out << types.name(i) << ":";
@@ -541,23 +541,23 @@ print_hierarchy(std::ostream &out)
 void propagate_status()
 {
     struct type *t, *chld;
-    
+
     LOG(logSemantic, INFO, "- status values");
-    
+
     vector<int> topo;
     boost::topological_sort(hierarchy, std::back_inserter(topo));
-    
+
     for(vector<int>::iterator it = topo.begin(); it != topo.end(); ++it)
     {
       t = types[*it];
-        
+
         if(t->status != NO_STATUS)
         {
             boost::graph_traits<tHierarchy>::out_edge_iterator ei, ei_end;
             for(tie(ei, ei_end) = boost::out_edges(*it, hierarchy); ei != ei_end; ++ei)
             {
                 chld = types[boost::target(*ei, hierarchy)];
-                
+
                 if(chld->defines_status == 0)
                     if(chld->status == NO_STATUS || !flop_settings->member("weak-status-values", statustable.name(t->status).c_str()))
                     {
@@ -574,7 +574,7 @@ void propagate_status()
                                 << "' from `" << types.name(chld->status_giver)
                                 << "'...");
                         }
-                        
+
                         chld->status_giver = t->id;
                         chld->status = t->status;
                     }
@@ -605,9 +605,9 @@ bool process_hierarchy(bool propagate_status_p)
       LOG(logSemantic, WARN, "type hierarchy is cyclic.");
       return false;
   }
-  
+
   // make all maximal types subtypes of TOP
-  for(i = 1; i < types.number() ; i++)
+  for(i = 1; i < types.number() ; ++i)
   {
       if(boost::in_degree(i, hierarchy) == 0)
       {
@@ -619,11 +619,11 @@ bool process_hierarchy(bool propagate_status_p)
 
   // for each type t, leaftypeparent[t] is -1 if t is not a leaftype,
   // and the id of the parent type otherwise
-  
+
   find_leaftypes();
-  
-  LOG(logApplC, INFO, "[" << nstaticleaftypes << "], "); 
-  
+
+  LOG(logApplC, INFO, "[" << nstaticleaftypes << "], ");
+
   LOG(logApplC, INFO, "bitcodes, ");
 
   // codesize is number of non-leaf types
@@ -631,8 +631,8 @@ bool process_hierarchy(bool propagate_status_p)
 
   initialize_codes(codesize);
   compute_code_topo();
-  
-  for(i = 0; i < types.number(); i++) if(leaftypeparent[i] == -1)
+
+  for(i = 0; i < types.number(); ++i) if(leaftypeparent[i] == -1)
     register_codetype(*types[i]->bcode, i);
 
   make_semilattice();

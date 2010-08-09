@@ -67,7 +67,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
   else if(coref > 0) // dag is coreferenced, not printed yet
     {
       coref = -dag_set_visit(dag, -(coref_nr++));
-      
+
       indent += fprintf(f, "#%d:", coref);
     }
 
@@ -76,7 +76,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
 #else
   fprintf(f, "%s", type_name(dag->type));
 #endif
- 
+
   if((arc = dag->arcs) != 0)
     {
       struct dag_node **print_attrs = (struct dag_node **)
@@ -84,7 +84,7 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
 
       int maxlen = 0, i, maxatt = 0;
 
-      for(i = 0; i < nattrs; i++)
+      for(i = 0; i < nattrs; ++i)
         print_attrs[i] = 0;
 
       while(arc)
@@ -97,9 +97,9 @@ void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
         }
 
       fprintf(f, "\n%*s[ ", indent, "");
-      
+
       bool first = true;
-      for(int j = 0; j <= maxatt; j++) if(print_attrs[j])
+      for(int j = 0; j <= maxatt; ++j) if(print_attrs[j])
         {
           i = attrnamelen[j];
           if(!first)
@@ -128,9 +128,9 @@ void dag_print(FILE *f, struct dag_node *dag)
       fprintf(f, "fail");
       return;
     }
-  
+
   dag_mark_coreferences(dag);
-  
+
   coref_nr = 1;
   dag_print_rec(f, dag, 0);
   dag_invalidate_visited();
@@ -199,7 +199,10 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
         }
 
       arc = dag->arcs; nr = 0;
-      while(arc) nr++, arc = arc->next;
+      while(arc) {
+        ++nr;
+        arc = arc->next;
+      }
 
       type = dag->type;
 
@@ -212,7 +215,7 @@ void dag_dump_rec(dumper *f, struct dag_node *dag)
 
       dump_n.nattrs = (short int) nr;
       dump_node(f, &dump_n);
-      dump_index++;
+      ++dump_index;
 
       arc = dag->arcs;
       while(arc)
@@ -234,13 +237,13 @@ bool dag_dump(dumper *f, struct dag_node *dag)
     {
       return false;
     }
-  
+
   dump_index = 0;
 
   dag_dump_total_nodes = 1; dag_dump_total_arcs = 0;
-  dag_mark_dump_nodes(dag); 
-  dag_dump_total_nodes--;
-  
+  dag_mark_dump_nodes(dag);
+  --dag_dump_total_nodes;
+
   f->dump_int(dag_dump_total_nodes);
   f->dump_int(dag_dump_total_arcs);
 
@@ -272,8 +275,8 @@ struct dag_node *dag_undump(dumper *f)
       return FAIL;
 
   int current_arc = 0;
-  
-  for(int i = 0; i < dag_dump_total_nodes; i++)
+
+  for(int i = 0; i < dag_dump_total_nodes; ++i)
     {
       undump_node(f, &dump_n);
 
@@ -285,15 +288,15 @@ struct dag_node *dag_undump(dumper *f)
       if(dump_n.nattrs > 0)
         undumped_nodes[i].arcs = undumped_arcs+current_arc;
 
-      for(int j = 0; j < dump_n.nattrs; j++)
+      for(int j = 0; j < dump_n.nattrs; ++j)
         {
           undump_arc(f, &dump_a);
           undumped_arcs[current_arc].attr = dump_a.attr;
           undumped_arcs[current_arc].val = undumped_nodes + dump_a.val;
           undumped_arcs[current_arc].next =
-            (j == dump_n.nattrs - 1) ? 0 : undumped_arcs+current_arc+1;
+            (j == dump_n.nattrs - 1) ? 0 : undumped_arcs + current_arc+1;
 
-          current_arc++;
+          ++current_arc;
         }
     }
 

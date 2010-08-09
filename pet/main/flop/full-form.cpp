@@ -45,14 +45,14 @@ ostream& operator<<(ostream& O, const ff_entry& C)
 {
   O << "[" << C._preterminal << "+" << C._affix << "@" << C._inflpos << " \""
     << C._form << "\" (" << C._fname << ":" << C._line << ")]";
-  
+
   return O;
 }
 
 string get_string(string &line, int &pos, istream &I)
 {
   while(isspace(line[pos])) pos++;
-  
+
   if(line[pos] == '"')
     {
       int p2 = line.find('"', pos + 1);
@@ -67,7 +67,7 @@ string get_string(string &line, int &pos, istream &I)
     }
   else
     {
-      LOG(logSyntax, ERROR, "error: ill formed morph entry `" 
+      LOG(logSyntax, ERROR, "error: ill formed morph entry `"
           << line << "'...");
       I.clear(ios::badbit);
       return string();
@@ -77,7 +77,7 @@ string get_string(string &line, int &pos, istream &I)
 int get_int(string &line, int &pos, istream &I)
 {
   while(isspace(line[pos])) pos++;
-  
+
   if(isdigit(line[pos]))
     {
       int p2 = pos;
@@ -88,7 +88,7 @@ int get_int(string &line, int &pos, istream &I)
     }
   else
     {
-      LOG(logSyntax, ERROR, "error: ill formed morph entry `" 
+      LOG(logSyntax, ERROR, "error: ill formed morph entry `"
           << line << "'...");
       I.clear(ios::badbit);
       return -1;
@@ -99,24 +99,24 @@ istream& operator>>(istream& I, ff_entry& C)
 {
   string line;
   /* expecting lines like:  {"allright_root", "all", NULL, NULL, 1, 2}, */
-  
+
   getline(I, line);
 
   if(I.good())
     {
       int i;
-      
+
       i = line.find('{', 0) + 1;
       C._preterminal = get_string(line, i, I);
       if(!C._preterminal.empty())
           C._preterminal = string("$") + C._preterminal;
-      
+
       i = line.find(',', i) + 1;
       C._form = get_string(line, i, I);
-      
+
       i = line.find(',', i) + 1;
       get_string(line, i, I);
-      
+
       i = line.find(',', i) + 1;
       C._affix = get_string(line, i, I);
       if(opt_inst_affixes && !C._affix.empty())
@@ -156,7 +156,7 @@ void ff_entry::dump(dumper *f)
     }
 
   inflpos = _inflpos == 0 ? 0 : _inflpos - 1;
-  
+
   f->dump_int(preterminal);
   f->dump_int(affix);
   f->dump_char(inflpos);
@@ -182,26 +182,26 @@ void read_morph(string fname)
   while(!f.eof())
   {
       ff_entry e;
-      
+
       if(f >> e)
       {
           linenr++;
           e.setdef(fname, linenr);
           fullforms.push_front(e);
           LOG(logAppl, DEBUG, e);
-          
+
       }
       else if(f.bad())
           f.clear();
   }
-  
+
   LOG(logAppl, INFO, fullforms.size() << " entries.");
 }
 
 bool parse_irreg(string line)
 {
-  static char *suf = flop_settings->value("lex-rule-suffix");
-  
+  static const char *suf = flop_settings->value("lex-rule-suffix");
+
   string s1, s2, s3;
   unsigned int p = 0, p1;
 

@@ -44,13 +44,13 @@ chunk_allocator::chunk_allocator(int chunk_size, bool down) {
 
   _chunk = new char* [MAX_CHUNKS];
   if(_chunk == 0)
-    throw tError("alloc: out of memory"); 
+    throw tError("alloc: out of memory");
 
   _init_core(down, chunk_size);
 
   _chunk[_nchunks++] = (char *) _core_alloc(_chunk_size);
   if(_chunk[_curr_chunk] == 0)
-    throw tError("alloc: out of memory"); 
+    throw tError("alloc: out of memory");
 
   _stats_chunk_sum = _stats_chunk_n = 0;
 
@@ -58,7 +58,7 @@ chunk_allocator::chunk_allocator(int chunk_size, bool down) {
 }
 
 chunk_allocator::~chunk_allocator() {
-  for(int i = 0; i < _nchunks; i++)
+  for(int i = 0; i < _nchunks; ++i)
     _core_free(_chunk[i], _chunk_size);
 
   delete[] _chunk;
@@ -73,20 +73,20 @@ void chunk_allocator::_overflow(int n) {
 
   if(++_curr_chunk >= MAX_CHUNKS)
     throw tError("alloc: out of chunks");
-  
+
   if(_curr_chunk >= _nchunks) {
     _chunk[_nchunks++] = (char *) _core_alloc(_chunk_size);
-    if(_chunk[_curr_chunk] == 0) { 
+    if(_chunk[_curr_chunk] == 0) {
       _nchunks--;
-      reset(); 
-      throw tError("alloc: out of memory"); 
+      reset();
+      throw tError("alloc: out of memory");
     }
   }
   _chunk_pos = 0;
 }
 
 void chunk_allocator::may_shrink() {
-  _stats_chunk_n++;
+  ++_stats_chunk_n;
   _stats_chunk_sum+=_curr_chunk;
 
   int avg_chunks = _stats_chunk_sum / _stats_chunk_n;
@@ -124,12 +124,12 @@ void chunk_allocator::reset() {
 }
 
 void chunk_allocator::print_check() {
-  for (int i=0; i < _nchunks; i++) {
+  for (int i=0; i < _nchunks; ++i) {
     printf("alloc'ed: [%x %x]\n", (ptr2uint_t) _chunk[i]
            , (ptr2uint_t) (_chunk[i] + _chunk_size));
   }
-  for (int i=0; i < _nchunks; i++) {
-    for(char *p = _chunk[i]; p < _chunk[i] + _chunk_size; p++) {
+  for (int i=0; i < _nchunks; ++i) {
+    for(char *p = _chunk[i]; p < _chunk[i] + _chunk_size; ++p) {
       char val = *p ; *p = val;
     }
   }
@@ -163,7 +163,7 @@ void chunk_allocator::print_check() {
 // the problems of cheap and flop crashing with alloc errors and flop not being
 // able to compile grammars under kernel 2.6. There is probably a better
 // solution, but for now let's check the kernel version in configure.ac and set
-// the mmap values appropriately ... 
+// the mmap values appropriately ...
 // Eric Nichols <eric-n@is.naist.jp> -- Jun. 19, 2005
 
 #if defined(linux)
@@ -227,8 +227,8 @@ void mmap_scan(int pagesize) {
 void chunk_allocator::_init_core(bool down, int chunk_size) {
 
   _core_down = down;
-  
-  if (_pagesize == 0) { 
+
+  if (_pagesize == 0) {
 #ifndef _MMAP_ANONYMOUS
     if(dev_zero_fd == -1) { dev_zero_fd = open("/dev/zero", O_RDWR); }
 #endif
@@ -244,7 +244,7 @@ void chunk_allocator::_init_core(bool down, int chunk_size) {
 #endif
 
   }
-  
+
   _chunk_size = (((chunk_size-1)/_pagesize)+1)*_pagesize;
 #ifdef PETDEBUG
   printf("Up: %x   Down: %x   Chunks: %x[%x]  %s\n"
@@ -303,8 +303,8 @@ void *chunk_allocator::_core_alloc(int size) {
     printf("New Block Up:     %x-%x\n"
            , (ptr_to_uint_t) s, (ptr_to_uint_t) s+size-1);
   }
-  for(int i=0; i < size; i++) { *s = 0xFF; s++; }
-  for(int i=0; i < size; i++) { s-- ; *s = 0x00; }
+  for(int i=0; i < size; ++i) { *s = 0xFF; ++s; }
+  for(int i=0; i < size; ++i) { --s ; *s = 0x00; }
 #endif
 
   if(_mmap_up_mark >= _mmap_down_mark) {

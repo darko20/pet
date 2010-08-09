@@ -92,9 +92,9 @@ class typecache
       b->refs = 0;
 #endif
     }
-  
+
  public:
-  
+
   /** Create a type cache.
    * \param no_value Return this value if the type is not in the cache
    * \param nbuckets The initial number of buckets
@@ -110,7 +110,7 @@ class typecache
       _cache_alloc.mark(_initial_alloc);
       // _cache_alloc.print_check();
 
-      for(int i = 0; i < _nbuckets; i++)
+      for(int i = 0; i < _nbuckets; ++i)
         init_bucket(_buckets + i);
 #ifdef CACHESTATS
       _totalcl = _totalsearches = _totalfp = _maxcl = 0;
@@ -204,7 +204,7 @@ class typecache
       _cache_alloc.release(_initial_alloc);
       _cache_alloc.may_shrink();
 
-      for(int i = 0; i < _nbuckets; i++)
+      for(int i = 0; i < _nbuckets; ++i)
         init_bucket(_buckets + i);
 
       _size = 0;
@@ -216,14 +216,14 @@ class typecache
 #ifdef CACHESTATS
       LOG(logAppl, DEBUG, "typecache: " << _size << " entries, "
           << _overflows << " overflows, " << _nbuckets << " buckets, "
-          << _totalsearches << " searches, " << _totalfp 
+          << _totalsearches << " searches, " << _totalfp
           << " fast path, avg chain " << double(_totalcl) / _totalsearches
           << ", max chain " << _maxcl);
 
 #ifdef PRUNING
       int _prune_poss = 0, _prune_done = 0;
 
-      for(int i = 0; i < _nbuckets; i++)
+      for(int i = 0; i < _nbuckets; ++i)
         {
           if(_buckets[i].key != _no_key && _buckets[i].refs == 0)
             {
@@ -232,7 +232,7 @@ class typecache
                 {
                   _prune_done++;
                   _size--;
-                  _buckets[i].key = _no_key; 
+                  _buckets[i].key = _no_key;
                 }
             }
         }
@@ -241,7 +241,7 @@ class typecache
 #endif
 
       map<int, int> distr;
-      for(int i = 0; i < _nbuckets; i++)
+      for(int i = 0; i < _nbuckets; ++i)
         for(typecachebucket *b = _buckets + i; b != 0; b = b->next)
           if(b->key != _no_key)
             distr[b->refs]++;

@@ -175,7 +175,7 @@ int cheap_server_initialize(int port) {
   fclose(stdin);
   fclose(stdout);
 
-  for(i = 0; i < NOFILE; i++) {
+  for(i = 0; i < NOFILE; ++i) {
 #if defined(SOCKETDEBUG)
     if(i == fileno(ferr)) {
       continue;
@@ -245,12 +245,12 @@ void cheap_server(int port) {
   while(true) {
     n = sizeof(client_address);
     if((client = accept(server,
-                        (struct sockaddr *)&client_address, 
+                        (struct sockaddr *)&client_address,
                         (socklen_t *)&n)) < 0) {
-      
+
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
-          log++) {
+          ++log) {
         fprintf(*log,
                 "[%d] server(): failed (invalid) accept(2) [%d].\n",
                 getpid(), errno);
@@ -261,7 +261,7 @@ void cheap_server(int port) {
 
     for(list<FILE *>::iterator log = _log_channels.begin();
         log != _log_channels.end();
-        log++) {
+        ++log) {
       if((host = gethostbyaddr((char *)&client_address.sin_addr.s_addr,
                                4, AF_INET)) != NULL
          && host->h_name != NULL) {
@@ -329,8 +329,8 @@ int cheap_server_child(int socket) {
   socket_write(socket, "\f");
 
   bool errorp = false, kaerb = false;
-  for(tsdbitem = (char *)NULL; 
-      !feof(stream) && !kaerb; 
+  for(tsdbitem = (char *)NULL;
+      !feof(stream) && !kaerb;
       ntsdbitems++, errorp = false) {
 
     fs_alloc_state FSAS;
@@ -350,7 +350,7 @@ int cheap_server_child(int socket) {
       if(status <= 0) {
         for(list<FILE *>::iterator log = _log_channels.begin();
             log != _log_channels.end();
-            log++) {
+            ++log) {
           fprintf(*log,
                   "[%d] server_child(): client disconnect (%s).\n",
                   getpid(), current_time());
@@ -362,7 +362,7 @@ int cheap_server_child(int socket) {
       if(status == 1) {
         for(list<FILE *>::iterator log = _log_channels.begin();
             log != _log_channels.end();
-            log++) {
+            ++log) {
           fprintf(*log,
                   "[%d] server_child(): shutdown on client request (%s).\n",
                   getpid(), current_time());
@@ -377,7 +377,7 @@ int cheap_server_child(int socket) {
 
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
-          log++) {
+          ++log) {
         fprintf(*log,
                 "[%d] server_child(): got `%s'.\n",
                 getpid(), foo.c_str());
@@ -400,19 +400,19 @@ int cheap_server_child(int socket) {
       analyze(foo, Chart, FSAS, errors, ntsdbitems);
       if(!errors.empty())
           throw errors.front();
-                
+
       gettimeofday(&tend, NULL);
-      treal = (tend.tv_sec - tstart.tv_sec) * 1000 
+      treal = (tend.tv_sec - tstart.tv_sec) * 1000
         + (tend.tv_usec - tstart.tv_usec) / (MICROSECS_PER_SEC / 1000);
-      
+
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
-          log++) {
+          ++log) {
         fprintf(*log,
                 "[%d] server_child(): "
                 "(%d) [%d] --- %d (%.1f|%.1fs) <%d:%d> (%.1fK)\n",
                 getpid(),
-                stats.id, get_opt_int("opt_pedgelimit"), stats.readings, 
+                stats.id, get_opt_int("opt_pedgelimit"), stats.readings,
                 stats.first / 1000., stats.tcpu / 1000.,
                 stats.words, stats.pedges, stats.dyn_bytes / 1024.0);
         fflush(*log);
@@ -423,7 +423,7 @@ int cheap_server_child(int socket) {
       int nres = 1, skipped = 0;
 
       for(vector<item *>::iterator iter = Chart->readings().begin();
-          iter != Chart->readings().end(); 
+          iter != Chart->readings().end();
           ++iter)
         {
           mflush(mstream);
@@ -438,7 +438,7 @@ int cheap_server_child(int socket) {
                     break;
                 }
               else
-                skipped++;
+                ++skipped;
             }
         }
       mclose(mstream);
@@ -449,7 +449,7 @@ int cheap_server_child(int socket) {
       errorp = true;
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
-          log++) {
+          ++log) {
           fprintf(*log, "[%d] server_child(): (%d) [%d] --- error `%s'",
                   stats.id, get_opt_int("opt_pedgelimit"),
                   getpid(), e.getMessage().c_str());
@@ -460,7 +460,7 @@ int cheap_server_child(int socket) {
       } /* for */
 
 #ifdef TSDBAPI
-      if(get_opt_int("opt_tsdb")) 
+      if(get_opt_int("opt_tsdb"))
         yy_tsdb_summarize_error(input, Chart->rightmost(), e);
 #endif
     } /* catch */
@@ -477,11 +477,11 @@ int cheap_server_child(int socket) {
       assert(input != NULL);
       status += socket_readline(socket, &input[status], size - status);
     } /* if */
-    
+
     if(status <= 0) {
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
-          log++) {
+          ++log) {
         fprintf(*log,
                 "[%d] server_child(): {RT} client disconnect (%s).\n",
                 getpid(), current_time());
@@ -499,7 +499,7 @@ int cheap_server_child(int socket) {
       } /* if */
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
-          log++) {
+          ++log) {
         if(status == 1)
           fprintf(*log,
                   "[%d] server_child(): {RT} null role table.\n",
@@ -512,7 +512,7 @@ int cheap_server_child(int socket) {
       } /* for */
 #ifdef TSDBAPI
       if(!errorp && get_opt_int("opt_tsdb") && Chart != NULL) {
-        yy_tsdb_summarize_item(*Chart, tsdbitem, Chart->rightmost(), 
+        yy_tsdb_summarize_item(*Chart, tsdbitem, Chart->rightmost(),
                                treal, foo.c_str());
       } /* if */
 #endif
@@ -541,7 +541,7 @@ int socket_write(int socket, char *string) {
     if((written = write(socket, string, left)) == -1) {
       for(list<FILE *>::iterator log = _log_channels.begin();
           log != _log_channels.end();
-          log++) {
+          ++log) {
         fprintf(*log,
                 "[%d] socket_write(): write() error [%d].\n",
                 getpid(), errno);
@@ -592,7 +592,7 @@ int socket_readline(int socket, char *string, int length) {
     string[n] = 0;
   } /* if */
   return n + 1;
-  
+
 } /* socket_readline() */
 
 static void _sigchld(int foo) {
@@ -606,18 +606,18 @@ static void _sigchld(int foo) {
   while((pid = wait3(&status, WNOHANG, (struct rusage *)NULL)) > 0) {
     for(list<FILE *>::iterator log = _log_channels.begin();
         log != _log_channels.end();
-        log++) {
+        ++log) {
       if(WIFEXITED(status))
-        fprintf(*log, 
-                "[%d] sigchld(): relieved child # %d (exit: %d).\n", 
+        fprintf(*log,
+                "[%d] sigchld(): relieved child # %d (exit: %d).\n",
                 getpid(), pid, WEXITSTATUS(status));
       else if(WIFSIGNALED(status))
-        fprintf(*log, 
-                "[%d] sigchld(): relieved child # %d (signal: %d).\n", 
+        fprintf(*log,
+                "[%d] sigchld(): relieved child # %d (signal: %d).\n",
                 getpid(), pid, WTERMSIG(status));
       else
-        fprintf(*log, 
-                "[%d] sigchld(): relieved child # %d (mysterious exit).\n", 
+        fprintf(*log,
+                "[%d] sigchld(): relieved child # %d (mysterious exit).\n",
                 getpid(), pid);
       fflush(*log);
     } /* for */
@@ -639,13 +639,13 @@ int yy_tsdb_summarize_item(chart &Chart, const char *item,
     tsdb_parse T;
     cheap_tsdb_summarize_item(Chart, length, treal, 0, T);
     T.capi_print();
-    
+
     return client_send_item_summary();
   } /* if */
 
   for(list<FILE *>::iterator log = _log_channels.begin();
       log != _log_channels.end();
-      log++) {
+      ++log) {
     fprintf(*log,
             "[%d] yy_tsdb_summarize_item(): "
             "unable to locate [incr tsdb()] server.\n",
@@ -672,7 +672,7 @@ int yy_tsdb_summarize_error(const char *item, int length, tError &condition) {
   } /* if */
   for(list<FILE *>::iterator log = _log_channels.begin();
       log != _log_channels.end();
-      log++) {
+      ++log) {
     fprintf(*log,
             "[%d] yy_tsdb_summarize_error(): "
             "unable to locate [incr tsdb()] server.\n",

@@ -52,7 +52,7 @@ static bool tsdb_init = init();
 static bool init(){
   managed_opt("opt_derivation",
     "Store derivations in tsdb profile", true);
-  
+
   managed_opt("opt_rulestatistics",
     "dump the per-rule statistics to the tsdb database", false);
   return true;
@@ -110,7 +110,7 @@ statistics::reset()
 
   // rule stuff
   for(ruleiter rule = Grammar->rules().begin(); rule != Grammar->rules().end();
-      rule++) {
+      ++rule) {
     grammar_rule *R = *rule;
     R->actives = R->passives = 0;
   }
@@ -137,13 +137,13 @@ statistics::print(FILE *f)
            "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
            "frozen: %d\nfailures: %d\nhypotheses: %d\n",
-           id, trees, rtrees, readings, rreadings, 
+           id, trees, rtrees, readings, rreadings,
            words, words_pruned,
            mtcpu, first, tcpu, p_utcpu,
            ftasks_fi, ftasks_qc,
            fsubs_fi, fsubs_qc,
            etasks, stasks,
-           aedges, pedges, p_upedges, 
+           aedges, pedges, p_upedges,
            raedges, rpedges,
            medges,
            unifications_succ, unifications_fail,
@@ -190,24 +190,24 @@ initialize_version()
 #else
     char da[ABSBS]="unknown";
 #endif
-    
+
     const char *qcsu = cheap_settings->value("qc-structure-unif");
     if(qcsu == NULL) qcsu = "";
     const char *qcss = cheap_settings->value("qc-structure-subs");
     if(qcss == NULL) qcss = "";
-    
+
     string sts("");
-    struct setting *set;
-    
-    if((set = cheap_settings->lookup("start-symbols")) != 0)
+    setting *set = cheap_settings->lookup("start-symbols");
+
+    if(set != 0)
     {
-        for(int i = 0; i < set->n; i++)
+        for(int i = 0; i < set->n; ++i)
         {
             if(i!=0) sts += string(", ");
             sts += string(set->values[i]);
-        }                 
+        }
     }
-    
+
     const char *keypos[] = { "key", "l-r", "r-l", "head", "unknown" };
     int packing;
     get_opt("opt_packing", packing);
@@ -227,13 +227,13 @@ initialize_version()
             botc("opt_filter"),
             iotc("opt_nqc_unif"), get_opt_int("opt_nqc_unif"), qcsu,
             iotc("opt_nqc_subs"), get_opt_int("opt_nqc_subs"), qcss,
-            iotc("opt_nsolutions"), get_opt_int("opt_nsolutions"), 
-            botc("opt_shrink_mem"), 
+            iotc("opt_nsolutions"), get_opt_int("opt_nsolutions"),
+            botc("opt_shrink_mem"),
             botc("opt_shaping"),
             sizeof(dag_node),
             __DATE__, __TIME__,
             sts.c_str());
-    
+
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
     sprintf(CHEAP_PLATFORM, "gcc %d.%d", __GNUC__, __GNUC_MINOR__);
 #if defined(__OPTIMIZED__)
@@ -269,15 +269,15 @@ cheap_tsdb_summarize_run(void)
     capi_printf("(:lexicon . %d) ", Grammar->nstems());
     capi_printf("(:rules . %d) ", Grammar->rules().size());
     if(!Grammar->property("ntemplates").empty())
-      capi_printf("(:templates . %s) ", 
+      capi_printf("(:templates . %s) ",
                   Grammar->property("ntemplates").c_str());
     capi_printf("(:environment . \"");
     map<string, string> properties = Grammar->properties();
-    for(map<string, string>::iterator it = properties.begin(); 
+    for(map<string, string>::iterator it = properties.begin();
         it != properties.end(); ++it)
     {
         capi_printf("(:%s . \\\"%s\\\") ",
-                    it->first.c_str(), it->second.c_str()); 
+                    it->first.c_str(), it->second.c_str());
     }
     capi_printf("\") ");
 
@@ -286,30 +286,30 @@ cheap_tsdb_summarize_run(void)
 static int nprocessed = 0;
 
 int
-cheap_process_item(int i_id, const char *i_input, int parse_id, 
-                   int edges, int nanalyses, 
+cheap_process_item(int i_id, const char *i_input, int parse_id,
+                   int edges, int nanalyses,
                    int nderivations, int interactive, const char *custom)
 {
     struct timeval tA, tB; int treal = 0;
     chart *Chart = 0;
-    
+
     try
     {
         fs_alloc_state FSAS;
         std::string foo(custom);
         tGrammarUpdate update(Grammar, foo);
-        
+
         set_opt("opt_pedgelimit", edges);
         set_opt("opt_nsolutions", nanalyses);
-        
+
         gettimeofday(&tA, NULL);
 
         TotalParseTime.save();
-        
+
         list<tError> errors;
         analyze(i_input, Chart, FSAS, errors, i_id);
-        
-        nprocessed++;
+
+        ++nprocessed;
 
         gettimeofday(&tB, NULL);
 
@@ -319,36 +319,36 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
         tsdb_parse T;
         if(!errors.empty())
             cheap_tsdb_summarize_error(errors, treal, T);
-        
+
         cheap_tsdb_summarize_item(*Chart
                                   , Chart->rightmost()
                                   , treal, nderivations, T);
         T.capi_print();
-        
+
         delete Chart;
-        
+
         return 0;
     }
 
     catch(tError &e)
     {
         gettimeofday(&tB, NULL);
-        
+
         treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
             (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
-        
+
         TotalParseTime.restore();
-        
+
         tsdb_parse T;
         list<tError> errors;
         errors.push_back(e);
         cheap_tsdb_summarize_error(errors, treal, T);
         T.capi_print();
-        
+
     }
-    
+
     delete Chart;
-    
+
     return 0;
 }
 
@@ -357,10 +357,10 @@ cheap_complete_test_run(int run_id, const char *custom)
 {
     LOG(logAppl, INFO,
         "total elapsed parse time " << std::setprecision(3)
-        << TotalParseTime.elapsed_ts() / 10.<< "s; " 
-        << nprocessed << " items; avg time per item " << std::setprecision(4) 
+        << TotalParseTime.elapsed_ts() / 10.<< "s; "
+        << nprocessed << " items; avg time per item " << std::setprecision(4)
         << (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10. << "s");
-  
+
     if(get_opt_charp("opt_compute_qc") != NULL)
     {
         LOG(logAppl, INFO, "computing quick check paths");
@@ -381,7 +381,7 @@ cheap_reconstruct_item(const char *derivation)
 void
 tsdb_mode()
 {
-    if(!capi_register(cheap_create_test_run, cheap_process_item, 
+    if(!capi_register(cheap_create_test_run, cheap_process_item,
                       cheap_reconstruct_item, cheap_complete_test_run))
     {
         slave();
@@ -400,7 +400,7 @@ tsdb_result::capi_print()
 
     if(get_opt_int("opt_tsdb") == 1)
     {
-        capi_printf("(:derivation . \"%s\") ", 
+        capi_printf("(:derivation . \"%s\") ",
                     escape_string(derivation).c_str());
     }
     else
@@ -461,7 +461,7 @@ tsdb_parse::capi_print()
             it->capi_print();
         capi_printf("))\n");
     }
-    
+
     if(!rule_stats.empty())
     {
         capi_printf("(:statistics . (\n");
@@ -470,64 +470,64 @@ tsdb_parse::capi_print()
             it->capi_print();
         capi_printf("))\n");
     }
-    
+
     if(!err.empty())
         capi_printf("(:error . \"%s\")", escape_string(err).c_str());
-    
+
     if(readings != -1)
         capi_printf("(:readings . %d) ", readings);
-    
+
     if(words != -1)
         capi_printf("(:words . %d) ", words);
-    
+
     if(first != -1)
         capi_printf("(:first . %d) ", first);
-    
+
     if(total != -1)
         capi_printf("(:total . %d) ", total);
-    
+
     if(tcpu != -1)
-        capi_printf("(:tcpu . %d) ", tcpu); 
-    
+        capi_printf("(:tcpu . %d) ", tcpu);
+
     if(tgc != -1)
-    capi_printf("(:tgc . %d) ", tgc); 
-    
+    capi_printf("(:tgc . %d) ", tgc);
+
     if(treal != -1)
-        capi_printf("(:treal . %d) ", treal); 
-    
+        capi_printf("(:treal . %d) ", treal);
+
     if(others != -1)
         capi_printf("(:others . %ld) ", others);
-    
+
     if(p_ftasks != -1)
         capi_printf("(:p-ftasks . %d) ", p_ftasks);
-    
+
     if(p_etasks != -1)
         capi_printf("(:p-etasks . %d) ", p_etasks);
-    
+
     if(p_stasks != -1)
         capi_printf("(:p-stasks . %d) ", p_stasks);
-    
+
     if(aedges != -1)
         capi_printf("(:aedges . %d) ", aedges);
-    
+
     if(pedges != -1)
     capi_printf("(:pedges . %d) ", pedges);
-    
+
     if(raedges != -1)
         capi_printf("(:raedges . %d) ", raedges);
-    
+
     if(rpedges != -1)
         capi_printf("(:rpedges . %d) ", rpedges);
-    
+
     if(unifications != -1)
         capi_printf("(:unifications . %d) ", unifications);
-    
+
     if(copies != -1)
         capi_printf("(:copies . %d) ", copies);
-    
+
     capi_printf("(:comment . \""
                 "(:nmeanings . %d) "
-                "(:mtcpu . %d) " 
+                "(:mtcpu . %d) "
                 "(:clashes . %d) "
                 "(:pruned . %d) "
                 "(:subsumptions . %d) "
@@ -536,23 +536,23 @@ tsdb_parse::capi_print()
                 "(:equivalence . %d) "
                 "(:proactive . %d) "
                 "(:retroactive . %d) "
-                "(:utcpu . %d) " 
-                "(:upedges . %d) " 
+                "(:utcpu . %d) "
+                "(:upedges . %d) "
                 "(:failures . %d) "
                 "(:hypotheses . %d) "
                 "(:rtrees . %d) "
                 "(:rreadings . %d) "
                 "\")",
-                nmeanings, 
+                nmeanings,
                 mtcpu,
-                clashes, 
+                clashes,
                 pruned,
                 subsumptions,
                 trees,
                 p_frozen,
                 p_equivalent,
-                p_proactive, 
-                p_retroactive, 
+                p_proactive,
+                p_retroactive,
                 p_utcpu,
                 p_upedges,
                 p_failures,
@@ -569,7 +569,7 @@ tsdb_parse_collect_edges(tsdb_parse &T, tItem *root)
 {
     list<tItem *> edges;
     root->collect_children(edges);
-    
+
     for(list<tItem *>::iterator it = edges.begin(); it != edges.end(); ++it)
     {
         tsdb_edge e;
@@ -583,7 +583,7 @@ tsdb_parse_collect_edges(tsdb_parse &T, tItem *root)
         ostringstream tmp;
         tmp << "(";
         (*it)->daughter_ids(dtrs);
-        for(list<int>::iterator it_dtr = dtrs.begin(); 
+        for(list<int>::iterator it_dtr = dtrs.begin();
             it_dtr != dtrs.end(); ++it_dtr)
             tmp << (it_dtr == dtrs.begin() ? "" : " ") << *it_dtr;
         tmp << ")";
@@ -601,7 +601,7 @@ string tsdb_derivation(tItem *it, int protocolversion) {
 
 void
 cheap_tsdb_summarize_item(chart &Chart, int length,
-                          int treal, int nderivations, 
+                          int treal, int nderivations,
                           tsdb_parse &T)
 {
     int tsdb_mode;
@@ -617,7 +617,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                 ++iter, --nderivations)
             {
                 tsdb_result R;
-                
+
                 R.parse_id = tsdb_unique_id;
                 R.result_id = nres;
                 if(Grammar->sm())
@@ -632,7 +632,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     R.edge_id = (*iter)->id();
                     tsdb_parse_collect_edges(T, *iter);
                 }
-                
+
                 if(! get_opt_string("opt_mrs").empty()) {
                   if ((strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) ||
                       (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0)) {
@@ -663,22 +663,22 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
 #endif
                 }
                 T.push_result(R);
-                nres++;
+                ++nres;
             }
         }
         else // report all passive edges
         {
-            for(chart_iter it(Chart); it.valid(); it++)
+            for(chart_iter it(Chart); it.valid(); ++it)
             {
                 if(it.current()->passive())
                 {
                     tsdb_result R;
-                    
+
                     R.result_id = nres;
                     R.derivation = tsdb_derivation(it.current(), tsdb_mode);
-                    
+
                     T.push_result(R);
-                    nres++;
+                    ++nres;
                 }
             }
         }
@@ -687,26 +687,26 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     if(get_opt_bool("opt_rulestatistics"))
     {
       for(ruleiter rule = Grammar->rules().begin();
-          rule != Grammar->rules().end(); rule++)
+          rule != Grammar->rules().end(); ++rule)
         {
             tsdb_rule_stat S;
             grammar_rule *R = *rule;
 
-            
+
             S.rule = R->printname();
             S.actives = R->actives;
             S.passives = R->passives;
-            
+
             T.push_rule_stat(S);
         }
     }
-    
+
     T.run_id = 1;
     T.parse_id = tsdb_unique_id;
     T.i_id = tsdb_unique_id;
     T.date = string(current_time());
-    tsdb_unique_id++;
-    
+    ++tsdb_unique_id;
+
     T.readings = stats.readings;
     T.words = stats.words;
     T.mtcpu = stats.mtcpu;
@@ -716,9 +716,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.total = stats.tcpu + stats.p_utcpu;
     T.tgc = 0;
     T.treal = treal;
-    
+
     T.others = stats.stat_bytes + stats.p_stat_bytes;
-    
+
     T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
     T.p_etasks = stats.etasks;
     T.p_stasks = stats.stasks;
@@ -726,21 +726,21 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.pedges = stats.pedges + stats.p_upedges;
     T.raedges = stats.raedges;
     T.rpedges = stats.rpedges;
-    
+
     T.unifications = stats.unifications_succ + stats.unifications_fail;
     T.copies = stats.copies;
-    
+
     T.nmeanings = 0;
     T.clashes = stats.unifications_fail;
     T.pruned = stats.words_pruned;
-    
+
     T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
     T.trees = stats.trees;
     T.p_equivalent = stats.p_equivalent;
-    T.p_proactive = stats.p_proactive; 
-    T.p_retroactive = stats.p_retroactive;           
-    T.p_frozen = stats.p_frozen;               
-    T.p_utcpu = stats.p_utcpu;                    
+    T.p_proactive = stats.p_proactive;
+    T.p_retroactive = stats.p_retroactive;
+    T.p_frozen = stats.p_frozen;
+    T.p_utcpu = stats.p_utcpu;
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
     T.p_hypotheses = stats.p_hypotheses;
@@ -756,21 +756,21 @@ cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
     T.parse_id = tsdb_unique_id;
     T.i_id = tsdb_unique_id;
     T.date = string(current_time());
-    tsdb_unique_id++;
-    
+    ++tsdb_unique_id;
+
     T.readings = -1;
     T.pedges = stats.pedges;
     T.words = stats.words;
-    
+
     T.mtcpu = stats.mtcpu;
     T.first = stats.first;
     T.total = stats.tcpu;
     T.tcpu = stats.tcpu;
     T.tgc = 0;
     T.treal = treal;
-    
+
     T.others = stats.stat_bytes;
-    
+
     T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
     T.p_etasks = stats.etasks;
     T.p_stasks = stats.stasks;
@@ -778,17 +778,17 @@ cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
     T.pedges = stats.pedges;
     T.raedges = stats.raedges;
     T.rpedges = stats.rpedges;
-  
+
     T.unifications = stats.unifications_succ + stats.unifications_fail;
     T.copies = stats.copies;
-    
+
     T.subsumptions = stats.subsumptions_succ + stats.subsumptions_fail;
     T.trees = stats.trees;
     T.p_equivalent = stats.p_equivalent;
-    T.p_proactive = stats.p_proactive; 
-    T.p_retroactive = stats.p_retroactive;           
-    T.p_frozen = stats.p_frozen;               
-    T.p_utcpu = stats.p_utcpu;                    
+    T.p_proactive = stats.p_proactive;
+    T.p_retroactive = stats.p_retroactive;
+    T.p_frozen = stats.p_frozen;
+    T.p_utcpu = stats.p_utcpu;
     T.p_upedges = stats.p_upedges;
     T.p_failures = stats.p_failures;
     T.p_hypotheses = stats.p_hypotheses;
@@ -802,7 +802,7 @@ string
 tsdb_escape_string(const string &s)
 {
     string res;
-    
+
     bool lastblank = false;
     for(string::const_iterator it = s.begin(); it != s.end(); ++it)
     {
@@ -828,7 +828,7 @@ tsdb_escape_string(const string &s)
       res += string(1, *it);
         }
     }
-    
+
     return res;
 }
 
@@ -837,7 +837,7 @@ tsdb_result::file_print(FILE *f)
 {
     fprintf(f, "%d@%d@%d@%d@%d@%d@%d@%d@%d@%d@",
             parse_id, result_id, time,
-            r_ctasks, r_ftasks, r_etasks, r_stasks, 
+            r_ctasks, r_ftasks, r_etasks, r_stasks,
             size, r_aedges, r_pedges);
     fprintf(f, "%s@%s@%s@%s@%s\n",
             tsdb_escape_string(derivation).c_str(),
@@ -857,7 +857,7 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
             it != results.end(); ++it)
             it->file_print(f_result);
     }
-    
+
     fprintf(f_parse,
             "%d@%d@%d@"
             "%d@%d@%d@%d@%d@%d@"
@@ -869,27 +869,27 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
             readings, first, total, tcpu, tgc, treal,
             words, l_stasks, p_ctasks, p_ftasks, p_etasks, p_stasks,
             aedges, pedges, raedges, rpedges,
-            unifications, copies, conses, symbols, 
+            unifications, copies, conses, symbols,
             others, gcs, i_load, a_load);
-    
+
     fprintf(f_parse, "%s@%s@(:nmeanings . %d) "
             "(:clashes . %d) (:pruned . %d)\n",
             tsdb_escape_string(date).c_str(),
             tsdb_escape_string(err).c_str(),
             nmeanings, clashes, pruned);
-    
+
     fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
             parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
 }
 
 
-tTsdbDump::tTsdbDump(string directory) 
+tTsdbDump::tTsdbDump(string directory)
   : _parse_file(NULL), _result_file(NULL), _item_file(NULL), _current(NULL) {
   if (directory.size() > 0) {
-    
+
     if(directory[directory.size() - 1] != '/')
       directory += "/";
-    
+
     // returns true on error
     if (print_relations(directory)) return;
 
@@ -933,7 +933,7 @@ void tTsdbDump::finish(chart *Chart, const string &input) {
   }
 }
 
-void tTsdbDump::error(class chart *Chart, const string &input, 
+void tTsdbDump::error(class chart *Chart, const string &input,
                       const class tError & e){
   if (_current != NULL) {
     if(Chart) {

@@ -38,7 +38,7 @@ void dagify_symtabs()
   nstatus = statustable.number();
   statusnames = (char **) salloc(sizeof(char *) * nstatus);
 
-  for(i = 0; i < nstatus; i++)
+  for(i = 0; i < nstatus; ++i)
     statusnames[i] = (char *) statustable.name(i).c_str();
 
   first_leaftype = types.number() - nstaticleaftypes;
@@ -48,7 +48,7 @@ void dagify_symtabs()
   typestatus = (int *) salloc(sizeof(int) * nstatictypes);
   printnames = std::vector<std::string>(nstatictypes);
 
-  for(i = 0; i < types.number(); i ++)
+  for(i = 0; i < types.number(); ++i)
     {
       typenames[i] = types.name(i);
       typestatus[i] = types[i]->status;
@@ -61,7 +61,7 @@ void dagify_symtabs()
   attrname = (char **) salloc(sizeof(char *) * nattrs);
   attrnamelen = (int *) salloc(sizeof(int) * nattrs);
 
-  for(i = 0; i < nattrs; i++)
+  for(i = 0; i < nattrs; ++i)
     {
       attrname[i] = (char *) attributes.name(i).c_str();
       attrnamelen[i] = strlen(attrname[i]);
@@ -87,7 +87,7 @@ struct dag_node *dagify_tdl_term(struct conjunction *C, int type, int ncr)
 
   ncorefs = ncr;
   dagify_corefs = new struct dag_node * [ncorefs];
-  for(i = 0; i < ncorefs; i++) dagify_corefs[i] = 0;
+  for(i = 0; i < ncorefs; ++i) dagify_corefs[i] = 0;
 
   result = dagify_conjunction(C, type);
 
@@ -108,7 +108,7 @@ struct dag_node *dagify_avm(struct avm *A)
   if (get_opt_bool("opt_no_sem"))
     sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
 
-  for(i = 0; i < A->n; i++)
+  for(i = 0; i < A->n; ++i)
     {
       struct dag_arc *arc;
       struct dag_node *val;
@@ -209,7 +209,7 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
   int i;
   int cref = -1;
 
-  for(i = 0; C && i < C->n; i++)
+  for(i = 0; C && i < C->n; ++i)
     if( C->term[i]->tag == TYPE || C->term[i]->tag == ATOM ||
         C->term[i]->tag == STRING )
       {
@@ -254,7 +254,7 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
 
   result = new_dag(type);
 
-  for(i = 0; C && i < C->n; i++)
+  for(i = 0; C && i < C->n; ++i)
     {
       struct dag_node *tmp;
 
@@ -306,7 +306,7 @@ struct dag_node *dagify_conjunction(struct conjunction *C, int type)
 
 void dagify_types()
 {
-  for(int i = 0; i < types.number(); i++)
+  for(int i = 0; i < types.number(); ++i)
     {
       types[i]->thedag = dagify_tdl_term(types[i]->constraint, i,
                                          types[i]->coref ?

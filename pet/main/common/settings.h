@@ -52,8 +52,8 @@ class settings
 
   setting *lookup(const char *name);
 
-  char *value(const char *name);
-  char *req_value(const char *name);
+  const char *value(const char *name);
+  const char *req_value(const char *name);
 
   // string equality based member test
   bool member(const char *name, const char *value);
@@ -62,7 +62,8 @@ class settings
   bool statusmember(const char *name, type_t key);
 
   // string equality based assoc
-  char *assoc(const char *name, const char *key, int arity = 2, int nth = 1);
+  const char *assoc(const char *name, const char *key, int arity = 2,
+                    int nth = 1);
 
 #ifndef FLOP
   // subtype based map

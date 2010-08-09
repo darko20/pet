@@ -44,13 +44,13 @@ inline bool
 intersect_empty(set<int> &a, set<int> &b)
 {
     if(a.size() > b.size()) return intersect_empty(b, a);
-    
+
     for(set<int>::iterator iter = a.begin(); iter != a.end(); ++iter)
     {
         if(b.find(*iter) != b.end())
             return false;
     }
-    
+
     return true;
 }
 
@@ -60,7 +60,7 @@ class pq_item
 public:
     TPrio prio;
     TInf inf;
-    
+
     pq_item() : prio(), inf() {};
     pq_item(const TPrio &p, const TInf &i) : prio(p), inf(i) {};
 };
@@ -88,20 +88,20 @@ choose_paths(ostream &out,
    depth (number of sets), n the total number of sets
  */
 {
-    LOG(logAppl, DEBUG, std::setw(d/10) << "" 
+    LOG(logAppl, DEBUG, std::setw(d/10) << ""
         << "> (" << d << ") (" << covered.size() << ")");
 
     if(d == n)
     {
         time_t t = time(NULL);
-        
+
         if(selected.size() < min_sol_cost)
         {
             min_sol = selected;
             min_sol_cost = selected.size();
 
             LOG(logAppl, DEBUG, "new solution (cost " << min_sol_cost << ")");
-            
+
             out << "; found solution with " << min_sol_cost << " paths on "
                 << ctime(&t)
                 << "; estimated size of remaining search space "
@@ -119,16 +119,16 @@ choose_paths(ostream &out,
 
         return true;
     }
-    
+
     if(selected.size() > min_sol_cost)
     {
         LOG(logAppl, DEBUG, "too expensive");
         return true;
     }
-    
-    if(covered.size() < (unsigned) n 
+
+    if(covered.size() < (unsigned) n
        && intersect_empty(fail_sets[d], selected))
-    {   
+    {
         // Set is not yet covered.
 
         LOG(logAppl, DEBUG,
@@ -147,7 +147,7 @@ choose_paths(ostream &out,
                 it != path_covers[*iter].end(); ++it)
             {
                 if(covered.find(*it) == covered.end())
-                    value++;
+                    ++value;
             }
             candidates.push(pq_item<int, int>(value,*iter));
         }
@@ -156,13 +156,13 @@ choose_paths(ostream &out,
         {
             pq_item<int, int> top = candidates.top();
             searchspace *= candidates.size();
-            
+
             LOG(logAppl, DEBUG, std::setw(d/10) << ""
-                << "- (" << d << "): trying " << top.inf 
+                << "- (" << d << "): trying " << top.inf
                 << " (covers " << top.prio << " more sets)");
 
             selected.insert(top.inf);
-            for(list<int>::iterator it = path_covers[top.inf].begin(); 
+            for(list<int>::iterator it = path_covers[top.inf].begin();
                 it != path_covers[top.inf].end(); ++it)
                 covered.insert(*it);
 
@@ -171,7 +171,7 @@ choose_paths(ostream &out,
                 return false;
 
             selected.erase(top.inf);
-            for(list<int>::iterator it = path_covers[top.inf].begin(); 
+            for(list<int>::iterator it = path_covers[top.inf].begin();
                 it != path_covers[top.inf].end(); ++it)
                 covered.erase(*it);
 
@@ -206,9 +206,9 @@ compute_qc_sets(ostream &out, const char *tname,
     //
     // Get failure sets sorted by frequency.
     //
-    
+
     priority_queue<pq_item<int, list_int *> > sets_by_frequency;
-    
+
     double total_count = 0;
     for(map<list_int *, int, list_int_compare>::iterator iter =
             sets.begin(); iter != sets.end(); ++iter)
@@ -217,7 +217,7 @@ compute_qc_sets(ostream &out, const char *tname,
         sets_by_frequency.push(pq_item<int, list_int *>(iter->second,
                                                         iter->first));
     }
-    
+
     out << ", total count " << setprecision(0) << total_count << ":\n;"
         << endl;
     total_count /= 100.0;
@@ -235,37 +235,37 @@ compute_qc_sets(ostream &out, const char *tname,
     {
         pq_item<int, list_int *> top = sets_by_frequency.top();
         sets_by_frequency.pop();
-        
+
         count_so_far += top.prio;
 
         if(count_so_far / total_count >= threshold)
             break;
 
-        out << ";  #" << n << " (" << top.prio << ", " 
+        out << ";  #" << n << " (" << top.prio << ", "
             << setprecision(1) << (float) count_so_far / total_count
             << "%) [";
-        
+
         list_int *l = top.inf;
         while(l)
         {
             if(first(l) > maxpathid)
                 maxpathid = first(l);
-            
-            out << first(l); 
+
+            out << first(l);
             if (rest(l) == NULL) break;
             out << " ";
 
             l = rest(l);
         }
-        
+
         out << "]" << endl;
 
         top.prio = -length(top.inf);
         sets_by_size.push(top);
-        
-        n++;
+
+        ++n;
     }
-    
+
     //
     // Construct fail_sets and fail_weight arrays sorted by size of set.
     //
@@ -278,22 +278,22 @@ compute_qc_sets(ostream &out, const char *tname,
     {
         pq_item<int, list_int *> top = sets_by_size.top();
         sets_by_size.pop();
-        
+
         list_int *l = top.inf;
         fail_weight[n] = sets[l];
-        
+
         while(l)
         {
             fail_sets[n].insert(first(l));
             path_covers[first(l)].push_back(n);
             l = rest(l);
         }
-        n++;
+        ++n;
     }
-    
+
     // Find minimal set of paths covering all failure sets
     time_t t = time(NULL);
-    out << "; searching for minimal number of paths to cover " << n 
+    out << "; searching for minimal number of paths to cover " << n
         << " sets " << ctime(&t);
 
     min_sol_cost = failure_id.size() + 1;
@@ -303,14 +303,14 @@ compute_qc_sets(ostream &out, const char *tname,
     set<int> covered;
     minimal = choose_paths(out, fail_sets, path_covers, selected, covered,
                            0, n, t + 30*60);
-    
+
     t = time(NULL);
     out << "; " << (minimal ? "minimal" : "maybe-minimal")
         << " solution (" << min_sol_cost << " paths) found on " << ctime(&t)
         << ";  ";
 
     // compute optimal order for selected paths
-    
+
     priority_queue< pq_item<int, int> > top_paths;
 
     for(set<int>::iterator iter = min_sol.begin();
@@ -318,27 +318,27 @@ compute_qc_sets(ostream &out, const char *tname,
     {
         // compute sum of value of all sets that contain `*iter'
         int v = 0, i = *iter;
-        
-        for(map<int,int>::size_type j = 0; j < sets.size(); j++)
+
+        for(map<int,int>::size_type j = 0; j < sets.size(); ++j)
         {
             if(fail_sets[j].find(i) != fail_sets[j].end())
                 v += fail_weight[j];
         }
-        
+
         out << i << " [" << v << "] ";
         top_paths.push(pq_item<int,int>(v, i));
     }
-    
+
     out << "\n\n:begin :instance.\n\n" << tname << " := *top* &\n[ ";
-    
+
     n = 0;
     while(!top_paths.empty())
     {
         pq_item<int, int> top = top_paths.top();
         top_paths.pop();
-        
+
         failure fail = id_failure[top.inf];
-        
+
         if(n != 0) out << ",\n  " ;
         if(!fail.empty_path())
         {
@@ -347,12 +347,12 @@ compute_qc_sets(ostream &out, const char *tname,
         }
         else
             out << DUMMY_ATTR;
-        
+
         out << " \"" << n << "\" #| " << top.prio << " |#";
-        
-        n++;
+
+        ++n;
     }
-    
+
     out << " ].\n\n:end :instance." << endl << endl;
 }
 
@@ -362,25 +362,25 @@ compute_qc_traditional(ostream &out, const char *tname,
                        int max)
 {
     std::priority_queue< pq_item<double, int> > top_failures;
-    
+
     for(map<int, double>::iterator iter = paths.begin();
         iter != paths.end(); ++iter)
     {
         top_failures.push(pq_item<double, int>((*iter).second, (*iter).first));
     }
-    
+
     out << "; traditional paths (max " << max << ")" << endl;
-    
+
     out << ":begin :instance.\n\n" << tname << " := *top* &\n[ ";
-    
+
     int n = 0;
     while(!top_failures.empty() && n < max)
     {
-        pq_item<double, int> top = top_failures.top(); 
+        pq_item<double, int> top = top_failures.top();
         top_failures.pop();
-        
+
         failure fail = id_failure[top.inf];
-        
+
         if(n != 0) out << ",\n  ";
         if(!fail.empty_path())
         {
@@ -390,8 +390,8 @@ compute_qc_traditional(ostream &out, const char *tname,
         else
             out << DUMMY_ATTR;
         out << " \"" << n << "\" #| " << setprecision(2) << top.prio << " |#";
-      
-      n++;
+
+        ++n;
     }
     out << " ].\n\n:end :instance." << endl << endl;
 }
@@ -404,7 +404,7 @@ compute_qc_paths(ostream &out, int packing_type) {
       << ";;; " << CHEAP_VERSION << "\n;;;" << endl << endl ;
 
   out << ";; " << next_failure_id << " total failing paths:\n;;" << endl;
-  for(int i = 0; i < next_failure_id; i++) {
+  for(int i = 0; i < next_failure_id; ++i) {
     out << ";; #" << i << " ";
     id_failure[i].print_path(out);
     out << endl;
@@ -412,13 +412,13 @@ compute_qc_paths(ostream &out, int packing_type) {
   out << endl;
 
   out << ";;\n;; quickcheck paths (unification)\n;;" << endl << endl;
-  compute_qc_traditional(out, 
+  compute_qc_traditional(out,
                          (packing_type ? "qc_unif_trad_pack" : "qc_unif_trad"),
                          failing_paths_unif, 10000);
 
   compute_qc_sets(out, packing_type ? "qc_unif_set_pack" : "qc_unif_set",
                   failing_sets_unif, 99.0);
-  
+
   if(packing_type) {
     out << ";;\n;; quickcheck paths (subsumption)\n;;" << endl << endl;
     compute_qc_traditional(out, "qc_subs_trad_pack",

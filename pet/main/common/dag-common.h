@@ -32,7 +32,7 @@
 struct dag_node;
 
 /** A dag node pointer representing unification failure */
-extern struct dag_node *FAIL;
+extern dag_node *FAIL;
 
 /** A flag to trigger the additional unification of typedags during the
  *  unification of two dags.
@@ -118,7 +118,7 @@ struct constraint_info
   /** The generation counter indicating if this info is used */
   int gen;
   /** The list structure link */
-  struct constraint_info *next;
+  constraint_info *next;
 };
 
 /** The constraint cache: an array containing as many elements as there are

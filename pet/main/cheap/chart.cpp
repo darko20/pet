@@ -36,7 +36,7 @@ chart::chart(int len, auto_ptr<item_owner> owner)
       _Cp_span(len + 1),
       _item_owner(owner)
 {
-    for(int i = 0; i <= len; i++)
+    for(int i = 0; i <= len; ++i)
     {
         _Cp_span[i].resize(len + 1 - i);
     }
@@ -55,7 +55,7 @@ void chart::reset(int len)
     _Ca_start.clear(); _Ca_start.resize(len + 1);
     _Ca_end.clear();   _Ca_end.resize(len + 1);
     _Cp_span.clear();  _Cp_span.resize(len + 1);
-    for (int i = 0; i <= len; i++) {
+    for (int i = 0; i <= len; ++i) {
         _Cp_span[i].clear();
         _Cp_span[i].resize(len + 1 - i);
     }
@@ -74,7 +74,7 @@ void chart::add(tItem *it)
         _Cp_start[it->start()].push_back(it);
         _Cp_end[it->end()].push_back(it);
         _Cp_span[it->start()][it->end()-it->start()].push_back(it);
-        _pedges++;
+        ++_pedges;
     }
     else
     {
@@ -88,7 +88,7 @@ void chart::add(tItem *it)
 /** A predicate testing the existence of some item in a hash_set */
 class contained : public unary_function< bool, tItem *> {
 public:
-  contained(hash_set<tItem *> &the_set) : _set(the_set) { } 
+  contained(hash_set<tItem *> &the_set) : _set(the_set) { }
   bool operator()(tItem *arg) { return _set.find(arg) != _set.end(); }
 private:
   hash_set<tItem *> _set;
@@ -96,15 +96,15 @@ private:
 
 /** Remove the items in the set from the chart */
 void chart::remove(hash_set<tItem *> &to_delete)
-{ 
+{
     _Chart.erase(remove_if(_Chart.begin(), _Chart.end(), contained(to_delete))
                  , _Chart.end());
     for(hash_set<tItem *>::const_iterator hit = to_delete.begin()
-          ; hit != to_delete.end(); hit++) {
+          ; hit != to_delete.end(); ++hit) {
 #ifdef PETDEBUG
       it->print(DEBUGLOGGER); DEBUGLOGGER << "removed " << endl;
 #endif
-      
+
       tItem *it = *hit;
       if(it->passive())
         {
@@ -124,7 +124,7 @@ void chart::remove(hash_set<tItem *> &to_delete)
 }
 
 void chart::print(tAbstractItemPrinter *pr, item_predicate toprint) const {
-  for(chart_iter_filtered pos(this, toprint); pos.valid(); pos++) {
+  for(chart_iter_filtered pos(this, toprint); pos.valid(); ++pos) {
     pr->print(pos.current());
   }
 }
@@ -136,7 +136,7 @@ void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
   if (pr == NULL) {
     pr = &def_print;
   }
-  for(chart_iter_filtered pos(this, toprint); pos.valid(); pos++) {
+  for(chart_iter_filtered pos(this, toprint); pos.valid(); ++pos) {
     out << endl;
     pr->print(pos.current());
   }
@@ -146,33 +146,33 @@ void chart::get_statistics()
 {
     // calculate aedges, pedges, raedges, rpedges
     chart_iter iter(this);
-    
+
     long int totalsize = 0;
-    
+
     while(iter.valid())
     {
         tItem *it = iter.current();
-        
+
         if(!it->inflrs_complete_p())
         {
-            stats.medges++;
+            ++stats.medges;
         }
         else if(it -> passive())
         {
-            stats.pedges++;
+            ++stats.pedges;
             if(it -> result_contrib())
-                stats.rpedges++;
-            
+                ++stats.rpedges;
+
             fs f = it -> get_fs();
             totalsize += f.size();
         }
         else
         {
-            stats.aedges++;
+            ++stats.aedges;
             if(it -> result_contrib())
-                stats.raedges++;
+                ++stats.raedges;
         }
-        iter++;
+        ++iter;
     }
     stats.fssize = (stats.pedges > 0) ? totalsize / stats.pedges : 0;
 }
@@ -195,7 +195,7 @@ chart::get_surface_string() {
 
   shortest_path<unsigned int>(inputs, io, false);
   string surface;
-  for(item_citer it = inputs.begin(); it != inputs.end(); it++) {
+  for(item_citer it = inputs.begin(); it != inputs.end(); ++it) {
     const tInputItem *inp = dynamic_cast<const tInputItem *>(*it);
     if (inp != NULL) {
       surface = surface + inp->orth() + " ";
@@ -220,7 +220,7 @@ chart::connected(item_predicate valid) {
   while(! reached[rightmost()] && ! current.empty()) {
     pos = current.front(); current.pop();
     for(item_iter it = _Cp_start[pos].begin()
-          ; it != _Cp_start[pos].end(); it++) {
+          ; it != _Cp_start[pos].end(); ++it) {
       if (! reached[(*it)->end()] && valid(*it)) {
         reached[(*it)->end()] = true;
         current.push((*it)->end());

@@ -29,25 +29,23 @@
 #include <functional>
 
 /** Minimum overhead single linked lists of integers */
-typedef struct list_int {
+struct list_int {
   /** The first of this cons */
   int val;
   /** The rest of this cons */
   list_int *next;
-} list_int;
+};
 
 /** create a new cons cell with value = \a v and successor \a n */
 inline list_int *cons(int v, list_int *n)
 {
-  list_int *c;
-
-  c = new list_int;
+  list_int *c = new list_int;
   c->next = n;
   c->val = v;
-  
+
   return c;
 }
-  
+
 /** Return the content of the cons cell \a *l */
 inline int first(const list_int *l)
 {
@@ -66,11 +64,9 @@ inline list_int *rest(const list_int *l)
  */
 inline list_int *pop_first(list_int *l)
 {
-  list_int *res;
-
   if(!l) return 0;
 
-  res = rest(l);
+  list_int* res = rest(l);
   delete l;
   return res;
 }
@@ -113,7 +109,7 @@ inline bool contains(const list_int *l, int e)
     {
       if(first(l) == e)
         return true;
-      
+
       l = rest(l);
     }
   return false;
@@ -144,7 +140,10 @@ inline list_int *append(list_int *l, int e)
 inline int length(const list_int *l)
 {
   int n = 0;
-  while(l) n++, l = rest(l);
+  while(l) {
+    ++n;
+    l = rest(l);
+  }
   return n;
 }
 
@@ -172,7 +171,7 @@ inline list_int *nreverse(list_int *l)
   }
 
   while(l)
-    { 
+    {
       curr = l;
       l = rest(l);
       curr->next = rev;
@@ -186,7 +185,7 @@ inline list_int *nreverse(list_int *l)
 inline list_int *copy_list(const list_int *l)
 {
   list_int *head = 0, **tail = &head;
-  
+
   while(l)
     {
       *tail = cons(first(l), 0);
@@ -257,12 +256,12 @@ inline int compare(const list_int *a, const list_int *b)
         return -1;
       if(first(b) < first(a))
         return 1;
-      
+
       a = rest(a); b = rest(b);
     }
-  
+
   if(a == b) return 0;
-  
+
   if(!a) return -1;
   if(!b) return 1;
 
@@ -270,7 +269,7 @@ inline int compare(const list_int *a, const list_int *b)
 }
 
 /** Binary predicate to perform lexicographic ordering of list_int* objects. */
-class list_int_compare 
+class list_int_compare
 : public std::binary_function<list_int *, list_int *, bool>
 {
  public:

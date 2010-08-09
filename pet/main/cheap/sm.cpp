@@ -215,7 +215,7 @@ tSM::findFile(const char *fileName, const char *basePath)
                                       + strlen(fileName) + 1);
         strcpy(fname, prefix);
         strcat(fname, fileName);
-      
+
         res = find_file(fname, SM_EXT);
 
         free(prefix);
@@ -225,7 +225,7 @@ tSM::findFile(const char *fileName, const char *basePath)
         res = (char *) malloc(strlen(fileName) + 1);
         strcpy(res, fileName);
     }
-  
+
     return res;
 }
 */
@@ -252,7 +252,7 @@ tSM::scoreLocalTree(grammar_rule *R, vector<tItem *> dtrs)
   v2.push_back(dtrs[R->nextarg()-1]->identity());
   total = combineScores(total, score(tSMFeature(v1)));
 
-  if (R->arity() > 1) 
+  if (R->arity() > 1)
     total = combineScores(total, score(tSMFeature(v2)));
 
   return total;
@@ -271,7 +271,7 @@ tSM::scoreLocalTree(grammar_rule *R, list<tItem *> dtrs)
   double total = neutralScore();
   int i = 1;
   for(list<tItem *>::iterator dtr = dtrs.begin();
-      dtr != dtrs.end(); ++dtr, i++)
+      dtr != dtrs.end(); ++dtr, ++i)
     {
       v1.push_back((*dtr)->identity());
       total = combineScores(total, (*dtr)->score());
@@ -281,7 +281,7 @@ tSM::scoreLocalTree(grammar_rule *R, list<tItem *> dtrs)
 
   total = combineScores(total, score(tSMFeature(v1)));
 
-  if (R->arity() > 1) 
+  if (R->arity() > 1)
     total = combineScores(total, score(tSMFeature(v2)));
 
   return total;
@@ -321,7 +321,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path, unsigned int gplevel
     // push down appropriate number of ancestors
     unsigned int j = path.size();
     for (list<tItem*>::iterator gp = path.begin();
-         gp != path.end(); gp ++, j --)
+         gp != path.end(); ++gp, --j)
       if (j <= (unsigned int)i) {
         if (*gp == NULL) {
           v1.push_back(INT_MAX);
@@ -332,7 +332,7 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path, unsigned int gplevel
           v2.push_back((*gp)->identity());
         }
       }
-    
+
     if (hypo->edge->rule() == NULL) { // tLexItem
       // push down the lexical type and orth
       tLexItem *lex = (tLexItem*)hypo->edge;
@@ -348,15 +348,15 @@ tSM::score_hypothesis(tHypothesis* hypo, list<tItem*> path, unsigned int gplevel
       if (newpath.size() > gplevel)
         newpath.pop_front();
       for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
-           hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr++) {
+           hypo_dtr != hypo->hypo_dtrs.end(); ++hypo_dtr) {
         v1.push_back((*hypo_dtr)->edge->identity());
         if (i == 0) { // combine the scores of daughters only once
           (*hypo_dtr)->scores.size(); //debug
-          if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end()) 
+          if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end())
             score_hypothesis(*hypo_dtr, newpath, gplevel);
           total = combineScores(total, (*hypo_dtr)->scores[newpath]);
         }
-        if (--key == 0) 
+        if (--key == 0)
           v2.push_back((*hypo_dtr)->edge->identity());
 
       }
@@ -426,13 +426,13 @@ tMEM::parseModel()
     match_keyword("begin");
     match(T_COLON, "`:' before keyword", true);
     tmp = match(T_ID, "mem|model", false);
-    if(strcmp(tmp, "mem") == 0) 
+    if(strcmp(tmp, "mem") == 0)
       _format = 0;
     else if (strcmp(tmp, "model") == 0)
       _format = 1;
     else if (strcmp(tmp, "lexmem") == 0)
       _format = 2;
-    else 
+    else
         syntax_error("expecting `mem|model' section", LA(0));
 
     free(tmp);
@@ -440,7 +440,7 @@ tMEM::parseModel()
     _ctxts = string(tmp);
     free(tmp);
     match(T_DOT, "`.' after section opening", true);
-    
+
     parseOptions();
 
     match(T_COLON, "`:' before keyword", true);
@@ -510,8 +510,8 @@ tMEM::parseOptions()
         consume(1);
       }
       free(pname);
-    }    
-    else 
+    }
+    else
       consume(1);
   }
 }
@@ -577,7 +577,7 @@ tMEM::parseFeature(int n)
                 if(t == -1)
                     t = lookup_type(inst+1);
                 free(inst);
-                
+
                 if(t == -1)
                 {
                   LOG(logSM, WARN, "Unknown type/instance `" << tmp
@@ -593,7 +593,7 @@ tMEM::parseFeature(int n)
             {
                 // This is an integer.
                 v.push_back(map()->intToSubfeature(t));
-                // Set the level of grand-parenting to 0 to be compatible with 
+                // Set the level of grand-parenting to 0 to be compatible with
                 // the new format
                 v.push_back(map()->intToSubfeature(0));
             }
@@ -617,7 +617,7 @@ tMEM::parseFeature(int n)
     }
 
     match(T_RBRACKET, "end of feature vector", true);
-    
+
     tmp = match(T_ID, "feature weight", false);
     // _fix_me_
     // check syntax of number
@@ -671,7 +671,7 @@ tMEM::parseFeature2(int n)
                 if(t == -1)
                     t = lookup_type(inst+1);
                 free(inst);
-                
+
                 if(t == -1)
                 {
                   LOG(logSM, WARN, "Unknown type/instance `" << tmp
@@ -698,7 +698,7 @@ tMEM::parseFeature2(int n)
             free(tmp);
         }
         else if (LA(0)->tag == T_CAP) {
-          // This is a special 
+          // This is a special
           consume(1);
           v.push_back(INT_MAX);
         }
@@ -717,7 +717,7 @@ tMEM::parseFeature2(int n)
     }
 
     match(T_RBRACKET, "end of feature vector", true);
-    
+
     tmp = match(T_ID, "feature weight", false);
     // _fix_me_
     // check syntax of number
@@ -783,7 +783,7 @@ tMEM::parseFeature_lexpred(int n)
                 if(t == -1)
                     t = lookup_type(inst+1);
                 free(inst);
-                
+
                 if(t == -1)
                 {
                     LOG(logSM, ERROR, "Unknown type/instance `" << tmp
@@ -810,7 +810,7 @@ tMEM::parseFeature_lexpred(int n)
             free(tmp);
         }
         else if (LA(0)->tag == T_CAP) {
-          // This is a special 
+          // This is a special
           consume(1);
           v.push_back(INT_MAX);
         }
@@ -825,7 +825,7 @@ tMEM::parseFeature_lexpred(int n)
     }
 
     match(T_RBRACKET, "end of feature vector", true);
-    
+
     tmp = match(T_ID, "feature weight", false);
     // _fix_me_
     // check syntax of number
@@ -846,7 +846,7 @@ tMEM::parseFeature_lexpred(int n)
 
 string normstr(string str) {
   string newstr;
-  for (unsigned int i = 0; i < str.length(); i ++) {
+  for (unsigned int i = 0; i < str.length(); ++i) {
     if (islower(str[i]) || isdigit(str[i]) ||
         str[i] == '-' || str[i] == '_' ||
         str[i] == ' ' || str[i] == '\'')
@@ -863,7 +863,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
   //double max = DBL_MIN; // _fix_me DBL_MIN?
   list<double> scores(n);
   for (list<double>::iterator it = scores.begin();
-       it != scores.end(); it ++) {
+       it != scores.end(); ++it) {
     *it = DBL_MIN;
   }
   list<type_t> types(n);
@@ -880,7 +880,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     v.push_back(map()->typeToSubfeature(output));
     v.push_back(map()->intToSubfeature(0));
     int dc = 0;
-    for (unsigned int p = 0; p < words[4].length(); p ++)
+    for (unsigned int p = 0; p < words[4].length(); ++p)
       if (isdigit(words[4][p])) {
         dc = 1;
         break;
@@ -893,7 +893,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     v.push_back(map()->typeToSubfeature(output));
     v.push_back(map()->intToSubfeature(1));
     int uc = 0;
-    for (unsigned int p = 0; p < words[4].length(); p ++)
+    for (unsigned int p = 0; p < words[4].length(); ++p)
       if (isupper(words[4][p])) {
         uc = 1;
         break;
@@ -905,16 +905,16 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     //2: with space or hypen? 0:1
     v.push_back(map()->typeToSubfeature(output));
     v.push_back(map()->intToSubfeature(2));
-    if (words[4].find(' ') != string::npos || 
+    if (words[4].find(' ') != string::npos ||
         words[4].find('-') != string::npos)
       v.push_back(map()->intToSubfeature(1));
-    else 
+    else
       v.push_back(map()->intToSubfeature(0));
     total = combineScores(total, score(tSMFeature(v)));
     v.clear();
 
     //3: prefix len str
-    for (unsigned int i = 1; i < 3; i ++) {
+    for (unsigned int i = 1; i < 3; ++i) {
       v.push_back(map()->typeToSubfeature(output));
       v.push_back(map()->intToSubfeature(3));
       v.push_back(map()->intToSubfeature(i));
@@ -928,7 +928,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     }
 
     //4: suffix len str
-    for (unsigned int i = 1; i < 3; i ++) {
+    for (unsigned int i = 1; i < 3; ++i) {
       v.push_back(map()->typeToSubfeature(output));
       v.push_back(map()->intToSubfeature(4));
       v.push_back(map()->intToSubfeature(i));
@@ -942,7 +942,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     }
 
     //5: context word features
-    for (int i = 0; i < 4; i ++) {
+    for (int i = 0; i < 4; ++i) {
       string word;
       if (words[i].empty())
         word = "_";
@@ -957,7 +957,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
       v.clear();
     }
     //6: context type features
-    for (int i = 0; i < 4; i ++) {
+    for (int i = 0; i < 4; ++i) {
       if (letypes[i].empty()) {
         v.push_back(map()->typeToSubfeature(output));
         v.push_back(map()->intToSubfeature(6));
@@ -967,10 +967,10 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
         v.clear();
       } else {
         for (vector<type_t>::iterator it = letypes[i].begin();
-             it != letypes[i].end(); it ++) {
+             it != letypes[i].end(); ++it) {
           v.push_back(map()->typeToSubfeature(output));
           v.push_back(map()->intToSubfeature(6));
-          v.push_back(map()->intToSubfeature(i));       
+          v.push_back(map()->intToSubfeature(i));
           v.push_back(map()->typeToSubfeature(*it));
           total = combineScores(total, score(tSMFeature(v)));
           v.clear();
@@ -979,7 +979,7 @@ tSM::bestPredict(std::vector<string> words, std::vector<std::vector<int> > letyp
     }
     list<type_t>::iterator tit = types.begin();
     for (list<double>::iterator sit = scores.begin();
-         sit != scores.end() && tit != types.end(); sit ++, tit ++ ) {
+         sit != scores.end() && tit != types.end(); ++sit, ++tit) {
       if (total > *sit) {
         scores.insert(sit, 1, total);
         types.insert(tit, 1, output);
@@ -1027,7 +1027,7 @@ tPCFG::score(std::vector<type_t> rule) {
   v.push_back(map()->intToSubfeature(1));
   v.push_back(map()->intToSubfeature(0));
   for (std::vector<type_t>::iterator iter = rule.begin();
-       iter != rule.end(); iter ++)
+       iter != rule.end(); ++iter)
     v.push_back(map()->typeToSubfeature(*iter));
   double s = score(tSMFeature(v));
   if (s > 0) {
@@ -1047,7 +1047,7 @@ tPCFG::scoreLocalTree(class grammar_rule * R, std::list<class tItem*> dtrs) {
   r.push_back(R->type());
   double total = 0.0;
   for (list<tItem*>::iterator dtr = dtrs.begin();
-       dtr != dtrs.end(); dtr ++) {
+       dtr != dtrs.end(); ++dtr) {
     r.push_back((*dtr)->identity());
     double dscore = (*dtr)->score();
     if (dscore > 0) {
@@ -1061,7 +1061,7 @@ tPCFG::scoreLocalTree(class grammar_rule * R, std::list<class tItem*> dtrs) {
     total = combineScores(total, (*dtr)->score());
   }
   total = combineScores(total, score(r));
-  
+
   //_fix_me_ : smoothing here for unseen rules !!!
   return total;
 }
@@ -1095,7 +1095,7 @@ double
 tPCFG::score_hypothesis(struct tHypothesis* hypo, std::list<class tItem*> path, int gplevel) {
   vector<type_t> r;
   double total = 0.0;
-  
+
   if (hypo->edge->rule() == NULL) // tLexItem
     total = scoreLeaf(dynamic_cast<tLexItem*>(hypo->edge));
   else { // tPhrasalItem
@@ -1106,7 +1106,7 @@ tPCFG::score_hypothesis(struct tHypothesis* hypo, std::list<class tItem*> path, 
     if (newpath.size() > (unsigned)gplevel)
       newpath.pop_front();
     for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
-	 hypo_dtr != hypo->hypo_dtrs.end(); hypo_dtr ++) {
+	 hypo_dtr != hypo->hypo_dtrs.end(); ++hypo_dtr) {
       r.push_back((*hypo_dtr)->edge->identity());
       if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end())
 	score_hypothesis(*hypo_dtr, newpath, gplevel);
@@ -1117,13 +1117,13 @@ tPCFG::score_hypothesis(struct tHypothesis* hypo, std::list<class tItem*> path, 
 //       bool consider_rule = true;
 //       if (!_allow_lexical_rules) { // in case lexical rules are not allowed
 // 	for (std::list<grammar_rule*>::const_iterator r = G()->lexrules().begin();
-// 	     r != G()->lexrules().end(); r ++) // check whether this is a lexical rule
+// 	     r != G()->lexrules().end(); ++r) // check whether this is a lexical rule
 // 	  if (hypo->edge->rule() == (*r)) {
 // 	    consider_rule = false;
 // 	    break;
 // 	  }
-//       }	
-//       if (consider_rule) 
+//       }
+//       if (consider_rule)
     total = combineScores(total, score(r));
     // }
   }
@@ -1157,7 +1157,7 @@ tPCFG::parseModel() {
 
     match(T_ID, "number of contexts", true);
     match(T_DOT, "`.' after section opening", true);
-    
+
     parseOptions();
 
     match(T_COLON, "`:' before keyword", true);
@@ -1197,11 +1197,11 @@ tPCFG::parseModel() {
     match(T_DOT, "`.' after section end", true);
 }
 
-void 
+void
 tPCFG::parseOptions() {
   // _fix_me_
   // actually parse this
-  
+
   // for now we just skip until we get a `:' `begin'
   char * pname;
   char * pvalue;
@@ -1240,13 +1240,13 @@ tPCFG::parseOptions() {
         consume(1);
       }
       free(pname);
-    }	 
-    else 
+    }
+    else
       consume(1);
   }
 }
 
-void 
+void
 tPCFG::parseFeatures(int nFeatures) {
   //LOG(logAppl, INFO, "[" << nFeatures << " rules] ");
   fprintf(stderr, "[%d rules] ", nFeatures);
@@ -1257,7 +1257,7 @@ tPCFG::parseFeatures(int nFeatures) {
     if (LA(0)->tag == T_COLON &&
 	is_keyword(LA(1), "end"))
       break;
-    
+
     parseFeature(n++);
   }
 }
@@ -1271,7 +1271,7 @@ tPCFG::parseFeature(int n) {
   match(T_ID, "feature index", true);
   match(T_RPAREN, "after feature index", true);
   match(T_LBRACKET, "begin of rule", true);
-  
+
   // Vector of subfeatures.
   vector<int> v;
   vector<type_t> rule;
@@ -1295,7 +1295,7 @@ tPCFG::parseFeature(int n) {
 	if(t == -1)
 	  t = lookup_type(inst+1);
 	free(inst);
-        
+
 	if(t == -1) {
 	  // LOG(logSM, ERROR, "Unknown type/instance `" << tmp
           //     << "' in rule #" << n);
@@ -1334,7 +1334,7 @@ tPCFG::parseFeature(int n) {
       free(tmp);
     }
     else if (LA(0)->tag == T_CAP) {
-      // This is a special 
+      // This is a special
       consume(1);
       v.push_back(INT_MAX);
     }
@@ -1348,7 +1348,7 @@ tPCFG::parseFeature(int n) {
   }
 
   match(T_RBRACKET, "end of rule", true);
-  
+
   // weights are actually optional
   double w = 1.0;
   if (LA(0)->tag == T_ID) {
@@ -1367,13 +1367,13 @@ tPCFG::parseFeature(int n) {
   int rulefreq = atoi(tmp);
   free(tmp);
   match(T_RBRACE, "end of frequency counts", true);
-  
+
   if (w > 0) // log probability should never be >0, this indicates
              // that weight reestimation is needed. for the moment,
              // record rule frequency in the weight
     w = rulefreq;
 
-  
+
   if (good) {
     int code = map()->featureToCode(v);
     if (goodrule)
@@ -1410,12 +1410,12 @@ tPCFG::combineScores(double a, double b) {
 void
 tPCFG::adjustWeights() {
   for (std::list<grammar_rule *>::const_iterator rule = G()->pcfg_rules().begin();
-       rule != G()->pcfg_rules().end(); rule ++) {
+       rule != G()->pcfg_rules().end(); ++rule) {
     std::vector<int> v;
     v.push_back(map()->intToSubfeature(1));
     v.push_back(map()->intToSubfeature(0));
     v.push_back(map()->typeToSubfeature((*rule)->type()));
-    for (int i = 0; i < (*rule)->arity(); i ++) {
+    for (int i = 0; i < (*rule)->arity(); ++i) {
       type_t t = (*rule)->nth_pcfg_arg(i+1);
       v.push_back(map()->typeToSubfeature(t));
     }
@@ -1424,7 +1424,7 @@ tPCFG::adjustWeights() {
       if (_laplace_smoothing == 0) // naive estimation
         _weights[code] = log(_weights[code] / _lhs_freq_counts[(*rule)->type()]);
       else // with laplacian smoothing
-        _weights[code] = log((_weights[code] + _laplace_smoothing) / 
+        _weights[code] = log((_weights[code] + _laplace_smoothing) /
                              (_lhs_freq_counts[(*rule)->type()] + (_lhs_rule_counts[(*rule)->type()] + 1)*_laplace_smoothing));
     }
   }
@@ -1448,9 +1448,9 @@ tGM::~tGM() {
 }
 
 double tGM::conditional (grammar_rule *rule, std::vector<class tItem *> vItem) {
-  std::vector<type_t> v; 
+  std::vector<type_t> v;
   v.push_back (rule->type());
-  for (unsigned int i=0; i<vItem.size(); i++) {
+  for (unsigned int i=0; i<vItem.size(); ++i) {
     v.push_back (vItem[i]->identity());
   }
   return conditional(v);
@@ -1460,29 +1460,29 @@ double tGM::conditional (grammar_rule *rule, std::vector<class tItem *> vItem) {
 double tGM::conditional (std::vector<type_t> v) {
   std::map<std::vector<type_t>, double>::iterator it = _weights.find(v);
   if (it != _weights.end()) {
-    return it->second; 
+    return it->second;
   } else {
-    // If we can't find the conditional, we fall back to the unknown conditional. 
+    // If we can't find the conditional, we fall back to the unknown conditional.
     return unknown_conditional (v[0]);
   }
 }
 
 double tGM::unknown_conditional (type_t ruletype) {
     std::map<type_t, double>::iterator it2 = _unknown_conditionals.find(ruletype);
-    if (it2 != _unknown_conditionals.end()) {      
-      return it2->second; 
+    if (it2 != _unknown_conditionals.end()) {
+      return it2->second;
     } else {
-      // We don't even know the rule. 
-      // Using _unknown_prior here results in using this number for both the prior and the conditional. 
-      //return _unknown_prior; 
+      // We don't even know the rule.
+      // Using _unknown_prior here results in using this number for both the prior and the conditional.
+      //return _unknown_prior;
       return -10000.0;
     }
 }
 
 double tGM::prior (grammar_rule *rule) {
-  std::map<type_t, double>::iterator it = _prior_weights.find(rule->type()); 
+  std::map<type_t, double>::iterator it = _prior_weights.find(rule->type());
   if (it != _prior_weights.end()) {
-    return it->second; 
+    return it->second;
   } else {
     return _unknown_prior;
   }
@@ -1491,14 +1491,14 @@ double tGM::prior (grammar_rule *rule) {
 void tGM::calculateWeights () {
 
   // Conditionals
-  for (std::map< std::vector<type_t>, int>::iterator it=_counts.begin(); it!=_counts.end(); it++) {
+  for (std::map< std::vector<type_t>, int>::iterator it=_counts.begin(); it!=_counts.end(); ++it) {
     type_t lhs = it->first.front();
     _weights[it->first] = log(double(it->second + _lidstone_delta) / (double(_prior_counts[lhs]) + _lidstone_delta * (_lhs_counts[lhs]+1)));
   }
-  
+
   // Priors
   double denom = _total_count + _lidstone_delta * (_lhs_counts.size()+1);
-  for (std::map<type_t, int>::iterator it=_prior_counts.begin(); it!=_prior_counts.end(); it++) {
+  for (std::map<type_t, int>::iterator it=_prior_counts.begin(); it!=_prior_counts.end(); ++it) {
     _prior_weights[it->first] = log(double(it->second + _lidstone_delta) / denom);
     _unknown_conditionals[it->first] = log(_lidstone_delta / (double(_prior_counts[it->first]) + _lidstone_delta * (_lhs_counts[it->first]+1)));
   }
@@ -1527,7 +1527,7 @@ void tGM::parseModel() {
 
     match(T_ID, "number of contexts", true);
     match(T_DOT, "`.' after section opening", true);
-    
+
     parseOptions();
 
     match(T_COLON, "`:' before keyword", true);
@@ -1567,7 +1567,7 @@ void tGM::parseModel() {
     match(T_DOT, "`.' after section end", true);
 }
 
-void 
+void
 tGM::parseOptions() {
   // We parse but ignore all options here.
   char * pname;
@@ -1607,13 +1607,13 @@ tGM::parseOptions() {
         consume(1);
       }
       free(pname);
-    }	 
-    else 
+    }
+    else
       consume(1);
   }
 }
 
-void 
+void
 tGM::parseFeatures(int nFeatures) {
   fprintf(stderr, "[%d rules] ", nFeatures);
   //_weights.resize(nFeatures);
@@ -1623,7 +1623,7 @@ tGM::parseFeatures(int nFeatures) {
     if (LA(0)->tag == T_COLON &&
 	is_keyword(LA(1), "end"))
       break;
-    
+
     parseFeature(n++);
   }
 }
@@ -1638,7 +1638,7 @@ tGM::parseFeature(int n) {
   match(T_ID, "feature index", true);
   match(T_RPAREN, "after feature index", true);
   match(T_LBRACKET, "begin of rule", true);
-  
+
   bool good = true;
   char *tmp;
   while (LA(0)->tag != T_RBRACKET && LA(0)->tag != T_EOF) {
@@ -1657,7 +1657,7 @@ tGM::parseFeature(int n) {
 	if(t == -1)
 	  t = lookup_type(inst+1);
 	free(inst);
-        
+
 	if(t == -1) {
           fprintf(stderr, "Unknown type/instance `%s' in rule #%d\n", tmp, n);
 	  good = false;
@@ -1675,10 +1675,10 @@ tGM::parseFeature(int n) {
     else if (LA(0)->tag == T_STRING) {
       tmp = match(T_STRING, "Input item", false);
       free(tmp);
-      good = false; 
+      good = false;
     }
     else if (LA(0)->tag == T_CAP) {
-      // This is a special 
+      // This is a special
       consume(1);
       //v.push_back(INT_MAX);
     }
@@ -1692,7 +1692,7 @@ tGM::parseFeature(int n) {
   }
 
   match(T_RBRACKET, "end of rule", true);
-  
+
   // discard weight, calculate them in calculateWeights() (with smoothing)
   if (LA(0)->tag == T_ID) {
     tmp = match(T_ID, "rule weight", false);
@@ -1702,17 +1702,17 @@ tGM::parseFeature(int n) {
   match(T_LBRACE, "begin of frequency counts", true);
   tmp = match(T_ID, "LHS frequency", false);// Discard rule frequency, will calculate this number in calculateWeights()
   free(tmp);
-  tmp = match(T_ID, "rule frequency", false);  
+  tmp = match(T_ID, "rule frequency", false);
   int rulefreq = atoi(tmp);
   free(tmp);
   match(T_RBRACE, "end of frequency counts", true);
-    
+
   if (good) {
     _counts[rule] = rulefreq;
     _prior_counts[rule.front()] += rulefreq;
     _total_count += rulefreq;
     _lhs_counts[rule.front()] ++;
-  } 
+  }
 }
 
 

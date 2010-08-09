@@ -100,7 +100,7 @@ dag_unify(dag_node *root, dag_node *dag1, dag_node *dag2, list_int *del) {
   unification_cost = 0;
 
   if((res = recfail<false>::dag_unify1(dag1, dag2)) != FAIL) {
-    stats.copies++;
+    ++stats.copies;
     res = dag_copy(root, del);
   }
 
@@ -305,13 +305,13 @@ inline bool dag_has_arcs(dag_node *dag) {
 
 template<bool record_failure> dag_node *
 recfail<record_failure>::dag_unify1(dag_node *dag1, dag_node *dag2) {
-  unification_cost++;
+  ++unification_cost;
 
   dag1 = dag_deref1(dag1);
   dag2 = dag_deref1(dag2);
 
   if(dag_get_copy(dag1) == INSIDE) {
-    stats.cycles++;
+    ++stats.cycles;
 
 #ifdef COMPLETE_FAILURE_REPORTING
     if(record_failure) {
@@ -394,14 +394,14 @@ constraint_info **constraint_cache = NULL;
  *  of static types).
  */
 void init_constraint_cache(type_t size) {
-  if (constraint_cache) { delete[] constraint_cache; }
+  delete[] constraint_cache;
   constraint_cache = new constraint_info *[size];
-  for(type_t i = 0; i < size; i++) constraint_cache[i] = NULL;
+  for(type_t i = 0; i < size; ++i) constraint_cache[i] = NULL;
 }
 
 /** Free the constraint cache */
 void free_constraint_cache(type_t size) {
-  for(type_t i = 0; i < size; i++) {
+  for(type_t i = 0; i < size; ++i) {
     constraint_info *c = constraint_cache[i];
     while(c != NULL) {
       constraint_info *n = c->next;
@@ -424,7 +424,7 @@ struct dag_node *cached_constraint_of(type_t s) {
     c = c->next;
 
   if(c == 0) {
-    total_cached_constraints++;
+    ++total_cached_constraints;
     c = new constraint_info;
     c->next = constraint_cache[s];
     /* Create a new permanent type dag (by coping) in a constraint_info bucket
@@ -684,7 +684,7 @@ dag_subsumes(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
 
 template<bool record_failure> bool recfail<record_failure>::
 dag_subsumes1(dag_node *dag1, dag_node *dag2, bool &forward, bool &backward) {
-  unification_cost++;
+  ++unification_cost;
 
   dag_node *c1 = dag_get_forward(dag1),
     *c2 = dag_get_copy(dag2);
@@ -890,7 +890,7 @@ inline bool arcs_contain(dag_arc *arc, attr_t attr) {
 */
 
 dag_node *dag_copy(dag_node *src, list_int *del) {
-  unification_cost++;
+  ++unification_cost;
 
   src = dag_deref1(src);
   dag_node *copy = dag_get_copy(src);
@@ -899,7 +899,7 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
     copy = NULL;
   else
     if(copy == INSIDE) {
-      stats.cycles++;
+      ++stats.cycles;
       return FAIL;
     } else
       if (copy != NULL) return copy;
@@ -975,13 +975,13 @@ dag_node *dag_copy(dag_node *src, list_int *del) {
 /* plain vanilla copying (as in the paper) */
 
 dag_node *dag_copy(dag_node *src, list_int *del) {
-  unification_cost++;
+  ++unification_cost;
 
   src = dag_deref1(src);
   dag_node *copy = dag_get_copy(src);
 
   if(copy == INSIDE) {
-    stats.cycles++;
+    ++stats.cycles;
     return FAIL;
   }
 
@@ -1042,8 +1042,7 @@ inline dag_node *dag_get_attr_value_temp(dag_node *dag, attr_t attr) {
 // This is basically the prior dag_nth_arg_temp with the only difference
 // being that the attribute can be specified. Made inline so that there will
 // be no difference in performance.
-inline struct dag_node *
-dag_nth_element_temp(struct dag_node *dag, attr_t attr, int n) {
+inline dag_node* dag_nth_element_temp(dag_node *dag, attr_t attr, int n) {
   int i;
   struct dag_node *arg;
 
@@ -1054,7 +1053,7 @@ dag_nth_element_temp(struct dag_node *dag, attr_t attr, int n) {
               && arg != NULL
               && arg != FAIL
               && !subtype(dag_get_new_type(arg), BI_NIL))
-        ; i++)
+        ; ++i)
     arg = dag_get_attr_value_temp(dag_deref1(arg), BIA_REST);
 
   if(i != n)
@@ -1080,7 +1079,7 @@ dag_nth_element_temp(struct dag_node *dag, list_int *path, int n)
   return dag_nth_element_temp(dag, attr, n); // inline call
 }
 
-struct dag_node *dag_nth_arg_temp(struct dag_node *dag, int n) {
+dag_node *dag_nth_arg_temp(dag_node *dag, int n) {
   return dag_nth_element_temp(dag, BIA_ARGS, n); // inline call
 }
 
@@ -1132,7 +1131,7 @@ dag_cyclic_rec(dag_node *dag) {
 
   if(v == 0) {
     // not yet seen
-    unification_cost++;
+    ++unification_cost;
 
     dag_set_copy(dag, INSIDE);
 
@@ -1191,7 +1190,7 @@ dag_node *dag_expand_rec(dag_node *dag) {
   // been unfilled, which can result in missing features.
   const list< type_t > &supers = all_supertypes(new_type);
   for (list< type_t >::const_iterator it = supers.begin()
-         ; it != supers.end(); it++) {
+         ; it != supers.end(); ++it) {
     type_t super = *it ;
     // No need to check for dynamic types since their typedags have no arcs
     if(type_dag(super)->arcs && type_dag(super)->type == super) {

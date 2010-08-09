@@ -47,10 +47,10 @@ struct param *find_param(char *name, struct param_list *env)
 {
   assert(env != 0);
 
-  for(int j = 0; j < env -> n; j++)
+  for(int j = 0; j < env -> n; ++j)
     {
       assert(env -> param[j] != 0);
-      
+
       if(strcasecmp(env -> param[j] -> name, name) == 0)
         return env -> param[j];
     }
@@ -90,7 +90,7 @@ int templ_crefs[TABLE_SIZE]; // to make coreferences in template calls unique
 
 void clear_templ_crefs()
 {
-  for(int i = 0; i < TABLE_SIZE; i++)
+  for(int i = 0; i < TABLE_SIZE; ++i)
     templ_crefs[i] = 0;
 }
 
@@ -99,7 +99,7 @@ string expand_coref_tag(string tag)
 {
   string exp(tag);
 
-  for(int i = 0; i < templ_nest; i ++)
+  for(int i = 0; i < templ_nest; ++i)
     exp += string("_%d", templ_crefs[i]);
 
   return exp;
@@ -123,14 +123,14 @@ void expand_avm(struct avm *A)
           if(p == 0 || p -> value == 0)
             {
               throw tError("error (in `" + string(context_descr) +
-                           "'): template parameter `" + A->av[j]->attr + 
+                           "'): template parameter `" + A->av[j]->attr +
                            "' without value.");
             }
           else
             {
               if(p->value->n != 1 || p->value->term[0]->tag != TYPE)
                 {
-                  throw tError("error (in `" + string(context_descr) + 
+                  throw tError("error (in `" + string(context_descr) +
                                "'): template parameter " + A->av[j]->attr +
                                "' with illegal value.");
                 }
@@ -152,11 +152,11 @@ void expand_list(struct tdl_list *L)
 {
   int i;
 
-  for(i = 0; i < L -> n; i++)
+  for(i = 0; i < L -> n; ++i)
     {
       expand_conjunction(L -> list[i]);
     }
-  
+
   if(L -> dottedpair)
     expand_conjunction(L -> rest);
 
@@ -177,7 +177,7 @@ void expand_term (struct term *T)
           // we need to make up a new name, and enter it into the main coref table
           assert(T->coidx < templ_stack[templ_nest-1]->coref->n);
           string uniq = expand_coref_tag(templ_stack[templ_nest-1]->coref->coref[T->coidx]);
-          
+
           LOG(logSemantic, DEBUG,
               "expanding `" << context_descr << "': new name `"
               << uniq << "' for tag(" << T->coidx + 1 << "/"
@@ -222,16 +222,16 @@ struct param_list *expand_params(struct param_list *P)
   C -> n = P -> n;
   C -> param = (struct param **) salloc(TABLE_SIZE * sizeof(struct param*));
 
-  for(int i = 0; i < C -> n; i++)
+  for(int i = 0; i < C -> n; ++i)
     C->param[i] = expand_param(P->param[i]);
 
   return C;
 }
 
 void check_params(struct param_list *actual, struct param_list *def)
-/* ensure that only defined template paramters can be assigned to */ 
+/* ensure that only defined template paramters can be assigned to */
 {
-  for(int i = 0; i < actual -> n; i++)
+  for(int i = 0; i < actual -> n; ++i)
     {
       if(!find_param(actual->param[i]->name, def))
         {
@@ -249,11 +249,11 @@ void expand_conjunction(struct conjunction *C)
 
   if(C == 0) return;
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       struct term *term;
       term = C->term[i];
-      if(term == 0) 
+      if(term == 0)
         {
           LOG(logSemantic, ERROR, "funny...");
           continue;
@@ -273,7 +273,7 @@ void expand_conjunction(struct conjunction *C)
           else
             {
               struct conjunction *tC;
-              
+
               ntemplinstantiations++;
 
               assert((templ_nest + 1) * 2 < TABLE_SIZE);
@@ -290,11 +290,11 @@ void expand_conjunction(struct conjunction *C)
 
               if((tC = copy_conjunction(templates[ti] -> constraint)))
                  expand_conjunction(tC);
-              
+
               if(tC && tC -> n > 0)
                 {
                   C -> term[i] = tC -> term[0];
-                  for(j = 1; j < tC -> n; j++)
+                  for(j = 1; j < tC -> n; ++j)
                     {
                       C -> term[C -> n++] = tC -> term[j];
                     }
@@ -306,7 +306,7 @@ void expand_conjunction(struct conjunction *C)
                   term -> tag = TYPE;
                   term -> type = 0;
                 }
-              
+
               templ_nest--;
             }
         }
@@ -318,7 +318,7 @@ void expand_conjunction(struct conjunction *C)
 
           if(p == 0 || p -> value == 0)
             {
-              throw tError("in `" + string(context_descr) 
+              throw tError("in `" + string(context_descr)
                            + "': template parameter `$" +
                            term -> value + "' without value.");
             }
@@ -327,7 +327,7 @@ void expand_conjunction(struct conjunction *C)
               if(p->value -> n > 0)
                 {
                   C -> term[i] = p->value -> term[0];
-                  for(j = 1; j < p->value -> n; j++)
+                  for(j = 1; j < p->value -> n; ++j)
                     {
                       C -> term[C -> n++] = p->value -> term[j];
                     }
@@ -364,9 +364,9 @@ void check_sorts_list(struct tdl_list *L)
 {
   int i;
 
-  for(i = 0; i < L -> n; i++)
+  for(i = 0; i < L -> n; ++i)
     check_sorts_conjunction(L -> list[i]);
-  
+
   if(L -> dottedpair)
     check_sorts_conjunction(L -> rest);
 
@@ -387,7 +387,7 @@ void check_sorts_term (struct term *T)
             id = typ->id;
             typ->implicit = 1;
           }
-        
+
         T->type = id;
       }
       break;
@@ -419,7 +419,7 @@ void check_sorts_conjunction(struct conjunction *C)
 
   if(C == 0) return;
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     check_sorts_term(C -> term[i]);
 }
 
@@ -429,7 +429,7 @@ void expand_templates()
 
   LOG(logApplC, INFO, "- expanding templates: ");
 
-  for(i = 0; i < types.number(); i++)
+  for(i = 0; i < types.number(); ++i)
     {
       context_descr = (char *) types.name(i).c_str();
       clear_templ_crefs();

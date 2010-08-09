@@ -47,7 +47,7 @@ lex_stem::instantiate()
 
         if(!cheap_settings->lookup("lex-entries-can-fail"))
             throw tError(msg);
-        else 
+        else
             LOG(logGrammar, DEBUG, msg);
         return expanded;
     }
@@ -75,22 +75,22 @@ std::vector<std::string>
 lex_stem::get_stems() {
   fs_alloc_state FSAS;
   vector <string> orth;
-  struct dag_node *dag = FAIL;
+  dag_node *dag = FAIL;
   fs e = instantiate();
-   
-  if(e.valid()) 
+
+  if(e.valid())
     dag = dag_get_path_value(e.dag(),
                              cheap_settings->req_value("orth-path"));
   if(dag == FAIL) {
     LOG(logGrammar, WARN,
         "no orth-path in `" << type_name(_instance_type) << "'");
     LOG(logGrammar, DEBUG, e.dag());
-        
+
     orth.push_back("");
     return orth;
   }
 
-  list <struct dag_node *> stemlist = dag_get_list(dag);
+  list<dag_node *> stemlist = dag_get_list(dag);
 
   if(stemlist.size() == 0) {
     // might be a singleton
@@ -109,13 +109,13 @@ lex_stem::get_stems() {
       }
     }
     else {
-      LOG(logGrammar, WARN, 
+      LOG(logGrammar, WARN,
           "no valid stem in `" << type_name(_instance_type) << "'") ;
     }
-        
+
     return orth;
   }
-    
+
   int n = 0;
 
   for(list<dag_node *>::iterator iter = stemlist.begin();
@@ -126,24 +126,24 @@ lex_stem::get_stems() {
           "no stem "<< n << " in `" << type_name(_instance_type) << "'");
       return vector<string>();
     }
-        
+
     if(is_type(dag_type(dag))) {
       string s(type_name(dag_type(dag)));
       orth.push_back(s.substr(1,s.length()-2));
     } else {
-      LOG(logGrammar, WARN, "no valid stem " << n 
+      LOG(logGrammar, WARN, "no valid stem " << n
           << " in `" << type_name(_instance_type) << "'");
       return vector<string>();
     }
     n++;
   }
-    
+
   return orth;
 }
 
 void lex_stem::print(std::ostream &out) const {
   out << printname() << ':';
-  for(int i = 0; i < _nwords; i++)
+  for(int i = 0; i < _nwords; ++i)
     out << " \"" << _orth[i] << "\"";
 }
 
@@ -155,16 +155,16 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
   , _lexical_type(lex_type == -1 ? leaftype_parent(instance_type) : lex_type)
                   // , _mods(mods)
   , _orth(0) {
-  
+
   if(orths.size() == 0) {
     vector<string> orth = get_stems();
     _nwords = orth.size();
-      
+
     if(_nwords == 0) return; // invalid entry
-      
+
     _orth = new char*[_nwords];
-        
-    for(int j = 0; j < _nwords; j++) {
+
+    for(int j = 0; j < _nwords; ++j) {
 #ifdef HAVE_ICU
       string lc_str = Conv->convert(Conv->convert(orth[j]).toLower());
       _orth[j] = strdup(lc_str.c_str());
@@ -195,7 +195,7 @@ lex_stem::lex_stem(type_t instance_type //, const modlist &mods
 
 lex_stem::~lex_stem()
 {
-  for(int j = 0; j < _nwords; j++)
+  for(int j = 0; j < _nwords; ++j)
     free(_orth[j]);
   if(_orth)
     delete[] _orth;

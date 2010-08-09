@@ -44,10 +44,10 @@ void
 ecl_cpp_load_files(const char *setting, const char *basename) {
   struct setting *set;
   if((set = cheap_settings->lookup(setting)) == NULL) return ;
-  for(int i = 0; i < set->n; i++) {
+  for(int i = 0; i < set->n; ++i) {
     std::string fname = find_file(set->values[i], LISP_EXT, basename);
     if(! fname.empty()) { ecl_load_lispfile(fname.c_str()); }
-  }             
+  }
 }
 
 int
@@ -116,12 +116,12 @@ pet_cpp_fs_path_value(int fs, int *path) {
   dag_node *d = get_dag(fs);
   if(!d || d == FAIL)
     return -1;
- 
+
   list_int *p = 0;
-  for(int i = 0; path && path[i] != -1; i++) {
+  for(int i = 0; path && path[i] != -1; ++i) {
     p = append(p, path[i]);
   }
-    
+
   dag_node *v = dag_get_path_value(d, p);
   free_list(p);
 
@@ -144,9 +144,9 @@ pet_cpp_fs_arcs(int fs, int **res) {
   dag_arc *a = d->arcs;
   while(a != 0) {
     a = a->next;
-    n++;
+    ++n;
   }
-    
+
   *res = (int *) malloc((n+1) * 2 * sizeof(int));
 
   n = 0;
@@ -172,7 +172,7 @@ pet_cpp_type_valid_p(int t) { return is_type(t); }
 
 //
 //
-// Functions callable from C++ that call into ECL. 
+// Functions callable from C++ that call into ECL.
 //
 //
 
@@ -184,7 +184,7 @@ ecl_cpp_extract_mrs(dag_node *d, const char *mode) {
   d = dag_expand(d);
   char *res = ecl_extract_mrs(get_handle(d), const_cast<char *>(mode));
   flush_handles();
-  
+
   if(res)
     return string(res);
   else

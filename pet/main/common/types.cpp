@@ -112,7 +112,7 @@ type_t register_dynamic_type(const std::string &name) {
 }
 
 void clear_dynamic_types() {
-  for (type_t t = nstatictypes; t < ntypes; t++)
+  for (type_t t = nstatictypes; t < ntypes; ++t)
     typename_memo.erase(typenames[t]);
   typenames.resize(nstatictypes);
   printnames.resize(nstatictypes);
@@ -124,7 +124,7 @@ int lookup_type(const std::string &name) {
   // lazy initialization of typename cache:
   static bool initialized_cache = false;
   if(!initialized_cache) {
-    for(int i = 0; i < nstatictypes; i++)
+    for(int i = 0; i < nstatictypes; ++i)
       typename_memo[typenames[i]] = i;
     initialized_cache = true;
   }
@@ -145,14 +145,14 @@ int retrieve_type(const std::string &name) {
   return type;
 }
 
-map<string, attr_t> _attrname_memo; 
+map<string, attr_t> _attrname_memo;
 
 attr_t lookup_attr(const char *s) {
   map<string, int>::iterator pos = _attrname_memo.find(s);
   if(pos != _attrname_memo.end())
     return (*pos).second;
 
-  for(int i = 0; i < nattrs; i++) {
+  for(int i = 0; i < nattrs; ++i) {
     if(strcmp(attrname[i], s) == 0) {
       _attrname_memo[s] = i;
       return i;
@@ -167,7 +167,7 @@ attr_t lookup_attr(const char *s) {
  *  so, return its code.
  */
 int lookup_status(const char *s) {
-  for(int i = 0; i < nstatus; i++) {
+  for(int i = 0; i < nstatus; ++i) {
     if(strcmp(statusnames[i], s) == 0) {
       return i;
     }
@@ -180,14 +180,14 @@ type_t lookup_code(const bitcode &b) {
 
   if(pos == codetable.end())
     return -1;
-  else 
+  else
     return (*pos).second;
 }
 
 int get_special_name(settings *sett, const char *suff, bool attr = false) {
   char *buff = new char[strlen(suff) + 25];
   sprintf(buff, attr ? "special-name-attr-%s" : "special-name-%s", suff);
-  char *v = sett->req_value(buff);
+  const char *v = sett->req_value(buff);
   int id;
 #ifdef FLOP
   if(attr) {
@@ -204,7 +204,7 @@ int get_special_name(settings *sett, const char *suff, bool attr = false) {
       id = types.id(v);
     }
   }
-#else 
+#else
   id = attr ? lookup_attr(v) : lookup_type(v);
   if(id == -1) {
     string s(buff);
@@ -253,14 +253,14 @@ void undump_symbol_tables(dumper *f)
 
   statusnames = (char **) malloc(sizeof(char *) * nstatus);
 
-  for(int i = 0; i < nstatus; i++)
+  for(int i = 0; i < nstatus; ++i)
     statusnames[i] = f->undump_string();
 
   typenames = std::vector<std::string>(nstatictypes);
   typenames.reserve(2 * nstatictypes); // increase capacity for dynamic types
   typestatus = (int *) malloc(sizeof(int) * nstatictypes);
 
-  for(int i = 0; i < nstatictypes; i++) {
+  for(int i = 0; i < nstatictypes; ++i) {
     typenames[i] = f->undump_string();
     typestatus[i] = f->undump_int();
   }
@@ -268,7 +268,7 @@ void undump_symbol_tables(dumper *f)
   attrname = (char **) malloc(sizeof(char *) * nattrs);
   attrnamelen = (int *) malloc(sizeof(int) * nattrs);
 
-  for(int i = 0; i < nattrs; i++) {
+  for(int i = 0; i < nattrs; ++i) {
     attrname[i] = f->undump_string();
     attrnamelen[i] = strlen(attrname[i]);
   }
@@ -284,7 +284,7 @@ void undump_printnames(dumper *f)
   }
   printnames = std::vector<std::string>(nstatictypes);
   printnames.reserve(2 * nstatictypes); // increase capacity for dynamic types
-  for(int i = 0; i < nstatictypes; i++) {
+  for(int i = 0; i < nstatictypes; ++i) {
     char *s = f->undump_string();
     printnames[i] = std::string(s ? s : typenames[i]);
   }
@@ -294,7 +294,7 @@ void free_type_tables()
 {
   if(statusnames != 0)
   {
-    for(int i = 0; i < nstatus; i++)
+    for(int i = 0; i < nstatus; ++i)
       delete[] statusnames[i];
     free(statusnames);
     statusnames = 0;
@@ -322,7 +322,7 @@ void free_type_tables()
   delete[] apptype;
   delete[] maxapp;
   delete[] featset;
-  for(int i = 0; i < nfeatsets; i++)
+  for(int i = 0; i < nfeatsets; ++i)
     delete[] featsetdesc[i].attr;
   delete[] featsetdesc;
 }
@@ -339,13 +339,13 @@ void dump_hierarchy(dumper *f)
   f->dump_int(codesize);
 
   // bitcodes for all proper types (in cheap order)
-  for(i = 0; i < first_leaftype; i++) {
+  for(i = 0; i < first_leaftype; ++i) {
     assert(leaftypeparent[cheap2flop[i]] == -1);
     typecode[cheap2flop[i]]->dump(f);
   }
 
   // parents for all leaf types
-  for(i = first_leaftype; i < nstatictypes; i++) {
+  for(i = first_leaftype; i < nstatictypes; ++i) {
     assert(leaftypeparent[cheap2flop[i]] != -1);
     f->dump_int(flop2cheap[leaftypeparent[cheap2flop[i]]]);
   }
@@ -358,8 +358,8 @@ void undump_hierarchy(dumper *f)
   codesize = f->undump_int();
   initialize_codes(codesize);
   resize_codes(first_leaftype);
-  
-  for(int i = 0; i < first_leaftype; i++)
+
+  for(int i = 0; i < first_leaftype; ++i)
     {
       temp_bitcode->undump(f);
       register_codetype(*temp_bitcode, i);
@@ -368,7 +368,7 @@ void undump_hierarchy(dumper *f)
     }
 
   leaftypeparent = new int[nstaticleaftypes];
-  for(int i = 0; i < nstaticleaftypes; i++)
+  for(int i = 0; i < nstaticleaftypes; ++i)
     leaftypeparent[i] = f->undump_int();
 }
 
@@ -376,7 +376,7 @@ void
 initialize_maxapp()
 {
     maxapp = new int[nattrs];
-    for(int i = 0; i < nattrs; i++)
+    for(int i = 0; i < nattrs; ++i)
     {
         maxapp[i] = 0;
         // the direct access to typedag[] is ok here because no dynamic type
@@ -402,7 +402,7 @@ void undump_tables(dumper *f)
 
   featset = new int[first_leaftype];
 
-  for(int i = 0; i < first_leaftype; i++)
+  for(int i = 0; i < first_leaftype; ++i)
     {
       featset[i] = f->undump_int();
     }
@@ -411,20 +411,20 @@ void undump_tables(dumper *f)
 
   nfeatsets = f->undump_int();
   featsetdesc = new featsetdescriptor[nfeatsets];
-  
-  for(int i = 0; i < nfeatsets; i++)
+
+  for(int i = 0; i < nfeatsets; ++i)
     {
       short int na = featsetdesc[i].n = f->undump_short();
       featsetdesc[i].attr = na > 0 ? new short int[na] : 0;
 
-      for(int j = 0; j < na; j++)
+      for(int j = 0; j < na; ++j)
         featsetdesc[i].attr[j] = f->undump_short();
     }
 
   // read appropriate sorts table
 
   apptype = new int[nattrs];
-  for(int i = 0; i < nattrs; i++)
+  for(int i = 0; i < nattrs; ++i)
     apptype[i] = f->undump_int();
 }
 
@@ -433,11 +433,11 @@ void undump_tables(dumper *f)
 void
 undumpSupertypes(dumper *f)
 {
-    for(int i = 0; i < first_leaftype; i++)
+    for(int i = 0; i < first_leaftype; ++i)
     {
         int n = f->undump_short();
         list<int> l;
-        for(int j = 0; j < n; j++)
+        for(int j = 0; j < n; ++j)
         {
             int t = f->undump_int();
             l.push_back(t);
@@ -457,14 +457,14 @@ const list< type_t > &immediate_supertypes(type_t type) {
  */
 void get_all_supertypes(type_t type, hash_set< type_t > &result) {
   // top is a supertype of every type, so we do not add this redundant
-  // information 
+  // information
   if((type == BI_TOP) || (result.find(type) != result.end())) return;
   result.insert(type);
   if (is_leaftype(type)) {
     get_all_supertypes(leaftype_parent(type), result);
   } else {
     for(list< type_t >::const_iterator it = immediate_supertypes(type).begin();
-        it != immediate_supertypes(type).end(); it++) {
+        it != immediate_supertypes(type).end(); ++it) {
       get_all_supertypes(*it, result);
     }
   }
@@ -566,7 +566,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
 {
     // precondition: a != b, a >= 0, b >= 0
     // postcondition: forward == subtype(a, b) && backward == subtype(b, a)
-    
+
     if(a == BI_TOP)
     {
         forward = false;
@@ -593,7 +593,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
   }
 #endif
 
-#define SUBTYPE_OPT    
+#define SUBTYPE_OPT
 #ifdef SUBTYPE_OPT
     // Handle the slightly complicated case of leaftypes. In PET,
     // leaftypes are recursive, so a leaftype can be a subtype of
@@ -607,7 +607,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         type_t savedA = a;
         do
         {
-            a = leaftypeparent[a - first_leaftype]; 
+            a = leaftypeparent[a - first_leaftype];
         } while(a != b && is_leaftype(a));
         if(a == b)
         {
@@ -618,7 +618,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         a = savedA;
         do
         {
-            b = leaftypeparent[b - first_leaftype]; 
+            b = leaftypeparent[b - first_leaftype];
         } while(b != a && is_leaftype(b));
         if(b == a)
         {
@@ -635,7 +635,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         backward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
-            a = leaftypeparent[a - first_leaftype]; 
+            a = leaftypeparent[a - first_leaftype];
         } while(is_leaftype(a));
         forward = core_subtype(a, b);
         return;
@@ -645,7 +645,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         forward = false; // a non-leaftype cannot be subtype of a leaftype
         do
         {
-            b = leaftypeparent[b - first_leaftype]; 
+            b = leaftypeparent[b - first_leaftype];
         } while(is_leaftype(b));
         backward = core_subtype(b, a);
         return;
@@ -658,7 +658,7 @@ subtype_bidir(type_t a, type_t b, bool &forward, bool &backward)
         return;
     }
 #endif
-    
+
     subset_bidir(*typecode[a], *typecode[b], forward, backward);
 }
 #endif
@@ -692,18 +692,18 @@ int glb(int s1, int s2)
   if(s1 < 0) return T_BOTTOM;
 
 #ifndef FLOP
-  
+
   // glbcache is not suitable for dynamic types
 #ifdef DYNAMIC_SYMBOLS
   // since s1 < s2, it can't be that is_dynamic_type(s1) & !is_dynamic_type(s2)
-  if (is_dynamic_type(s2)) {  
+  if (is_dynamic_type(s2)) {
     if (subtype(BI_STRING, s1))
       return s2;
     else // since s1 != s2 & s1 != BI_TOP, s1 must be a different dynamic type
       return T_BOTTOM;
   }
 #endif
-  
+
   // result is a _reference_ to the cache entry -> automatic writeback
   int &result = glbcache[ (typecachekey_t) s1*nstatictypes + s2 ];
   if(result) return result;
@@ -714,7 +714,7 @@ int glb(int s1, int s2)
         return (result = s1);
       else if(subtype(s2, s1))
         return (result = s2);
-      else 
+      else
         return (result = -1);
     }
   else if(is_leaftype(s2))

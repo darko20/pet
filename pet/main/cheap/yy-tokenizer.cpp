@@ -20,9 +20,9 @@
 
 /*
 
-YY input format: 
+YY input format:
 
-  (id, start, end, [lnk,] path, 
+  (id, start, end, [lnk,] path,
    "stem" ["surface"], inflpos, inflrs
    [, postags])*
 
@@ -88,7 +88,7 @@ bool tYYTokenizer::read_ws()
 {
   if(eos())
     return false;
-  
+
   while(!eos() && isspace(cur())) adv();
 
   return true;
@@ -115,7 +115,7 @@ bool tYYTokenizer::read_int(int &target)
 
   if(eos())
     return false;
-  
+
   const char *begin = res();
   char *end;
 
@@ -134,7 +134,7 @@ bool tYYTokenizer::read_double(double &target)
 
   if(eos())
     return false;
-  
+
   const char *begin = res();
   char *end;
 
@@ -221,13 +221,6 @@ bool tYYTokenizer::read_pos(string &tag, double &prob)
     return false;
 }
 
-int max(int a, int b)
-{
-  int max = a>b?a:b ;
-  return max;
-}
-
-
 tInputItem *
 tYYTokenizer::read_token()
 {
@@ -241,13 +234,13 @@ tYYTokenizer::read_token()
 
   if(!read_special('('))
     throw tError("yy_tokenizer: ill-formed token (expected '(')");
-  
+
   if(!read_int(id) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected id)");
-  
+
   if(!read_int(start) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected start vertex)");
-  
+
   if(!read_int(end) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected end vertex)");
 
@@ -267,20 +260,20 @@ tYYTokenizer::read_token()
   //
   from = to = -1;
   if(read_special('<')) {
-    if(!read_int(from) || !read_special(':') 
+    if(!read_int(from) || !read_special(':')
        || !read_int(to) || !read_special('>') || !read_special(','))
       throw tError("yy_tokenizer: ill-formed token (expected surface link)");
     _inhibit_position_mapping = true;
   } // if
-  else 
+  else
     _inhibit_position_mapping = false;
 
   while(read_int(path))
     paths.push_back(path);
-  
+
   if(paths.empty() || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected paths)");
-  
+
   if(!read_string(stem, true, !_case_sensitive))
     throw tError("yy_tokenizer: ill-formed token (expected stem)");
 
@@ -314,12 +307,12 @@ tYYTokenizer::read_token()
   }
 
   // add surface form of ersatzes to fsmod, if necessary
-  string ersatz_suffix("ersatz"); 
+  string ersatz_suffix("ersatz");
   modlist fsmods = modlist() ;
-  char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
+  const char* ersatz_carg_path = cheap_settings->value("ersatz-carg-path");
 
   if (!get_opt_int("opt_chart_mapping") && (ersatz_carg_path != NULL) &&
-      (stem.substr(max(0,stem.length()-ersatz_suffix.length())) 
+      (stem.substr(std::max<int>(0,stem.length()-ersatz_suffix.length()))
        == ersatz_suffix))
   {
     fsmods.push_back(pair<string, type_t>(ersatz_carg_path,
@@ -328,10 +321,10 @@ tYYTokenizer::read_token()
 
   if(!read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected , after stem)");
-  
+
   if(!read_int(inflpos) || !read_special(','))
     throw tError("yy_tokenizer: ill-formed token (expected inflpos)");
-  
+
   string inflr;
 
   if(! read_string(inflr, true))
@@ -339,7 +332,7 @@ tYYTokenizer::read_token()
   do {
     if(inflr == "zero")
       continue;
-    
+
     if(inflr == "null") {
       if (token_class == STEM_TOKEN_CLASS) {
         // Unless signalled by a special "null" token, we expect stems and
@@ -348,36 +341,36 @@ tYYTokenizer::read_token()
         token_class = WORD_TOKEN_CLASS;
         surface = stem;
         break;
-      } 
+      }
       else if(token_class == SKIP_TOKEN_CLASS)
 	break;
       else
         throw tError("yy_tokenizer: illegal \"null\" spec");
     }
-    
+
     type_t infl_rule = lookup_type(inflr);
-    if((infl_rule >= 0) 
+    if((infl_rule >= 0)
        // _fix_me_ the next test seems to be desirable
        // && (Grammar->find_rule(infl_rule)->trait() == INFL_TRAIT)
        ) {
       infl_rules.push_back(infl_rule);
     } else {
-      LOG(logLexproc, WARN, 
+      LOG(logLexproc, WARN,
           "Ignoring token containing unknown infl rule " << inflr);
       return NULL;
     }
-  } while (read_string(inflr, true)) ; 
-  
+  } while (read_string(inflr, true)) ;
+
   postags poss;
   if(read_special(',')) {
     string tag; double prob;
     while(read_pos(tag, prob))
       poss.add(tag, prob);
   }
-  
+
   if(!read_special(')'))
     throw tError("yy_tokenizer: ill-formed token (expected ')')");
-  
+
   read_ws();
 
   char idstrbuf[6];
@@ -398,10 +391,10 @@ tYYTokenizer::read_token()
     // correct results in terms of chart topology, of course, but is not really
     // what was originally intended.                            (15-jan-09; oe)
     //
-    res = new tInputItem(idstrbuf, start, end, 
+    res = new tInputItem(idstrbuf, start, end,
                          surface, stem, paths, token_class,
                          infl_rules, poss, fsmods);
-      
+
   return res;
 }
 
@@ -411,9 +404,9 @@ tYYTokenizer::tokenize(myString s, inp_list &result)
   _yyinput = s;
   _yypos = 0;
 
-  LOG(logLexproc, NOTICE, "received YY tokens: " << s 
+  LOG(logLexproc, NOTICE, "received YY tokens: " << s
       << "[processing yy_tokenizer input]");
-  
+
   tInputItem *tok = 0;
   read_ws();
   while(! eos()) {

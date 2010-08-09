@@ -87,10 +87,10 @@ dag_node *dag_get_attr_value(dag_node *dag, int attr)
   if(dag == FAIL)
           return FAIL;
   dag = dag_deref(dag);
-  
+
   arc = dag_find_attr(dag->arcs, attr);
   if(arc == 0) return FAIL;
-  
+
   return arc->val;
 }
 
@@ -102,9 +102,9 @@ struct dag_node *make_nth_arg(int n, dag_node *v)
   dag_node *res, *t1, *t2;
   res = new_dag(BI_TOP);
   t1 = new_dag(BI_TOP);
-  dag_add_arc(res, new_arc(BIA_ARGS, t1)); 
-  
-  for(int i = 1; i < n ; i++)
+  dag_add_arc(res, new_arc(BIA_ARGS, t1));
+
+  for(int i = 1; i < n ; ++i)
     {
       t2 = new_dag(BI_TOP);
       dag_add_arc(t1, new_arc(BIA_REST, t2));
@@ -136,7 +136,7 @@ bool dag_make_wellformed3(int new_type, dag_node *dag1, dag_node *dag2)
   if(type_dag(new_type))
     {
       dag2->type = new_type;
-      
+
       if(dag_unify3_rec(type_dag(new_type), dag2, ++copy_wf_generation) == FAIL)
         return false;
     }
@@ -164,7 +164,7 @@ dag_node *dag_unify1_rec(dag_node *dag1, dag_node *dag2)
   int new_type;
   dag_arc *arc1, *arc2;
 
-  unification_cost++;
+  ++unification_cost;
 
   dag1 = dag_deref(dag1); dag2 = dag_deref(dag2);
 
@@ -176,7 +176,7 @@ dag_node *dag_unify1_rec(dag_node *dag1, dag_node *dag2)
     return FAIL;
 
 #ifdef FLOP
-  if(unify_reset_visited) 
+  if(unify_reset_visited)
     {
       dag_set_visit(dag1, 0);
       dag_set_visit(dag2, 0);
@@ -186,7 +186,7 @@ dag_node *dag_unify1_rec(dag_node *dag1, dag_node *dag2)
   assert(dag2 != NULL);
 
   dag1->forward = dag2;
-  
+
   if(unify_wellformed)
     {
       if(!dag_make_wellformed3(new_type, dag1, dag2))
@@ -218,7 +218,7 @@ dag_node *dag_copy_rec(dag_node *src, int generation)
   dag_node *copy;
   dag_arc *arc;
 
-  unification_cost++;
+  ++unification_cost;
 
   src = dag_deref(src);
 
@@ -226,9 +226,9 @@ dag_node *dag_copy_rec(dag_node *src, int generation)
   if(copy == 0)
     {
       copy = new_dag(src->type);
-      
+
       dag_set_copy(src, copy, generation);
-      
+
       arc = src->arcs;
       while(arc != 0)
         {
@@ -267,7 +267,7 @@ dag_node *dag_make_wellformed2(int new_type, dag_node *dag1, dag_node *dag2)
      (dag1->type == new_type && dag1->arcs) ||
      (dag2->type == new_type && dag2->arcs))
     return dag2;
-  
+
   if(type_dag(new_type))
     {
       dag_node *c = dag_copy_rec(type_dag(new_type), ++copy_wf_generation);
@@ -282,7 +282,7 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
   dag_arc *arc1, *arc2;
   dag_node *copy1, *copy2, *result, *wdag2;
 
-  unification_cost++;
+  ++unification_cost;
 
   dag1 = dag_deref(dag1);
   dag2 = dag_deref(dag2);
@@ -298,9 +298,9 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
 
       if((new_type = glb(dag1->type, dag2->type)) == -1)
         return FAIL;
-      
+
       result = new_dag(new_type);
-      
+
       if(unify_wellformed)
         {
           wdag2 = dag_make_wellformed2(new_type, dag1, dag2);
@@ -312,7 +312,7 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
 
       dag_set_copy(dag1, result, copy_generation);
       dag_set_copy(dag2, result, copy_generation);
-      
+
       arc1 = dag1->arcs;
       while(arc1 != 0)
         {
@@ -320,7 +320,7 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
             {
               if((copy1 = dag_unify2_rec(arc1->val,arc2->val)) == FAIL )
                 return FAIL;
-              
+
               dag_add_arc(result, new_arc(arc1->attr, copy1));
             }
           else
@@ -334,7 +334,7 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
         {
           if(!dag_find_attr(dag1->arcs, arc2->attr))
             dag_add_arc(result, new_arc(arc2->attr, dag_current_or_copy(arc2->val, copy_generation)));
-                    
+
           arc2 = arc2->next;
         }
     }
@@ -357,7 +357,7 @@ dag_node *dag_unify2_rec(dag_node *dag1, dag_node *dag2)
 dag_node *dag_unify2(dag_node *dag1, dag_node *dag2)
 {
   dag_node *res;
-  
+
   unification_cost = 0;
   current_base = (dag_node *) t_alloc.current();
   res = dag_unify2_rec(dag1, dag2);
@@ -371,7 +371,7 @@ dag_node * dag_unify3_rec(dag_node *dag1, dag_node *dag2, int generation)
   dag_arc *arc1, *arc2;
   dag_node *copy;
 
-  unification_cost++;
+  ++unification_cost;
 
   dag1 = dag_deref(dag1);
   dag2 = dag_deref(dag2);
@@ -387,7 +387,7 @@ dag_node * dag_unify3_rec(dag_node *dag1, dag_node *dag2, int generation)
 
       if((new_type = glb(dag1->type, dag2->type)) == T_BOTTOM)
         return FAIL;
-      
+
       dag_set_copy(dag1, dag2, generation);
 
       if(unify_wellformed)
@@ -399,7 +399,7 @@ dag_node * dag_unify3_rec(dag_node *dag1, dag_node *dag2, int generation)
       dag2->type = new_type;
 
 #ifdef FLOP
-      if(unify_reset_visited) 
+      if(unify_reset_visited)
         dag_set_visit(dag2, 0);
 #endif
 
@@ -413,7 +413,7 @@ dag_node * dag_unify3_rec(dag_node *dag1, dag_node *dag2, int generation)
             }
           else
             dag_add_arc(dag2, new_arc(arc1->attr, dag_current_or_copy(arc1->val, generation)));
-          
+
           arc1 = arc1->next;
         }
     }
@@ -444,7 +444,7 @@ bool dags_compatible_rec(dag_node *dag1, dag_node *dag2, int generation)
 
   frwrd = dag_get_copy(dag1, generation);
 
-  if(frwrd != 0) 
+  if(frwrd != 0)
     dag1 = frwrd;
 
   if(dag1 == dag2) return true;
@@ -480,8 +480,8 @@ bool dags_compatible(dag_node *dag1, dag_node *dag2)
 bool dag_cyclic_rec(dag_node *dag)
 {
   int v;
-  
-  unification_cost++;
+
+  ++unification_cost;
 
   dag = dag_deref(dag);
 
@@ -500,7 +500,7 @@ bool dag_cyclic_rec(dag_node *dag)
             return true;
           arc = arc->next;
         }
-      
+
       dag_set_visit(dag, 2);
     }
   else if(v == 1) // cycle found
@@ -528,7 +528,7 @@ dag_node *dag_expand(dag_node *dag)
 {
     // _fix_me_: this is not yet implemented
     // but refer to fully_expand in flop/expand.cpp which contains
-    // the necessary code 
+    // the necessary code
     return FAIL;
 }
 

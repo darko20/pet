@@ -28,7 +28,7 @@ int add_coref(struct coref_table *co, char *name)
 {
   int i;
 
-  for(i = 0; i < co->n; i++)
+  for(i = 0; i < co->n; ++i)
     {
       if(strcmp(co->coref[i], name) == 0)
         break;
@@ -49,7 +49,7 @@ int add_coref(struct coref_table *co, char *name)
 void new_coref_domain(struct coref_table *co) {
   int i;
 
-  for(i = 0; i < co->n; i++)
+  for(i = 0; i < co->n; ++i)
     {
       if(strchr(co->coref[i], '#') == NULL) {
         // old length + hash + four digits + zero char
@@ -77,11 +77,11 @@ void find_coref_list(struct tdl_list *L, struct coref_table *coref)
 {
   int i;
 
-  for(i = 0; i < L -> n; i++)
+  for(i = 0; i < L -> n; ++i)
     {
       find_coref_conjunction(L -> list[i], coref);
     }
-  
+
   if(L -> dottedpair)
     find_coref_conjunction(L -> rest, coref);
 
@@ -124,7 +124,7 @@ void find_coref_conjunction(struct conjunction *C, struct coref_table *coref)
   if(C == NULL) return;
 
   first = 1; coidx = -1;
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       if(C -> term[i]->tag == COREF)
         {
@@ -146,20 +146,20 @@ void find_coref_conjunction(struct conjunction *C, struct coref_table *coref)
               strcpy(newname, old1);
               strcat(newname, "_");
               strcat(newname, old2);
-              
+
               /* no we have to write this new name to any entries
                  in the coref table equal to  one of the old names */
-              for(j = 0; j < coref -> n; j++)
+              for(j = 0; j < coref -> n; ++j)
                 if(coref->coref[j] == old1 || coref->coref[j] == old2)
                   coref->coref[j] = newname;
-              
+
               /* now remove coref */
               C->term[i--] = C->term[--C->n];
             }
         }
     }
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       find_coref_term(C -> term[i], coref);
     }
@@ -169,6 +169,6 @@ void find_corefs()
 {
   int i;
 
-  for(i = 0; i<types.number(); i++)
+  for(i = 0; i<types.number(); ++i)
     find_coref_conjunction(types[i] -> constraint, types[i]->coref);
 }

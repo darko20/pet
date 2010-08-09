@@ -69,23 +69,23 @@ bool compute_appropriateness() {
 
   apptype = new int[attributes.number()];
 
-  for(i = 0; i < attributes.number(); i++)
+  for(i = 0; i < attributes.number(); ++i)
     apptype[i] = BI_TOP;
 
   vector<int> topo;
-  boost::topological_sort(hierarchy, std::back_inserter(topo));
+  boost::topological_sort(hierarchy, back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
       struct dag_arc *arc;
       i = *it;
-        
+
       if(!pseudo_type(i))
         {
           arc = dag_deref(types[i]->thedag)->arcs;
           while(arc) // look at all top level features of type
             {
               attr = arc->attr;
-              
+
               if(apptype[attr] != BI_TOP)
                 {
                   if(!subtype(i, apptype[attr]))
@@ -109,7 +109,7 @@ bool compute_appropriateness() {
   if(get_opt_bool("opt_no_sem"))
     sem_attr = attributes.id(flop_settings->req_value("sem-attr"));
 
-  for(i = 0; i < attributes.number(); i++)
+  for(i = 0; i < attributes.number(); ++i)
     {
       if(apptype[i] == BI_TOP)
         {
@@ -153,13 +153,13 @@ bool apply_appropriateness_rec(struct dag_node *dag) {
         {
           old_type = new_type;
           new_type = glb(new_type, apptype[arc->attr]);
-          
+
           if(new_type == -1)
             {
               LOG(logSemantic, WARN, "feature `" << attrname[arc->attr]
                   << "' on type `" << type_name(dag->type)
-                  << "' (refined to `" << type_name(old_type) 
-                  << "' from other features) not appropriate " 
+                  << "' (refined to `" << type_name(old_type)
+                  << "' from other features) not appropriate "
                   << "(appropriate type is `"
                   << type_name(apptype[arc->attr]) << "')");
               return false;
@@ -167,7 +167,7 @@ bool apply_appropriateness_rec(struct dag_node *dag) {
 
           if(!apply_appropriateness_rec(arc->val))
             return false;
-          
+
           arc = arc->next;
         }
 
@@ -187,7 +187,7 @@ bool apply_appropriateness() {
 
   LOG(logAppl, INFO, "- applying appropriateness constraints for types");
 
-  for(i = 0; i < types.number(); i++)
+  for(i = 0; i < types.number(); ++i)
     {
       if(!pseudo_type(i) && !apply_appropriateness_rec(types[i]->thedag))
         {
@@ -219,11 +219,11 @@ bool delta_expand_types() {
     get_opt_bool("opt_expand_all_instances");
 
   vector<int> topo;
-  boost::topological_sort(hierarchy, std::back_inserter(topo));
+  boost::topological_sort(hierarchy, back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
       i = *it;
-      
+
       if(!pseudo_type(i) && (opt_expand_all_instances || !dont_expand(i)))
         {
           l = immediate_supertypes(i);
@@ -232,7 +232,7 @@ bool delta_expand_types() {
               if(dag_unify3(types[e]->thedag, types[i]->thedag) == FAIL)
                 {
                   LOG(logSemantic, ERROR, "`" << type_name(i) <<
-                      "' incompatible with parent constraints (`" 
+                      "' incompatible with parent constraints (`"
                       << type_name(e) << "')");
                   return false;
                 }
@@ -314,7 +314,7 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
       list_int *res;
       arc = dag->arcs;
       while(arc)
-        { 
+        {
           if((res = fully_expand(arc->val, full)) != NULL)
             {
               depth--;
@@ -328,7 +328,7 @@ list_int *fully_expand(struct dag_node *dag, bool full) {
   return NULL;
 }
 
-std::string attrlist2string(list_int *l, std::string sep) {
+string attrlist2string(list_int *l, string sep) {
   ostringstream out;
   list_int *start = l;
   while (true) {
@@ -361,7 +361,7 @@ bool fully_expand_types(bool full_expansion)
   set<int> cs;
 
   tHierarchy G;
-  
+
   bool fail = false;
 
   for(i = 0; i < types.number(); ++i) {
@@ -386,11 +386,11 @@ bool fully_expand_types(bool full_expansion)
   unify_reset_visited = true;
 
   vector<int> topo;
-  boost::topological_sort(G, std::back_inserter(topo));
+  boost::topological_sort(G, back_inserter(topo));
   for(vector<int>::reverse_iterator it = topo.rbegin(); it != topo.rend(); ++it)
     {
       i = *it;
-        
+
       if(!pseudo_type(i))
         {
           list_int *path = fully_expand(types[i]->thedag, full_expansion);
@@ -398,12 +398,12 @@ bool fully_expand_types(bool full_expansion)
           if(path != NULL)
             {
               LOG(logSemantic, ERROR,
-                  " `" << type_name(i) << "' failed under path (" 
+                  " `" << type_name(i) << "' failed under path ("
                   << attrlist2string(path,"|") << ")");
               free_list(path);
               fail = true;
             }
-          
+
           dag_invalidate_visited();
 
           if(!fail && dag_cyclic(types[i]->thedag))
@@ -442,22 +442,22 @@ void compute_maxapp() {
   maxapp = new int[attributes.number()];
 
   // initialize nintro array to number of features introduced by that type
-  for(i = 0; i < types.number(); i++)
-    for(int j = 0; j < attributes.number(); j++)
+  for(i = 0; i < types.number(); ++i)
+    for(int j = 0; j < attributes.number(); ++j)
       if(apptype[j] == i) nintro[i]++;
-  
-  // initialize maxapp array to max appropriate type per feature 
-  for(i = 0; i < attributes.number(); i++)
+
+  // initialize maxapp array to max appropriate type per feature
+  for(i = 0; i < attributes.number(); ++i)
     {
       maxapp[i] = 0;
       struct dag_node *cval = dag_get_attr_value(types[apptype[i]]->thedag, i);
       if(cval && cval != FAIL)
         maxapp[i] = dag_type(cval);
-      
+
       LOG(logSemantic, DEBUG,
           "feature `" << attributes.name(i)
           << "': value: " << (maxapp[i] > types.number() ? "symbol" : "type")
-          << " `" << type_name(maxapp[i]) << "', introduced by `" 
+          << " `" << type_name(maxapp[i]) << "', introduced by `"
           << types.name(apptype[i]) << "'");
     }
 }
@@ -499,16 +499,16 @@ int unfill_dag_rec(struct dag_node *dag, int root) {
   struct dag_arc *arc, *keep, *tmparc;
 
   arc = dag->arcs; keep = 0;
-  
+
   while(arc)
     {
       struct dag_node *dst = dag_deref(arc->val);
-      
+
       if(dst->arcs)
         nunfilled += unfill_dag_rec(dst, 0);
       else
         total_nodes++;
-      
+
       coref = dag_get_visit(dst) - 1;
 
       if(dst->arcs == 0 && coref == 0 && dst->type == maxapp[arc->attr]
@@ -521,7 +521,7 @@ int unfill_dag_rec(struct dag_node *dag, int root) {
         {
           tmparc = arc;
           arc = arc->next;
-          
+
           tmparc->next = keep;
           keep = tmparc;
         }
@@ -540,7 +540,7 @@ void unfill_types() {
 
   LOG(logApplC, INFO, "- unfilling ");
 
-  for(i = 0; i < types.number(); i++) {
+  for(i = 0; i < types.number(); ++i) {
     struct dag_node *curr = dag_deref(types[i]->thedag);
 
     dag_mark_coreferences(curr);
@@ -634,7 +634,7 @@ void bottom_up_partitions() {
 
   merge_top_down(0, part(0), part);
 
-  for(int i = 0; i < types.number(); i++) {
+  for(int i = 0; i < types.number(); ++i) {
     if(boost::out_degree(i, hierarchy) == 0)
       merge_partitions(i, part(i), part, 0);
   }
@@ -642,19 +642,19 @@ void bottom_up_partitions() {
   map<int, bool> reached;
 
   nfeatsets = 0;
-  for(int i = 0; i < types.number(); i++)
+  for(int i = 0; i < types.number(); ++i)
     if(!reached[i]) {
         list_int *feats = 0;
-        LOG(logSemantic, DEBUG, 
+        LOG(logSemantic, DEBUG,
             "partition " << nfeatsets << " (`" << types.name(part(i)) << "'):");
 
-        for(int j = 0; j < types.number(); j++)
+        for(int j = 0; j < types.number(); ++j)
           if(!reached[j] && part.same_set(i, j))
             {
               featset[j] = nfeatsets;
               reached[j] = true;
               LOG(logSemantic, DEBUG, "  " << types.name(j) << "");
-                
+
               list_int *l = theconf[featconf[j]];
               while(l)
                 {
@@ -685,7 +685,7 @@ void generate_featsetdescs(int nconfs, map<int, list_int*> &conf) {
 
   featsetdesc = new featsetdescriptor[nconfs];
 
-  for(int i = 0; i < nconfs; i++) {
+  for(int i = 0; i < nconfs; ++i) {
     list_int *l = conf[i];
     int n = length(l);
     featsetdesc[i].n = n;
@@ -710,11 +710,11 @@ void compute_feat_sets(bool minimal) {
   featconf = new int[types.number()];
   featset = new int[types.number()];
 
-  for(i = 0; i < types.number(); i++) {
+  for(i = 0; i < types.number(); ++i) {
     int nf = 0;
     list_int *feats = 0;
 
-    for(int j = 0; j < attributes.number(); j++) {
+    for(int j = 0; j < attributes.number(); ++j) {
       if(subtype(i, apptype[j])) {
         nf++;
         feats = cons(j, feats);
@@ -744,12 +744,12 @@ void compute_feat_sets(bool minimal) {
               nintro[i]);
 
       int sumintro = 0;
-      for(int j = 0; j < types.number(); j++)
+      for(int j = 0; j < types.number(); ++j)
         if(reached[j]) sumintro += nintro[j];
 
       fprintf(fstatus, " sumintro: %d", sumintro);
 
-      for(int j = 0; j < attributes.number(); j++)
+      for(int j = 0; j < attributes.number(); ++j)
         if(apptype[j] == i)
           fprintf(fstatus, " %s", attributes.name(j).c_str());
 
@@ -760,11 +760,11 @@ void compute_feat_sets(bool minimal) {
 
   if (LOG_ENABLED(logSemantic, DEBUG)) {
     ostringstream sdeb;
-    for(i = 0; i < feature_conf_id; i++) {
+    for(i = 0; i < feature_conf_id; ++i) {
       sdeb << "feature configuration " << i << ":";
       for(list_int *l = theconf[i]; l != NULL; l = rest(l))
         sdeb << " " << attributes.name(first(l));
-      sdeb << std::endl;
+      sdeb << endl;
     }
     LOG(logSemantic, DEBUG, sdeb.str());
   }
@@ -776,7 +776,7 @@ void compute_feat_sets(bool minimal) {
   else {
     nfeatsets = feature_conf_id + 1;
 
-    for(int i = 0; i < types.number(); i++) {
+    for(int i = 0; i < types.number(); ++i) {
       featset[i] = featconf[i];
     }
 

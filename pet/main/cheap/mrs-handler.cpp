@@ -47,7 +47,7 @@ MRSHandler::~MRSHandler() {
 void MRSHandler::
 startElement(const XMLCh* const tag, AttributeList& attrs) {
   if (_err > 0) {
-    _err ++;
+    ++_err;
   } else {
     mrs::mrs_base_state *oldState = _state_stack.top();
     mrs::mrs_base_state *newState = _state_factory->get_state(tag);
@@ -58,7 +58,7 @@ startElement(const XMLCh* const tag, AttributeList& attrs) {
       } catch (const Error &e) {
         delete newState;
         _error_occurred = true;
-        _err ++;
+        ++_err;
         throw SAXParseException(e.getMessage(), *_loc);
       }
     } else {
@@ -92,13 +92,13 @@ characters(const XMLCh *const chars, const unsigned int len) {
 
 void MRSHandler::
 print_sax_exception(const char * errtype, const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e) {
-  LOG(logXML, WARN, 
+  LOG(logXML, WARN,
       XMLCh2Latin(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
       << (int) e.getColumnNumber() << ": error: SAX: " << errtype << " "
       << XMLCh2Latin(e.getMessage()) << endl);
 }
 
-string 
+string
 MRSHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
   XMLCh* res;
   res = new XMLCh[len + 1];

@@ -30,22 +30,22 @@ int variable_generator = 0;
 extern settings *cheap_settings;
 
 namespace mrs {
- 
+
 tBaseMRS::~tBaseMRS() {
-  for (std::list<tBaseRel*>::iterator rel = liszt.begin(); 
-       rel != liszt.end(); rel ++)
+  for (std::list<tBaseRel*>::iterator rel = liszt.begin();
+       rel != liszt.end(); ++rel)
     delete *rel;
   for (std::list<tHCons*>::iterator hcons = h_cons.begin();
-       hcons != h_cons.end(); hcons ++)
+       hcons != h_cons.end(); ++hcons)
     delete *hcons;
   for (std::list<tHCons*>::iterator acons = a_cons.begin();
-       acons != a_cons.end(); acons ++)
+       acons != a_cons.end(); ++acons)
     delete *acons;
   for (std::list<tVar*>::iterator var = _vars.begin();
-       var != _vars.end(); var ++)
+       var != _vars.end(); ++var)
     delete *var;
   for (std::list<tConstant*>::iterator constant = _constants.begin();
-       constant != _constants.end(); constant ++)
+       constant != _constants.end(); ++constant)
     delete *constant;
 }
 
@@ -73,7 +73,7 @@ request_var(int vid, std::string type) {
     var->type = type;
   }
   else {
-    var = new tVar(vid, type); 
+    var = new tVar(vid, type);
     register_var(var);
   }
   return var;
@@ -85,7 +85,7 @@ request_var(int vid) {
   if (_vars_map.find(vid) != _vars_map.end())
     var = _vars_map[vid];
   else {
-    var = new tVar(vid); 
+    var = new tVar(vid);
     register_var(var);
   }
   return var;
@@ -119,7 +119,7 @@ request_constant(std::string value) {
 }
 
 tPSOA::tPSOA(struct dag_node* dag) {
-  dag = dag_expand(dag); // expand the fs to be well-formed 
+  dag = dag_expand(dag); // expand the fs to be well-formed
   _vid_generator = 1;
   struct dag_node* init_sem_dag = FAIL;
   init_sem_dag = dag_get_path_value(dag, cheap_settings->req_value("mrs-initial-semantics-path"));
@@ -131,10 +131,10 @@ tPSOA::tPSOA(struct dag_node* dag) {
 
   // extract top-h
   struct dag_node* d = FAIL;
-  char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
-  if (!psoa_top_h_path || strcmp(psoa_top_h_path, "") == 0) 
+  const char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
+  if (!psoa_top_h_path || strcmp(psoa_top_h_path, "") == 0)
     top_h = request_var("handle");
-  else { 
+  else {
     d = dag_get_path_value(init_sem_dag, psoa_top_h_path);
     if (d == FAIL) {
       _valid = false;
@@ -143,7 +143,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
     }
     top_h = request_var(d);
   }
-  
+
   // extract index
   d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-index-path"));
   if (d == FAIL) {
@@ -152,18 +152,18 @@ tPSOA::tPSOA(struct dag_node* dag) {
     return;
   }
   index = request_var(d);
-  
+
   // extract liszt
   d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-liszt-path"));
   if (d == FAIL) {
     _valid = false;
-    LOG(logMRS, ERROR, "no mrs-psoa-index-path found.");
+    LOG(logMRS, ERROR, "no mrs-psoa-liszt-path found.");
     return;
   }
   int n = 0;
   std::list<struct dag_node*> rel_list = dag_get_list(d);
   for (std::list<dag_node*>::iterator iter = rel_list.begin();
-       iter != rel_list.end(); iter ++, n ++) {
+       iter != rel_list.end(); ++iter, ++n) {
     if (*iter == FAIL) {
       _valid = false;
       LOG(logMRS, ERROR, boost::format("no relation %d") % n);
@@ -172,7 +172,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
     }
     liszt.push_back(new tRel(*iter, false, this));
   }
-  
+
   // extract hcons
   d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-rh-cons-path"));
   if (d == FAIL) {
@@ -183,7 +183,7 @@ tPSOA::tPSOA(struct dag_node* dag) {
   n = 0;
   std::list<struct dag_node*> hcons_list = dag_get_list(d);
   for (std::list<dag_node*>::iterator iter = hcons_list.begin();
-       iter != hcons_list.end(); iter ++, n ++) {
+       iter != hcons_list.end(); ++iter, ++n) {
     if (*iter == FAIL) {
       _valid = false;
       LOG(logMRS, ERROR, boost::format("no hcons %d") % n);
@@ -193,21 +193,21 @@ tPSOA::tPSOA(struct dag_node* dag) {
     h_cons.push_back(new tHCons(*iter, this));
   }
   // extract acons
-  
+
   _valid = true;
 }
 
 tHCons::tHCons(struct dag_node* dag, class tBaseMRS* mrs) : _mrs(mrs) {
   // _fixme_ : for the moment there is only one type of H-Cons: QEQ
   relation = QEQ;
-  
+
   struct dag_node* d = dag_get_path_value(dag, cheap_settings->req_value("mrs-sc-arg-feature"));
   if (d == FAIL) {
     LOG(logMRS, ERROR, "no mrs-sc-arg-feature found.");
     return;
   }
   scarg = _mrs->request_var(d);
-  
+
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-outscpd-feature"));
   if (d == FAIL) {
     LOG(logMRS, ERROR, "no mrs-outscpd-feature found.");
@@ -241,15 +241,15 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
     }
     handel = _mrs->request_var(d);
   }
-  
+
   // get the relation name
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-name-path"));
   if (d != FAIL) {
     pred = type_name(d->type);
   }
-  
+
   // ignore the str for the moment
-  
+
   // get flist (fvpairs)
   dag_arc* attribute;
   for (attribute = dag->arcs; attribute != NULL; attribute = attribute->next) {
@@ -272,10 +272,10 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
       flist[feature] = value;
     }
   }
-  
+
   // collect parameter strings
   collect_param_strings();
-  
+
   // _todo_ ignore cfrom/cto for the moment
   d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-cfrom-feature"));
   if (d != FAIL) {
@@ -296,7 +296,7 @@ tRel::tRel(struct dag_node* dag, bool indexing, class tBaseMRS* mrs) : tBaseRel(
 void tRel::
 collect_param_strings() {
   for (std::map<std::string,tValue*>::iterator iter = flist.begin();
-       iter != flist.end(); iter ++) {
+       iter != flist.end(); ++iter) {
     if (cheap_settings->member("mrs-value-feats", (*iter).first.c_str())) {
       parameter_strings[(*iter).first] = (*iter).second;
     }
@@ -306,11 +306,11 @@ collect_param_strings() {
 tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
   if (dag != FAIL) {
 
-    /* 
+    /*
        this has been deprecated by variable type mapping in the VPM  (yi jan-09)
     //   determine variable type
     type_t t = dag_type(dag);
-    
+
     type_t event_type = lookup_type(cheap_settings->req_value("mrs-event-type"));
     type_t event_or_index_type = lookup_type(cheap_settings->req_value("mrs-event-or-index-type"));
     type_t non_expl_ind_type = lookup_type(cheap_settings->req_value("mrs-non-expl-ind-type"));
@@ -326,30 +326,30 @@ tVar::tVar(int vid, struct dag_node* dag, bool indexing) : id(vid) {
     else if (handle_type != -1 && subtype(t, handle_type)) type = "h";
     else if (non_event_type != -1 && subtype(t, non_event_type)) type = "p";
     else if (event_or_index_type != -1 && subtype(t, event_or_index_type)) type = "i";
-    else type = "u"; 
+    else type = "u";
     */
 
     type = typenames[dag_type(dag)];
-    
+
     // create index property list
     create_index_property_list(dag, "", extra);
 
   }
-      
+
 }
 
 void
 create_index_property_list(dag_node* dag, std::string path, std::map<std::string,std::string>& extra) {
   dag_arc* attribute;
-  std::string currpath = path == "" ? path : path+"."; 
+  std::string currpath = path == "" ? path : path+".";
   for (attribute = dag->arcs; attribute != NULL; attribute = attribute->next) { // for each attribute under current dag root node
-    if (cheap_settings->member("mrs-ignored-extra-features", 
+    if (cheap_settings->member("mrs-ignored-extra-features",
                                attrname[attribute->attr]))
       continue;
     if (attribute->val->arcs == NULL) { // value of the attribute is atomic
       extra[currpath+attrname[attribute->attr]] = type_name(attribute->val->type);
     } else { // collect property recursively
-      create_index_property_list(attribute->val, 
+      create_index_property_list(attribute->val,
                                  currpath+attrname[attribute->attr], extra);
     }
   }
@@ -381,7 +381,7 @@ operator()(const std::string feat1, const std::string feat2) const {
     return false;
   if (f1in && f2in) {
     setting* plist = cheap_settings->lookup("mrs-feat-priority-list");
-    for (int i = 0; i < plist->n; i ++) 
+    for (int i = 0; i < plist->n; ++i)
       if (strcasecmp(plist->values[i], feat1.c_str()) == 0)
         return true;
       else if (strcasecmp(plist->values[i], feat2.c_str()) == 0)
@@ -400,7 +400,7 @@ operator()(const std::string feat1, const std::string feat2) const {
     return false;
   if (f1in && f2in) {
     setting* plist = cheap_settings->lookup("mrs-extra-priority-list");
-    for (int i = 0; i < plist->n; i ++) 
+    for (int i = 0; i < plist->n; ++i)
       if (strcasecmp(plist->values[i], feat1.c_str()) == 0)
         return true;
       else if (strcasecmp(plist->values[i], feat2.c_str()) == 0)

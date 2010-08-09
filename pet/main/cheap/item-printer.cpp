@@ -176,7 +176,7 @@ void print_string_escaped(std::ostream &out, const char *str
     pos = str;
     while (pos < next) {
       out << *pos;
-      pos ++;
+      ++pos;
     }
     out << esc_char << *next;
     str = next + 1;
@@ -195,7 +195,7 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
   item_map::iterator it = _items.find((long int) item);
   if (it == _items.end()) {
     item_citer dtr;
-    for(dtr = dtrs.begin(); dtr != dtrs.end(); dtr++) {
+    for(dtr = dtrs.begin(); dtr != dtrs.end(); ++dtr) {
       print(*dtr);
     }
     *_out << "draw_edge " << _chart_id << " " << _item_id
@@ -204,12 +204,12 @@ tTclChartPrinter::print_it(const tItem *item, bool passive, bool left_ext){
     print_string_escaped(*_out, item->printname(), tcl_chars_to_escape);
     *_out << "\" " << (passive ? "0" : "1") << (left_ext ? " 0" : " 1")
          << " { ";
-    for(dtr = dtrs.begin(); dtr != dtrs.end(); dtr++) {
+    for(dtr = dtrs.begin(); dtr != dtrs.end(); ++dtr) {
       *_out << _items[(long int) *dtr] << " ";
     }
     *_out << "}" << std::endl;
     _items[(long int) item] = _item_id;
-    _item_id++;
+    ++_item_id;
   }
 }
 
@@ -400,7 +400,7 @@ void tJxchgPrinter::print_yield(const tInputItem *item) {
     print(*it);
     while(++it != item->daughters().end()) {
       *_out << " ";
-      print(*it++);
+      print(*it);
     }
   }
 }
@@ -420,7 +420,7 @@ tJxchgPrinter::real_print(const tLexItem *item) {
   *_out << "] ( ";
   // This prints only the yield, because all daughters are tInputItems
   for(item_citer it = item->daughters().begin(); it != item->daughters().end()
-        ; it++)
+        ; ++it)
     print_yield(dynamic_cast<tInputItem *>(*it));
   *_out << " ) ";
   jxchgprinter.print(*_out, get_fs(item).dag());
@@ -434,7 +434,7 @@ tJxchgPrinter::real_print(const tPhrasalItem *item) {
        << print_name(item->identity())
        << " (";
   for(item_citer it = item->daughters().begin(); it != item->daughters().end()
-        ; it++) {
+        ; ++it) {
     *_out << " " << (*it)->id();
   }
   *_out << " ) ";

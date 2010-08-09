@@ -80,9 +80,10 @@ private:
   std::map<tItem*, tChartVertex* > _item_to_succ_vertex;
 
   /**
-   * Copy construction is disallowed.
+   * Copy construction and assignment are disallowed.
    */
-  tChart(const tChart &chart);
+  tChart(const tChart&);
+  tChart& operator=(const tChart&);
 
 public:
 
@@ -188,8 +189,8 @@ public:
    * Returns a list of all items succeeding the specified vertex with a
    * minimal distance of \a min and a maximal distance of \a max.
    * @param v the vertex which all returned items succeed
-   * @param min minimal distance of \a v to the start vertex of each item  
-   * @param max maximal distance of \a v to the start vertex of each item  
+   * @param min minimal distance of \a v to the start vertex of each item
+   * @param max maximal distance of \a v to the start vertex of each item
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip_pending_inflrs if \c true, items with pending inflectional
    *                            rules are not returned
@@ -203,8 +204,8 @@ public:
    * Returns a list of all items preceding the specified vertex with a
    * minimal distance of \a min and a maximal distance of \a max.
    * @param v the vertex which all returned items precede
-   * @param min minimal distance of \a v to the end vertex of each item  
-   * @param max maximal distance of \a v to the end vertex of each item  
+   * @param min minimal distance of \a v to the end vertex of each item
+   * @param max maximal distance of \a v to the end vertex of each item
    * @param skip_blocked if \c true, blocked items are not returned
    * @param skip_pending_inflrs if \c true, items with pending inflectional
    *                            rules are not returned
@@ -339,9 +340,9 @@ public:
    * Called when loading a grammar.
    */
   static void initialize();
-  
+
   /**
-   * Perform validity checks of cm-specific settings. 
+   * Perform validity checks of cm-specific settings.
    * Called when loading a grammar.
    * \throws tError if the settings are not valid
    */

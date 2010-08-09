@@ -25,11 +25,11 @@ int main()
     const int DENSITY = 3;
 
     srandom(time(NULL));
-    
+
     std::cout << "Boost test" << std::endl;
-    
+
     tHierarchy G;
-    
+
     std::cout << " - Generating hierarchy with " << SIZE << " vertices" << std::endl;
 
     for(int i = 0; i < SIZE; ++i)
@@ -48,7 +48,7 @@ int main()
           v1 = random() % SIZE;
           v2 = random() % SIZE;
       } while(v1 >= v2);
-      
+
       boost::add_edge(v1, v2, G);
   }
 
@@ -57,9 +57,9 @@ int main()
   std::vector<tHierarchyVertex> c;
   boost::topological_sort(G, std::back_inserter(c));
 
-  for(int i = 0; i < c.size(); i++)
-      std::cout << c[i] << std::endl; 
-  
+  for(int i = 0; i < c.size(); ++i)
+      std::cout << c[i] << std::endl;
+
   std::ofstream g1("g1.dot");
   //  boost::print_graph(G, boost::get(boost::vertex_index, G));
   boost::write_graphviz(g1, G);
@@ -71,10 +71,10 @@ int main()
   boost::write_graphviz(g2, G);
 
   return 0;
-  
+
 
   std::cout << std::endl << "reversed graph:" << std::endl;
-  boost::print_graph(boost::make_reverse_graph(G), 
+  boost::print_graph(boost::make_reverse_graph(G),
                      boost::get(boost::vertex_index, G));
 
   return 0;

@@ -42,6 +42,14 @@
 #include <string>
 #include <vector>
 
+class item_owner;
+class tItem;
+class tInputItem;
+class tLexItem;
+class grammar_rule;
+class tGrammar;
+class tAbstractItemPrinter;
+
 /** this is a hoax to get the cfrom and cto values into the mrs */
 void init_characterization();
 
@@ -56,15 +64,15 @@ void init_characterization();
 /* Some typedef abbreviations for commonly used item container types */
 
 /** A list of chart items */
-typedef std::list< class tItem * > item_list;
+typedef std::list< tItem * > item_list;
 /** Iterator for item_list */
-typedef std::list< class tItem * >::iterator item_iter;
+typedef item_list::iterator item_iter;
 /** Iterator for const item list */
-typedef std::list< class tItem * >::const_iterator item_citer;
+typedef item_list::const_iterator item_citer;
 /** A list of input items */
-typedef std::list< class tInputItem * > inp_list;
+typedef std::list< tInputItem * > inp_list;
 /** Iterator for inp_list */
-typedef std::list< class tInputItem * >::iterator inp_iterator;
+typedef inp_list::iterator inp_iterator;
 
 /** Represent a possible (not necessarily valid) decomposition of an
     item. */
@@ -103,7 +111,7 @@ public:
     hypo_dtrs = dtrs;
     hypo_parents.clear();
     for (std::list<tHypothesis*>::iterator dtr = hypo_dtrs.begin();
-         dtr != hypo_dtrs.end(); dtr ++) {
+         dtr != hypo_dtrs.end(); ++dtr) {
       (*dtr)->hypo_parents.push_back(this);
     }
   }
@@ -152,7 +160,7 @@ public:
    * \param paths the set of word graph paths this item belongs to
    * \param printname a readable representation of this item
    */
-  tItem(int start, int end, const tPaths &paths, 
+  tItem(int start, int end, const tPaths &paths,
         const char *printname);
 
   virtual ~tItem();
@@ -162,9 +170,9 @@ public:
   /** Set the owner of all created items to be able to handle destruction
    *  properly.
    */
-  static void default_owner(class item_owner *o) { _default_owner = o; }
+  static void default_owner(item_owner *o) { _default_owner = o; }
   /** Return the owner of all created items. */
-  static class item_owner *default_owner() { return _default_owner; }
+  static item_owner *default_owner() { return _default_owner; }
 
   /** Reset the global counter for the creation of unique internal item ids */
   static void reset_ids() { _next_id = 1; }
@@ -175,7 +183,7 @@ public:
       -- \c INPUT_TRAIT an input item, still without feature structure
       -- \c LEX_TRAIT a lexical item with all inflection rules applied
       -- \c SYNTAX_TRAIT a phrasal item
-      \warning Note that \c INFL_TRAIT is not used in items. 
+      \warning Note that \c INFL_TRAIT is not used in items.
   */
   inline rule_trait trait() const { return _trait; }
 
@@ -219,7 +227,7 @@ public:
    * -- passive items at the borders of the chart do not combine with rules
    *    that would try to extend them past the border
    */
-  inline bool compatible(class grammar_rule *R, int length) const {
+  inline bool compatible(grammar_rule *R, int length) const {
     if(R->trait() == INFL_TRAIT) {
       if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
         return false;
@@ -238,7 +246,7 @@ public:
     if(R->spanningonly()) {
       if(R->nextarg() == 1 && _start != 0)
         return false;
-      
+
       if(R->nextarg() == R->arity() && _end != length)
         return false;
     }
@@ -286,14 +294,14 @@ public:
   /** Compatibility test of a passive item and a PCFG rules */
   inline bool compatible_pcfg(grammar_rule *pcfg_rule, int length) {
     int arity = pcfg_rule->arity();
-    if (pcfg_rule->nth_pcfg_arg(1) != identity()) 
+    if (pcfg_rule->nth_pcfg_arg(1) != identity())
         return false;
     return _end + arity - 1 <= length;
   }
-  
+
   /** Compatibility test of a passive and an active item */
   inline bool compatible_pcfg(tItem* active, int length) {
-    
+
     if ((_trait == INPUT_TRAIT) || !inflrs_complete_p())
       return false;
 
@@ -303,7 +311,7 @@ public:
     int arity = active->arity();
     return _end + arity - 1 <= length;
   }
-  
+
   /** Does this active item extend to the left or right?
    *  \pre assumes \c this is an active item.
    *  \todo Remove the current restriction to binary rules.
@@ -317,7 +325,7 @@ public:
    *  item.
    * \pre assumes \c this is an active item.
    */
-  inline bool adjacent(class tItem *passive) const
+  inline bool adjacent(tItem *passive) const
   {
     return (left_extending() ? (_start == passive->_end)
             : (_end == passive->_start));
@@ -329,7 +337,7 @@ public:
    * compatible with one of the root FS nodes. Furthermore, the root node is
    * returned in \a rule.
    */
-  inline bool root(class tGrammar *G, int length, type_t &rule) const {
+  inline bool root(tGrammar *G, int length, type_t &rule) const {
     if(inflrs_complete_p() && (_start == 0) && (_end == length))
       if(_trait == PCFG_TRAIT) {
         bool result = G->root(identity());
@@ -383,7 +391,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const = 0;
+  virtual void print_gen(tAbstractItemPrinter *ip) const = 0;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids) = 0;
@@ -536,7 +544,7 @@ private:
    */
   void block(int mark, bool freeze_parents);
 
-  static class item_owner *_default_owner;
+  static item_owner *_default_owner;
 
   static int _next_id;
 
@@ -566,7 +574,7 @@ private:
 
   int _nfilled;
 
-  class tLexItem *_key_item;
+  tLexItem *_key_item;
 
   /** List of inflection rules that must be applied to get a valid lex item */
   list_int *_inflrs_todo;
@@ -714,7 +722,7 @@ public:
    * Create a new complex input item (an input item with input item
    * daughters as it can be defined in PIC).
    * \deprecated This feature is deprecated since additional structure are
-   *             better represented with token feature structures. 
+   *             better represented with token feature structures.
    */
   tInputItem(std::string id, const inp_list &dtrs
              , std::string stem
@@ -736,7 +744,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
+  virtual void print_gen(tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -919,9 +927,7 @@ public:
 
   ~tLexItem() {
     free_list(_inflrs_todo);
-
-    if (_hypo != NULL)
-      delete _hypo;
+    delete _hypo;
   }
 
   INHIBIT_COPY_ASSIGN(tLexItem);
@@ -932,7 +938,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
+  virtual void print_gen(tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -1066,11 +1072,11 @@ public:
   /** Build a new phrasal item from the (successful) combination of \a rule and
    *  \a passive, which already produced \a newfs
    */
-  tPhrasalItem(grammar_rule *rule, class tItem *passive, fs &newfs);
+  tPhrasalItem(grammar_rule *rule, tItem *passive, fs &newfs);
   /** Build a new phrasal item from the (successful) combination of \a active
    *  and \a passive, which already produced \a newfs
    */
-  tPhrasalItem(tPhrasalItem *active, class tItem *passive, fs &newfs);
+  tPhrasalItem(tPhrasalItem *active, tItem *passive, fs &newfs);
   /** Constructor for unpacking: Build a new passive phrasal item from the
    *  \a representative with the daughters \a dtrs and the new feature
    *  structure \a newfs.
@@ -1087,12 +1093,12 @@ public:
   virtual ~tPhrasalItem() {
     // clear the hypotheses cache
     for (std::vector<tHypothesis*>::iterator h = _hypotheses.begin();
-         h != _hypotheses.end(); h ++)
+         h != _hypotheses.end(); ++h)
       delete *h;
 
     // clear the decomposition cache
     for (std::list<tDecomposition*>::iterator d = decompositions.begin();
-         d != decompositions.end(); d ++)
+         d != decompositions.end(); ++d)
       delete *d;
   }
 
@@ -1104,7 +1110,7 @@ public:
   /** Function to enable printing through printer object \a ip via double
    *  dispatch. \see tAbstractItemPrinter class
    */
-  virtual void print_gen(class tAbstractItemPrinter *ip) const ;
+  virtual void print_gen(tAbstractItemPrinter *ip) const ;
 
   /** Collect the IDs of all daughters into \a ids */
   virtual void daughter_ids(std::list<int> &ids);
@@ -1299,13 +1305,13 @@ inline bool alltrue(const class tItem *it) { return true; }
 inline bool onlypassives(const tItem *item) { return item->passive(); }
 
 /** Item predicate selecting all passive non-blocked items. */
-inline bool passive_unblocked(const class tItem *item) { 
-  return item->passive() && !item->blocked(); 
+inline bool passive_unblocked(const class tItem *item) {
+  return item->passive() && !item->blocked();
 }
 
 /** Item predicate selecting all passive non-blocked, non-input items. */
-inline bool passive_unblocked_non_input(const class tItem *item) { 
-  return item->passive() && !item->blocked() && item->trait() != INPUT_TRAIT; 
+inline bool passive_unblocked_non_input(const class tItem *item) {
+  return item->passive() && !item->blocked() && item->trait() != INPUT_TRAIT;
 }
 
 /** Item predicate selecting all passive items without pending morphographemic
