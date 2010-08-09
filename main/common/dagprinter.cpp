@@ -39,7 +39,7 @@ inline int AbstractDagPrinter::set_visited(const dag_node *dag, int val) {
   return _dags_visited[dag] = val;
 }
 
-inline void 
+inline void
 AbstractDagPrinter::mark_arc_targets(const dag_arc *arcs, bool temp) {
   while(arcs != 0) {
     mark_coreferences(arcs->val, temp);
@@ -62,7 +62,7 @@ void AbstractDagPrinter::mark_coreferences(const dag_node *dag, bool temp) {
   }
 }
 
-void 
+void
 AbstractDagPrinter::init_coreference_marks(const dag_node *dag, bool temp) {
   _dags_visited.clear();
   _coref_nr = 0;
@@ -80,9 +80,9 @@ print_arcs(ostream &out, const dag_arc *arc, bool temp, int indent) {
   int maxlen = 0, i, maxatt = 0;
 
   const dag_node *print_attrs[nattrs];
-  for(i = 0; i < nattrs; i++)
+  for(i = 0; i < nattrs; ++i)
     print_attrs[i] = 0;
-  
+
   while(arc) {
     i = attrnamelen[arc->attr];
     maxlen = maxlen > i ? maxlen : i;
@@ -127,7 +127,7 @@ print_dag_rec(ostream &out, const dag_node *dag, bool temp, int indent) {
     orig = dag_deref(dag);
     if(orig != dag) out << "~";
   }
-    
+
   int coref = get_coref_nr(dag);
   if(coref != 0) {
     if (coref < 0) { // dag is coreferenced, already printed
@@ -145,7 +145,7 @@ print_dag_rec(ostream &out, const dag_node *dag, bool temp, int indent) {
     if(dag != orig) out << (size_t) orig << "->";
     out << (size_t) dag << ")" << dec ;
   }
-  
+
   print_arcs(out, dag->arcs, temp, indent);
   if(temp) print_arcs(out, dag_get_comp_arcs(dag), temp, indent);
 }
@@ -168,7 +168,7 @@ print_dag_rec(ostream &out, const dag_node *dag, bool temp) {
   // mark_coreferences. negative value in `visit' field means that node
   // is coreferenced, and already printed
   int coref = get_coref_nr(dag);
-    
+
   if (coref != 0) {
     if(coref < 0) { // dag is coreferenced, already printed
       print_coref_reference(out, - coref) ;
@@ -186,18 +186,18 @@ print_dag_rec(ostream &out, const dag_node *dag, bool temp) {
 }
 
 
-void 
+void
 ItsdbDagPrinter::print_arc(ostream &out, const dag_arc *arc, bool temp) {
   out << " " << attrname[arc->attr] << " ";
   print_dag_rec(out, arc->val, temp);
 } // ItsdbDagPrinter::print_arc()
 
-void 
+void
 ItsdbDagPrinter::print_coref_reference(ostream &out, int coref_nr) {
   out << "#" << coref_nr;
 } // ItsdbDagPrinter::print_coref_reference()
 
-void 
+void
 ItsdbDagPrinter::print_coref_definition(ostream &out, int coref_nr) {
   out << "#" << coref_nr << "=";
 } // ItsdbDagPrinter::print_coref_definition()
@@ -207,7 +207,7 @@ ItsdbDagPrinter::print_dag_node_start(ostream &out, const dag_node *dag) {
   const char *type = type_name(dag->type);
   int n = strlen(type);
   if(n >= 2 && type[0] == '"' && type[n - 1] == '"') {
-    
+
     out << "\"" << escape_string(string(type).substr(1, n - 2)) << "\"";
   } // if
   else

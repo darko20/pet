@@ -73,7 +73,7 @@ struct term *new_term()
 struct attr_val *new_attr_val()
 {
   struct attr_val *av;
-  
+
   av = (struct attr_val *) salloc(sizeof(struct attr_val));
 
   av -> attr = NULL; av -> val = NULL;
@@ -90,7 +90,7 @@ struct term *new_type_term(int id)
 
   T -> value = strdup(types.name(id).c_str());
   T -> type = id;
-  
+
   return T;
 }
 
@@ -101,7 +101,7 @@ struct term *new_string_term(char *s)
   T = new_term();
   T -> tag = STRING;
   T -> value = s;
-      
+
   string S = "\"" + string(s) + "\"";
   if(types.id(S) == -1)
     {
@@ -118,7 +118,7 @@ struct term *new_int_term(int i)
 {
   char *s = new char[10];
   sprintf(s, "%d", i);
-  
+
   return new_string_term(s);
 }
 
@@ -180,7 +180,7 @@ struct conjunction *get_feature(struct avm *A, char *feat)
 {
   int i = 0;
 
-  for(i = 0; i < A -> n; i ++)
+  for(i = 0; i < A -> n; ++i)
     {
       if(strcasecmp(A -> av[i] -> attr, feat) == 0)
         return A -> av[i] -> val;
@@ -215,7 +215,7 @@ int nr_avm_constraints(struct conjunction *C)
   int j, cnt = 0;
 
   assert(C != NULL);
-  for(j = 0; j < C -> n; j++)
+  for(j = 0; j < C -> n; ++j)
     {
       if (C -> term[j] -> tag == FEAT_TERM)
         cnt++;
@@ -231,7 +231,7 @@ struct term *single_avm_constraint(struct conjunction *C)
 
   if(nr_avm_constraints(C) > 1) return NULL;
 
-  for(j = 0; j < C -> n; j++)
+  for(j = 0; j < C -> n; ++j)
     {
       if (C -> term[j] -> tag == FEAT_TERM)
         return C -> term[j];
@@ -254,7 +254,7 @@ struct avm* copy_avm(struct avm *A)
   A1 -> allocated = A -> n;
   A1 -> av = (struct attr_val **) salloc(A1 -> allocated * sizeof(struct attr_val*));
 
-  for(i = 0; i < A -> n; i++)
+  for(i = 0; i < A -> n; ++i)
     {
       struct attr_val *av;
 
@@ -266,7 +266,7 @@ struct avm* copy_avm(struct avm *A)
 
       A1 -> av[i] = av;
     }
-  
+
   return A1;
 }
 
@@ -289,7 +289,7 @@ struct tdl_list *copy_list(struct tdl_list *L)
   L1 -> n = L -> n;
   L1 -> list = (struct conjunction **) salloc(LIST_TABLE_SIZE * sizeof(struct conjunction *));
 
-  for(i = 0; i < L -> n; i++)
+  for(i = 0; i < L -> n; ++i)
     {
       L1 -> list[i] = copy_conjunction(L -> list[i]);
     }
@@ -345,7 +345,7 @@ struct conjunction *copy_conjunction(struct conjunction *C)
   C1 -> n = C -> n;
   C1 -> term = (struct term **) salloc(CONJ_TABLE_SIZE * sizeof(struct term*));
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       C1 -> term[i] = copy_term(C -> term[i]);
     }

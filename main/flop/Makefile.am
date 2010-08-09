@@ -47,6 +47,7 @@ flop_SOURCES = corefs.cpp \
 	$(top_srcdir)/common/dag-common.cpp \
 	$(top_srcdir)/common/dag-io.cpp \
 	$(top_srcdir)/common/dag-simple.cpp \
+	$(top_srcdir)/common/dagprinter.cpp \
 	$(top_srcdir)/common/dumper.cpp  \
 	$(top_srcdir)/common/grammar-dump.cpp \
 	$(top_srcdir)/common/lex-io.cpp \

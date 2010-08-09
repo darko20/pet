@@ -71,7 +71,7 @@ static bool init() {
 
 /**
  * Variable that enforces that init() is executed when the class is loaded.
- * (Workaround for missing static blocks in C++.) 
+ * (Workaround for missing static blocks in C++.)
  */
 static bool initialized = init();
 
@@ -92,12 +92,12 @@ inline bool pcfg_result_limits() {
   // in no-unpacking mode (aiming to determine parseability only), have we
   // found at least one tree?
   if ((opt_packing & PACKING_NOUNPACK) != 0 && stats.rtrees > 0) return true;
-  
+
   // in (non-packing) best-first mode, is the number of trees found equal to
   // the number of requested solutions?
   // opt_packing w/unpacking implies exhaustive parsing
   if ((! opt_packing
-       && opt_nsolutions != 0 && stats.rtrees >= opt_nsolutions)) 
+       && opt_nsolutions != 0 && stats.rtrees >= opt_nsolutions))
     return true;
   return false;
 }
@@ -107,7 +107,7 @@ inline bool pcfg_result_limits() {
 void
 postulate_pcfg(tItem *passive) {
   for (ruleiter rule = Grammar->pcfg_rules().begin();
-       rule != Grammar->pcfg_rules().end(); rule ++) {
+       rule != Grammar->pcfg_rules().end(); ++rule) {
     grammar_rule *R = *rule;
     if (passive->compatible_pcfg(R, Chart->rightmost())) {
 //       if (rule_count.find(R->type()) == rule_count.end())
@@ -125,22 +125,22 @@ postulate_pcfg(tItem *passive) {
  */
 bool
 packed_edge_pcfg(tItem *newitem) {
-  //  if (newitem->trait() != PCFG_TRAIT) 
+  //  if (newitem->trait() != PCFG_TRAIT)
   //    return false;
   // if (! newitem->inflrs_complete_p()) return false;
 
   for (chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
-       iter.valid(); iter ++) {
+       iter.valid(); ++iter) {
     tItem *olditem = iter.current();
 
     // only pack with other PCFG unblocked items
     if (olditem->trait() != PCFG_TRAIT || olditem->blocked())
       continue;
-    
+
     // never pack with own offsprings // we might need to allow this because of recursive rules
     // if (newitem->contains_p(olditem))
     //   continue;
-    
+
     if (olditem->identity() == newitem->identity()) {
       if (!newitem->cyclic_p(olditem)) // when packing happens for an item into its offspring, pretend to pack, but not put the new item on the packed list
         olditem->packed.push_back(newitem);
@@ -154,7 +154,7 @@ packed_edge_pcfg(tItem *newitem) {
 
 void fundamental_for_passive_pcfg(tItem *passive) {
   // iterate over all active items adjacent to passive and try combination
-  for (chart_iter_adj_active it(Chart, passive); it.valid(); it ++) {
+  for (chart_iter_adj_active it(Chart, passive); it.valid(); ++it) {
     tItem *active = it.current();
     if (active->adjacent(passive) && active->trait() == PCFG_TRAIT) // we ignore active edges from the first-stage parsing
       if (passive->compatible_pcfg(active, Chart->rightmost())) // still need to filter combine tasks?
@@ -167,7 +167,7 @@ void fundamental_for_active_pcfg(tItem *active) {
     return;
   // iterator over all passive items adjacent to active and try combination
   // no matter whether it is PCFG item or not, for the active one is sure to be PCFG
-  for (chart_iter_adj_passive it(Chart, active); it.valid(); it ++) {
+  for (chart_iter_adj_passive it(Chart, active); it.valid(); ++it) {
     if (opt_packing == 0 || !it.current()->blocked())
       if (it.current()->compatible_pcfg(active, Chart->rightmost()))
         Agenda->push(new pcfg_active_and_passive_task(Chart, Agenda, active, it.current()));
@@ -177,7 +177,7 @@ void fundamental_for_active_pcfg(tItem *active) {
 inline bool
 passive_item_exists(chart *C, int start, int end, type_t type, list<tItem*> dtrs) {
   int opt_robust = get_opt_int("opt_robust");
-  if (opt_robust == 1) 
+  if (opt_robust == 1)
     return false;
   chart_iter_span_passive ci(C, start, end);
   while (ci.valid()) {
@@ -191,7 +191,7 @@ passive_item_exists(chart *C, int start, int end, type_t type, list<tItem*> dtrs
         return equal;
       for (item_citer dtr1 = item->daughters().begin(), dtr2 = dtrs.begin();
            dtr1 != item->daughters().end() && dtr2 != dtrs.end();
-           dtr1 ++, dtr2 ++) {
+           ++dtr1, ++dtr2) {
         if ((*dtr1) != (*dtr2)) {
           equal = false;
           break;
@@ -199,8 +199,8 @@ passive_item_exists(chart *C, int start, int end, type_t type, list<tItem*> dtrs
       }
       if (equal)
         return true;
-    }      
-    ci ++;
+    }
+    ++ci;
   }
   return false;
 }
@@ -217,7 +217,7 @@ build_pcfg_rule_item(chart *C, tAbstractAgenda *A, grammar_rule *rule, tItem *pa
        !passive_item_exists(C, passive->start(), passive->end(), rule->type(), dtrs))) {
     return new tPhrasalItem(rule, passive);
   }
-  return 0; 
+  return 0;
 }
 
 tItem *
@@ -254,9 +254,9 @@ pcfg_rule_and_passive_task::execute()
 {
   if (_passive->blocked())
     return 0;
-  
+
   tItem *result = build_pcfg_rule_item(_Chart, _A, _rule, _passive);
-  //if ((opt_packing & PACKING_PCFGEQUI) == 0 && result) 
+  //if ((opt_packing & PACKING_PCFGEQUI) == 0 && result)
   if (result)
     result->score(priority());
   return result;
@@ -295,7 +295,7 @@ add_item_pcfg(tItem *it) {
       return false;
     Chart->add(it);
     type_t root;
-    if (it->root(Grammar, Chart->rightmost(), root)) { 
+    if (it->root(Grammar, Chart->rightmost(), root)) {
       //
       // a complete result; because we simulate the actual HPSG start symbols
       // as pseudo PCFG rules, ditch the top node, recording its category as a
@@ -322,7 +322,7 @@ add_item_pcfg(tItem *it) {
 
 void
 parse_loop_pcfg() {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
   int pedgelimit = get_opt_int("opt_pedgelimit");
   while (!Agenda->empty() &&
          ! pcfg_resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
@@ -346,19 +346,19 @@ fs instantiate_robust(tItem* root) {
   } else {
     type_t ruletype = root->rule()->type();
     grammar_rule *rule;
-    for (ruleiter iter = Grammar->rules().begin(); 
-         iter != Grammar->rules().end(); iter ++) {
+    for (ruleiter iter = Grammar->rules().begin();
+         iter != Grammar->rules().end(); ++iter) {
       if ((*iter)->type() == ruletype) {
         rule = *iter;
         break;
       }
     }
-    
+
     fs res = rule->instantiate(true);
     list_int *tofill = rule->allargs();  // FIXME, index the real grammar rule using pcfg rule
     vector<tItem*> dtrs;
     for (list<tItem*>::const_iterator iter = root->daughters().begin();
-         iter != root->daughters().end(); iter ++)
+         iter != root->daughters().end(); ++iter)
       dtrs.push_back(*iter);
 
     while (tofill) {
@@ -406,7 +406,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
   }
   tCompactDerivationPrinter cdp(cerr, false);
   for (list<tItem*>::iterator res = results.begin();
-       res != results.end(); res ++) {
+       res != results.end(); ++res) {
     readings.push_back(*res);
     if(LOG_ENABLED(logLexproc, INFO)) {
       // TODO also use logging for this code
@@ -416,7 +416,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
       cdp.print(*res);
       cerr << endl;
     }
-    nres ++;
+    ++nres;
   }
 
   set_opt("opt_gplevel", oldgplevel);
@@ -428,23 +428,23 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
 
 void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
   // _todo_ modify so that proper unpacking routines are invoked
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024; 
+  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
   int pedgelimit = get_opt_int("opt_pedgelimit");
   clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
 
   FSAS.clear_stats();
-    
+
   if(pcfg_resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
     ostringstream s;
-    
+
     if (memlimit > 0 && t_alloc.max_usage() >= memlimit)
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024) 
+      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
         << " MB)";
     else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit)
-      s << "edge limit exhausted (" << pedgelimit 
+      s << "edge limit exhausted (" << pedgelimit
         << " pedges)";
-    else 
-      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
+    else
+      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
               << " s)";
     errors.push_back(s.str());
   }
@@ -461,21 +461,21 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
 
     nres = unpack_selectively_pcfg(Chart->trees(), upedgelimit, memlimit,
                                    UnpackTime, readings);
-      
+
     if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
       ostringstream s;
-      s << "unpack edge limit exhausted (" << upedgelimit 
+      s << "unpack edge limit exhausted (" << upedgelimit
         << " pedges)";
       errors.push_back(s.str());
     }
 
     if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
       ostringstream s;
-      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
+      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
         << " s)";
       errors.push_back(s.str());
     }
-      
+
     stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
     stats.p_dyn_bytes = FSAS.dynamic_usage();
     stats.p_stat_bytes = FSAS.static_usage();
@@ -487,7 +487,7 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
 
   if (Grammar->pcfgsm())
     sort(readings.begin(), readings.end(), item_greater_than_score());
-  
+
   Chart->readings() = readings;
   stats.rreadings = stats.readings = Chart->readings().size();
 }
@@ -502,18 +502,18 @@ void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors) {
   // invalidate the MEM scores
   while (ci1.valid()) {
       ci1.current()->score(1);
-      ci1 ++;
+      ++ci1;
   }
   chart_iter ci2(Chart);
   while (ci2.valid()) {
     if (ci2.current()->trait() != INPUT_TRAIT &&
-        ci2.current()->passive() && 
+        ci2.current()->passive() &&
         ci2.current()->inflrs_complete_p()) {
       postulate_pcfg(ci2.current());
     }
-    ci2 ++;
+    ++ci2;
   }
-  
+
   // main parse loop
   parse_loop_pcfg();
 

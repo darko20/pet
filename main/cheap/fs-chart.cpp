@@ -55,7 +55,7 @@ filter_items(const item_list &items,
     item_list &result)
 {
   item_list::const_iterator it;
-  for (it = items.begin(); it != items.end(); it++) {
+  for (it = items.begin(); it != items.end(); ++it) {
     if (!(skip_blocked && (*it)->blocked())
         && !(skip_pending_inflrs && !(*it)->inflrs_complete_p())
         && (find(skip.begin(), skip.end(), *it) == skip.end())) {
@@ -69,7 +69,7 @@ tChart::clear()
 {
   for (std::list<tChartVertex*>::iterator it = _vertices.begin();
        it != _vertices.end();
-       it++)
+       ++it)
     delete *it;
   _vertices.clear();
   _items.clear(); // items are usually released by the tItem::default_owner
@@ -85,7 +85,7 @@ tChart::start_vertices(bool connected) const
   std::list<tChartVertex*> vertices;
   for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
-       it++)
+       ++it)
   {
     if ((*it)->ending_items().empty() &&
         (!connected || !(*it)->starting_items().empty()))
@@ -102,7 +102,7 @@ tChart::end_vertices(bool connected) const
   std::list<tChartVertex*> vertices;
   for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
-       it++)
+       ++it)
   {
     if ((*it)->starting_items().empty() &&
         (!connected || !(*it)->ending_items().empty()))
@@ -151,7 +151,7 @@ tChart::remove_item(tItem *item)
 void
 tChart::remove_items(item_list items)
 {
-  for (item_iter it = items.begin(); it != items.end(); it++) {
+  for (item_iter it = items.begin(); it != items.end(); ++it) {
     remove_item(*it);
   }
 }
@@ -172,14 +172,14 @@ tChart::items(tChartVertex *prec, tChartVertex *succ, bool skip_blocked,
     item_list candidates;
     filter_items(_vertex_to_starting_items[prec], skip_blocked,
         skip_pending_inflrs, skip, candidates);
-    for (item_iter it = candidates.begin(); it != candidates.end(); it++)
+    for (item_iter it = candidates.begin(); it != candidates.end(); ++it)
       if (!succ || ((*it)->succ_vertex() == succ))
         result.push_back(*it);
   } else if (succ) {
     item_list candidates;
     filter_items(_vertex_to_ending_items[succ], skip_blocked,
         skip_pending_inflrs, skip, candidates);
-    for (item_iter it = candidates.begin(); it != candidates.end(); it++)
+    for (item_iter it = candidates.begin(); it != candidates.end(); ++it)
       if (!prec || ((*it)->prec_vertex() == prec))
         result.push_back(*it);
   } else {
@@ -200,7 +200,7 @@ succeeding_items(tChartVertex *v, int min, int max,
   if ((min <= dist) && (dist <= max))
     filter_items(items, skip_blocked, skip_pending_inflrs, skip, result);
   // schedule processing of all vertices not processed before:
-  for (item_iter iit = items.begin(); iit != items.end(); iit++) {
+  for (item_iter iit = items.begin(); iit != items.end(); ++iit) {
     tChartVertex *next = (*iit)->succ_vertex();
     if (find(vertices.begin(), vertices.end(), next) == vertices.end()) {
       succeeding_items(next, min, max, skip_blocked, skip_pending_inflrs, skip,
@@ -231,7 +231,7 @@ preceding_items(tChartVertex *v, int min, int max,
   if ((min <= dist) && (dist <= max))
     filter_items(items, skip_blocked, skip_pending_inflrs, skip, result);
   // schedule processing of all vertices not processed before:
-  for (item_iter iit = items.begin(); iit != items.end(); iit++) {
+  for (item_iter iit = items.begin(); iit != items.end(); ++iit) {
     tChartVertex *next = (*iit)->prec_vertex();
     if (find(vertices.begin(), vertices.end(), next) == vertices.end()) {
       preceding_items(next, min, max, skip_blocked, skip_pending_inflrs, skip,
@@ -256,7 +256,7 @@ tChart::connected() {
   int nr_end = 0;
   for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
-       it++)
+       ++it)
   {
     tChartVertex* vertex = *it;
     std::map<tChartVertex*, item_list >::const_iterator vertex_items_it;
@@ -267,7 +267,7 @@ tChart::connected() {
       item_list items = vertex_items_it->second;
       for (item_list::iterator item_it = items.begin();
            item_it != items.end();
-           item_it++) {
+           ++item_it) {
         has_active_prec_items = has_active_prec_items || !(*item_it)->blocked();
       }
     }
@@ -278,16 +278,16 @@ tChart::connected() {
       item_list items = vertex_items_it->second;
       for (item_list::iterator item_it = items.begin();
            item_it != items.end();
-           item_it++) {
+           ++item_it) {
         has_active_succ_items = has_active_succ_items || !(*item_it)->blocked();
       }
     }
     // check whether this is a start or an end vertex:
     if (!has_active_prec_items && has_active_succ_items) {
-      nr_start++;
+      ++nr_start;
     }
     if (has_active_prec_items && !has_active_succ_items) {
-      nr_end++;
+      ++nr_end;
     }
   }
   return (nr_start == 1) && (nr_end == 1);
@@ -303,7 +303,7 @@ tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
     printer = &default_printer;
   }
   item_list all_items = items();
-  for (item_iter it = all_items.begin(); it != all_items.end(); it++) {
+  for (item_iter it = all_items.begin(); it != all_items.end(); ++it) {
     tItem *item = *it;
     if (toprint(*it)) {
       printer->print(item); out << endl;
@@ -337,7 +337,7 @@ static bool
 init_lpath(list_int*& lpath, string name, string &errors)
 {
   free_list(lpath);
-  char *val = cheap_settings->value(name.c_str());
+  const char *val = cheap_settings->value(name.c_str());
   lpath = path_to_lpath(val);
   if (val && (lpath == 0)) {
     errors.append("Invalid path in setting `" + name + "'.\n");
@@ -452,14 +452,14 @@ tChartUtil::create_input_item(const fs &token_fs)
     list<fs> ids_list = token_fs.get_path_value(_token_id_path).get_list();
     for (list<fs>::iterator it = ids_list.begin();
          it != ids_list.end();
-         it++)
+         ++it)
       id += (std::string)(id.empty() ? "" : ",") + (*it).printname();
   }
   if (_token_from_path) {
     try {
       cfrom = boost::lexical_cast<int>(
           token_fs.get_path_value(_token_from_path).printname());
-    } catch(boost::bad_lexical_cast &error) {
+    } catch(boost::bad_lexical_cast &) {
       // should only happen if the value is not set. ignore!
     }
   }
@@ -467,7 +467,7 @@ tChartUtil::create_input_item(const fs &token_fs)
     try {
       cto = boost::lexical_cast<int>(
           token_fs.get_path_value(_token_to_path).printname());
-    } catch(boost::bad_lexical_cast &error) {
+    } catch(boost::bad_lexical_cast &) {
       // should only happen if the value is not set. ignore!
     }
   }
@@ -496,7 +496,7 @@ tChartUtil::create_input_item(const fs &token_fs)
     fs rules = token_fs.get_path_value(_token_rules_path);
     std::list<fs> rules_list = rules.get_list();
     for (std::list<fs>::iterator rules_it = rules_list.begin();
-        rules_it != rules_list.end(); rules_it++) {
+        rules_it != rules_list.end(); ++rules_it) {
       infls.push_back((*rules_it).type());
     }
   }
@@ -508,7 +508,7 @@ tChartUtil::create_input_item(const fs &token_fs)
     list<fs>::iterator ti, pi;
     for (ti = tags.begin(), pi = probs.begin();
          (ti != tags.end()) && (pi != probs.end());
-         ti++, pi++)
+         ++ti, ++pi)
     {
       if (is_string_instance(ti->type()) && is_string_instance(pi->type())) {
         string tag = (*ti).printname();
@@ -603,7 +603,7 @@ tChartUtil::create_input_fs(tInputItem* item)
     list_int *path = 0;
     for (tags_it = tags.begin(), probs_it = probs.begin();
          tags_it != tags.end();
-         tags_it++, probs_it++)
+         ++tags_it, ++probs_it)
     {
       fs tag_f = fs(retrieve_string_instance(*tags_it));
       fs prob_f = fs(retrieve_string_instance(lexical_cast<string>(*probs_it)));
@@ -650,12 +650,12 @@ topological_order(tChartVertex *vertex, int &max_value,
     list<tChartVertex*> &ordered)
 {
   list<tItem*> items = vertex->starting_items();
-  for (list<tItem*>::iterator it = items.begin(); it != items.end(); it++) {
+  for (list<tItem*>::iterator it = items.begin(); it != items.end(); ++it) {
     tChartVertex *succ = (*it)->succ_vertex();
     if (order.find(succ) == order.end()) // if not visited
       topological_order(succ, max_value, order, ordered);
   }
-  max_value++;
+  ++max_value;
   order[vertex] = max_value;
   ordered.push_front(vertex);
 }
@@ -673,10 +673,10 @@ tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
   list<tChartVertex*> ordered;
   topological_order(vertices.front(), max_value, order, ordered);
   list<tChartVertex*>::iterator vit;
-  for (vit = ordered.begin(); vit != ordered.end(); vit++) {
+  for (vit = ordered.begin(); vit != ordered.end(); ++vit) {
     tChartVertex *prec_vertex = *vit;
     list<tItem*> items = prec_vertex->starting_items();
-    for (list<tItem*>::iterator it = items.begin(); it != items.end(); it++) {
+    for (list<tItem*>::iterator it = items.begin(); it != items.end(); ++it) {
       tItem *item = *it;
       item->set_start(max_value - order[prec_vertex]);
       item->set_end(max_value - order[item->succ_vertex()]);
@@ -695,7 +695,7 @@ tChartUtil::map_chart(inp_list &input_items, tChart &chart)
   // convert each input item to a token feature structure:
   for (list<tInputItem*>::iterator item_it = input_items.begin();
        item_it != input_items.end();
-       item_it++)
+       ++item_it)
   {
     // determine start and end positions (int vertices):
     int vfrom = (*item_it)->start();         // start vertex as an int
@@ -726,7 +726,7 @@ tChartUtil::map_chart(tChart &chart, inp_list &input_items)
   item_list items;
   int nr_processed = tChartUtil::assign_int_nodes(chart, items);
   input_items.clear();
-  for (item_iter it=items.begin(); it!=items.end(); it++) {
+  for (item_iter it=items.begin(); it!=items.end(); ++it) {
     tInputItem *inp_item = dynamic_cast<tInputItem*>(*it);
     assert(inp_item);
     input_items.push_back(inp_item);
@@ -738,7 +738,7 @@ void
 tChartUtil::map_chart(chart &in, tChart &out)
 {
   hash_map<int,tChartVertex*> vertex_map;
-  for (chart_iter it(in); it.valid(); it++) {
+  for (chart_iter it(in); it.valid(); ++it) {
     tItem *item = it.current();
     tChartVertex* prec = retrieve_chart_vertex(out, vertex_map, item->start());
     tChartVertex* succ = retrieve_chart_vertex(out, vertex_map, item->end());
@@ -752,7 +752,7 @@ tChartUtil::map_chart(tChart &in, chart &out)
   item_list items;
   int nr_processed = tChartUtil::assign_int_nodes(in, items);
   out.reset(nr_processed);
-  for (item_iter it=items.begin(); it!=items.end(); it++) {
+  for (item_iter it=items.begin(); it!=items.end(); ++it) {
     out.add(*it);
   }
   return nr_processed;

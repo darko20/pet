@@ -20,30 +20,30 @@ class MString {
   std::string _str;
 public:
   MString() {}
-  MString(const std::string &s) : _str(s) {} 
+  MString(const std::string &s) : _str(s) {}
   void remove(unsigned int start = 0, unsigned int len = std::string::npos) {
     _str.erase(start, len);
   }
-  std::string str() { return _str; }
-  MChar char32At(int index) { return _str[index]; }
+  std::string str() const { return _str; }
+  MChar char32At(int index) const { return _str[index]; }
   int getChar32Start(int offset) { return offset; }
   void reverse() { std::reverse(_str.begin(), _str.end()); }
   void reverse(int start, int length) {
-    std::reverse(_str.begin() + start, _str.begin() + start + length); 
+    std::reverse(_str.begin() + start, _str.begin() + start + length);
   }
-  int indexOf(MChar c, int offset) { return _str.find(c, offset); }
-  int indexOf(const MString s) { return _str.find(s._str); }
+  int indexOf(MChar c, int offset) const { return _str.find(c, offset); }
+  int indexOf(const MString& s) const { return _str.find(s._str); }
   void append(MChar c) { _str += c ; }
-  void append(const MString s) { _str += s._str; }
-  const char *c_str() { return _str.c_str(); }
-  int length() { return _str.length(); }
+  void append(const MString& s) { _str += s._str; }
+  const char *c_str() const { return _str.c_str(); }
+  int length() const { return _str.length(); }
 };
 
 class StringCharacterIterator {
   std::string &_str;
   std::string::iterator _it;
 public:
-  StringCharacterIterator(MString str) : _str(str._str) {
+  StringCharacterIterator(MString& str) : _str(str._str) {
     _it = _str.begin();
   }
   bool hasNext() { return (_it != _str.end()) ; }
@@ -52,10 +52,10 @@ public:
 
 class Converter {
 public:
-  Converter() {} 
-  std::string convert(MString s) { return s.str() ; }
-  MString convert(std::string s) { return s ; }
-  MString convert(MChar c) { return std::string() + c ; }
+  Converter() {}
+  std::string convert(const MString& s) const { return s.str() ; }
+  MString convert(const std::string& s) const { return s ; }
+  MString convert(MChar c) const { return std::string(c, 1); }
 };
 
 #endif
@@ -67,7 +67,7 @@ public:
   morph_letterset() :
     _bound(0) {};
 
-    void set(std::string name, std::string elems);
+    void set(const std::string& name, const std::string& elems);
 
   const std::set<MChar> &elems() const { return _elems; }
 
@@ -75,7 +75,7 @@ public:
   MChar bound() const { return _bound; }
 
   const std::string &name() const { return _name; }
-  
+
   void print(std::ostream &) const;
 
 private:
@@ -90,7 +90,7 @@ class morph_lettersets
 public:
   morph_lettersets() {};
 
-  void add(std::string s);
+  void add(const std::string& s);
   morph_letterset * get(std::string name) const;
 
   void undo_bindings();
@@ -107,7 +107,7 @@ private:
 };
 
 /** This implements one element of a morphological rule specification, the
- * so-called sub-rule. 
+ * so-called sub-rule.
  *
  * It consists of the left part (the part to be substitued) and right part (the
  * substitution). During analysis, the roles are switched: the right part has
@@ -120,7 +120,7 @@ public:
   morph_subrule(class tMorphAnalyzer *a, class grammar_rule *rule,
                 MString left, MString right)
     : _analyzer(a), _rule(rule), _left(left), _right(right) {}
-  
+
   /** The AVM rule of this sub-rule */
   grammar_rule *rule() { return _rule; }
 
@@ -128,7 +128,7 @@ public:
    *  sub-rule?
    *  If this is the case, return the reduced form in \a result.
    */
-  bool base_form(MString matched, MString rest,
+  bool base_form(const MString& matched, const MString& rest,
                  MString &result);
 
   void print(std::ostream &) const;
@@ -137,7 +137,7 @@ private:
   tMorphAnalyzer *_analyzer;
 
   grammar_rule *_rule;
-  
+
   MString _left, _right;
 
   bool establish_and_check_bindings(MString matched);
@@ -149,7 +149,7 @@ class trie_node {
   typedef std::map<MChar, trie_node *> tn_map;
   typedef tn_map::iterator tn_iterator;
   typedef tn_map::const_iterator tn_const_iterator;
-  
+
 public:
   trie_node() {}
   ~trie_node();
@@ -161,13 +161,13 @@ public:
     return it->second;
   }
 
-  void add_path(MString path, morph_subrule *rule, const morph_lettersets &ls);
+  void add_path(const MString& path, morph_subrule *rule, const morph_lettersets &ls);
 
   bool has_rules() const { return ! _rules.empty(); }
   const std::vector<morph_subrule *> &rules() const { return _rules; }
 
   void print(std::ostream &, int depth = 0) const;
-  
+
 private:
   inline trie_node * request_node(MChar c) {
     tn_const_iterator it = _s.find(c);

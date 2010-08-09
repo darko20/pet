@@ -235,7 +235,7 @@ PICHandler::~PICHandler() {
 
 void PICHandler::
 print_sax_exception(const char * errtype, const SAXParseException& e) {
-  LOG(logXML, WARN, 
+  LOG(logXML, WARN,
       XMLCh2Latin(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
       << (int) e.getColumnNumber() << ": error: SAX: " << errtype << " "
       << XMLCh2Latin(e.getMessage()) << endl);
@@ -248,7 +248,7 @@ PICHandler::startElement(const XMLCh* const name, AttributeList& attribs)
   if (_err > 0) {
     // the enclosing state is in error, we postpone processing until we leave
     // the erroneous state
-    _err++;
+    ++_err;
   } else {
     pic::pic_base_state *oldState = _state_stack.top();
     // get the new state from the state factory
@@ -264,7 +264,7 @@ PICHandler::startElement(const XMLCh* const name, AttributeList& attribs)
       catch(const Error &e) {
         delete newState;
         _error_occurred = true;
-        _err++;
+        ++_err;
         // rethrow to get file location properly
         throw SAXParseException(e.getMessage(), *_loc);
       }
@@ -327,7 +327,7 @@ PICHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
     res = new XMLCh[2 * len + 1];
     unsigned int j = 0;
     int gindex = 0;
-    for (unsigned int i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; ++i) {
       gindex = german_umlaut_p(chars[i]);
       if (gindex >= 0) {
         gindex = 2 * gindex;

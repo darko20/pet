@@ -220,7 +220,7 @@ tFSCStateFactory::~tFSCStateFactory()
 {
   // delete registered state prototypes:
   std::map< std::string, const fsc::tFSCState* >::iterator it;
-  for (it = _state_map.begin(); it != _state_map.end(); it++) {
+  for (it = _state_map.begin(); it != _state_map.end(); ++it) {
     delete it->second;
   }
 }
@@ -678,7 +678,7 @@ namespace fsc {
       fs anchor;
       fs cons = fs(BI_CONS);
       fs nil = fs(BI_NIL);
-      for (list<fs>::iterator it = _values.begin(); it != _values.end(); it++) {
+      for (list<fs>::iterator it = _values.begin(); it != _values.end(); ++it) {
         anchor = value.get_path_value(anchor_path);
         value = unify(value, anchor, cons); // ensure cons for the next value
         anchor = value.get_path_value(anchor_path).get_attr_value(BIA_FIRST);

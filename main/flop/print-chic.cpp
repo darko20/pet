@@ -36,7 +36,7 @@ int print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_table *
 {
   int i, complex = 0, last_complex = 0;
 
-  for(i = 0; i < L -> n; i++)
+  for(i = 0; i < L -> n; ++i)
     {
       if(i != 0)
         {
@@ -51,29 +51,29 @@ int print_list_body(FILE *f, int level, struct tdl_list *L, struct coref_table *
 
           complex = 1;
         }
-      
+
       if(i == L -> n - 1 && L -> dottedpair)
         {
           fprintf(f, "|( ");
           complex += print_conjunction(f, level + 3, L -> list[i], coref);
 
-          if(complex) 
+          if(complex)
             {
               fprintf(f, ",\n");
               indent(f, level + 3);
             }
           else fprintf(f, ", ");
-      
+
           complex += print_conjunction(f, level + 3, L -> rest, coref);
-          
+
           if(complex && !save_lines)
             {
               fprintf(f, "\n");
               indent(f, level);
             }
-          else 
+          else
             fprintf(f, " ");
-      
+
           fprintf(f, ")");
 
         }
@@ -111,7 +111,7 @@ int print_list(FILE *f, int level, struct tdl_list *L, struct coref_table *coref
       indent(f, level);
     }
   else fprintf(f, " ");
-  
+
   if(L -> difflist)
     fprintf(f, "!>");
   else if (L -> dottedpair == 0 || L -> n > 1)
@@ -126,8 +126,8 @@ static char *dl_cor = NULL;
 void munge_in_coref(struct conjunction *C, struct coref_table *co)
 {
   int i, ncorefs = 0;
-  
-  for(i = 0; i < C -> n; i++)
+
+  for(i = 0; i < C -> n; ++i)
     {
       if(C -> term[i] -> tag == COREF)
         {
@@ -160,7 +160,7 @@ int print_exp_list_body(FILE *f, int level, struct tdl_list *L, int i, struct co
 
   fprintf(f, ",\n");
   indent(f, level + 2);
-  fprintf(f, "REST  "); 
+  fprintf(f, "REST  ");
 
   if(i == L -> n -1)
     {
@@ -228,7 +228,7 @@ int print_exp_list(FILE *f, int level, struct tdl_list *L, struct coref_table *c
         }
       fprintf(f, "nil");
     }
-  
+
  if (L -> difflist == 1)
     {
       fprintf(f, ",\n");
@@ -255,7 +255,7 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
 
   int contains_cons = 0;
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       if(C -> term[i] -> tag == COREF)
         {
@@ -266,10 +266,10 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
          C -> term[i] -> L -> dottedpair == 1) contains_cons++;
     }
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       if(C -> term[i] -> tag == TYPE)
-        {     
+        {
           if(contains_cons == 0 || C -> term[i] -> type != BI_CONS)
             {
               if(ncorefs > 0 && ntypes == 0) fprintf(f, ":");
@@ -284,7 +284,7 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
         }
     }
 
-  for(i = 0; i < C -> n; i++)
+  for(i = 0; i < C -> n; ++i)
     {
       switch(C -> term[i] -> tag)
         {
@@ -332,10 +332,10 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
             {
               fprintf(f, " &\n");
               indent(f, level);
-            
+
               ntypes = ncorefs = 0;
             }
-          
+
           if(ntypes > 0)
             {
               fprintf(f, "\n");
@@ -364,7 +364,7 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
               indent(f, level);
             }
           else
-            { 
+            {
               if(ncorefs > 0) fprintf(f, "=");
               if(not_builtin_list)
                 fprintf(f, "top\n");
@@ -381,7 +381,7 @@ int print_conjunction(FILE *f, int level, struct conjunction *C, struct coref_ta
           break;
         default:
           LOG(logSyntax, WARN,
-              "unknown type of term `" << C -> term[i] -> tag << "'"); 
+              "unknown type of term `" << C -> term[i] -> tag << "'");
           break;
         }
     }
@@ -394,7 +394,7 @@ int print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
   int complex ;
 
   complex = 0;
-  
+
   if(A != NULL && A -> n > 0)
     {
       int j, l,  maxl;
@@ -420,10 +420,10 @@ int print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
               featorder[0] = 1; featorder[1] = 0;
             }
         }
-      
+
       fprintf(f, "[ ");
-      
-      for(j = 0; j < A -> n; j++)
+
+      for(j = 0; j < A -> n; ++j)
         {
           if(j != 0)
             {
@@ -447,7 +447,7 @@ int print_avm(FILE *f, int level, struct avm *A, struct coref_table *coref)
                 }
               else
                 fprintf(f, " ");
-              
+
               fprintf(f, "]");
             }
           else
@@ -472,7 +472,7 @@ void print_constraint(FILE *f, struct type *t, const std::string &name)
 
   fprintf(f, "%s\n", name.c_str());
 
-  for(j = 0; c != NULL && j < c -> n; j++)
+  for(j = 0; c != NULL && j < c -> n; ++j)
     {
       if (c -> term[j] -> tag == FEAT_TERM)
         {
@@ -482,7 +482,7 @@ void print_constraint(FILE *f, struct type *t, const std::string &name)
             {
               fprintf(f, " & top\n");
             }
-          
+
           print_avm(f, 0, c -> term[j] -> A, t->coref);
         }
     }

@@ -23,9 +23,9 @@
  * performance of some operations is critical for efficient glb computation
  *
  * \todo
- * Could try a `zoning' approach here: since most bits are 0, restrict 
- * operations like subtype to just the region containing 1. Need to 
- * keep track of left and right limit for this. See #ifdef ZONING 
+ * Could try a `zoning' approach here: since most bits are 0, restrict
+ * operations like subtype to just the region containing 1. Need to
+ * keep track of left and right limit for this. See #ifdef ZONING
  */
 
 #ifndef _BITCODE_H_
@@ -42,7 +42,7 @@ typedef unsigned int CODEWORD;
 
 /** Implementation of efficient fixed size bit vectors.
  * \attention Most functions assume that all bit vectors are of the same size.
- */ 
+ */
 class bitcode {
 
   static const int SIZE_OF_WORD = (8*sizeof(CODEWORD));
@@ -53,14 +53,14 @@ class bitcode {
 
   inline CODEWORD bitmask(int pos) const { return (1 << (pos % SIZE_OF_WORD));}
 
-  /** compare this bitcode and \a S2 in lexicographic order 
+  /** compare this bitcode and \a S2 in lexicographic order
    *  \return 0 if \a this == \a S2, -1 if \a this < \a S2
    *  , +1 if \a this < \a S2
    */
   int compare(const bitcode &S2) const {
     CODEWORD *p, *q;
-    
-    for(p = V, q = S2.V; p < end() ; p++, q++) {
+
+    for(p = V, q = S2.V; p < end() ; ++p, ++q) {
       if(*p != *q) {
         if (*p < *q) return -1; else return 1;
       }
@@ -72,7 +72,7 @@ class bitcode {
   bitcode& join(const bitcode& b) {
     assert(sz == b.sz);
     CODEWORD *p, *q;
-    for(p = V, q = b.V; p < end(); p++, q++) *p |= *q;
+    for(p = V, q = b.V; p < end(); ++p, ++q) *p |= *q;
     return *this;
   }
 
@@ -80,7 +80,7 @@ class bitcode {
   bitcode& intersect(const bitcode& b) {
     assert(sz == b.sz);
     CODEWORD *p, *q;
-    for(p = V, q = b.V; p < end(); p++, q++) *p &= *q;
+    for(p = V, q = b.V; p < end(); ++p, ++q) *p &= *q;
     return *this;
   }
 
@@ -125,10 +125,10 @@ class bitcode {
     register CODEWORD *p = V;
     while (p < end()) *p++ = 0;
   }
-  
+
   /** Test if the bitvector only contains zeros */
   bool empty() const {
-    for(CODEWORD *p = V; p < end(); p++) if(*p != 0) return false;
+    for(CODEWORD *p = V; p < end(); ++p) if(*p != 0) return false;
     return true;
   }
 
@@ -138,7 +138,7 @@ class bitcode {
 
   /** Print bitcode for debugging purposes */
   void print(FILE *f) const {
-    for(CODEWORD *p = V; p < end(); p++)
+    for(CODEWORD *p = V; p < end(); ++p)
       fprintf(f, "%.8X", *p);
   }
 
@@ -175,9 +175,9 @@ class bitcode {
   bitcode& operator&=(const bitcode& s) { return intersect(s); }
   /** Destructive bitwise NOT */
   bitcode& complement(){
-    for(CODEWORD *p = V; p<end(); p++) *p = ~(*p);
+    for(CODEWORD *p = V; p<end(); ++p) *p = ~(*p);
     /* Delete the bits that are not used because they are beyond max()
-    --p; 
+    --p;
     *p &= (((CODEWORD) -1) >> SIZE_OF_WORD - (sz % SIZE_OF_WORD))
     */
     return *this;
@@ -204,7 +204,7 @@ class bitcode {
     bitcode res(*this);
     return res.complement();
   }
-  
+
   /** Return \c true if this bitvector is bitwise equal to \a T
    *  \pre The bitvectors have to be of equal size for this function to work
    *  correctly.
@@ -212,9 +212,9 @@ class bitcode {
   bool operator==(const bitcode& T) const {
     CODEWORD *p, *q;
     assert(sz == T.sz);
-    for(p = V, q = T.V; p < end(); p++, q++)
+    for(p = V, q = T.V; p < end(); ++p, ++q)
       if(*p != *q) return 0;
-    
+
     return 1;
   }
 
@@ -226,7 +226,7 @@ class bitcode {
   /** Check subset relations between \a A and \a B in parallel and store result
    *  in \a a and \a b.
    *  \return \a a is true iff \f$ A \subseteq B \f$ and \a b is true iff \f$ B
-   *  \subseteq A \f$ 
+   *  \subseteq A \f$
    *  \pre The bitvectors have to be of equal size for this function to work
    *  correctly.
    */
@@ -237,7 +237,7 @@ class bitcode {
    *  correctly.
    */
   friend bool intersect_empty(const bitcode&A, const bitcode&B, bitcode *C);
-  
+
   /** Print bitcode for debugging purposes */
   friend std::ostream& operator<<(std::ostream& O, const bitcode& C);
 
@@ -266,7 +266,7 @@ inline bool operator>(const bitcode& a, const bitcode &b)
 
 #include "hashing.h"
 
-#ifdef HASH_SPACE
+#if defined(HAVE_HASH_MAP) || defined(HAVE_EXT_HASH_MAP)
 namespace HASH_SPACE {
   template<> struct hash<bitcode> {
     inline size_t operator()(const bitcode &key) const {

@@ -7,8 +7,7 @@ extern FILE* ferr;
 using namespace std;
 
 tVPM::~tVPM() {
-  for (list<tPM*>::iterator pm = pms.begin();
-       pm != pms.end(); pm ++) 
+  for (list<tPM*>::iterator pm = pms.begin(); pm != pms.end(); ++pm)
     delete *pm;
 }
 
@@ -36,9 +35,9 @@ read_vpm(const string &filename, string id) {
         if (strcmp(tok, ":") == 0)
           onleft = false;
         else {
-          if (onleft) 
+          if (onleft)
             pm->lhs.push_back(tok);
-          else 
+          else
             pm->rhs.push_back(tok);
         }
         tok = strtok(NULL, " \t\n");
@@ -51,7 +50,7 @@ read_vpm(const string &filename, string id) {
       while (tok != NULL) {
         if (strpbrk(tok, "<>=") != NULL) {
           int len = strlen(tok);
-          if (len <2 || len >3) { 
+          if (len <2 || len >3) {
             fprintf(ferr, "Invalid direction (must be 2 or 3 chars): `%s'\n", tok);
             return false;
           }
@@ -71,9 +70,9 @@ read_vpm(const string &filename, string id) {
           }
           onleft = false;
         } else {
-          if (onleft) 
+          if (onleft)
             mr->left.push_back(tok);
-          else 
+          else
             mr->right.push_back(tok);
         }
         tok = strtok(NULL, " \t\n");
@@ -106,16 +105,16 @@ map_mrs(tPSOA* mrs_in, bool forwardp) {
   mrs_new->top_h = map_variable(mrs_in->top_h, mrs_new, forwardp);
   mrs_new->index = map_variable(mrs_in->index, mrs_new, forwardp);
   for (list<tBaseRel*>::iterator iter = mrs_in->liszt.begin();
-       iter != mrs_in->liszt.end(); iter ++) {
+       iter != mrs_in->liszt.end(); ++iter) {
     tRel* rel_in = dynamic_cast<tRel*>(*iter);
     tRel* rel_new = new tRel(mrs_new);
     rel_new->handel = map_variable(rel_in->handel, mrs_new, forwardp);
     rel_new->pred = rel_in->pred;
     for (map<string,tValue*>::iterator pair = rel_in->flist.begin();
-         pair != rel_in->flist.end(); pair ++) {
+         pair != rel_in->flist.end(); ++pair) {
       tVar* vval = dynamic_cast<tVar*>((*pair).second);
       if (vval == NULL) {
-        rel_new->flist[(*pair).first] = 
+        rel_new->flist[(*pair).first] =
           mrs_new->request_constant((dynamic_cast<tConstant*>((*pair).second))->value);
       } else {
         vval = map_variable(vval, mrs_new, forwardp);
@@ -128,8 +127,8 @@ map_mrs(tPSOA* mrs_in, bool forwardp) {
     mrs_new->liszt.push_back(rel_new);
   }
   for (list<tHCons*>::iterator iter = mrs_in->h_cons.begin();
-       iter != mrs_in->h_cons.end(); iter ++) {
-    tHCons* hcons_new = new tHCons(mrs_new); 
+       iter != mrs_in->h_cons.end(); ++iter) {
+    tHCons* hcons_new = new tHCons(mrs_new);
     hcons_new->relation = (*iter)->relation;
     hcons_new->scarg = map_variable((*iter)->scarg, mrs_new, forwardp);
     hcons_new->outscpd = map_variable((*iter)->outscpd, mrs_new, forwardp);
@@ -149,7 +148,7 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
   // map variable type
   string new_type = var_in->type;
   for (list<tMR*>::iterator tm = tms.begin();
-       tm != tms.end(); tm ++) { // for each TM
+       tm != tms.end(); ++tm) { // for each TM
     if (forwardp && !(*tm)->forward)
       continue;
     if (!forwardp && !(*tm)->backward)
@@ -158,7 +157,7 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
     string rtname = forwardp ? (*tm)->right.front() : (*tm)->left.front();
     type_t lt = lookup_type(ltname.c_str());
     type_t vt = lookup_type(var_in->type.c_str());
-    if ((lt != -1 && vt != -1 && subtype(vt, lt)) || 
+    if ((lt != -1 && vt != -1 && subtype(vt, lt)) ||
         ltname == "*" ) {
       new_type = rtname;
       break;
@@ -167,26 +166,26 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
   tVar* var_new = mrs->request_var(var_in->id, new_type);
   // map properties
   for (list<tPM*>::iterator pm = pms.begin();
-       pm != pms.end(); pm ++) { // for each PM set
+       pm != pms.end(); ++pm) { // for each PM set
     list<string> lhs = forwardp ? (*pm)->lhs : (*pm)->rhs;
     list<string> rhs = forwardp ? (*pm)->rhs : (*pm)->lhs;
     list<string> values;
     for (list<string>::iterator property = lhs.begin();
-         property != lhs.end(); property ++) { // for each property in the PM lhs
+         property != lhs.end(); ++property) { // for each property in the PM lhs
       if (var_in->extra.find(*property) == var_in->extra.end())
         values.push_back("");
       else
         values.push_back(var_in->extra[*property]);
     }
     for (list<tMR*>::iterator pmr = (*pm)->pmrs.begin();
-         pmr != (*pm)->pmrs.end(); pmr ++) { // for each mapping-rule
+         pmr != (*pm)->pmrs.end(); ++pmr) { // for each mapping-rule
       if ((*pmr)->test(var_in->type, values, forwardp)) {
         list<string> right = forwardp ? (*pmr)->right : (*pmr)->left;
-        for (list<string>::iterator property = rhs.begin(), 
+        for (list<string>::iterator property = rhs.begin(),
                newval = right.begin();
-             property != rhs.end(), 
+             property != rhs.end(),     /// \todo shouldn't this be && ??
                newval != right.end();
-             property ++, newval ++) {
+             ++property, ++newval) {
           if (*newval == "!")
             continue;
           else { // "*" is illegal here!
@@ -196,15 +195,14 @@ map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
         break;
       }
     }
-    
+
   }
   _vv_map[var_in] = var_new;
   return var_new;
 }
 
 tPM::~tPM() {
-  for (list<class tMR*>::iterator pmr = pmrs.begin();
-       pmr != pmrs.end(); pmr ++) 
+  for (list<class tMR*>::iterator pmr = pmrs.begin(); pmr != pmrs.end(); ++pmr)
     delete *pmr;
 }
 
@@ -219,13 +217,13 @@ test(string type, list<string> values, bool forwardp) {
   if (matches.size() != values.size())
     return false;
   for (list<string>::iterator match = matches.begin(), value = values.begin();
-       match != matches.end() && value != values.end(); match ++, value ++) {
-    if ((*match).c_str()[0] == '[' && 
+       match != matches.end() && value != values.end(); ++match, ++value) {
+    if ((*match).c_str()[0] == '[' &&
         strncmp((*match).c_str()+1,type.c_str(),type.length()) &&
         (*match).c_str()[(*match).length()-1] == ']') {
       if (compatible_var_types(type, *match))
         continue;
-      else 
+      else
         return false;
     }
     if (*match == "*") {
@@ -235,7 +233,7 @@ test(string type, list<string> values, bool forwardp) {
         continue;
     }
     if (*match == "!") {
-      if (*value == "") 
+      if (*value == "")
         continue;
       else
         return false;

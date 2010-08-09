@@ -38,7 +38,7 @@
 // g++ version 3.0.x or 3.1.x, not recommended
 #define HASH_SPACE std
 #endif
-#endif 
+#endif
 
 namespace HASH_SPACE {
   /**
@@ -79,7 +79,7 @@ struct standard_string_hash {
 struct simple_string_hash {
   inline size_t operator()(const std::string &key) const {
     size_t v = 0;
-    for(unsigned int i = 0; i < key.length(); i++)
+    for(unsigned int i = 0; i < key.length(); ++i)
       v += key[i];
     return v;
   }

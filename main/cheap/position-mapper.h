@@ -35,12 +35,12 @@ private:
     void set_chartpositions() {
       for (inp_list::iterator item_iterator = this->in_edges.begin()
              ; item_iterator != this->in_edges.end()
-             ; item_iterator++) {
+             ; ++item_iterator) {
         (*item_iterator)->set_end(chartpos);
       }
       for (inp_list::iterator item_iterator = this->out_edges.begin()
              ; item_iterator != this->out_edges.end()
-             ; item_iterator++) {
+             ; ++item_iterator) {
         (*item_iterator)->set_start(chartpos);
       }
     }
@@ -70,7 +70,7 @@ private:
   /** Stamp the chart positions into all input items stored in the chart */
   void set_all_chartpositions() {
     posmap::iterator it;
-    for (it = _chart.begin(); it != _chart.end(); it++) {
+    for (it = _chart.begin(); it != _chart.end(); ++it) {
       it->second->set_chartpositions();
     }
   }
@@ -78,7 +78,7 @@ private:
 public:
   /** Create a new \c position_mapper object.
    * \param counts if \c true, the input positions are counts rather than
-   *        positions 
+   *        positions
    */
   position_mapper(bool counts) {
     _counts_to_positions = (counts ? 1 : 0);
@@ -94,7 +94,7 @@ public:
     node->add_in_edge(item);
   }
 
-  /** Compute the mapping and close eventual gaps. 
+  /** Compute the mapping and close eventual gaps.
    * Now close the gaps: For every node with indegree greater than zero and
    * outdegree zero (except for the last one), look for the nearest node to
    * the right that has indegree greater than zero
@@ -103,7 +103,7 @@ public:
     posmap::iterator it;
     std::list<poschartnode *> pending_nodes;
     int currentpos = 0;
-    for (it = _chart.begin(); it != _chart.end(); it++) {
+    for (it = _chart.begin(); it != _chart.end(); ++it) {
       poschartnode *current_node = it->second;
       if (current_node->out_edges.empty()) {
         // This node has incoming edges only
@@ -117,7 +117,7 @@ public:
           pending_nodes.pop_front();
           pending->chartpos = currentpos;
         }
-        currentpos++;
+        ++currentpos;
       }
     }
     // Make all nodes which have outdegree zero at the end of the chart end in
@@ -129,7 +129,7 @@ public:
     }
 
     set_all_chartpositions();
-    
+
     // Return the number of the rightmost chart node (the leftmost is zero)
     return currentpos;
   }  // end map_to_chart_positions

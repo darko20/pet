@@ -47,16 +47,16 @@ int is_idchar(int c)
   return isalnum(c) || strchr(lexer_idchars, c) || c > 127 || c < 0;
 }
 
-int lisp_mode = 0; // shall lexer recognize lisp expressions 
+int lisp_mode = 0; // shall lexer recognize lisp expressions
 
-void print_token(std::ostream &out, struct lex_token *t);
+void print_token(std::ostream &out, lex_token *t);
 
-struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
+lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
     int rlen = -1, bool regex = false)
 {
-  struct lex_token *t;
+  lex_token *t;
 
-  t = (struct lex_token *) malloc(sizeof(struct lex_token));
+  t = (lex_token *) malloc(sizeof(lex_token));
 
   if(tag != T_EOF)
     {
@@ -83,7 +83,7 @@ struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
       else // s contains a string with escaped characters
         {
           int j = 0;
-          for (int i = 0; i < len; i++)
+          for (int i = 0; i < len; ++i)
             {
               if (s[i] == '\\')
                 i++; // skip, copy following character
@@ -93,15 +93,15 @@ struct lex_token *make_token(enum TOKEN_TAG tag, const char *s, int len,
         }
       dest[rlen] = '\0';
     }
-  
+
   return t;
 }
 
-void check_id(struct lex_token *t)
+void check_id(lex_token *t)
 {
   int i;
 
-  for(i = 0; i< N_KEYWORDS; i++)
+  for(i = 0; i< N_KEYWORDS; ++i)
     {
       if(strcmp(t->text, keywords[i]) == 0)
         {
@@ -111,24 +111,24 @@ void check_id(struct lex_token *t)
     }
 }
 
-struct lex_token *get_next_token()
+lex_token *get_next_token()
 {
   int c;
-  struct lex_token *t;
+  lex_token *t;
 
   c = LLA(0);
 
-  if(c == EOF) 
+  if(c == EOF)
     {
       t = make_token(T_EOF, NULL, 0);
     }
   else if(isspace(c))
     { // whitespace
       int i;
-      
+
       i = 1;
       while(isspace(LLA(i))) i++;
-      
+
       t = make_token(T_WS, NULL, i);
       LConsume(i);
     }
@@ -143,7 +143,7 @@ struct lex_token *get_next_token()
       while(LLA(i) != '\n' && LLA(i) != EOF) i++;
 
       t = make_token(T_COMM, start, i);
-      
+
 #ifdef FLOP
       if(t->text[1] == '%')
         {
@@ -161,9 +161,9 @@ struct lex_token *get_next_token()
       char *start;
 
       start = LMark();
-      
+
       int i = 2;
-      
+
       while(LLA(i) != EOF)
       {
           if(LLA(i) == '|' && LLA(i+1) == '#')
@@ -172,13 +172,13 @@ struct lex_token *get_next_token()
           }
           i++;
       }
-      
+
       if(LLA(i) == EOF)
       { // runaway comment
         throw tError("runaway block comment", curr_fname(),
                      curr_line(), curr_col());
       }
-      
+
       i += 2;
       t = make_token(T_COMM, start, i);
       LConsume(i);
@@ -252,7 +252,7 @@ struct lex_token *get_next_token()
           throw tError("runaway LISP expression", curr_fname(),
                        curr_line(), curr_col());
         }
-      
+
       t = make_token(T_LISP, start, i);
       LConsume(i);
 
@@ -274,7 +274,7 @@ struct lex_token *get_next_token()
 
       char *start;
       int i = 0;
-      
+
       start = LMark();
 
       char *endptr = 0;
@@ -285,12 +285,12 @@ struct lex_token *get_next_token()
           while(is_idchar(LLA(i)) || LLA(i) == '.' || LLA(i) == '-'
                 || LLA(i) == '+' || LLA(i) == 'e' || LLA(i) == 'E' )
               i++;
-          
+
           // Remove stuff that shouldn't be at the end.
           while(i > 1 && (LLA(i-1) == '-' || LLA(i-1) == '+' || LLA(i-1) == '.'
                           || LLA(i-1) == 'e' || LLA(i-1) == 'E'))
               i--;
-          
+
           strtod(start, &endptr);
       }
 
@@ -299,23 +299,23 @@ struct lex_token *get_next_token()
           // See if it's an identifier.
           i = 0;
           while(is_idchar(LLA(i)) || LLA(i) == '!') i++;
-          
+
           if(i == 0)
           { char str[3] = { (char) c, '\'', '\0' };
             throw tError("unexpected character '" + std::string(str),
                          curr_fname(), curr_line(), curr_col());
           }
       }
-          
+
       t = make_token(T_ID, start, i);
       LConsume(i);
-          
+
       check_id(t);
   }
   else if(c == ':')
     {
       //
-      // in november 2008, following an email discussion on the `developers' 
+      // in november 2008, following an email discussion on the `developers'
       // list, we decided to treat `:<' (originally a sub-type definition
       // without local constraints) as a syntactic variant of `:='.  i apply
       // the corresponding change to the LKB today.            (29-nov-08; oe)
@@ -355,7 +355,7 @@ struct lex_token *get_next_token()
       i = 1;
 
       while(LLA(i) != '\n' && LLA(i) != EOF) i++;
-      
+
       t = make_token(T_INFLR, start + 1, i - 1);
 
       LConsume(i);
@@ -429,7 +429,7 @@ struct lex_token *get_next_token()
       t = make_token(tag, txt, 1);
       LConsume(1);
     }
-  
+
   return t;
 }
 
@@ -451,12 +451,12 @@ inline std::ostream &operator<<(std::ostream &o, const lex_token &tok) {
 
 int tokensdelivered = 0;
 
-struct lex_token *
+lex_token *
 get_token()
 {
-    struct lex_token *t;
+    lex_token *t;
     int hope = 1;
-    
+
     while(hope)
     {
         while((t = get_next_token())->tag != T_EOF)
@@ -483,7 +483,7 @@ get_token()
 #ifdef PETDEBUG
     LOG(logSyntax, DEBUG, "delivering " << t);
 #endif
-    
+
     tokensdelivered++;
     return t;
 }
@@ -493,34 +493,34 @@ get_token()
 
 #define MAX_LA 2 /* we (don't) need a LL(2) parser for TDL */
 
-struct lex_token *LA_BUF[MAX_LA+1] = {NULL, NULL, NULL};
+lex_token *LA_BUF[MAX_LA+1] = {NULL, NULL, NULL};
 
 int allow_redefinitions = 0;
 int lexicon_mode = 0;
 int semrels_mode = 0;
 
-struct lex_token *
+lex_token *
 LA(int n)
 /* works for 0 <= i <= MAX_LA */
 {
     int i;
     assert(LA >= 0); assert(n <= MAX_LA);
-    
+
     if(LA_BUF[n] != NULL)
     {
         return LA_BUF[n];
     }
-    
+
     /* we have to fill buffer */
-    
-    for(i = 0; i <= n; i++)
+
+    for(i = 0; i <= n; ++i)
     {
         if(LA_BUF[i] == NULL)
         {
             LA_BUF[i] = get_token();
         }
     }
-  
+
     return LA_BUF[n];
 }
 
@@ -540,7 +540,7 @@ void consume1()
       free(LA_BUF[0]);
     }
 
-  for(i = 0; i < MAX_LA; i++)
+  for(i = 0; i < MAX_LA; ++i)
     {
       LA_BUF[i] = LA_BUF[i+1];
       LA_BUF[i+1] = NULL;
@@ -553,12 +553,12 @@ void consume(int n)
   int i;
   assert(n > 0);
 
-  for(i = 0; i < n; i++) consume1();
+  for(i = 0; i < n; ++i) consume1();
 }
 
 int syntax_errors = 0;
 
-void syntax_error(const char *msg, struct lex_token *t)
+void syntax_error(const char *msg, lex_token *t)
 {
   syntax_errors ++;
   if(t->tag == T_EOF)
@@ -580,15 +580,15 @@ void syntax_error(const char *msg, struct lex_token *t)
 
 void recover(enum TOKEN_TAG tag)
 {
-  static struct lex_token *last_t;
-  
+  static lex_token *last_t;
+
   while(LA(0)->tag != tag && LA(0)->tag != T_EOF) consume(1);
 
   if(LA(0) ->tag == T_EOF)
     {
       throw tError("confused by previous errors, bailing out...\n");
     }
-  
+
   if(LA(0) == last_t) consume(1);
 
   last_t = LA(0);
@@ -597,7 +597,7 @@ void recover(enum TOKEN_TAG tag)
 char *match(enum TOKEN_TAG tag, const char *s, bool readonly)
 {
   char *text = NULL;
-  
+
   if(tag == T_ID && LA(0)->tag == T_KEYWORD)
     LA(0)->tag = T_ID;
 
@@ -633,7 +633,7 @@ bool consume_if(enum TOKEN_TAG tag)
     return false;
 }
 
-int is_keyword(struct lex_token *t, const char *kwd)
+int is_keyword(lex_token *t, const char *kwd)
 {
   if(t->tag == T_KEYWORD && strcmp(t->text, kwd) == 0)
     return 1;

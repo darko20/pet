@@ -63,11 +63,11 @@ void shutdown_logging();
 #include <ostream>
 #include <map>
 
-typedef enum {EMERG  = 0, 
+typedef enum {EMERG  = 0,
               FATAL  = 0,
               ALERT  = 100,
               CRIT   = 200,
-              ERROR  = 300, 
+              ERROR  = 300,
               WARN   = 400,
               NOTICE = 500,
               INFO   = 600,
@@ -103,7 +103,7 @@ class Category {
   std::string _name;
 
 public:
-  Category() { }
+  Category() : _printer(0) { }
   Category(const std::string &name, Priority prio, int printer) : _name(name) {
     set(prio, printer);
   }
@@ -120,7 +120,7 @@ public:
     _prio = prio;
     _printer = printer;
   }
-  
+
   //friend class Logger;
 };
 
@@ -148,10 +148,10 @@ public:
                  (name, Category(name, prio, printer)));
     return _cats[name];
   }
-  static bool hasCat(const std::string name) {
+  static bool hasCat(const std::string &name) {
     return (_cats.find(name) != _cats.end());
   }
-  static Category &getCat(const std::string name) {
+  static Category &getCat(const std::string &name) {
     std::map<std::string, Category>::iterator it = _cats.find(name);
     if (it != _cats.end()) return _cats[name];
     else throw tError("unknown logging category requested");

@@ -124,7 +124,7 @@ bool tTokenizer::punctuationp(const string &s)
   if(_punctuation_characters.empty())
     return false;
 
-  for(string::size_type i = 0; i < s.length(); i++)
+  for(string::size_type i = 0; i < s.length(); ++i)
     if(! punctuation_char(s[i], _punctuation_characters))
       return false;
 
@@ -150,7 +150,7 @@ bool tTokenizer::punctuationp(const string &s)
  */
 void tTokenizer::translate_iso(string &s) {
   if (_translate_iso_chars) {
-    for(string::size_type i = 0; i < s.length(); i++)
+    for(string::size_type i = 0; i < s.length(); ++i)
       {
         switch(s[i])
           {

@@ -56,11 +56,11 @@ ecl_decode_vector_int(cl_object x) {
 
   if(type_of(x) != t_vector)
     return v;
-    
+
   v = malloc(sizeof(int) * (x->vector.fillp + 1));
   v[x->vector.fillp] = -1; // end marker
 
-  for(i = 0; i < x->vector.fillp; i++) {
+  for(i = 0; i < x->vector.fillp; ++i) {
     y = aref1(x, i);
     if(type_of(y) != t_fixnum)
       v[i] = -1;

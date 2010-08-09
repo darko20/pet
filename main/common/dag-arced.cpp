@@ -33,10 +33,10 @@ dag_node *new_dag(type_t s)
   return dag;
 }
 
-void dag_remove_arcs(struct dag_node *dag, list_int *del)
+void dag_remove_arcs(dag_node *dag, list_int *del)
 {
-  struct dag_arc *arc1, *arc2;
-  
+  dag_arc *arc1, *arc2;
+
   // we recreate the dag->arcs list, only keeping elements not in del
   arc1 = dag->arcs; dag->arcs = NULL;
 
@@ -57,21 +57,21 @@ void dag_remove_arcs(struct dag_node *dag, list_int *del)
     }
 }
 
-static struct qc_node *dag_qc_undumped_nodes = NULL;
-static struct qc_arc *dag_qc_undumped_arcs = NULL;
+static qc_node *dag_qc_undumped_nodes = NULL;
+static qc_arc *dag_qc_undumped_arcs = NULL;
 
-struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
+qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
 {
   int dag_dump_total_nodes, dag_dump_total_arcs;
 
-  struct dag_node_dump dump_n;
-  struct dag_arc_dump dump_a;
+  dag_node_dump dump_n;
+  dag_arc_dump dump_a;
 
   dag_dump_total_nodes = f->undump_int();
   dag_dump_total_arcs = f->undump_int();
 
   dag_qc_undumped_nodes = new qc_node[dag_dump_total_nodes];
-  
+
   if(dag_dump_total_arcs > 0)
     dag_qc_undumped_arcs = new qc_arc[dag_dump_total_arcs];
   else
@@ -80,7 +80,7 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
   int current_arc = 0;
   qc_len = 0;
 
-  for(int i = 0; i < dag_dump_total_nodes; i++)
+  for(int i = 0; i < dag_dump_total_nodes; ++i)
     {
       undump_node(f, &dump_n);
 
@@ -94,7 +94,7 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
       if(typestatus[dump_n.type] == ATOM_STATUS)
         {
           int val;
-      
+
           val = strtoint(type_name(dump_n.type), "in qc structure", true);
 
           if(val < 0 || val > 1024) // _fix_me_ 1024 is arbitrary
@@ -111,15 +111,15 @@ struct qc_node *dag_read_qc_paths(dumper *f, int limit, int &qc_len)
       if(dump_n.nattrs > 0)
         dag_qc_undumped_nodes[i].arcs = dag_qc_undumped_arcs+current_arc;
 
-      for(int j = 0; j < dump_n.nattrs; j++)
+      for(int j = 0; j < dump_n.nattrs; ++j)
         {
           undump_arc(f, &dump_a);
-          
+
           dag_qc_undumped_nodes[i].type
             = glb(dag_qc_undumped_nodes[i].type, apptype[dump_a.attr]);
 
           dag_qc_undumped_arcs[current_arc].attr = dump_a.attr;
-          dag_qc_undumped_arcs[current_arc].val 
+          dag_qc_undumped_arcs[current_arc].val
             = dag_qc_undumped_nodes + dump_a.val;
 
           dag_qc_undumped_arcs[current_arc].next =
@@ -201,14 +201,14 @@ void dag_get_qc_vector(qc_node *path, dag_node *dag, type_t *qc_vector)
       dag_get_qc_vector(qarc->val, arc->val, qc_vector);
 }
 
-void dag_size_rec(struct dag_node *dag, int &nodes)
+void dag_size_rec(dag_node *dag, int &nodes)
 {
   dag = dag_deref(dag);
   nodes++;
 
   if(dag_set_visit(dag, dag_get_visit(dag) + 1) == 1)
     { // not yet visited
-      struct dag_arc *arc;
+      dag_arc *arc;
       arc = dag->arcs;
       while(arc)
         {

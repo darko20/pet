@@ -29,6 +29,8 @@
 #include <set>
 #include <vector>
 
+struct setting;
+
 /** Implements a list of POS tags with probabilities. All string handling is
  *  case insensitive.
  */
@@ -50,20 +52,12 @@ class postags
    *  items in \a les.
    */
   postags(const std::list<class tItem *> &les);
-  /** Copy constructor: copies only the tags, not the probabilities. */
-//  postags(const postags &t) : _tags(t._tags) {} ;
 
   ~postags() {} ;
 
   /** Return true if tag set is empty. */
   bool empty() const
     { return _tags.empty(); }
-
-  /** Assignment operator: the tag set is set to the tag set of \a b */
-//  void operator=(const postags &b) 
-//  {
-//    _tags = b._tags;
-//  }
 
   /** Return true, if the tag sets are equal */
   bool operator==(const postags &b) const;
@@ -88,7 +82,7 @@ class postags
    *  this function returns \c false.
    */
   bool contains(type_t t) const;
-  
+
   /**
    * Fills the specified containers \a tagslist and \a probslist with an
    * aligned sequence of part-of-speech tags and probabilities, sorted
@@ -96,7 +90,7 @@ class postags
    */
   void tagsnprobs(std::vector<std::string> &tagslist,
                   std::vector<double> &probslist) const;
-  
+
   /** Like contains, but in case the setting is not available, return \c true.
    * \see contains
    */
@@ -109,17 +103,18 @@ class postags
   std::string getPrintString() const;
 
  private:
-  bool contains(type_t t, const class setting *set) const;
+  bool contains(type_t t, const setting *set) const;
 
   struct ltstr {
     bool operator()(const std::string &s1, const std::string &s2) const {
       return strcasecmp(s1.c_str(), s2.c_str()) < 0;
     }
   };
-
+  typedef std::set<std::string, ltstr> IStringSet;
+  typedef std::map<std::string, double, ltstr> IStringMap;
   /** String set with case insensitive comparison */
-  std::set<std::string, ltstr> _tags;
-  std::map<std::string, double, ltstr> _probs;
+  IStringSet _tags;
+  IStringMap _probs;
 };
 
 inline std::ostream & operator<<(std::ostream &out, const postags &tags) {

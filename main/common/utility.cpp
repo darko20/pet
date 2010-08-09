@@ -132,7 +132,7 @@ int strtoint(const char *s, const char *errloc, bool quotedp)
 string convert_escapes(const string &s)
 {
   string res = "";
-  for(string::size_type i = 0; i < s.length(); i++)
+  for(string::size_type i = 0; i < s.length(); ++i)
     {
       if(s[i] != '\\')
         res += s[i];

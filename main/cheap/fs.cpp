@@ -97,7 +97,7 @@ fs::fs(type_t type)
     _temp = 0;
 }
 
-fs::fs(char *path, type_t type)
+fs::fs(const char *path, type_t type)
 {
     if(! is_type(type))
         throw tError("construction of non-existent dag requested");
@@ -128,7 +128,7 @@ fs::get_attr_value(int attr) const
 }
 
 fs
-fs::get_attr_value(char *attr) const
+fs::get_attr_value(const char *attr) const
 {
     int a = lookup_attr(attr);
     if(a == -1) return fs();
@@ -432,7 +432,7 @@ record_failures(list<failure *> fails, bool unification,
                 }
             }
         }
-      i++;
+      ++i;
     }
 
   // If this is not a new failure set, free it.
@@ -465,7 +465,7 @@ record_failures(list<failure *> fails, bool unification,
             failing_paths_subs[failure_id[*f]] +=
               value[i] / double(price);
         }
-      i++;
+      ++i;
       delete f;
     }
 
@@ -489,7 +489,7 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
   if(res == FAIL) {
     if(stat) {
       total_cost_fail += unification_cost;
-      stats.unifications_fail++;
+      ++stats.unifications_fail;
     }
 
     if(opt_compute_qc_unif || opt_print_failure) {
@@ -507,7 +507,7 @@ unify_restrict(fs &root, const fs &a, fs &b, list_int *del, bool stat) {
   else {
     if(stat) {
       total_cost_succ += unification_cost;
-      stats.unifications_succ++;
+      ++stats.unifications_succ;
     }
   }
 
@@ -518,7 +518,7 @@ fs
 copy(const fs &a)
 {
     fs res(dag_full_copy(a._dag));
-    stats.copies++;
+    ++stats.copies;
     dag_invalidate_changes();
     return res;
 }
@@ -544,7 +544,7 @@ unify_np(fs &root, const fs &a, fs &b)
         // We really don't expect failures, except in unpacking, or in
         // error conditions. No failure recording, thus.
         total_cost_fail += unification_cost;
-        stats.unifications_fail++;
+        ++stats.unifications_fail;
 
         if(opt_print_failure) {
           LOG(logAppl, ERROR, "unification failure: unexpected failure in non"
@@ -554,7 +554,7 @@ unify_np(fs &root, const fs &a, fs &b)
     else
     {
         total_cost_succ += unification_cost;
-        stats.unifications_succ++;
+        ++stats.unifications_succ;
     }
 
     fs f(res, unify_generation);
@@ -608,9 +608,9 @@ subsumes(const fs &a, const fs &b, bool &forward, bool &backward)
       dag_subsumes(a._dag, b._dag, forward, backward);
 
     if(forward || backward)
-        stats.subsumptions_succ++;
+        ++stats.subsumptions_succ;
     else
-        stats.subsumptions_fail++;
+        ++stats.subsumptions_fail;
 }
 
 /* \todo why isn't this a method of fs?

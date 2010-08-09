@@ -77,7 +77,8 @@ int SessionManager::run_parser(int session_id) {
     analyze(curr->input, curr->chart, curr->FSAS, curr->errors, curr->id);
   }
   catch(tError err) {
-    LOG(logAppl, ERROR, err.getMessage());
+    //LOG(logAppl, ERROR, err.getMessage());
+    curr->errors.push_back(err.getMessage());
     return RUNTIME_ERROR;
   }
   return (curr->errors.empty()) ? NO_ERRORS : ERRORS_PRESENT;

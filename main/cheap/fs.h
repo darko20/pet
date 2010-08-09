@@ -56,7 +56,7 @@ class fs
   /** Construct minimal fs containing \a path ending in typedag for \a type.
    *  \attention there are no checks whether the resulting fs is valid!
    */
-  fs(char *path, type_t type);
+  fs(const char *path, type_t type);
   /** Construct minimal fs containing \a path ending in typedag for \a type.
    *  \attention there are no checks whether the resulting fs is valid!
    */
@@ -91,7 +91,7 @@ class fs
   fs get_attr_value(int attr) const;
   /** Return a new fs representing the subdag under \a attr, if this Attribute
       is in the root fs. */
-  fs get_attr_value(char *attr) const;
+  fs get_attr_value(const char *attr) const;
 
   /** Return a new fs representing the subdag under \a path, if this Path
       exists in the fs. */
@@ -122,7 +122,7 @@ class fs
     else
       return fs(dag_nth_element(_dag, const_cast<list_int*>(path), n));
   }
-  
+
   /**
    * Find all paths that end in a type that is a subtype of \a maxapp.
    * The paths must be freed by the caller.
@@ -132,7 +132,7 @@ class fs
   }
 
   /**
-   * Converts the list that is represented by this feature structure 
+   * Converts the list that is represented by this feature structure
    * into an STL list of feature structures. If this fs does not
    * represent a list, an empty STL list will be returned.
    */
@@ -239,16 +239,16 @@ class fs
    *  respect to unification. \a qc_len is the length of the vectors.
    */
   inline static bool qc_compatible_unif(const qc_vec &a, const qc_vec &b) {
-    for(int i = 0; i < _qc_len_unif; i++) {
+    for(int i = 0; i < _qc_len_unif; ++i) {
       if(glb(a[i], b[i]) == T_BOTTOM) {
 #ifdef PETDEBUG
         LOG(logAppl, DEBUG, "quickcheck fails for path " << i
-            << " with `" << print_name(a[i]) 
+            << " with `" << print_name(a[i])
             << "' vs. `" << print_name(b[i]) << "'");
 #endif
         return false;
       }
-    } 
+    }
     return true;
   }
 
@@ -263,7 +263,7 @@ class fs
   qc_compatible_subs(const qc_vec &a, const qc_vec &b,
                      bool &forward, bool &backward){
     bool st_a_b, st_b_a;
-    for(int i = 0; i < _qc_len_subs; i++) {
+    for(int i = 0; i < _qc_len_subs; ++i) {
       if(a[i] != b[i]) {
         subtype_bidir(a[i], b[i], st_a_b, st_b_a);
         if(st_a_b == false) { backward = false; if (forward == false) return; }
@@ -274,7 +274,7 @@ class fs
 
  private:
 
-  struct dag_node *_dag;
+  dag_node *_dag;
   int _temp;
 
   friend fs unify_restrict(fs &root, const fs &fs1, fs &fs2, list_int *del = 0, bool stat = true);
@@ -415,7 +415,7 @@ class fs_alloc_state
     {
         return dag_alloc_dynamic_mem();
     }
-    
+
     /**
      * Reports how much memory (in bytes) is currently allocated for storing
      * temporary fs's. The value can be reset by clear_stats(), which

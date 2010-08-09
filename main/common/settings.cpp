@@ -31,7 +31,7 @@
 using std::string;
 
 settings::settings(string name, string base_dir, const char *message)
-  : _li_cache() {
+  : _lloc(0), _li_cache() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
@@ -47,12 +47,11 @@ settings::settings(string name, string base_dir, const char *message)
     lexer_idchars = sv;
 
   }
-  _lloc = 0;
 }
 
 
 settings::settings(const std::string &input)
-  : _li_cache() {
+  : _lloc(0), _li_cache() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
@@ -61,13 +60,12 @@ settings::settings(const std::string &input)
   lexer_idchars = "_+-*?$";
   parse();
   lexer_idchars = sv;
-  _lloc = 0;
 }
 
 
 settings::~settings() {
-  for(int i = 0; i < _n; i++) {
-    for(int j = 0; j < _set[i]->n; j++)
+  for(int i = 0; i < _n; ++i) {
+    for(int j = 0; j < _set[i]->n; ++j)
       free(_set[i]->values[j]);
     free(_set[i]->values);
     delete _set[i];
@@ -85,7 +83,7 @@ settings::~settings() {
  * matching setting.
  */
 setting *settings::lookup(const char *name) {
-  for(int i = 0; i < _n; i++)
+  for(int i = 0; i < _n; ++i)
     if(strcmp(_set[i]->name, name) == 0) {
       if(i != 0) {
         // put to front, so further lookup is faster
@@ -104,7 +102,7 @@ setting *settings::lookup(const char *name) {
 /** Return the value of the first setting matching \a name or NULL if there is
  * no such setting.
  */
-char *settings::value(const char *name) {
+const char *settings::value(const char *name) {
   setting *s;
 
   s = lookup(name);
@@ -116,9 +114,9 @@ char *settings::value(const char *name) {
 /** Return the value of the first setting matching \a name or throw an error if
  *  there is no such setting (short for required_value).
  */
-char *settings::req_value(const char *name)
+const char *settings::req_value(const char *name)
 {
-  char *v = value(name);
+  const char *v = value(name);
   if(v == 0)
     {
       throw tError("no definition for required parameter `" + string(name) + "'");
@@ -133,7 +131,7 @@ bool settings::member(const char *name, const char *value)
 
   if(set == 0) return false;
 
-  for(int i = 0; i < set->n; i++)
+  for(int i = 0; i < set->n; ++i)
     if(strcasecmp(set->values[i], value) == 0)
       return true;
 
@@ -149,7 +147,8 @@ bool settings::member(const char *name, const char *value)
  *  \return NULL if there is no such setting or no such key in the assoc list,
  *          the \a nth element of the assoc cons otherwise
  */
-char *settings::assoc(const char *name, const char *key, int arity, int nth)
+const char *settings::assoc(const char *name, const char *key, int arity,
+                            int nth)
 {
   setting *set = lookup(name);
   if(set == 0) return 0;
@@ -217,7 +216,7 @@ bool settings::statusmember(const char *name, type_t key)
       // are reported to be unknown.
       if(set != 0)
         {
-          for(int i = 0; i < set->n; i++)
+          for(int i = 0; i < set->n; ++i)
             {
               int v = lookup_status(set->values[i]);
               if(v == -1)

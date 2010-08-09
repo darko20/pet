@@ -17,7 +17,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-// 
+//
 // This module provides 8 bit encoding - Unicode string conversion
 // facilities. The ICU library implements the required functionality.
 //
@@ -60,7 +60,7 @@ string EncodingConverter::convert(const UnicodeString from)
 
   string to(s);
   delete[] s;
-  
+
   return to;
 };
 
@@ -68,7 +68,7 @@ string EncodingConverter::convert(const UChar* from)
 {
   int length = 0;
   while (from[length] != 0)
-    length++;
+    ++length;
   return convert(from, length);
 };
 
@@ -85,7 +85,7 @@ string EncodingConverter::convert(const UChar* from, int32_t length)
 
   string to(s);
   delete[] s;
-  
+
   return to;
 };
 
@@ -94,7 +94,7 @@ string EncodingConverter::convert(const UChar32* from)
   // there is neither a UnicodeString constructor from a UChar32 array, nor
   // a converter function working on UChar32
   UnicodeString ucstr;
-  for (int32_t i = 0; from[i] != 0; i++)
+  for (int32_t i = 0; from[i] != 0; ++i)
     ucstr.append(from[i]);
   return convert(ucstr);
 };
@@ -104,7 +104,7 @@ string EncodingConverter::convert(const UChar32* from, int32_t length)
   // there is neither a UnicodeString constructor from a UChar32 array, nor
   // a converter function working on UChar32
   UnicodeString ucstr;
-  for (int32_t i = 0; i < length; i++)
+  for (int32_t i = 0; i < length; ++i)
     ucstr.append(from[i]);
   return convert(ucstr);
 };
@@ -114,15 +114,15 @@ UnicodeString EncodingConverter::convert(const string from)
   UnicodeString to;
   if(from.length() == 0) return to;
 
-  int32_t sz = 2 * from.length(); 
+  int32_t sz = 2 * from.length();
   UChar * toBuffer = to.getBuffer(sz);
 
-  sz = ucnv_toUChars(_conv, toBuffer, sz, from.c_str(), from.length(), &_status); 
+  sz = ucnv_toUChars(_conv, toBuffer, sz, from.c_str(), from.length(), &_status);
   if(U_FAILURE(_status))
     throw tError("Couldn't convert from " + _encoding + " (" + from + ")");
 
   to.releaseBuffer(sz);
-  
+
   return to;
 };
 

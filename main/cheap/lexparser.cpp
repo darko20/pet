@@ -46,7 +46,7 @@ lex_parser &Lexparser = init();
 extern chart *Chart;
 extern tAbstractAgenda *AbstractAgenda;
 
-static std::string default_les_strategy_names[] = { 
+static std::string default_les_strategy_names[] = {
   "no", "traditional", "all"
 };
 
@@ -72,7 +72,7 @@ class DefaultLesStrategyConverter : public AbstractConverter<default_les_strateg
 };
 
 static lex_parser &init() {
-  
+
   /** @name Unknown word handling */
   //@{
   managed_opt<default_les_strategy>("opt_default_les",
@@ -89,9 +89,9 @@ static lex_parser &init() {
   managed_opt("opt_chart_man",
     "allow/disallow chart manipulation (currently only dependency filter)",
     true);
-  
+
   return global_lexparser;
-} 
+}
 
 // functions from parse.cpp
 extern void add_item(tItem *it);
@@ -128,7 +128,7 @@ void lex_parser::tokenize(string input, inp_list &tokens) {
     throw tError("No tokenizer registered");
 
   _tokenizers.front()->tokenize(input, tokens);
-  
+
   // trace output
   if(LOG_ENABLED(logLexproc, DEBUG))
     debug_tokenize(_tokenizers.front()->description(), input, tokens);
@@ -220,7 +220,7 @@ lex_parser::add(tLexItem *lex) {
         _agenda.push(new lex_and_inp_task(lex
                                , dynamic_cast<tInputItem *>(pass.current())));
       }
-      pass++;
+      ++pass;
     }
   }
 }
@@ -250,7 +250,7 @@ debug_combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules) {
  * Instantiate the \a stem, add the modifications from \a i_item and create a
  * new tLexItem with inflectional rules \a infl_rules, if this succeeds.
  */
-void 
+void
 lex_parser::combine(lex_stem *stem, tInputItem *i_item
                     , const list_int *infl_rules, const modlist &mods) {
   // _fix_me_
@@ -258,7 +258,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   fs newfs = stem->instantiate();
   // Add modifications coming from the input
   newfs.modify_eagerly(mods);
-  
+
   //
   // _fix_me_
   // for non-MWE lexical entries, unify the input feature structure into the
@@ -271,7 +271,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
   // attempted: we need all the pieces, but it must happen prior to invoking
   // the tLexItem constructor on the passive item.              (16-jan-09; oe)
   //
-  if (stem->length() == 1 
+  if (stem->length() == 1
       && tChartUtil::lexicon_tokens_path() != 0
       && tChartUtil::lexicon_last_token_path() != 0) {
     //
@@ -342,7 +342,7 @@ lex_parser::add(tInputItem *inp) {
 
   // add item to the global chart
   Chart->add(inp);
-  
+
   // do a morphological analysis if necessary:
   list<tMorphAnalysis> morphs;
   //
@@ -354,8 +354,8 @@ lex_parser::add(tInputItem *inp) {
   if (opt_default_les == DEFAULT_LES_ALL || inp->is_word_token()) {
     morphs = morph_analyze(inp->form());
   }
-  
-  // add all compatible generic entries for this token: 
+
+  // add all compatible generic entries for this token:
   if (opt_default_les == DEFAULT_LES_ALL) {
     // iterate over all generic lexicon entries:
     for (list_int *gens = Grammar->generics(); gens != 0; gens = rest(gens)) {
@@ -366,7 +366,7 @@ lex_parser::add(tInputItem *inp) {
         combine(ls, inp, inp->inflrs(), in_mods);
       } else {
         for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
-              ; mrph != morphs.end(); mrph++) {
+              ; mrph != morphs.end(); ++mrph) {
           list_int *rules = get_rules(*mrph);
           combine(ls, inp, rules, in_mods);
           free_list(rules);
@@ -374,7 +374,7 @@ lex_parser::add(tInputItem *inp) {
       }
     }
   }
-  
+
   // check if we have to perform morphology and lexicon access
   if (inp->is_word_token()) {
     // if so, do the lexical lookup and add
@@ -382,14 +382,14 @@ lex_parser::add(tInputItem *inp) {
     // agenda. get_lex_entries eventually looks into several lexica.
     bool nullmorpheme = false; // any of the morphs was a null morpheme
     for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
-          ; mrph != morphs.end(); mrph++)
+          ; mrph != morphs.end(); ++mrph)
     {
       // update flag whether any of the morphs was a null morpheme:
       nullmorpheme = nullmorpheme || (inp->form() == mrph->base());
       // instantiate all stems with this morphological analysis:
       list<lex_stem *> stems = get_lex_entries(mrph->base());
       for(list<lex_stem *>::iterator it = stems.begin()
-            ; it != stems.end(); it++) {
+            ; it != stems.end(); ++it) {
         list_int *rules = get_rules(*mrph);
         combine(*it, inp, rules, inp->mods());
         free_list(rules);
@@ -402,7 +402,7 @@ lex_parser::add(tInputItem *inp) {
     if (! nullmorpheme) { // none of the analyses was a null morpheme
       list<lex_stem *> stems = get_lex_entries(inp->form());
       for(list<lex_stem *>::iterator it = stems.begin()
-            ; it != stems.end(); it++){
+            ; it != stems.end(); ++it){
         combine(*it, inp, NULL, inp->mods());
       }
     }
@@ -410,7 +410,7 @@ lex_parser::add(tInputItem *inp) {
     // morphology has been done already, just do the lexicon lookup
     list<lex_stem *> stems = get_lex_entries(inp->stem());
     for(list<lex_stem *>::iterator it = stems.begin()
-          ; it != stems.end(); it++) {
+          ; it != stems.end(); ++it) {
       combine(*it, inp, inp->inflrs(), inp->mods());
     }
   } else { // neither word nor stem
@@ -430,7 +430,7 @@ lex_parser::add(tInputItem *inp) {
 /** A binary Predicate that is used to sort a list of input items such that the
  * list is a topological order of the underlying item graph.
  */
-struct tInputItem_position_less 
+struct tInputItem_position_less
   : public binary_function<tInputItem *, tInputItem *, bool>{
   bool operator()(const tInputItem *a, const tInputItem *b) {
     return ((a->startposition() < b->startposition())
@@ -442,7 +442,7 @@ struct tInputItem_position_less
 int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
   int maxend = 0;
   if (position_mapping==NO_POSITION_MAP) {
-    for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
+    for(inp_iterator it = tokens.begin(); it != tokens.end(); ++it) {
       maxend=max(maxend,(*it)->end());
     }
     return maxend;
@@ -453,7 +453,7 @@ int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
   // first delete all skip tokens
   tokens.remove_if(mem_fun(&tInputItem::is_skip_token));
 
-  for(inp_iterator it = tokens.begin(); it != tokens.end(); it++) {
+  for(inp_iterator it = tokens.begin(); it != tokens.end(); ++it) {
     posmapper.add(*it);
   }
   maxend = posmapper.map_to_chart_positions();
@@ -463,7 +463,7 @@ int lex_parser::map_positions(inp_list &tokens, position_map position_mapping) {
 
 
 void
-lex_parser::dependency_filter(struct setting *deps, bool unidirectional
+lex_parser::dependency_filter(setting *deps, bool unidirectional
                               , bool lex_exhaustive) {
   if(deps == 0 || !get_opt_bool("opt_chart_man"))
     return;
@@ -474,19 +474,19 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
   tItem *lex;
   fs f;
 
-  for(chart_iter iter(Chart); iter.valid(); iter++) {
+  for(chart_iter iter(Chart); iter.valid(); ++iter) {
     lex = iter.current();
-    // the next condition depends on whether we did exhaustive lexical 
+    // the next condition depends on whether we did exhaustive lexical
     // processing or not
     if (lex->passive()
         && lex->trait() != INPUT_TRAIT
         && (!lex_exhaustive || lex->inflrs_complete_p())) {
       f = lex->get_fs();
-    
-      LOG(logLexproc, DEBUG, "dependency information for " << 
+
+      LOG(logLexproc, DEBUG, "dependency information for " <<
           lex->printname() << ":");
-    
-      for(int j = 0; j < deps->n; j++) {
+
+      for(int j = 0; j < deps->n; ++j) {
         fs v = f.get_path_value(deps->values[j]);
         if(v.valid()) {
           LOG(logLexproc, DEBUG, "  " << deps->values[j] << " : " << v.name());
@@ -494,7 +494,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
           if(!unidirectional || j % 2 != 0) {
             satisfied[j].insert(v.type());
           }
-          
+
           if(!unidirectional || j % 2 == 0) {
             requires.insert(make_pair(lex,
                                       make_pair((j % 2 == 0)
@@ -505,9 +505,9 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
       }
     }
   }
-  
+
   hash_set<tItem *> to_delete;
-  for(chart_iter iter2(Chart); iter2.valid(); iter2++) {
+  for(chart_iter iter2(Chart); iter2.valid(); ++iter2) {
     lex = iter2.current();
     // _fix_me_ the next condition might depend on whether we did
     // exhaustive lexical processing or not
@@ -524,7 +524,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
         pair<int, int> req = dep->second;
         LOG(logLexproc, DEBUG, "`" << lex->printname() << "' requires "
             << type_name(req.second) << " at " << req.first << " -> ");
-       
+
         bool found = false;
         for(set<int>::iterator it2 = satisfied[req.first].begin();
             it2 != satisfied[req.first].end(); ++it2) {
@@ -535,7 +535,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
               break;
             }
         }
-       
+
         if(!found) {
           ok = false;
           stats.words_pruned++;
@@ -543,7 +543,7 @@ lex_parser::dependency_filter(struct setting *deps, bool unidirectional
 
         LOG(logLexproc, DEBUG, (ok ? "" : "not") << " satisfied");
       }
-    
+
       if(!ok)
         to_delete.insert(iter2.current());
     }
@@ -571,7 +571,7 @@ mark_recursive(tItem *item, hash_set< tItem * > &checked
                , hash_map< tInputItem *, bool > &expanded){
   checked.insert(item);
   const list<tItem *> &dtrs = item->daughters();
-  for(list<tItem *>::const_iterator it=dtrs.begin(); it != dtrs.end(); it++){
+  for(list<tItem *>::const_iterator it=dtrs.begin(); it != dtrs.end(); ++it){
     tInputItem *inp = dynamic_cast<tInputItem *>(*it);
     if (inp != NULL) {
       expanded[inp] = true;
@@ -611,19 +611,19 @@ find_unexpanded(chart *ch, item_predicate valid_item) {
         }
       }
     }
-    iter++;
+    ++iter;
   }
-  
+
   // collect all unexpanded input items
   list<tInputItem *> result_list;
   for(hash_map< tInputItem *, bool >::iterator it = expanded.begin()
-        ; it != expanded.end(); it++) {
+        ; it != expanded.end(); ++it) {
     if(! it->second) {
       bool covered = false;
       //
       // when working from a token lattice, it may be legitimate to not have
       // instantiated _all_ input items, as long as for each chart cell there
-      // is at least one valid lexical item.  
+      // is at least one valid lexical item.
       // _fix_me_
       // for now, make this dependent on whether or not chart mapping is used,
       // but probably it should be a more general option.      (25-sep-08; oe)
@@ -632,14 +632,14 @@ find_unexpanded(chart *ch, item_predicate valid_item) {
       // heads in perfect silence.  hence, i now think we always want the more
       // restrictive (aka focused) reporting.                  (10-nov-08; oe)
       //
-      chart_iter_span_passive 
+      chart_iter_span_passive
         coverage(ch, it->first->start(), it->first->end());
       while(coverage.valid()) {
         if (valid_item(coverage.current())) {
           covered = true;
           break;
         }
-        coverage++;
+        ++coverage;
       } // while
       if (!covered) result_list.push_back(it->first);
     } // if
@@ -652,9 +652,9 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
   list< lex_stem * > gens;
 
   LOG(logLexproc, DEBUG, "adding generic les");
- 
+
   for(inp_iterator it = unexpanded.begin()
-        ; it != unexpanded.end(); it++) {
+        ; it != unexpanded.end(); ++it) {
 
     // debug messages
     LOG(logLexproc, DEBUG, "  token " << (*it) << endl);
@@ -674,7 +674,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
 
       // debug messages
       LOG(logLexproc, DEBUG, "    -> missing tags:" << missing << endl);
-            
+
       if(!missing.empty())
         gens = (*it)->generics(missing);
     }
@@ -703,7 +703,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
       // TODO: is it sensible here to apply the (guessed) inflection rules here
       // to the generics??
 
-      // re-do morphology computation. 
+      // re-do morphology computation.
       // TODO: check if this uses up significant processing time. There is
       // another way to do this (store the previous result in the tInputItem),
       // but that messes up the whole failed stem token thing and all
@@ -714,7 +714,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
 
       // iterate thru gens
       for(list<lex_stem *>::iterator ls = gens.begin()
-            ; ls != gens.end(); ls++) {
+            ; ls != gens.end(); ++ls) {
         // get mods
         modlist in_mods = (*it)->mods();
         // _fix_me_
@@ -723,7 +723,7 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
           combine(*ls, *it, (*it)->inflrs(), in_mods);
         } else {
           for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
-                ; mrph != morphs.end(); mrph++) {
+                ; mrph != morphs.end(); ++mrph) {
             list_int *rules = get_rules(*mrph);
             combine(*ls, *it, rules, in_mods);
             free_list(rules);
@@ -739,10 +739,10 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
    list<lex_stem*> results;
   if (Grammar->lexsm()) {
     vector<string> words(5);
-    
+
     words[4] = item->orth();
     vector<vector<type_t> > types(4);
-    for (inp_iterator it = inp_tokens.begin(); it != inp_tokens.end(); it ++) {
+    for (inp_iterator it = inp_tokens.begin(); it != inp_tokens.end(); ++it) {
       int idx = -1;
       if ((*it)->endposition() == item->startposition() - 1)
         idx = 0;
@@ -759,51 +759,51 @@ predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
           tLexItem *lex = dynamic_cast<tLexItem*>(iter.current());
           if (lex != NULL)
             for (list<tItem*>::const_iterator dtrit = lex->daughters().begin();
-                 dtrit != lex->daughters().end(); dtrit ++)
+                 dtrit != lex->daughters().end(); ++dtrit)
               if (*it == *dtrit)
                 types[idx].push_back(lex->identity());
-          iter ++; 
+          ++iter;
         }
       }
     }
     list<type_t> pred_types = Grammar->lexsm()->bestPredict(words,types, n);
     for (list<type_t>::iterator tit = pred_types.begin();
-         tit != pred_types.end(); tit ++) 
+         tit != pred_types.end(); ++tit)
       results.push_back(Grammar->find_stem(*tit));
   }
-    
-  return results; 
+
+  return results;
 }
 
 
 void debug_predictions(inp_list &unexpanded) {
   ostringstream cdeb;
   cdeb << "adding prediction les" << endl;
-  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
+  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); ++it) {
     cdeb << "  token " << *it << endl;
   }
   LOG(logLexproc, DEBUG, cdeb.str());
 }
 
-void 
+void
 lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
                          int nr_predicts) {
   list<lex_stem*> predicts;
-  
+
   if(LOG_ENABLED(logLexproc, DEBUG)) debug_predictions(unexpanded);
-  
-  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); it ++) {
+
+  for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); ++it) {
     predicts = predict_les(*it, inp_tokens, nr_predicts);
     list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
     for (list<lex_stem*>::iterator ls = predicts.begin();
-         ls != predicts.end(); ls ++) {
+         ls != predicts.end(); ++ls) {
       modlist in_mods = (*it)->mods();
       add_surface_mod((*it)->orth(), in_mods);
       if (morphs.empty()) {
         combine(*ls, *it, (*it)->inflrs(), in_mods);
       } else {
         for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
-               ; mrph != morphs.end(); mrph++) {
+               ; mrph != morphs.end(); ++mrph) {
           list_int *rules = get_rules(*mrph);
           combine(*ls, *it, rules, in_mods);
           free_list(rules);
@@ -813,11 +813,11 @@ lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
   }
 }
 
-void 
+void
 lex_parser::reset() {
   // The items were created with an active default_owner and because of this
   // are correctly destroyed together with the global chart.
-  for(int i = 0; i <= _maxpos; i++) {
+  for(int i = 0; i <= _maxpos; ++i) {
     _active_left[i].clear();
     _active_right[i].clear();
   }
@@ -828,7 +828,7 @@ lex_parser::reset() {
 bool lex_parser::next_input(std::istream &in, std::string &result) {
   if (_tokenizers.empty())
     throw tError("No tokenizer registered");
-  
+
   return _tokenizers.front()->next_input(in, result);
 }
 
@@ -836,20 +836,20 @@ int
 lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping) {
   // TODO get rid of this logging control; use proper logging instead
   int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
-  
+
   // Tokenize the input
   tokenize(input, inp_tokens);
-  
-  // Attach POS tags to the input 
+
+  // Attach POS tags to the input
   tag(input, inp_tokens);
-  
+
   // NE recognition has to care about morphology itself
   ne_recognition(input, inp_tokens);
-  
+
   // map the input positions into chart positions
   position_map position_mapping = _tokenizers.front()->position_mapping();
   _maxpos = map_positions(inp_tokens, position_mapping);
-  
+
   // token mapping:
   if (chart_mapping) {
     if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
@@ -869,7 +869,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
     mapper.process(chart);
     // map back:
     _maxpos = tChartUtil::map_chart(chart, inp_tokens);
-    // chart and chart vertices memory is released by ~tChart 
+    // chart and chart vertices memory is released by ~tChart
     // chart items should be handled by tItem::default_owner()
     if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 4) {
       fprintf(stderr, "[cm] final token chart:\n");
@@ -879,17 +879,17 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
       fprintf(stderr, "[cm] token mapping ends\n");
     }
   }
-  
+
   return _maxpos;
 }
 
 void
 lex_parser::lexical_parsing(inp_list &inp_tokens,
-                            bool chart_mapping, bool lex_exhaustive, 
+                            bool chart_mapping, bool lex_exhaustive,
                             fs_alloc_state &FSAS, list<tError> &errors){
   // TODO get rid of this logging control; use proper logging instead
   int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
-  
+
   // if lex_exhaustive, process inflectional and lexical rules first and
   // exhaustively before applying syntactic rules
   // This allows more elaborate checking of gaps and chart dependencies
@@ -904,9 +904,9 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
 
   // now initialize agenda of lexical parser with list of input tokens
   // and start lexical processing with application of lex entries and lex rules
-  for(inp_iterator it=inp_tokens.begin(); it != inp_tokens.end(); it++) {
+  for(inp_iterator it=inp_tokens.begin(); it != inp_tokens.end(); ++it) {
     // add all input items that have not been deleted in token mapping:
-    if (!(*it)->blocked()) { 
+    if (!(*it)->blocked()) {
       add(*it);
     }
   }
@@ -940,9 +940,9 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
   if (lex_exhaustive) {
     parse_loop(FSAS, errors, 0);
   }
-  
+
   set_opt("opt_packing", opt_packing_backup);
-  
+
   // Lexical chart mapping (a.k.a. lexical filtering):
   if (chart_mapping) {
     if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1)
@@ -961,7 +961,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     mapper.process(chart);
     // map back:
     _maxpos = tChartUtil::map_chart(chart, *Chart);
-    // chart and chart vertices memory is released by ~tChart 
+    // chart and chart vertices memory is released by ~tChart
     // chart items should be handled by tItem::default_owner()
     if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 8) {
       fprintf(stderr, "[cm] final lexical chart:\n");
@@ -979,16 +979,16 @@ lex_parser::lexical_processing(inp_list &inp_tokens
                                , fs_alloc_state &FSAS, list<tError> &errors) {
 
   lexical_parsing(inp_tokens, chart_mapping, lex_exhaustive, FSAS, errors);
-  
+
   // dependency filtering is done on the chart itself
   dependency_filter(cheap_settings->lookup("chart-dependencies"),
                     (cheap_settings->lookup(
                             "unidirectional-chart-dependencies") != 0),
                     lex_exhaustive);
-  
+
   //tTclChartPrinter chp("/tmp/lex-chart", 0);
   //Chart->print(&chp);
-  
+
   // If -default-les or -predict-les is used, lexical entries for unknown
   // input items are only added where there are gaps in the chart.
   // If -default-les=all is used, generics have already been added for those
@@ -997,20 +997,20 @@ lex_parser::lexical_processing(inp_list &inp_tokens
   // entry), regardless of whether there is a gap in the chart or not. This
   // latter approach may be slower, so there can be a tradeoff between maximal
   // robustness and fast parsing.
-  
+
   // Gap computation.
   list< tInputItem * > unexpanded;
   item_predicate valid = (lex_exhaustive ? lex_complete : non_input);
   if (! Chart->connected(valid)) {
     unexpanded = find_unexpanded(Chart, valid) ;
   }
-  
+
   int opt_predict_les;
   get_opt("opt_predict_les", opt_predict_les);
-  
+
   default_les_strategy opt_default_les;
   get_opt("opt_default_les", opt_default_les);
-  
+
   // Add generic or predicted lexical types for unexpanded input items.
   // Generic lexical entries will only be added here if
   // `-default-les=traditional' is set (not if -default-les=all is set).
@@ -1018,20 +1018,20 @@ lex_parser::lexical_processing(inp_list &inp_tokens
   // unexpanded inps and the `-default-les' is not used.
   if ((opt_default_les == DEFAULT_LES_POSMAP_LEXGAPS || opt_predict_les)
       && !unexpanded.empty()) {
-    if (opt_default_les == DEFAULT_LES_POSMAP_LEXGAPS) { 
+    if (opt_default_les == DEFAULT_LES_POSMAP_LEXGAPS) {
       add_generics(unexpanded);
     } else if (opt_predict_les) {
       add_predicts(unexpanded, inp_tokens, opt_predict_les);
     }
     unexpanded.clear();
-    
+
     // This may in principle lead to new lexical parsing, but only if generics
     // may be multi word entries.
     while (! _agenda.empty()) {
       _agenda.front()->execute(*this);
       _agenda.pop();
     }
-    
+
     if (lex_exhaustive) {
       parse_loop(FSAS, errors, 0);
     }
@@ -1039,11 +1039,11 @@ lex_parser::lexical_processing(inp_list &inp_tokens
       unexpanded = find_unexpanded(Chart, *valid);
     }
   }
-  
+
   // throw an error if there are unexpanded input items
   if (! unexpanded.empty()) {
     string missing = "";
-    for (inp_iterator inp = unexpanded.begin(); inp != unexpanded.end(); inp++)
+    for (inp_iterator inp = unexpanded.begin(); inp != unexpanded.end(); ++inp)
     {
       missing += "\n\t\"" + (*inp)->orth() + "\"";
       if (opt_default_les) {
@@ -1079,7 +1079,7 @@ lex_parser::lexical_processing(inp_list &inp_tokens
       // of add_item() in parse.cpp)
       postulate(ci.current());
     }
-    ci++;
+    ++ci;
   }
   //
   // from here on, lexical as well as non-lexical rules should be active.  in
@@ -1123,10 +1123,10 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
     // generic lexical items that carry constraints that are incompatible with
     // the token information.
     //
-    if (_lex_item->near_passive() 
+    if (_lex_item->near_passive()
         && tChartUtil::lexicon_tokens_path()
         && tChartUtil::lexicon_last_token_path()) {
-      
+
       fs item_fs = _lex_item->get_fs(true);
       //
       // build a list of the right arity, containing the token FSs
@@ -1174,7 +1174,7 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
       } // if
       //
       // only create (and add()) a new lexical item when unification succeeded
-      // 
+      //
       if(item_fs.valid()) {
         add(parser, new tLexItem(_lex_item, _inp_item, item_fs));
       } // if

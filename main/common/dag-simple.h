@@ -36,7 +36,7 @@ struct dag_node
   int type;
   /** The outgoing arcs list (single linked) of this node, maybe \c NULL */
   struct dag_arc *arcs;
-  
+
   /** @name Copy Slot
    * The copy slot, protected by a generation counter
    */
@@ -73,7 +73,7 @@ extern int copy_generation;
 /** The generation counter used during well-formedness unifications */
 extern int copy_wf_generation;
 
-/** Get the copy slot of \a dag, checking the \a generation. 
+/** Get the copy slot of \a dag, checking the \a generation.
  * \return NULL, if \a generation is not the current generation, the value of
  *         the copy slot otherwise.
  */
@@ -102,7 +102,7 @@ inline void dag_invalidate_copy()
   if(copy_wf_generation > copy_generation)
     copy_generation = copy_wf_generation + 1;
   else
-    copy_generation ++;
+    ++copy_generation;
 
   copy_wf_generation = copy_generation;
 }
@@ -133,14 +133,14 @@ inline int dag_set_visit(dag_node *dag, int visit)
 
 inline void dag_invalidate_visited()
 {
-  visit_generation++;
+  ++visit_generation;
 }
 /*@}*/
 
 #else
 
 /** @name Visit Slot
- * `overload' the copy slot to obtain the desired functionality for traversal 
+ * `overload' the copy slot to obtain the desired functionality for traversal
  */
 /*@{*/
 inline int dag_get_visit(dag_node *dag)
@@ -162,7 +162,7 @@ inline void dag_invalidate_visited()
   if(copy_wf_generation > copy_generation)
     copy_generation = copy_wf_generation + 1;
   else
-    copy_generation ++;
+    ++copy_generation;
 
   copy_wf_generation = copy_generation;
 }
@@ -172,7 +172,7 @@ inline void dag_invalidate_visited()
 
 /** Follow the forward links to the node that represents this dag at the
  *  moment.
- */ 
+ */
 inline dag_node *dag_deref(dag_node *dag)
 {
   while(dag->forward != dag)
@@ -181,13 +181,23 @@ inline dag_node *dag_deref(dag_node *dag)
   return dag;
 }
 
+inline const dag_node *dag_deref(const dag_node *dag)
+{
+  while(dag->forward != dag)
+    dag = dag->forward;
+
+  return dag;
+}
+
 /** Return \c true if \a dag has no arcs */
-inline bool dag_framed(dag_node *dag)
+inline bool dag_framed(const dag_node *dag)
 {
   if(dag == 0) return false;
   dag = dag_deref(dag);
   return dag->arcs != 0;
 }
+
+inline const dag_arc *dag_get_comp_arcs(const dag_node *dag) { return NULL; }
 
 #ifdef FLOP
 /** special handling of the dag visit flag in type expansion */
@@ -202,7 +212,7 @@ dag_node *make_nth_arg(int n, dag_node *v);
 /** Clone \a src and return the copy */
 dag_node *dag_copy(dag_node *src);
 
-/** @name Wroblewski Unification 
+/** @name Wroblewski Unification
    An implementation of unify1 and unify2 of Wroblewski(1987) with
    changes for welltyped unification.
    Unify2 is buggy in the paper (for certain cases of convergent arcs),

@@ -36,28 +36,28 @@ template <typename T, typename LESS_THAN > class abstract_agenda {
 public:
 
   virtual ~abstract_agenda() {}
-  
+
   virtual void push(T *t) = 0;
   virtual T * top() = 0;
-  virtual T * pop() = 0;     // Responsibility to delete the task is for the caller. 
+  virtual T * pop() = 0;     // Responsibility to delete the task is for the caller.
   virtual bool empty() = 0;
-  virtual void feedback (T *t, tItem *result) = 0; 
+  virtual void feedback (T *t, tItem *result) = 0;
 
 };
 
 
 template <typename T, typename LESS_THAN > class exhaustive_agenda : public abstract_agenda<T, LESS_THAN > {
-public : 
+public :
 
   exhaustive_agenda() : _A() {}
   ~exhaustive_agenda() { while(!this->empty()) delete this->pop(); }
-  
+
   void push(T *t) { _A.push(t); }
   T * top()       { return _A.top(); }
   T * pop()       { T *t = top(); _A.pop(); return t; }
   bool empty()    { return _A.empty(); }
   void feedback (T *t, tItem *result) {}
-  
+
 private:
 
   std::priority_queue<T *, std::vector<T *>, LESS_THAN> _A;
@@ -74,18 +74,18 @@ private:
 template <typename T, typename LESS_THAN > class local_cap_agenda : public abstract_agenda<T, LESS_THAN > {
 /* This class provides functionality to define a per-cell cap on the number of tasks to be executed. */
 
-public : 
+public :
 
   local_cap_agenda(int cell_size, int max_pos) : _A(), _popped((max_pos+1)*(max_pos+1)), _max_pos(max_pos), _cell_size(cell_size),
-                                                 _exec((max_pos+1)*(max_pos+1)), _succ((max_pos+1)*(max_pos+1)), _pass((max_pos+1)*(max_pos+1)) { 
+                                                 _exec((max_pos+1)*(max_pos+1)), _succ((max_pos+1)*(max_pos+1)), _pass((max_pos+1)*(max_pos+1)) {
   }
   ~local_cap_agenda();
-  
+
   void push(T *t) {
-    _A.push(t); 
+    _A.push(t);
   }
   T * top();
-  T * pop(); 
+  T * pop();
   bool empty() { return top() == NULL; }
   void feedback (T *t, tItem *result);
 
@@ -95,10 +95,10 @@ private:
   std::vector<int> _popped;
   int _max_pos;
   int _cell_size;
-  
+
   std::vector<int> _exec;
   std::vector<int> _succ;
-  std::vector<int> _pass; 
+  std::vector<int> _pass;
 };
 
 
@@ -123,8 +123,8 @@ T * local_cap_agenda<T, LESS_THAN>::top() {
     if (!_A.empty()) {
       t = _A.top();
       if (t->phrasal() && _popped[t->start()*(_max_pos+1) + t->end()] >= _cell_size) {
-        // This span reached the limit, so continue searching for a new task. 
-        // Inflectional and lexical rules are always carried out. 
+        // This span reached the limit, so continue searching for a new task.
+        // Inflectional and lexical rules are always carried out.
         delete t;
         _A.pop();
       } else {
@@ -139,24 +139,24 @@ T * local_cap_agenda<T, LESS_THAN>::top() {
 }
 
 template <typename T, class LESS_THAN>
-T * local_cap_agenda<T, LESS_THAN>::pop() { 
-  T *t = top(); 
-  if (t != NULL) { 
-    _A.pop(); 
+T * local_cap_agenda<T, LESS_THAN>::pop() {
+  T *t = top();
+  if (t != NULL) {
+    _A.pop();
   }
-  return t; 
+  return t;
 }
 
 template <typename T, class LESS_THAN>
-void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) { 
+void local_cap_agenda<T, LESS_THAN>::feedback (T *t, tItem *result) {
   if (t->phrasal()) {
     if (get_opt_int("opt_chart_pruning_strategy") == 0) {
-      _popped[t->start()*(_max_pos+1) + t->end()]++;
+      ++_popped[t->start()*(_max_pos+1) + t->end()];
     } else if (get_opt_int("opt_chart_pruning_strategy") == 1 && (result != 0)) {
-      _popped[t->start()*(_max_pos+1) + t->end()]++;
+      ++_popped[t->start()*(_max_pos+1) + t->end()];
     } else if (get_opt_int("opt_chart_pruning_strategy") == 2 && (result != 0) && t->yields_passive()) {
-      _popped[t->start()*(_max_pos+1) + t->end()]++;
-    }    
+      ++_popped[t->start()*(_max_pos+1) + t->end()];
+    }
   }
 }
 

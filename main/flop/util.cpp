@@ -36,11 +36,11 @@ int strcount(char *s, char c)
     {
       if((s = strchr(s, (int) c)) != 0)
         {
-          s++; n++;
+          ++s; ++n;
           if(s[0] == '\0') s = 0;
         }
     }
-  
+
   return n;
 }
 
@@ -60,7 +60,7 @@ struct type *new_type(const string &name, bool is_inst, bool define)
 {
   struct type *t;
   t = new struct type;
-  
+
   t -> status = NO_STATUS;
   t -> defines_status = 0;
   t -> status_giver = 0;

@@ -80,17 +80,17 @@ acyclicTransitiveReduction(tHierarchy &G) {
 
     reached.clear();
     reached.insert(v);   // for security's sake in case of loops
-    
+
     std::vector<int> target(out_degree(v, G));
     boost::graph_traits<tHierarchy>::out_edge_iterator edge_it, edge_it_end;
     for (boost::tie(edge_it, edge_it_end) = out_edges(v, G), i = 0
-           ; edge_it != edge_it_end ; edge_it++, i++) {
+           ; edge_it != edge_it_end ; ++edge_it, ++i) {
       target[i] = boost::target(*edge_it, G);
     }
     sort(target.begin(), target.end()
          , inv_position_compare(vertex_topo_position));
-    
-    for(vector<int>::iterator it = target.begin(); it != target.end(); it++) {
+
+    for(vector<int>::iterator it = target.begin(); it != target.end(); ++it) {
       tHierarchyVertex w = *it;
       if(! reached.member(w)) {  // e is in the transitive reduction
         std::list<tHierarchyVertex> &Rw = closure[w];
@@ -99,7 +99,7 @@ acyclicTransitiveReduction(tHierarchy &G) {
           if(! reached.member(*itZ)) {
             reached.insert(*itZ);
             closure[v].push_back(*itZ);
-          }            
+          }
         }
       } else {
         // This could be a potential bottleneck

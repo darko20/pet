@@ -87,7 +87,7 @@ class tMorphAnalysis
   std::list<std::string> _forms;
   rulelist _rules;
 
-  struct less_than 
+  struct less_than
     : public std::binary_function<bool, tMorphAnalysis, tMorphAnalysis> {
     bool operator()(tMorphAnalysis &a, tMorphAnalysis &b) {
       if (a.base() < b.base()) return true;
@@ -99,8 +99,8 @@ class tMorphAnalysis
         br = b._rules.begin();
         be = b._rules.end();
         while ((ar != ae) && (br != be) && (*ar == *br)) {
-          ar++; 
-          br++;
+          ++ar;
+          ++br;
         }
         if (ar == ae)
           // shorter list (alist prefix blist) is smaller
@@ -113,7 +113,7 @@ class tMorphAnalysis
             // elements are not equal, smaller element loses
             return (*ar < *br);
       }
-      else 
+      else
         // (a.base() > b.base())
         return false;
     }
@@ -160,7 +160,7 @@ class tMorphAnalyzer
   void add_irreg(std::string stem, type_t t, std::string form);
 
   /** Return \c true if no rules or irregular forms are in this analyzer. */
-  bool empty();  
+  bool empty();
 
   /** \brief Use competing irregular analyses only if \a b is \c
    *  true. Otherwise, simply add all irregular analyses without removing
@@ -187,7 +187,7 @@ class tMorphAnalyzer
   void initialize_lexrule_filter();
 
   /** check if to infl rules can feed each other (even through a list of
-   *  non-affixation rules) 
+   *  non-affixation rules)
    *
    *  this is a weaker version of the rule filter for affixation rules for the
    *  purpose of doing correct filtering during morphological analysis.
@@ -204,7 +204,7 @@ class tMorphAnalyzer
   void analyze1(tMorphAnalysis form, std::list<tMorphAnalysis> &result);
   bool matching_irreg_form(tMorphAnalysis a);
 
-  void add_subrule(class morph_subrule *sr) 
+  void add_subrule(class morph_subrule *sr)
     { _subrules.push_back(sr); }
 
   class morph_lettersets _lettersets;
@@ -234,7 +234,7 @@ class tMorphAnalyzer
   std::multimap<std::string, tMorphAnalysis *> _irregs_by_stem;
   std::multimap<std::string, tMorphAnalysis *> _irregs_by_form;
 
-  
+
   friend class morph_trie;
 };
 
@@ -271,7 +271,7 @@ private:
  */
 class tFullformMorphology : public tMorphology {
 private:
-  
+
   typedef HASH_SPACE::hash_map<std::string, std::list<tMorphAnalysis>,
                                standard_string_hash > ffdict ;
 
@@ -282,12 +282,12 @@ private:
 
 public:
   /** \brief Create a new full form morphology, if available. Return NULL
-   *  otherwise 
+   *  otherwise
    */
   static tFullformMorphology *create(class dumper &dmp);
 
   virtual ~tFullformMorphology() {}
-  
+
   /** Compute morphological results for \c token. */
   virtual std::list<tMorphAnalysis> operator()(const myString &form);
 

@@ -15,15 +15,15 @@ print(tPSOA* mrs) {
   *_out << boost::format("<label vid='%d'/>") % mrs->top_h->id;
   *_out << boost::format("<var vid='%d'/>\n") % mrs->index->id;
   for (std::list<tBaseRel*>::iterator rel = mrs->liszt.begin();
-       rel != mrs->liszt.end(); rel ++) {
+       rel != mrs->liszt.end(); ++rel) {
     print((tRel*)(*rel));
   }
   for (std::list<tHCons*>::iterator hcons = mrs->h_cons.begin();
-       hcons != mrs->h_cons.end(); hcons ++) {
+       hcons != mrs->h_cons.end(); ++hcons) {
     print(*hcons);
   }
   for (std::list<tHCons*>::iterator acons = mrs->a_cons.begin();
-       acons != mrs->a_cons.end(); acons ++) {
+       acons != mrs->a_cons.end(); ++acons) {
     print(*acons);
   }
   *_out << "</mrs>\n";
@@ -44,11 +44,11 @@ print(tRel* rel) {
   *_out << boost::format("<label vid='%d'/>") % rel->handel->id;
   std::list<std::string> feats;
   for (std::map<std::string,tValue*>::iterator fvpair = rel->flist.begin();
-       fvpair != rel->flist.end(); fvpair ++)
+       fvpair != rel->flist.end(); ++fvpair)
     feats.push_back((*fvpair).first);
   feats.sort(ltfeat());
   for (std::list<std::string>::iterator feat = feats.begin();
-       feat != feats.end(); feat ++) {
+       feat != feats.end(); ++feat) {
     *_out << std::endl << "<fvpair>";
     *_out << "<rargname>" << xml_escape(*feat) << "</rargname>";
     print_full(rel->flist[*feat]);
@@ -95,11 +95,11 @@ print_full(tVar* var) {
   // _todo_ this should be adapted to handle the feature priority
   std::list<std::string> feats;
   for (std::map<std::string,std::string>::iterator extrapair = var->extra.begin();
-       extrapair != var->extra.end(); extrapair ++)
+       extrapair != var->extra.end(); ++extrapair)
     feats.push_back((*extrapair).first);
   feats.sort(ltextra());
   for (std::list<std::string>::iterator feat = feats.begin();
-       feat != feats.end(); feat ++) {
+       feat != feats.end(); ++feat) {
     char* upvalue = new char[var->extra[*feat].length()+1];
     strtoupper(upvalue, var->extra[*feat].c_str());
     *_out << std::endl << "<extrapair><path>" << xml_escape(*feat)
@@ -136,13 +136,13 @@ print(tPSOA* mrs) {
   print(mrs->index);
   *_out << std::endl << "   RELS: <";
   for (std::list<tBaseRel*>::iterator rel = mrs->liszt.begin();
-       rel != mrs->liszt.end(); rel ++) {
+       rel != mrs->liszt.end(); ++rel) {
     *_out << std::endl;
     print((tRel*)(*rel));
   }
   *_out << " >" << std::endl << "   HCONS: <";
   for (std::list<tHCons*>::iterator hcons = mrs->h_cons.begin();
-       hcons != mrs->h_cons.end(); hcons ++) {
+       hcons != mrs->h_cons.end(); ++hcons) {
     *_out << " ";
     print(*hcons);
   }
@@ -151,7 +151,7 @@ print(tPSOA* mrs) {
   if (!mrs->a_cons.empty()) {
     *_out << std::endl << "   ACONS: <";
     for (std::list<tHCons*>::iterator acons = mrs->a_cons.begin();
-         acons != mrs->a_cons.end(); acons ++) {
+         acons != mrs->a_cons.end(); ++acons) {
       *_out << " ";
       print(*acons);
     }
@@ -167,11 +167,11 @@ print(tRel* rel) {
   *_out << boost::format("            LBL: %s%d") % rel->handel->type % rel->handel->id;
   std::list<std::string> feats;
   for (std::map<std::string,tValue*>::iterator fvpair = rel->flist.begin();
-       fvpair != rel->flist.end(); fvpair ++)
+       fvpair != rel->flist.end(); ++fvpair)
     feats.push_back((*fvpair).first);
   feats.sort(ltfeat());
   for (std::list<std::string>::iterator feat = feats.begin();
-       feat != feats.end(); feat ++) {
+       feat != feats.end(); ++feat) {
     *_out << std::endl << "            " << *feat << ": ";
     print(rel->flist[*feat]);
   }
@@ -212,11 +212,11 @@ print_full(tVar* var) {
   *_out << boost::format("%s%d [ %s ") % var->type % var->id % var->type;
   std::list<std::string> feats;
   for (std::map<std::string,std::string>::iterator extrapair = var->extra.begin();
-       extrapair != var->extra.end(); extrapair ++)
+       extrapair != var->extra.end(); ++extrapair)
     feats.push_back((*extrapair).first);
   feats.sort(ltextra());
   for (std::list<std::string>::iterator feat = feats.begin();
-       feat != feats.end(); feat ++) {
+       feat != feats.end(); ++feat) {
     char* upvalue = new char[var->extra[*feat].length()+1];
     strtoupper(upvalue, var->extra[*feat].c_str());
     *_out  << *feat << ": " << upvalue << " ";

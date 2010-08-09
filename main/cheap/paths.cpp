@@ -43,7 +43,7 @@ tPaths::common(const tPaths &that) const
         return tPaths(*this);
     else if(that.all())
         return tPaths(that);
-    
+
     set<int> result;
     set_intersection(_paths.begin(), _paths.end(),
                      that._paths.begin(), that._paths.end(),
@@ -52,27 +52,27 @@ tPaths::common(const tPaths &that) const
     return tPaths(result);
 }
 
-template < typename Ctain > 
+template < typename Ctain >
 void set_intersection_1(Ctain c1, typename Ctain::iterator start1
                         , typename Ctain::iterator end1
                         , typename Ctain::iterator start2
                         , typename Ctain::iterator end2) {
   typename Ctain::iterator it2 = start2;
-  for(typename Ctain::iterator it1 = start1; it1 != end1; it1++) {
-    while ((*it2 < *it1) && (it2 != end2)) it2++;
+  for(typename Ctain::iterator it1 = start1; it1 != end1; ++it1) {
+    while ((*it2 < *it1) && (it2 != end2)) ++it2;
     if (it2 == end2) return;
     if (*it1 != *it2)
       c1.erase(it1);
-    else 
-      it1++;
+    else
+      ++it1;
   }
 }
 
 void
 tPaths::intersect(const tPaths &that)
 {
-    if(all()) { 
-      _all = that._all ; 
+    if(all()) {
+      _all = that._all ;
       _paths = that._paths ;
     }
     else if(! that.all()) {
@@ -88,9 +88,9 @@ tPaths::compatible(const tPaths &that) const
         return false;
     if(all() || that.all())
         return true;
-    
+
     tPaths tmp(common(that));
-    
+
     return !tmp._paths.empty();
 }
 
@@ -109,7 +109,7 @@ tPaths::get() const
     }
 
     list<int> result(_paths.begin(), _paths.end());
-    
+
     return result;
 }
 

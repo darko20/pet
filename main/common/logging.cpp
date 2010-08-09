@@ -69,7 +69,7 @@ void init_logging(const std::string &base_dir) {
                     log4cpp::create_empty_layout);
 
   try {
-    std::string initFileName 
+    std::string initFileName
       = find_set_file("logging", ".properties", base_dir);
     if (!initFileName.empty()) {
       log4cpp::PropertyConfigurator::configure(initFileName);
@@ -79,7 +79,7 @@ void init_logging(const std::string &base_dir) {
     std::cerr << f.what() << std::endl;
   }
 
-  // use the default configuration 
+  // use the default configuration
   root.setPriority(WARN);
   log4cpp::Appender *app
     = new log4cpp::OstreamAppender("default", &std::cerr);
@@ -119,7 +119,7 @@ using namespace std;
 
 map<string, Category> Logger::_cats;
 Logger::loggerendl Logger::_e;
- 
+
 Category &root = Logger::addCat("rootCategory", WARN, 1),
   &logAppl = Logger::addCat("logAppl", INFO, 2),
   &logApplC = Logger::addCat("logApplC", INFO, 3),
@@ -169,7 +169,7 @@ Logger::print(const Category &cat, Priority prio) {
   return std::cerr;
 }
 
-void 
+void
 Logger::loggerendl::print(std::ostream &out) const {
   switch (_cat->printer()) {
   case 1: out << std::endl;
@@ -181,7 +181,7 @@ Logger::loggerendl::print(std::ostream &out) const {
   }
 }
 
-Priority getPrio(const std::string prio) {
+Priority getPrio(const std::string &prio) {
   if (prio.empty()) return NOTSET;
   if (prio == "EMERG") return EMERG;
   for (unsigned int i = 0; i <= sizeof(prio_names) / sizeof(std::string); ++i) {
@@ -190,7 +190,7 @@ Priority getPrio(const std::string prio) {
   return ILLEGAL;
 }
 
-int getPrinter(const std::string printer) {
+int getPrinter(const std::string &printer) {
   for (int i = 0 ; i <= 2; ++i) {
     if (printer == printer_names[i]) return i+1;
   }
@@ -219,7 +219,7 @@ public:
     return '\0';
   }
 
-  // read from stream until newline has been read or stream is at EOF 
+  // read from stream until newline has been read or stream is at EOF
   inline void eatline() {
     char c;
     while(_in.good()) {
@@ -230,7 +230,7 @@ public:
 
   // eat all lines starting with a hash sign
   void eatcomment() {
-    while(_in.good()) 
+    while(_in.good())
       if (_in.peek() == '#') eatline();
       else return;
   }
@@ -248,7 +248,7 @@ public:
 };
 
 void init_logging(const std::string &base_dir) {
-  std::string initFileName 
+  std::string initFileName
     = find_set_file("simplelog", ".properties", base_dir);
   if (!initFileName.empty()) {
     PropertyStream ps(initFileName);
@@ -256,7 +256,7 @@ void init_logging(const std::string &base_dir) {
       ps.eatcomment();
       string cat_name;
       if (ps.extract(cat_name, '=')) {
-        // end of line reached: no '=' 
+        // end of line reached: no '='
         if (! cat_name.empty())
           // line no - 1 'cause the reader's already in the next line
           cerr << initFileName << ":" << ps.lineno() - 1
@@ -264,7 +264,7 @@ void init_logging(const std::string &base_dir) {
         continue;
       }
       if (! Logger::hasCat(cat_name)) {
-        cerr << initFileName << ":" << ps.lineno() 
+        cerr << initFileName << ":" << ps.lineno()
              << ": warning: unknown category: " << cat_name << endl;
         ps.eatline();
         continue;
@@ -281,13 +281,13 @@ void init_logging(const std::string &base_dir) {
       Category &cat = Logger::getCat(cat_name);
       Priority prio = getPrio(level);
       if (prio == ILLEGAL) {
-        cerr << initFileName << ":" << ps.lineno() 
+        cerr << initFileName << ":" << ps.lineno()
              << ": warning: unknown priority: " << level << endl;
       }
       int pri = getPrinter(printer);
       if (pri == -1) {
         if (!printer.empty())
-          cerr << initFileName << ":" << ps.lineno() 
+          cerr << initFileName << ":" << ps.lineno()
                << ": warning: unknown printer: " << printer << endl;
         cat.set(prio);
       }

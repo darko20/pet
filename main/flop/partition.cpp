@@ -10,11 +10,11 @@
 #include "partition.h"
 #include <cassert>
 
-tPartition::tPartition(int n) 
+tPartition::tPartition(int n)
 {
     assert(n >= 0);
-    
-    for(int i = 0; i < n; i++)
+
+    for(int i = 0; i < n; ++i)
         make_set(i);
 }
 
@@ -51,7 +51,7 @@ tPartition::find_set(int x)
 
 //
 // public methods
-// 
+//
 
 
 bool
@@ -60,7 +60,7 @@ tPartition::same_set(int a, int b)
     return find_set(a) == find_set(b);
 }
 
-    
+
 void
 tPartition::union_sets(int a, int b)
 {
@@ -74,7 +74,7 @@ tPartition::make_rep(int a)
     _rep[find_set(a)] = a;
 }
 
-    
+
 int
 tPartition::operator()(int a)
 {

@@ -1,5 +1,5 @@
 /* -*- Mode: C++ -*- */
-/** \file lexparser.h 
+/** \file lexparser.h
  * Input preprocessing and lexical parsing stage.
  */
 
@@ -19,7 +19,7 @@
  * the result list. Modules on a higher level (lower priority) are only
  * considered if no module on a lower level delivered a result.
  */
-template <typename RET_TYPE, typename MOD_ITER> 
+template <typename RET_TYPE, typename MOD_ITER>
 std::list<RET_TYPE>
 call_resp_chain (MOD_ITER begin, MOD_ITER end
                  , const myString &str) {
@@ -36,10 +36,10 @@ call_resp_chain (MOD_ITER begin, MOD_ITER end
 }
 
 
-template < typename IM > 
+template < typename IM >
 void free_modules(std::list< IM * > &modules) {
   for(typename std::list< IM * >::iterator it = modules.begin();
-      it != modules.end(); it++)
+      it != modules.end(); ++it)
     delete *it;
 }
 
@@ -58,7 +58,7 @@ class lex_parser {
 
 public:
   lex_parser() : _maxpos(-1), _carg_path(NULL) { }
-  
+
   ~lex_parser() {
     free_modules(_tokenizers);
     free_modules(_taggers);
@@ -66,7 +66,7 @@ public:
     free_modules(_morphs);
     free_modules(_lexica);
   }
-  
+
   /** Perform lexparser initializations.
    *  - Set carg modification (surface string) path
    */
@@ -89,16 +89,16 @@ public:
    *  \param input The input string, not necessarily a simple sentence.
    *  \param[in,out] inp_tokens The set of input tokens we get from input processing.
    *  \return The rightmost position of the parsing chart that has to be
-   *  created. 
+   *  created.
    */
   int process_input(std::string input, inp_list &inp_tokens, bool chart_mapping);
 
-  /** \brief Perform lexical processing. 
+  /** \brief Perform lexical processing.
    *
    * Do lexicon access and morphology, complete active multi word lexemes, find
    * lexical gaps and add appropriate default lexicon entries (generics), if
    * possible. After that, prune the chart applying the specified chart
-   * dependencies. 
+   * dependencies.
    *
    * \param inp_tokens The input tokens coming from process_input
    * \param lex_exhaustive If true, do exhaustive lexical processing before
@@ -117,14 +117,14 @@ public:
    * \see get_lex_entries for an explanation.
    */
   std::list<tMorphAnalysis> morph_analyze(std::string form);
-  
+
   /** Register different input modules in the lexical parser. */
   //@{
   void register_tokenizer(tTokenizer *m) {
     std::list<tTokenizer *> new_list(1, m) ;
     _tokenizers.merge(new_list, less_than_module());
   }
-  
+
   void register_tagger(tPOSTagger *m) {
     std::list<tPOSTagger *> new_list(1, m);
     _taggers.merge(new_list, less_than_module());
@@ -171,7 +171,7 @@ private:
    * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
    */
   void lexical_parsing(inp_list &inp_tokens,
-                       bool chart_mapping, bool lex_exhaustive, 
+                       bool chart_mapping, bool lex_exhaustive,
                        fs_alloc_state &FSAS, std::list<tError> &errors);
 
   /** Check the chart dependencies.
@@ -206,8 +206,8 @@ private:
    */
   void add_generics(inp_list &unexpanded);
 
-  /** Add predicted entries for uncovered input items.  
-   * This is only applied if the option \a nr_predicts is 
+  /** Add predicted entries for uncovered input items.
+   * This is only applied if the option \a nr_predicts is
    * non-zero and \opt_default_les is false.
    */
   void add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
@@ -254,7 +254,7 @@ private:
    * filled.
    */
   void add(tInputItem *inp);
-  
+
   /** This function creates new tLexItems based on an input item, its
    *  corresponding lex_stem (lexicon entry) and morphological information.
    * Instantiate the \a stem, add the modifications \a mods and create a
@@ -283,14 +283,14 @@ private:
    */
   std::vector< std::list< tLexItem * > > _active_left;
   std::vector< std::list< tLexItem * > > _active_right;
-  
+
   /** The rightmost position in our private chart */
   int _maxpos;
 
   /** Feature structure modification path for surface (relation) specification
    *  in genenric entries.
    */
-  char *_carg_path;
+  const char *_carg_path;
 };
 
 
@@ -298,7 +298,7 @@ private:
 class lex_task {
 public:
   virtual ~lex_task() {}
-  
+
   /** Execute this task */
   virtual void execute(class lex_parser &parser) = 0;
 protected:
@@ -335,7 +335,7 @@ extern lex_parser &Lexparser;
  * Different strategies for instantiating default lexical entries
  * (aka generics).
  */
-enum default_les_strategy { 
+enum default_les_strategy {
   NO_DEFAULT_LES = 0,
   DEFAULT_LES_POSMAP_LEXGAPS,
   DEFAULT_LES_ALL,
