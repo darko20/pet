@@ -800,7 +800,7 @@ void take_process(const char *grammar_file_name) {
   while(Lexparser.next_input(lexinput, input)) {
     int session_id = start_parse(input);
     int error_present = run_parser(session_id);
-    if (error_present != SessionManager::RUNTIME_ERROR) {
+    if (error_present != RUNTIME_ERROR) {
       int result_no = results(session_id);
       int error_no = errors(session_id);
 

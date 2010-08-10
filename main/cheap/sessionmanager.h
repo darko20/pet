@@ -6,6 +6,11 @@
 #include "fs.h"
 #include <list>
 
+#define NO_SUCH_SESSION -2
+#define NO_ERRORS 0
+#define ERRORS_PRESENT -1
+#define RUNTIME_ERROR -3
+
 class SessionManager {
 private:
   class Session {
@@ -54,11 +59,6 @@ public:
   }
 
   ~SessionManager();
-
-  static const int NO_SUCH_SESSION = -2;
-  static const int NO_ERRORS = 0;
-  static const int ERRORS_PRESENT = -1;
-  static const int RUNTIME_ERROR = -3;
 
   int start_parse(const std::string &input);
 
