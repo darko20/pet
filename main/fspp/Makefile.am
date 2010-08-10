@@ -17,15 +17,17 @@ bin_PROGRAMS = fspp
 
 fspp_SOURCES = main.cpp petecl.c petecl.h unicode.cpp unicode.h errors.h
 fspp_CPPFLAGS = -I$(top_srcdir)/common @CHEAPCPPFLAGS@
-fspp_LDADD = libfspp.a libpreprocessor.a libfspp.a # fix_me
-fspp_LDFLAGS = -L. @CHEAPLDFLAGS@
+#fspp_LDADD = libfspp.a libpreprocessor.a libfspp.a # fix_me
+fspp_LDADD = libfspp.la libpreprocessor.a
+fspp_LDFLAGS = -lecl @CHEAPLDFLAGS@
 
-noinst_LIBRARIES = libfspp.a
+noinst_LTLIBRARIES = libfspp.la
 
-libfspp_a_SOURCES = fspp.h fspp.cpp petecl.c petecl.h
-libfspp_a_LIBADD = libfspp.a libpreprocessor.a libfspp.a
+libfspp_la_SOURCES = fspp.h fspp.cpp petecl.c petecl.h
+#libfspp_la_LIBADD = libpreprocessor.a
+libfspp_la_LDFLAGS = @CHEAPLDFLAGS@ -lecl
 
-# Add ecl libraries to be deleted on "make clean" ... 
+# Add ecl libraries to be deleted on "make clean" ...
 MOSTLYCLEANFILES = libfspp.a libpreprocessor.a
 
 libpreprocessor.a:
@@ -36,7 +38,3 @@ libpreprocessor.a:
 	echo "(compile-system \"preprocessor\" :force t)"; \
 	echo "(mk::ecl-finalize-libbuild :module \"preprocessor\")"; \
 	) | $(ECL)
-
-libfspp.a: fspp.o libpreprocessor.a
-	ar rcs libfspp.a fspp.o # libpreprocessor.a
-

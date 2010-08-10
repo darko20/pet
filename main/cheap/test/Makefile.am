@@ -12,7 +12,7 @@ tester_SOURCES = tester.cpp \
 	fs-chart-test.cpp \
 	paths-test.cpp \
 	types-test.cpp
-tester_LDADD = ../libcheap.a
+tester_LDADD = ../libcheap.la
 if ECLMRS
 tester_LDADD += ../libmrs.a
 endif

@@ -704,7 +704,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.run_id = 1;
     T.parse_id = tsdb_unique_id;
     T.i_id = tsdb_unique_id;
-    T.date = string(current_time());
+    T.date = current_time();
     ++tsdb_unique_id;
 
     T.readings = stats.readings;
@@ -755,7 +755,7 @@ cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
     T.run_id = 1;
     T.parse_id = tsdb_unique_id;
     T.i_id = tsdb_unique_id;
-    T.date = string(current_time());
+    T.date = current_time();
     ++tsdb_unique_id;
 
     T.readings = -1;
@@ -879,7 +879,7 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
             nmeanings, clashes, pruned);
 
     fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
-            parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time());
+            parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time().c_str());
 }
 
 

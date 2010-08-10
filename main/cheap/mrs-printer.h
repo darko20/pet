@@ -8,22 +8,24 @@
 
 #include <iostream>
 
+void print_mrs_as(char format, dag_node *dag, std::ostream &out);
+
 namespace mrs {
-  
+
   class MRSPrinter {
   public:
-    
+
     MRSPrinter(std::ostream &out) : _out(&out) { }
-    
+
     virtual ~MRSPrinter() {
     }
-    
+
     virtual void print(tPSOA* mrs) = 0;
 
   protected:
     std::ostream *_out;
   };
-  
+
   class MrxMRSPrinter : public MRSPrinter {
   public:
     MrxMRSPrinter(std::ostream &out) : MRSPrinter(out) { }
@@ -41,7 +43,7 @@ namespace mrs {
   class SimpleMRSPrinter: public MRSPrinter {
   public:
     SimpleMRSPrinter(std::ostream &out) : MRSPrinter(out) { }
-    
+
     virtual void print(tPSOA* mrs);
     void print(tRel* rel);
     void print(tValue* val);
@@ -54,7 +56,7 @@ namespace mrs {
   private:
     std::map<int,tVar*> _vars;
   };
-  
+
 } // namespace mrs
 
 

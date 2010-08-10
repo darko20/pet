@@ -17,17 +17,36 @@
  */
 
 #include "mrs.h"
+#include "vpm.h"
 
 #include "logging.h"
 #include "settings.h"
 #include "types.h"
 #include "utility.h"
 
+
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
 int variable_generator = 0;
 extern settings *cheap_settings;
+
+tVPM *vpm = 0;
+
+void mrs_init(const std::string &grammar_file_name) {
+  vpm = new tVPM();
+  const char *name = cheap_settings->value("vpm");
+  if (name != NULL) {
+    std::string file = find_file(name, ".vpm", grammar_file_name);
+    if (! file.empty()) {
+      vpm->read_vpm(file);
+    }
+  }
+}
+
+void mrs_finalize() {
+  delete vpm;
+}
 
 namespace mrs {
 

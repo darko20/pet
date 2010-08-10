@@ -207,7 +207,7 @@ string escape_string(const string &s)
 
 
 /** Return the current date and time in a static char array */
-const char *current_time(void)
+string current_time(void)
 {
   time_t foo = time(0);
   struct tm *now = localtime(&foo);
@@ -219,9 +219,9 @@ const char *current_time(void)
   if(foo > 0 && now != 0)
     strftime(result, 80, "%d-%m-%Y (%H:%M:%S)", now);
   else
-    sprintf(result, "now");
+    return "now";
 
-  return(result);
+  return result;
 }
 
 
