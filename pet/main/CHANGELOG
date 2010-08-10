@@ -1,4 +1,4 @@
-specific to chart-mapping branch:
+v0.99.??
   - activate all rules after lex-exhaustive parsing (not just syntactic rules)
     for compatibility with LKB
   - regular expression literals introduced with slashes in TDL
@@ -17,8 +17,6 @@ specific to chart-mapping branch:
   - case-sensitive string and YY tokenizer
   - memory limit is respected during unpacking
   - added unit tests for types
-
-v0.99.??
   - added the ParseNodes class to be able to produce nice small parse trees as
     in the online demo, and an item printer to test it
   - added dag_get_path_value_check_dlist for cases where an empty diff list is
