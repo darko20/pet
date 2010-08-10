@@ -55,9 +55,9 @@ tPaths::common(const tPaths &that) const
 template < typename Ctain >
 void set_intersection_1(Ctain c1, typename Ctain::iterator start1
                         , typename Ctain::iterator end1
-                        , typename Ctain::iterator start2
-                        , typename Ctain::iterator end2) {
-  typename Ctain::iterator it2 = start2;
+                        , typename Ctain::const_iterator start2
+                        , typename Ctain::const_iterator end2) {
+  typename Ctain::const_iterator it2 = start2;
   for(typename Ctain::iterator it1 = start1; it1 != end1; ++it1) {
     while ((*it2 < *it1) && (it2 != end2)) ++it2;
     if (it2 == end2) return;

@@ -46,6 +46,7 @@ void dag_mark_coreferences(struct dag_node *dag)
     }
 }
 
+/*
 int coref_nr;
 
 void dag_print_rec(FILE *f, struct dag_node *dag, int indent)
@@ -135,6 +136,7 @@ void dag_print(FILE *f, struct dag_node *dag)
   dag_print_rec(f, dag, 0);
   dag_invalidate_visited();
 }
+*/
 
 //
 // compact binary form output (dumping)

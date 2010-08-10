@@ -77,7 +77,7 @@ std::string convert_escapes(const std::string &s);
 std::string escape_string(const std::string &s);
 
 /** return current date and time in static string; client must not free() */
-const char *current_time(void);
+std::string current_time(void);
 
 /** Return \c true if \a filename exists and is not a directory */
 bool file_exists_p(const std::string &filename);

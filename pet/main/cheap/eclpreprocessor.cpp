@@ -21,7 +21,7 @@
    code integration */
 
 #include <stdlib.h>
-#include <fspp.h>   
+#include <fspp.h>
 
 #include "eclpreprocessor.h"
 #include "cheap.h"
@@ -33,13 +33,13 @@ extern class EncodingConverter *Conv; // (bmw) why does this seem necessary?
 #define PRE_EXT ".fsr"
 
 tFSRTokenizer::tFSRTokenizer(const char *grammar_path) {
-  char *preproc_filename = cheap_settings->value("preprocessor");
+  const char *preproc_filename = cheap_settings->value("preprocessor");
   if (preproc_filename == NULL)
     throw tError("No `preprocessor' setting found");
-                 
-  string preproc_pathname 
+
+  string preproc_pathname
     = find_file(preproc_filename, PRE_EXT, grammar_path);
-  if (preproc_pathname.empty()) 
+  if (preproc_pathname.empty())
     throw tError(string("Preprocessor spec file ")
                  + preproc_filename + "could not be found") ;
 
@@ -54,10 +54,10 @@ void tFSRTokenizer::tokenize(myString s, inp_list &result) {
   // send input to FSPP
   UnicodeString u_yyresult = preprocess(s.c_str(), _format);
   string yyresult = Conv->convert(u_yyresult);
-  
+
   // convert (YY tokens) output from FSPP into internal tokens
   _stage_two.tokenize(yyresult, result);
-  _position_mapping = _stage_two.position_mapping(); 
+  _position_mapping = _stage_two.position_mapping();
   // (!) output uses position_map mode of the (YY) tokenizer used
 #else
   throw tError("FSPP tokenizer not available (please compile cheap with Unicode support)");

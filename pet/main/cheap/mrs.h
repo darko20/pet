@@ -13,6 +13,9 @@
 #include <string>
 #include <iostream>
 
+void mrs_init(const std::string &vpm_file);
+void mrs_finalize();
+
 namespace mrs {
 
 struct ltfeat {

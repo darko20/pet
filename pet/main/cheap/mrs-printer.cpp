@@ -1,4 +1,5 @@
 #include "mrs-printer.h"
+#include "vpm.h"
 #include "utility.h"
 
 #include <sstream>
@@ -7,6 +8,28 @@
 #include <boost/format.hpp>
 
 using namespace mrs;
+
+extern tVPM *vpm;
+
+void print_mrs_as(char format, dag_node *dag, std::ostream &out) {
+  // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
+  tPSOA* mrs = new tPSOA(dag);
+  if (mrs->valid()) {
+    tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+    if (mapped_mrs->valid()) {
+      out << std::endl;
+      switch (format) {
+      case 'n':
+        { MrxMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
+      case 's':
+        { SimpleMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
+      }
+      out << std::endl;
+    }
+    delete mapped_mrs;
+  }
+  delete mrs;
+}
 
 
 void MrxMRSPrinter::

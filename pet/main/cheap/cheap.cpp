@@ -41,7 +41,6 @@
 #include "version.h"
 #include "mrs.h"
 #include "mrs-printer.h"
-#include "vpm.h"
 #include "qc.h"
 #include "pcfg.h"
 #include "configs.h"
@@ -88,7 +87,6 @@ tGrammar *Grammar = 0;
 ParseNodes pn;
 settings *cheap_settings = 0;
 static bool XMLServices = false;
-tVPM *vpm = 0;
 
 struct passive_weights : public unary_function< tItem *, unsigned int > {
   unsigned int operator()(tItem * i) {
@@ -207,25 +205,6 @@ void dump_jxchg(string surface, chart *ch) {
   dump_jxchg_string(surface, ch);
 }
 
-void print_mrs_as(char format, const fs &f, ostream &out) {
-  // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
-  mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
-  if (mrs->valid()) {
-    mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
-    if (mapped_mrs->valid()) {
-      out << endl;
-      switch (format) {
-      case 'n':
-        { MrxMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
-      case 's':
-        { SimpleMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
-      }
-      out << endl;
-    }
-    delete mapped_mrs;
-  }
-  delete mrs;
-}
 
 void print_fs_as(char format, const fs &f, ostream &out) {
   dag_node *dag = f.dag();
@@ -263,7 +242,7 @@ void print_result_as(string format, tItem *reading, ostream &out) {
       print_derivation_as(subformat, reading, out);
       break;
     case 'm': // print mrs
-      print_mrs_as(subformat, reading->get_fs(), out);
+      print_mrs_as(subformat, reading->get_fs().dag(), out);
       break;
     }
   }
@@ -375,7 +354,7 @@ void interactive() {
 #endif
             }
             else {
-              print_mrs_as(opt_mrs[0], it->get_fs(), cerr);
+              print_mrs_as(opt_mrs[0], it->get_fs().dag(), cerr);
             }
           }
         }
@@ -502,7 +481,7 @@ static void cleanup() {
 #endif
   delete Grammar;
   delete cheap_settings;
-  delete vpm;
+  mrs_finalize();
 }
 
 
@@ -586,7 +565,7 @@ bool load_grammar(string grammar_file_name) {
 
     case TOKENIZER_FSR:
 #if defined(HAVE_PREPROC) && defined(HAVE_ICU)
-      tok = new tFSRTokenizer(s); break;
+      tok = new tFSRTokenizer(grammar_file_name.c_str()); break;
 #else
       LOG(logAppl, FATAL,
           "No ecl/Lisp based FSR preprocessor compiled into this cheap");
@@ -625,22 +604,20 @@ bool load_grammar(string grammar_file_name) {
     tok->set_comment_passthrough(get_opt_bool("opt_comment_passthrough"));
     Lexparser.register_tokenizer(tok);
 
-    const char *name = cheap_settings->value("vpm");
-    string file = (name != NULL
-                   ? find_file(name, ".vpm", grammar_file_name)
-                   : string());
 #ifdef HAVE_MRS
     //
     // when requested, initialize the MRS variable property mapping from a file
     // specified in the grammar configuration.                   (24-aug-06; oe)
     //
-    mrs_initialize(s, (file.empty() ? NULL : file.c_str()));
+    const char *name = cheap_settings->value("vpm");
+    string file = (name != NULL
+                   ? find_file(name, ".vpm", grammar_file_name)
+                   : string());
+    mrs_initialize(grammar_file_name.c_str(),
+                   (file.empty() ? NULL : file.c_str()));
 #endif
 
-    vpm = new tVPM();
-    if (! file.empty()) {
-      vpm->read_vpm(file);
-    }
+    mrs_init(grammar_file_name);
 
 #ifdef HAVE_ECL
     // reset the error stream so warnings show up again
@@ -846,7 +823,7 @@ void take_process(const char *grammar_file_name) {
 
         mrs_out << "<result nr=\"" << i << "\" score=\"" << res->score()
                 << "\">" << endl;
-        print_mrs_as('n', res->get_fs(), mrs_out);
+        print_mrs_as('n', res->get_fs().dag(), mrs_out);
         mrs_out << "</result>" << endl;
 
         tree_out << "<result nr=\"" << i << "\" score=\"" << res->score()

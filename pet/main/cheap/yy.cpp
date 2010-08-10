@@ -267,7 +267,7 @@ void cheap_server(int port) {
          && host->h_name != NULL) {
         fprintf(*log,
                 "[%d] server(): connect from `%s' (%s).\n",
-                getpid(), host->h_name, current_time());
+                getpid(), host->h_name, current_time().c_str());
       } /* if */
       else {
         char *address = inet_ntoa(client_address.sin_addr);
@@ -275,7 +275,7 @@ void cheap_server(int port) {
                 "[%d] server(): connect from `%s' (%s) .\n",
                 getpid(),
                 (address != NULL ? address : "?.?.?.?"),
-                current_time());
+                current_time().c_str());
       } /* else */
       fflush(*log);
     } /* for */
@@ -353,7 +353,7 @@ int cheap_server_child(int socket) {
             ++log) {
           fprintf(*log,
                   "[%d] server_child(): client disconnect (%s).\n",
-                  getpid(), current_time());
+                  getpid(), current_time().c_str());
           fflush(*log);
         } /* for */
         break;
@@ -365,7 +365,7 @@ int cheap_server_child(int socket) {
             ++log) {
           fprintf(*log,
                   "[%d] server_child(): shutdown on client request (%s).\n",
-                  getpid(), current_time());
+                  getpid(), current_time().c_str());
           fflush(*log);
         } /* for */
         fclose(stream);
@@ -484,7 +484,7 @@ int cheap_server_child(int socket) {
           ++log) {
         fprintf(*log,
                 "[%d] server_child(): {RT} client disconnect (%s).\n",
-                getpid(), current_time());
+                getpid(), current_time().c_str());
         fflush(*log);
       } /* for */
       input[0] = (char)0;
