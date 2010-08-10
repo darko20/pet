@@ -377,7 +377,7 @@ void interactive() {
 #else
                 if ((strcmp(opt_mrs, "new") == 0)
                     || (strcmp(opt_mrs, "simple") == 0)) {
-                  print_mrs_as(opt_mrs[0], item->get_fs(), cerr);
+                  print_mrs_as(opt_mrs[0], item->get_fs().dag(), cerr);
                 }
 #endif
               }
