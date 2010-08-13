@@ -66,31 +66,31 @@ namespace fsc
  */
 class tFSCTokenizer : public tTokenizer {
 public:
-  
+
   /** Constructor. */
   tFSCTokenizer();
 
   /** Destructor. */
   virtual ~tFSCTokenizer();
-  
+
   // comment provided by super-class
   virtual bool next_input(std::istream &in, std::string &result);
-  
+
   // comment provided by super-class
   virtual void tokenize(std::string s, inp_list &result);
-  
+
   /**
    * Produce a feature structure chart from the given string for the
    * application of chart mapping rules.
    */
   virtual void tokenize(std::string s, tChart &result);
-  
+
   // comment provided by super-class
   virtual std::string description();
-  
+
   // comment provided by super-class
   virtual position_map position_mapping();
-  
+
 };
 
 
@@ -99,35 +99,35 @@ public:
  * Factory creating states for parsing FSC files.
  */
 class tFSCStateFactory {
-  
+
 private:
-  
+
   /**
    * A map mapping state names to state prototypes. Needed for creating
    * new states by their name. See Prototype pattern.
    */
   std::map< std::string, const fsc::tFSCState* > _state_map;
-  
+
   /**
    * Registers a prototype for a certain state \a state under its
    * name \a state->name().
    */
   void register_state(const fsc::tFSCState *state);
-  
+
 public:
-  
+
   /** Constructor. */
   tFSCStateFactory();
-  
+
   /** Destructor. */
   virtual ~tFSCStateFactory();
-  
+
   /**
    * Creates a new state for the XML element with name \a name. The caller
    * of this function is responsible for deleting the returned state object.
    */
   fsc::tFSCState* create_state(const std::string &name);
-  
+
 };
 
 
@@ -141,33 +141,33 @@ class tFSCHandler : public XERCES_CPP_NAMESPACE_QUALIFIER HandlerBase
 private:
   /** The current stack of XML states (nodes) */
   std::stack<fsc::tFSCState*> _state_stack;
-  
+
   /** A factory producing states for XML element names. */
   tFSCStateFactory _factory;
-  
+
   /**
    * The document locator allows us to associate SAX events with
    * the document position where the event occurred.
    */
   const XERCES_CPP_NAMESPACE_QUALIFIER Locator *_loc;
-  
+
   /**
    * Build an error message string, using the specified \a exception category
    * and \a message, as well as the registered document locator.
    */
   std::string
   errmsg(std::string category, std::string message);
-  
+
   /** The copy constructor is disallowed */
   tFSCHandler(const tFSCHandler &x);
 
 public:
-  
+
   /** Constructor: Make a new tFSCHandler */
   tFSCHandler(tChart &chart);
   /** Destructor */
   ~tFSCHandler();
-  
+
   /** \name Xerces DocumentHandler interface */
   /*@{*/
   /** Receive notification of the beginning of an element. */
@@ -179,7 +179,7 @@ public:
   endElement(const XMLCh* const xml_name);
   /** Receive notification of character data. Can be called multiple times. */
   virtual void
-  characters(const XMLCh *const xml_chars, const unsigned int len);
+  characters(const XMLCh *const xml_chars, const XMLSize_t len);
   /**
    * Sets the document locator which allows us to associate SAX events with
    * the document position where the event occurred.
@@ -187,7 +187,7 @@ public:
   virtual void
   setDocumentLocator(const XERCES_CPP_NAMESPACE_QUALIFIER Locator* const loc);
   /*@}*/
-  
+
   /** \name Xerces ErrorHandler interface */
   /*@{*/
   /** Receive notification of a warning. */
@@ -200,7 +200,7 @@ public:
   virtual void
   fatalError(const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e);
   /*@}*/
-  
+
 };
 
 
@@ -210,46 +210,46 @@ public:
  */
 namespace fsc
 {
-  
+
   /**
    * An (abstract) state for parsing FSC XML files.
    */
   class tFSCState {
   private:
-    
+
     /** The name of this state. */
     std::string _name;
-    
+
     /** Reject state transition from state \a source to \a target */
     static void reject(tFSCState *source, tFSCState *target);
-    
+
   protected:
-    
+
     tFSCState(std::string name);
-    
+
   public:
-    
+
     tFSCState();
-    
+
     virtual ~tFSCState();
-    
+
     virtual tFSCState* clone() const = 0;
-    
+
     std::string name() const;
-    
+
     /**
      * Changes from this state to the \a target state. This in turn calls
      * \a target->enter(this, attrs). (Double Dispatch pattern)
      */
     virtual void change_to(tFSCState *target,
         XERCES_CPP_NAMESPACE_QUALIFIER AttributeList &attrs) = 0;
-    
+
     /**
      * Changes from this state to the \a source state. This in turn calls
      * \a source->leave(this). (Double Dispatch pattern)
      */
     virtual void change_from(tFSCState *source) = 0;
-    
+
     virtual void enter(tFSCBottomState *source,
         XERCES_CPP_NAMESPACE_QUALIFIER AttributeList &attrs);
     virtual void enter(tFSCState_fsc *source,
@@ -268,7 +268,7 @@ namespace fsc
         XERCES_CPP_NAMESPACE_QUALIFIER AttributeList &attrs);
     virtual void enter(tFSCState_str *source,
         XERCES_CPP_NAMESPACE_QUALIFIER AttributeList &attrs);
-    
+
     virtual void leave(tFSCBottomState *target);
     virtual void leave(tFSCState_fsc *target);
     virtual void leave(tFSCState_chart *target);
@@ -278,11 +278,11 @@ namespace fsc
     virtual void leave(tFSCState_fs *target);
     virtual void leave(tFSCState_f *target);
     virtual void leave(tFSCState_str *target);
-    
+
     virtual void characters(std::string chars);
-    
+
   };
-  
+
   class tFSCBottomState : public tFSCState
   {
   private:
@@ -296,7 +296,7 @@ namespace fsc
     void set_chart(tChart *chart);
     tChart *get_chart();
   };
-  
+
   class tFSCState_fsc : public tFSCState
   {
   private:
@@ -312,7 +312,7 @@ namespace fsc
     virtual void leave(tFSCBottomState *target);
     tChart *get_chart();
   };
-  
+
   class tFSCState_chart : public tFSCState
   {
   private:
