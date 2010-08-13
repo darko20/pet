@@ -1,4 +1,5 @@
 v0.99.??
+  - parse character data including character references correctly in FSC
   - activate all rules after lex-exhaustive parsing (not just syntactic rules)
     for compatibility with LKB
   - regular expression literals introduced with slashes in TDL

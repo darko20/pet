@@ -464,7 +464,9 @@ namespace fsc {
   void
   tFSCState_text::characters(std::string chars)
   {
-    // ignore
+    // ignore characters inside the text element
+    // the text element only serves information purposes
+    // it is not needed for processing
   }
 
   // =====================================================
@@ -739,20 +741,19 @@ namespace fsc {
   tFSCState_str::enter(tFSCState_f *source, AttributeList &attrs)
   {
     // cerr << "<" + name() + ">\n";
-    _value = BI_STRING;
   }
 
   void
   tFSCState_str::leave(tFSCState_f *target)
   {
     // cerr << "</" + name()  + ">\n";
-    target->add_value(_value);
+    target->add_value(retrieve_string_instance(_chars));
   }
 
   void
   tFSCState_str::characters(std::string chars)
   {
-    _value = retrieve_string_instance(chars);
+    _chars.append(chars);
   }
 
 }

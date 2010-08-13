@@ -177,7 +177,7 @@ public:
   /** Receive notification of the end of an element. */
   virtual void
   endElement(const XMLCh* const xml_name);
-  /** Receive notification of character data. */
+  /** Receive notification of character data. Can be called multiple times. */
   virtual void
   characters(const XMLCh *const xml_chars, const unsigned int len);
   /**
@@ -429,7 +429,7 @@ namespace fsc
   class tFSCState_str : public tFSCState
   {
   private:
-    type_t _value;
+    std::string _chars;
   public:
     tFSCState_str();
     virtual tFSCState_str* clone() const;
