@@ -115,11 +115,13 @@ opt_string_attr(AttributeList &attr, const char *aname) {
 
 
 std::ostream &operator <<(std::ostream &out, const pic::pic_base_state *s) {
-  out << XMLCh2Latin(s->tag()); return out;
+  out << XMLCh2Native(s->tag());
+  return out;
 }
 
 std::ostream &operator <<(std::ostream &out, const pic::pic_base_state &s) {
-  out << XMLCh2Latin(s.tag()); return out;
+  out << XMLCh2Native(s.tag());
+  return out;
 }
 
 /** Reject state transition \a from --> \a to */
@@ -236,9 +238,9 @@ PICHandler::~PICHandler() {
 void PICHandler::
 print_sax_exception(const char * errtype, const SAXParseException& e) {
   LOG(logXML, WARN,
-      XMLCh2Latin(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
+      XMLCh2Native(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
       << (int) e.getColumnNumber() << ": error: SAX: " << errtype << " "
-      << XMLCh2Latin(e.getMessage()) << endl);
+      << XMLCh2Native(e.getMessage()) << endl);
 }
 
 void
@@ -273,7 +275,7 @@ PICHandler::startElement(const XMLCh* const name, AttributeList& attribs)
       // DTD should be covered
       _error_occurred = true;
       throw SAXParseException(errmsg((string) "unknown tag '"
-                                     + XMLCh2Latin(name) + "'"), *_loc);
+                                     + XMLCh2Native(name) + "'"), *_loc);
     }
   }
 }

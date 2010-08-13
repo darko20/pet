@@ -36,10 +36,11 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <xercesc/util/XMLChar.hpp>
+
 XERCES_CPP_NAMESPACE_USE
 
 using namespace std;
-
 
 
 // =====================================================
@@ -128,7 +129,7 @@ tFSCHandler::startElement(const XMLCh* const xml_name,
       XERCES_CPP_NAMESPACE_QUALIFIER AttributeList& xml_attrs)
 {
   try {
-    std::string tgtname = XMLCh2Native(xml_name);
+    std::string tgtname = XMLCh2UTF8(xml_name);
     fsc::tFSCState *source = _state_stack.top();
     _state_stack.push(_factory.create_state(tgtname));
     fsc::tFSCState *target = _state_stack.top();
@@ -156,7 +157,7 @@ void
 tFSCHandler::characters(const XMLCh *const xml_chars, const unsigned int len)
 {
   try {
-    std::string chars = XMLCh2Native(xml_chars);
+    std::string chars = XMLCh2UTF8(xml_chars);
     fsc::tFSCState *current = _state_stack.top();
     if (chars.find_first_not_of(" \t\n\r") != std::string::npos)
       current->characters(chars); // only called if chars is not only whitespace
@@ -549,8 +550,8 @@ namespace fsc {
       throw tError("Missing required attribute \"source\".");
     if (tgt_vertex == 0)
       throw tError("Missing required attribute \"target\".");
-    _vfrom_name = XMLCh2Native(src_vertex);
-    _vto_name = XMLCh2Native(tgt_vertex);
+    _vfrom_name = XMLCh2UTF8(src_vertex);
+    _vto_name = XMLCh2UTF8(tgt_vertex);
   }
 
   void
@@ -594,7 +595,7 @@ namespace fsc {
     const XMLCh *n = attrs.getValue("type");
     if (!n)
       throw tError("Missing required attribute \"type\".");
-    type_t type = lookup_type(XMLCh2Native(n));
+    type_t type = lookup_type(XMLCh2UTF8(n));
     if (type == -1)
       throw tError("Unknown type \"" + XMLCh2Native(n) + "\".");
     _fs = fs(type);
@@ -658,15 +659,20 @@ namespace fsc {
   tFSCState_f::enter(tFSCState_fs *source, AttributeList &attrs)
   {
     // cerr << "<" + name() + ">\n";
+    static const XMLCh list_str[] = { chLatin_l, chLatin_i, chLatin_s,
+        chLatin_t, chNull };
     const XMLCh *n = attrs.getValue("name");
     const XMLCh *o = attrs.getValue("org"); // optional
-    if (n == 0)
+    if (n == 0) {
       throw tError("Missing required XML attribute \"name\".");
-    if ((o != 0) && (XMLCh2Native(o) != "list"))
+    }
+    if ((o != 0) && (XMLString::compareIString(o, list_str) == 0)) {
       throw tError("Wrong value for XML attribute \"org\".");
-    _attr = lookup_attr(XMLCh2Native(n).c_str());
-    if (_attr == -1)
+    }
+    _attr = lookup_attr(XMLCh2UTF8(n));
+    if (_attr == -1) {
       throw tError("Unknown attribute \"" + XMLCh2Native(n) + "\".");
+    }
     _is_list = (o != 0);
     _parent = source;
   }
