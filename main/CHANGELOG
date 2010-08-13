@@ -1,4 +1,6 @@
 v0.99.??
+  - don't choke on one-file-per-line mode in FSC if file doesn't exist
+    (closes ticket #33)
   - parse character data including character references correctly in FSC
   - activate all rules after lex-exhaustive parsing (not just syntactic rules)
     for compatibility with LKB

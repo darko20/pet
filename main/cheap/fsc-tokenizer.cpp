@@ -31,6 +31,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <sstream>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
@@ -108,6 +109,7 @@ tFSCTokenizer::tokenize(std::string s, tChart &result)
 
 tFSCHandler::tFSCHandler(tChart &chart)
 {
+  _loc = 0;
   _state_stack.push(_factory.create_state("*bottom*"));
   dynamic_cast<fsc::tFSCBottomState*>(_state_stack.top())->set_chart(&chart);
 }
@@ -172,11 +174,14 @@ tFSCHandler::setDocumentLocator(const Locator* const loc)
 std::string
 tFSCHandler::errmsg(std::string category, std::string message)
 {
-  return "[FSC tokenizer] " + category + " in "
-    + XMLCh2Native(_loc->getSystemId())
-    + ":" + boost::lexical_cast<std::string>(_loc->getLineNumber())
-    + ":" + boost::lexical_cast<std::string>(_loc->getColumnNumber())
-    + ": " + message;
+  std::stringstream msgstream;
+  msgstream << "[FSC tokenizer] " << category;
+  if (_loc != 0) {
+    msgstream << " in " << XMLCh2Native(_loc->getSystemId())
+        << _loc->getLineNumber() << _loc->getColumnNumber();
+  }
+  msgstream << ": " << message;
+  return msgstream.str();
 }
 
 void
