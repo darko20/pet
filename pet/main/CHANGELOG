@@ -1,4 +1,5 @@
 v0.99.??
+  - XML modes: use UTF-8 internally and native codepage externally
   - don't choke on one-file-per-line mode in FSC if file doesn't exist
     (closes ticket #33)
   - parse character data including character references correctly in FSC

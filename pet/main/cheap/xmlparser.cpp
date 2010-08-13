@@ -55,19 +55,6 @@ const char * XMLCh2UTF8(const XMLCh *in) {
   return (const char *) membuf->getRawBuffer();
 }
 
-/** Convert an XMLCh string into the latin codepage.
- *
- * \attn be aware that this function always uses the same buffer, so you can
- * not, for example, use it twice in one \c printf call because one result will
- * be overwritten by the other. To be save, you either have to copy the result
- * or do two \c printf calls with two calls to this function
- */
-const char * XMLCh2Latin(const XMLCh *in) {
-  membuf->reset();
-  (*latin_formatter) << in;
-  return (const char *) membuf->getRawBuffer();
-}
-
 std::string XMLCh2Native(const XMLCh * const str) {
   boost::scoped_array<char> ptr(xercesc::XMLString::transcode(str));
   return (ptr != 0) ? std::string(ptr.get()) : "";
@@ -104,7 +91,7 @@ bool parse_file(InputSource &inp, HandlerBase *docHandler){
   }
   catch (const XMLException& toCatch) {
     LOG(logXML, WARN, "unknown:" << toCatch.getSrcLine()
-        << ": error: SAX: " << XMLCh2Latin(toCatch.getMessage()));
+        << ": error: SAX: " << XMLCh2Native(toCatch.getMessage()));
     return false;
   }
   catch (const SAXParseException& toCatch) {

@@ -76,9 +76,6 @@ bool xml_finalize();
 /** Convert the XMLCh string \a in into a UTF-8 encoded string */
 const char *XMLCh2UTF8(const XMLCh *in);
 
-/** Convert the XMLCh string \a in into a latin-1 encoded string */
-const char *XMLCh2Latin(const XMLCh *in);
-
 /** Converts from a native string to an XMLCh string. */
 std::string XMLCh2Native(const XMLCh *str);
 
