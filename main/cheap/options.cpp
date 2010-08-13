@@ -145,6 +145,7 @@ void usage(FILE *f)
 #define OPTION_ROBUST 41
 #define OPTION_CHART_PRUNING 42
 #define OPTION_INPUT_FILE 43
+#define OPTION_TAKE 44
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -206,6 +207,7 @@ char* parse_options(int argc, char* argv[])
     {"sm", optional_argument, 0, OPTION_SM},
     {"cp", required_argument, 0, OPTION_CHART_PRUNING},
     {"inputfile", required_argument, 0, OPTION_INPUT_FILE},
+    {"take", no_argument, 0, OPTION_TAKE},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -441,6 +443,9 @@ char* parse_options(int argc, char* argv[])
           break;
       case OPTION_INPUT_FILE:
           set_opt("opt_infile", std::string(optarg));
+          break;
+      case OPTION_TAKE:
+          set_opt("opt_take", true);
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:

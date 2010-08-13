@@ -666,7 +666,7 @@ namespace fsc {
     if (n == 0) {
       throw tError("Missing required XML attribute \"name\".");
     }
-    if ((o != 0) && (XMLString::compareIString(o, list_str) == 0)) {
+    if ((o != 0) && (XMLString::compareIString(o, list_str) != 0)) {
       throw tError("Wrong value for XML attribute \"org\".");
     }
     _attr = lookup_attr(XMLCh2UTF8(n));
