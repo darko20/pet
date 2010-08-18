@@ -721,7 +721,8 @@ static void init_main_options() {
     "read text input from this file",
     string());
 
-  managed_opt("opt_take", "use take processing mode", false);
+  managed_opt("opt_take", "use take processing mode: mrs|trees|both",
+              string("both"));
 
   managed_opt("opt_jxchg_dir",
               "write parse charts in jxchg format to the given directory",
@@ -883,7 +884,7 @@ int main(int argc, char* argv[]) {
        usage(stderr);
        exit(1);
      }
-     if (get_opt<bool>("opt_take"))
+     if (! get_opt_string("opt_take").empty())
        take_process(grammar_file_name);
      else
        process(grammar_file_name);
