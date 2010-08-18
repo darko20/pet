@@ -721,8 +721,7 @@ static void init_main_options() {
     "read text input from this file",
     string());
 
-  managed_opt("opt_take", "use take processing mode: mrs|trees|both",
-              string("both"));
+  managed_opt("opt_take", "use take processing mode: mrs|trees|both", string());
 
   managed_opt("opt_jxchg_dir",
               "write parse charts in jxchg format to the given directory",
