@@ -207,7 +207,7 @@ char* parse_options(int argc, char* argv[])
     {"sm", optional_argument, 0, OPTION_SM},
     {"cp", required_argument, 0, OPTION_CHART_PRUNING},
     {"inputfile", required_argument, 0, OPTION_INPUT_FILE},
-    {"take", no_argument, 0, OPTION_TAKE},
+    {"take", optional_argument, 0, OPTION_TAKE},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -445,7 +445,8 @@ char* parse_options(int argc, char* argv[])
           set_opt("opt_infile", std::string(optarg));
           break;
       case OPTION_TAKE:
-          set_opt("opt_take", true);
+          set_opt("opt_take",
+                  (optarg != NULL) ? std::string(optarg) : std::string("b"));
           break;
 #ifdef YY
       case OPTION_ONE_MEANING:
