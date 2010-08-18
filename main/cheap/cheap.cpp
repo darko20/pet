@@ -792,6 +792,8 @@ void take_process(const char *grammar_file_name) {
   // initialization
   load_grammar(grammar_file_name);
 
+  char mode = get_opt_string("opt_take").at(0);
+
   // batch_process input
   string input;
 
@@ -817,35 +819,41 @@ void take_process(const char *grammar_file_name) {
               TotalParseTime.elapsed_ts() / 10.,
               ((error_no > 0) ? get_error(session_id, 0).c_str() : ""));
 
-      ofstream mrs_out(massage_infilename(input, "mrs").c_str());
-      ofstream tree_out(massage_infilename(input, "tree").c_str());
-      mrs_out << "<results tcpu=\"" << stats.tcpu / 1000.0 << "\">" << endl;
-      tree_out << "<results tcpu=\"" << stats.tcpu / 1000.0 << "\">" << endl;
-      for (int i = 1; i < result_no; ++i) {
-        tItem *res = get_result_item(session_id, i);
-
-        mrs_out << "<result nr=\"" << i << "\" score=\"" << res->score()
-                << "\">" << endl;
-        print_mrs_as('n', res->get_fs().dag(), mrs_out);
-        mrs_out << "</result>" << endl;
-
-        tree_out << "<result nr=\"" << i << "\" score=\"" << res->score()
-                 << "\">" << endl;
-        xlpr.print_to(tree_out, res);
-        tree_out << "</result>" << endl;
+      if (mode == 'm' || mode == 'b') {
+        ofstream mrs_out(massage_infilename(input, "mrs").c_str());
+        mrs_out << "<results tcpu=\"" << stats.tcpu / 1000.0 << "\">" << endl;
+        for (int i = 1; i < result_no; ++i) {
+          tItem *res = get_result_item(session_id, i);
+          mrs_out << "<result nr=\"" << i << "\" score=\"" << res->score()
+                  << "\">" << endl;
+          print_mrs_as('n', res->get_fs().dag(), mrs_out);
+          mrs_out << "</result>" << endl;
+        }
+        for (int i = 1; i < error_no; ++i) {
+          string err = xml_escape(get_error(session_id, i));
+          mrs_out << "<error>" << err << "</error>" << endl;
+        }
+        mrs_out << "</results>" << endl;
+        mrs_out.close();
       }
 
-      for (int i = 1; i < error_no; ++i) {
-        string err = "<error>" + xml_escape(get_error(session_id, i))
-          + "</error>" ;
-        mrs_out << err << endl;
-        tree_out << err << endl;
+      if (mode == 't' || mode == 'b') {
+        ofstream tree_out(massage_infilename(input, "tree").c_str());
+        tree_out << "<results tcpu=\"" << stats.tcpu / 1000.0 << "\">" << endl;
+        for (int i = 1; i < result_no; ++i) {
+          tItem *res = get_result_item(session_id, i);
+          tree_out << "<result nr=\"" << i << "\" score=\"" << res->score()
+                   << "\">" << endl;
+          xlpr.print_to(tree_out, res);
+          tree_out << "</result>" << endl;
+        }
+        for (int i = 1; i < error_no; ++i) {
+          string err = xml_escape(get_error(session_id, i));
+          tree_out << "<error>" << err << "</error>" << endl;
+        }
+        tree_out << "</results>" << endl;
+        tree_out.close();
       }
-
-      mrs_out << "</results>" << endl;
-      tree_out << "</results>" << endl;
-      mrs_out.close();
-      tree_out.close();
     }
     else {
       fprintf(fstatus,
