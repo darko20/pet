@@ -61,7 +61,7 @@ static int init() {
               std::string(""));
   managed_opt("opt_chart_pruning",
               "enables the chart pruning agenda",
-              400);
+              0);
   managed_opt("opt_chart_pruning_strategy",
               "determines the chart pruning strategy: 0=all tasks; 1=all successful tasks; 2=all passive items (default)",
               2);
