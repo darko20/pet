@@ -437,8 +437,6 @@ char* parse_options(int argc, char* argv[])
               set_opt("opt_chart_pruning", (int)(strtoint(optarg, "")));
               LOG (logChartPruning, INFO, "Chart pruning: no strategy given, hence strategy=passive; cell size=" << get_opt_int("opt_chart_pruning"));
             }
-          } else {
-            set_opt("opt_chart_pruning", (int) 400);
           }
           break;
       case OPTION_INPUT_FILE:
