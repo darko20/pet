@@ -196,7 +196,8 @@ void dump_jxchg_string(string surface, chart *current) {
     } else {
       out << "0 " << current->rightmost() << endl;
       tJxchgPrinter chp(out);
-      current->print(out, &chp, passive_no_inflrs); // print only passive edges
+      // print only passive unblocked edges
+      current->print(out, &chp, passive_unblocked_non_input);
     }
   }
 }
