@@ -45,16 +45,12 @@ cheap_LDADD = libcheap.la
 #                   $(top_srcdir)/common/dumper.cpp \
 #                   $(top_srcdir)/common/dumper.h
 
-# Convenience library (makes building several executables easier and is
-# a tiny step towards a general pet library):
-noinst_LTLIBRARIES = libcheap.la
-
 # The include-file dependencies are automatically computed by Automake
 # (`Automatic dependency tracking'). Thus, the headers do not need to be listed
 # for compilation, but they need to be found for making a distribution.
 # Note that the headers in $(top_srcdir)/common are always included
 # (cf. $(top_srcdir)/common/Makefile.am) and are therefore not listed here.
-libcheap_la_SOURCES = \
+cheaplibsources = \
 	agenda.h api.h \
 	chart.cpp chart.h \
 	chart-mapping.cpp chart-mapping.h \
@@ -107,21 +103,21 @@ libcheap_la_SOURCES = \
 
 if TOMABECHI_UNIFIER
 DEFS += -DDAG_TOMABECHI
-libcheap_la_SOURCES += dag-tomabechi.cpp dag-tomabechi.h failure.cpp failure.h \
+cheaplibsources += dag-tomabechi.cpp dag-tomabechi.h failure.cpp failure.h \
                       qc.h qc.cpp
 endif
 if SIMPLE_UNIFIER
 DEFS += -DDAG_SIMPLE -DWROBLEWSKI2
-libcheap_la_SOURCES += $(top_srcdir)/common/dag-simple.cpp
+cheaplibsources += $(top_srcdir)/common/dag-simple.cpp
 endif
 
 if ECL
-libcheap_la_SOURCES += petecl.c petecl.h
+cheaplibsources += petecl.c petecl.h
 endif
 if ECLPREPROC
 if ICU
-libcheap_la_SOURCES += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
-cheap_LDADD += ../fspp/libfspp.la -lpreprocessor #fix_me
+cheaplibsources += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
+cheap_LDADD += ../fspp/libfspp.a -lpreprocessor #fix_me
 LDFLAGS += -L../fspp
 CPPFLAGS += -I../fspp
 else
@@ -130,7 +126,7 @@ else
 endif
 endif
 if ECLMRS
-libcheap_la_SOURCES += cppbridge.cpp cppbridge.h petmrs.h petmrs.c
+cheaplibsources += cppbridge.cpp cppbridge.h petmrs.h petmrs.c
 cheap_LDADD += libmrs.a
 endif
 
@@ -138,8 +134,8 @@ endif
 # Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 MOSTLYCLEANFILES = libmrs.a
 
-../fspp/libfspp.la:
-	make -C ../fspp libfspp.la
+../fspp/libfspp.a:
+	make -C ../fspp libfspp.a
 
 libmrs.a:
 	( \
@@ -152,7 +148,7 @@ libmrs.a:
 	) | $(ECL)
 
 if XML
-libcheap_la_SOURCES += pic-handler.cpp pic-handler.h pic-states.h \
+cheaplibsources += pic-handler.cpp pic-handler.h pic-states.h \
                       pic-tokenizer.h pic-tokenizer.cpp \
                       xmlparser.cpp xmlparser.h \
                       smaf-tokenizer.h smaf-tokenizer.cpp \
@@ -160,36 +156,46 @@ libcheap_la_SOURCES += pic-handler.cpp pic-handler.h pic-states.h \
 endif
 
 if ICU
-libcheap_la_SOURCES += unicode.h unicode.cpp
+cheaplibsources += unicode.h unicode.cpp
 endif
 
 if XMLRPC_C
-libcheap_la_SOURCES += server-xmlrpc.cpp server-xmlrpc.h
+cheaplibsources += server-xmlrpc.cpp server-xmlrpc.h
 endif
 
 # if LEXDB
-# libcheap_la_SOURCES += psqllex.h psqllex.cpp
+# cheaplibsources += psqllex.h psqllex.cpp
 # endif
 
 if YY
-libcheap_la_SOURCES += yy.h yy.cpp
+cheaplibsources += yy.h yy.cpp
 endif
 
 #if EXTDICT
-#libcheap_la_SOURCES += extdict.cpp extdict.h
+#cheaplibsources += extdict.cpp extdict.h
 #endif
 
 #if RCU
 # QC_PATH_COMP could be done robustly, ie with weights.  The aim would be
 # to find the paths that most quickly find out the biggest losses.
 #DEFS += -DROBUST
-#libcheap_la_SOURCES += rcu-types.h rcu-types.cpp rcu-dag-node.h
+#cheaplibsources += rcu-types.h rcu-types.cpp rcu-dag-node.h
 #nodist_libcheap_la_SOURCES += dag-chunk-alloc.h dag-chunk-alloc.cpp \
 #                             type-chunk-alloc.cpp type-chunk-alloc.h \
 #                             type-alloc.h type-alloc.cpp
 # Not done for fair comparison
 #DEFS += -UQC_PATH_COMP
 #endif
+
+#if HAVE_LIBTOOL
+# Convenience library (makes building several executables easier and is
+# a tiny step towards a general pet library):
+noinst_LTLIBRARIES = libcheap.la
+libcheap_la_SOURCES=$(cheaplibsources)
+# else
+# noinst_LIBRARIES = libcheap.a
+# libcheap_a_SOURCES=$(cheaplibsources)
+# endif
 
 # Distribute the following files in any case:
 # (N.B.: all conditional SOURCES are also distributed in any case)

@@ -154,7 +154,13 @@ tFSCHandler::endElement(const XMLCh* const xml_name)
 }
 
 void
-tFSCHandler::characters(const XMLCh *const xml_chars, const XMLSize_t len)
+tFSCHandler::characters(const XMLCh *const xml_chars, const
+#if (XERCES_VERSION_MAJOR < 3)
+                        unsigned int
+#else
+                        XMLSize_t
+#endif
+                        len)
 {
   try {
     std::string chars = XMLCh2UTF8(xml_chars);

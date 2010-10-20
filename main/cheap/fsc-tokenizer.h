@@ -179,7 +179,13 @@ public:
   endElement(const XMLCh* const xml_name);
   /** Receive notification of character data. Can be called multiple times. */
   virtual void
-  characters(const XMLCh *const xml_chars, const XMLSize_t len);
+  characters(const XMLCh *const xml_chars, const
+#if (XERCES_VERSION_MAJOR < 3)
+             unsigned int
+#else
+             XMLSize_t
+#endif
+             len);
   /**
    * Sets the document locator which allows us to associate SAX events with
    * the document position where the event occurred.
