@@ -40,8 +40,7 @@ postags::postags(const vector<string> &tags, const vector<double> &probs)
   assert(tags.size() == probs.size());
   for(vector<string>::const_iterator it = tags.begin(); it != tags.end();
       ++it) {
-    _tags.insert(*it);
-    _probs[*it] = probs[it - tags.begin()];
+    add(*it, probs[it - tags.begin()]);
   }
 }
 
@@ -64,12 +63,18 @@ postags::postags(const item_list &les) {
 }
 
 void postags::add(string s) {
-  _tags.insert(s);
+  if(!_tags.count(s)) {
+    _tags.insert(s);
+    _ranks.push_back(s);
+  } // if
 }
 
 void postags::add(string s, double prob) {
-  _tags.insert(s);
-  _probs[s] = prob;
+  if(!_tags.count(s)) {
+    _tags.insert(s);
+    _probs[s] = prob;
+    _ranks.push_back(s);
+  } // if
 }
 
 void postags::add(const postags &s) {
@@ -92,6 +97,8 @@ bool postags::contains(const string &s) const {
 
 void postags::remove(string s) {
   _tags.erase(s);
+  _probs.erase(s);
+  _ranks.remove(s);
 }
 
 void postags::remove(const postags &s) {
@@ -159,10 +166,12 @@ void
 postags::tagsnprobs(std::vector<std::string> &tagslist,
                     std::vector<double> &probslist) const
 {
-  std::map<std::string, double, ltstr>::const_reverse_iterator it;
-  for (it = _probs.rbegin(); it != _probs.rend(); ++it) {
-    tagslist.push_back((*it).first.c_str());
-    probslist.push_back((*it).second);
+  for(std::list<std::string>::const_iterator tag = _ranks.begin(); 
+      tag != _ranks.end();
+      ++tag) {
+    std::map<std::string, double>::const_iterator p = _probs.find(*tag);
+    tagslist.push_back(*tag);
+    probslist.push_back(p->second);
   }
   assert(tagslist.size() == probslist.size());
 }
