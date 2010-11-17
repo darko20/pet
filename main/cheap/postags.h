@@ -115,6 +115,16 @@ class postags
   /** String set with case insensitive comparison */
   IStringSet _tags;
   IStringMap _probs;
+  //
+  // _fix_me_
+  // i suspect we could massively trim down functionality in this class, and
+  // specifically i am not sure why we had the set metaphor in the first place;
+  // for the PoS tags (and probabilities) that come as annotations on input
+  // feature structures, we assume they are ordered by decreasing probability;
+  // preserving this order is important for chart mapping (in the ERG), hence
+  // i added an ordered list of tags, in addition to the set representations.
+  //                                                           (17-nov-10; oe)
+  std::list<std::string> _ranks;
 };
 
 inline std::ostream & operator<<(std::ostream &out, const postags &tags) {
