@@ -33,7 +33,7 @@ bindist: all
 	mkdir -p $(distdir)/lib
 	cp cheap/cheap $(distdir)/bin
 	cp flop/flop $(distdir)/bin
-	ldd cheap/cheap flop/flop | perl -ne ' print "cp $$2 $(distdir)/lib\n" if /(.+)\s+=>\s+(.+) \([0-9a-fx]+\)/ ' | sort -u | bash
+	ldd cheap/cheap flop/flop | perl -ne ' print "cp $$2 $(distdir)/lib\n" if /(.+)\s+=>\s+(.+) \([0-9a-fx]+\)/ && !($$2 =~ /^\/lib/)' | sort -u | bash
 	tar -czf $(distdir)_bin.tar.gz $(distdir)
 	$(am__remove_distdir)
 
