@@ -117,7 +117,7 @@ endif
 if ECLPREPROC
 if ICU
 cheaplibsources += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
-cheap_LDADD += ../fspp/libfspp.a -lpreprocessor #fix_me
+cheap_LDADD += ../fspp/libfspp.la -lpreprocessor #fix_me
 LDFLAGS += -L../fspp
 CPPFLAGS += -I../fspp
 else
@@ -134,8 +134,8 @@ endif
 # Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 MOSTLYCLEANFILES = libmrs.a
 
-../fspp/libfspp.a:
-	make -C ../fspp libfspp.a
+../fspp/libfspp.la:
+	make -C ../fspp libfspp.la
 
 libmrs.a:
 	( \
