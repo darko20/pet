@@ -28,7 +28,7 @@ libfspp_la_SOURCES = fspp.h fspp.cpp petecl.c petecl.h
 libfspp_la_LDFLAGS = @CHEAPLDFLAGS@ -lecl
 
 # Add ecl libraries to be deleted on "make clean" ...
-MOSTLYCLEANFILES = libfspp.a libpreprocessor.a
+MOSTLYCLEANFILES = libfspp.la libpreprocessor.a
 
 libpreprocessor.a:
 	( \
