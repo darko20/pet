@@ -12,7 +12,7 @@ using namespace std;
 extern void print_result_as(string format, tItem *reading, ostream &out);
 
 int SessionManager::Session::next_id = 0;
-SessionManager::SessionManager *SessionManager::_instance = NULL;
+SessionManager *SessionManager::_instance = NULL;
 
 typedef list<SessionManager::Session *>::iterator session_it;
 
