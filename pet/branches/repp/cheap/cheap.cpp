@@ -31,6 +31,9 @@
 #include "lexparser.h"
 #include "morph.h"
 #include "yy-tokenizer.h"
+#ifdef HAVE_BOOST_REGEX_ICU_HPP
+#include "tRepp.h"
+#endif
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
 #include "pic-tokenizer.h"
@@ -551,6 +554,20 @@ bool load_grammar(string initial_name) {
       }
       break;
 
+	 case TOKENIZER_REPP:
+#ifdef HAVE_BOOST_REGEX_ICU_HPP
+	 	{
+			string reppfilename(find_file(get_opt_string("opt_repp"), SET_EXT,
+				grammar_file_name));
+			tok = new tReppTokenizer(reppfilename);	
+		}
+	 	break;
+#else
+      LOG(logAppl, FATAL, 
+			"No Unicode-aware regexp support compiled into this cheap.");
+      return true;
+#endif
+
     case TOKENIZER_PIC:
     case TOKENIZER_PIC_COUNTS:
 #ifdef HAVE_XML
@@ -748,6 +765,8 @@ static void init_main_options() {
   managed_opt("opt_yy",
      "old shit that should be thrown out or properly reengineered and renamed.",
      false);
+	managed_opt("opt_repp",
+		"Tokenize using REPP, with repp settings in the file argument", string());
 }
 
 /** general setup of globals, etc. */

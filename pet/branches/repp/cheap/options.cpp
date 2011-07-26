@@ -77,6 +77,7 @@ void usage(FILE *f)
              "                         valid semantic formula\n");
   fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
 #endif
+  fprintf(f, "  `-repp=file' --- use REPP to tokenize, with settings in file\n");
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
   fprintf(f, "  `-pg[=what]' --- print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)\n");
@@ -146,6 +147,7 @@ void usage(FILE *f)
 #define OPTION_CHART_PRUNING 42
 #define OPTION_INPUT_FILE 43
 #define OPTION_TAKE 44
+#define OPTION_REPP 50
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -182,6 +184,7 @@ char* parse_options(int argc, char* argv[])
     {"no-chart-man", no_argument, 0, OPTION_NO_CHART_MAN},
     {"default-les", optional_argument, 0, OPTION_DEFAULT_LES},
     {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
+    {"repp", required_argument, 0, OPTION_REPP},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
     {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
@@ -446,6 +449,13 @@ char* parse_options(int argc, char* argv[])
           set_opt("opt_take",
                   (optarg != NULL) ? std::string(optarg) : std::string("b"));
           break;
+		case OPTION_REPP:
+			{
+			  if(optarg != NULL)
+				 set_opt_from_string("opt_repp", optarg);
+				set_opt_from_string("opt_tok", "repp");
+			}
+			break;
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
@@ -458,6 +468,7 @@ char* parse_options(int argc, char* argv[])
           set_opt_from_string("opt_tok", "yy");
           break;
 #endif
+	
         }
     }
 

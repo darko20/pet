@@ -29,7 +29,8 @@ extern FILE *fstatus;
 //@{
 /** choose tokenizer */
 std::string tokenizer_names[] = {
-  "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "fsr", "smaf", "INVALID"
+  "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "fsr", "smaf",
+  "repp", "INVALID"
 } ;
 
 static bool init(std::string tok_names[]);
