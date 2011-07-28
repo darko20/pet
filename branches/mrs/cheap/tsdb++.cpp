@@ -637,9 +637,9 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                   if ((strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) ||
                       (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0)) {
                     fs f = (*iter)->get_fs();
-                    mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+                    mrs::tMRS* mrs = new mrs::tMRS(f.dag());
                     if (mrs->valid()) {
-                      mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+                      mrs::tMRS* mapped_mrs = vpm->map_mrs(mrs, true);
                       ostringstream out;
                       if (mapped_mrs->valid()) {
                         if (strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) {

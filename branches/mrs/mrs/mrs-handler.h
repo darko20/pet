@@ -62,7 +62,7 @@ public:
   surface_string(const XMLCh *chars, const unsigned int len) const;
 
 
-  std::list<mrs::tPSOA*>  &mrss() {return _mrss;}
+  std::list<mrs::tMRS*>  &mrss() {return _mrss;}
   
 private:
   /** Copy construction is disallowed */
@@ -106,7 +106,7 @@ private:
     }
   };
 
-  std::list<mrs::tPSOA*> _mrss;
+  std::list<mrs::tMRS*> _mrss;
 };
 
 

@@ -99,9 +99,9 @@ read_vpm(const string &filename, string id) {
 
 }
 
-tPSOA* tVPM::
-map_mrs(tPSOA* mrs_in, bool forwardp) {
-  tPSOA* mrs_new = new tPSOA();
+tMRS* tVPM::
+map_mrs(tMRS* mrs_in, bool forwardp) {
+  tMRS* mrs_new = new tMRS();
   mrs_new->top_h = map_variable(mrs_in->top_h, mrs_new, forwardp);
   mrs_new->index = map_variable(mrs_in->index, mrs_new, forwardp);
   for (list<tBaseRel*>::iterator iter = mrs_in->liszt.begin();
@@ -140,7 +140,7 @@ map_mrs(tPSOA* mrs_in, bool forwardp) {
 }
 
 tVar* tVPM::
-map_variable(tVar* var_in, tPSOA* mrs, bool forwardp) {
+map_variable(tVar* var_in, tMRS* mrs, bool forwardp) {
 
   if (_vv_map.find(var_in) != _vv_map.end()) // already mapped
     return _vv_map[var_in];

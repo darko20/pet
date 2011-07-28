@@ -137,7 +137,7 @@ request_constant(std::string value) {
   return constant;
 }
 
-tPSOA::tPSOA(struct dag_node* dag) {
+tMRS::tMRS(struct dag_node* dag) {
   dag = dag_expand(dag); // expand the fs to be well-formed
   _vid_generator = 1;
   struct dag_node* init_sem_dag = FAIL;

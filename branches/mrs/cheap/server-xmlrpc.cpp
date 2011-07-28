@@ -171,9 +171,9 @@ struct analyze_method : public xmlrpc_c::method
             osstream.clear(); // reset state
             osstream.str(""); // reset underlying buffer
             fs f = item->get_fs();
-            mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+            mrs::tMRS* mrs = new mrs::tMRS(f.dag());
             if (mrs->valid()) {
-              mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+              mrs::tMRS* mapped_mrs = vpm->map_mrs(mrs, true);
               if (mapped_mrs->valid()) {
                 if (opt_mrs == "new") {
                   MrxMRSPrinter ptr(osstream);
