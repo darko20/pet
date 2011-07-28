@@ -13,9 +13,9 @@ extern tVPM *vpm;
 
 void print_mrs_as(char format, dag_node *dag, std::ostream &out) {
   // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
-  tPSOA* mrs = new tPSOA(dag);
+  tMRS* mrs = new tMRS(dag);
   if (mrs->valid()) {
-    tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+    tMRS* mapped_mrs = vpm->map_mrs(mrs, true);
     if (mapped_mrs->valid()) {
       out << std::endl;
       switch (format) {
@@ -33,7 +33,7 @@ void print_mrs_as(char format, dag_node *dag, std::ostream &out) {
 
 
 void MrxMRSPrinter::
-print(tPSOA* mrs) {
+print(tMRS* mrs) {
   *_out << "<mrs>\n";
   *_out << boost::format("<label vid='%d'/>") % mrs->top_h->id;
   *_out << boost::format("<var vid='%d'/>\n") % mrs->index->id;
@@ -153,7 +153,7 @@ print(tHCons* hcons) {
 }
 
 void SimpleMRSPrinter::
-print(tPSOA* mrs) {
+print(tMRS* mrs) {
   *_out << boost::format(" [ LTOP: %s%d") % mrs->top_h->type % mrs->top_h->id;
   *_out << std::endl << "   INDEX: ";
   print(mrs->index);

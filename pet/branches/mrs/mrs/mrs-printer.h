@@ -20,7 +20,7 @@ namespace mrs {
     virtual ~MRSPrinter() {
     }
 
-    virtual void print(tPSOA* mrs) = 0;
+    virtual void print(tMRS* mrs) = 0;
 
   protected:
     std::ostream *_out;
@@ -30,7 +30,7 @@ namespace mrs {
   public:
     MrxMRSPrinter(std::ostream &out) : MRSPrinter(out) { }
 
-    virtual void print(tPSOA* mrs);
+    virtual void print(tMRS* mrs);
     void print(tRel* rel);
     void print(tValue* val);
     void print_full(tValue* val);
@@ -44,7 +44,7 @@ namespace mrs {
   public:
     SimpleMRSPrinter(std::ostream &out) : MRSPrinter(out) { }
 
-    virtual void print(tPSOA* mrs);
+    virtual void print(tMRS* mrs);
     void print(tRel* rel);
     void print(tValue* val);
     void print_full(tValue* val);
