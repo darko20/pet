@@ -75,10 +75,6 @@ public:
 
 };
 
-class tGrammarVar : public tBaseVar {
- public:
-};
-
 class tHCons {
 public:
 
@@ -101,21 +97,6 @@ public:
 
   class tBaseMRS* _mrs;
 };
-
-class tHook {
-public:
-  tVar* index;
-  tVar* ltop;
-  tVar* xarg;
-  //int anchor;
-};
-
-class tSlot {
-public:
-  tHook* hook;
-  int name;
-};
-
 
 class tBaseRel {
 public:
@@ -220,36 +201,16 @@ public:
   int _vid_generator;
 };
 
-class tPSOA : public tBaseMRS {
+class tMRS : public tBaseMRS {
 public:
-  tPSOA() {
+  tMRS() {
     _vid_generator = 1;
   }
 
-  tPSOA(struct dag_node* dag);
+  tMRS(struct dag_node* dag);
 
   tVar* index;
 };
-
-class tSemEnt : public tBaseMRS {
-public:
-  tHook* hook;
-  std::vector<tSlot*> slots;
-  //equalities; // don't know what this is yet
-};
-
-
-class tIndexLbl {
-  int index;
-  int lbl;
-};
-
-class tDisjCons {
-public:
-  tIndexLbl index_lbl;
-  std::list<tIndexLbl> target;
-};
-
 
 void create_index_property_list(struct dag_node* dag, std::string path, std::map<std::string,std::string>& extra);
 

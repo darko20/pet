@@ -30,8 +30,8 @@ public:
 
   bool read_vpm(const std::string &filename, std::string id="default");
   
-  tPSOA* map_mrs(tPSOA* mrs_in, bool forwardp=true);
-  tVar* map_variable(tVar* var_in, tPSOA* mrs, bool forwardp=true);
+  tMRS* map_mrs(tMRS* mrs_in, bool forwardp=true);
+  tVar* map_variable(tVar* var_in, tMRS* mrs, bool forwardp=true);
 
 private:
   std::map<tVar*,tVar*> _vv_map;

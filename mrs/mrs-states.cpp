@@ -313,7 +313,7 @@ leaveState(class TOP_state *state) {
  */
 void mrs_state::
 enterState(class mrs_list_state* state, AttributeList& attr) {
-  _mrs = new tPSOA();
+  _mrs = new tMRS();
 }
 
 /**
