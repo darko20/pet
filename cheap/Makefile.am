@@ -9,7 +9,7 @@ endif
 include $(top_srcdir)/common/Makefile.common
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
-CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp @CHEAPCPPFLAGS@
+CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/mrs @CHEAPCPPFLAGS@
 CXXFLAGS += @CHEAPCXXFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
@@ -77,11 +77,14 @@ cheaplibsources = \
 	sm.cpp sm.h \
 	task.cpp task.h \
 	tsdb++.h tsdb++.cpp \
-	mrs.h mrs.cpp \
-	mrs-printer.h mrs-printer.cpp \
-	vpm.h vpm.cpp \
 	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
+	$(top_srcdir)/mrs/mrs.cpp \
+	$(top_srcdir)/mrs/mrs.h \
+	$(top_srcdir)/mrs/mrs-printer.cpp \
+	$(top_srcdir)/mrs/mrs-printer.h \
+	$(top_srcdir)/mrs/vpm.cpp \
+	$(top_srcdir)/mrs/vpm.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
 	$(top_srcdir)/common/configs.cpp \

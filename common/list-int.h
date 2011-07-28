@@ -27,6 +27,7 @@
 
 #include <list>
 #include <functional>
+#include <stdlib.h>
 
 /** Minimum overhead single linked lists of integers */
 struct list_int {
