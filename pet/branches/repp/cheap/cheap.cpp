@@ -556,12 +556,26 @@ bool load_grammar(string initial_name) {
 
 	 case TOKENIZER_REPP:
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
-	 	{
-			string reppfilename(find_file(get_opt_string("opt_repp"), SET_EXT,
-				grammar_file_name));
-			tok = new tReppTokenizer(reppfilename);	
-		}
-	 	break;
+    {
+      string path;
+      //have conf file, use to overlay options (not implemented yet) TODO
+      string repp_opt = get_opt_string("opt_repp");
+      if (!repp_opt.empty()) {  
+        string reppfilename(find_file(repp_opt, SET_EXT, grammar_file_name));
+        if (reppfilename.empty()) {
+          cerr << "Couldn't find REPP conf file \"" 
+            << dir_name(grammar_file_name) << repp_opt << "{" << SET_EXT
+            << "}\"." << endl;
+          exit(1);
+        }
+        path = dir_name(reppfilename);
+      }
+      else
+        path = dir_name(grammar_file_name)+"rpp/";
+      //path should be a setting, but for now, set here TODO
+      tok = new tReppTokenizer(path);	
+    }
+    break;
 #else
       LOG(logAppl, FATAL, 
 			"No Unicode-aware regexp support compiled into this cheap.");

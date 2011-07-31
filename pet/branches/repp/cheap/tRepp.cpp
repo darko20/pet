@@ -32,21 +32,24 @@ using namespace std;
 tReppTokenizer::tReppTokenizer(const string conf, bool verbose)
 	:_verbose(verbose)
 {
-	_path = dir_name(conf);
-	ifstream reppfile(conf.c_str());
-	string reppset, line;
-	settings *repp_settings;
-	if (reppfile.is_open()) { // read conf file
-		getline(reppfile, line);
-		while (!reppfile.eof()) {
-			reppset += line;
-			getline(reppfile, line);
-		}
-		repp_settings = new settings(reppset); // parse conf file
-	} else {
-		cerr << "repp conf file \"" << conf << "\" couldn't be opened." << endl;
-		exit(1);
-	}
+//	_path = dir_name(conf);
+// path should be a setting, but for now, set like this TODO
+   _path = conf;
+	settings *repp_settings = cheap_settings;
+   //assume settings read in to cheap_settings, possibly with overlay
+//	ifstream reppfile(conf.c_str());
+//	string reppset, line;
+//	if (reppfile.is_open()) { // read conf file
+//		getline(reppfile, line);
+//		while (!reppfile.eof()) {
+//			reppset += line;
+//			getline(reppfile, line);
+//		}
+//		repp_settings = new settings(reppset); // parse conf file
+//	} else {
+//		cerr << "repp conf file \"" << conf << "\" couldn't be opened." << endl;
+//		exit(1);
+//	}
 
 	// find modules from setting repp-modules and read the files
 	struct setting *foo;
