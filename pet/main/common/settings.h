@@ -28,6 +28,7 @@
 #include "types.h"
 #include <set>
 #include <map>
+#include <list>
 
 #define SET_EXT ".set"
 #define SET_TABLE_SIZE 1024
@@ -72,6 +73,12 @@ class settings
 
   struct lex_location *lloc() { return _lloc; }
 
+  //
+  // to (temporarily) install or uninstall 'extensions' (acting as overlays)
+  //
+  void install(settings *);
+  bool uninstall(settings *);
+
  private:
   int _n;
   setting **_set;
@@ -81,6 +88,15 @@ class settings
   /** cache for settings converted to lists of integers (e.g. status values) */
   std::map<std::string, struct list_int *> _li_cache;
 
+  //
+  // settings can be dynamically 'extended' (see tGrammarUpdate for details),
+  // where additional settings are read from a file (or [incr tsdb()]) and go
+  // into effect temporarily, returning to the original configuration once the
+  // update goes out of scope (typically, as controlled by [incr tsdb()]).
+  // note that memory ownership for these overlays is /not/ delegatd to the 
+  // .settings. class, i.e. needs to be addressed elsewhere.
+  //
+  std::list<settings *> _updates;
   void parse();
   void parse_one();
 };

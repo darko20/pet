@@ -224,7 +224,8 @@ char* parse_options(int argc, char* argv[])
           if(optarg != NULL)
           {
               opt_tsdb = strtoint(optarg, "as argument to -tsdb");
-              if(opt_tsdb < 0 || opt_tsdb > 2)
+              int foo = opt_tsdb & 31;
+              if(foo < 1 || foo > 2)
               {
                 LOG(logAppl, FATAL,
                     "parse_options(): invalid tsdb++ protocol version");

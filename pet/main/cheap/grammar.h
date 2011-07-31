@@ -483,7 +483,8 @@ public:
 private:
   tGrammar *_grammar;
   list_int *_original_roots;
-  
+  settings *_update;
+
 }; // class tGrammarUpdate
 
 #endif

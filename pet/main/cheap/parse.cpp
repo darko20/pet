@@ -635,9 +635,26 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 
   LOG(logParse, DEBUG, *Chart);
 
-  Chart->readings() = collect_readings(FSAS, errors,
-                                       pedgelimit, memlimit, opt_nsolutions,
-                                       Chart->trees());
+  if(get_opt_int("opt_tsdb") & 32) {
+    //
+    // in lexical-only mode, the parser has halted after lexical parsing, and
+    // what remains to be done is a mimicry of finding actual results; in this
+    // mode, all edges that could have fed into syntactic rules count as valid
+    // results, i.e. in effect we output a lexical lattice.     (2-jul-11; oe)
+    //
+    for(chart_iter item(Chart); item.valid(); ++item) {
+      if(passive_unblocked_non_input(item.current())
+         && item.current()->inflrs_complete_p())
+        Chart->readings().push_back(item.current());
+    } // for
+    Chart->trees() = Chart->readings();
+    stats.trees = Chart->trees().size();
+  }
+  else
+    Chart->readings() 
+      = collect_readings(FSAS, errors, pedgelimit, memlimit, 
+                         opt_nsolutions, Chart->trees());
+
   stats.readings = Chart->readings().size();
 
 }
@@ -698,7 +715,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
   // during lexical processing, the appropriate tasks for the syntactic stage
   // are already created
-  parse_loop(FSAS, errors, timeout);
+  if(!(get_opt_int("opt_tsdb") & 32)) parse_loop(FSAS, errors, timeout);
 
   ParseTime.stop();
   TotalParseTime.stop();
