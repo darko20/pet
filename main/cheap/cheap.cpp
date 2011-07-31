@@ -220,9 +220,8 @@ void print_derivation_as(char format, tItem *item, ostream &out) {
   switch (format) {
   case 'd': { tCompactDerivationPrinter cdpr(out); cdpr.print(item); break; }
   case 't': {
-    int protocol_version = get_opt_int("opt_tsdb");
-    if (protocol_version == 0)
-      protocol_version = 1;
+    int protocol_version = get_opt_int("opt_tsdb") & 31;
+    if (protocol_version == 0) protocol_version = 1;
     tTSDBDerivationPrinter tdpr(out, protocol_version);
     tdpr.print(item);
     break;
@@ -696,9 +695,24 @@ static void init_main_options() {
    * parsing mode.
    */
   //@{
+  //
+  // _fix_me_
+  // as of mid-2011, we (re-)interpret this option as partially bit-coded: the
+  // lower five bits (up to a maximum value of 31) encode the protocal version
+  // used in communication with the [incr tsdb()] server (as it used to be),
+  // whereas higher bits are available to further customize cheap behavior in
+  // [incr tsdb()] mode.  in this scheme, bit six (32) activates lexical-only
+  // parsing.  while the general mechanism of bit-coded [incr tsdb()] options
+  // seems desirable, possibly we should consult with other PET developers to
+  // make lexical-only parsing a separate option.  however, this mode needs to
+  // be toggled at run-time, i.e. under [incr tsdb()] control.  hence, only a
+  // command-line option would be insufficient, though one could maybe build
+  // on the 'grammar update' mechanism, i.e. dynamic and temporary adjustments
+  // to a pre-defined sub-set of settings.                       (1-jul-11; oe)
+  //
   managed_opt("opt_tsdb",
     "enable [incr tsdb()] slave mode (protocol version = n)",
-    0);
+    1);
   managed_opt("opt_server",
     "go into server mode, bind to port `n' (default: 4711)",
     0);
