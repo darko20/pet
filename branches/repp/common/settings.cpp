@@ -31,7 +31,7 @@
 using std::string;
 
 settings::settings(string name, string base_dir, const char *message)
-  : _lloc(0), _li_cache() {
+  : _lloc(0), _li_cache(), _updates() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
@@ -51,7 +51,7 @@ settings::settings(string name, string base_dir, const char *message)
 
 
 settings::settings(const std::string &input)
-  : _lloc(0), _li_cache() {
+  : _lloc(0), _li_cache(), _updates() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
@@ -77,23 +77,42 @@ settings::~settings() {
       it != _li_cache.end(); ++it) {
     free_list(it->second);
   }
+
 }
 
 /** Do a linear search for \a name in the settings and return the first
  * matching setting.
  */
 setting *settings::lookup(const char *name) {
-  for(int i = 0; i < _n; ++i)
+
+  //
+  // first, in case there are settings updates (which should shadow any values
+  // in the top-level .settings. object), check these in order.  thus, multiple
+  // updates can shadow each other, in the order determined by install() calls.
+  //
+  setting *match;
+  for(std::list<settings *>::iterator update = _updates.begin();
+      update != _updates.end();
+      ++update) {
+    match = (*update)->lookup(name);
+    if(match != NULL) {
+      _lloc = match->loc;
+      return match;
+    } // if
+  } // for
+    
+  for(int i = 0; i < _n; ++i) {
     if(strcmp(_set[i]->name, name) == 0) {
       if(i != 0) {
         // put to front, so further lookup is faster
         setting *tmp;
         tmp = _set[i]; _set[i] = _set[0]; _set[0] = tmp;
-      }
+      } // if
 
       _lloc = _set[0]->loc;
       return _set[0];
-    }
+    } // if
+  } // for
 
   _lloc = 0;
   return 0;
@@ -324,3 +343,20 @@ void settings::parse() {
 
   consume(1);
 }
+
+
+void
+settings::install(settings *update) {
+
+  _updates.push_front(update);
+
+} // settings::uninstall()
+
+bool
+settings::uninstall(settings *update) {
+
+  unsigned int n = _updates.size();
+  _updates.remove(update);
+  return n != _updates.size();
+
+} // settings::uninstall()
