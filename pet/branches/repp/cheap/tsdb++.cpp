@@ -246,16 +246,23 @@ initialize_version()
 
 #ifdef TSDBAPI
 
+static tGrammarUpdate *run_grammar_update = NULL;
+
 int
 cheap_create_test_run(const char *data, int run_id, const char *comment,
                       int interactive, int protocol_version,
                       char const *custom)
 {
-    if(protocol_version > 0 && protocol_version <= 2)
-      set_opt("opt_tsdb", protocol_version);
+  int foo = protocol_version & 31;
+  if(foo >= 1 && foo <= 2) set_opt("opt_tsdb", protocol_version);
 
-    cheap_tsdb_summarize_run();
-    return 0;
+  if(custom != NULL) {
+    std::string foo(custom);
+    run_grammar_update = new tGrammarUpdate(Grammar, foo);
+  } // if
+
+  cheap_tsdb_summarize_run();
+  return 0;
 }
 
 void
@@ -368,6 +375,11 @@ cheap_complete_test_run(int run_id, const char *custom)
         compute_qc_paths(qc, get_opt_int("opt_packing"));
     }
 
+    if(run_grammar_update != NULL) {
+      delete run_grammar_update;
+      run_grammar_update = NULL;
+    } // if
+
     return 0;
 }
 
@@ -398,7 +410,7 @@ tsdb_result::capi_print()
     if(scored)
         capi_printf("(:score . %.4g) ", score);
 
-    if(get_opt_int("opt_tsdb") == 1)
+    if((get_opt_int("opt_tsdb") & 31) == 1)
     {
         capi_printf("(:derivation . \"%s\") ",
                     escape_string(derivation).c_str());
@@ -606,6 +618,7 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
 {
     int tsdb_mode;
     get_opt("opt_tsdb", tsdb_mode);
+    tsdb_mode &= 31;
     if(get_opt_bool("opt_derivation"))
     {
         int nres = 0;

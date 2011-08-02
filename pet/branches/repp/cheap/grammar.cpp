@@ -1041,12 +1041,13 @@ tGrammar::clear_dynamic_stems()
 
 
 tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
-  : _grammar(grammar), _original_roots(grammar->_root_insts)
+  : _grammar(grammar), _original_roots(grammar->_root_insts), _update(0)
 {
 
   if(!input.empty()) {
-    settings foo(input);
-    setting *set = foo.lookup("start-symbols");
+    _update = new settings(input);
+    cheap_settings->install(_update);
+    setting *set = _update->lookup("start-symbols");
     if(set != 0) {
       grammar->_root_insts = 0;
       for(int i = set->n-1; i >= 0; --i) {
@@ -1065,11 +1066,17 @@ tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
 
 } // tGrammarUpdate::tGrammarUpdate()
 
+
 tGrammarUpdate::~tGrammarUpdate() {
 
   if(_original_roots != NULL) {
     free_list(_grammar->_root_insts);
     _grammar->_root_insts = _original_roots;
+  } // if
+
+  if(_update != 0) {
+    cheap_settings->uninstall(_update);
+    delete _update;
   } // if
 
 } // tGrammarUpdate::~tGrammarUpdate()
