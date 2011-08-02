@@ -727,23 +727,21 @@ static void init_main_options() {
    */
   //@{
   //
-  // _fix_me_
-  // as of mid-2011, we (re-)interpret this option as partially bit-coded: the
-  // lower five bits (up to a maximum value of 31) encode the protocal version
-  // used in communication with the [incr tsdb()] server (as it used to be),
-  // whereas higher bits are available to further customize cheap behavior in
-  // [incr tsdb()] mode.  in this scheme, bit six (32) activates lexical-only
-  // parsing.  while the general mechanism of bit-coded [incr tsdb()] options
-  // seems desirable, possibly we should consult with other PET developers to
-  // make lexical-only parsing a separate option.  however, this mode needs to
-  // be toggled at run-time, i.e. under [incr tsdb()] control.  hence, only a
-  // command-line option would be insufficient, though one could maybe build
-  // on the 'grammar update' mechanism, i.e. dynamic and temporary adjustments
-  // to a pre-defined sub-set of settings.                       (1-jul-11; oe)
+  // this option controls a range of functions: (a) whether to go into 
+  // [incr tsdb()] client mode; (b) which protocol to use in recording parse
+  // results (valid protocol versions, as of mid-2011 are: 1, to output full
+  // derivations; 2, to output 'packed' derivations, as a set of edges); and
+  // (c) various [incr tsdb()]-internal options.  (a) and (b) are encoded by
+  // the lower five bits (up to a maximum value of 31), where a value of 0 is
+  // interpreted as protocol version 1.  higher bits are available to further
+  // customize cheap behavior in [incr tsdb()].  in mid-2011, we introduced a
+  // 'lexical only' mode, activated by bit six (32).  packing all of these into
+  // a single option has the benefit of easy run-time control by [incr tsdb()].
+  //                                                             (1-jul-11; oe)
   //
   managed_opt("opt_tsdb",
     "enable [incr tsdb()] slave mode (protocol version = n)",
-    1);
+    0);
   managed_opt("opt_server",
     "go into server mode, bind to port `n' (default: 4711)",
     0);
