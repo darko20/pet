@@ -31,32 +31,23 @@
 
 using namespace std;
 
-tReppTokenizer::tReppTokenizer()
+tReppTokenizer::tReppTokenizer() 
+  : _update(NULL) 
 {
   //
-  // our optional .name. argument, if non-empty, denotes an additional settings
-  // file to be read (which, for convenience, will be installed as an overlay)
-  // to the global settings object.  unless specified as a path-qualified file,
-  // the file can be located in one of three directories: the 'base' directory
-  // (where the grammar file resides), the REPP subdirectory ('rpp/'), or the
-  // general settings directory ('pet/').
+  // the '-repp' command line option takes an optional argument, which can be
+  // a settings file to be read (which, for convenience, will be installed as
+  // an overlay) to the global settings object.  much like all settings files,
+  // the file can be located in either the 'base' directory (where the grammar
+  // file resides), or the general settings directory ('pet/').
   //
-  _path = cheap_settings->base();
   string name = get_opt_string("opt_repp");
   if(!name.empty()) {
-    string file = find_file(name, SET_EXT, cheap_settings->base());
-    if(file.empty())
-      file = find_file(name, SET_EXT, 
-                       cheap_settings->base() + REPP_SUBDIRECTORY + PATH_SEP);
-    if(file.empty())
-      file = find_file(name, SET_EXT, 
-                       cheap_settings->base() + SET_SUBDIRECTORY + PATH_SEP);
+    _update = new settings(name, cheap_settings->base(), "reading");
 
-    if(file.empty())
+    if(!_update->valid())
       throw tError("Unable to locate REPP configuration '" + name + "'.");
 
-    _path = dir_name(file);
-    _update = new settings(raw_name(file), _path, "reading");
     cheap_settings->install(_update);
   } // if
 
@@ -102,7 +93,12 @@ tRepp::tRepp(string name, tReppTokenizer *parent) :_id(name), _parent(parent)
   tRegex groupendre = boost::make_u32regex("^#$");
   tRegex rulere = boost::make_u32regex("^([!-+^])([^\\t]+)\\t+([^\\t]*)$");
 
-  ifstream mainf(find_file(name, RPP_EXT, _parent->getPath()).c_str());
+  string file = find_file(name, RPP_EXT, cheap_settings->base());
+  if(file.empty())
+    file = find_file(name, RPP_EXT,
+                     cheap_settings->base() + REPP_SUBDIRECTORY + PATH_SEP);
+
+  ifstream mainf(file.c_str());
 
   if (mainf.is_open()) {
     int rule_count = 0;
@@ -171,7 +167,7 @@ tRepp::tRepp(string name, tReppTokenizer *parent) :_id(name), _parent(parent)
     LOG(logRepp, INFO, "Read " << _id << " [" << rule_count << " rules]");
   }
   else {
-    throw tError("Couldn't find REPP module `" + name + 
+    throw tError("Couldn't find REPP module '" + name + 
       "'. Check repp-modules setting.");
   }
 }

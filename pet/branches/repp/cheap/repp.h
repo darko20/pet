@@ -50,7 +50,6 @@ class tReppTokenizer : public tTokenizer {
     virtual position_map position_mapping() {return STANDOFF_POINTS;}
 
     tRepp *getRepp(std::string name){return _repps[name];}
-    std::string getPath(){return _path;} // where the modules live
     void addStartMap(std::vector<int> *map){_startmap.push_back(map);}
     void addEndMap(std::vector<int> *map){_endmap.push_back(map);}
 
@@ -58,7 +57,6 @@ class tReppTokenizer : public tTokenizer {
     std::string _format; //output format
 
     std::map<std::string, tRepp *> _repps; //modules
-    std::string _path; //path that included repps will be relative to
 
     std::vector<std::vector<int> *> _startmap; // for keeping track of 
     std::vector<std::vector<int> *> _endmap;   // characterisation
