@@ -51,6 +51,7 @@ class settings
   settings(const std::string &input);
   ~settings();
 
+  bool valid() { return _valid; }
   const std::string &base() { return _base; }
   setting *lookup(const char *name);
 
@@ -81,6 +82,7 @@ class settings
   bool uninstall(settings *);
 
  private:
+  bool _valid;
   int _n;
   setting **_set;
   std::string _fname, _prefix, _base;

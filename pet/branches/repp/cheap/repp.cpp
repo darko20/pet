@@ -52,12 +52,11 @@ tReppTokenizer::tReppTokenizer()
       file = find_file(name, SET_EXT, 
                        cheap_settings->base() + SET_SUBDIRECTORY + PATH_SEP);
 
-    if(file.empty()) {
-      cerr << "Unable to locate REPP configuration '" << name << "'." << endl;
-      exit(1);
-    } // if
+    if(file.empty())
+      throw tError("Unable to locate REPP configuration '" + name + "'.");
+
     _path = dir_name(file);
-    _update = new settings(file, _path, "reading");
+    _update = new settings(raw_name(file), _path, "reading");
     cheap_settings->install(_update);
   } // if
 
@@ -84,11 +83,10 @@ tReppTokenizer::~tReppTokenizer()
     iter != _repps.end(); ++iter)
     delete iter->second;
 
-// uninstall hangs, memory should be freed anyway?
-//  if (cheap_settings != NULL && _update != NULL) {
-//    cheap_settings->uninstall(_update);
-//    delete _update;
-//  }
+  if (cheap_settings != NULL && _update != NULL) {
+    cheap_settings->uninstall(_update);
+    delete _update;
+  } // if
 }
 
 tRepp::tRepp(string name, tReppTokenizer *parent) :_id(name), _parent(parent)

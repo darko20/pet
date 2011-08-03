@@ -31,7 +31,7 @@
 using std::string;
 
 settings::settings(string name, string base_dir, const char *message)
-  : _lloc(0), _li_cache(), _updates() {
+  : _valid(false), _lloc(0), _li_cache(), _updates() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
@@ -45,13 +45,13 @@ settings::settings(string name, string base_dir, const char *message)
     lexer_idchars = "_+-*?$";
     parse();
     lexer_idchars = sv;
-
+    _valid = true;
   }
 }
 
 
 settings::settings(const std::string &input)
-  : _lloc(0), _li_cache(), _updates() {
+  : _valid(false), _lloc(0), _li_cache(), _updates() {
   _n = 0;
   _set = new setting*[SET_TABLE_SIZE];
 
@@ -60,6 +60,7 @@ settings::settings(const std::string &input)
   lexer_idchars = "_+-*?$";
   parse();
   lexer_idchars = sv;
+  _valid = true;
 }
 
 
