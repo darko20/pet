@@ -31,6 +31,7 @@
 #include <cstdio>
 
 #define SET_SUBDIRECTORY "pet"
+#define REPP_SUBDIRECTORY "rpp"
 
 // define the path separator char with the configure utility
 #ifdef WINDOWS

@@ -24,50 +24,58 @@
 #include <cmath>
 #include "unicode.h"
 #include "settings.h"
+#include "options.h"
 #include "utility.h"
 #include "cheap.h"
 #include "logging.h"
 
 using namespace std;
 
-tReppTokenizer::tReppTokenizer(const string conf, const string
-  &grammar_file_name) :_repp_settings(NULL) 
+tReppTokenizer::tReppTokenizer()
 {
-  if (!conf.empty()) { //update cheap settings using conf file
-    string conffname(find_set_file(conf, SET_EXT, grammar_file_name));
-    if (conffname.empty()) {
-      throw tError("REPP settings file `" + conf + "' not found.");
-    }
-    string reppset, line;
-    ifstream conffile(conffname.c_str());
-    if (conffile.is_open()) {
-      while (getline(conffile, line))
-        reppset += line;
-    } else {
-      throw tError("Couldn't open REPP settings file `" + conf + "'.");
-    }
-    _repp_settings = new settings(reppset);
-    cheap_settings->install(_repp_settings);
-  }
+  //
+  // our optional .name. argument, if non-empty, denotes an additional settings
+  // file to be read (which, for convenience, will be installed as an overlay)
+  // to the global settings object.  unless specified as a path-qualified file,
+  // the file can be located in one of three directories: the 'base' directory
+  // (where the grammar file resides), the REPP subdirectory ('rpp/'), or the
+  // general settings directory ('pet/').
+  //
+  _path = cheap_settings->base();
+  string name = get_opt_string("opt_repp");
+  if(!name.empty()) {
+    string file = find_file(name, SET_EXT, cheap_settings->base());
+    if(file.empty())
+      file = find_file(name, SET_EXT, 
+                       cheap_settings->base() + REPP_SUBDIRECTORY + PATH_SEP);
+    if(file.empty())
+      file = find_file(name, SET_EXT, 
+                       cheap_settings->base() + SET_SUBDIRECTORY + PATH_SEP);
 
-  struct setting *rset;
-  _path = dir_name(grammar_file_name);
-  if ((rset = cheap_settings->lookup("repp-dir")) != NULL) {
-    _path += rset->values[0];
-    if (_path.at(_path.length()-1) != PATH_SEP[0])
-      _path += PATH_SEP;
-  }
-  // find modules from setting repp-modules and read the files
-  if ((rset = cheap_settings->lookup("repp-modules")) == NULL) {
-    throw tError("No repp modules defined. Check repp-modules setting.");
-  }
-  for (int i = 0; i < rset->n; ++i) {
-    LOG(logRepp, INFO, "initiating repp " << rset->values[i]);
-    _repps[rset->values[i]] = new tRepp(rset->values[i], this);
-  }
-  // check mandatory settings exist
-  if((rset = cheap_settings->lookup("repp-tokenizer")) == NULL) 
-    throw tError("No repp main module set. Check repp-tokenizer setting.");
+    if(file.empty()) {
+      cerr << "Unable to locate REPP configuration '" << name << "'." << endl;
+      exit(1);
+    } // if
+    _path = dir_name(file);
+    settings *update = new settings(file, dir_name(file), "reading");
+    cheap_settings->install(update);
+  } // if
+
+  // sanity check: make sure there is a top-level entry point
+  if(cheap_settings->lookup("repp-tokenizer") == NULL)
+    throw tError("No REPP top-level module; "
+                 "please check the 'repp-tokenizer' setting.");
+
+  // find modules from setting 'repp-modules' and read in each file
+  struct setting *foo;
+  if ((foo = cheap_settings->lookup("repp-modules")) == NULL)
+    throw tError("No REPP modules defined; "
+                 "please check the 'repp-modules' setting.");
+
+  for (int i = 0; i < foo->n; ++i) {
+    LOG(logRepp, INFO, "initializing REPP " << foo->values[i]);
+    _repps[foo->values[i]] = new tRepp(foo->values[i], this);
+  } // for
 }
 
 tReppTokenizer::~tReppTokenizer()

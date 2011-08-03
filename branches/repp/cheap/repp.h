@@ -55,7 +55,6 @@ class tReppTokenizer : public tTokenizer {
     void addEndMap(std::vector<int> *map){_endmap.push_back(map);}
 
   private:
-    settings *_repp_settings;
     std::string _format; //output format
 
     std::map<std::string, tRepp *> _repps; //modules
