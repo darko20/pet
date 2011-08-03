@@ -555,11 +555,13 @@ bool load_grammar(string initial_name) {
 
 	 case TOKENIZER_REPP:
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
-      tok = new tReppTokenizer(get_opt_string("opt_repp"), grammar_file_name);	
-      break;
+    {
+      tok = new tReppTokenizer(true);
+    }
+    break;
 #else
       LOG(logAppl, FATAL, 
-			"No Unicode-aware regexp support compiled into this cheap.");
+          "No Unicode-enabled regexp support compiled into this cheap.");
       return true;
 #endif
 
@@ -774,7 +776,7 @@ static void init_main_options() {
      "old shit that should be thrown out or properly reengineered and renamed.",
      false);
 	managed_opt("opt_repp",
-		"Tokenize using REPP, with repp settings in the file argument", string());
+		"Tokenize using REPP, with settings in the file argument", string());
 }
 
 /** general setup of globals, etc. */
