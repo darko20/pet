@@ -57,8 +57,8 @@ tReppTokenizer::tReppTokenizer()
       exit(1);
     } // if
     _path = dir_name(file);
-    settings *update = new settings(file, dir_name(file), "reading");
-    cheap_settings->install(update);
+    _update = new settings(file, _path, "reading");
+    cheap_settings->install(_update);
   } // if
 
   // sanity check: make sure there is a top-level entry point
@@ -85,9 +85,9 @@ tReppTokenizer::~tReppTokenizer()
     delete iter->second;
 
 // uninstall hangs, memory should be freed anyway?
-//  if (cheap_settings != NULL && _repp_settings != NULL) {
-//    cheap_settings->uninstall(_repp_settings);
-//    delete _repp_settings;
+//  if (cheap_settings != NULL && _update != NULL) {
+//    cheap_settings->uninstall(_update);
+//    delete _update;
 //  }
 }
 
