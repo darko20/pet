@@ -449,10 +449,10 @@ void tokenize_only(const string formatoption) {
   if (formatoption.compare("string") == 0) {
     format = FORMAT_STRING;
   } else {
-    if (formatoption.compare("YY") == 0) {
+    if (formatoption.compare("yy") == 0) {
       format = FORMAT_YY;
     } else {
-      if (formatoption.compare("FSC") == 0) {
+      if (formatoption.compare("fsc") == 0) {
         format = FORMAT_FSC;
       } else {
         cerr << "Unknown format " << formatoption << "." << endl;
