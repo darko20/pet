@@ -74,9 +74,10 @@ tReppTokenizer::~tReppTokenizer()
     iter != _repps.end(); ++iter)
     delete iter->second;
 
-  if (cheap_settings != NULL && _update != NULL) {
-    cheap_settings->uninstall(_update);
+  if(_update != NULL) {
+    if(cheap_settings != NULL) cheap_settings->uninstall(_update);
     delete _update;
+    _update = NULL;
   } // if
 }
 

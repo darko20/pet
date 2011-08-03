@@ -484,6 +484,7 @@ static void cleanup() {
 #endif
   delete Grammar;
   delete cheap_settings;
+  cheap_settings = NULL;
   mrs_finalize();
 }
 
