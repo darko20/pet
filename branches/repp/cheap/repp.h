@@ -42,8 +42,7 @@ typedef std::vector<tReppRule *> tReppGroup;
 
 class tReppTokenizer : public tTokenizer {
   public:
-    tReppTokenizer(const std::string conf, const std::string
-      &grammar_file_name);
+    tReppTokenizer();
     ~tReppTokenizer();
     virtual void tokenize(myString s, inp_list &result);
     virtual std::string description() { return "REPP tokenizer"; }
