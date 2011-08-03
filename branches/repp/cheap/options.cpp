@@ -75,7 +75,7 @@ void usage(FILE *f)
 #ifdef YY
   fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth]\n"
              "                         valid semantic formula\n");
-  fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
+  fprintf(f, "  `-yy' --- enable YY input mode\n");
 #endif
   fprintf(f, "  `-repp[=file]' --- use REPP to tokenize, with settings in file\n");
   fprintf(f, "  `-failure-print' --- print failure paths\n");
@@ -147,7 +147,7 @@ void usage(FILE *f)
 #define OPTION_CHART_PRUNING 42
 #define OPTION_INPUT_FILE 43
 #define OPTION_TAKE 44
-#define OPTION_REPP 50
+#define OPTION_REPP 45
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -452,8 +452,8 @@ char* parse_options(int argc, char* argv[])
           break;
       case OPTION_REPP:
       {
-        if(optarg != NULL)
-          set_opt_from_string("opt_repp", optarg);
+        if(optarg != NULL) set_opt_from_string("opt_repp", optarg);
+        else set_opt_from_string("opt_repp", "");
         set_opt_from_string("opt_tok", "repp");
       }
       break;
