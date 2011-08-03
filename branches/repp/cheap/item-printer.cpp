@@ -562,7 +562,7 @@ void tItemYYPrinter::real_print(const tInputItem *item) {
     << item->end() << ", <"
     << item->startposition() << ":"
     << item->endposition() << ">, 1, "
-    << "\"" << item->orth() << "\", "
+    << "\"" << escape_string(item->orth().c_str()) << "\", "
     << "0, \"null\"";
   postags poss  = item->get_in_postags();
   if (!poss.empty()) {
@@ -574,7 +574,7 @@ void tItemYYPrinter::real_print(const tInputItem *item) {
     vector<double>::iterator probit = problist.begin();
     for (; tagit != taglist.end() && probit != problist.end();
       ++tagit, ++probit) {
-      *_out << " \"" << *tagit << "\" "
+      *_out << " \"" << escape_string(tagit->c_str()) << "\" "
         << fixed << setprecision(4) << *probit;
     }
   }
