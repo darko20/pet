@@ -556,7 +556,7 @@ bool load_grammar(string initial_name) {
 	 case TOKENIZER_REPP:
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
     {
-      tok = new tReppTokenizer(true);
+      tok = new tReppTokenizer();
     }
     break;
 #else

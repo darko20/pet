@@ -51,6 +51,7 @@ class settings
   settings(const std::string &input);
   ~settings();
 
+  const std::string &base() { return _base; }
   setting *lookup(const char *name);
 
   const char *value(const char *name);
@@ -82,7 +83,7 @@ class settings
  private:
   int _n;
   setting **_set;
-  std::string _fname, _prefix;
+  std::string _fname, _prefix, _base;
   struct lex_location *_lloc;
 
   /** cache for settings converted to lists of integers (e.g. status values) */
