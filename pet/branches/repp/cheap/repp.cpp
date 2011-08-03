@@ -1,4 +1,4 @@
-/* vim: set expandtab:ts=2:sw=2 */
+/* ex: set expandtab ts=2 sw=2: */
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
  *
@@ -16,7 +16,7 @@
  *   License along with this library; if not, write to the Free Software
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include "tRepp.h"
+#include "repp.h"
 #include <stack>
 #include <fstream>
 #include <sstream>
@@ -26,52 +26,48 @@
 #include "settings.h"
 #include "utility.h"
 #include "cheap.h"
+#include "logging.h"
 
 using namespace std;
 
-tReppTokenizer::tReppTokenizer(const string conf, bool verbose)
-	:_verbose(verbose)
+tReppTokenizer::tReppTokenizer(const string conf, const string
+  &grammar_file_name) :_repp_settings(NULL) 
 {
-//	_path = dir_name(conf);
-// path should be a setting, but for now, set like this TODO
-   _path = conf;
-	settings *repp_settings = cheap_settings;
-   //assume settings read in to cheap_settings, possibly with overlay
-//	ifstream reppfile(conf.c_str());
-//	string reppset, line;
-//	if (reppfile.is_open()) { // read conf file
-//		getline(reppfile, line);
-//		while (!reppfile.eof()) {
-//			reppset += line;
-//			getline(reppfile, line);
-//		}
-//		repp_settings = new settings(reppset); // parse conf file
-//	} else {
-//		cerr << "repp conf file \"" << conf << "\" couldn't be opened." << endl;
-//		exit(1);
-//	}
+  if (!conf.empty()) { //update cheap settings using conf file
+    string conffname(find_set_file(conf, SET_EXT, grammar_file_name));
+    if (conffname.empty()) {
+      throw tError("REPP settings file `" + conf + "' not found.");
+    }
+    string reppset, line;
+    ifstream conffile(conffname.c_str());
+    if (conffile.is_open()) {
+      while (getline(conffile, line))
+        reppset += line;
+    } else {
+      throw tError("Couldn't open REPP settings file `" + conf + "'.");
+    }
+    _repp_settings = new settings(reppset);
+    cheap_settings->install(_repp_settings);
+  }
 
+	struct setting *rset;
+  _path = dir_name(grammar_file_name);
+  if ((rset = cheap_settings->lookup("repp-dir")) != NULL) {
+    _path += rset->values[0];
+    if (_path.at(_path.length()-1) != PATH_SEP[0])
+      _path += PATH_SEP;
+  }
 	// find modules from setting repp-modules and read the files
-	struct setting *foo;
-	if ((foo = repp_settings->lookup("repp-modules")) == NULL) return;
-	for (int i = 0; i < foo->n; ++i) {
-		if (_verbose) cerr << "initiating repp " << foo->values[i] << endl;
-		_repps[foo->values[i]] = new tRepp(foo->values[i], this, _verbose);
+	if ((rset = cheap_settings->lookup("repp-modules")) == NULL) {
+    throw tError("No repp modules defined. Check repp-modules setting.");
+  }
+	for (int i = 0; i < rset->n; ++i) {
+		LOG(logRepp, INFO, "initiating repp " << rset->values[i]);
+		_repps[rset->values[i]] = new tRepp(rset->values[i], this);
 	}
-	// assign other settings to variables so they can be overwritten by tsdb++
-	if((foo = repp_settings->lookup("repp-tokenizer")) == NULL) {
-		cerr << "No repp main module set. Check repp-tokenizer setting." << endl;
-		exit(1);
-	} else {
-		_maintokenizer = foo->values[0];
-	}
-	// if repp-calls is not set, just don't use any conditional includes
-	// or should we warn? or set a default?
-	if ((foo = repp_settings->lookup("repp-calls")) != NULL) {
-		for (int i = 0; i < foo->n; ++i) {
-			_calls.insert(set<string>::value_type(foo->values[i]));
-		}
-	}
+	// check mandatory settings exist
+	if((rset = cheap_settings->lookup("repp-tokenizer")) == NULL) 
+    throw tError("No repp main module set. Check repp-tokenizer setting.");
 }
 
 tReppTokenizer::~tReppTokenizer()
@@ -79,10 +75,15 @@ tReppTokenizer::~tReppTokenizer()
 	for (map<string, tRepp *>::iterator iter = _repps.begin();
 		iter != _repps.end(); ++iter)
 		delete iter->second;
+
+// uninstall hangs, memory should be freed anyway?
+//  if (cheap_settings != NULL && _repp_settings != NULL) {
+//    cheap_settings->uninstall(_repp_settings);
+//    delete _repp_settings;
+//  }
 }
 
-tRepp::tRepp(string name, tReppTokenizer *parent, bool verbose)
-	:_id(name), _parent(parent)
+tRepp::tRepp(string name, tReppTokenizer *parent) :_id(name), _parent(parent)
 {
 	tRegex emptyre = boost::make_u32regex("^$");
 	tRegex commentre = boost::make_u32regex("^;.*$");
@@ -139,8 +140,8 @@ tRepp::tRepp(string name, tReppTokenizer *parent, bool verbose)
 				}
 				else if (boost::u32regex_match(line, res, groupendre)) {
 					if (in_group.empty()) {
-						cerr << _id << ":" << line_no << " spurious group close"
-							<< endl;
+            LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no 
+              << " spurious group close.");
 					}
 					else
 						in_group.pop();
@@ -155,19 +156,17 @@ tRepp::tRepp(string name, tReppTokenizer *parent, bool verbose)
 					rule_count++;
 				}
 				else {
-					cerr << _id << ":" << line_no << " invalid line: "
-						<< line << endl;
+          LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no 
+            << " invalid line: " << line);
 				}
 			}
 			getline(mainf, line);
 		}
-		if (verbose) 
-			cerr << "Read " << _id << " [" << rule_count << " rules]" << endl;
+    LOG(logRepp, INFO, "Read " << _id << " [" << rule_count << " rules]");
 	}
 	else {
-		cerr << "Couldn't find REPP module "<< name 
-			<< ". Check repp-modules setting." << endl;
-		exit(1);
+    throw tError("Couldn't find REPP module `" + name + 
+      "'. Check repp-modules setting.");
 	}
 }
 
@@ -200,14 +199,13 @@ void tReppTokenizer::tokenize(myString item, inp_list &result)
 	_startmap.push_back(smap);
 	_endmap.push_back(emap);
 
-	tRepp *repp = getRepp(_maintokenizer);
+	tRepp *repp = getRepp(cheap_settings->lookup("repp-tokenizer")->values[0]);
 
 	//apply all rules
 	for (vector<tReppRule *>::iterator iter = repp->rules().begin();
 		iter != repp->rules().end(); ++iter) {
 		if ((*iter)->get_type() == ">I") { //conditional include
-			string name = (*iter)->name();
-			if (_calls.count(name) == 0)
+			if (! cheap_settings->member("repp-calls", (*iter)->name().c_str()))
 				continue; // don't run this optional module
 		}
 		rest = (*iter)->apply(repp, rest);
@@ -241,10 +239,8 @@ void tReppTokenizer::tokenize(myString item, inp_list &result)
 				stringstream tokid;
 				tokid << result.size()+42; //to match YY initialization
 				
-				if (_verbose) {
-					cerr << "creating item from " << surface << " <" 
-						<< tokstart-1 << ":" << tokend << ">" << endl;
-				}
+        LOG(logRepp, DEBUG, "creating item from " << surface << " <" 
+						<< tokstart-1 << ":" << tokend << ">");
 				tok = new tInputItem(tokid.str().c_str(), start, end,
 					tokstart-1, tokend, surface, surface);
 				result.push_back(tok);
@@ -286,25 +282,6 @@ void tReppTokenizer::tokenize(myString item, inp_list &result)
 		delete *it;
 	_startmap.clear();
 	_endmap.clear();
-}
-
-// update function for tsdb++ updating?
-void tReppTokenizer::updateReppTokenizer(string &input) 
-{
-	if(!input.empty()) {
-		settings updated_settings(input);
-		
-		setting *newset = updated_settings.lookup("repp-tokenizer");
-		if (newset != NULL)
-			_maintokenizer = newset->values[0];
-		newset = updated_settings.lookup("repp-calls");
-		if (newset != NULL) {
-			_calls.clear();
-			for (int i = 0; i < newset->n; ++i) {
-				_calls.insert(set<string>::value_type(newset->values[i]));
-			}
-		}
-	}
 }
 
 // standard string replacement rule
@@ -354,7 +331,7 @@ tReppFSRule::tReppFSRule(string type, const char *target, const char *format)
 					break; //out of order group
 			} else {
 				if (x+1 == flen)
-					cerr << "unescaped backslash in " << _format << endl;
+          LOG(logRepp, WARN, "REPP:" << "unescaped backslash in " << _format);
 			}
 		}	
 	}

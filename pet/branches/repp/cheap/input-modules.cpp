@@ -84,6 +84,8 @@ static bool init(std::string tokenizer_names[]) {
     if (TOKENIZER_FSR == i)
       continue;
 #endif
+    if (TOKENIZER_REPP == i)
+      continue; //don't want it as a -tok command line option
     doc += "|"; doc += tokenizer_names[i];
   }
   doc += "' --- select input method (default `" + tokenizer_names[def] + "')";

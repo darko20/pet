@@ -82,7 +82,7 @@ cheaplibsources = \
 	vpm.h vpm.cpp \
 	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
-	tRepp.cpp tRepp.h \
+	repp.cpp repp.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
 	$(top_srcdir)/common/configs.cpp \

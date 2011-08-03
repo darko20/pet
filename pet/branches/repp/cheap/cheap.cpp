@@ -32,7 +32,7 @@
 #include "morph.h"
 #include "yy-tokenizer.h"
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
-#include "tRepp.h"
+#include "repp.h"
 #endif
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
@@ -555,26 +555,8 @@ bool load_grammar(string initial_name) {
 
 	 case TOKENIZER_REPP:
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
-    {
-      string path;
-      //have conf file, use to overlay options (not implemented yet) TODO
-      string repp_opt = get_opt_string("opt_repp");
-      if (!repp_opt.empty()) {  
-        string reppfilename(find_file(repp_opt, SET_EXT, grammar_file_name));
-        if (reppfilename.empty()) {
-          cerr << "Couldn't find REPP conf file \"" 
-            << dir_name(grammar_file_name) << repp_opt << "{" << SET_EXT
-            << "}\"." << endl;
-          exit(1);
-        }
-        path = dir_name(reppfilename);
-      }
-      else
-        path = dir_name(grammar_file_name)+"rpp/";
-      //path should be a setting, but for now, set here TODO
-      tok = new tReppTokenizer(path);	
-    }
-    break;
+      tok = new tReppTokenizer(get_opt_string("opt_repp"), grammar_file_name);	
+      break;
 #else
       LOG(logAppl, FATAL, 
 			"No Unicode-aware regexp support compiled into this cheap.");
@@ -919,11 +901,15 @@ void process(const char *grammar_file_name) {
     // will not return if a server was started
     eventually_start_server(grammar_file_name);
 
-    load_grammar(grammar_file_name);
-    if(get_opt_bool("opt_interactive_morph"))
-      interactive_morphology();
-    else
-      interactive();
+    //why do we never check if grammar loaded? adding check here- rd, 3/8/11
+    if (!load_grammar(grammar_file_name)) {
+      if(get_opt_bool("opt_interactive_morph"))
+        interactive_morphology();
+      else
+        interactive();
+    } else {
+      throw tError("Couldn't successfully load grammar, exiting.");
+    }
   }
 }
 
@@ -943,7 +929,7 @@ int main(int argc, char* argv[]) {
        process(grammar_file_name);
   }
   catch (tError err) {
-    cerr << err.getMessage();
+    cerr << err.getMessage() << endl;
     exit(1);
   }
 
