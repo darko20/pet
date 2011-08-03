@@ -78,8 +78,10 @@ void usage(FILE *f)
   fprintf(f, "  `-yy' --- enable YY input mode\n");
 #endif
   fprintf(f, "  `-repp[=file]' --- use REPP to tokenize, with settings in file\n");
+  fprintf(f, "  `-tagger[=file]' --- POS tag input, using settings in file\n");
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
+  fprintf(f, "  `-tokenize-only[=format]' --- tokenize only, output tokens in format (string, YY, FSC, default: string)\n");
   fprintf(f, "  `-pg[=what]' --- print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
@@ -148,6 +150,8 @@ void usage(FILE *f)
 #define OPTION_INPUT_FILE 43
 #define OPTION_TAKE 44
 #define OPTION_REPP 45
+#define OPTION_TAGGER 51
+#define OPTION_TOKENIZE_ONLY 60
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -185,6 +189,7 @@ char* parse_options(int argc, char* argv[])
     {"default-les", optional_argument, 0, OPTION_DEFAULT_LES},
     {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
     {"repp", optional_argument, 0, OPTION_REPP},
+    {"tagger", optional_argument, 0, OPTION_TAGGER},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
     {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
@@ -193,6 +198,7 @@ char* parse_options(int argc, char* argv[])
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", optional_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
+    {"tokenize_only", optional_argument, 0, OPTION_TOKENIZE_ONLY},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
@@ -314,6 +320,10 @@ char* parse_options(int argc, char* argv[])
       case OPTION_INTERACTIVE_MORPH:
           set_opt("opt_interactive_morph", true);
           break;
+      case OPTION_TOKENIZE_ONLY:
+        set_opt("opt_tokenize_only", std::string((optarg != NULL) ?
+          optarg : "string"));
+        break;
       case OPTION_LATTICE:
           set_opt("opt_lattice", true);
           break;
@@ -457,6 +467,10 @@ char* parse_options(int argc, char* argv[])
         set_opt_from_string("opt_tok", "repp");
       }
       break;
+      case OPTION_TAGGER:
+        set_opt("opt_tagger", (optarg != NULL) ? std::string(optarg) 
+          : std::string("null"));
+        break;
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)

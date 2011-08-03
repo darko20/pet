@@ -15,6 +15,8 @@
 #include <fstream>
 #include <iomanip>
 
+enum item_format { FORMAT_FSC, FORMAT_YY, FORMAT_STRING };
+
 /** A virtual base class to have a generic print service for chart items.
  *
  * This class is meant to separate the many different formats and aspects in
@@ -558,6 +560,40 @@ protected:
 
   ParseNodes &_parse_nodes;
 };
+
+/** print an FSC for the input items*/
+class tItemFSCPrinter : public tAbstractItemPrinter {
+  public:
+    tItemFSCPrinter(std::ostream &out);
+    virtual ~tItemFSCPrinter() {}
+    virtual void print(const tItem *arg);
+    virtual void real_print(const tInputItem *item) ;
+    virtual void real_print(const tLexItem *item) {};
+    virtual void real_print(const tPhrasalItem *item) {};
+};
+
+/** print a YY version of the input items*/
+class tItemYYPrinter : public tAbstractItemPrinter {
+  public:
+    tItemYYPrinter(std::ostream &out);
+    virtual ~tItemYYPrinter() {}
+    virtual void print(const tItem *arg);
+    virtual void real_print(const tInputItem *item) ;
+    virtual void real_print(const tLexItem *item) {};
+    virtual void real_print(const tPhrasalItem *item) {};
+};
+
+/** print a whitespace tokenised version of the input items*/
+class tItemStringPrinter : public tAbstractItemPrinter {
+  public:
+    tItemStringPrinter(std::ostream &out);
+    virtual ~tItemStringPrinter() {}
+    virtual void print(const tItem *arg);
+    virtual void real_print(const tInputItem *item) ;
+    virtual void real_print(const tLexItem *item) {};
+    virtual void real_print(const tPhrasalItem *item) {};
+};
+
 
 
 /** use an item_printer like a modifier */

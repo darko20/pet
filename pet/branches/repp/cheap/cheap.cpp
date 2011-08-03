@@ -34,6 +34,7 @@
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
 #include "repp.h"
 #endif
+#include "tnt-tagger.h"
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
 #include "pic-tokenizer.h"
@@ -440,6 +441,83 @@ static void interactive_morphology() {
 
 } // interactive_morphology()
 
+void tokenize_only(const string formatoption) {
+  string input;
+  int id = 1;
+
+  item_format format;
+  if (formatoption.compare("string") == 0) {
+    format = FORMAT_STRING;
+  } else {
+    if (formatoption.compare("YY") == 0) {
+      format = FORMAT_YY;
+    } else {
+      if (formatoption.compare("FSC") == 0) {
+        format = FORMAT_FSC;
+      } else {
+        cerr << "Unknown format " << formatoption << "." << endl;
+        exit(1);
+      }
+    }
+  }
+
+  string infile = get_opt_string("opt_infile");
+  ifstream ifs;
+  ifs.open(infile.c_str());
+  istream& lexinput = ifs ? ifs : cin;
+  while(Lexparser.next_input(lexinput, input)) {
+    try {
+      fs_alloc_state FSAS;
+      inp_list input_items;
+      Lexparser.process_input(input, input_items, false);
+
+      tAbstractItemPrinter *ip;
+      switch (format) {
+        case FORMAT_FSC:
+          {
+            tItemFSCPrinter *fip = new tItemFSCPrinter(cout);
+            ip = fip;
+          }
+          break;
+        case FORMAT_YY:
+          {
+            tItemYYPrinter *yip = new tItemYYPrinter(cout);
+            ip = yip;
+          }
+          break;
+        case FORMAT_STRING:
+          {
+            tItemStringPrinter *sip = new tItemStringPrinter(cout);
+            ip = sip;
+          }
+          break;
+      }
+
+      if (format == FORMAT_FSC) {
+        //print header
+      }
+      for(inp_iterator r = input_items.begin(); r != input_items.end(); ++r) {
+        if (r != input_items.begin() && format != FORMAT_FSC) cout << " ";
+        ip->print(*r);
+      }
+      if (format == FORMAT_FSC) {
+        //print footer
+      } else {
+        cout << endl;
+      }
+    } //try
+    catch (tError e) {
+      // shouldn't this be fstatus?? it's a "return value"
+      fprintf(ferr, "%s\n", e.getMessage().c_str());
+    }
+    fflush(fstatus);
+
+    ++id;
+  }
+}
+    
+
+
 void print_grammar(int what, ostream &out) {
   if(what == 's' || what == 'a') {
     out << ";; TYPE NAMES (PRINT NAMES) ==========================" << endl;
@@ -621,6 +699,15 @@ bool load_grammar(string initial_name) {
     tok->set_comment_passthrough(get_opt_bool("opt_comment_passthrough"));
     Lexparser.register_tokenizer(tok);
 
+	 string taggeropt = get_opt_string("opt_tagger");
+    if (! (taggeropt.empty())) {
+      if (taggeropt.compare("null") == 0)
+        taggeropt = string(); //opt set, but no conf file given
+      tPOSTagger *postagger = new tTntCompatTagger(taggeropt, 
+        grammar_file_name);
+      Lexparser.register_tagger(postagger);
+    }
+
 #ifdef HAVE_MRS
     //
     // when requested, initialize the MRS variable property mapping from a file
@@ -739,6 +826,10 @@ static void init_main_options() {
      "make cheap only run interactive morphology (only morphological rules, "
      "without lexicon)", false);
 
+  managed_opt("opt_tokenize_only",
+    "just tokenize input, output tokens as <format> (string, YY, FSC)",
+    string());
+
   managed_opt("opt_online_morph",
     "use the internal morphology (the regular expression style one)", true);
 
@@ -778,6 +869,9 @@ static void init_main_options() {
      false);
 	managed_opt("opt_repp",
 		"Tokenize using REPP, with settings in the file argument", string());
+  managed_opt("opt_tagger",
+    "POS tag input, using settings in file argument or settings file",
+    string());
 }
 
 /** general setup of globals, etc. */
@@ -908,8 +1002,13 @@ void process(const char *grammar_file_name) {
     if (!load_grammar(grammar_file_name)) {
       if(get_opt_bool("opt_interactive_morph"))
         interactive_morphology();
-      else
-        interactive();
+      else {
+        string tokformat = get_opt_string("opt_tokenize_only");
+        if (!tokformat.empty())
+          tokenize_only(tokformat);
+        else
+          interactive();
+      }
     } else {
       throw tError("Couldn't successfully load grammar, exiting.");
     }
