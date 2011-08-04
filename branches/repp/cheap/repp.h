@@ -61,7 +61,7 @@ class tReppTokenizer : public tTokenizer {
     std::vector<std::vector<int> *> _startmap; // for keeping track of 
     std::vector<std::vector<int> *> _endmap;   // characterisation
 
-    settings *_update;
+    settings *_settings;
 };
 
 class tRepp {

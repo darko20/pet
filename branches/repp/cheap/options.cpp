@@ -81,7 +81,7 @@ void usage(FILE *f)
   fprintf(f, "  `-tagger[=file]' --- POS tag input, using settings in file\n");
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
-  fprintf(f, "  `-tokenize-only[=format]' --- tokenize only, output tokens in format (string, YY, FSC, default: YY)\n");
+  fprintf(f, "  `-preprocess-only[=format]' --- tokenize (and optionally tag) only, output tokens in format (string, YY, FSC, default: YY)\n");
   fprintf(f, "  `-pg[=what]' --- print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
@@ -151,7 +151,7 @@ void usage(FILE *f)
 #define OPTION_TAKE 44
 #define OPTION_REPP 45
 #define OPTION_TAGGER 46
-#define OPTION_TOKENIZE_ONLY 47
+#define OPTION_PREPROCESS_ONLY 47
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -198,7 +198,7 @@ char* parse_options(int argc, char* argv[])
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", optional_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
-    {"tokenize-only", optional_argument, 0, OPTION_TOKENIZE_ONLY},
+    {"preprocess-only", optional_argument, 0, OPTION_PREPROCESS_ONLY},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
@@ -320,14 +320,14 @@ char* parse_options(int argc, char* argv[])
       case OPTION_INTERACTIVE_MORPH:
           set_opt("opt_interactive_morph", true);
           break;
-      case OPTION_TOKENIZE_ONLY:
+      case OPTION_PREPROCESS_ONLY:
         if(optarg != NULL) {
           std::string foo(optarg);
           std::transform(foo.begin(), foo.end(), foo.begin(), ::tolower);
-          set_opt("opt_tokenize_only", foo);
+          set_opt("opt_preprocess_only", foo);
         } // if
         else 
-          set_opt("opt_tokenize_only", std::string("yy"));
+          set_opt("opt_preprocess_only", std::string("yy"));
         break;
       case OPTION_LATTICE:
           set_opt("opt_lattice", true);
