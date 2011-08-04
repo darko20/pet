@@ -162,9 +162,9 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
     //
     // skip over empty lines (which in principle are sentence separators, but
     // in our loosely sychronized coupling (to work around what appears a TnT
-    // for some inputs, e.g. 'the formal chair'), these can occur initially or
-    // finally, i.e. we align inputs and outputs at the token lever, instead
-    // of at the sentence level.
+    // bug for some inputs, e.g. 'the formal chair'), these can either occur
+    // initially or finally, i.e. we align inputs and outputs at the token
+    // level, instead of at the sentence level.
     // 
     if(status == 1 && input[0] == (char)0) continue;
 
