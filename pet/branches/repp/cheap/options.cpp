@@ -473,8 +473,8 @@ char* parse_options(int argc, char* argv[])
       }
       break;
       case OPTION_TAGGER:
-        set_opt("opt_tagger", (optarg != NULL) ? std::string(optarg) 
-          : std::string("null"));
+        set_opt("opt_tagger", 
+                (optarg != NULL) ? std::string(optarg) : std::string("null"));
         break;
 #ifdef YY
       case OPTION_ONE_MEANING:

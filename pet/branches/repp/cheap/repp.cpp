@@ -46,7 +46,7 @@ tReppTokenizer::tReppTokenizer()
     _settings = new settings(name, cheap_settings->base(), "reading");
 
     if(!_settings->valid())
-      throw tError("Unable to locate REPP configuration '" + name + "'.");
+      throw tError("Unable to read REPP configuration '" + name + "'.");
 
     cheap_settings->install(_settings);
   } // if

@@ -188,6 +188,10 @@ struct string_lt_case {
   }
 };
 
+void install_socket_logger(FILE *);
+int socket_write(int, char *);
+int socket_readline(int, char *, int, bool = false);
+
 #ifdef __BORLANDC__
 void print_borland_heap(FILE *f);
 #endif
