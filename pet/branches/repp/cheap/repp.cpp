@@ -32,7 +32,7 @@
 using namespace std;
 
 tReppTokenizer::tReppTokenizer() 
-  : _update(NULL) 
+  : _settings(NULL) 
 {
   //
   // the '-repp' command line option takes an optional argument, which can be
@@ -43,12 +43,12 @@ tReppTokenizer::tReppTokenizer()
   //
   string name = get_opt_string("opt_repp");
   if(!name.empty()) {
-    _update = new settings(name, cheap_settings->base(), "reading");
+    _settings = new settings(name, cheap_settings->base(), "reading");
 
-    if(!_update->valid())
+    if(!_settings->valid())
       throw tError("Unable to locate REPP configuration '" + name + "'.");
 
-    cheap_settings->install(_update);
+    cheap_settings->install(_settings);
   } // if
 
   // sanity check: make sure there is a top-level entry point
@@ -74,10 +74,10 @@ tReppTokenizer::~tReppTokenizer()
     iter != _repps.end(); ++iter)
     delete iter->second;
 
-  if(_update != NULL) {
-    if(cheap_settings != NULL) cheap_settings->uninstall(_update);
-    delete _update;
-    _update = NULL;
+  if(_settings != NULL) {
+    if(cheap_settings != NULL) cheap_settings->uninstall(_settings);
+    delete _settings;
+    _settings = NULL;
   } // if
 }
 

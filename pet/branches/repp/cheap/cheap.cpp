@@ -441,7 +441,7 @@ static void interactive_morphology() {
 
 } // interactive_morphology()
 
-void tokenize_only(const string formatoption) {
+void preprocess_only(const string formatoption) {
   string input;
   int id = 1;
 
@@ -826,7 +826,7 @@ static void init_main_options() {
      "make cheap only run interactive morphology (only morphological rules, "
      "without lexicon)", false);
 
-  managed_opt("opt_tokenize_only",
+  managed_opt("opt_preprocess_only",
     "just tokenize input, output tokens as <format> (string, YY, FSC)",
     string());
 
@@ -1003,9 +1003,9 @@ void process(const char *grammar_file_name) {
       if(get_opt_bool("opt_interactive_morph"))
         interactive_morphology();
       else {
-        string tokformat = get_opt_string("opt_tokenize_only");
+        string tokformat = get_opt_string("opt_preprocess_only");
         if (!tokformat.empty())
-          tokenize_only(tokformat);
+          preprocess_only(tokformat);
         else
           interactive();
       }
