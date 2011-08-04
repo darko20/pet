@@ -27,33 +27,37 @@
 
 #include "cheap.h"
 #include "settings.h"
+#include "options.h"
 #include "logging.h"
+#include "mfile.h"
 
 using namespace std;
 
-tTntCompatTagger::tTntCompatTagger(const string conf, const string
-  &grammar_file_name) :_tnt_settings(NULL) 
+tTntCompatTagger::tTntCompatTagger()
+  : _settings(NULL), _out(-1), _in(-1)
 {
-  if (!conf.empty()) { //update cheap settings using conf file
-    string conffname(find_set_file(conf, SET_EXT, grammar_file_name));
-    if (conffname.empty()) 
-      throw tError("Tagger settings file `" + conf + "' not found.");
-    string  tntset, line;
-    ifstream conffile(conffname.c_str());
-    if (conffile.is_open()) {
-      while (getline(conffile, line)){
-        tntset += line + "\n"; //newline seems necessary with tagger.set
-      }
-    } else {
-      throw tError("Couldn't open tagger settings file `" + conf + "'.");
-    }
-    _tnt_settings = new settings(tntset);
-    cheap_settings->install(_tnt_settings);
-  }
 
-  struct setting *tntsetting;
-  if ((tntsetting = cheap_settings->lookup("tagger-command")) == NULL) {
-    throw tError("No tagger command found. Check tagger-command setting.");
+  //
+  // the '-tagger' command line option takes an optional argument, which can be
+  // a settings file to be read (which, for convenience, will be installed as
+  // an overlay) to the global settings object.  much like all settings files,
+  // the file can be located in either the 'base' directory (where the grammar
+  // file resides), or the general settings directory ('pet/').
+  //
+  string name = get_opt_string("opt_tagger");
+  if(!name.empty() && name != "null") {
+    _settings = new settings(name, cheap_settings->base(), "reading");
+
+    if(!_settings->valid())
+      throw tError("Unable to read tagger configuration '" + name + "'.");
+
+    cheap_settings->install(_settings);
+  } // if
+
+  struct setting *foo;
+  if ((foo = cheap_settings->lookup("tagger-command")) == NULL) {
+    throw tError("No tagger command found. "
+                 "Please check the 'tagger-command' setting.");
   }
 
   int fd_read[2], fd_write[2];
@@ -81,99 +85,107 @@ tTntCompatTagger::tTntCompatTagger(const string conf, const string
     close(fd_read[1]);
 
     string cmd = cheap_settings->lookup("tagger-command")->values[0];
-    if ((tntsetting = cheap_settings->lookup("tagger-arguments")) != NULL) {
-      for (int i = 0; i < tntsetting->n; ++i) {
+    if ((foo = cheap_settings->lookup("tagger-arguments")) != NULL) {
+      for (int i = 0; i < foo->n; ++i) {
         cmd += " ";
-        cmd += tntsetting->values[i];
+        cmd += foo->values[i];
       }
     }
-    //need to run from the shell to expand environment variables
-    //can't use popen(3) since it's unidirectional and we want to read and write
-    //from the tagger, hence execl()
-    execl("/bin/sh", "sh", "-c", cmd.c_str(), (char *) 0);
-//    execl("/home/rdridan/delphin/logon/bin/tnt", "tnt", "-z100", "-v0", 
-//      "/home/rdridan/delphin/logon/coli/tnt/models/wsj", "-", (char *) 0);
+    //
+    // we want to go through a shell to expand environment variables; prefix 
+    // with exec(1), to streamline the process hierarchy.
+    // 
+    string command("exec " + cmd);
+    execl("/bin/sh", "sh", "-c", command.c_str(), (char *) 0);
+    // we should never get here
     perror("tnt");
-    throw tError("Tagger command failed."); //should never get here
-  } else { //parent
+    throw tError("Tagger command failed.");
+  } 
+  else { //parent
     close(fd_write[0]);
     close(fd_read[1]);
-
-    if (! (_taggerwriter_fp = fdopen(fd_write[1], "w"))) {
-      close(fd_write[1]);
-      throw tError("Couldn't open pipe to tagger.");
-    }
-    if (! (_taggerreader_fp = fdopen(fd_read[0], "r"))) {
-      fclose(_taggerwriter_fp);
-      close(fd_read[0]);
-      throw tError("Couldn't open pipe from tagger.");
-    }
+    _out = fd_write[1];
+    _in = fd_read[0];
   }
 }
 
 tTntCompatTagger::~tTntCompatTagger()
 {
-  if (_taggerwriter_fp)
-    fclose(_taggerwriter_fp);
-  if (_taggerreader_fp)
-    fclose(_taggerreader_fp);
-  if (_taggerpid > 0)
-    kill(_taggerpid, SIGTERM);
+  if(_out >= 0) close(_out);
+  if(_in >= 0) close(_in);
+  _out = _in = -1;
 
-  if (cheap_settings != NULL && _tnt_settings != NULL) {
-    cheap_settings->uninstall(_tnt_settings);
-    delete _tnt_settings;
-  }
+  if (_taggerpid > 0) kill(_taggerpid, SIGTERM);
+
+  if(_settings != NULL) {
+    if(cheap_settings != NULL) cheap_settings->uninstall(_settings);
+    delete _settings;
+    _settings = NULL;
+  } // if
 }
 
 void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
 {
+  struct MFILE *mstream = mopen();
   //one token per line
   for (inp_iterator iter = tokens_result.begin();
-    iter != tokens_result.end(); ++iter)
-    fprintf(_taggerwriter_fp, "%s\n", (*iter)->orth().c_str());
-  if (!fprintf(_taggerwriter_fp, "\n")) {
-    perror("fprintf");
-    exit(1);
-  }
-  fflush(_taggerwriter_fp);
+       iter != tokens_result.end();
+       ++iter)
+    mprintf(mstream, "%s\n", (*iter)->orth().c_str());
+  mprintf(mstream, "\n");
+  socket_write(_out, mstring(mstream));
+  mclose(mstream);
 
-  string line;
-  int c,line_count = 0;
-  inp_iterator tokenit = tokens_result.begin();
-  while ((c = fgetc(_taggerreader_fp)) != EOF) {
-//    cerr << "c is `" << c << "'" << endl;
-    if (c == '\n') {
-      if (line.empty()) {
- //       cerr << "breaking" << endl;
-        break; // empty line == end of sentence
-      }
-  //    cerr << "line is `" << line << "'" << endl;
-      istringstream tagline(line);
-      string tok, tag;
-      double prob;
-      tagline >> tok;
-      if (tokenit != tokens_result.end()) {
-        if (tok.compare((*tokenit)->orth()) != 0)
-          throw tError("Tagger error: " + tok + " vs " + (*tokenit)->orth());
-      } else
-          throw tError("Tagger error: no input item for " + tok +".");
-      postags poss;
-      while (!tagline.eof()) {
-        tagline >> tag >> prob;
-        if (tagline.fail())
-          throw tError("Malformed tagger ouput: " + line + ".");
-        poss.add(tag, prob);
-        (*tokenit)->set_in_postags(poss);
-      }
-      ++line_count;
-      ++tokenit;
-      line.clear();
-//      cerr << "cleared line" << endl;
-    } else {
-      line += c;
-    }
-  }
-//  cerr << "got here" << endl;
+  static int size = 4096;
+  static char *input = (char *)malloc(size);
+  assert(input != NULL);
+
+  inp_iterator token = tokens_result.begin();
+  while(token != tokens_result.end()) {
+
+    //
+    // read one line of text from our input pipe, increasing our input buffer
+    // as needed.
+    //
+    int status = socket_readline(_in, input, size);
+    while(status > size) {
+      status = size;
+      size += size;
+      input = (char *)realloc(input, size);
+      assert(input != NULL);
+      status += socket_readline(_in, &input[status], size - status);
+    } /* if */
+
+    if(status <= 0)
+      throw tError("low-level communication failure with tagger process");
+
+    //
+    // skip over empty lines (which in principle are sentence separators, but
+    // in our loosely sychronized coupling (to work around what appears a TnT
+    // for some inputs, e.g. 'the formal chair'), these can occur initially or
+    // finally, i.e. we align inputs and outputs at the token lever, instead
+    // of at the sentence level.
+    // 
+    if(status == 1 && input[0] == (char)0) continue;
+
+    istringstream line(input);
+    string form, tag;
+    double probability;
+    line >> form;
+    if (form.compare((*token)->orth()))
+      throw tError("Tagger error: |" 
+                   + form + "| vs. |" + (*token)->orth() + "|.");
+    
+    postags poss;
+    while (!line.eof()) {
+      line >> tag >> probability;
+      if (line.fail())
+        throw tError("Malformed tagger ouput: " + string(input) + ".");
+      poss.add(tag, probability);
+      (*token)->set_in_postags(poss);
+    } // while
+    ++token;
+    
+  } // while
 }
 

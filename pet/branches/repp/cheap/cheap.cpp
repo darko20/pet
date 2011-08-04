@@ -699,12 +699,9 @@ bool load_grammar(string initial_name) {
     tok->set_comment_passthrough(get_opt_bool("opt_comment_passthrough"));
     Lexparser.register_tokenizer(tok);
 
-	 string taggeropt = get_opt_string("opt_tagger");
-    if (! (taggeropt.empty())) {
-      if (taggeropt.compare("null") == 0)
-        taggeropt = string(); //opt set, but no conf file given
-      tPOSTagger *postagger = new tTntCompatTagger(taggeropt, 
-        grammar_file_name);
+    string taggeropt = get_opt_string("opt_tagger");
+    if (!taggeropt.empty()) {
+      tPOSTagger *postagger = new tTntCompatTagger();
       Lexparser.register_tagger(postagger);
     }
 

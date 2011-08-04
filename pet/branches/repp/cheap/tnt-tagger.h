@@ -27,17 +27,15 @@
 class tTntCompatTagger : public tPOSTagger {
   
   public:
-    tTntCompatTagger(const std::string conf, const std::string
-      &grammar_file_name);
+    tTntCompatTagger();
     ~tTntCompatTagger(); 
     virtual void compute_tags(myString s, inp_list &tokens_result);
     virtual std::string description() { return "TNT-like tagger"; }
     
   private:
-    settings *_tnt_settings;
+    settings *_settings;
     pid_t _taggerpid;
-    FILE * _taggerwriter_fp;
-    FILE * _taggerreader_fp;
+    int _out, _in;
 };
 
 #endif
