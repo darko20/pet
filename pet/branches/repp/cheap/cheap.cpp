@@ -474,27 +474,24 @@ void preprocess_only(const string formatoption) {
       tAbstractItemPrinter *ip;
       switch (format) {
         case FORMAT_FSC:
-          {
-            tItemFSCPrinter *fip = new tItemFSCPrinter(cout);
-            ip = fip;
-          }
+				  ip = new tItemFSCPrinter(cout);
           break;
         case FORMAT_YY:
-          {
-            tItemYYPrinter *yip = new tItemYYPrinter(cout);
-            ip = yip;
-          }
+			    ip = new tItemYYPrinter(cout);
           break;
         case FORMAT_STRING:
-          {
-            tItemStringPrinter *sip = new tItemStringPrinter(cout);
-            ip = sip;
-          }
+          ip = new tItemStringPrinter(cout);
           break;
       }
 
       if (format == FORMAT_FSC) {
         //print header
+        cout << "<?xml version='1.0' encoding='utf-8'?>" << endl;
+        cout << "<fsc version=\"1.0\" >" << endl;
+        cout << "<chart id=\"" << id << "\" >" << endl;
+        cout << "<text><![CDATA[" << input << "]]></text>" << endl;
+        cout << "<lattice init=\"v0\" final=\"v" << input_items.size() 
+          << "\">" << endl;
       }
       for(inp_iterator r = input_items.begin(); r != input_items.end(); ++r) {
         if (r != input_items.begin() && format != FORMAT_FSC) cout << " ";
@@ -502,9 +499,11 @@ void preprocess_only(const string formatoption) {
       }
       if (format == FORMAT_FSC) {
         //print footer
-      } else {
-        cout << endl;
+        cout << "</lattice>" << endl;
+        cout << "</chart>" << endl;
+        cout << "</fsc>" << endl;
       }
+      cout << endl;
     } //try
     catch (tError e) {
       // shouldn't this be fstatus?? it's a "return value"
