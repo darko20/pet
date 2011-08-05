@@ -1002,8 +1002,11 @@ void process(const char *grammar_file_name) {
       else {
         string format = get_opt_string("opt_preprocess_only");
         if(!format.empty()) {
-          if(format == "true") 
-            format = cheap_settings->value("tokenizer-output");
+          if(format == "true") {
+            const char* foo = cheap_settings->value("tokenizer-output");
+            if(foo != NULL) format = foo;
+            else format.clear();
+          } // if
           if(format.empty()) format = "yy";
           preprocess_only(format);
         } // if

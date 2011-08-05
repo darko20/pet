@@ -858,7 +858,8 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
 
   tAbstractItemPrinter *sp = NULL;
   ostringstream buffer;
-  string format = cheap_settings->value("tokenizer-output");
+  const char *foo = cheap_settings->value("tokenizer-output");
+  string format = (foo != NULL ? foo : "");
   if(!format.empty()) {
     if(format == "string")
       sp = new tItemStringPrinter(buffer);
