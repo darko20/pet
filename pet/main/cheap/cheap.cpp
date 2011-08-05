@@ -758,7 +758,7 @@ static void init_main_options() {
   // \todo should go to yy.cpp, but this produces no code and the call is
   // optimized away
   managed_opt("opt_yy",
-     "old shit that should be thrown out or properly reengineered and renamed.",
+     "lovingly designed and (once) valuable code from the YY Software Corporation; should be reviewed and reduced to what is actually supported nowadays.",
      false);
 }
 
