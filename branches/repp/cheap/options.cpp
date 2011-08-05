@@ -327,7 +327,7 @@ char* parse_options(int argc, char* argv[])
           set_opt("opt_preprocess_only", foo);
         } // if
         else 
-          set_opt("opt_preprocess_only", std::string("yy"));
+          set_opt("opt_preprocess_only", std::string("true"));
         break;
       case OPTION_LATTICE:
           set_opt("opt_lattice", true);
