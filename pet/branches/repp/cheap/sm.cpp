@@ -1106,24 +1106,26 @@ tPCFG::score_hypothesis(struct tHypothesis* hypo, std::list<class tItem*> path, 
     if (newpath.size() > (unsigned)gplevel)
       newpath.pop_front();
     for (list<tHypothesis*>::iterator hypo_dtr = hypo->hypo_dtrs.begin();
-	 hypo_dtr != hypo->hypo_dtrs.end(); ++hypo_dtr) {
+         hypo_dtr != hypo->hypo_dtrs.end(); ++hypo_dtr) {
       r.push_back((*hypo_dtr)->edge->identity());
       if ((*hypo_dtr)->scores.find(newpath) == (*hypo_dtr)->scores.end())
-	score_hypothesis(*hypo_dtr, newpath, gplevel);
+        score_hypothesis(*hypo_dtr, newpath, gplevel);
       total = combineScores(total, (*hypo_dtr)->scores[newpath]);
     }
 
-    //    if (_allow_unary_rules || (hypo->edge->rule() != NULL && hypo->edge->rule()->arity() > 1)) { // in case unary rules are discarded, skip unary branches
-//       bool consider_rule = true;
-//       if (!_allow_lexical_rules) { // in case lexical rules are not allowed
-// 	for (std::list<grammar_rule*>::const_iterator r = G()->lexrules().begin();
-// 	     r != G()->lexrules().end(); ++r) // check whether this is a lexical rule
-// 	  if (hypo->edge->rule() == (*r)) {
-// 	    consider_rule = false;
-// 	    break;
-// 	  }
-//       }
-//       if (consider_rule)
+#if 0
+    if (_allow_unary_rules || (hypo->edge->rule() != NULL && hypo->edge->rule()->arity() > 1)) { // in case unary rules are discarded, skip unary branches
+       bool consider_rule = true;
+       if (!_allow_lexical_rules) { // in case lexical rules are not allowed
+         for (std::list<grammar_rule*>::const_iterator r = G()->lexrules().begin();
+              r != G()->lexrules().end(); ++r) // check whether this is a lexical rule
+           if (hypo->edge->rule() == (*r)) {
+             consider_rule = false;
+             break;
+           }
+       }
+#endif
+       if (consider_rule)
     total = combineScores(total, score(r));
     // }
   }
@@ -1255,7 +1257,7 @@ tPCFG::parseFeatures(int nFeatures) {
   int n = 0;
   while (LA(0)->tag != T_EOF) {
     if (LA(0)->tag == T_COLON &&
-	is_keyword(LA(1), "end"))
+        is_keyword(LA(1), "end"))
       break;
 
     parseFeature(n++);
@@ -1287,24 +1289,24 @@ tPCFG::parseFeature(int n) {
       char *endptr;
       int t = strtol(tmp, &endptr, 10);
       if (endptr == 0 || *endptr != 0) {
-	// This is not an integer, so it must be a type/instance.
-	char *inst = (char *) malloc(strlen(tmp)+2);
-	strcpy(inst, "$");
-	strcat(inst, tmp);
-	t = lookup_type(inst);
-	if(t == -1)
-	  t = lookup_type(inst+1);
-	free(inst);
+        // This is not an integer, so it must be a type/instance.
+        char *inst = (char *) malloc(strlen(tmp)+2);
+        strcpy(inst, "$");
+        strcat(inst, tmp);
+        t = lookup_type(inst);
+        if(t == -1)
+          t = lookup_type(inst+1);
+        free(inst);
 
-	if(t == -1) {
-	  // LOG(logSM, ERROR, "Unknown type/instance `" << tmp
+        if(t == -1) {
+          // LOG(logSM, ERROR, "Unknown type/instance `" << tmp
           //     << "' in rule #" << n);
           fprintf(stderr, "Unknown type/instance `%s' in rule #%d\n",
-		  tmp, n);
-	  good = false;
-	}
-	else {
-	  v.push_back(map()->typeToSubfeature(t));
+                  tmp, n);
+          good = false;
+        }
+        else {
+          v.push_back(map()->typeToSubfeature(t));
           //
           // ignore unary rules that are not syntactic rules, for the moment;
           // except for pseudo-rules corresponding to grammar start symbols.
@@ -1315,11 +1317,11 @@ tPCFG::parseFeature(int n) {
               && !Grammar->root(t))
             goodrule = false;
           rule.push_back(t);
-	}
+        }
       }
       else {
-	// This is an integer.
-	v.push_back(map()->intToSubfeature(t));
+        // This is an integer.
+        v.push_back(map()->intToSubfeature(t));
       }
       free(tmp);
     }
@@ -1621,7 +1623,7 @@ tGM::parseFeatures(int nFeatures) {
   int n = 0;
   while (LA(0)->tag != T_EOF) {
     if (LA(0)->tag == T_COLON &&
-	is_keyword(LA(1), "end"))
+        is_keyword(LA(1), "end"))
       break;
 
     parseFeature(n++);
@@ -1649,26 +1651,26 @@ tGM::parseFeature(int n) {
       char *endptr;
       int t = strtol(tmp, &endptr, 10);
       if (endptr == 0 || *endptr != 0) {
-	// This is not an integer, so it must be a type/instance.
-	char *inst = (char *) malloc(strlen(tmp)+2);
-	strcpy(inst, "$");
-	strcat(inst, tmp);
-	t = lookup_type(inst);
-	if(t == -1)
-	  t = lookup_type(inst+1);
-	free(inst);
+        // This is not an integer, so it must be a type/instance.
+        char *inst = (char *) malloc(strlen(tmp)+2);
+        strcpy(inst, "$");
+        strcat(inst, tmp);
+        t = lookup_type(inst);
+        if(t == -1)
+          t = lookup_type(inst+1);
+        free(inst);
 
-	if(t == -1) {
+        if(t == -1) {
           fprintf(stderr, "Unknown type/instance `%s' in rule #%d\n", tmp, n);
-	  good = false;
-	}
-	else {
-	  rule.push_back(t);
-	}
+          good = false;
+        }
+        else {
+          rule.push_back(t);
+        }
       }
       else {
-	// This is an integer.
-	//v.push_back(map()->intToSubfeature(t));
+        // This is an integer.
+        //v.push_back(map()->intToSubfeature(t));
       }
       free(tmp);
     }
