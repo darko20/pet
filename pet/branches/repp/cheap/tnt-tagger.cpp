@@ -84,7 +84,7 @@ tTntCompatTagger::tTntCompatTagger()
     dup2(fd_read[1], 1); //map reading pipe to tagger stdout
     close(fd_read[1]);
 
-    string cmd = cheap_settings->lookup("tagger-command")->values[0];
+    string cmd(string("exec ") + cheap_settings->value("tagger-command"));
     if ((foo = cheap_settings->lookup("tagger-arguments")) != NULL) {
       for (int i = 0; i < foo->n; ++i) {
         cmd += " ";
@@ -93,10 +93,9 @@ tTntCompatTagger::tTntCompatTagger()
     }
     //
     // we want to go through a shell to expand environment variables; prefix 
-    // with exec(1), to streamline the process hierarchy.
+    // with exec(1) (see above), to streamline the process hierarchy.
     // 
-    string command("exec " + cmd);
-    execl("/bin/sh", "sh", "-c", command.c_str(), (char *) 0);
+    execl("/bin/sh", "sh", "-c", cmd.c_str(), (char *) 0);
     // we should never get here
     perror("tnt");
     throw tError("Tagger command failed.");

@@ -1000,9 +1000,13 @@ void process(const char *grammar_file_name) {
       if(get_opt_bool("opt_interactive_morph"))
         interactive_morphology();
       else {
-        string tokformat = get_opt_string("opt_preprocess_only");
-        if (!tokformat.empty())
-          preprocess_only(tokformat);
+        string format = get_opt_string("opt_preprocess_only");
+        if(!format.empty()) {
+          if(format == "true") 
+            format = cheap_settings->value("tokenizer-output");
+          if(format.empty()) format = "";
+          preprocess_only(format);
+        } // if
         else
           interactive();
       }

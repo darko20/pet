@@ -66,6 +66,8 @@ class statistics
  public:
   /** item id */
   int id;
+  /** results of preprocessing this item (before and after token mapping) */
+  std::string p_input, p_tokens;
   /** nr of trees (packed readings) */
   int trees;
   /** nr of pseudo-trees (packed pseudo-readings) */
@@ -203,10 +205,10 @@ class tsdb_result
   /** passive items in this result */
   int r_pedges;
 
-  /** derivation tree for this reading (v1) */
+  /** derivation tree for this reading ([incr tsdb()] protocol v1) */
   std::string derivation;
 
-  /** edge id for derivation (v2) */
+  /** edge id for derivation ([incr tsdb()] protocol v2) */
   int edge_id;
 
   /** surface string (e.g. realization) */
@@ -267,7 +269,8 @@ class tsdb_parse
 {
  public:
     tsdb_parse()
-      : parse_id(-1), run_id(-1), i_id(-1), trees(-1), readings(-1),
+      : parse_id(-1), run_id(-1), i_id(-1), p_input(), p_tokens(), 
+        trees(-1), readings(-1),
         mtcpu(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), 
         words(-1),
         l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
@@ -319,6 +322,8 @@ class tsdb_parse
   int run_id;
   /** item parsed */
   int i_id;
+  /** results of preprocessing this item (before and after token mapping) */
+  std::string p_input, p_tokens;
   /** number of trees (packed readings) */
   int trees;
   /** number of readings obtained */
