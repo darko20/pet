@@ -488,8 +488,7 @@ char* parse_options(int argc, char* argv[])
           set_opt_from_string("opt_tok", "yy");
           break;
 #endif
-	
-        }
+      }
     }
 
   if( get_opt_bool("opt_hyper") &&

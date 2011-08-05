@@ -474,10 +474,10 @@ void preprocess_only(const string formatoption) {
       tAbstractItemPrinter *ip;
       switch (format) {
         case FORMAT_FSC:
-				  ip = new tItemFSCPrinter(cout);
+          ip = new tItemFSCPrinter(cout);
           break;
         case FORMAT_YY:
-			    ip = new tItemYYPrinter(cout);
+          ip = new tItemYYPrinter(cout);
           break;
         case FORMAT_STRING:
           ip = new tItemStringPrinter(cout);
@@ -631,7 +631,7 @@ bool load_grammar(string initial_name) {
       }
       break;
 
-	 case TOKENIZER_REPP:
+   case TOKENIZER_REPP:
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
     {
       tok = new tReppTokenizer();
@@ -863,8 +863,9 @@ static void init_main_options() {
   managed_opt("opt_yy",
      "old shit that should be thrown out or properly reengineered and renamed.",
      false);
-	managed_opt("opt_repp",
-		"Tokenize using REPP, with settings in the file argument", string());
+  managed_opt("opt_repp",
+              "Tokenize using REPP, with settings in the file argument", 
+              string());
   managed_opt("opt_tagger",
     "POS tag input, using settings in file argument or settings file",
     string());

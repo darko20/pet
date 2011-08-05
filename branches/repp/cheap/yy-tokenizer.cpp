@@ -343,7 +343,7 @@ tYYTokenizer::read_token()
         break;
       }
       else if(token_class == SKIP_TOKEN_CLASS)
-	break;
+        break;
       else
         throw tError("yy_tokenizer: illegal \"null\" spec");
     }
