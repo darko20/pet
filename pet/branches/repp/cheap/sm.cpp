@@ -1124,10 +1124,9 @@ tPCFG::score_hypothesis(struct tHypothesis* hypo, std::list<class tItem*> path, 
              break;
            }
        }
-#endif
        if (consider_rule)
+#endif
     total = combineScores(total, score(r));
-    // }
   }
   hypo->scores[path] = total;
   return hypo->scores[path];
