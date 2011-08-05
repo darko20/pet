@@ -1003,7 +1003,7 @@ void process(const char *grammar_file_name) {
         if(!format.empty()) {
           if(format == "true") 
             format = cheap_settings->value("tokenizer-output");
-          if(format.empty()) format = "";
+          if(format.empty()) format = "yy";
           preprocess_only(format);
         } // if
         else
