@@ -171,10 +171,19 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
     string form, tag;
     double probability;
     line >> form;
+#if 0
+    // _fix_me_
+    // with the addition of a 'tagger-mapping' mechanism (to be implemented),
+    // the surface form given to TnT and coming back can differ from what was
+    // in the original input; possibly, we should record the mapping result in
+    // our input items, but with (potentially) multiple taggers and (as of now)
+    // no downstream need to access the mapped strings, why bother?
+    //                                                           (6-aug-11; oe)
     if (form.compare((*token)->orth()))
       throw tError("Tagger error: |" 
                    + form + "| vs. |" + (*token)->orth() + "|.");
-    
+#endif
+
     postags poss;
     while (!line.eof()) {
       line >> tag >> probability;
