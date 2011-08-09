@@ -60,6 +60,9 @@ tTntCompatTagger::tTntCompatTagger()
                  "Please check the 'tagger-command' setting.");
   }
 
+  if ((foo = cheap_settings->lookup("tagger-sent-break")) != NULL )
+    _sentbreak = foo->values[0];
+
   int fd_read[2], fd_write[2];
   if (pipe(fd_write) < 0) 
     throw tError("Can't open a writing pipe.");
@@ -126,6 +129,8 @@ tTntCompatTagger::~tTntCompatTagger()
 void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
 {
   struct MFILE *mstream = mopen();
+  if (!_sentbreak.empty()) //input sentence start sentinel
+    mprintf(mstream, "%s\n", _sentbreak.c_str());
   //one token per line
   for (inp_iterator iter = tokens_result.begin();
        iter != tokens_result.end();
@@ -166,6 +171,13 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
     // level, instead of at the sentence level.
     // 
     if(status == 1 && input[0] == (char)0) continue;
+
+    if ((! _sentbreak.empty()) && token == tokens_result.begin() 
+      && input[0] == _sentbreak.at(0)) {
+      int len = _sentbreak.length();
+      if (status >= len && _sentbreak.compare(0, len, input, len) == 0) 
+          continue; //sentence start sentinel
+    }
 
     istringstream line(input);
     string form, tag;
