@@ -135,7 +135,7 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
   for (inp_iterator iter = tokens_result.begin();
        iter != tokens_result.end();
        ++iter)
-    mprintf(mstream, "%s\n", (*iter)->orth().c_str());
+    mprintf(mstream, "%s\n", map_for_tagger((*iter)->orth().c_str()));
   mprintf(mstream, "\n");
   socket_write(_out, mstring(mstream));
   mclose(mstream);
@@ -207,5 +207,19 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
     ++token;
     
   } // while
+}
+
+const char *tTntCompatTagger::map_for_tagger(const string form)
+{
+  setting *set = cheap_settings->lookup("tagger-mapping");
+  if (set == NULL) return form.c_str();
+  for (int i = 0; i < set->n; i+=2) {
+    if(i+2 > set->n) {
+      LOG(logAppl, WARN, "incomplete last entry in tagger mapping - ignored");
+      break;
+    }
+    if (form.compare(set->values[i]) == 0) return set->values[i+1];
+  }
+  return form.c_str();
 }
 
