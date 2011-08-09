@@ -55,13 +55,15 @@ tTntCompatTagger::tTntCompatTagger()
   } // if
 
   struct setting *foo;
-  if ((foo = cheap_settings->lookup("tagger-command")) == NULL) {
+  if ((foo = cheap_settings->lookup("tnt-command")) == NULL) {
     throw tError("No tagger command found. "
-                 "Please check the 'tagger-command' setting.");
+                 "Please check the 'tnt-command' setting.");
   }
 
-  if ((foo = cheap_settings->lookup("tagger-sent-break")) != NULL )
-    _sentbreak = foo->values[0];
+  if ((foo = cheap_settings->lookup("tnt-utterance-start")) != NULL )
+    _utterance_start = foo->values[0];
+  if ((foo = cheap_settings->lookup("tnt-utterance-end")) != NULL )
+    _utterance_end = foo->values[0];
 
   int fd_read[2], fd_write[2];
   if (pipe(fd_write) < 0) 
@@ -87,8 +89,8 @@ tTntCompatTagger::tTntCompatTagger()
     dup2(fd_read[1], 1); //map reading pipe to tagger stdout
     close(fd_read[1]);
 
-    string cmd(string("exec ") + cheap_settings->value("tagger-command"));
-    if ((foo = cheap_settings->lookup("tagger-arguments")) != NULL) {
+    string cmd(string("exec ") + cheap_settings->value("tnt-command"));
+    if ((foo = cheap_settings->lookup("tnt-arguments")) != NULL) {
       for (int i = 0; i < foo->n; ++i) {
         cmd += " ";
         cmd += foo->values[i];
@@ -129,13 +131,15 @@ tTntCompatTagger::~tTntCompatTagger()
 void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
 {
   struct MFILE *mstream = mopen();
-  if (!_sentbreak.empty()) //input sentence start sentinel
-    mprintf(mstream, "%s\n", _sentbreak.c_str());
+  if (!_utterance_start.empty()) //input sentence start sentinel
+    mprintf(mstream, "%s\n", _utterance_start.c_str());
   //one token per line
   for (inp_iterator iter = tokens_result.begin();
        iter != tokens_result.end();
        ++iter)
     mprintf(mstream, "%s\n", map_for_tagger((*iter)->orth().c_str()));
+  if (!_utterance_end.empty()) //input sentence end sentinel
+    mprintf(mstream, "%s\n", _utterance_end.c_str());
   mprintf(mstream, "\n");
   socket_write(_out, mstring(mstream));
   mclose(mstream);
@@ -172,10 +176,10 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
     // 
     if(status == 1 && input[0] == (char)0) continue;
 
-    if ((! _sentbreak.empty()) && token == tokens_result.begin() 
-      && input[0] == _sentbreak.at(0)) {
-      int len = _sentbreak.length();
-      if (status >= len && _sentbreak.compare(0, len, input, len) == 0) 
+    if ((! _utterance_start.empty()) && token == tokens_result.begin() 
+      && input[0] == _utterance_start.at(0)) {
+      int len = _utterance_start.length();
+      if (status >= len && _utterance_start.compare(0, len, input, len) == 0) 
           continue; //sentence start sentinel
     }
 
@@ -185,7 +189,7 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
     line >> form;
 #if 0
     // _fix_me_
-    // with the addition of a 'tagger-mapping' mechanism (to be implemented),
+    // with the addition of a 'tnt-mapping' mechanism (to be implemented),
     // the surface form given to TnT and coming back can differ from what was
     // in the original input; possibly, we should record the mapping result in
     // our input items, but with (potentially) multiple taggers and (as of now)
@@ -205,13 +209,33 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
       (*token)->set_in_postags(poss);
     } // while
     ++token;
-    
+
+    if(token == tokens_result.end() && (! _utterance_end.empty())) {
+      //read utterance end token
+      status = socket_readline(_in, input, size);
+      while(status > size) {
+        status = size;
+        size += size;
+        input = (char *)realloc(input, size);
+        assert(input != NULL);
+        status += socket_readline(_in, &input[status], size - status);
+      } /* if */
+
+      if(status <= 0)
+        throw tError("low-level communication failure with tagger process");
+
+      int len = _utterance_end.length();
+      if (status >= len && _utterance_end.compare(0, len, input, len) == 0) 
+        continue; //sentence end sentinel
+      else
+        LOG(logAppl, WARN, "Got '" << input << "' instead of utterance end.");
+    }
   } // while
 }
 
 const char *tTntCompatTagger::map_for_tagger(const string form)
 {
-  setting *set = cheap_settings->lookup("tagger-mapping");
+  setting *set = cheap_settings->lookup("tnt-mapping");
   if (set == NULL) return form.c_str();
   for (int i = 0; i < set->n; i+=2) {
     if(i+2 > set->n) {

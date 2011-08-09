@@ -36,7 +36,8 @@ class tTntCompatTagger : public tPOSTagger {
     settings *_settings;
     pid_t _taggerpid;
     int _out, _in;
-    std::string _sentbreak; //sentinel to mark start of sentence
+    std::string _utterance_start; //sentinel to mark start of sentence
+    std::string _utterance_end; //sentinel to mark end of sentence
     const char *map_for_tagger(const std::string form);
 };
 
