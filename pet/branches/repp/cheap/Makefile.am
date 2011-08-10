@@ -83,7 +83,7 @@ cheaplibsources = \
 	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	repp.cpp repp.h \
-	tnt-tagger.cpp tnt-tagger.h \
+	tagger.cpp tagger.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
 	$(top_srcdir)/common/configs.cpp \
