@@ -34,7 +34,7 @@
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
 #include "repp.h"
 #endif
-#include "tnt-tagger.h"
+#include "tagger.h"
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
 #include "pic-tokenizer.h"
