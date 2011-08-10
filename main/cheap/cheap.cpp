@@ -31,6 +31,10 @@
 #include "lexparser.h"
 #include "morph.h"
 #include "yy-tokenizer.h"
+#ifdef HAVE_BOOST_REGEX_ICU_HPP
+#include "repp.h"
+#endif
+#include "tagger.h"
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
 #include "pic-tokenizer.h"
@@ -437,6 +441,82 @@ static void interactive_morphology() {
 
 } // interactive_morphology()
 
+void preprocess_only(const string formatoption) {
+  string input;
+  int id = 1;
+
+  item_format format;
+  if (formatoption.compare("string") == 0) {
+    format = FORMAT_STRING;
+  } else {
+    if (formatoption.compare("yy") == 0) {
+      format = FORMAT_YY;
+    } else {
+      if (formatoption.compare("fsc") == 0) {
+        format = FORMAT_FSC;
+      } else {
+        cerr << "Unknown format " << formatoption << "." << endl;
+        exit(1);
+      }
+    }
+  }
+
+  string infile = get_opt_string("opt_infile");
+  ifstream ifs;
+  ifs.open(infile.c_str());
+  istream& lexinput = ifs ? ifs : cin;
+  while(Lexparser.next_input(lexinput, input)) {
+    try {
+      fs_alloc_state FSAS;
+      inp_list input_items;
+      Lexparser.process_input(input, input_items, false);
+
+      tAbstractItemPrinter *ip;
+      switch (format) {
+        case FORMAT_FSC:
+          ip = new tItemFSCPrinter(cout);
+          break;
+        case FORMAT_YY:
+          ip = new tItemYYPrinter(cout);
+          break;
+        case FORMAT_STRING:
+          ip = new tItemStringPrinter(cout);
+          break;
+      }
+
+      if (format == FORMAT_FSC) {
+        //print header
+        cout << "<?xml version='1.0' encoding='utf-8'?>" << endl;
+        cout << "<fsc version=\"1.0\" >" << endl;
+        cout << "<chart id=\"" << id << "\" >" << endl;
+        cout << "<text><![CDATA[" << input << "]]></text>" << endl;
+        cout << "<lattice init=\"v0\" final=\"v" << input_items.size() 
+          << "\">" << endl;
+      }
+      for(inp_iterator r = input_items.begin(); r != input_items.end(); ++r) {
+        if (r != input_items.begin() && format != FORMAT_FSC) cout << " ";
+        ip->print(*r);
+      }
+      if (format == FORMAT_FSC) {
+        //print footer
+        cout << "</lattice>" << endl;
+        cout << "</chart>" << endl;
+        cout << "</fsc>" << endl;
+      }
+      cout << endl;
+    } //try
+    catch (tError e) {
+      // shouldn't this be fstatus?? it's a "return value"
+      fprintf(ferr, "%s\n", e.getMessage().c_str());
+    }
+    fflush(fstatus);
+
+    ++id;
+  }
+}
+    
+
+
 void print_grammar(int what, ostream &out) {
   if(what == 's' || what == 'a') {
     out << ";; TYPE NAMES (PRINT NAMES) ==========================" << endl;
@@ -481,6 +561,7 @@ static void cleanup() {
 #endif
   delete Grammar;
   delete cheap_settings;
+  cheap_settings = NULL;
   mrs_finalize();
 }
 
@@ -550,6 +631,18 @@ bool load_grammar(string initial_name) {
       }
       break;
 
+   case TOKENIZER_REPP:
+#ifdef HAVE_BOOST_REGEX_ICU_HPP
+    {
+      tok = new tReppTokenizer();
+    }
+    break;
+#else
+      LOG(logAppl, FATAL, 
+          "No Unicode-enabled regexp support compiled into this cheap.");
+      return true;
+#endif
+
     case TOKENIZER_PIC:
     case TOKENIZER_PIC_COUNTS:
 #ifdef HAVE_XML
@@ -604,6 +697,12 @@ bool load_grammar(string initial_name) {
     }
     tok->set_comment_passthrough(get_opt_bool("opt_comment_passthrough"));
     Lexparser.register_tokenizer(tok);
+
+    string taggeropt = get_opt_string("opt_tagger");
+    if (!taggeropt.empty()) {
+      tPOSTagger *postagger = new tTntCompatTagger();
+      Lexparser.register_tagger(postagger);
+    }
 
 #ifdef HAVE_MRS
     //
@@ -723,6 +822,10 @@ static void init_main_options() {
      "make cheap only run interactive morphology (only morphological rules, "
      "without lexicon)", false);
 
+  managed_opt("opt_preprocess_only",
+    "just tokenize input, output tokens as <format> (string, YY, FSC)",
+    string());
+
   managed_opt("opt_online_morph",
     "use the internal morphology (the regular expression style one)", true);
 
@@ -760,6 +863,12 @@ static void init_main_options() {
   managed_opt("opt_yy",
      "lovingly designed and (once) valuable code from the YY Software Corporation; should be reviewed and reduced to what is actually supported nowadays.",
      false);
+  managed_opt("opt_repp",
+              "Tokenize using REPP, with settings in the file argument", 
+              string());
+  managed_opt("opt_tagger",
+    "POS tag input, using settings in file argument or settings file",
+    string());
 }
 
 /** general setup of globals, etc. */
@@ -886,11 +995,27 @@ void process(const char *grammar_file_name) {
     // will not return if a server was started
     eventually_start_server(grammar_file_name);
 
-    load_grammar(grammar_file_name);
-    if(get_opt_bool("opt_interactive_morph"))
-      interactive_morphology();
-    else
-      interactive();
+    //why do we never check if grammar loaded? adding check here- rd, 3/8/11
+    if (!load_grammar(grammar_file_name)) {
+      if(get_opt_bool("opt_interactive_morph"))
+        interactive_morphology();
+      else {
+        string format = get_opt_string("opt_preprocess_only");
+        if(!format.empty()) {
+          if(format == "true") {
+            const char* foo = cheap_settings->value("tokenizer-output");
+            if(foo != NULL) format = foo;
+            else format.clear();
+          } // if
+          if(format.empty()) format = "yy";
+          preprocess_only(format);
+        } // if
+        else
+          interactive();
+      }
+    } else {
+      throw tError("Couldn't successfully load grammar, exiting.");
+    }
   }
 }
 
@@ -910,7 +1035,7 @@ int main(int argc, char* argv[]) {
        process(grammar_file_name);
   }
   catch (tError err) {
-    cerr << err.getMessage();
+    cerr << err.getMessage() << endl;
     exit(1);
   }
 

@@ -65,6 +65,8 @@ void
 statistics::reset()
 {
   id = 0;
+  p_input.clear();
+  p_tokens.clear();
   trees = 0;
   rtrees = 0;
   readings = 0;
@@ -456,6 +458,12 @@ tsdb_rule_stat::capi_print()
 void
 tsdb_parse::capi_print()
 {
+    if(!p_input.empty())
+      capi_printf("(:p-input . \"%s\")", escape_string(p_input).c_str());
+
+    if(!p_tokens.empty())
+      capi_printf("(:p-tokens . \"%s\")", escape_string(p_tokens).c_str());
+
     if(!results.empty())
     {
         capi_printf("(:results . (\n");
@@ -502,7 +510,7 @@ tsdb_parse::capi_print()
         capi_printf("(:tcpu . %d) ", tcpu);
 
     if(tgc != -1)
-    capi_printf("(:tgc . %d) ", tgc);
+      capi_printf("(:tgc . %d) ", tgc);
 
     if(treal != -1)
         capi_printf("(:treal . %d) ", treal);
@@ -523,7 +531,7 @@ tsdb_parse::capi_print()
         capi_printf("(:aedges . %d) ", aedges);
 
     if(pedges != -1)
-    capi_printf("(:pedges . %d) ", pedges);
+      capi_printf("(:pedges . %d) ", pedges);
 
     if(raedges != -1)
         capi_printf("(:raedges . %d) ", raedges);
@@ -717,8 +725,10 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
     T.run_id = 1;
     T.parse_id = tsdb_unique_id;
     T.i_id = tsdb_unique_id;
-    T.date = current_time();
     ++tsdb_unique_id;
+    T.p_input = stats.p_input;
+    T.p_tokens = stats.p_tokens;
+    T.date = current_time();
 
     T.readings = stats.readings;
     T.words = stats.words;

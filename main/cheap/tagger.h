@@ -1,6 +1,6 @@
+/* ex: set expandtab ts=2 sw=2: */
 /* PET
  * Platform for Experimentation with efficient HPSG processing Techniques
- * (C) 1999 - 2002 Ulrich Callmeier uc@coli.uni-sb.de
  *
  *   This program is free software; you can redistribute it and/or
  *   modify it under the terms of the GNU Lesser General Public
@@ -16,26 +16,30 @@
  *   License along with this library; if not, write to the Free Software
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+#ifndef _TNTTAG_H_
+#define _TNTTAG_H_
 
-/** \file yy.h
- * YY input format and server mode (oe, uc).
- * The input format reader has already been moved to yy-tokenizer.h .
- * \todo The socket server code might be of use, too. Do a little refactoring,
- * rename this file to server.h or socket.h and delete all references to 
- * YY Inc.
- */
+#include <vector>
+#include <string>
+#include "input-modules.h"
+#include "settings.h"
 
-#ifndef _YY_H_
-#define _YY_H_
-
-#define CHEAP_SERVER_PORT 4711
-
-extern int cheap_server_initialize(int);
-extern void cheap_server(int);
-extern int cheap_server_child(int);
-
-extern int yy_tsdb_summarize_item(class chart &, const char *,
-                                  int, int, const char *);
-extern int yy_tsdb_summarize_error(const char *, int, tError &);
+class tTntCompatTagger : public tPOSTagger {
+  
+  public:
+    tTntCompatTagger();
+    ~tTntCompatTagger(); 
+    virtual void compute_tags(myString s, inp_list &tokens_result);
+    virtual std::string description() { return "TNT-like tagger"; }
+    
+  private:
+    settings *_settings;
+    pid_t _taggerpid;
+    int _out, _in;
+    std::string _utterance_start; //sentinel to mark start of sentence
+    std::string _utterance_end; //sentinel to mark end of sentence
+    const char *map_for_tagger(const std::string form);
+};
 
 #endif
+

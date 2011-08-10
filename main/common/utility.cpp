@@ -24,6 +24,8 @@
 #include "errors.h"
 
 #include <cstdlib>
+#include <unistd.h>
+#include <errno.h>
 #include <sys/stat.h>
 #ifdef HAVE_BOOST_FILESYSTEM
 #include <boost/filesystem.hpp>
@@ -417,3 +419,86 @@ xml_escape(std::string s) {
   boost::replace_all(s, "\"", "&quot;");
   return s;
 }
+
+/**
+ * relatively low-level input output routines to work on sockets (or pipes).
+ */
+static list<FILE *> _socket_loggers;
+
+void
+install_socket_logger(FILE *logger) {
+
+  _socket_loggers.push_front(logger);
+
+} // install_socket_logger()
+
+int 
+socket_write(int socket, char *string) {
+
+  int written, left, n;
+
+  for(written = 0, left = n = strlen(string);
+      left > 0;
+      left -= written, string += written) {
+    if((written = write(socket, string, left)) == -1) {
+      for(list<FILE *>::iterator log = _socket_loggers.begin();
+          log != _socket_loggers.end();
+          ++log) {
+        fprintf(*log,
+                "[%d] socket_write(): write() error [%d].\n",
+                getpid(), errno);
+        fflush(*log);
+      } /* for */
+      return -1;
+    } /* if */
+  } /* for */
+
+  return n - left;
+
+} /* socket_write() */
+
+int 
+socket_readline(int socket, char *string, int length, bool ffp) {
+
+  int i, n;
+  char c;
+
+  for(i = n = 0; n < length && (i = read(socket, &c, 1)) == 1;) {
+    if(c == EOF) {
+      return -1;
+    } /* if */
+    if(c == '\r') {
+      (void)read(socket, &c, 1);
+    } /* if */
+    if(c == '\n') {
+      if(!ffp) {
+        string[n] = (char)0;
+        return n + 1;
+      } /* if */
+    } /* if */
+    else if(c == '\f') {
+      if(ffp) {
+        string[n] = (char)0;
+        return n + 1;
+      } /* if */
+      else {
+       string[n++] = c;
+      } /* else */
+    } /* if */
+    else {
+      string[n++] = c;
+    } /* else */
+  } /* for */
+  if(i == -1) {
+    return -1;
+  } /* if */
+  else if(!n && !i) {
+    return 0;
+  } /* if */
+  if(n < length) {
+    string[n] = 0;
+  } /* if */
+
+  return n + 1;
+
+} /* socket_readline() */
