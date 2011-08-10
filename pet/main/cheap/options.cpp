@@ -75,10 +75,13 @@ void usage(FILE *f)
 #ifdef YY
   fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth]\n"
              "                         valid semantic formula\n");
-  fprintf(f, "  `-yy' --- YY input mode (highly experimental)\n");
+  fprintf(f, "  `-yy' --- enable YY input mode\n");
 #endif
+  fprintf(f, "  `-repp[=file]' --- use REPP to tokenize, with settings in file\n");
+  fprintf(f, "  `-tagger[=file]' --- POS tag input, using settings in file\n");
   fprintf(f, "  `-failure-print' --- print failure paths\n");
   fprintf(f, "  `-interactive-online-morph' --- morphology only\n");
+  fprintf(f, "  `-preprocess-only[=format]' --- tokenize (and optionally tag) only, output tokens in format (string, YY, FSC, default: YY)\n");
   fprintf(f, "  `-pg[=what]' --- print grammar in ASCII form ('s'ymbols, 'g'lbs, 't'ypes(fs), 'a'll)\n");
   fprintf(f, "  `-packing[=n]' --- "
           "set packing to n (bit coded; default: 15)\n");
@@ -146,6 +149,9 @@ void usage(FILE *f)
 #define OPTION_CHART_PRUNING 42
 #define OPTION_INPUT_FILE 43
 #define OPTION_TAKE 44
+#define OPTION_REPP 45
+#define OPTION_TAGGER 46
+#define OPTION_PREPROCESS_ONLY 47
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -182,6 +188,8 @@ char* parse_options(int argc, char* argv[])
     {"no-chart-man", no_argument, 0, OPTION_NO_CHART_MAN},
     {"default-les", optional_argument, 0, OPTION_DEFAULT_LES},
     {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
+    {"repp", optional_argument, 0, OPTION_REPP},
+    {"tagger", optional_argument, 0, OPTION_TAGGER},
 #ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
     {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
@@ -190,6 +198,7 @@ char* parse_options(int argc, char* argv[])
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", optional_argument, 0, OPTION_PG},
     {"interactive-online-morphology", no_argument, 0, OPTION_INTERACTIVE_MORPH},
+    {"preprocess-only", optional_argument, 0, OPTION_PREPROCESS_ONLY},
     {"lattice", no_argument, 0, OPTION_LATTICE},
     {"no-online-morph", no_argument, 0, OPTION_NO_ONLINE_MORPH},
     {"packing", optional_argument, 0, OPTION_PACKING},
@@ -311,6 +320,15 @@ char* parse_options(int argc, char* argv[])
       case OPTION_INTERACTIVE_MORPH:
           set_opt("opt_interactive_morph", true);
           break;
+      case OPTION_PREPROCESS_ONLY:
+        if(optarg != NULL) {
+          std::string foo(optarg);
+          std::transform(foo.begin(), foo.end(), foo.begin(), ::tolower);
+          set_opt("opt_preprocess_only", foo);
+        } // if
+        else 
+          set_opt("opt_preprocess_only", std::string("true"));
+        break;
       case OPTION_LATTICE:
           set_opt("opt_lattice", true);
           break;
@@ -447,6 +465,17 @@ char* parse_options(int argc, char* argv[])
           set_opt("opt_take",
                   (optarg != NULL) ? std::string(optarg) : std::string("b"));
           break;
+      case OPTION_REPP:
+      {
+        if(optarg != NULL) set_opt_from_string("opt_repp", optarg);
+        else set_opt_from_string("opt_repp", "");
+        set_opt_from_string("opt_tok", "repp");
+      }
+      break;
+      case OPTION_TAGGER:
+        set_opt("opt_tagger", 
+                (optarg != NULL) ? std::string(optarg) : std::string("null"));
+        break;
 #ifdef YY
       case OPTION_ONE_MEANING:
           if(optarg != NULL)
@@ -459,7 +488,7 @@ char* parse_options(int argc, char* argv[])
           set_opt_from_string("opt_tok", "yy");
           break;
 #endif
-        }
+      }
     }
 
   if( get_opt_bool("opt_hyper") &&

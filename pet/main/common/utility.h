@@ -31,6 +31,7 @@
 #include <cstdio>
 
 #define SET_SUBDIRECTORY "pet"
+#define REPP_SUBDIRECTORY "rpp"
 
 // define the path separator char with the configure utility
 #ifdef WINDOWS
@@ -186,6 +187,10 @@ struct string_lt_case {
     return strcasecmp(s.c_str(), t.c_str()) < 0;
   }
 };
+
+void install_socket_logger(FILE *);
+int socket_write(int, char *);
+int socket_readline(int, char *, int, bool = false);
 
 #ifdef __BORLANDC__
 void print_borland_heap(FILE *f);

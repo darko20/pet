@@ -833,8 +833,13 @@ bool lex_parser::next_input(std::istream &in, std::string &result) {
 }
 
 int
-lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping) {
+lex_parser::process_input(string input, inp_list &inp_tokens, 
+                          bool chart_mapping) 
+{
   // TODO get rid of this logging control; use proper logging instead
+  // --- i must admit, i find the bit-coded control rather more convenient,
+  // at least as long as fine-grained logging control is not available just
+  // through command line option.                              (5-aug-11; oe)
   int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
 
   // Tokenize the input
@@ -849,6 +854,31 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
   // map the input positions into chart positions
   position_map position_mapping = _tokenizers.front()->position_mapping();
   _maxpos = map_positions(inp_tokens, position_mapping);
+
+
+  tAbstractItemPrinter *sp = NULL;
+  ostringstream buffer;
+  const char *foo = cheap_settings->value("tokenizer-output");
+  string format = (foo != NULL ? foo : "");
+  if(!format.empty()) {
+    if(format == "string")
+      sp = new tItemStringPrinter(buffer);
+    else if(format == "fsc")
+      sp = new tItemFSCPrinter(buffer);
+    else
+      sp = new tItemYYPrinter(buffer);
+  } // if
+
+  if(sp != NULL) {
+    for(inp_iterator item = inp_tokens.begin(); 
+        item != inp_tokens.end(); 
+        ++item) {
+      if(item != inp_tokens.begin() && format != "fsc") buffer << " ";
+      sp->print(*item);
+    } // for
+    stats.p_input = buffer.str();
+    buffer.clear();
+  } //if
 
   // token mapping:
   if (chart_mapping) {
@@ -879,6 +909,26 @@ lex_parser::process_input(string input, inp_list &inp_tokens, bool chart_mapping
       fprintf(stderr, "[cm] token mapping ends\n");
     }
   }
+
+#if 0
+  //
+  // _fix_me_
+  // it appears that, at this point, the elements of .inp_tokens. are not
+  // complete (e.g. lack an id), and also include ones that are frozen and
+  // thus irrelevant.                                          (5-aug-11; oe)
+  //
+  if(sp != NULL) {
+    for(inp_iterator item = inp_tokens.begin(); 
+        item != inp_tokens.end(); 
+        ++item) {
+      if(item != inp_tokens.begin() && format != "fsc") buffer << " ";
+      sp->print(*item);
+    } // for
+    stats.p_tokens = buffer.str();
+    buffer.clear();
+  } // if
+#endif
+  if(sp != NULL) delete sp;
 
   return _maxpos;
 }

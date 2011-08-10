@@ -510,3 +510,82 @@ void XmlLabelPrinter::real_print(const tPhrasalItem *item) {
   print_daughters(item);
   *_out << "</node>" << endl;
 }
+
+tItemFSCPrinter::tItemFSCPrinter(ostream &out)
+  : tAbstractItemPrinter(out) {};
+
+void tItemFSCPrinter::print(const tItem *arg) { arg->print_gen(this); }
+
+void tItemFSCPrinter::real_print(const tInputItem *item) {
+  *_out << "<edge source=\"v" << item->start() << "\" target=\"v"
+    << item->end() << "\">" << endl;
+  *_out << "<fs type=\"token\">" << endl;
+  *_out << "<f name=\"+FORM\"><str><![CDATA[" << item->orth()
+    << "]]></str></f>" << endl;
+  *_out << "<f name=\"+FROM\"><str>" << item->startposition()
+    << "</str></f>" << endl;
+  *_out << "<f name=\"+TO\"><str>" << item->endposition()
+    << "</str></f>" << endl;
+  postags poss  = item->get_in_postags();
+  if (!poss.empty()) {
+    vector<string> taglist;
+    vector<double> problist;
+    poss.tagsnprobs(taglist, problist);
+    *_out << "<f name=\"+TNT\">" << endl;
+    *_out << "<fs type=\"tnt\">" << endl;
+    *_out << "<f name=\"+TAGS\" org=\"list\">";
+    for (vector<string>::iterator tagit = taglist.begin();
+      tagit != taglist.end(); ++tagit) {
+      *_out << "<str>" << *tagit << "</str>";
+    }
+    *_out << "</f>" << endl;
+    *_out << "<f name=\"+PRBS\" org=\"list\">";
+    for (vector<double>::iterator probit = problist.begin();
+      probit != problist.end(); ++probit) {
+      *_out << "<str>" << fixed << setprecision(4) << *probit << "</str>";
+    }
+    *_out << "</f>" << endl;
+    *_out << "</fs>" << endl << "</f>" << endl;
+  }
+  *_out << "</fs>" << endl;
+  *_out << "</edge>" << endl;
+}
+
+tItemYYPrinter::tItemYYPrinter(ostream &out)
+  : tAbstractItemPrinter(out) {};
+
+void tItemYYPrinter::print(const tItem *arg) { arg->print_gen(this); }
+
+void tItemYYPrinter::real_print(const tInputItem *item) {
+  *_out << "(" << item->external_id() << ", "
+    << item->start() << ", "
+    << item->end() << ", <"
+    << item->startposition() << ":"
+    << item->endposition() << ">, 1, "
+    << "\"" << escape_string(item->orth().c_str()) << "\", "
+    << "0, \"null\"";
+  postags poss  = item->get_in_postags();
+  if (!poss.empty()) {
+    *_out << ",";
+    vector<string> taglist;
+    vector<double> problist;
+    poss.tagsnprobs(taglist, problist);
+    vector<string>::iterator tagit = taglist.begin();
+    vector<double>::iterator probit = problist.begin();
+    for (; tagit != taglist.end() && probit != problist.end();
+      ++tagit, ++probit) {
+      *_out << " \"" << escape_string(tagit->c_str()) << "\" "
+        << fixed << setprecision(4) << *probit;
+    }
+  }
+  *_out << ")";
+}
+
+tItemStringPrinter::tItemStringPrinter(ostream &out)
+  : tAbstractItemPrinter(out) {};
+
+void tItemStringPrinter::print(const tItem *arg) { arg->print_gen(this); }
+
+void tItemStringPrinter::real_print(const tInputItem *item) {
+  *_out << item->orth();
+}

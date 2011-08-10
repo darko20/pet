@@ -684,6 +684,19 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
   bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
 
+  //
+  // really, start timing here.  for JaCY (as of jan-05), input processing
+  // takes significant time.                               (10-feb-05; oe)
+  // even more so, now that PET sports native support for REPP and calling out
+  // to external taggers.                                   (5-aug-11; oe)
+  //
+  TotalParseTime.start();
+  ParseTime.reset(); ParseTime.start();
+  if (get_opt_int("opt_timeout") > 0) {
+    timestamp = times(NULL);
+    timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
+  }
+
   inp_list input_items;
   int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
 
@@ -694,18 +707,6 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   }
 
   C = Chart = new chart(max_pos, owner);
-
-  //
-  // really, start timing here.  for JaCY (as of jan-05), input processing
-  // takes significant time.                               (10-feb-05; oe)
-  //
-
-  TotalParseTime.start();
-  ParseTime.reset(); ParseTime.start();
-  if (get_opt_int("opt_timeout") > 0) {
-    timestamp = times(NULL);
-    timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
-  }
 
   Lexparser.lexical_processing(input_items,
                                chart_mapping,
