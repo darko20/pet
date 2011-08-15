@@ -855,21 +855,19 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
   position_map position_mapping = _tokenizers.front()->position_mapping();
   _maxpos = map_positions(inp_tokens, position_mapping);
 
-
-  tAbstractItemPrinter *sp = NULL;
-  ostringstream buffer;
   const char *foo = cheap_settings->value("tokenizer-output");
   string format = (foo != NULL ? foo : "");
   if(!format.empty()) {
+    tAbstractItemPrinter *sp = NULL;
+    ostringstream buffer;
     if(format == "string")
       sp = new tItemStringPrinter(buffer);
     else if(format == "fsc")
       sp = new tItemFSCPrinter(buffer);
     else
       sp = new tItemYYPrinter(buffer);
-  } // if
-
-  if(sp != NULL) {
+    
+    assert(sp != NULL);
     for(inp_iterator item = inp_tokens.begin(); 
         item != inp_tokens.end(); 
         ++item) {
@@ -877,7 +875,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
       sp->print(*item);
     } // for
     stats.p_input = buffer.str();
-    buffer.clear();
+    delete sp;
   } //if
 
   // token mapping:
@@ -910,25 +908,29 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
     }
   }
 
-#if 0
-  //
-  // _fix_me_
-  // it appears that, at this point, the elements of .inp_tokens. are not
-  // complete (e.g. lack an id), and also include ones that are frozen and
-  // thus irrelevant.                                          (5-aug-11; oe)
-  //
-  if(sp != NULL) {
+  if(!format.empty()) {
+    tAbstractItemPrinter *sp = NULL;
+    ostringstream buffer;
+    if(format == "string")
+      sp = new tItemStringPrinter(buffer);
+    else if(format == "fsc")
+      sp = new tItemFSCPrinter(buffer);
+    else
+      sp = new tItemYYPrinter(buffer);
+    
+    assert(sp != NULL);
+    bool initial = true;
     for(inp_iterator item = inp_tokens.begin(); 
         item != inp_tokens.end(); 
         ++item) {
-      if(item != inp_tokens.begin() && format != "fsc") buffer << " ";
+      if(!passive_unblocked(*item)) continue;
+      if(!initial && format != "fsc") buffer << " ";
       sp->print(*item);
+      initial = false;
     } // for
     stats.p_tokens = buffer.str();
-    buffer.clear();
+    delete sp;
   } // if
-#endif
-  if(sp != NULL) delete sp;
 
   return _maxpos;
 }

@@ -239,13 +239,11 @@ void tReppTokenizer::tokenize(myString item, inp_list &result)
         }
         int start = result.size();
         int end = result.size()+1;
-        stringstream tokid;
-        tokid << result.size()+42; //to match YY initialization
         
         LOG(logRepp, DEBUG, "creating item from " << surface << " <" 
             << tokstart-1 << ":" << tokend << ">");
-        tok = new tInputItem(tokid.str().c_str(), start, end,
-          tokstart-1, tokend, surface, surface);
+        tok = new tInputItem("", start, end,
+                             tokstart-1, tokend, surface, surface);
         result.push_back(tok);
         idx += Conv->convert(string(res.prefix().first,
           res.suffix().first)).length();
@@ -267,10 +265,8 @@ void tReppTokenizer::tokenize(myString item, inp_list &result)
         it != _endmap.rend(); ++it) {
         tokend += (*(*it))[tokend];
       }
-      stringstream tokid;
-      tokid << result.size();
-      tok = new tInputItem(tokid.str().c_str(), tokstart-1, tokend,
-        surface, surface);
+      tok = new tInputItem("", tokstart-1, tokend,
+                           surface, surface);
       result.push_back(tok);
       rest = string();
     }
