@@ -469,7 +469,11 @@ void preprocess_only(const string formatoption) {
     try {
       fs_alloc_state FSAS;
       inp_list input_items;
-      Lexparser.process_input(input, input_items, false);
+      //
+      // run input pre-processing (tokenizers, taggers, et al.); enable token 
+      // mapping (if actually requested on the command line).
+      // 
+      Lexparser.process_input(input, input_items, true);
 
       tAbstractItemPrinter *ip;
       switch (format) {
@@ -493,9 +497,15 @@ void preprocess_only(const string formatoption) {
         cout << "<lattice init=\"v0\" final=\"v" << input_items.size() 
           << "\">" << endl;
       }
-      for(inp_iterator r = input_items.begin(); r != input_items.end(); ++r) {
-        if (r != input_items.begin() && format != FORMAT_FSC) cout << " ";
+      bool initial = true;
+      for(inp_iterator r = input_items.begin(); 
+          r != input_items.end(); 
+          ++r) {
+        if(!passive_unblocked(*r)) continue;
+        if(!initial && format == FORMAT_STRING) cout << " ";
         ip->print(*r);
+        if(format == FORMAT_YY) cout << endl;
+        initial = false;
       }
       if (format == FORMAT_FSC) {
         //print footer
@@ -503,7 +513,7 @@ void preprocess_only(const string formatoption) {
         cout << "</chart>" << endl;
         cout << "</fsc>" << endl;
       }
-      cout << endl;
+      if(format != FORMAT_YY) cout << endl;
     } //try
     catch (tError e) {
       // shouldn't this be fstatus?? it's a "return value"
