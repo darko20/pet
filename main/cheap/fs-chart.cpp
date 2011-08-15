@@ -541,9 +541,22 @@ tChartUtil::create_input_fs(tInputItem* item)
   if (!input_fs.valid())
     throw tError("failed to create input fs");
   if (_token_id_path) {
-    
-    // build list with id:
-    fs id_f = retrieve_string_instance(item->external_id());
+    //
+    // our input items /can/ carry a so-called 'external id', i.e. one supplied
+    // as a property of the initial parser input (in YY format, say).  at the
+    // same time, all (input) items receive a PET-internal unique identifier;
+    // when using an internal tokenizer (say native REPP), these internal ids
+    // are all we have.  hence, in mapping an input item to a token FS, give
+    // precende to external ids, where available, but otherwise use the item
+    // id proper.
+    // 
+    string id = item->external_id();
+    if(id.empty()) {
+      ostringstream buffer;
+      buffer << item->id();
+      id = buffer.str();
+    } // if
+    fs id_f = retrieve_string_instance(id);
     fs ids_cons = fs(BI_CONS);
     ids_cons = unify(ids_cons, ids_cons.get_attr_value(BIA_FIRST), id_f);
     fs rest_f = ids_cons.get_attr_value(BIA_REST);

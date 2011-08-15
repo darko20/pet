@@ -557,8 +557,13 @@ tItemYYPrinter::tItemYYPrinter(ostream &out)
 void tItemYYPrinter::print(const tItem *arg) { arg->print_gen(this); }
 
 void tItemYYPrinter::real_print(const tInputItem *item) {
-  *_out << "(" << item->id() << ", "
-    << item->start() << ", "
+  string id = item->external_id();
+  if(id.empty()) {
+    ostringstream buffer;
+    buffer << item->id();
+    id = buffer.str();
+  } // if
+  *_out << "(" << id << ", " << item->start() << ", "
     << item->end() << ", <"
     << item->startposition() << ":"
     << item->endposition() << ">, 1, "
