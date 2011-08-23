@@ -47,7 +47,7 @@ class tReppTokenizer : public tTokenizer {
     virtual void tokenize(myString s, inp_list &result);
     virtual std::string description() { return "REPP tokenizer"; }
 
-    virtual position_map position_mapping() {return STANDOFF_POINTS;}
+    virtual position_map position_mapping() {return NO_POSITION_MAP;}
 
     tRepp *getRepp(std::string name){return _repps[name];}
     void addStartMap(std::vector<int> *map){_startmap.push_back(map);}
