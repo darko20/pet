@@ -300,4 +300,16 @@ private:
   std::list< tMorphAnalysis > _emptyresult;
 };
 
+/** A morphology that just passes on the fullform string (a null morphology)
+ */
+class tNullMorphology : public tMorphology {
+public:
+  virtual ~tNullMorphology() {}
+
+  /** Compute morphological results for \a form. */
+  virtual std::list<class tMorphAnalysis> operator()(const myString &form);
+
+  virtual std::string description() { return "empty morphology (pass thru)"; }
+};
+
 #endif

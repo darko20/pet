@@ -90,7 +90,9 @@ int verbosity = 0;
 tGrammar *Grammar = 0;
 ParseNodes pn;
 settings *cheap_settings = 0;
+#ifdef HAVE_XML
 static bool XMLServices = false;
+#endif
 
 struct passive_weights : public unary_function< tItem *, unsigned int > {
   unsigned int operator()(tItem * i) {
@@ -470,9 +472,9 @@ void preprocess_only(const string formatoption) {
       fs_alloc_state FSAS;
       inp_list input_items;
       //
-      // run input pre-processing (tokenizers, taggers, et al.); enable token 
+      // run input pre-processing (tokenizers, taggers, et al.); enable token
       // mapping (if actually requested on the command line).
-      // 
+      //
       Lexparser.process_input(input, input_items, true);
 
       tAbstractItemPrinter *ip;
@@ -494,12 +496,12 @@ void preprocess_only(const string formatoption) {
         cout << "<fsc version=\"1.0\" >" << endl;
         cout << "<chart id=\"" << id << "\" >" << endl;
         cout << "<text><![CDATA[" << input << "]]></text>" << endl;
-        cout << "<lattice init=\"v0\" final=\"v" << input_items.size() 
+        cout << "<lattice init=\"v0\" final=\"v" << input_items.size()
           << "\">" << endl;
       }
       bool initial = true;
-      for(inp_iterator r = input_items.begin(); 
-          r != input_items.end(); 
+      for(inp_iterator r = input_items.begin();
+          r != input_items.end();
           ++r) {
         if(!passive_unblocked(*r)) continue;
         if(!initial && format == FORMAT_STRING) cout << " ";
@@ -524,7 +526,7 @@ void preprocess_only(const string formatoption) {
     ++id;
   }
 }
-    
+
 
 
 void print_grammar(int what, ostream &out) {
@@ -618,8 +620,13 @@ bool load_grammar(string initial_name) {
       tLKBMorphology *lkbm = tLKBMorphology::create(dmp);
       if (lkbm != NULL)
         Lexparser.register_morphology(lkbm);
-      else
+      else {
         set_opt("opt_online_morph", false);
+        if (ff == NULL) {
+          LOG(logAppl, INFO, "No morphology specified: using null morphology");
+          Lexparser.register_morphology(new tNullMorphology());
+        }
+      }
     }
     Lexparser.register_lexicon(new tInternalLexicon());
 
@@ -648,7 +655,7 @@ bool load_grammar(string initial_name) {
     }
     break;
 #else
-      LOG(logAppl, FATAL, 
+      LOG(logAppl, FATAL,
           "No Unicode-enabled regexp support compiled into this cheap.");
       return true;
 #endif
@@ -805,7 +812,7 @@ static void init_main_options() {
    */
   //@{
   //
-  // this option controls a range of functions: (a) whether to go into 
+  // this option controls a range of functions: (a) whether to go into
   // [incr tsdb()] client mode; (b) which protocol to use in recording parse
   // results (valid protocol versions, as of mid-2011 are: 1, to output full
   // derivations; 2, to output 'packed' derivations, as a set of edges); and
@@ -874,7 +881,7 @@ static void init_main_options() {
      "lovingly designed and (once) valuable code from the YY Software Corporation; should be reviewed and reduced to what is actually supported nowadays.",
      false);
   managed_opt("opt_repp",
-              "Tokenize using REPP, with settings in the file argument", 
+              "Tokenize using REPP, with settings in the file argument",
               string());
   managed_opt("opt_tagger",
     "POS tag input, using settings in file argument or settings file",
