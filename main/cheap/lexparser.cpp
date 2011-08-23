@@ -879,7 +879,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
   } //if
 
   // token mapping:
-  if (chart_mapping) {
+  if (chart_mapping && get_opt_int("opt_chart_mapping") > 0) {
     if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
       fprintf(stderr, "[cm] token mapping starts\n");
     }
