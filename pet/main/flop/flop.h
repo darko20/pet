@@ -17,7 +17,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/** \file flop.h 
+/** \file flop.h
  * shared data structures, global variables and interface functions
  */
 
@@ -54,7 +54,7 @@
 /** _fix_me_ Fixed size table for coreferences */
 #define COREF_TABLE_SIZE 32
 /** _fix_me_ Fixed size table for conjunctions */
-#define LIST_TABLE_SIZE 12
+#define LIST_TABLE_SIZE 32
 /** Table size for attribute value lists: this grows dynamically */
 #define AV_TABLE_SIZE 8
 /** _fix_me_ Fixed size table for terms */
@@ -113,7 +113,7 @@ extern int syntax_errors;
 
 /** Array \c apptype is filled with the maximally appropriate types, i.e., \c
  * apptype[j] is the first subtype of \c *top* that introduces feature \c j.
- * in \c types.cc 
+ * in \c types.cc
  */
 extern type_t *apptype;
 
@@ -132,7 +132,7 @@ extern std::list<class irreg_entry> irregforms;
 /* main data structures to represent TDL terms - close to the BNF */
 
 /** An element of the attribute value list for TDL input */
-struct attr_val 
+struct attr_val
 {
   /** The attribute string */
   char *attr;
@@ -168,7 +168,7 @@ struct tdl_list
    *  \c *NULL*, but to an ordinary AVM
    */
   int dottedpair;
-  
+
   /** The number of elements in this list */
   int n;
   /** The members of the list itself */
@@ -191,7 +191,7 @@ struct term
 
   /** coreference index */
   int coidx;
-  
+
   /** contains the list if \c tag is one of \c LIST or \c DIFF_LIST */
   struct tdl_list *L;
 
@@ -223,10 +223,10 @@ struct type
   /** index into statustable */
   int status;
 
-  /** @name status inheritance 
+  /** @name status inheritance
    * Old tdl mechanism of status inheritance. Only activated when the
    * command line option \c -propagate-status is used.
-   * 
+   *
    * \todo should be made obsolete and removed in favor of the
    * \code :begin :type|:instance :status :foo \endcode mechanism
    */
@@ -242,7 +242,7 @@ struct type
    *  type's definition.
    */
   int implicit;
-  
+
   /** Location of this type's definition (file name, line number, etc.) */
   struct lex_location *def;
 
@@ -276,7 +276,7 @@ struct type
 struct param
 {
   char *name;
-  
+
   struct conjunction *value;
 };
 
@@ -298,7 +298,7 @@ struct templ
 
   /** The list of formal parameters of this template */
   struct param_list *params;
-  
+
   /** Internal representation of the right side of the TDL definition */
   struct conjunction *constraint;
   /** Table mapping coreference names in this definition to numbers */
@@ -330,16 +330,16 @@ class ff_entry
    *  \param affix       The inflection rule to apply
    *  \param form        The surface form
    *  \param inflpos     The inflected position (only relevant for multi word
-   *                     entries 
+   *                     entries
    *  \param filename    The filename of the full form file currently read
    *  \param line        The line number of this full form definition
    */
   ff_entry(std::string preterminal, std::string affix, std::string form,
-           int inflpos, std::string filename = "unknown", int line = 0) 
+           int inflpos, std::string filename = "unknown", int line = 0)
     : _preterminal(preterminal), _affix(affix), _form(form), _inflpos(inflpos),
     _fname(filename), _line(line)
     {};
-  
+
   /** Copy constructor */
   ff_entry(const ff_entry &C)
     : _preterminal(C._preterminal), _affix(C._affix), _form(C._form),
@@ -372,16 +372,16 @@ class ff_entry
   friend int compare(const ff_entry &, const ff_entry &);
 
   /** Readable representation of full form entry for debugging */
-  friend std::ostream& operator<<(std::ostream& O, const ff_entry& C); 
+  friend std::ostream& operator<<(std::ostream& O, const ff_entry& C);
   /** Input full form from stream, the entries have to look like this:
    * \verbatim {"rot-att", "rote", NULL, "ax-pos-e_infl_rule", 0, 1}, ... \endverbatim
    */
-  friend std::istream& operator>>(std::istream& I, ff_entry& C); 
+  friend std::istream& operator>>(std::istream& I, ff_entry& C);
 
 private:
   std::string _preterminal;
   std::string _affix;
-  
+
   std::string _form;
 
   int _inflpos;
@@ -411,7 +411,7 @@ class irreg_entry
    */
   irreg_entry(std::string fo, std::string in, std::string st)
     : _form(fo), _infl(in), _stem(st) {}
-  
+
   /** Dump entry in a binary representation to \a f */
   void dump(dumper *f);
 
@@ -443,7 +443,7 @@ struct type *new_type(const std::string &name, bool is_inst, bool define = true)
 /** Register a new builtin type with name \a name */
 int new_bi_type(const char *name);
 
-/** A special form of strcat which returns a new string containing 
+/** A special form of strcat which returns a new string containing
  *  \a old + \a add.
  *  \a old may be NULL, then this is equal to \code strdup(add) \endcode
  */
@@ -489,7 +489,7 @@ void print_constraint(FILE *f, struct type *t, const std::string &name);
  * \param fname The name of the source file
  * \param gram_version The version string of the grammar
  */
-void 
+void
 write_pre_header(FILE *outf, const char *outfname, const char *fname
                  , const char *gram_version);
 /** Write preprocessed source to file \a f */
@@ -556,18 +556,18 @@ bool apply_appropriateness();
  * are only expanded if either the option 'expand-all-instances' is active or
  * the instance does not have a status that is mentioned in the 'dont-expand'
  * setting in 'flop.set'.
- * \return \c true, if there were no inconsistent type definitions found, 
- *         \c false otherwise. 
+ * \return \c true, if there were no inconsistent type definitions found,
+ *         \c false otherwise.
  */
 bool delta_expand_types();
 /**
  * Expand the feature structure constraints of each type after delta expansion.
- * 
+ *
  * The algorithm is as follows: Build a graph of types such that a link
- * from type t to type s exists if the feature structure skeleton of type 
+ * from type t to type s exists if the feature structure skeleton of type
  * s uses type t in some substructure. If this graph is acyclic, expand the
  * feature structure constraints fully in topological order over this graph.
- * Otherwise, there are illegal cyclic type dependencies in the definitions 
+ * Otherwise, there are illegal cyclic type dependencies in the definitions
  *
  * \param full_expansion if \c true, expand all dags, even those which have
  *                       (currently) no arcs
@@ -629,7 +629,7 @@ void dump_grammar(dumper *f, const char *desc);
  */
 void dagify_symtabs();
 /** Convert the internal representations of the TDL type definitions into
- *  dags. 
+ *  dags.
  */
 void dagify_types();
 /*@}*/

@@ -17,7 +17,11 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* implementation of LKB style morphological analysis and generation */
+/* Three morphology frontends are in this file
+- Implementation of LKB style morphological analysis and generation
+- Old style full form morphology loaded from file
+- null morphology that just passes on the given string
+*/
 
 #include "pet-config.h"
 #include "morph.h"
@@ -1148,6 +1152,9 @@ tLKBMorphology::create(dumper &dmp) {
   }
 }
 
+/* -------------------------------------------------------------------------
+ * ------------------------ Full Form morphology ---------------------------
+ * ------------------------------------------------------------------------- */
 
 /** Create a morphology component from the fullform tables, if available. */
 tFullformMorphology *
@@ -1280,4 +1287,17 @@ tFullformMorphology::operator()(const myString &form){
     return it->second;
   else
     return _emptyresult;
+}
+
+/* -------------------------------------------------------------------------
+ * -------------------------- NULL morphology-------------------------------
+ * ------------------------------------------------------------------------- */
+
+/** Compute morphological results for \a form by just passing on the string. */
+list<class tMorphAnalysis> tNullMorphology::operator()(const myString &form) {
+  list<tMorphAnalysis> results;
+  list<string> forms;
+  forms.push_back(form);
+  results.push_back(tMorphAnalysis(forms, list<grammar_rule *>()));
+  return results;
 }

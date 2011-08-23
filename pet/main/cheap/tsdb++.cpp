@@ -882,13 +882,14 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
     }
 
     fprintf(f_parse,
-            "%d@%d@%d@"
+            "%d@%d@%d@%s@%s@"
             "%d@%d@%d@%d@%d@%d@"
             "%d@%d@%d@%d@%d@%d@"
             "%d@%d@%d@%d@"
             "%d@%d@%d@%d@"
             "%ld@%d@%d@%d@",
             parse_id, run_id, i_id,
+            p_input.c_str(), p_tokens.c_str(),
             readings, first, total, tcpu, tgc, treal,
             words, l_stasks, p_ctasks, p_ftasks, p_etasks, p_stasks,
             aedges, pedges, raedges, rpedges,
@@ -901,7 +902,7 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
             tsdb_escape_string(err).c_str(),
             nmeanings, clashes, pruned);
 
-    fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@1@%d@@yy@%s\n",
+    fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@@@@1@%d@@yy@%s\n",
             parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time().c_str());
 }
 
@@ -913,8 +914,20 @@ tTsdbDump::tTsdbDump(string directory)
     if(directory[directory.size() - 1] != '/')
       directory += "/";
 
+    static const string files_to_touch[] = {
+      "analysis", "phenomenon", "parameter", "set", "item-phenomenon",
+      "item-set", "rule", "output", "edge", "tree", "decision",
+      "preference", "update", "fold", "score"
+    };
+
     // returns true on error
-    if (print_relations(directory)) return;
+    int len = sizeof(files_to_touch) / sizeof(string);
+    if (print_relations(directory) || print_run(directory)) return;
+    for (int i = 0; i < len; ++i) {
+      string to_open = directory + files_to_touch[i];
+      FILE *f = fopen(to_open.c_str(), "w");
+      fclose(f);
+    }
 
     _item_file = fopen((directory + "item").c_str(), "w");
     _result_file = fopen((directory + "result").c_str(), "w");
@@ -978,6 +991,50 @@ void tTsdbDump::dump_current() {
   }
 }
 
+bool tTsdbDump::print_run(string directory) {
+  FILE *run_file = fopen((directory + "run").c_str(), "w");
+  if (run_file) {
+    // run-id, run-comment, platform, tsdb version, application
+    fprintf(run_file, "1@@%s@2.0@%s@", CHEAP_PLATFORM, CHEAP_VERSION);
+    // environment
+    map<string, string> properties = Grammar->properties();
+    for(map<string, string>::iterator it = properties.begin();
+        it != properties.end(); ++it) {
+      fprintf(run_file, "(:%s . \\\"%s\\\") ",
+              it->first.c_str(), it->second.c_str());
+    }
+    // grammar, avms, sorts, templates, lexicon, lrules, rules
+    fprintf(run_file, "@%s@%d@%d@%s@%d@%d@%d@",
+            Grammar->property("version").c_str(),
+            nstatictypes,
+            -1,
+            (Grammar->property("ntemplates").empty()
+             ? ""
+             : Grammar->property("ntemplates").c_str()),
+            Grammar->nstems(),
+            -1,
+            Grammar->rules().size()
+            );
+    // user, host, os, start, end, items, status
+    const char *user = getenv("USER");
+    char host[256];
+    gethostname(host, 256);
+    fprintf(run_file, "%s@%s@%s@%s@%s@%d@%s@",
+            (user == NULL ? "anon" : user),
+            host,
+            "unknown",
+            "01-01-1970 12:00:00",
+            "01-01-1970 12:00:00",
+            -1,
+            "unknown");
+
+    // capi_printf("(:leafs . %d) ", nstatictypes - first_leaftype); ??
+    fclose(run_file);
+    return false;
+  }
+  return true;
+}
+
 bool tTsdbDump::print_relations(string directory) {
   FILE *relations_file = fopen((directory + "relations").c_str(), "w");
   if (relations_file) {
@@ -990,6 +1047,9 @@ item:\n\
   i-difficulty :integer\n\
   i-category :string\n\
   i-input :string\n\
+  i-tokens :string\n\
+  i-gloss :string\n\
+  i-translation :string\n\
   i-wf :integer\n\
   i-length :integer\n\
   i-comment :string\n\
@@ -1070,6 +1130,8 @@ parse:\n\
   parse-id :integer :key                # unique parse identifier\n\
   run-id :integer :key                  # test run for this parse\n\
   i-id :integer :key                    # item parsed\n\
+  p-input :string                       # initial (pre-processed) parser input\n\
+  p-tokens :string                      # internal parser input: lexical lookup\n\
   readings :integer                     # number of readings obtained\n\
   first :integer                        # time to find first reading (msec)\n\
   total :integer                        # total time for parsing (msec)\n\
@@ -1126,7 +1188,7 @@ rule:\n\
 \n\
 output:\n\
   i-id :integer :key                    # item for this output specification\n\
-  o-application :string                 # applicable appliaction(s)\n\
+  o-application :string                 # applicable application(s)\n\
   o-grammar :string                     # applicable grammar(s)\n\
   o-ignore :string                      # ignore this item flag\n\
   o-wf :integer                         # application-specific grammaticality\n\
@@ -1213,6 +1275,10 @@ fold:\n\
 score:\n\
   parse-id :integer :key\n\
   result-id :integer\n\
+  score-start :integer\n\
+  score-end :integer\n\
+  score-id :integer\n\
+  learner :string\n\
   rank :integer\n\
   score :string\n\
 ");

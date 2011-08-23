@@ -45,17 +45,17 @@ void cheap_tsdb_summarize_run();
 
 /** Create a summary for a successful parse.
  * \param Chart the chart of the last parse
- * \param length the length of the chart 
+ * \param length the length of the chart
  * \param treal the real time used for the parse
  * \param nderivations i've got no clue
- * \param tp the data structure where the data is collected (the result) 
+ * \param tp the data structure where the data is collected (the result)
  */
 void cheap_tsdb_summarize_item(class chart &Chart, int length, int treal,
                                int nderivations, class tsdb_parse &tp);
 
 /** Create a summary for an unsuccessful parse.
  * \param treal the real time used for the parse
- * \param tp the data structure where the data is collected (the result) 
+ * \param tp the data structure where the data is collected (the result)
  */
 void cheap_tsdb_summarize_error(std::list<tError> &, int treal,
                                 class tsdb_parse &tp);
@@ -79,7 +79,7 @@ class statistics
   /** nr of words */
   int words;
   /** nr of words pruned by chart manipulation */
-  int words_pruned; 
+  int words_pruned;
   /** time for morphological processing */
   int mtcpu;
   /** time for first reading */
@@ -177,7 +177,7 @@ class tsdb_result
     r_etasks(-1), r_stasks(-1), size(-1), r_aedges(-1), r_pedges(-1),
     derivation(), edge_id(-1), surface(), tree(), mrs(), scored(false), flags()
     {
-    }    
+    }
 
   void file_print(FILE *f);
 
@@ -230,13 +230,13 @@ class tsdb_edge
 {
  public:
     tsdb_edge()
-        : id(-1), label(), score(-1.0), start(-1), end(-1), status(0), 
+        : id(-1), label(), score(-1.0), start(-1), end(-1), status(0),
         daughters()
     {
     }
 #ifdef TSDBAPI
     void capi_print();
-#endif  
+#endif
 
     int id;
     std::string label;
@@ -257,7 +257,7 @@ class tsdb_rule_stat
 
 #ifdef TSDBAPI
   void capi_print();
-#endif  
+#endif
 
   std::string rule;
   int actives;
@@ -269,15 +269,15 @@ class tsdb_parse
 {
  public:
     tsdb_parse()
-      : parse_id(-1), run_id(-1), i_id(-1), p_input(), p_tokens(), 
+      : parse_id(-1), run_id(-1), i_id(-1), p_input(), p_tokens(),
         trees(-1), readings(-1),
-        mtcpu(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1), 
+        mtcpu(-1), first(-1), total(-1), tcpu(-1), tgc(-1), treal(-1),
         words(-1),
         l_stasks(-1), p_ctasks(-1), p_ftasks(-1), p_etasks(-1), p_stasks(-1),
         aedges(-1), pedges(-1), raedges(-1), rpedges(-1),
         unifications(-1), copies(-1), conses(-1), symbols(-1), others(-1),
         gcs(-1), i_load(-1), a_load(-1),
-        date(), err(), nmeanings(-1), clashes(-1), pruned(-1), 
+        date(), err(), nmeanings(-1), clashes(-1), pruned(-1),
         subsumptions(-1), p_equivalent(-1), p_proactive(-1),
         p_retroactive(-1), p_frozen(-1), p_utcpu(-1), p_failures(-1),
         p_hypotheses(-1), p_upedges(-1), rtrees(-1), rreadings(-1),
@@ -385,7 +385,7 @@ class tsdb_parse
   int clashes;
   /** number of pruned lexical entries */
   int pruned;
-    
+
   int subsumptions;
   int p_equivalent;
   int p_proactive;
@@ -403,12 +403,12 @@ class tsdb_parse
   int rtrees;
   int rreadings;
  private:
-    
+
   std::list<tsdb_result> results;
   std::list<tsdb_edge> edges;
   std::list<tsdb_rule_stat> rule_stats;
   std::string i_input;
-  int i_length; 
+  int i_length;
 };
 
 /** A class to dump incr[tsdb] data directly to database files without
@@ -438,6 +438,7 @@ public:
 private:
   void dump_current();
   bool print_relations(std::string directory);
+  bool print_run(std::string directory);
 
   FILE *_parse_file, *_result_file , *_item_file;
   tsdb_parse *_current;
