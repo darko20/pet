@@ -1,0 +1,43 @@
+
+;; type definitions
+:begin :type.
+:include "types.tdl".
+:end :type.
+
+;; token mapping:
+;; chart mapping rules for manipulating the tokens in the input chart
+:begin :instance :status token-mapping-rule.
+:include "tokmap-rules.tdl".
+:end :instance.
+
+;; lexical filtering:
+;; chart mapping rules for manipulating the chart after lexical instantiation
+:begin :instance :status lexical-filtering-rule.
+:include "lexflt-rules.tdl".
+:end :instance.
+
+;; syntactic rules
+:begin :instance :status grammar-rule.
+:include "rules.tdl".
+:end :instance.
+
+;; lexical rules (including inflectional rules)
+:begin :instance :status lex-rule.
+:include "lrules.tdl".
+:include "inflr.tdl".
+:end :instance.
+
+;; lexicon
+:begin :instance :status lex-entry.
+:include "lexicon.tdl".
+:end :instance.
+
+:begin :instance :status generic-lex-entry.
+:include "gen-lex.tdl".
+:end :instance.
+
+;; start symbols of the grammar (instances)
+:begin :instance.
+:include "start.tdl".
+:end :instance.
+
