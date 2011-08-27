@@ -184,7 +184,7 @@ tChartMappingEngine::tChartMappingEngine(
   // nothing to do
 }
 
-int tChartMappingEngine::doLogging(tChart &chart)
+int tChartMappingEngine::doLogging(tChart &chart, const char *prep)
 {
   /// \todo loglevel should be configured with logging system
   int loglevel = get_opt_int("opt_chart_mapping");
@@ -200,8 +200,8 @@ int tChartMappingEngine::doLogging(tChart &chart)
     for (it = items.rbegin(); it != items.rend(); ++it)
       if ((*it)->id() > max_id)
         max_id = (*it)->id();
-    cerr << format("[cm] greatest item id before %s: %d\n")
-      % _phase_name % max_id;
+    cerr << format("[cm] greatest item id %s %s: %d\n")
+      % prep % _phase_name % max_id;
   }
   return loglevel;
 }
@@ -209,7 +209,7 @@ int tChartMappingEngine::doLogging(tChart &chart)
 void tChartMappingEngine::process(tChart &chart)
 {
   assert(chart.connected());
-  int loglevel = doLogging(chart);
+  int loglevel = doLogging(chart, "before");
 
   // cache storing each match we've created:
   tChartMappingMatchCache cache;
@@ -247,7 +247,7 @@ void tChartMappingEngine::process(tChart &chart)
     throw tError("Chart is not well-formed after chart mapping. "
       "This is probably a bug in the grammar.");
   }
-  doLogging(chart);
+  doLogging(chart, "after");
 }
 
 
