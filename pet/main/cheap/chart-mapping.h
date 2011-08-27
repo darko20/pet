@@ -104,7 +104,7 @@ private:
    * write to log if enabled
    * \return loglevel
    */
-  int doLogging(tChart &chart);
+  int doLogging(tChart &chart, const char *);
 };
 
 
