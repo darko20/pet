@@ -169,10 +169,6 @@ endif
 # cheaplibsources += psqllex.h psqllex.cpp
 # endif
 
-if YY
-cheaplibsources += yy.h yy.cpp
-endif
-
 #if EXTDICT
 #cheaplibsources += extdict.cpp extdict.h
 #endif
