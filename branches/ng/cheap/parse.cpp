@@ -41,10 +41,6 @@
 
 using namespace std;
 
-#ifdef YY
-#include "yy.h"
-#endif
-
 // output for excessive subsumption failure debugging in the German grammar
 //#define PETDEBUG_SUBSFAILS
 
@@ -52,8 +48,8 @@ using namespace std;
 // global variables for parsing
 //
 
-chart *Chart;
-tAbstractAgenda *Agenda;
+chart *Chart = NULL;
+tAbstractAgenda *Agenda = NULL;
 
 timer ParseTime;
 timer TotalParseTime(false);
@@ -62,10 +58,6 @@ static bool parser_init();
 //options managed by configuration subsystem
 bool opt_hyper = parser_init();
 int  opt_nsolutions, opt_packing;
-
-#ifdef YY
-int opt_nth_meaning;
-#endif
 
 /** Initialize global variables and options for the parser */
 static bool parser_init() {
@@ -366,11 +358,8 @@ inline bool result_limits() {
   // the number of requested solutions?
   // opt_packing w/unpacking implies exhaustive parsing
   if ((! opt_packing
-       && opt_nsolutions != 0 && stats.trees >= opt_nsolutions)
-#ifdef YY
-      || (opt_nth_meaning != 0 && stats.nmeanings >= opt_nth_meaning)
-#endif
-      ) return true;
+       && opt_nsolutions != 0 && stats.trees >= opt_nsolutions)) 
+    return true;
   return false;
 }
 
@@ -421,6 +410,61 @@ resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
     (timeout > 0 && timestamp >= timeout );
 }
 
+//
+// it appears .timeout. and .timestamp. are global values, also used in code
+// outside of this file.  to (at least) avoid further proliferation of global
+// variables, encapsulate everything in a function, which records the reason
+// for resource exhaustion in a string reference.
+// _fix_me_
+// we should probably push this a little further, for example (a) provide a way
+// of (re-)initializing limits and counters, e.g. by passing in a non-empty
+// .message. argument; (b) recording the first .message. (i.e. first cause of
+// resource exhaustion) in a static variable, to avoid accumulating the same
+// error multiple times (as currently can happen in parsing and unpacking); and
+// (c) provide optional arguments to allow a certain percentage of overrunning,
+// e.g. a margin of ten percent for at least a shot at unpacking.  this calls
+// for a little more thinking and consultation with PET co-developers.
+//                                                              (28-aug-11; oe)
+bool
+test_resource_limits(std::string &message)
+{
+
+  static int pedges = -1;
+  if(pedges == -1) pedges = get_opt_int("opt_pedgelimit");
+  if(pedges > 0 && Chart != NULL && Chart->pedges() >= pedges) {
+    ostringstream buffer;
+    buffer << "resource limit exhausted (" 
+           << Chart->pedges() << " passive edges)";
+    message = buffer.str();
+    return true;
+  } //if
+
+  static long int memory = -1;
+  if(memory == -1) memory = get_opt_int("opt_memlimit") * 1024 * 1024;
+  if(memory > 0 && t_alloc.max_usage() >= memory) {
+    ostringstream buffer;
+    buffer << "resource limit exhausted (" 
+           << t_alloc.max_usage() << " bytes)";
+    message = buffer.str();
+    return true;
+  } // if
+
+  if(timeout > 0) {
+    if(times(NULL) >= timeout) {
+      ostringstream buffer;
+      buffer << "resource limit exhausted (" 
+             << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
+             << " seconds)";
+      message = buffer.str();
+      return true;
+    } // if
+  } //if
+
+  return false;
+  
+} // test_resource_limits()
+
+
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
   long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
@@ -440,8 +484,7 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 #endif
     tItem *it = t->execute();
     delete t;
-    if (timeout > 0)
-      timestamp = times(NULL);
+    if (timeout > 0) timestamp = times(NULL);
     // add_item checks all limits that have to do with the number of
     // analyses. If it returns true that means that one of these limits has
     // been reached
@@ -549,7 +592,6 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
     // been hit? Why is there no unpacking at all
     if (pedgelimit == 0 || Chart->pedges() < pedgelimit) {
       timer *UnpackTime = new timer();
-      int nres = 0;
       stats.trees = 0; // We want to recount the trees in case some
                        // are blocked or don't unpack.
       int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
@@ -558,14 +600,14 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
           && nsolutions > 0
           && Grammar->sm()) {
         try {
-          nres = unpack_selectively(trees, upedgelimit, memlimit, nsolutions,
-                                    UnpackTime, readings);
+          unpack_selectively(trees, upedgelimit, memlimit, nsolutions,
+                             UnpackTime, readings);
         } catch(tError e) {
           errors.push_back(e);
         }
       } else { // unpack exhaustively
         try {
-          nres = unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
+          unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
         } catch(tError e) {
           errors.push_back(e);
         }
@@ -677,12 +719,11 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   stats.reset();
   stats.id = id;
 
+  Chart = C;
   auto_ptr<item_owner> owner(new item_owner);
   tItem::default_owner(owner.get());
 
   unify_wellformed = true;
-
-  bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
 
   //
   // really, start timing here.  for JaCY (as of jan-05), input processing
@@ -697,8 +738,16 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
   }
 
+  int max_pos = 0;
   inp_list input_items;
-  int max_pos = Lexparser.process_input(input, input_items, chart_mapping);
+  bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
+  try {
+    max_pos = Lexparser.process_input(input, input_items, chart_mapping);
+  } // try
+  catch(tError e) {
+    input_items.clear();
+    errors.push_back(e);
+  } // catch
 
   if (get_opt_int("opt_chart_pruning") != 0) {
     Agenda = new tLocalCapAgenda (get_opt_int ("opt_chart_pruning"), max_pos);
@@ -708,15 +757,16 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
   C = Chart = new chart(max_pos, owner);
 
-  Lexparser.lexical_processing(input_items,
-                               chart_mapping,
-                               (chart_mapping
-                                || cheap_settings->lookup("lex-exhaustive")),
-                               FSAS, errors);
+  if(input_items.size()) {
+    Lexparser.lexical_processing(input_items, chart_mapping,
+                                 (chart_mapping
+                                  || cheap_settings->lookup("lex-exhaustive")),
+                                 FSAS, errors);
 
-  // during lexical processing, the appropriate tasks for the syntactic stage
-  // are already created
-  if(!(get_opt_int("opt_tsdb") & 32)) parse_loop(FSAS, errors, timeout);
+    // during lexical processing, the appropriate tasks for the syntactic stage
+    // are already created
+    if(!(get_opt_int("opt_tsdb") & 32)) parse_loop(FSAS, errors, timeout);
+  } //if
 
   ParseTime.stop();
   TotalParseTime.stop();
@@ -726,7 +776,11 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   if(get_opt_int("opt_robust") != 0 && (Chart->readings().empty()))
     analyze_pcfg(Chart, FSAS, errors);
 
-  Lexparser.reset();
+  //
+  // _fix_me_
+  // with .max_pos. == 0, lexparser::reset() will SEGV; maybe contact bernd?
+  //                                                            (27-aug-11; oe)
+  if(input_items.size()) Lexparser.reset();
   // clear_dynamic_types(); // too early
   delete Agenda;
 }

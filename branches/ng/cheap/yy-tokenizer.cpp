@@ -26,7 +26,8 @@ YY input format:
    "stem" ["surface"], inflpos, inflrs
    [, postags])*
 
-  where .lnk. is a surface link, currently restricted to <i:j>, as character
+  where .start. and .end. are vertices (assumed to be in a contiguous numeric
+  range), .lnk. is a surface link, currently restricted to <i:j>, as character
   start and end positions.
 
   inflrs: - "null" = do internal morph analysis
@@ -47,11 +48,7 @@ YY input format:
 using namespace std;
 using namespace HASH_SPACE;
 
-tYYTokenizer::tYYTokenizer(position_map position_mapping, char classchar)
-  : tTokenizer()
-    , _inhibit_position_mapping(false)
-    , _position_mapping(position_mapping)
-    , _class_name_char(classchar) { }
+tYYTokenizer::tYYTokenizer() : tTokenizer() { }
 
 bool tYYTokenizer::eos()
 {
@@ -263,10 +260,7 @@ tYYTokenizer::read_token()
     if(!read_int(from) || !read_special(':')
        || !read_int(to) || !read_special('>') || !read_special(','))
       throw tError("yy_tokenizer: ill-formed token (expected surface link)");
-    _inhibit_position_mapping = true;
   } // if
-  else
-    _inhibit_position_mapping = false;
 
   while(read_int(path))
     paths.push_back(path);
@@ -285,16 +279,6 @@ tYYTokenizer::read_token()
     LOG(logLexproc, NOTICE, " - punctuation");
 
     token_class = SKIP_TOKEN_CLASS;
-  } else {
-    if (stem[0] == _class_name_char && stem.length() > 1) {
-      // The stem is already a grammar type name
-      token_class = lookup_type(stem);
-      if (token_class == -1) {
-        token_class = lookup_type(stem.substr(1));
-      }
-      if (token_class == -1)
-        throw tError("yy_tokenizer: unknown HPSG type given");
-    }
   }
 
   // Read (optional) surface string.
@@ -390,6 +374,13 @@ tYYTokenizer::read_token()
     // they are treated as character positions.  which should always give the
     // correct results in terms of chart topology, of course, but is not really
     // what was originally intended.                            (15-jan-09; oe)
+    //
+    // in mid-2011, we (finally :-) strip a number of legacy layers, and now go
+    // back to the assumption that YY tokens have start and end vertices (in a
+    // contiguous numeric range); for all i can tell, it was in an intermediate
+    // version of the FSPP code only (contributed by bmw) that YY tokens could
+    // end up with character positions as start and end 'vertices'.  that mode
+    // is no longer supported (or relevant).                    (27-aug-11; oe)
     //
     res = new tInputItem(idstrbuf, start, end,
                          surface, stem, paths, token_class,

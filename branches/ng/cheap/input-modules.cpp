@@ -29,7 +29,7 @@ extern FILE *fstatus;
 //@{
 /** choose tokenizer */
 std::string tokenizer_names[] = {
-  "string", "yy", "yy_counts", "pic", "pic_counts", "fsc", "fsr", "smaf",
+  "string", "yy", "pic", "pic_counts", "fsc", "fsr", "smaf",
   "repp", "INVALID"
 } ;
 

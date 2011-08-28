@@ -44,20 +44,10 @@
 
 using namespace std;
 
-#ifdef YY
-#include "yy.h"
-#endif
-
-
 extern tAbstractAgenda* Agenda;
 extern chart* Chart;
 extern int opt_nsolutions, opt_packing;
 extern clock_t timeout;
-
-#ifdef YY
-extern int opt_nth_meaning;
-#endif
-
 
 /**
  * Initializes the option(s) for this module.

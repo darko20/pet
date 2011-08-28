@@ -507,16 +507,6 @@ tGrammar::tGrammar(const char * filename)
             lex_stem *st = new lex_stem(i);
             _lexicon[i] = st;
             _stemlexicon.insert(make_pair(st->orth(st->inflpos()), st));
-#if defined(YY)
-            if(get_opt_bool("opt_yy") && st->length() > 1)
-                // for multiwords, insert additional index entry
-            {
-                string full = st->orth(0);
-                for(int i = 1; i < st->length(); ++i)
-                    full += string(" ") + string(st->orth(i));
-                _stemlexicon.insert(make_pair(full.c_str(), st));
-            }
-#endif
         }
         else if(rule_status(i))
         {

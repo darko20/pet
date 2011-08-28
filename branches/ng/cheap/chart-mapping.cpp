@@ -23,6 +23,7 @@
 #include "cheap.h"
 #include "configs.h"
 #include "errors.h"
+#include "parse.h"
 #include "item.h"
 #include "item-printer.h"
 #include "grammar.h"
@@ -214,33 +215,34 @@ void tChartMappingEngine::process(tChart &chart)
   // cache storing each match we've created:
   tChartMappingMatchCache cache;
 
-  // chart-mapping loop:
-  bool chart_changed;
-  do {
-    chart_changed = false;
-    list<tChartMappingRule*>::const_iterator rule_it;
-    for (rule_it = _rules.begin(); rule_it != _rules.end(); ++rule_it) {
-      tChartMappingRule *rule = *rule_it;
-      tChartMappingMatchSig rule_sig(rule, 0, 0, 0);
-      tChartMappingMatch *empty_match = (cache.find(rule_sig) == cache.end()) ?
-          (cache[rule_sig] = tChartMappingMatch::create(rule, chart))
-        : cache[rule_sig];
-      tChartMappingMatch *completed = 0;
-      do {
-        completed = get_new_completed_match(chart, empty_match, cache, loglevel);
-        if (completed) { // 0 if there is no further completed match
-          chart_changed = completed->fire(chart, loglevel) || chart_changed;
-        }
-      } while (completed);
-    } // for each rule
-  } while (false); // quit after the first round of rule applications
-  // we are still undecided whether we want to have several rounds, i.e.:
-  //} while (chart_changed); // loop until fixpoint reached
+  //
+  // chart mapping loop: rewriting rules are ordered, so we want a single pass
+  // overl all the rules, but repeatedly apply each rule until it can no longer
+  // be fired.
+  //
+  list<tChartMappingRule*>::const_iterator rule_it;
+  for (rule_it = _rules.begin(); rule_it != _rules.end(); ++rule_it) {
+    tChartMappingRule *rule = *rule_it;
+    tChartMappingMatchSig rule_sig(rule, 0, 0, 0);
+    tChartMappingMatch *empty_match = (cache.find(rule_sig) == cache.end()) ?
+        (cache[rule_sig] = tChartMappingMatch::create(rule, chart))
+      : cache[rule_sig];
+    tChartMappingMatch *completed = 0;
+    do {
+      std::string message;
+      if(test_resource_limits(message)) {
+        chart.clear();
+        throw tError(message);
+      }
+      completed = get_new_completed_match(chart, empty_match, cache, loglevel);
+      if (completed) completed->fire(chart, loglevel);
+    } while (completed);
+  } // for each rule
 
   // release all created matches:
   tChartMappingMatchCache::iterator match_it;
   for (match_it = cache.begin(); match_it != cache.end(); ++match_it)
-    delete match_it->second; // delete 0 is safe according C++ Standard
+    delete match_it->second; // delete 0 is safe according to C++ Standard
 
   // check whether the chart is still wellformed:
   if (!chart.connected()) {
