@@ -23,7 +23,6 @@
 #include "options.h"
 #include "settings.h"
 #include "parse.h"
-#include "yy.h"
 #include "getopt.h"
 #include "fs.h"
 #include "cheap.h"
@@ -72,11 +71,6 @@ void usage(FILE *f)
   fprintf(f, "  `-predict-les' --- enable use of type predictor for lexical gaps\n");
   fprintf(f, "  `-lattice' --- word lattice parsing\n");
   fprintf(f, "  `-server[=n]' --- go into server mode, bind to port `n' (default: 4711)\n");
-#ifdef YY
-  fprintf(f, "  `-one-meaning[=n]' --- non exhaustive search for first [nth]\n"
-             "                         valid semantic formula\n");
-  fprintf(f, "  `-yy' --- enable YY input mode\n");
-#endif
   fprintf(f, "  `-repp[=file]' --- use REPP to tokenize, with settings in file\n");
   fprintf(f, "  `-tagger[=file]' --- POS tag input, using settings in file\n");
   fprintf(f, "  `-failure-print' --- print failure paths\n");
@@ -152,11 +146,7 @@ void usage(FILE *f)
 #define OPTION_REPP 45
 #define OPTION_TAGGER 46
 #define OPTION_PREPROCESS_ONLY 47
-
-#ifdef YY
-#define OPTION_ONE_MEANING 100
-#define OPTION_YY 101
-#endif
+#define OPTION_YY 48
 
 //typedef T (*fromfunc)(const std::string &s);
 //typedef std::string (*tofunc)(const T &val);
@@ -190,10 +180,7 @@ char* parse_options(int argc, char* argv[])
     {"predict-les", optional_argument, 0, OPTION_PREDICT_LES},
     {"repp", optional_argument, 0, OPTION_REPP},
     {"tagger", optional_argument, 0, OPTION_TAGGER},
-#ifdef YY
     {"yy", no_argument, 0, OPTION_YY},
-    {"one-meaning", optional_argument, 0, OPTION_ONE_MEANING},
-#endif
     {"server", optional_argument, 0, OPTION_SERVER},
     {"log", required_argument, 0, OPTION_LOG},
     {"pg", optional_argument, 0, OPTION_PG},
@@ -207,7 +194,7 @@ char* parse_options(int argc, char* argv[])
     {"partial", no_argument, 0, OPTION_PARTIAL},
     {"robust", optional_argument, 0, OPTION_ROBUST},
     {"results", required_argument, 0, OPTION_NRESULTS},
-    {"tok", optional_argument, 0, OPTION_TOK},
+    {"tokenizer", optional_argument, 0, OPTION_TOK},
     {"compute-qc-unif", optional_argument, 0, OPTION_COMPUTE_QC_UNIF},
     {"compute-qc-subs", optional_argument, 0, OPTION_COMPUTE_QC_SUBS},
     {"jxchgdump", required_argument, 0, OPTION_JXCHG_DUMP},
@@ -267,7 +254,7 @@ char* parse_options(int argc, char* argv[])
           if(optarg != NULL)
             set_opt_from_string("opt_server", optarg);
           else
-            set_opt("opt_server", CHEAP_SERVER_PORT);
+            set_opt("opt_server", 4711);
           break;
       case OPTION_NO_SHRINK_MEM:
           set_opt("opt_shrink_mem", false);
@@ -476,18 +463,14 @@ char* parse_options(int argc, char* argv[])
         set_opt("opt_tagger", 
                 (optarg != NULL) ? std::string(optarg) : std::string("null"));
         break;
-#ifdef YY
-      case OPTION_ONE_MEANING:
-          if(optarg != NULL)
-            set_opt_from_string("opt_nth_meaning", optarg);
-          else
-            set_opt("opt_nth_meaning", 1);
-          break;
       case OPTION_YY:
-          set_opt("opt_yy", true);
-          set_opt_from_string("opt_tok", "yy");
-          break;
-#endif
+        //
+        // this is a legacy option, now equivalent to '-tokenizer=yy'; because
+        // '-yy' is in relatively wide use (and recommended in various pieces
+        // of 'documentation', i would like to keep it around.  (28-aug-11; oe)
+        //
+        set_opt_from_string("opt_tok", "yy");
+        break;
       }
     }
 
@@ -538,11 +521,5 @@ void options_from_settings(settings *set)
   set_opt("pedgelimit", int_setting(set, "limit"));
   set_opt("memlimit", int_setting(set, "memlimit"));
   set_opt("opt_hyper", bool_setting(set, "hyper"));
-  // opt_default_les is not a bool setting anymore but since this function
-  // isn't called anywhere, I don't care to evaluate properly here (pead)
-  //set_opt("opt_default_les", bool_setting(set, "default-les"));
   set_opt("opt_predict_les", int_setting(set, "predict-les"));
-#ifdef YY
-  set_opt("opt_nth_meaning", (bool_setting(set, "one-meaning")) ? 1 : 0);
-#endif
 }

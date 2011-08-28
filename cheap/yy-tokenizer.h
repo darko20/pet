@@ -19,7 +19,7 @@ public:
    * \param classchar if a stem begins with this character, it is interpreted
    *        as type name rather than as base form.
    */
-  tYYTokenizer(position_map position_mapping = STANDOFF_POINTS, char classchar = '$');
+  tYYTokenizer();
 
   /** Produce a set of tokens from the given string. */
   virtual void tokenize(myString s, inp_list &result);
@@ -30,9 +30,7 @@ public:
   /** Return \c true if the position in the returned tokens are counts instead
    *  of positions.
    */
-  virtual position_map position_mapping() { 
-    return (_inhibit_position_mapping ? NO_POSITION_MAP : _position_mapping);
-  }
+  virtual position_map position_mapping() { return NO_POSITION_MAP; }
 
 private:
   /** Is the tokenizer at the end of the file? */
@@ -67,11 +65,8 @@ private:
   /** Get the next token */
   class tInputItem *read_token();
 
-  bool _inhibit_position_mapping;
-  position_map _position_mapping;
   std::string _yyinput;
   std::string::size_type _yypos;
-  char _class_name_char;
 };
 
 #endif

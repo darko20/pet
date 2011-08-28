@@ -53,10 +53,6 @@
 
 #include "api.h"
 
-#ifdef YY
-#include "yy.h"
-#endif
-
 #ifdef HAVE_ECL
 #include "petecl.h"
 #endif
@@ -634,27 +630,14 @@ bool load_grammar(string initial_name) {
     // \todo this cries for a separate tokenizer factory
     tTokenizer *tok = 0;
     switch (get_opt<tokenizer_id>("opt_tok")) {
-    case TOKENIZER_YY_COUNTS:
     case TOKENIZER_YY:
-      {
-        const char *classchar = cheap_settings->value("class-name-char");
-        position_map what =
-          get_opt<tokenizer_id>("opt_tok") == TOKENIZER_YY_COUNTS
-          ? STANDOFF_COUNTS
-          : STANDOFF_POINTS;
-        if (classchar != NULL)
-          tok = new tYYTokenizer(what, classchar[0]);
-        else
-          tok = new tYYTokenizer(what);
-      }
+      tok = new tYYTokenizer();
       break;
 
-   case TOKENIZER_REPP:
+    case TOKENIZER_REPP:
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
-    {
       tok = new tReppTokenizer();
-    }
-    break;
+      break;
 #else
       LOG(logAppl, FATAL,
           "No Unicode-enabled regexp support compiled into this cheap.");
@@ -770,18 +753,7 @@ bool load_grammar(string initial_name) {
  */
 static void eventually_start_server(const char *s) {
 
-  // initialize the server mode if requested:
-#if defined(YY) && defined(SOCKET_INTERFACE)
-  int opt_server = get_opt_int("opt_server");
-  if(opt_server != 0) {
-    if(cheap_server_initialize(opt_server))
-      exit(1);
-    load_grammar(s);
-    cheap_server(opt_server);
-  }
-#endif
-
-#if defined(HAVE_XMLRPC_C) && !defined(SOCKET_INTERFACE)
+#if defined(HAVE_XMLRPC_C)
   int opt_server = get_opt_int("opt_server");
   auto_ptr<tXMLRPCServer> server;
   if(opt_server != 0) {
@@ -876,11 +848,6 @@ static void init_main_options() {
     "that covers the chart in a good manner", false);
   //@}
 
-  // \todo should go to yy.cpp, but this produces no code and the call is
-  // optimized away
-  managed_opt("opt_yy",
-     "lovingly designed and (once) valuable code from the YY Software Corporation; should be reviewed and reduced to what is actually supported nowadays.",
-     false);
   managed_opt("opt_repp",
               "Tokenize using REPP, with settings in the file argument",
               string());
