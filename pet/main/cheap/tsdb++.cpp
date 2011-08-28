@@ -327,7 +327,7 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
 
         tsdb_parse T;
         if(!errors.empty())
-            cheap_tsdb_summarize_error(errors, treal, T);
+          cheap_tsdb_summarize_error(errors, treal, T);
 
         cheap_tsdb_summarize_item(*Chart
                                   , Chart->rightmost()
@@ -343,8 +343,8 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
     {
         gettimeofday(&tB, NULL);
 
-        treal = (tB.tv_sec - tA.tv_sec ) * 1000 +
-            (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
+        treal = (tB.tv_sec - tA.tv_sec ) * 1000 
+          + (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
 
         TotalParseTime.restore();
 

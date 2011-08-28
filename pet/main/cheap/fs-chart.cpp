@@ -252,6 +252,7 @@ tChart::preceding_items(tChartVertex *v, int min, int max, bool skip_blocked,
 
 bool
 tChart::connected() {
+  if(_vertices.empty()) return true;
   int nr_start = 0;
   int nr_end = 0;
   for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
@@ -679,6 +680,7 @@ int
 tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
 {
   processed.clear();
+  if(chart.vertices().empty()) return 0;
   std::list<tChartVertex*> vertices = chart.start_vertices();
   if (vertices.size() > 1) // TODO how do we deal with several start vertices?
     LOG(logChart, WARN,
