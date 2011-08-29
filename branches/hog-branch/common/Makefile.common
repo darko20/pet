@@ -1,8 +1,0 @@
-# -*- makefile -*-
-
-VPATH += $(top_srcdir)/common
-
-# %.d: %.cpp
-# 	set -e; $(CXX) $(CPPFLAGS) $<			\
-#         | sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@
-# 	[ -s $@ ] || $(RM) -f $@
