@@ -1,0 +1,9 @@
+
+generic_sg_noun := noun-lxm &
+  [ ORTH <! "generic-stem" !> ,
+    TOKENS.+LIST < [ +TNT.+TAGS.FIRST "NN" ] > ].
+
+generic_pl_noun := noun-lxm &
+  [ ORTH <! "generic-stem" !> ,
+    TOKENS.+LIST < [ +TNT.+TAGS.FIRST "NNS" ] > ].
+    
