@@ -1,3 +1,0 @@
-dative-shift-lrule := ditranspp-verb &
-[ ORTH #orth,
-  ARGS < ditransnp-verb & [ ORTH #orth ]  >].
