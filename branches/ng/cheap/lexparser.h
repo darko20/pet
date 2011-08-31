@@ -13,6 +13,8 @@
 #include "input-modules.h"
 #include "morph.h"
 
+class Resources;
+
 /** Call modules in a special chain of responsiblity.
  * The modules are an ordered list with increasing level. All lexica on the
  * same level are consulted in parallel, i.e., all results are merged into
@@ -87,11 +89,13 @@ public:
   /** Perform tokenization, named entity recognition, POS tagging and skipping
    *  of unknown tokens.
    *  \param input The input string, not necessarily a simple sentence.
-   *  \param[in,out] inp_tokens The set of input tokens we get from input processing.
+   *  \param[in,out] inp_tokens The set of input tokens we get from input
+   *                            processing.
    *  \return The rightmost position of the parsing chart that has to be
    *  created.
    */
-  int process_input(std::string input, inp_list &inp_tokens, bool chart_mapping);
+  int process_input(std::string input, inp_list &inp_tokens, bool chart_mapping,
+                    class Resources &resources);
 
   /** \brief Perform lexical processing.
    *
@@ -109,7 +113,8 @@ public:
    */
   void lexical_processing(inp_list &inp_tokens
                           , bool chart_mapping, bool lex_exhaustive
-                          , fs_alloc_state &FSAS, std::list<tError> &errors);
+                          , fs_alloc_state &FSAS, std::list<tError> &errors
+                          , class Resources &resources);
 
   /** Do a morphological analysis of \a form and return the results.
    *
@@ -172,7 +177,8 @@ private:
    */
   void lexical_parsing(inp_list &inp_tokens,
                        bool chart_mapping, bool lex_exhaustive,
-                       fs_alloc_state &FSAS, std::list<tError> &errors);
+                       fs_alloc_state &FSAS, std::list<tError> &errors,
+                       class Resources &resources);
 
   /** Check the chart dependencies.
    * Chart dependencies allow the user to express certain cooccurrence
@@ -204,14 +210,14 @@ private:
    * of the generic items in `generic-les'. A non-empty `posmapping' table will
    * filter all generic entries that are not explicitly licensed by a POS tag.
    */
-  void add_generics(inp_list &unexpanded);
+  void add_generics(inp_list &unexpanded, Resources &resources);
 
   /** Add predicted entries for uncovered input items.
    * This is only applied if the option \a nr_predicts is
    * non-zero and \opt_default_les is false.
    */
   void add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
-                    int nr_predicts);
+                    int nr_predicts, Resources &resources);
 
   /** Use the registered tokenizer(s) to tokenize the input string and put the
    *  result into \a tokens.
@@ -243,7 +249,7 @@ private:
    * chart if passive.
    * If the item is active, create appropriate new tasks
    */
-  void add(tLexItem *lex);
+  void add(tLexItem *lex, Resources &resources);
 
   /** Add the input item to the global chart and combine it with the
    * appropriate lexical units, eventually applying morphological processing
@@ -253,7 +259,7 @@ private:
    * multi-word (MW) entry, the inflected argument must be the first to be
    * filled.
    */
-  void add(tInputItem *inp);
+  void add(tInputItem *inp, Resources &resources);
 
   /** This function creates new tLexItems based on an input item, its
    *  corresponding lex_stem (lexicon entry) and morphological information.
@@ -261,7 +267,7 @@ private:
    * new tLexItem with inflectional rules \a infl_rules, if this succeeds.
    */
   void combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules
-               , const modlist &mods);
+               , const modlist &mods, Resources &resources);
 
   /** Add a fs modification for the surface form to the given item. This is
    *  only done for generic entries and input items whose HPSG class is
@@ -300,14 +306,15 @@ public:
   virtual ~lex_task() {}
 
   /** Execute this task */
-  virtual void execute(class lex_parser &parser) = 0;
+  virtual tLexItem *execute(class lex_parser &parser) = 0;
 protected:
   /** This function provides access to private functionality of lex_parser for
    *  all subclasses, namely the adding of new items.
-   */
+   *
   void add(lex_parser &parser, tLexItem *new_item) {
     parser.add(new_item);
   }
+  */
 };
 
 
@@ -321,7 +328,7 @@ public:
     : _lex_item(lex), _inp_item(inp) {};
 
   /** Combine a tInputItem with an active tLexItem. Create new tasks. */
-  virtual void execute(class lex_parser &parser);
+  virtual tLexItem *execute(class lex_parser &parser);
 
 private:
   tLexItem *_lex_item;

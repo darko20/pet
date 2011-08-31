@@ -142,7 +142,7 @@ void chart::print(std::ostream &out, tAbstractItemPrinter *pr,
   }
 }
 
-void chart::get_statistics()
+void chart::get_statistics(statistics &stats)
 {
     // calculate aedges, pedges, raedges, rpedges
     chart_iter iter(this);

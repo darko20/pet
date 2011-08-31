@@ -358,7 +358,7 @@ extern bool compatible(const fs &a, const fs &b);
 
 /** Transfer unification statistics counters in global variables to a
     statistics object. */
-extern void get_unifier_stats();
+extern void get_unifier_stats(class statistics &stats);
 
 
 

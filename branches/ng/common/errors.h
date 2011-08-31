@@ -36,7 +36,7 @@ class tError
     tError(std::string message = "Unknown error")
         : _message(message)
     {}
-   
+
     tError(std::string message, std::string filename, int line, int col=0) {
       std::ostringstream errmsg;
       errmsg << filename << ":" << line << ":" << " error: " << message;
@@ -45,14 +45,21 @@ class tError
 
     ~tError()
     {}
-    
-    const std::string &getMessage() const 
-    { 
+
+    const std::string &getMessage() const
+    {
         return _message;
     }
-   
- private:
+
+ protected:
     std::string _message;
+};
+
+class tExhaustedError : public tError {
+ public:
+ tExhaustedError(std::string message = "Resource exhausted")
+   : tError(message)
+  {}
 };
 
 #endif

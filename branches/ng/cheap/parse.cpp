@@ -19,6 +19,7 @@
 
 /* parser control */
 
+#include "resources.h"
 #include "parse.h"
 #include "cheap.h"
 #include "pcfg.h"
@@ -51,13 +52,12 @@ using namespace std;
 chart *Chart = NULL;
 tAbstractAgenda *Agenda = NULL;
 
-timer ParseTime;
-timer TotalParseTime(false);
-
 static bool parser_init();
 //options managed by configuration subsystem
 bool opt_hyper = parser_init();
 int  opt_nsolutions, opt_packing;
+
+timer TotalParseTime;
 
 /** Initialize global variables and options for the parser */
 static bool parser_init() {
@@ -95,8 +95,8 @@ static bool parser_init() {
  * therefore it is more suitable to use TIMES(2)
  */
 //@{
-clock_t timeout;
-clock_t timestamp;
+//clock_t timeout;
+//clock_t timestamp;
 //@}
 
 //
@@ -358,13 +358,13 @@ inline bool result_limits() {
   // the number of requested solutions?
   // opt_packing w/unpacking implies exhaustive parsing
   if ((! opt_packing
-       && opt_nsolutions != 0 && stats.trees >= opt_nsolutions)) 
+       && opt_nsolutions != 0 && stats.trees >= opt_nsolutions))
     return true;
   return false;
 }
 
 
-bool add_item(tItem *it) {
+bool add_item(tItem *it, Resources &resources) {
   assert(!it->blocked());
 
 #ifdef PETDEBUG
@@ -372,6 +372,7 @@ bool add_item(tItem *it) {
 #endif
 
   if(it->passive()) {
+    ++ resources.pedges;
     // \todo how could there be a packed edge if packing is not on??
     if(opt_packing && packed_edge(it))
       return false;
@@ -387,7 +388,7 @@ bool add_item(tItem *it) {
       // the packing parser.
       stats.trees++;
       if(stats.first == -1) {
-        stats.first = ParseTime.convert2ms(ParseTime.elapsed());
+        stats.first = resources.get_stage_time_ms();
       }
       if (result_limits()) return true;
     }
@@ -402,81 +403,16 @@ bool add_item(tItem *it) {
   return false;
 }
 
-inline bool
-resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
-{
-  return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) ||
-    (memlimit > 0 && t_alloc.max_usage() >= memlimit) ||
-    (timeout > 0 && timestamp >= timeout );
-}
-
-//
-// it appears .timeout. and .timestamp. are global values, also used in code
-// outside of this file.  to (at least) avoid further proliferation of global
-// variables, encapsulate everything in a function, which records the reason
-// for resource exhaustion in a string reference.
-// _fix_me_
-// we should probably push this a little further, for example (a) provide a way
-// of (re-)initializing limits and counters, e.g. by passing in a non-empty
-// .message. argument; (b) recording the first .message. (i.e. first cause of
-// resource exhaustion) in a static variable, to avoid accumulating the same
-// error multiple times (as currently can happen in parsing and unpacking); and
-// (c) provide optional arguments to allow a certain percentage of overrunning,
-// e.g. a margin of ten percent for at least a shot at unpacking.  this calls
-// for a little more thinking and consultation with PET co-developers.
-//                                                              (28-aug-11; oe)
-bool
-test_resource_limits(std::string &message)
-{
-
-  static int pedges = -1;
-  if(pedges == -1) pedges = get_opt_int("opt_pedgelimit");
-  if(pedges > 0 && Chart != NULL && Chart->pedges() >= pedges) {
-    ostringstream buffer;
-    buffer << "resource limit exhausted (" 
-           << Chart->pedges() << " passive edges)";
-    message = buffer.str();
-    return true;
-  } //if
-
-  static long int memory = -1;
-  if(memory == -1) memory = get_opt_int("opt_memlimit") * 1024 * 1024;
-  if(memory > 0 && t_alloc.max_usage() >= memory) {
-    ostringstream buffer;
-    buffer << "resource limit exhausted (" 
-           << t_alloc.max_usage() << " bytes)";
-    message = buffer.str();
-    return true;
-  } // if
-
-  if(timeout > 0) {
-    if(times(NULL) >= timeout) {
-      ostringstream buffer;
-      buffer << "resource limit exhausted (" 
-             << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK) 
-             << " seconds)";
-      message = buffer.str();
-      return true;
-    } // if
-  } //if
-
-  return false;
-  
-} // test_resource_limits()
-
 
 void
-parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
-  int pedgelimit = get_opt_int("opt_pedgelimit");
+parse_loop(fs_alloc_state &FSAS, list<tError> &errors, Resources &resources) {
 
   //
   // run the core parser loop until either (a) we empty out the agenda, (b) we
   // hit a resource limit, or (c) in (non-packing) best-first mode, the number
   // of trees found equals the number of requested solutions.
   //
-  while(! Agenda->empty() &&
-        ! resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
+  while(! Agenda->empty() && ! resources.exhausted()) {
 
     basic_task* t = Agenda->pop();
 #ifdef PETDEBUG
@@ -484,156 +420,55 @@ parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 #endif
     tItem *it = t->execute();
     delete t;
-    if (timeout > 0) timestamp = times(NULL);
+
     // add_item checks all limits that have to do with the number of
     // analyses. If it returns true that means that one of these limits has
     // been reached
-    if ((it != 0) && add_item(it)) break;
-  }
-}
-
-/**
- * Unpacks the parse forest selectively (using the max-ent model).
- * \return number of unpacked trees
- */
-int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
-                       long memlimit, int nsolutions,
-                       timer *UnpackTime , vector<tItem *> &readings) {
-  int nres = 0;
-  if (get_opt_int("opt_timeout") > 0)
-    timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
-
-  // selectively unpacking
-  list<tItem*> uroots;
-  for (vector<tItem*>::iterator tree = trees.begin();
-       // TODO: this should be checked beforehand, because it does not change
-       // in the loop, and will either lead to no or all trees ending up in
-       // uroots, or am i wrong??
-       (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
-       // END TODO
-         && tree != trees.end(); ++tree) {
-    if (! (*tree)->blocked()) {
-      stats.trees ++;
-      uroots.push_back(*tree);
-    }
-  }
-  list<tItem*> results
-    = tItem::selectively_unpack(uroots, nsolutions
-                                , Chart->rightmost(), upedgelimit, memlimit);
-
-  static tCompactDerivationPrinter cdp;
-  for (list<tItem*>::iterator res = results.begin();
-       res != results.end(); ++res) {
-    readings.push_back(*res);
-    LOG(logParse, DEBUG,
-        "unpacked[" << nres << "] (" << setprecision(1)
-        << (float) (UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-        << "): " << endl
-        << (std::pair<tAbstractItemPrinter *, const tItem *>(&cdp, *res))
-        << endl);
-    nres++;
-  }
-  return nres;
-}
-
-
-/**
- * Unpacks the parse forest exhaustively.
- * \return number of unpacked trees
- * \todo why is opt_nsolutions not honored here
- */
-int unpack_exhaustively(vector<tItem*> &trees, int upedgelimit,
-                        timer *UnpackTime, vector<tItem *> &readings) {
-  int nres = 0;
-  if (get_opt_int("opt_timeout") > 0)
-    timestamp = times(NULL);
-  for(vector<tItem *>::iterator tree = trees.begin();
-      (upedgelimit == 0 || stats.p_upedges <= upedgelimit)
-        && tree != trees.end(); ++tree) {
-    if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout)
+    if (it != 0 && add_item(it, resources))
       break;
-    if(! (*tree)->blocked()) {
-
-      stats.trees++;
-
-      list<tItem *> results;
-
-      results = (*tree)->unpack(upedgelimit);
-
-      static tCompactDerivationPrinter cdp;
-      for(list<tItem *>::iterator res = results.begin();
-          res != results.end(); ++res) {
-        type_t rule;
-        if((*res)->root(Grammar, Chart->rightmost(), rule)) {
-          (*res)->set_result_root(rule);
-          readings.push_back(*res);
-          LOG(logParse, DEBUG,
-              "unpacked[" << nres << "] (" << setprecision(1)
-              << (float)(UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
-              << "): " << endl
-              << (std::pair<tAbstractItemPrinter *, const tItem *>(&cdp, *res))
-              << endl);
-          nres++;
-        }
-      }
-    }
   }
-  return nres;
 }
+
+
+extern int unpack_exhaustively(vector<tItem*> &trees, int chart_length,
+                               Resources& resources, vector<tItem *> &readings);
+
+extern int unpack_selectively(std::vector<tItem*> &trees, int nsolutions,
+                              int chart_length, Resources &resources,
+                              vector<tItem *> &readings,  list<tError> &errors);
 
 vector<tItem*>
 collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
-                 int pedgelimit, long memlimit, int nsolutions,
+                 Resources &resources, int nsolutions,
                  vector<tItem*> &trees) {
   vector<tItem *> readings;
 
+  int pedges = resources.pedges;
+
   if(opt_packing && !(opt_packing & PACKING_NOUNPACK)) {
-    // \todo What if there are already valid solutions but the edge limit has
-    // been hit? Why is there no unpacking at all
-    if (pedgelimit == 0 || Chart->pedges() < pedgelimit) {
-      timer *UnpackTime = new timer();
-      stats.trees = 0; // We want to recount the trees in case some
-                       // are blocked or don't unpack.
-      int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+    int nres = 0;
+    // We want to recount the trees in case some are blocked or don't unpack.
+    stats.trees = 0;
 
-      if ((opt_packing & PACKING_SELUNPACK)
-          && nsolutions > 0
-          && Grammar->sm()) {
-        try {
-          unpack_selectively(trees, upedgelimit, memlimit, nsolutions,
-                             UnpackTime, readings);
-        } catch(tError e) {
-          errors.push_back(e);
-        }
-      } else { // unpack exhaustively
-        try {
-          unpack_exhaustively(trees, upedgelimit, UnpackTime, readings);
-        } catch(tError e) {
-          errors.push_back(e);
-        }
-      }
-
-      if(upedgelimit > 0 && stats.p_upedges > upedgelimit) {
-        ostringstream s;
-        s << "unpack edge limit exhausted (" << upedgelimit
-          << " pedges)";
-        errors.push_back(s.str());
-      }
-
-      if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
-        ostringstream s;
-        s << "timed out ("
-          << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
-          << " s)";
-        errors.push_back(s.str());
-      }
-
-      stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
-      stats.p_dyn_bytes = FSAS.dynamic_usage();
-      stats.p_stat_bytes = FSAS.static_usage();
-      FSAS.clear_stats();
-      delete UnpackTime;
+    if ((opt_packing & PACKING_SELUNPACK)
+        && nsolutions > 0
+        && Grammar->sm()) {
+      nres = unpack_selectively(trees, nsolutions, Chart->rightmost(),
+                                resources, readings, errors);
+    } else {
+      nres = unpack_exhaustively(trees, Chart->rightmost(), resources,
+                                 readings);
     }
+    if (resources.exhausted()) {
+      errors.push_back(tExhaustedError(resources.exhaustion_message()));
+    }
+
+    stats.p_upedges = resources.pedges - pedges;
+
+    stats.p_utcpu = resources.get_stage_time_ms();
+    stats.p_dyn_bytes = FSAS.dynamic_usage();
+    stats.p_stat_bytes = FSAS.static_usage();
+    FSAS.clear_stats();
   } else {
     readings = trees;
   }
@@ -647,33 +482,15 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
 
 
 void
-parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
-  int pedgelimit = get_opt_int("opt_pedgelimit");
-  clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
+parse_finish(fs_alloc_state &FSAS, list<tError> &errors, Resources &resources) {
 
-  stats.tcpu = ParseTime.convert2ms(ParseTime.elapsed());
+  stats.tcpu = resources.get_stage_time_ms();
 
   stats.dyn_bytes = FSAS.dynamic_usage();
   stats.stat_bytes = FSAS.static_usage();
 
-  get_unifier_stats();
-  Chart->get_statistics();
-
-  if(resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
-    ostringstream s;
-    if (memlimit > 0 && t_alloc.max_usage() >= memlimit) {
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
-    }
-    else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit) {
-      s << "edge limit exhausted (" << pedgelimit << " pedges)";
-    }
-    else {
-      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
-          << " s)";
-    }
-    errors.push_back(s.str());
-  }
+  get_unifier_stats(stats);
+  Chart->get_statistics(stats);
 
   LOG(logParse, DEBUG, *Chart);
 
@@ -691,11 +508,11 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
     } // for
     Chart->trees() = Chart->readings();
     stats.trees = Chart->trees().size();
+  } else {
+    Chart->readings() = collect_readings(FSAS, errors,
+                                         resources, opt_nsolutions,
+                                         Chart->trees());
   }
-  else
-    Chart->readings() 
-      = collect_readings(FSAS, errors, pedgelimit, memlimit, 
-                         opt_nsolutions, Chart->trees());
 
   stats.readings = Chart->readings().size();
 
@@ -725,24 +542,18 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
 
   unify_wellformed = true;
 
-  //
   // really, start timing here.  for JaCY (as of jan-05), input processing
   // takes significant time.                               (10-feb-05; oe)
   // even more so, now that PET sports native support for REPP and calling out
   // to external taggers.                                   (5-aug-11; oe)
-  //
-  TotalParseTime.start();
-  ParseTime.reset(); ParseTime.start();
-  if (get_opt_int("opt_timeout") > 0) {
-    timestamp = times(NULL);
-    timeout = timestamp + (clock_t)get_opt_int("opt_timeout");
-  }
+  Resources resources;
 
   int max_pos = 0;
   inp_list input_items;
   bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
   try {
-    max_pos = Lexparser.process_input(input, input_items, chart_mapping);
+    max_pos = Lexparser.process_input(input, input_items, chart_mapping,
+                                      resources);
   } // try
   catch(tError e) {
     input_items.clear();
@@ -756,31 +567,38 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   }
 
   C = Chart = new chart(max_pos, owner);
-
-  if(input_items.size()) {
+  if(input_items.size() > 0) {
     Lexparser.lexical_processing(input_items, chart_mapping,
                                  (chart_mapping
                                   || cheap_settings->lookup("lex-exhaustive")),
-                                 FSAS, errors);
+                                 FSAS, errors, resources);
+    // TODO: THIS IS A BAD HACK TO SIMULATE THAT EDGES IN THE PREPROCESSING
+    // STAGE ARE NOT COUNTED (IN FACT THEY ARE, SINCE THE CODE USES
+    // add_item (see above)
+    resources.pedges = 0;
 
+    resources.start_next_stage();
     // during lexical processing, the appropriate tasks for the syntactic stage
     // are already created
-    if(!(get_opt_int("opt_tsdb") & 32)) parse_loop(FSAS, errors, timeout);
-  } //if
+    if(!(get_opt_int("opt_tsdb") & 32))
+      parse_loop(FSAS, errors, resources);
 
-  ParseTime.stop();
-  TotalParseTime.stop();
+    if (resources.exhausted()) {
+      errors.push_back(tError(resources.exhaustion_message()));
+    }
 
-  parse_finish(FSAS, errors, timeout);
+    resources.start_next_stage();
+    parse_finish(FSAS, errors, resources);
 
-  if(get_opt_int("opt_robust") != 0 && (Chart->readings().empty()))
-    analyze_pcfg(Chart, FSAS, errors);
+    if(get_opt_int("opt_robust") != 0 && (Chart->readings().empty())) {
+      resources.start_next_stage();
+      analyze_pcfg(Chart, FSAS, errors, resources);
+    }
+  } //if input_items.size() > 0
 
-  //
-  // _fix_me_
-  // with .max_pos. == 0, lexparser::reset() will SEGV; maybe contact bernd?
-  //                                                            (27-aug-11; oe)
-  if(input_items.size()) Lexparser.reset();
+  resources.stop_finally();
+
+  if(input_items.size() > 0) Lexparser.reset();
   // clear_dynamic_types(); // too early
   delete Agenda;
 }

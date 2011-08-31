@@ -13,7 +13,7 @@ EXTRA_DIST   = BUGS CHANGELOG LICENSE README TODO \
 ACLOCAL_AMFLAGS = -I m4
 
 # For ebrowse (Emacs)
-BROWSE: 
+BROWSE:
 	echo `find $(topsrc_dir) -name '*.h' -print ` \
 	     `find $(topsrc_dir) \( -name '*.c' -o -name '*.cpp' \) -print` | \
 	tr ' ' '\n'| ebrowse
@@ -54,11 +54,11 @@ cheapdoc:
 	$(DOXYGEN) doxyconfig.cheap
 
 logon:
-	strip flop/flop cheap/cheap 
+	strip flop/flop cheap/cheap
 	/bin/cp flop/flop cheap/cheap $$LOGONROOT/uio/bin/linux.x86.32
 
 test:
-	strip flop/flop cheap/cheap 
+	strip flop/flop cheap/cheap
 	/bin/cp flop/flop $$LOGONROOT/uio/bin/linux.x86.32/tflop
 	/bin/cp cheap/cheap $$LOGONROOT/uio/bin/linux.x86.32/tcheap
 

@@ -590,7 +590,7 @@ tGrammar::tGrammar(const char * filename)
     if(get_opt_string("opt_preprocess_only").empty()) {
       //
       // a parse selection model can be supplied on the command line or through
-      // the settings file.  and furthermore, even when a setting is present, 
+      // the settings file.  and furthermore, even when a setting is present,
       // the command line can take precedence, including disabling parse
       // ranking by virtue of a special `null' model.
       //
@@ -613,8 +613,8 @@ tGrammar::tGrammar(const char * filename)
       if (pcfg_file != 0) {
         try {
           _pcfgsm = new tPCFG(this, pcfg_file, filename);
-          // delete pcfgsm; 
-          // only pcfg rules are loaded, not their weights 
+          // delete pcfgsm;
+          // only pcfg rules are loaded, not their weights
           // TODO: what was happening here?
         } catch (tError &e) {
           LOG(logGrammar, ERROR, e.getMessage());
@@ -673,7 +673,7 @@ tGrammar::tGrammar(const char * filename)
     }
 #endif
 
-    get_unifier_stats();
+    get_unifier_stats(stats);
 
     if(property("unfilling") == "true" && opt_packing)
     {

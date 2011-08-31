@@ -304,7 +304,7 @@ static long int total_cost_fail = 0;
 static long int total_cost_succ = 0;
 
 void
-get_unifier_stats()
+get_unifier_stats(statistics &stats)
 {
     if(stats.unifications_succ != 0)
     {

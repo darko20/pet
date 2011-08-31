@@ -33,6 +33,7 @@
 #include "settings.h"
 #include "configs.h"
 #include "logging.h"
+#include "resources.h"
 
 #include <iostream>
 
@@ -94,8 +95,9 @@ static lex_parser &init() {
 }
 
 // functions from parse.cpp
-extern void add_item(tItem *it);
-extern void parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout);
+extern void add_item(tItem *it, Resources &resources);
+extern void parse_loop(fs_alloc_state &FSAS, list<tError> &errors,
+                       Resources &resources);
 extern void postulate(tItem *passive);
 
 /** Perform lexparser initializations.
@@ -195,10 +197,10 @@ void lex_parser::add_surface_mod(const string &carg, modlist &mods) {
  *  of input items, and in this case, create the appropriate tasks.
  */
 void
-lex_parser::add(tLexItem *lex) {
+lex_parser::add(tLexItem *lex, Resources &resources) {
   if(lex->passive()) {
     // add new item to the global chart
-    add_item(lex);  // from parse.cpp
+    add_item(lex, resources);  // from parse.cpp  // TODO explain what the NULL is
     stats.words++;  // we count these for compatibility, not the ones after
                     // lexical processing
                     // _fix_me_ Berthold says, this is not the right number
@@ -252,7 +254,8 @@ debug_combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules) {
  */
 void
 lex_parser::combine(lex_stem *stem, tInputItem *i_item
-                    , const list_int *infl_rules, const modlist &mods) {
+                    , const list_int *infl_rules, const modlist &mods
+                    , Resources &resources) {
   // _fix_me_
   // TODO what should be fixed here?? (pead)
   fs newfs = stem->instantiate();
@@ -307,7 +310,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
 
   if (newfs.valid()) {
     // LOG(logParse, DEBUG, "combine() succeeded in creating valid fs");
-    add(new tLexItem(stem, i_item, newfs, infl_rules));
+    add(new tLexItem(stem, i_item, newfs, infl_rules), resources);
   } else {
     LOG(logLexproc, DEBUG, debug_combine(stem, i_item, infl_rules));
   }
@@ -337,7 +340,7 @@ static list_int *get_rules(tMorphAnalysis &analysis) {
  * filled.
  */
 void
-lex_parser::add(tInputItem *inp) {
+lex_parser::add(tInputItem *inp, Resources &resources) {
   assert(!inp->blocked());
 
   // add item to the global chart
@@ -363,12 +366,12 @@ lex_parser::add(tInputItem *inp) {
       modlist in_mods = inp->mods(); // should be empty
       add_surface_mod(inp->orth(), in_mods);
       if (morphs.empty()) {
-        combine(ls, inp, inp->inflrs(), in_mods);
+        combine(ls, inp, inp->inflrs(), in_mods, resources);
       } else {
         for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
               ; mrph != morphs.end(); ++mrph) {
           list_int *rules = get_rules(*mrph);
-          combine(ls, inp, rules, in_mods);
+          combine(ls, inp, rules, in_mods, resources);
           free_list(rules);
         }
       }
@@ -391,7 +394,7 @@ lex_parser::add(tInputItem *inp) {
       for(list<lex_stem *>::iterator it = stems.begin()
             ; it != stems.end(); ++it) {
         list_int *rules = get_rules(*mrph);
-        combine(*it, inp, rules, inp->mods());
+        combine(*it, inp, rules, inp->mods(), resources);
         free_list(rules);
       }
     }
@@ -403,7 +406,7 @@ lex_parser::add(tInputItem *inp) {
       list<lex_stem *> stems = get_lex_entries(inp->form());
       for(list<lex_stem *>::iterator it = stems.begin()
             ; it != stems.end(); ++it){
-        combine(*it, inp, NULL, inp->mods());
+        combine(*it, inp, NULL, inp->mods(), resources);
       }
     }
   } else if (inp->is_stem_token()) {
@@ -411,7 +414,7 @@ lex_parser::add(tInputItem *inp) {
     list<lex_stem *> stems = get_lex_entries(inp->stem());
     for(list<lex_stem *>::iterator it = stems.begin()
           ; it != stems.end(); ++it) {
-      combine(*it, inp, inp->inflrs(), inp->mods());
+      combine(*it, inp, inp->inflrs(), inp->mods(), resources);
     }
   } else { // neither word nor stem
     // otherwise, we got the class of the lexical stem by some internal
@@ -422,7 +425,7 @@ lex_parser::add(tInputItem *inp) {
     add_surface_mod(inp->orth(), inp->mods());
     // Check if there is an appropriate lexicon entry
     if (stem != NULL) {
-      combine(stem, inp, inp->inflrs(), inp->mods());
+      combine(stem, inp, inp->inflrs(), inp->mods(), resources);
     }
   }
 }
@@ -648,7 +651,7 @@ find_unexpanded(chart *ch, item_predicate valid_item) {
 }
 
 void
-lex_parser::add_generics(list<tInputItem *> &unexpanded) {
+lex_parser::add_generics(list<tInputItem *> &unexpanded, Resources &resources) {
   list< lex_stem * > gens;
 
   LOG(logLexproc, DEBUG, "adding generic les");
@@ -720,12 +723,12 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
         // _fix_me_
         add_surface_mod((*it)->orth(), in_mods);
         if (morphs.empty()) { // TODO as far as I can see, this will never be the case (pead)
-          combine(*ls, *it, (*it)->inflrs(), in_mods);
+          combine(*ls, *it, (*it)->inflrs(), in_mods, resources);
         } else {
           for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
                 ; mrph != morphs.end(); ++mrph) {
             list_int *rules = get_rules(*mrph);
-            combine(*ls, *it, rules, in_mods);
+            combine(*ls, *it, rules, in_mods, resources);
             free_list(rules);
           }
         }
@@ -787,7 +790,7 @@ void debug_predictions(inp_list &unexpanded) {
 
 void
 lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
-                         int nr_predicts) {
+                         int nr_predicts, Resources &resources) {
   list<lex_stem*> predicts;
 
   if(LOG_ENABLED(logLexproc, DEBUG)) debug_predictions(unexpanded);
@@ -800,12 +803,12 @@ lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
       modlist in_mods = (*it)->mods();
       add_surface_mod((*it)->orth(), in_mods);
       if (morphs.empty()) {
-        combine(*ls, *it, (*it)->inflrs(), in_mods);
+        combine(*ls, *it, (*it)->inflrs(), in_mods, resources);
       } else {
         for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
                ; mrph != morphs.end(); ++mrph) {
           list_int *rules = get_rules(*mrph);
-          combine(*ls, *it, rules, in_mods);
+          combine(*ls, *it, rules, in_mods, resources);
           free_list(rules);
         }
       }
@@ -817,7 +820,7 @@ void
 lex_parser::reset() {
   // The items were created with an active default_owner and because of this
   // are correctly destroyed together with the global chart.
-  for(int i = 0; i <= _maxpos; ++i) {
+  for(size_t i = 0; i < _active_left.size(); ++i) {
     _active_left[i].clear();
     _active_right[i].clear();
   }
@@ -832,16 +835,93 @@ bool lex_parser::next_input(std::istream &in, std::string &result) {
   return _tokenizers.front()->next_input(in, result);
 }
 
-int
-lex_parser::process_input(string input, inp_list &inp_tokens, 
-                          bool chart_mapping) 
-{
+tAbstractItemPrinter *printer_factory(const string &format, ostream &buffer) {
+  if(format == "string")
+    return new tItemStringPrinter(buffer);
+  else if(format == "fsc")
+    return new tItemFSCPrinter(buffer);
+
+  return new tItemYYPrinter(buffer);
+}
+
+void print_p_input(inp_list &tokens) {
+  const char *foo = cheap_settings->value("tokenizer-output");
+  if (foo == NULL)
+    return;
+  ostringstream buffer;
+  tAbstractItemPrinter *sp = printer_factory(string(foo), buffer);
+  bool fsc = (strcmp("fsc", foo) == 0);
+  for(inp_iterator item = tokens.begin(); item != tokens.end(); ++item) {
+    if(item != tokens.begin() && fsc) buffer << " ";
+    sp->print(*item);
+  } // for
+  stats.p_input = buffer.str();
+  delete sp;
+}
+
+void print_p_tokens(inp_list &tokens) {
+  const char *foo = cheap_settings->value("tokenizer-output");
+  if (foo == NULL)
+    return;
+  ostringstream buffer;
+  tAbstractItemPrinter *sp = printer_factory(string(foo), buffer);
+  bool fsc = (strcmp("fsc", foo) == 0);
+  for(inp_iterator item = tokens.begin(); item != tokens.end(); ++item) {
+    if(!passive_unblocked(*item)) continue;
+    if(item != tokens.begin() && fsc) buffer << " ";
+    sp->print(*item);
+  } // for
+  stats.p_tokens = buffer.str();
+  delete sp;
+}
+
+// token mapping: apply token mapping rules on input items, or:
+// lexical filtering
+template < typename TOMAP >
+int do_mapping(TOMAP &to_map, const list<tChartMappingRule*> &rules,
+               const char * which, item_predicate filter, int bit,
+               Resources &resources) {
   // TODO get rid of this logging control; use proper logging instead
   // --- i must admit, i find the bit-coded control rather more convenient,
   // at least as long as fine-grained logging control is not available just
   // through command line option.                              (5-aug-11; oe)
+  // --- The idea is that you can have multiple logging setup files and select
+  // one via the command line, not have another heavily overloaded command line
+  // switch whose complex setup you have to explain in detail. (29-aug-11; bk)
   int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
 
+  if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
+    fprintf(stderr, "[cm] %s starts\n", which);
+  }
+  // map to tChart:
+  tChart chart;
+  tItemPrinter ip(cerr, false, true);
+  tChartUtil::map_chart(to_map, chart);
+  if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & bit) {
+    fprintf(stderr, "[cm] initial %s chart:\n", which);
+    chart.print(cerr, &ip, filter);
+  } // if
+  // apply rules:
+  tChartMappingEngine mapper(rules, which);
+  mapper.process(chart, resources);
+  // map back:
+  int maxpos = tChartUtil::map_chart(chart, to_map);
+  // chart and chart vertices memory is released by ~tChart
+  // chart items should be handled by tItem::default_owner()
+  if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & bit) {
+    fprintf(stderr, "[cm] final %s chart:\n", which);
+    chart.print(cerr, &ip, filter);
+  } // if
+  if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
+    fprintf(stderr, "[cm] %s ends\n", which);
+  }
+  return maxpos;
+}
+
+
+int
+lex_parser::process_input(string input, inp_list &inp_tokens,
+                          bool chart_mapping, Resources &resources) {
   // Tokenize the input
   tokenize(input, inp_tokens);
 
@@ -855,82 +935,16 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
   position_map position_mapping = _tokenizers.front()->position_mapping();
   _maxpos = map_positions(inp_tokens, position_mapping);
 
-  const char *foo = cheap_settings->value("tokenizer-output");
-  string format = (foo != NULL ? foo : "");
-  if(!format.empty()) {
-    tAbstractItemPrinter *sp = NULL;
-    ostringstream buffer;
-    if(format == "string")
-      sp = new tItemStringPrinter(buffer);
-    else if(format == "fsc")
-      sp = new tItemFSCPrinter(buffer);
-    else
-      sp = new tItemYYPrinter(buffer);
-    
-    assert(sp != NULL);
-    for(inp_iterator item = inp_tokens.begin(); 
-        item != inp_tokens.end(); 
-        ++item) {
-      if(item != inp_tokens.begin() && format != "fsc") buffer << " ";
-      sp->print(*item);
-    } // for
-    stats.p_input = buffer.str();
-    delete sp;
-  } //if
+  print_p_input(inp_tokens);
 
-  // token mapping:
   if (chart_mapping) {
-    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
-      fprintf(stderr, "[cm] token mapping starts\n");
-    }
-    // map to tChart:
-    tChart chart;
-    tItemPrinter ip(cerr, false, true);
-    tChartUtil::map_chart(inp_tokens, chart);
-    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 4) {
-      fprintf(stderr, "[cm] initial token chart:\n");
-      chart.print(cerr, &ip, passive_unblocked);
-    } // if
-    // apply chart mapping rules:
-    const std::list<class tChartMappingRule*> &rules = Grammar->tokmap_rules();
-    tChartMappingEngine mapper(rules, "token mapping");
-    mapper.process(chart);
-    // map back:
-    _maxpos = tChartUtil::map_chart(chart, inp_tokens);
-    // chart and chart vertices memory is released by ~tChart
-    // chart items should be handled by tItem::default_owner()
-    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 4) {
-      fprintf(stderr, "[cm] final token chart:\n");
-      chart.print(cerr, &ip, passive_unblocked);
-    } // if
-    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1) {
-      fprintf(stderr, "[cm] token mapping ends\n");
-    }
+    // token mapping:
+    _maxpos = do_mapping(inp_tokens, Grammar->tokmap_rules(),
+                         "token mapping", passive_unblocked, 4,
+                         resources);
   }
 
-  if(!format.empty()) {
-    tAbstractItemPrinter *sp = NULL;
-    ostringstream buffer;
-    if(format == "string")
-      sp = new tItemStringPrinter(buffer);
-    else if(format == "fsc")
-      sp = new tItemFSCPrinter(buffer);
-    else
-      sp = new tItemYYPrinter(buffer);
-    
-    assert(sp != NULL);
-    bool initial = true;
-    for(inp_iterator item = inp_tokens.begin(); 
-        item != inp_tokens.end(); 
-        ++item) {
-      if(!passive_unblocked(*item)) continue;
-      if(!initial && format != "fsc") buffer << " ";
-      sp->print(*item);
-      initial = false;
-    } // for
-    stats.p_tokens = buffer.str();
-    delete sp;
-  } // if
+  print_p_tokens(inp_tokens);
 
   return _maxpos;
 }
@@ -938,9 +952,8 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
 void
 lex_parser::lexical_parsing(inp_list &inp_tokens,
                             bool chart_mapping, bool lex_exhaustive,
-                            fs_alloc_state &FSAS, list<tError> &errors){
-  // TODO get rid of this logging control; use proper logging instead
-  int chart_mapping_loglevel = get_opt_int("opt_chart_mapping");
+                            fs_alloc_state &FSAS, list<tError> &errors,
+                            Resources &resources){
 
   // if lex_exhaustive, process inflectional and lexical rules first and
   // exhaustively before applying syntactic rules
@@ -959,7 +972,7 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
   for(inp_iterator it=inp_tokens.begin(); it != inp_tokens.end(); ++it) {
     // add all input items that have not been deleted in token mapping:
     if (!(*it)->blocked()) {
-      add(*it);
+      add(*it, resources);
     }
   }
 
@@ -984,43 +997,23 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
     set_opt("opt_packing", 0);
 
   while (! _agenda.empty()) {
-    _agenda.front()->execute(*this);
+    tLexItem *item = _agenda.front()->execute(*this);
+    if (item != NULL)
+      add(item, resources);
     _agenda.pop();
   }
 
   // exhaustively apply lexical and inflection rules
   if (lex_exhaustive) {
-    parse_loop(FSAS, errors, 0);
+    parse_loop(FSAS, errors, resources);
   }
-
   set_opt("opt_packing", opt_packing_backup);
 
-  // Lexical chart mapping (a.k.a. lexical filtering):
   if (chart_mapping) {
-    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1)
-      fprintf(stderr, "[cm] lexical filtering starts\n");
-    // map to tChart:
-    tChart chart;
-    tItemPrinter ip(cerr, false, true);
-    tChartUtil::map_chart(*Chart, chart);
-    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 8) {
-      fprintf(stderr, "[cm] initial lexical chart:\n");
-      chart.print(cerr, &ip, passive_unblocked_non_input);
-    } // if
-    // apply chart mapping rules:
-    const std::list<class tChartMappingRule*> &rules = Grammar->lexflt_rules();
-    tChartMappingEngine mapper(rules, "lexical filtering");
-    mapper.process(chart);
-    // map back:
-    _maxpos = tChartUtil::map_chart(chart, *Chart);
-    // chart and chart vertices memory is released by ~tChart
-    // chart items should be handled by tItem::default_owner()
-    if (LOG_ENABLED(logChartMapping, INFO) || chart_mapping_loglevel & 8) {
-      fprintf(stderr, "[cm] final lexical chart:\n");
-      chart.print(cerr, &ip, passive_unblocked_non_input);
-    } // if
-    if (LOG_ENABLED(logChartMapping, NOTICE) || chart_mapping_loglevel & 1)
-      fprintf(stderr, "[cm] lexical filtering ends\n");
+    _maxpos = do_mapping(*Chart, Grammar->lexflt_rules(),
+                         "lexical filtering",
+                         passive_unblocked_non_input, 8,
+                         resources);
   }
 }
 
@@ -1028,9 +1021,11 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
 void
 lex_parser::lexical_processing(inp_list &inp_tokens
                                , bool chart_mapping, bool lex_exhaustive
-                               , fs_alloc_state &FSAS, list<tError> &errors) {
+                               , fs_alloc_state &FSAS, list<tError> &errors
+                               , Resources &resources) {
 
-  lexical_parsing(inp_tokens, chart_mapping, lex_exhaustive, FSAS, errors);
+  lexical_parsing(inp_tokens, chart_mapping, lex_exhaustive, FSAS, errors,
+                  resources);
 
   // dependency filtering is done on the chart itself
   dependency_filter(cheap_settings->lookup("chart-dependencies"),
@@ -1071,9 +1066,9 @@ lex_parser::lexical_processing(inp_list &inp_tokens
   if ((opt_default_les == DEFAULT_LES_POSMAP_LEXGAPS || opt_predict_les)
       && !unexpanded.empty()) {
     if (opt_default_les == DEFAULT_LES_POSMAP_LEXGAPS) {
-      add_generics(unexpanded);
+      add_generics(unexpanded, resources);
     } else if (opt_predict_les) {
-      add_predicts(unexpanded, inp_tokens, opt_predict_les);
+      add_predicts(unexpanded, inp_tokens, opt_predict_les, resources);
     }
     unexpanded.clear();
 
@@ -1085,7 +1080,7 @@ lex_parser::lexical_processing(inp_list &inp_tokens
     }
 
     if (lex_exhaustive) {
-      parse_loop(FSAS, errors, 0);
+      parse_loop(FSAS, errors, resources);
     }
     if (! Chart->connected(*valid)) {
       unexpanded = find_unexpanded(Chart, *valid);
@@ -1160,7 +1155,7 @@ debug_lex_and_inp_task_execute(tLexItem *l_item, tInputItem *i_item) {
   return cdeb.str();
 }
 
-void lex_and_inp_task::execute(class lex_parser &parser) {
+tLexItem *lex_and_inp_task::execute(class lex_parser &parser) {
 
   // the lex item already has its infl position filled (as long as the
   // MW extension infl AND keypos is not done)
@@ -1210,7 +1205,7 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
         if (!anchor_fs.valid()) {
           LOG(logLexproc, ERROR, debug_lex_and_inp_task_execute(_lex_item, _inp_item) +
               " Reason: lexicon_tokens_path cannot be resolved in fs.");
-          return;
+          return NULL;
         }
         item_fs = unify(item_fs, anchor_fs, list_fs);
       }
@@ -1219,7 +1214,7 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
         if (!anchor_fs.valid()) {
           LOG(logLexproc, ERROR, debug_lex_and_inp_task_execute(_lex_item, _inp_item) +
               " Reason: lexicon_last_token_path cannot be resolved in fs.");
-          return;
+          return NULL;
         }
         fs token_fs = dynamic_cast<tInputItem *>(daughters.back())->get_fs();
         item_fs = unify(item_fs, anchor_fs, token_fs);
@@ -1228,13 +1223,13 @@ void lex_and_inp_task::execute(class lex_parser &parser) {
       // only create (and add()) a new lexical item when unification succeeded
       //
       if(item_fs.valid()) {
-        add(parser, new tLexItem(_lex_item, _inp_item, item_fs));
+        return new tLexItem(_lex_item, _inp_item, item_fs);
       } // if
     } // if
     else {
       // add the lex item to the chart and create appropriate tasks
-      add(parser, new tLexItem(_lex_item, _inp_item));
+      return new tLexItem(_lex_item, _inp_item);
     } // else
   }
-
+  return NULL;
 } // lex_and_inp_task::execute()

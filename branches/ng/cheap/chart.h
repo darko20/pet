@@ -74,7 +74,7 @@ public:
   /** Get statistics from the chart, like nr. of active/passive edges, average
    *  feature structure size, items contributing to a reading etc.
    */
-  void get_statistics();
+  void get_statistics(class statistics &stats);
 
   /** Return the number of passive edges */
   inline int& pedges() { return _pedges; }
@@ -416,7 +416,7 @@ void chart::shortest_path(std::list <tItem *> &result, weight_fn_t weight_fn
   std::vector<tItem *>::size_type size = _Cp_start.size() ;
   std::vector<tItem *>::size_type u, v ;
 
-  std::vector < std::list < weight_t > > pred(size) ;
+  std::vector < std::list < int > > pred(size) ;
 
   weight_t *distance = new weight_t[size + 1] ;
   weight_t new_dist ;
