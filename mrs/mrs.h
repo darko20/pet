@@ -8,7 +8,7 @@
 #include <string>
 
 namespace mrs {
-
+
 class tValue {
   public:
     virtual ~tValue() {}
@@ -66,7 +66,6 @@ class tBaseEp {
     std::map<std::string, tValue*> roles;
 
   private:
-    std::list<tConstant*> _constants;
     /* reference to the parent mrs */
     class tBaseMrs *_mrs;
 };
@@ -75,7 +74,7 @@ class tEp : public tBaseEp {
   public:
     tEp() {}
     tEp(class tBaseMrs *mrs) : tBaseEp(mrs) {}
-    virtual ~tEp() {}
+    virtual ~tEp();
 
     std::map<std::string,tConstant*> parameter_strings;
     tVar* label;
@@ -112,22 +111,8 @@ class tBaseMrs {
 class tMrs : public tBaseMrs {
   public:
     tMrs() : tBaseMrs() {}
-    tMrs(std::string input);
 
     tVar* index;
-  /* to be moved to the dedicated readers 
-  private:
-    void parseChar(char x, std::string &rest);
-    void parseID(const std::string id, std::string &rest);
-    tVar *readVar(std::string &rest);
-    tConstant *readCARG(std::string &rest);
-    void parseProps(tVar *var, std::string &rest);
-    std::string readFeature(std::string &rest);
-    void parseEP(std::string &rest);
-    void parsePred(tEp *ep, std::string &rest);
-    bool parseHCONS(std::string &rest);
-    std::string readReln(std::string &rest);
-  */
 };
 
 struct ltep {
