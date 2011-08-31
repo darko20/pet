@@ -50,6 +50,7 @@
 #include "configs.h"
 #include "options.h"
 #include "settings.h"
+#include "resources.h"
 
 #include "api.h"
 
@@ -297,7 +298,7 @@ void interactive() {
               (stats.readings && stats.rreadings ? "*" : ""), stats.readings,
               stats.first/1000., stats.tcpu / 1000.,
               stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-              TotalParseTime.elapsed_ts() / 10.);
+              TotalParseTime.elapsed_ms() / 1000.);
 
       if(verbosity > 0) stats.print(fstatus);
 
@@ -433,7 +434,7 @@ static void interactive_morphology() {
       cout << endl;
     } // for
     LOG(logAppl, INFO, endl << res.size() << " chains in "
-        << setprecision(2) << clock.convert2ms(clock.elapsed()) / 1000.
+        << setprecision(2) << clock.elapsed_ms() / 1000.
         << " s\n");
   } // while
 
@@ -464,6 +465,7 @@ void preprocess_only(const string formatoption) {
   ifstream ifs;
   ifs.open(infile.c_str());
   istream& lexinput = ifs ? ifs : cin;
+  Resources resources;
   while(Lexparser.next_input(lexinput, input)) {
     try {
       fs_alloc_state FSAS;
@@ -472,7 +474,7 @@ void preprocess_only(const string formatoption) {
       // run input pre-processing (tokenizers, taggers, et al.); enable token
       // mapping (if actually requested on the command line).
       //
-      Lexparser.process_input(input, input_items, cmp);
+      Lexparser.process_input(input, input_items, cmp, resources);
 
       tAbstractItemPrinter *ip;
       switch (format) {
@@ -739,7 +741,7 @@ bool load_grammar(string initial_name) {
     return true;
   }
   LOG(logAppl, INFO, nstatictypes << " types in " << setprecision(2)
-      << t_start.convert2ms(t_start.elapsed()) / 1000. << " s" << endl);
+      << t_start.elapsed_ms() / 1000. << " s" << endl);
   fflush(fstatus);
 
   return false;
@@ -923,7 +925,7 @@ void take_process(const char *grammar_file_name) {
               (stats.readings && stats.rreadings ? "*" : ""), stats.readings,
               stats.first/1000., stats.tcpu / 1000.,
               stats.words, stats.pedges, stats.dyn_bytes / 1024.0,
-              TotalParseTime.elapsed_ts() / 10.,
+              TotalParseTime.elapsed_ms() / 1000.,
               ((error_no > 0) ? get_error(session_id, 0).c_str() : ""));
 
       if (mode == 'm' || mode == 'b') {

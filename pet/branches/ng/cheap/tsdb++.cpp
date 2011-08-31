@@ -289,6 +289,7 @@ cheap_tsdb_summarize_run(void)
 }
 
 static int nprocessed = 0;
+static const int MICROSECS_PER_SEC = 1000000;
 
 int
 cheap_process_item(int i_id, const char *i_input, int parse_id,
@@ -339,7 +340,7 @@ cheap_process_item(int i_id, const char *i_input, int parse_id,
     {
         gettimeofday(&tB, NULL);
 
-        treal = (tB.tv_sec - tA.tv_sec ) * 1000 
+        treal = (tB.tv_sec - tA.tv_sec ) * 1000
           + (tB.tv_usec - tA.tv_usec) / (MICROSECS_PER_SEC / 1000);
 
         TotalParseTime.restore();
@@ -362,9 +363,9 @@ cheap_complete_test_run(int run_id, const char *custom)
 {
     LOG(logAppl, INFO,
         "total elapsed parse time " << std::setprecision(3)
-        << TotalParseTime.elapsed_ts() / 10.<< "s; "
+        << TotalParseTime.elapsed_ms() / 1000.<< "s; "
         << nprocessed << " items; avg time per item " << std::setprecision(4)
-        << (TotalParseTime.elapsed_ts() / double(nprocessed)) / 10. << "s");
+        << (TotalParseTime.elapsed_ms() / double(nprocessed)) / 1000. << "s");
 
     if(get_opt_charp("opt_compute_qc") != NULL)
     {

@@ -234,7 +234,7 @@ public:
     }
 #ifdef CFGAPPROX_LEXGEN
     else if((R->trait() == SYNTAX_TRAIT) ||
-            ((R->trait() == LEX_TRAIT) && (inflrs_complete_p())))
+            ((R->trait() == LEX_TRAIT) && (inflrs_complete_p()))) {
       return false;
     }
 #endif
@@ -463,27 +463,19 @@ public:
   /** \c true if an item is marked as permanently blocked. */
   inline bool frozen() const { return _blocked == 2; }
 
-  item_list unpack(int limit);
+  item_list unpack(class Resources &);
   /*@}*/
-
-  /** \brief Base selective unpacking function that unpacks \a n best
-   *  readings of the item (including the readings for items packed
-   *  into this item). Stops unpacking when \a upedgelimit edges have
-   *  been unpacked.
-   *
-   *  \return the list of items represented by this item
-   */
-  //  virtual item_list selectively_unpack(int n, int upedgelimit) = 0;
 
   /** \brief Selective unpacking function that unpacks \a n best
    *   readings from the list of \a root items. Stop unpacking when \a
    *   upedgelimit edges have been unpacked. It also checks if the
    *   item's \a end to see if it is qualified to be a root.
    *
-   *  \return the list of items represented by the list of \a roots
+   *  \return the list of items represented by the list of \a roots in results,
+   *          a potential list of errors in \a errors
    */
-  static item_list selectively_unpack(item_list roots, int n, int end,
-      int upedgelimit, long memlimit);
+  static void selectively_unpack(item_list roots, int n, int end,
+                                 class Resources&, item_list &results);
 
   /** Return a meaningful external name. */
   inline const char *printname() const { return _printname.c_str(); }
@@ -519,14 +511,15 @@ protected:
    *
    * \return the list of items represented by this item
    */
-  virtual item_list unpack1(int limit) = 0;
+  virtual item_list unpack1(class Resources&) = 0;
 
   /** \brief Base function called by selectively_unpack to generate
    *   the \a i th best hypothesys with specific head \a path .
    *
    *  \return the \a i th best hypothesis of the item
    */
-  virtual tHypothesis * hypothesize_edge(item_list path, unsigned int i) = 0;
+  virtual tHypothesis * hypothesize_edge(item_list path, unsigned int i
+                                         , class Resources &) = 0;
 
   /** \brief Base function that instantiate the hypothesis (and
    *   recursively instantiate its sub-hypotheses) until \a upedgelimit
@@ -534,7 +527,8 @@ protected:
    *
    *  \return the instantiated item from the hypothesis
    */
-  virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo, int upedgelimit, long memlimit) = 0;
+  virtual tItem * instantiate_hypothesis(item_list path, tHypothesis * hypo,
+                                         class Resources &) = 0;
 
 private:
   /**
@@ -859,13 +853,14 @@ public:
    * have no other items packed into them, they need not be unpacked. Unpacking
    * does not proceed past tLexItem.
    */
-  virtual item_list unpack1(int limit);
+  virtual item_list unpack1(class Resources&);
 
   /** \brief tInputItem will not have items packed into them. They
       need not be unpacked. */
-  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
-  //  virtual item_list selectively_unpack(int n, int upedgelimit);
+  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i,
+                                         class Resources &);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path,
+                                         tHypothesis* hypo, class Resources &);
 
   /** Return the external id associated with this item */
   const std::string &external_id() const { return _input_id; }
@@ -1026,14 +1021,15 @@ protected:
   /** \brief Return a list of items that is represented by this item. For this
    *  class of items, the list always contains only the item itself
    */
-  virtual item_list unpack1(int limit);
+  virtual item_list unpack1(class Resources&);
 
   /** \brief Return the \a i th best hypothesis. For tLexItem, there
    *   is always only one hypothesis, for a given \a path .
    */
-  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
-  //  virtual item_list selectively_unpack(int n, int upedgelimit);
+  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i,
+                                         class Resources &);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path,
+                                         tHypothesis *hypo, class Resources &);
 
 private:
   void init();
@@ -1164,7 +1160,7 @@ protected:
    * This requires first the unpacking of all daughters, and then generate all
    * possible combinations to compute the unpacked items represented here.
    */
-  virtual item_list unpack1(int limit);
+  virtual item_list unpack1(class Resources&);
 
   /** Apply the rule that built this item to all combinations of the daughter
    *  items in \a dtrs and collect the results in \a res.
@@ -1180,28 +1176,28 @@ protected:
    */
   void unpack_cross(std::vector<item_list> &dtrs,
                     int index, std::vector<tItem *> &config,
-                    item_list &res);
+                    item_list &res, class Resources &);
 
   /** Try to fill the rule of this item with the arguments in \a config. */
   tItem *unpack_combine(std::vector<tItem *> &config);
   /*@}*/
 
-  /** \brief Selectively unpack the n-best results of this item.
-   *
-   * \return The list of unpacked results (up to \a n items)
-   */
-  //  virtual item_list selectively_unpack(int n, int upedgelimit);
-
   /** Get the \i th best hypothesis of the item with \a path to root. */
-  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i);
+  virtual tHypothesis * hypothesize_edge(std::list<tItem*> path, unsigned int i,
+                                         class Resources &);
 
   /** Instantiatve the hypothesis */
-  virtual tItem * instantiate_hypothesis(std::list<tItem*> path, tHypothesis * hypo, int upedgelimit, long memlimit);
+  virtual tItem * instantiate_hypothesis(std::list<tItem*> path,
+                                         tHypothesis *hypo, class Resources &);
 
   /** Decompose edge and return the number of decompositions
-   * All the decompositions are recorded in this->decompositions .
+   * All the decompositions are recorded in this->decompositions.
+   * \todo bk: I don't see why it's necessary to store the decompositions,
+   * because this function is only called once in hypothesize edge and could
+   * as well return the computed decompositions, which are only used there
+   * locally. So why store them in the item?
    */
-  virtual int decompose_edge();
+  int decompose_edge(std::list<tDecomposition*> &decompositions);
 
   /** Generate a new hypothesis and add it onto the local agendas. */
   virtual void new_hypothesis(tDecomposition* decomposition, std::list<tHypothesis*> dtrs, std::vector<int> indices);
@@ -1212,9 +1208,16 @@ private:
   tItem * _adaughter;
   grammar_rule *_rule;
 
-  /** A vector of hypotheses*/
+  /** A vector of hypotheses. If there were no grandparenting, this would be
+   *  the only needed hypothesis list, albeit, as a priority queue.
+   */
   std::vector<tHypothesis*> _hypotheses;
-  /** a map from path to corresponding cached hypotheses */
+  /** a map from path to corresponding cached hypotheses. This is needed
+   *  because every grandparent configuration needs its own cache at the
+   *  moment, and it seems to be easier to enumerate the search states this
+   *  way.
+   *  \todo The vector should be a priority queue in a proper implementation.
+   */
   std::map<std::list<tItem*>,std::vector<tHypothesis*> > _hypotheses_path;
   /** a map from path to corresponding max number of hypothese */
   std::map<std::list<tItem*>,unsigned int> _hypo_path_max;
@@ -1233,16 +1236,6 @@ private:
  * parents.
  */
 void propagate_failure(tHypothesis *hypo);
-
-/** Advance the indices vector.
- * e.g. <0 2 1> -> {<1 2 1> <0 3 1> <0 2 2>}
- */
-std::list<std::vector<int> > advance_indices(std::vector<int> indices);
-
-/** Insert hypothesis into agenda. Agenda is sorted descendingly
- *
- */
-void hagenda_insert(std::list<tHypothesis*> &agenda, tHypothesis* hypo, std::list<tItem*> path);
 
 // \todo _fix_me_
 #if 0
