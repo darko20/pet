@@ -19,11 +19,11 @@
 #include "chart-mapping.h"
 #include "pet-config.h"
 
+#include "resources.h"
 #include "builtins.h"
 #include "cheap.h"
 #include "configs.h"
 #include "errors.h"
-#include "parse.h"
 #include "item.h"
 #include "item-printer.h"
 #include "grammar.h"
@@ -207,7 +207,7 @@ int tChartMappingEngine::doLogging(tChart &chart, const char *prep)
   return loglevel;
 }
 
-void tChartMappingEngine::process(tChart &chart)
+void tChartMappingEngine::process(tChart &chart, Resources &resources)
 {
   assert(chart.connected());
   int loglevel = doLogging(chart, "before");
@@ -230,9 +230,9 @@ void tChartMappingEngine::process(tChart &chart)
     tChartMappingMatch *completed = 0;
     do {
       std::string message;
-      if(test_resource_limits(message)) {
+      if(resources.exhausted()) {
         chart.clear();
-        throw tError(message);
+        throw tError(resources.exhaustion_message());
       }
       completed = get_new_completed_match(chart, empty_match, cache, loglevel);
       if (completed) completed->fire(chart, loglevel);

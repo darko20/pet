@@ -35,6 +35,7 @@
 #include "settings.h"
 #include "options.h"
 //#include "dag-robust.h"
+#include "resources.h"
 
 #include <sstream>
 #include <iostream>
@@ -47,7 +48,6 @@ using namespace std;
 extern tAbstractAgenda* Agenda;
 extern chart* Chart;
 extern int opt_nsolutions, opt_packing;
-extern clock_t timeout;
 
 /**
  * Initializes the option(s) for this module.
@@ -65,7 +65,7 @@ static bool init() {
  */
 static bool initialized = init();
 
-
+/*
 inline bool
 pcfg_resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
 {
@@ -73,7 +73,7 @@ pcfg_resources_exhausted(int pedgelimit, long memlimit, int timeout, int timesta
     (memlimit > 0 && t_alloc.max_usage() >= memlimit) ||
     (timeout > 0 && timestamp >= timeout );
 }
-
+*/
 
 /** return \c true if parsing should be stopped because enough results have
  *  been found
@@ -311,16 +311,11 @@ add_item_pcfg(tItem *it) {
 
 
 void
-parse_loop_pcfg() {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
-  int pedgelimit = get_opt_int("opt_pedgelimit");
-  while (!Agenda->empty() &&
-         ! pcfg_resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
+parse_loop_pcfg(Resources &resources) {
+  while (!Agenda->empty() && ! resources.exhausted()) {
     basic_task *t = Agenda->pop();
     tItem *it = t->execute();
     delete t;
-    if (timeout > 0)
-      timestamp = times(NULL);
     // add_item_pcfg checks all limits that have to do with the number
     // of analyses. If return true that means that one of these limits
     // has been reached
@@ -361,12 +356,10 @@ fs instantiate_robust(tItem* root) {
 }
 */
 
-int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
-                            long memlimit,
-                            timer *UnpackTime, vector<tItem*> &readings) {
+int unpack_selectively_pcfg(vector<tItem*> &trees, int chart_length,
+                            Resources &resources, vector<tItem*> &readings,
+                            list<tError> &errors) {
   int nres = 0;
-  if (get_opt_int("opt_timeout") > 0)
-    timestamp = times(NULL);
 
   int oldgplevel = get_opt_int("opt_gplevel");
   tSM* oldsm = Grammar->sm();
@@ -390,9 +383,8 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
   if (opt_nsolutions == 1 && maxtree) {
     results.push_back(maxtree);
   } else {
-    results = tItem::selectively_unpack(uroots, opt_nsolutions,
-                                        Chart->rightmost(),
-                                        upedgelimit, memlimit);
+    tItem::selectively_unpack(uroots, opt_nsolutions, chart_length,
+                              resources, results);
   }
   tCompactDerivationPrinter cdp(cerr, false);
   for (list<tItem*>::iterator res = results.begin();
@@ -401,7 +393,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
     if(LOG_ENABLED(logLexproc, INFO)) {
       // TODO also use logging for this code
       cerr << "unpacked[" << nres << "] (" << setprecision(1)
-           << ((float) UnpackTime->convert2ms(UnpackTime->elapsed()) / 1000.0)
+           << ((float) resources.get_stage_time_ms() / 1000.0)
            << "): ";
       cdp.print(*res);
       cerr << endl;
@@ -416,61 +408,40 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
 }
 
 
-void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
+void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors,
+                       Resources &resources) {
   // _todo_ modify so that proper unpacking routines are invoked
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
-  int pedgelimit = get_opt_int("opt_pedgelimit");
-  clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
 
   FSAS.clear_stats();
 
-  if(pcfg_resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
-    ostringstream s;
-
-    if (memlimit > 0 && t_alloc.max_usage() >= memlimit)
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
-        << " MB)";
-    else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit)
-      s << "edge limit exhausted (" << pedgelimit
-        << " pedges)";
-    else
-      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
-              << " s)";
-    errors.push_back(s.str());
+  if(resources.exhausted()) {
+    errors.push_back(resources.exhaustion_message());
   }
 
   vector<tItem*> readings;
 
   if ((opt_packing & PACKING_PCFGEQUI) && !(opt_packing & PACKING_NOUNPACK)
       && Grammar->pcfgsm()
-      && (pedgelimit == 0 || Chart->pedges() < pedgelimit)) {
-    timer *UnpackTime = new timer();
+      // && (pedgelimit == 0 || Chart->pedges() < pedgelimit) //has been checked
+      ) {
+    // timer *UnpackTime = new timer(); // now in start_unpacking
     int nres = 0;
     stats.rtrees = 0;
-    int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
+    // int upedgelimit = pedgelimit ? pedgelimit - Chart->pedges() : 0;
 
-    nres = unpack_selectively_pcfg(Chart->trees(), upedgelimit, memlimit,
-                                   UnpackTime, readings);
+    nres = unpack_selectively_pcfg(Chart->trees(), Chart->rightmost(),
+                                   resources, readings, errors);
 
-    if (upedgelimit > 0 && stats.p_upedges > upedgelimit) {
-      ostringstream s;
-      s << "unpack edge limit exhausted (" << upedgelimit
-        << " pedges)";
-      errors.push_back(s.str());
+    if (resources.exhausted()) {
+      errors.push_back(resources.exhaustion_message());
     }
 
-    if (get_opt_int("opt_timeout") > 0 && timestamp >= timeout) {
-      ostringstream s;
-      s << "timed out (" << get_opt_int("opt_timeout") / sysconf(_SC_CLK_TCK)
-        << " s)";
-      errors.push_back(s.str());
-    }
-
-    stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
+    /* This grills the stats for `real' unpacking
+    stats.p_utcpu = resources.get_stage_time_ms();
     stats.p_dyn_bytes = FSAS.dynamic_usage();
     stats.p_stat_bytes = FSAS.static_usage();
+    */
     FSAS.clear_stats();
-    delete UnpackTime;
   } else {
     readings = Chart->trees();
   }
@@ -482,7 +453,8 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
   stats.rreadings = stats.readings = Chart->readings().size();
 }
 
-void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors) {
+void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors,
+                  Resources &resources) {
 
   int nsolutions = opt_nsolutions;
   if(opt_nsolutions <= 0) opt_nsolutions = 1;
@@ -505,9 +477,9 @@ void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors) {
   }
 
   // main parse loop
-  parse_loop_pcfg();
+  parse_loop_pcfg(resources);
 
-  parse_finish_pcfg(FSAS, errors);
+  parse_finish_pcfg(FSAS, errors, resources);
 
   opt_nsolutions = nsolutions;
 }

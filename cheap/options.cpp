@@ -313,7 +313,7 @@ char* parse_options(int argc, char* argv[])
           std::transform(foo.begin(), foo.end(), foo.begin(), ::tolower);
           set_opt("opt_preprocess_only", foo);
         } // if
-        else 
+        else
           set_opt("opt_preprocess_only", std::string("true"));
         break;
       case OPTION_LATTICE:
@@ -349,9 +349,7 @@ char* parse_options(int argc, char* argv[])
         // \todo the option should store the raw value and leave the details to
         // the implementation
           if(optarg != NULL)
-            set_opt("opt_timeout",
-                        (int)(sysconf(_SC_CLK_TCK) *
-                              strtoint(optarg, "as argument to -timeout")));
+            set_opt("opt_timeout", strtoint(optarg, "as argument to -timeout"));
           break;
       case OPTION_LOG:
         if(optarg != NULL) {
@@ -460,7 +458,7 @@ char* parse_options(int argc, char* argv[])
       }
       break;
       case OPTION_TAGGER:
-        set_opt("opt_tagger", 
+        set_opt("opt_tagger",
                 (optarg != NULL) ? std::string(optarg) : std::string("null"));
         break;
       case OPTION_YY:

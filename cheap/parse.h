@@ -44,13 +44,7 @@
 /** Gives the total time spent in parsing (more specifically: in the function
  *  parse_loop).
  */
-extern timer TotalParseTime;
-
-extern clock_t timeout;
-extern clock_t timestamp;
-
-/** test whether a global resource limit has been exhausted */
-extern bool test_resource_limits(std::string &);
+extern class timer TotalParseTime;
 
 /** Take some kind of input, run it through the registered preprocessing
  *  modules first and then do syntactic parsing.
@@ -67,7 +61,7 @@ void analyze(std::string input, class chart *&C, class fs_alloc_state &FSAS,
 
 /** selective unpacking */
 int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
-                       long memlimit, int nsolutions, 
+                       long memlimit, int nsolutions,
                        timer *UnpackTime , std::vector<tItem *> &readings);
 
 /** exhaustive unpacking */

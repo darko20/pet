@@ -84,7 +84,7 @@ public:
    * \param[in,out] chart    the chart to operate on
    */
   void
-  process(class tChart &chart);
+  process(class tChart &chart, class Resources &resources);
 
 private:
 

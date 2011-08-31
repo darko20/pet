@@ -34,7 +34,8 @@
 #include <list>
 
 
-void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, std::list<tError> &errors);
+void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, std::list<tError> &errors,
+                  class Resources &resources);
 
 //fs instantiate_robust(tItem* root);
 
@@ -70,10 +71,10 @@ public:
   int start () { return std::min(_passive->start(), _active->start());}
   int end ()   { return std::min(_passive->end(), _active->end());}
   bool phrasal () { return false; }
-  bool yields_passive () { return true; }  
+  bool yields_passive () { return true; }
 
   virtual tItem *execute();
-  
+
 private:
   class tItem *_active;
   class tItem *_passive;

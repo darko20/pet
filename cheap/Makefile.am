@@ -29,7 +29,7 @@ DEFS += -DDYNAMIC_SYMBOLS
 # See README.
 
 # This is always used! <-> documentation
-AM_CXXFLAGS = -Wall
+AM_CXXFLAGS = -Wall -Wno-deprecated
 
 bin_PROGRAMS = cheap
 #bin_PROGRAMS += dumpgram
@@ -61,6 +61,7 @@ cheaplibsources = \
 	input-modules.cpp input-modules.h \
 	item-printer.cpp item-printer.h \
 	item.cpp item.h \
+	item-unpack.cpp \
 	itsdb.h \
 	lexicon.cpp lexicon.h \
 	lexparser.cpp lexparser.h \
@@ -72,6 +73,7 @@ cheaplibsources = \
 	paths.cpp paths.h \
 	position-mapper.h \
 	postags.cpp postags.h \
+	resources.cpp resources.h \
 	restrictor.cpp restrictor.h \
 	sessionmanager.cpp sessionmanager.h \
 	sm.cpp sm.h \
