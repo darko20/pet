@@ -321,7 +321,7 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
 /** Return the inflection rules that have to be applied to perform this
  *  morphological analysis.
  */
-static list_int *get_rules(tMorphAnalysis &analysis) {
+static list_int *get_rules(const tMorphAnalysis &analysis) {
   const std::list<grammar_rule *> &rules = analysis.rules();
   list_int *res = NULL;
   for(std::list<grammar_rule *>::const_reverse_iterator it = rules.rbegin()
@@ -329,6 +329,35 @@ static list_int *get_rules(tMorphAnalysis &analysis) {
     res = cons((*it)->type(), res);
   }
   return res;
+}
+
+
+void lex_parser::inp_plus_stems(tInputItem *in, list_int *morph_rules,
+                    const list<lex_stem *> &stems, Resources &resources) {
+  for (list<lex_stem*>::const_iterator ls = stems.begin(); ls != stems.end();
+       ++ls) {
+    combine(*ls, in, morph_rules, in->mods(), resources);
+  }
+}
+
+
+void lex_parser::add_in_combos(tInputItem *in,
+                               const list<tMorphAnalysis> &morphs,
+                               const list<lex_stem *> &stems,
+                               Resources &resources) {
+  modlist in_mods = in->mods();
+  add_surface_mod(in->orth(), in_mods);
+
+  if (morphs.empty()) {
+    inp_plus_stems(in, in->inflrs(), stems, resources);
+  } else {
+    for (list<tMorphAnalysis>::const_iterator mrph = morphs.begin()
+           ; mrph != morphs.end(); ++mrph) {
+      list_int *rules = get_rules(*mrph);
+      inp_plus_stems(in, rules, stems, resources);
+      free_list(rules);
+    }
+  }
 }
 
 /** Add the input item to the global chart and combine it with the
@@ -361,21 +390,11 @@ lex_parser::add(tInputItem *inp, Resources &resources) {
   // add all compatible generic entries for this token:
   if (opt_default_les == DEFAULT_LES_ALL) {
     // iterate over all generic lexicon entries:
+    list<lex_stem *> stems;
     for (list_int *gens = Grammar->generics(); gens != 0; gens = rest(gens)) {
-      lex_stem *ls = Grammar->find_stem(first(gens));
-      modlist in_mods = inp->mods(); // should be empty
-      add_surface_mod(inp->orth(), in_mods);
-      if (morphs.empty()) {
-        combine(ls, inp, inp->inflrs(), in_mods, resources);
-      } else {
-        for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
-              ; mrph != morphs.end(); ++mrph) {
-          list_int *rules = get_rules(*mrph);
-          combine(ls, inp, rules, in_mods, resources);
-          free_list(rules);
-        }
-      }
+      stems.push_back(Grammar->find_stem(first(gens)));
     }
+    add_in_combos(inp, morphs, stems, resources);
   }
 
   // check if we have to perform morphology and lexicon access
@@ -385,37 +404,24 @@ lex_parser::add(tInputItem *inp, Resources &resources) {
     // agenda. get_lex_entries eventually looks into several lexica.
     bool nullmorpheme = false; // any of the morphs was a null morpheme
     for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
-          ; mrph != morphs.end(); ++mrph)
-    {
+          ; mrph != morphs.end(); ++mrph) {
       // update flag whether any of the morphs was a null morpheme:
       nullmorpheme = nullmorpheme || (inp->form() == mrph->base());
       // instantiate all stems with this morphological analysis:
-      list<lex_stem *> stems = get_lex_entries(mrph->base());
-      for(list<lex_stem *>::iterator it = stems.begin()
-            ; it != stems.end(); ++it) {
-        list_int *rules = get_rules(*mrph);
-        combine(*it, inp, rules, inp->mods(), resources);
-        free_list(rules);
-      }
+      list_int *rules = get_rules(*mrph);
+      inp_plus_stems(inp, rules, get_lex_entries(mrph->base()), resources);
+      free_list(rules);
     }
     // If there is no morph analysis with null inflection, do additional lookup
     // based on the input form, e.g., for multi word entries without inflected
     // position.
     // _fix_me_ is this okay?
     if (! nullmorpheme) { // none of the analyses was a null morpheme
-      list<lex_stem *> stems = get_lex_entries(inp->form());
-      for(list<lex_stem *>::iterator it = stems.begin()
-            ; it != stems.end(); ++it){
-        combine(*it, inp, NULL, inp->mods(), resources);
-      }
+      inp_plus_stems(inp, NULL, get_lex_entries(inp->form()), resources);
     }
   } else if (inp->is_stem_token()) {
     // morphology has been done already, just do the lexicon lookup
-    list<lex_stem *> stems = get_lex_entries(inp->stem());
-    for(list<lex_stem *>::iterator it = stems.begin()
-          ; it != stems.end(); ++it) {
-      combine(*it, inp, inp->inflrs(), inp->mods(), resources);
-    }
+    inp_plus_stems(inp, inp->inflrs(), get_lex_entries(inp->stem()), resources);
   } else { // neither word nor stem
     // otherwise, we got the class of the lexical stem by some internal
     // mapping: create a new tLexItem directly from the input item
@@ -650,6 +656,7 @@ find_unexpanded(chart *ch, item_predicate valid_item) {
   return result_list;
 }
 
+
 void
 lex_parser::add_generics(list<tInputItem *> &unexpanded, Resources &resources) {
   list< lex_stem * > gens;
@@ -710,36 +717,18 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded, Resources &resources) {
       // TODO: check if this uses up significant processing time. There is
       // another way to do this (store the previous result in the tInputItem),
       // but that messes up the whole failed stem token thing and all
-
-      // get morphs
-      list<tMorphAnalysis> morphs;
-      if((*it)->is_word_token()) morphs = morph_analyze((*it)->form());
-
-      // iterate thru gens
-      for(list<lex_stem *>::iterator ls = gens.begin()
-            ; ls != gens.end(); ++ls) {
-        // get mods
-        modlist in_mods = (*it)->mods();
-        // _fix_me_
-        add_surface_mod((*it)->orth(), in_mods);
-        if (morphs.empty()) { // TODO as far as I can see, this will never be the case (pead)
-          combine(*ls, *it, (*it)->inflrs(), in_mods, resources);
-        } else {
-          for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
-                ; mrph != morphs.end(); ++mrph) {
-            list_int *rules = get_rules(*mrph);
-            combine(*ls, *it, rules, in_mods, resources);
-            free_list(rules);
-          }
-        }
-      }
+      add_in_combos(*it,
+                    ((*it)->is_word_token()
+                     ? morph_analyze((*it)->form())
+                     : list<tMorphAnalysis>()),
+                    gens, resources);
     }
   }
 }
 
 list<lex_stem *>
 predict_les(tInputItem *item, list<tInputItem*> &inp_tokens, int n) {
-   list<lex_stem*> results;
+  list<lex_stem*> results;
   if (Grammar->lexsm()) {
     vector<string> words(5);
 
@@ -797,22 +786,7 @@ lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
 
   for (inp_iterator it = unexpanded.begin(); it != unexpanded.end(); ++it) {
     predicts = predict_les(*it, inp_tokens, nr_predicts);
-    list<tMorphAnalysis> morphs = morph_analyze((*it)->form());
-    for (list<lex_stem*>::iterator ls = predicts.begin();
-         ls != predicts.end(); ++ls) {
-      modlist in_mods = (*it)->mods();
-      add_surface_mod((*it)->orth(), in_mods);
-      if (morphs.empty()) {
-        combine(*ls, *it, (*it)->inflrs(), in_mods, resources);
-      } else {
-        for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
-               ; mrph != morphs.end(); ++mrph) {
-          list_int *rules = get_rules(*mrph);
-          combine(*ls, *it, rules, in_mods, resources);
-          free_list(rules);
-        }
-      }
-    }
+    add_in_combos(*it, morph_analyze((*it)->form()), predicts, resources);
   }
 }
 
@@ -921,7 +895,7 @@ int do_mapping(TOMAP &to_map, const list<tChartMappingRule*> &rules,
 
 int
 lex_parser::process_input(string input, inp_list &inp_tokens,
-                          bool chart_mapping, Resources &resources) {
+                          Resources &resources) {
   // Tokenize the input
   tokenize(input, inp_tokens);
 
@@ -937,6 +911,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
 
   print_p_input(inp_tokens);
 
+  bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
   if (chart_mapping) {
     // token mapping:
     _maxpos = do_mapping(inp_tokens, Grammar->tokmap_rules(),
@@ -1019,10 +994,11 @@ lex_parser::lexical_parsing(inp_list &inp_tokens,
 
 
 void
-lex_parser::lexical_processing(inp_list &inp_tokens
-                               , bool chart_mapping, bool lex_exhaustive
-                               , fs_alloc_state &FSAS, list<tError> &errors
-                               , Resources &resources) {
+lex_parser::lexical_processing(inp_list &inp_tokens, fs_alloc_state &FSAS,
+                               list<tError> &errors, Resources &resources) {
+  bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
+  bool lex_exhaustive = chart_mapping
+    || cheap_settings->lookup("lex-exhaustive");
 
   lexical_parsing(inp_tokens, chart_mapping, lex_exhaustive, FSAS, errors,
                   resources);

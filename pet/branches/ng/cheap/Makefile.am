@@ -29,6 +29,7 @@ DEFS += -DDYNAMIC_SYMBOLS
 # See README.
 
 # This is always used! <-> documentation
+# TODO remove no-deprecated when switched to unordered_{set|map}
 AM_CXXFLAGS = -Wall -Wno-deprecated
 
 bin_PROGRAMS = cheap

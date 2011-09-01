@@ -79,7 +79,13 @@ int SessionManager::run_parser(int session_id) {
   catch(tError err) {
     //LOG(logAppl, ERROR, err.getMessage());
     curr->errors.push_back(err.getMessage());
-    return RUNTIME_ERROR;
+    if (err.severe()) return RUNTIME_ERROR;
+  }
+  // check errors caught elsewhere
+  for (list<tError>::iterator it = curr->errors.begin();
+       it != curr->errors.end();
+       ++it) {
+    if ((*it).severe()) return RUNTIME_ERROR;
   }
   return (curr->errors.empty()) ? NO_ERRORS : ERRORS_PRESENT;
 }

@@ -84,10 +84,7 @@ public:
   /** A counter for passive edges */
   int pedges;
 
-  /** Create a new Resources object immediately before the first stage starts.
-   *  In fact, it is assumed that the first stage starts with creation of this
-   *  object.
-   */
+  /** Create a new Resources object. */
   Resources();
 
   inline bool exhausted() {
@@ -100,8 +97,11 @@ public:
     return local;
   }
 
-  /** Supposed to be called at the very end of one run */
-  void stop_finally();
+  /** Supposed to be called at the very beginning of a run */
+  void stop_run();
+
+  /** Supposed to be called at the very end of a run */
+  void stop_run();
 
   long get_stage_time_ms() {
     return _local_timer.elapsed_ms();

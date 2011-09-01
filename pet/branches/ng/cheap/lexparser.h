@@ -91,11 +91,13 @@ public:
    *  \param input The input string, not necessarily a simple sentence.
    *  \param[in,out] inp_tokens The set of input tokens we get from input
    *                            processing.
+   *  \param resources an object that takes care of globally available resources
+   *         such as time, space, passive edges and signal if they are exhausted
    *  \return The rightmost position of the parsing chart that has to be
    *  created.
    */
-  int process_input(std::string input, inp_list &inp_tokens, bool chart_mapping,
-                    class Resources &resources);
+  int process_input(std::string input, inp_list &inp_tokens,
+                    Resources &resources);
 
   /** \brief Perform lexical processing.
    *
@@ -109,12 +111,12 @@ public:
    *        looking for gaps and chart dependencies. This allows to catch more
    *        complex problems and properties.
    * \param FSAS the allocation state for the whole parse
-   * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   * \param errors a list of eventual errors
+   * \param resources an object that takes care of globally available resources
+   *        such as time, space, passive edges and signal if they are exhausted
    */
-  void lexical_processing(inp_list &inp_tokens
-                          , bool chart_mapping, bool lex_exhaustive
-                          , fs_alloc_state &FSAS, std::list<tError> &errors
-                          , class Resources &resources);
+  void lexical_processing(inp_list &inp_tokens, fs_alloc_state &FSAS,
+                          std::list<tError> &errors, Resources &resources);
 
   /** Do a morphological analysis of \a form and return the results.
    *
@@ -174,11 +176,13 @@ private:
    *        complex problems and properties.
    * \param FSAS the allocation state for the whole parse
    * \param errors a list of eventual errors ??? _fix_me_ if i'm sure
+   * \param resources an object that takes care of globally available resources
+   *        such as time, space, passive edges and signal if they are exhausted
    */
   void lexical_parsing(inp_list &inp_tokens,
                        bool chart_mapping, bool lex_exhaustive,
                        fs_alloc_state &FSAS, std::list<tError> &errors,
-                       class Resources &resources);
+                       Resources &resources);
 
   /** Check the chart dependencies.
    * Chart dependencies allow the user to express certain cooccurrence
@@ -197,6 +201,15 @@ private:
   void dependency_filter(struct setting *deps, bool unidirectional
                          , bool lex_exhaustive);
 
+
+  /** helper for add and add_in_combos */
+  void inp_plus_stems(tInputItem *in, list_int *morph_rules,
+                      const std::list<lex_stem *> &stems, Resources &resources);
+
+  /** helper for add_generics and add_predicts */
+  void add_in_combos(tInputItem *in, const std::list<tMorphAnalysis> &morphs,
+                     const std::list<lex_stem *> &stems, Resources &resources);
+
   /** Add generic entries for uncovered input items in the traditional
    * scenario (as opposed to the chart mapping scenario), i.e. when
    * \c opt_default_les is \c true:
@@ -209,12 +222,16 @@ private:
    * this table is a list of pairs (tag, gle) where `gle' is the name of one
    * of the generic items in `generic-les'. A non-empty `posmapping' table will
    * filter all generic entries that are not explicitly licensed by a POS tag.
+   * \param resources an object that takes care of globally available resources
+   *        such as time, space, passive edges and signal if they are exhausted
    */
   void add_generics(inp_list &unexpanded, Resources &resources);
 
   /** Add predicted entries for uncovered input items.
    * This is only applied if the option \a nr_predicts is
    * non-zero and \opt_default_les is false.
+   * \param resources an object that takes care of globally available resources
+   *        such as time, space, passive edges and signal if they are exhausted
    */
   void add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
                     int nr_predicts, Resources &resources);

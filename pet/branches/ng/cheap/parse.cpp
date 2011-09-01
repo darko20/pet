@@ -523,8 +523,7 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, Resources &resources) {
 
 void
 analyze(string input, chart *&C, fs_alloc_state &FSAS
-        , list<tError> &errors, int id)
-{
+        , list<tError> &errors, int id) {
   // optionally clearing memory before rather than after analyzing since
   // we want to allow for lazy output of parse results in a server mode
   if (get_opt_bool("opt_shrink_mem")) {
@@ -548,30 +547,31 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   // to external taggers.                                   (5-aug-11; oe)
   Resources resources;
 
+  resources.start_run();
+
   int max_pos = 0;
   inp_list input_items;
-  bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
   try {
-    max_pos = Lexparser.process_input(input, input_items, chart_mapping,
-                                      resources);
+    max_pos = Lexparser.process_input(input, input_items, resources);
   } // try
   catch(tError e) {
     input_items.clear();
+    Lexparser.reset();
     errors.push_back(e);
+    // eventually rethrow
+    if (e.severe())
+      throw e;
   } // catch
 
-  if (get_opt_int("opt_chart_pruning") != 0) {
-    Agenda = new tLocalCapAgenda (get_opt_int ("opt_chart_pruning"), max_pos);
-  } else {
-    Agenda = new tExhaustiveAgenda;
-  }
-
-  C = Chart = new chart(max_pos, owner);
   if(input_items.size() > 0) {
-    Lexparser.lexical_processing(input_items, chart_mapping,
-                                 (chart_mapping
-                                  || cheap_settings->lookup("lex-exhaustive")),
-                                 FSAS, errors, resources);
+    if (get_opt_int("opt_chart_pruning") != 0) {
+      Agenda = new tLocalCapAgenda (get_opt_int ("opt_chart_pruning"), max_pos);
+    } else {
+      Agenda = new tExhaustiveAgenda;
+    }
+
+    C = Chart = new chart(max_pos, owner);
+    Lexparser.lexical_processing(input_items, FSAS, errors, resources);
     // TODO: THIS IS A BAD HACK TO SIMULATE THAT EDGES IN THE PREPROCESSING
     // STAGE ARE NOT COUNTED (IN FACT THEY ARE, SINCE THE CODE USES
     // add_item (see above)
@@ -584,7 +584,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
       parse_loop(FSAS, errors, resources);
 
     if (resources.exhausted()) {
-      errors.push_back(tError(resources.exhaustion_message()));
+      errors.push_back(tExhaustedError(resources.exhaustion_message()));
     }
 
     resources.start_next_stage();
@@ -594,11 +594,11 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
       resources.start_next_stage();
       analyze_pcfg(Chart, FSAS, errors, resources);
     }
+
+    Lexparser.reset();
+    // clear_dynamic_types(); // too early
+    delete Agenda;
   } //if input_items.size() > 0
 
-  resources.stop_finally();
-
-  if(input_items.size() > 0) Lexparser.reset();
-  // clear_dynamic_types(); // too early
-  delete Agenda;
+  resources.stop_run();
 }
