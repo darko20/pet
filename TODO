@@ -1,56 +1,16 @@
-- Find a satisfying solution for Resources in lex parsing / -processing
-
-- implement timelimit with signal-based alarm and check the intended
-  functionality (real time?, cpu time?)
-
-- do a uniform treatment of all the resource limits:
-  introduce stages, carrying names & percentages of limits (per resource?)
-
-- More generally: which parts of the processing should be affected by the given
-  limits, especially since we ge a new preprocessing component which may be
-  computationally expensive
-
-- code/modules that might go away: (see `obsolete-unsupported.txt')
+! code/modules that might go away: (see `obsolete-unsupported.txt')
   - DELETE ALL YOU CAN GET RID OF
   - unconditional (exhaustive) unpacking
   - CHIC printing (flop)
   - extdict??
 
-- check and mail uncrustified code
+! check and mail uncrustified code
 
-- Revise tChart and merge it with chart
-
-- switch to unordered_map/_set. This has to be done very carefully because
-  the functionality changes!
-
-- use libiconv and libxml instead of libicu and libxerces or, alternatively
-  boost equivalents for WIN users. Problem: iconv allows the conversion, but
-  has no functionality for, e.g., case-insensitive comparison of utf-8 strings.
-  We have to check how much of that is needed, and if boost::string does the
-  trick with minimal dependencies/performance penalty (low prio)
-
-- integrate management of settings files into the config system and get rid
-  of the old settings, this needs more elaborate values (maps and such), and
-  readers/converters (prerequisites see below)
-
-- recode options.cpp such that it makes better use of the nice new
-  functionality, requires renaming of the options (prerequisites see below)
-
-- use logging framework for chart-mapping
-
-- make << operator for tItemPrinters to allow modifier stream like usage
-   - check if making the stream an argument of the print function decreases
-     performance, if not, remove the global pointer to the stream used and
-     replace it with a method argument
-
-- options to set/configure printers for items/dags/chart
-
-- make all _fix_me_'s \todos (so that they are handled by doxygen) and try to
+! make all _fix_me_'s \todos (so that they are handled by doxygen) and try to
   settle as many of them as possible
 
-- put TODO list into tickets
-
-- update PetRoadMap or put it also into tickets/milestones
+! logging / debugging info: get rid of global verbosity,
+  implement some central logging facility (take Apache log4cxx)
 
 - add a resource directory for, e.g., grammars, test procedures
   training scripts, etc.
@@ -59,10 +19,6 @@
    - `sections' to group the options, e.g., for GUI
    - default values for when they are set with command line options, but
      without value, like, e.g., opt_packing
-   - recode options.cpp such that it makes better use of the nice new
-     functionality, requires renaming of the options
-   - integrate management of settings files into the config system and get rid
-     of the old settings, this needs more elaborate values (maps and such)
    - is there a way of turning the run-time type errors, at least for the
      static code, into compile-time or link-time errors?
      1. transform the string keys into #define symbols. That at least prevents
@@ -70,22 +26,8 @@
         such a bad idea anyway). That does not resolve the problem of
         key<->type correlation errors.
 
-- replace current TDL parser with a bison-generated parser, removing the
-  arbitrary limits on nesting, number of types, conjunctions, etc.
-
--! fix the problem with multiple coreferences in one TDL conjunction in flop
-
-- check if the dumping of cyclic structures works correctly in flop
-
-- proper handling of upcase/lowercase handling in a) tokenizers and b) lexicon
-  access (have to use ICU?). Is it enough to have two modes: strict (no
-  conversion) and robust (all to lower)? At least the lexicon that comes from
-  the binary grammar file must get an additional access table for "normalized"
-  strings to be able to switch the mode at runtime --> uppercase umlauts are
-  now converted correctly to lowercase in lingo-tokenizer, but not in
-  yy-tokenizer. This should be done in a common way and an option should be
-  introduced that controls if conversion to lower case is done at all.
-  (ticket #5) (The Ueber- bzw. Aegypten bug)
+? check if the dumping of cyclic structures works correctly in flop
+  - test dag restrictor once this is fixed
 
 - unpacking of edges does not terminate in some cases with unary rules
   fix: separate the local unary edges and do a fix point computation. This must
@@ -101,9 +43,7 @@
   - foreign character encoding input and output
   - automated tests for single modules ??
 
-- finish lexdb: lexical database (sqlite instead of postgres?) integration
-
-- unreleased memory? (see valgrind-errors-15-apr-04)
+? unreleased memory? (see valgrind-errors-15-apr-04)
   Memory leak seems to be not ignoreable (berthold et al. Jan 2006)
 
 - finish modlist class, rather, make it obsolete by moving to modification fs
@@ -115,8 +55,8 @@
         used for unification and mark it with a special value. After some
         thinking, i would say that this might not be feasible.
 
-- extension of TDL syntax to type extension and comments (ticket #1 by Emily
-  Bender)
+? extension of TDL syntax to type extension and comments (ticket #1 by Emily
+  Bender), not sure if it really works in all situations
 
 - remove all uses of negative values as `marker'-values, especially where casts
   from integers to pointers and back are involved.
@@ -138,8 +78,6 @@
   introduction
 - flop: Better error handling for use with external applications
 - flop: emacs compatible error messages ?
-- flop does not dump (multiply) cyclic structures
-  - test dag restrictor once this is fixed
 
 - API!!! and maybe cheap dynamic library
   - restarting a parse stopped because the first result arrived
@@ -147,7 +85,6 @@
   - determine the desired output format(s) (multiple formats may be desired,
     without reparse!)
   - which kind of output should be produced, and on which demand
-  - CFG/labeled phrase structure tree as output
   - set/change options/settings through API (a part of "clean up:options")
   - XML-RPC layer
 
@@ -168,16 +105,26 @@
 
 - cleaning up:
   - option handling, ESSENTIAL FOR API IMPLEMENTATION!
-  - logging / debugging info: get rid of global verbosity,
-    implement some central logging facility (take Apache log4cxx)
-  - YY references; split yy.cpp module into separate modules
-    - server mode still unused, yy.cpp/h should become socket.cpp/h
-    - should go away with native mrs support (already gone) after migration to
-      subversion
 
-- integrate silo ??
+* finish lexdb: lexical database (sqlite instead of postgres?) integration
 
-- lsl completion - minimal ?? What does that mean ?
+* implement timelimit with signal-based alarm and check the intended
+  functionality (real time?, cpu time?)
+
+* use libiconv and libxml instead of libicu and libxerces or, alternatively
+  boost equivalents for WIN users. Problem: iconv allows the conversion, but
+  has no functionality for, e.g., case-insensitive comparison of utf-8 strings.
+  We have to check how much of that is needed, and if boost::string does the
+  trick with minimal dependencies/performance penalty (low prio)
+
+* make << operator for tItemPrinters to allow modifier stream like usage
+   - check if making the stream an argument of the print function decreases
+     performance, if not, remove the global pointer to the stream used and
+     replace it with a method argument
+
+? integrate silo
+
+? lsl completion - minimal ?? What does that mean ?
 
 - packing:
   - fix & integrate subsumption quickcheck
@@ -188,20 +135,14 @@
 
 - defaults
 
-- generator
-
 - whenever dag_get_path_value is called, structure should be filled, at least
   under that path.
 
 refactoring:
 - make the unification/type engine(s) more modular
 - better decoupling of the dag allocation mechanism
-- replace item print routines by item printers where possible:
-  - check that the existing printers can be safely replaced!!!
 
 - diagnostic messages for errors in the MRS construction
-
-- recode preprocessor in C/C++
 
 - implement LUI bridge with threads
 
@@ -284,4 +225,16 @@ Covered by chart mapping:
   - val(path1) OP const1 && val(path2) OP const2
   - val(path1) OP const1 && val(path1) OP val(path2)
   - val(path1) OP val(path2) && val(path2) OP const2  (??)
-
++ do a uniform treatment of all the resource limits:
+  introduce stages, carrying names & percentages of limits (per resource?)
++ More generally: which parts of the processing should be affected by the given
+  limits, especially since we ge a new preprocessing component which may be
+  computationally expensive
++ replace item print routines by item printers where possible:
+  - check that the existing printers can be safely replaced!!!
++ update PetRoadMap or put it also into tickets/milestones
++ YY references; split yy.cpp module into separate modules (done by oe)
+  - server mode still unused, yy.cpp/h should become socket.cpp/h
+  - should go away with native mrs support (already gone) after migration to
+    subversion
++ CFG/labeled phrase structure tree as output
