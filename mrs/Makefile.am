@@ -32,6 +32,7 @@ AM_CXXFLAGS = -Wall
 
 #mrs_SOURCES = \
 #	mrs.cpp mrs.h \
+#	mrs-tfs.cpp mrs-tfs.h \
 #	mrs-handler.cpp mrs-handler.h \
 #	mrs-states.cpp mrs-states.h \
 #	$(top_srcdir)/common/configs.cpp \

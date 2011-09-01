@@ -54,11 +54,13 @@ tVar* tBaseMrs::request_var(int vid) {
   return var;
 }
 
+  /* this is reader/extracter specific and should be removed from the general MRS class 
 tVar* tBaseMrs::request_var(std::string type) {
   tVar* var = new tVar(_vid_generator++, type);
   register_var(var);
   return var;
 }
+  */
 
 tHCons::tHCons(std::string hreln, tBaseMrs* mrs) : _mrs(mrs) {
   if (hreln == "qeq") {

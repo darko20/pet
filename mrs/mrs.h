@@ -76,25 +76,25 @@ class tEp : public tBaseEp {
     tEp(class tBaseMrs *mrs) : tBaseEp(mrs) {}
     virtual ~tEp();
 
-    std::map<std::string,tConstant*> parameter_strings;
+    std::map<std::string,tValue*> parameter_strings;
     tVar* label;
     std::string link;
     int cfrom;
     int cto;
 };
 
-// Basic MRS class
+/** Basic MRS class, implements a theory-neutral representation */
 class tBaseMrs {
   public:
-    tBaseMrs() : _vid_generator(1) {}
+    tBaseMrs() {}
     virtual ~tBaseMrs();
 
     tVar* find_var(int vid);
     void register_var(tVar *var);
     tVar* request_var(int vid, std::string type);
     tVar* request_var(int vid);
-    tVar* request_var(std::string type);
-    bool valid() { return _valid; }
+  //tVar* request_var(std::string type);
+  //bool valid() { return _valid; }
 
     tVar* ltop; // top handle
     std::vector<tBaseEp*> eps; // bag of eps 
@@ -104,10 +104,14 @@ class tBaseMrs {
     // note that the variable names are scoped within one MRS
     std::vector<tVar*> _vars;
     std::map<int, tVar*> _vars_map;
-    bool _valid;
-    int _vid_generator;
+
+  //bool _valid;
+  //int _vid_generator;
+    
 };
 
+/** MRS class asserts additional assumptions about the semantic 
+    representation as used in the DELPH-IN context */
 class tMrs : public tBaseMrs {
   public:
     tMrs() : tBaseMrs() {}
