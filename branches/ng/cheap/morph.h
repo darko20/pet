@@ -58,7 +58,7 @@ class tMorphAnalysis
   /** Return the inflection rules that have to be applied to perform this
    *  morphological analysis.
    */
-  const std::list<grammar_rule *> &rules() { return _rules; }
+  const std::list<grammar_rule *> &rules() const { return _rules; }
 
   /** Print readably for debugging purposes */
   void print(std::ostream &) const;

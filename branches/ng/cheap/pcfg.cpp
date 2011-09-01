@@ -415,7 +415,7 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors,
   FSAS.clear_stats();
 
   if(resources.exhausted()) {
-    errors.push_back(resources.exhaustion_message());
+    errors.push_back(tExhaustedError(resources.exhaustion_message()));
   }
 
   vector<tItem*> readings;
@@ -433,7 +433,7 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors,
                                    resources, readings, errors);
 
     if (resources.exhausted()) {
-      errors.push_back(resources.exhaustion_message());
+      errors.push_back(tExhaustedError(resources.exhaustion_message()));
     }
 
     /* This grills the stats for `real' unpacking

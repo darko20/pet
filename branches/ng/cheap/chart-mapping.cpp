@@ -232,7 +232,7 @@ void tChartMappingEngine::process(tChart &chart, Resources &resources)
       std::string message;
       if(resources.exhausted()) {
         chart.clear();
-        throw tError(resources.exhaustion_message());
+        throw tExhaustedError(resources.exhaustion_message());
       }
       completed = get_new_completed_match(chart, empty_match, cache, loglevel);
       if (completed) completed->fire(chart, loglevel);

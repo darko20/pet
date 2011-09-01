@@ -63,9 +63,7 @@ void Resources::compute_last_used() {
 }
 
 
-/** Create a new Resources object immediately before the first stage starts.
- *  In fact, it is assumed that the first stage starts immediately after
- *  creation of this object.
+/** Create a new Resources object
  */
 Resources::Resources() : _current_stage(0),
                          _local_timer(false), _global_timer(false),
@@ -84,13 +82,16 @@ Resources::Resources() : _current_stage(0),
   _stage_percentage[2] = -1;  // this takes the remaining resources
   _stage_percentage[3] = -1;  // this takes the remaining resources
 
+}
+
+/** Supposed to be called at the very beginning of a run. */
+void Resources::start_run() {
   _global_timer.start();
   start_stage(_current_stage);
 }
 
-
-/** Supposed to be called at the very end of one run */
-void Resources::stop_finally() {
+/** Supposed to be called at the very end of a run */
+void Resources::stop_run() {
   end_stage();
   _global_timer.stop();
   // printf("%f", _global_timer.elapsed_ms() / 1000.);
