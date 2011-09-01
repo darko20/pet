@@ -460,7 +460,6 @@ void preprocess_only(const string formatoption) {
     }
   }
 
-  bool cmp = get_opt_int("opt_chart_mapping") != 0;
   string infile = get_opt_string("opt_infile");
   ifstream ifs;
   ifs.open(infile.c_str());
@@ -474,7 +473,7 @@ void preprocess_only(const string formatoption) {
       // run input pre-processing (tokenizers, taggers, et al.); enable token
       // mapping (if actually requested on the command line).
       //
-      Lexparser.process_input(input, input_items, cmp, resources);
+      Lexparser.process_input(input, input_items, resources);
 
       tAbstractItemPrinter *ip;
       switch (format) {
