@@ -9,7 +9,8 @@ LIBS += @FLOPLIBS@
 DEFS += -DDAG_SIMPLE -DWROBLEWSKI3 -DFLOP
 
 # This is always used! <-> documentation
-AM_CXXFLAGS = -Wall
+# TODO remove no-deprecated when switched to unordered_{set|map}
+AM_CXXFLAGS = -Wall -Wno-deprecated
 
 bin_PROGRAMS = flop
 

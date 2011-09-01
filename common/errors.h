@@ -43,7 +43,7 @@ class tError
       message = errmsg.str();
     }
 
-    ~tError()
+    virtual ~tError()
     {}
 
     const std::string &getMessage() const
@@ -51,15 +51,20 @@ class tError
         return _message;
     }
 
+    virtual bool severe() { return true; }
+
  protected:
     std::string _message;
 };
 
 class tExhaustedError : public tError {
- public:
- tExhaustedError(std::string message = "Resource exhausted")
-   : tError(message)
+public:
+
+  tExhaustedError(std::string message = "Resource exhausted")
+    : tError(message)
   {}
+
+  virtual bool severe() { return false; }
 };
 
 #endif
