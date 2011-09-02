@@ -3,35 +3,32 @@
 #ifndef _MRS_PRINTER_H_
 #define _MRS_PRINTER_H_
 
-#include "pet-config.h"
 #include "mrs.h"
 
 #include <iostream>
 
-void print_mrs_as(char format, dag_node *dag, std::ostream &out);
-
 namespace mrs {
 
-  class MRSPrinter {
+  class MrsPrinter {
   public:
 
-    MRSPrinter(std::ostream &out) : _out(&out) { }
+    MrsPrinter(std::ostream &out) : _out(&out) { }
 
-    virtual ~MRSPrinter() {
+    virtual ~MrsPrinter() {
     }
 
-    virtual void print(tMRS* mrs) = 0;
+    virtual void print(tMrs* mrs) = 0;
 
   protected:
     std::ostream *_out;
   };
 
-  class MrxMRSPrinter : public MRSPrinter {
+  class MrxMrsPrinter : public MrsPrinter {
   public:
-    MrxMRSPrinter(std::ostream &out) : MRSPrinter(out) { }
+    MrxMrsPrinter(std::ostream &out) : MrsPrinter(out) { }
 
-    virtual void print(tMRS* mrs);
-    void print(tRel* rel);
+    virtual void print(tMrs* mrs);
+    void print(tEp* rel);
     void print(tValue* val);
     void print_full(tValue* val);
     void print(tConstant* constant);
@@ -40,12 +37,12 @@ namespace mrs {
     void print(tHCons* hcons);
   };
 
-  class SimpleMRSPrinter: public MRSPrinter {
+  class SimpleMrsPrinter: public MrsPrinter {
   public:
-    SimpleMRSPrinter(std::ostream &out) : MRSPrinter(out) { }
+    SimpleMrsPrinter(std::ostream &out) : MrsPrinter(out) { }
 
-    virtual void print(tMRS* mrs);
-    void print(tRel* rel);
+    virtual void print(tMrs* mrs);
+    void print(tEp* rel);
     void print(tValue* val);
     void print_full(tValue* val);
     void print(tConstant* constant);
@@ -56,6 +53,29 @@ namespace mrs {
   private:
     std::map<int,tVar*> _vars;
   };
+
+  class HtmlMrsPrinter : public MrsPrinter {
+  public:
+    HtmlMrsPrinter(std::ostream &out) 
+      : MrsPrinter(out), _inline_headers(false) { }
+    HtmlMrsPrinter(std::ostream &out, bool _inline) 
+      : MrsPrinter(out), _inline_headers(_inline) { }
+
+    virtual void print(tMrs* mrs);
+    void print(tEp* rel);
+    void print(tValue* val);
+    void print_full(tValue* val);
+    void print(tConstant* constant);
+    void print(tVar* var);
+    void print_full(tVar* var);
+    void print(tHCons* hcons);
+
+  private:
+    bool _inline_headers;
+
+    std::string getHeader();
+  };
+
 
 } // namespace mrs
 
