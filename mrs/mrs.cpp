@@ -75,7 +75,7 @@ tHCons::tHCons(std::string hreln, tBaseMrs* mrs) : _mrs(mrs) {
 }
 
 tEp::~tEp() {
-  for (std::map<std::string, tConstant*>::iterator 
+  for (std::map<std::string, tValue*>::iterator 
       constant = parameter_strings.begin();
       constant != parameter_strings.end(); ++constant)
     delete constant->second;

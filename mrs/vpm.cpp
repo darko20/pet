@@ -11,8 +11,7 @@ tVPM::~tVPM() {
     delete *pm;
 }
 
-bool tVPM::
-read_vpm(const string &filename, string id) {
+bool tVPM::read_vpm(const string &filename, string id) {
   this->id = id;
   tPM* pm = NULL;
   char* line = new char[MAXVPMLINE];
@@ -51,7 +50,8 @@ read_vpm(const string &filename, string id) {
         if (strpbrk(tok, "<>=") != NULL) {
           int len = strlen(tok);
           if (len <2 || len >3) {
-            fprintf(ferr, "Invalid direction (must be 2 or 3 chars): `%s'\n", tok);
+            fprintf(ferr, "Invalid direction (must be 2 or 3 chars): `%s'\n", 
+              tok);
             return false;
           }
           if (strcmp(tok, "==") == 0) {
@@ -65,7 +65,8 @@ read_vpm(const string &filename, string id) {
           if (strchr(tok, '=') != NULL)
             mr->eqtest = true;
           if (strspn(tok, "<>=") != strlen(tok)) {
-            fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", tok);
+            fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", i
+              tok);
             return false;
           }
           onleft = false;
@@ -99,48 +100,47 @@ read_vpm(const string &filename, string id) {
 
 }
 
-tMRS* tVPM::
-map_mrs(tMRS* mrs_in, bool forwardp) {
-  tMRS* mrs_new = new tMRS();
-  mrs_new->top_h = map_variable(mrs_in->top_h, mrs_new, forwardp);
+tMrs* tVPM::map_mrs(tMrs* mrs_in, bool forwardp) {
+  tMrs* mrs_new = new tMrs();
+  mrs_new->ltop = map_variable(mrs_in->ltop, mrs_new, forwardp);
   mrs_new->index = map_variable(mrs_in->index, mrs_new, forwardp);
-  for (list<tBaseRel*>::iterator iter = mrs_in->liszt.begin();
-       iter != mrs_in->liszt.end(); ++iter) {
-    tRel* rel_in = dynamic_cast<tRel*>(*iter);
-    tRel* rel_new = new tRel(mrs_new);
-    rel_new->handel = map_variable(rel_in->handel, mrs_new, forwardp);
-    rel_new->pred = rel_in->pred;
-    for (map<string,tValue*>::iterator pair = rel_in->flist.begin();
-         pair != rel_in->flist.end(); ++pair) {
+  for (list<tBaseEp*>::iterator iter = mrs_in->eps.begin();
+       iter != mrs_in->eps.end(); ++iter) {
+    tEp* ep_in = dynamic_cast<tEp*>(*iter);
+    tEp* ep_new = new tEp(mrs_new);
+    ep_new->label = map_variable(ep_in->label, mrs_new, forwardp);
+    ep_new->pred = ep_in->pred;
+    for (map<string, tValue*>::iterator pair = ep_in->roles.begin();
+         pair != ep_in->roles.end(); ++pair) {
       tVar* vval = dynamic_cast<tVar*>((*pair).second);
       if (vval == NULL) {
-        rel_new->flist[(*pair).first] =
-          mrs_new->request_constant((dynamic_cast<tConstant*>((*pair).second))->value);
+        ep_new->roles[(*pair).first] =
+          mrs_new->request_constant(
+          (dynamic_cast<tConstant*>((*pair).second))->value);
       } else {
         vval = map_variable(vval, mrs_new, forwardp);
-        rel_new->flist[(*pair).first] = vval;
+        ep_new->roles[(*pair).first] = vval;
       }
     }
-    rel_new->collect_param_strings();
-    rel_new->cfrom = rel_in->cfrom;
-    rel_new->cto = rel_in->cto;
-    mrs_new->liszt.push_back(rel_new);
+//    ep_new->collect_param_strings();
+    ep_new->cfrom = ep_in->cfrom;
+    ep_new->cto = ep_in->cto;
+    mrs_new->eps.push_back(ep_new);
   }
-  for (list<tHCons*>::iterator iter = mrs_in->h_cons.begin();
-       iter != mrs_in->h_cons.end(); ++iter) {
+  for (list<tHCons*>::iterator iter = mrs_in->hconss.begin();
+       iter != mrs_in->hconss.end(); ++iter) {
     tHCons* hcons_new = new tHCons(mrs_new);
     hcons_new->relation = (*iter)->relation;
-    hcons_new->scarg = map_variable((*iter)->scarg, mrs_new, forwardp);
-    hcons_new->outscpd = map_variable((*iter)->outscpd, mrs_new, forwardp);
-    mrs_new->h_cons.push_back(hcons_new);
+    hcons_new->harg = map_variable((*iter)->harg, mrs_new, forwardp);
+    hcons_new->larg = map_variable((*iter)->larg, mrs_new, forwardp);
+    mrs_new->hconss.push_back(hcons_new);
   }
   mrs_new->_valid = true;
   _vv_map.clear();
   return mrs_new;
 }
 
-tVar* tVPM::
-map_variable(tVar* var_in, tMRS* mrs, bool forwardp) {
+tVar* tVPM::map_variable(tVar* var_in, tMRS* mrs, bool forwardp) {
 
   if (_vv_map.find(var_in) != _vv_map.end()) // already mapped
     return _vv_map[var_in];
@@ -254,5 +254,21 @@ test(string type, list<string> values, bool forwardp) {
     }
   }
   return true;
+}
+
+  /* this was from the LKB implementation, and is now largely
+    deprecated by the extension of variable type mapping in VPM */
+bool compatible_var_types(std::string type1, std::string type2) {
+  if (type1 == type2)
+    return true;
+  if (type1 == "u" || type2 == "u")
+    return true;
+  if ((type1 == "e" && type2 == "i") ||
+      (type1 == "i" && type2 == "e"))
+    return true;
+  if ((type1 == "x" && type2 == "i") ||
+      (type1 == "i" && type2 == "x"))
+    return true;
+  return false;
 }
 
