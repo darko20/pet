@@ -3,7 +3,7 @@
 #include $(top_srcdir)/common/Makefile.common
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
-CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I${top_srcdir)/cheap 
+CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/cheap 
 CXXFLAGS += @CHEAPCXXFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
