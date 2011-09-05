@@ -30,6 +30,7 @@
 #include "sm.h"
 #include "mrs.h"
 #include "vpm.h"
+#include "mrs-tfs.h"
 #include "mrs-printer.h"
 #include "settings.h"
 #include "configs.h"
@@ -637,23 +638,24 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                   if ((strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) ||
                       (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0)) {
                     fs f = (*iter)->get_fs();
-                    mrs::tMRS* mrs = new mrs::tMRS(f.dag());
-                    if (mrs->valid()) {
-                      mrs::tMRS* mapped_mrs = vpm->map_mrs(mrs, true);
+		    mrs::MrsTfsExtractor extractor;
+                    mrs::tMrs* mrs = extractor.extractMrs(f.dag());
+                    if (mrs != NULL) {
+                      mrs::tMrs* mapped_mrs = vpm->map_mrs(mrs, true);
                       ostringstream out;
-                      if (mapped_mrs->valid()) {
+                      if (mapped_mrs != NULL) {
                         if (strcmp(get_opt_string("opt_mrs").c_str(), "new") == 0) {
-                          MrxMRSPrinter ptr(out);
+                          MrxMrsPrinter ptr(out);
                           ptr.print(mapped_mrs);
                         } else if (strcmp(get_opt_string("opt_mrs").c_str(), "simple") == 0) {
-                          SimpleMRSPrinter ptr(out);
+                          SimpleMrsPrinter ptr(out);
                           ptr.print(mapped_mrs);
                         }
+			delete mapped_mrs;
                       }
                       R.mrs = out.str();
-                      delete mapped_mrs;
+		      delete mrs;
                     }
-                    delete mrs;
                   }
 #ifdef HAVE_MRS
                   else {

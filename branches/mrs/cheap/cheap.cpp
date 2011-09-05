@@ -40,6 +40,8 @@
 #include "item-printer.h"
 #include "version.h"
 #include "mrs.h"
+#include "mrs-tfs.h"
+#include "vpm.h"
 #include "mrs-printer.h"
 #include "qc.h"
 #include "pcfg.h"
@@ -228,6 +230,27 @@ void print_derivation_as(char format, tItem *item, ostream &out) {
     break;
   }
     // case 'x': { tXmlLabelPrinter xdpr(out); xdpr.print(item); break; }
+  }
+}
+
+void print_mrs_as(char format, dag_node *dag, std::ostream &out) {
+  // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
+  mrs::MrsTfsExtractor extractor;
+  mrs::tMrs* mrs = extractor.extractMrs(dag);
+  if (mrs != NULL) {
+    mrs::tMrs* mapped_mrs = vpm->map_mrs(mrs, true);
+    if (mapped_mrs != NULL) {
+      out << std::endl;
+      switch (format) {
+      case 'n':
+        { mrs::MrxMrsPrinter ptr(out); ptr.print(mapped_mrs); break; }
+      case 's':
+	{ mrs::SimpleMrsPrinter ptr(out); ptr.print(mapped_mrs); break; }
+      }
+      out << std::endl;
+      delete mapped_mrs;
+    }
+    delete mrs;
   }
 }
 

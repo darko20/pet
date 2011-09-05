@@ -10,6 +10,9 @@
 
 #define MAXVPMLINE 1024
 
+void mrs_init(const std::string &vpm_file);
+void mrs_finalize();
+
 using namespace mrs;
 
 class tVPM {
@@ -17,8 +20,8 @@ class tVPM {
     tVPM() {}
     virtual ~tVPM();
     bool read_vpm(const std::string &filename, std::string id="default");
-    tMRS* map_mrs(tMRS* mrs_in, bool forwardp=true);
-    tVar* map_variable(tVar* var_in, tMRS* mrs, bool forwardp=true);
+    tMrs* map_mrs(tMrs* mrs_in, bool forwardp=true);
+    tVar* map_variable(tVar* var_in, tMrs* mrs, bool forwardp=true);
 
     std::string id;
     /** variable type mappings */
@@ -56,5 +59,8 @@ class tMR {
 
 // from LKB implementation, made obsolete?
 bool compatible_var_types(std::string type1, std::string type2);
+
+
+extern tVPM* vpm;
 
 #endif //_VPM_H_

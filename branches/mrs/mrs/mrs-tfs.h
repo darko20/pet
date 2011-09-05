@@ -10,12 +10,11 @@
 
 #include <map>
 
-
 namespace mrs {
   class MrsTfsExtractor {
     
   public:
-    MrsTfsExtractor() : _vid_geneator(1) {
+    MrsTfsExtractor() : _vid_generator(1) {
     }
     
     ~MrsTfsExtractor() {
@@ -23,8 +22,8 @@ namespace mrs {
     
     tMrs* extractMrs(struct dag_node* dag);
 
-    tVar* requestVar(std::string type);
-    tVar* requestVar(struct dag_node* dag);
+    tVar* requestVar(std::string type, tMrs* mrs);
+    tVar* requestVar(struct dag_node* dag, tMrs* mrs);
     
     tHCons* extractHCons(struct dag_node* dag, tMrs* mrs);
     tVar* extractVar(int vid, struct dag_node* dag);

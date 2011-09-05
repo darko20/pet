@@ -60,27 +60,33 @@ class tBaseEp {
   public:
     tBaseEp() {}
     tBaseEp(class tBaseMrs *mrs) : _mrs(mrs) {}
-    virtual ~tBaseEp() {}
-
+    virtual ~tBaseEp();
+  
+    void register_constant(tConstant *c);
+    tConstant* request_constant(std::string cvalue);
+  
     std::string pred;
     std::map<std::string, tValue*> roles;
 
   private:
     /* reference to the parent mrs */
     class tBaseMrs *_mrs;
+
+    std::vector<tConstant*> _constants;
+  
 };
 
 class tEp : public tBaseEp {
   public:
     tEp() {}
     tEp(class tBaseMrs *mrs) : tBaseEp(mrs) {}
-    virtual ~tEp();
-
+    
     std::map<std::string,tValue*> parameter_strings;
     tVar* label;
     std::string link;
     int cfrom;
     int cto;
+
 };
 
 /** Basic MRS class, implements a theory-neutral representation */
