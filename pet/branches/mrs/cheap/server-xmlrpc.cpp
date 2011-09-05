@@ -22,6 +22,7 @@
 #include "chart.h"
 #include "item-printer.h"
 #include "mrs.h"
+#include "mrs-tfs.h"
 #include "mrs-printer.h"
 #include "options.h"
 #include "parse.h"
@@ -171,21 +172,22 @@ struct analyze_method : public xmlrpc_c::method
             osstream.clear(); // reset state
             osstream.str(""); // reset underlying buffer
             fs f = item->get_fs();
-            mrs::tMRS* mrs = new mrs::tMRS(f.dag());
-            if (mrs->valid()) {
-              mrs::tMRS* mapped_mrs = vpm->map_mrs(mrs, true);
-              if (mapped_mrs->valid()) {
+	    mrs::MrsTfsExtractor extractor;
+            mrs::tMrs* mrs = extractor.extractMrs(f.dag());
+            if (mrs != NULL) {
+              mrs::tMrs* mapped_mrs = vpm->map_mrs(mrs, true);
+              if (mapped_mrs != NULL) {
                 if (opt_mrs == "new") {
-                  MrxMRSPrinter ptr(osstream);
+                  MrxMrsPrinter ptr(osstream);
                   ptr.print(mapped_mrs);
                 } else if (opt_mrs == "simple") {
-                  SimpleMRSPrinter ptr(osstream);
+                  SimpleMrsPrinter ptr(osstream);
                   ptr.print(mapped_mrs);
                 }
+		delete mapped_mrs;
               }
-              delete mapped_mrs;
+	      delete mrs;
             }
-            delete mrs;
             mrs_str = osstream.str();
           } else {
 #ifdef HAVE_MRS

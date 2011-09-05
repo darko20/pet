@@ -1,10 +1,34 @@
 #include "vpm.h"
+#include "types.h"
+#include "settings.h"
+#include "utility.h"
 
 #include <cstring>
 
 extern FILE* ferr;
 
+extern settings *cheap_settings;
+
+tVPM* vpm = NULL;
+
 using namespace std;
+
+void mrs_init(const std::string &grammar_file_name) {
+  vpm = new tVPM();
+  const char *name = cheap_settings->value("vpm");
+  if (name != NULL) {
+    std::string file = find_file(name, ".vpm", grammar_file_name);
+    if (! file.empty()) {
+      vpm->read_vpm(file);
+    }
+  }
+}
+
+void mrs_finalize() {
+  delete vpm;
+}
+
+
 
 tVPM::~tVPM() {
   for (list<tPM*>::iterator pm = pms.begin(); pm != pms.end(); ++pm)
@@ -65,8 +89,7 @@ bool tVPM::read_vpm(const string &filename, string id) {
           if (strchr(tok, '=') != NULL)
             mr->eqtest = true;
           if (strspn(tok, "<>=") != strlen(tok)) {
-            fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", i
-              tok);
+            fprintf(ferr, "Invalid direction (unrecognized chars): `%s'\n", tok);
             return false;
           }
           onleft = false;
@@ -104,7 +127,7 @@ tMrs* tVPM::map_mrs(tMrs* mrs_in, bool forwardp) {
   tMrs* mrs_new = new tMrs();
   mrs_new->ltop = map_variable(mrs_in->ltop, mrs_new, forwardp);
   mrs_new->index = map_variable(mrs_in->index, mrs_new, forwardp);
-  for (list<tBaseEp*>::iterator iter = mrs_in->eps.begin();
+  for (vector<tBaseEp*>::iterator iter = mrs_in->eps.begin();
        iter != mrs_in->eps.end(); ++iter) {
     tEp* ep_in = dynamic_cast<tEp*>(*iter);
     tEp* ep_new = new tEp(mrs_new);
@@ -115,8 +138,7 @@ tMrs* tVPM::map_mrs(tMrs* mrs_in, bool forwardp) {
       tVar* vval = dynamic_cast<tVar*>((*pair).second);
       if (vval == NULL) {
         ep_new->roles[(*pair).first] =
-          mrs_new->request_constant(
-          (dynamic_cast<tConstant*>((*pair).second))->value);
+          ep_new->request_constant((dynamic_cast<tConstant*>((*pair).second))->value);
       } else {
         vval = map_variable(vval, mrs_new, forwardp);
         ep_new->roles[(*pair).first] = vval;
@@ -127,7 +149,7 @@ tMrs* tVPM::map_mrs(tMrs* mrs_in, bool forwardp) {
     ep_new->cto = ep_in->cto;
     mrs_new->eps.push_back(ep_new);
   }
-  for (list<tHCons*>::iterator iter = mrs_in->hconss.begin();
+  for (vector<tHCons*>::iterator iter = mrs_in->hconss.begin();
        iter != mrs_in->hconss.end(); ++iter) {
     tHCons* hcons_new = new tHCons(mrs_new);
     hcons_new->relation = (*iter)->relation;
@@ -135,12 +157,12 @@ tMrs* tVPM::map_mrs(tMrs* mrs_in, bool forwardp) {
     hcons_new->larg = map_variable((*iter)->larg, mrs_new, forwardp);
     mrs_new->hconss.push_back(hcons_new);
   }
-  mrs_new->_valid = true;
+  //  mrs_new->_valid = true;
   _vv_map.clear();
   return mrs_new;
 }
 
-tVar* tVPM::map_variable(tVar* var_in, tMRS* mrs, bool forwardp) {
+tVar* tVPM::map_variable(tVar* var_in, tMrs* mrs, bool forwardp) {
 
   if (_vv_map.find(var_in) != _vv_map.end()) // already mapped
     return _vv_map[var_in];
@@ -172,10 +194,10 @@ tVar* tVPM::map_variable(tVar* var_in, tMRS* mrs, bool forwardp) {
     list<string> values;
     for (list<string>::iterator property = lhs.begin();
          property != lhs.end(); ++property) { // for each property in the PM lhs
-      if (var_in->extra.find(*property) == var_in->extra.end())
+      if (var_in->properties.find(*property) == var_in->properties.end())
         values.push_back("");
       else
-        values.push_back(var_in->extra[*property]);
+        values.push_back(var_in->properties[*property]);
     }
     for (list<tMR*>::iterator pmr = (*pm)->pmrs.begin();
          pmr != (*pm)->pmrs.end(); ++pmr) { // for each mapping-rule
@@ -189,7 +211,7 @@ tVar* tVPM::map_variable(tVar* var_in, tMRS* mrs, bool forwardp) {
           if (*newval == "!")
             continue;
           else { // "*" is illegal here!
-            var_new->extra[*property] = *newval;
+            var_new->properties[*property] = *newval;
           }
         }
         break;

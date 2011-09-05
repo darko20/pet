@@ -81,6 +81,8 @@ cheaplibsources = \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	$(top_srcdir)/mrs/mrs.cpp \
 	$(top_srcdir)/mrs/mrs.h \
+	$(top_srcdir)/mrs/mrs-tfs.cpp \
+	$(top_srcdir)/mrs/mrs-tfs.h \
 	$(top_srcdir)/mrs/mrs-printer.cpp \
 	$(top_srcdir)/mrs/mrs-printer.h \
 	$(top_srcdir)/mrs/vpm.cpp \

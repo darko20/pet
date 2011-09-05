@@ -2,44 +2,58 @@
 
 #include "mrs-tfs.h"
 
+#include "logging.h"
+#include "settings.h"
+#include "types.h"
+#include "utility.h"
+
+#include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
+
+extern settings *cheap_settings;
+
 namespace mrs {
   
-  tMrs* MrsTfsExtrator::extractMrs(struct dag_node* dag) {
+  tMrs* MrsTfsExtractor::extractMrs(struct dag_node* dag) {
     dag = dag_expand(dag); // expand the fs to be well-formed
     tMrs* mrs = new tMrs();
     struct dag_node* init_sem_dag = FAIL;
     init_sem_dag = dag_get_path_value(dag, cheap_settings->req_value("mrs-initial-semantics-path"));
     if (init_sem_dag == FAIL) {
       LOG(logMRS, ERROR, "no mrs-initial-semantics-path found.");
-      return;
+      delete mrs;
+      return NULL;
     }
 
     // extract top-h
     struct dag_node* d = FAIL;
     const char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
     if (!psoa_top_h_path || strcmp(psoa_top_h_path, "") == 0)
-      mrs->ltop = mrs->request_var("handle");
+      mrs->ltop = requestVar("handle", mrs);
     else {
       d = dag_get_path_value(init_sem_dag, psoa_top_h_path);
       if (d == FAIL) {
 	LOG(logMRS, ERROR, "no mrs-psoa-top-h-path found.");
+	delete mrs;
 	return NULL;
       }
-      mrs->ltop = requestVar(d);
+      mrs->ltop = requestVar(d, mrs);
     }
 
     // extract index
     d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-index-path"));
     if (d == FAIL) {
       LOG(logMRS, ERROR, "no mrs-psoa-index-path found.");
+      delete mrs;
       return NULL;
     }
-    mrs->index = requestVar(d);
+    mrs->index = requestVar(d, mrs);
 
     // extract liszt
     d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-liszt-path"));
     if (d == FAIL) {
       LOG(logMRS, ERROR, "no mrs-psoa-liszt-path found.");
+      delete mrs;
       return NULL;
     }
     int n = 0;
@@ -48,17 +62,20 @@ namespace mrs {
 	 iter != ep_list.end(); ++iter, ++n) {
       if (*iter == FAIL) {
 	LOG(logMRS, ERROR, boost::format("no relation %d") % n);
-	mrs->eps.clear();
-	return;
+	delete mrs;
+	return NULL;
       }
-      mrs->eps.push_back(extractEp(*iter, false, mrs));
+      tEp* ep = extractEp(*iter, mrs);
+      if (ep != NULL)
+	mrs->eps.push_back(ep);
     }
 
     // extract hcons
     d = dag_get_path_value(init_sem_dag, cheap_settings->req_value("mrs-psoa-rh-cons-path"));
     if (d == FAIL) {
       LOG(logMRS, ERROR, "no mrs-psoa-rh-cons-path found.");
-      return;
+      delete mrs;
+      return NULL;
     }
     n = 0;
     std::list<struct dag_node*> hcons_list = dag_get_list(d);
@@ -66,27 +83,33 @@ namespace mrs {
 	 iter != hcons_list.end(); ++iter, ++n) {
       if (*iter == FAIL) {
 	LOG(logMRS, ERROR, boost::format("no hcons %d") % n);
-	mrs->hcons.clear();
-	return;
+	delete mrs;
+	return NULL;
       }
-      mrs->hcons.push_back(extractHCons(*iter, mrs));
+      tHCons* hcons = extractHCons(*iter, mrs);
+      if (hcons != NULL)
+	mrs->hconss.push_back(hcons);
     }
+
+    return mrs;
   }
 
-  tVar* MrsTfsExtractor::requestVar(struct dag_node* dag) {
+  tVar* MrsTfsExtractor::requestVar(struct dag_node* dag, tMrs* mrs) {
     if (_named_nodes.find(dag) != _named_nodes.end())
       return _named_nodes[dag];
     else {
       tVar* newvar = extractVar(_vid_generator++, dag);
-      mrs->register_var(newvar);
-      _named_nodes[dag] = newvar;
+      if (newvar != NULL) {
+	mrs->register_var(newvar);
+	_named_nodes[dag] = newvar;
+      }
       return newvar;
     }
   }
 
-  tVar* MrsTfsExtractor::requestVar(std::string type) {
+  tVar* MrsTfsExtractor::requestVar(std::string type, tMrs* mrs) {
     tVar* var = new tVar(_vid_generator++, type);
-    register_var(var);
+    mrs->register_var(var);
     return var;
   }
 
@@ -97,30 +120,33 @@ namespace mrs {
     struct dag_node* d = dag_get_path_value(dag, cheap_settings->req_value("mrs-sc-arg-feature"));
     if (d == FAIL) {
       LOG(logMRS, ERROR, "no mrs-sc-arg-feature found.");
-      return;
+      delete hcons;
+      return NULL;
     }
-    hcons->harg = requestVar(d);
+    hcons->harg = requestVar(d, mrs);
 
     d = dag_get_path_value(dag, cheap_settings->req_value("mrs-outscpd-feature"));
     if (d == FAIL) {
       LOG(logMRS, ERROR, "no mrs-outscpd-feature found.");
-      return;
+      delete hcons;
+      return NULL;
     }
-    hcons->larg = requestVar(d);
+    hcons->larg = requestVar(d, mrs);
 
     return hcons;
   }
 
-  tEp* MrsTfsExtractor::extractEp(struct dag_nod* dag, tMrs* mrs) {
+  tEp* MrsTfsExtractor::extractEp(struct dag_node* dag, tMrs* mrs) {
     struct dag_node* d = FAIL;
     tEp* ep = new tEp(mrs);
 
     d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-handel-path"));
     if (d == FAIL) {
       LOG(logMRS, ERROR, "no mrs-rel-handel-path found.");
-      return;
+      delete ep;
+      return NULL;
     }
-    label = requestVar(d);
+    ep->label = requestVar(d, mrs);
     
     // get the relation name
     d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-name-path"));
@@ -139,9 +165,9 @@ namespace mrs {
 	  !cheap_settings->member("mrs-ignored-sem-features", feature)) {
 	tValue* value;
 	if (cheap_settings->member("mrs-value-feats", feature)) {
-	  value = new tConstant(type_name(attribute->val->type));
+	  value = ep->request_constant(type_name(attribute->val->type));
 	} else {
-	  value = requestVar(attribute->val);
+	  value = requestVar(attribute->val, mrs);
 	}
 	ep->roles[feature] = value;
       }
@@ -150,9 +176,9 @@ namespace mrs {
     // collect parameter strings
     // collect_param_strings();
     for (std::map<std::string,tValue*>::iterator iter = ep->roles.begin();
-	 iter != roles.end(); ++iter) {
+	 iter != ep->roles.end(); ++iter) {
       if (cheap_settings->member("mrs-value-feats", (*iter).first.c_str())) {
-	parameter_strings[(*iter).first] = (*iter).second;
+	ep->parameter_strings[(*iter).first] = (*iter).second;
       }
     }
 
@@ -199,7 +225,7 @@ namespace mrs {
 				currpath+attrname[attribute->attr], var);
       }
     }
-  }						 
-  
+  }
 
 }
+
