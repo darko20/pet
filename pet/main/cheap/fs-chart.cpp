@@ -33,7 +33,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <map>
 
 using namespace std;
 using namespace HASH_SPACE;
@@ -314,7 +313,7 @@ tChart::print(std::ostream &out, tAbstractItemPrinter *printer,
 }
 
 
-/* two helper functions for tChartUtil::map_chart(), mapping from and to */
+/* helper function for tChartUtil::map_chart() */
 inline static tChartVertex*
 retrieve_chart_vertex(tChart &chart,
     hash_map<int,tChartVertex*> &vertex_map,
@@ -326,18 +325,6 @@ retrieve_chart_vertex(tChart &chart,
     vertex_map[position] = v;
   }
   return v;
-}
-
-inline static int
-retrieve_chart_vertex(map<tChartVertex *, int> &map,
-                      tChartVertex *position) {
-  static int next = 0;
-  if(!map.size()) next = 0;
-  std::map<tChartVertex *, int>::iterator match = map.find(position);
-  if(match != map.end()) return match->second;
-  int foo = next++;
-  map[position] = foo;
-  return foo;
 }
 
 
@@ -679,6 +666,12 @@ topological_order(tChartVertex *vertex, int &max_value,
 {
   list<tItem*> items = vertex->starting_items();
   for (list<tItem*>::iterator it = items.begin(); it != items.end(); ++it) {
+    //
+    // at this point, ignore blocked items (e.g. ones consumed as the input of
+    // a successful application of a chart mapping rule), to avoid gaps in the
+    // integer sequence assigned to remaining chart vertices.
+    //
+    if(!passive_unblocked(*it)) continue;
     tChartVertex *succ = (*it)->succ_vertex();
     if (order.find(succ) == order.end()) // if not visited
       topological_order(succ, max_value, order, ordered);
@@ -701,23 +694,17 @@ tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
   list<tChartVertex*> ordered;
   topological_order(vertices.front(), max_value, order, ordered);
   list<tChartVertex*>::iterator vit;
-  //
-  // to map back from (abstract) chart vertices into consecutive integers
-  //
-  map<tChartVertex *, int> map; 
   for (vit = ordered.begin(); vit != ordered.end(); ++vit) {
     tChartVertex *prec_vertex = *vit;
     list<tItem*> items = prec_vertex->starting_items();
     for (list<tItem*>::iterator it = items.begin(); it != items.end(); ++it) {
       tItem *item = *it;
       //
-      // at this point, ignore blocked items (e.g. ones consumed as the input
-      // of a successful application of a chart mapping rule), to avoid gaps
-      // in the integer sequence assigned to remaining chart vertices.
+      // topological_order() ignores blocked items, so we must as well.
       //
       if(!passive_unblocked(item)) continue;
-      item->set_start(retrieve_chart_vertex(map, prec_vertex));
-      item->set_end(retrieve_chart_vertex(map, item->succ_vertex()));
+      item->set_start(max_value - order[prec_vertex]);
+      item->set_end(max_value - order[item->succ_vertex()]);
       processed.push_back(item);
     }
   }
