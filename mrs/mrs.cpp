@@ -74,11 +74,21 @@ tHCons::tHCons(std::string hreln, tBaseMrs* mrs) : _mrs(mrs) {
   }
 }
 
-tEp::~tEp() {
-  for (std::map<std::string, tValue*>::iterator 
-      constant = parameter_strings.begin();
-      constant != parameter_strings.end(); ++constant)
-    delete constant->second;
+tBaseEp::~tBaseEp() {
+  for (std::vector<tConstant*>::iterator 
+	 constant = _constants.begin();
+       constant != _constants.end(); ++constant)
+    delete *constant;
+}
+
+void tBaseEp::register_constant(tConstant *c) {
+  _constants.push_back(c);
+}
+
+tConstant* tBaseEp::request_constant(std::string cvalue) {
+  tConstant* c = new tConstant(cvalue);
+  register_constant(c);
+  return c;
 }
 
 } // namespace mrs
