@@ -1,3 +1,5 @@
+/* -*- Mode: C++ -*- */
+
 #ifndef _MRS_READER_H_
 #define _MRS_READER_H_
 
@@ -36,6 +38,14 @@ class SimpleMrsReader : public tMrsReader {
     tConstant *readCARG(std::string &rest);
     bool parseHCONS(tMrs *mrs, std::string &rest);
     std::string readReln(std::string &rest);
+};
+
+class XmlMrsReader : public tMrsReader {
+public:
+  XmlMrsReader(){};
+  ~XmlMrsReader(){};
+
+  tMrs *readMrs(std::string);
 };
 
 }

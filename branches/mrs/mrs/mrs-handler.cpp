@@ -19,6 +19,7 @@
 #include "mrs-handler.h"
 #include <xercesc/framework/MemBufFormatTarget.hpp>
 #include "unicode.h"
+#include "logging.h"
 #include <stack>
 #include "mrs-states.h"
 
@@ -26,7 +27,7 @@ using namespace std;
 using namespace XERCES_CPP_NAMESPACE;
 using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
 
-MRSHandler::MRSHandler(bool downcase) {
+MrsHandler::MrsHandler(bool downcase) {
   _state_factory = new mrs::mrs_state_factory(this);
   _state_stack.push(new mrs::TOP_state(this));
   _err = 0;
@@ -35,7 +36,7 @@ MRSHandler::MRSHandler(bool downcase) {
   _errbuf = NULL;
 }
 
-MRSHandler::~MRSHandler() {
+MrsHandler::~MrsHandler() {
   while (!_state_stack.empty()) {
     delete _state_stack.top();
     _state_stack.pop();
@@ -44,7 +45,7 @@ MRSHandler::~MRSHandler() {
   if (_errbuf != NULL) XMLString::release(&_errbuf);
 }
 
-void MRSHandler::
+void MrsHandler::
 startElement(const XMLCh* const tag, AttributeList& attrs) {
   if (_err > 0) {
     ++_err;
@@ -63,12 +64,12 @@ startElement(const XMLCh* const tag, AttributeList& attrs) {
       }
     } else {
       _error_occurred = true;
-      throw SAXParseException(errmsg((std::string) "unknown tag '" + XMLCh2Latin(tag) + "'"), *_loc);
+      throw SAXParseException(errmsg((std::string) "unknown tag '" + XMLCh2Native(tag) + "'"), *_loc);
     }
   }
 }
 
-void MRSHandler::
+void MrsHandler::
 endElement(const XMLCh* const tag) {
   if (_err == 0) {
     mrs::mrs_base_state *oldState = _state_stack.top();
@@ -85,21 +86,21 @@ endElement(const XMLCh* const tag) {
   }
 }
 
-void MRSHandler::
+void MrsHandler::
 characters(const XMLCh *const chars, const unsigned int len) {
   _state_stack.top()->characters(chars, len);
 }
 
-void MRSHandler::
+void MrsHandler::
 print_sax_exception(const char * errtype, const XERCES_CPP_NAMESPACE_QUALIFIER SAXParseException& e) {
   LOG(logXML, WARN,
-      XMLCh2Latin(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
+      XMLCh2Native(e.getSystemId()) << ":" << (int) e.getLineNumber() << ":"
       << (int) e.getColumnNumber() << ": error: SAX: " << errtype << " "
-      << XMLCh2Latin(e.getMessage()) << endl);
+      << XMLCh2Native(e.getMessage()) << endl);
 }
 
 string
-MRSHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
+MrsHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
   XMLCh* res;
   res = new XMLCh[len + 1];
   XMLString::copyNString(res, chars, len);
@@ -111,7 +112,7 @@ MRSHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
 #ifdef HAVE_ICU
   result = Conv->convert((UChar *) res, XMLString::stringLen(res));
 #else
-  result = XMLCh2Latin(res);
+  result = XMLCh2Native(res);
 #endif
   delete[] res;
   return result;
