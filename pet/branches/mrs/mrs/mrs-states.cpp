@@ -133,7 +133,7 @@ req_string_attr(AttributeList &attr, char *aname) {
   // XMLCh* val ???
   return Conv->convert((UChar *)val, XMLString::stringLen(val));
 #else
-  return XMLCh2Latin(val);
+  return XMLCh2Native(val);
 #endif
 }
 
@@ -144,10 +144,20 @@ opt_string_attr(AttributeList &attr, char *aname) {
 #ifdef HAVE_ICU
   return Conv->convert((UChar *)val, XMLString::stringLen(val));
 #else
-  return XMLCh2Latin(val);
+  return XMLCh2Native(val);
 #endif
 }
 
+string mrs_base_state::
+opt_string_attr(AttributeList &attr, char *aname, string def) {
+  const XMLCh *val = attr.getValue(aname);
+  if (val == NULL) return def;
+#ifdef HAVE_ICU
+  return Conv->convert((UChar *)val, XMLString::stringLen(val));
+#else
+  return XMLCh2Native(val);
+#endif
+}
 
 /** Reject state transition \a from --> \a to */
 void reject(mrs_base_state *to, mrs_base_state *from) {
@@ -313,7 +323,7 @@ leaveState(class TOP_state *state) {
  */
 void mrs_state::
 enterState(class mrs_list_state* state, AttributeList& attr) {
-  _mrs = new tMRS();
+  _mrs = new tMrs();
 }
 
 /**
@@ -329,7 +339,7 @@ leaveState(class mrs_list_state* state) {
  */
 void ep_state::
 enterState(mrs_state* state, AttributeList& attr) {
-  _rel = new tRel(state->_mrs);
+  _ep = new tEp(state->_mrs);
 }
 
 /**
@@ -337,7 +347,7 @@ enterState(mrs_state* state, AttributeList& attr) {
  */
 void ep_state::
 leaveState(mrs_state* state) {
-  state->_mrs->liszt.push_back(_rel);
+  state->_mrs->eps.push_back(_ep);
 }
 
 /**
@@ -352,7 +362,7 @@ enterState(class ep_state* state, AttributeList& attr) {
  */
 void pred_state::
 leaveState(class ep_state* state) {
-  state->_rel->pred = _predname;
+  state->_ep->pred = _predname;
 }
 
 /** the characters event */
@@ -373,7 +383,7 @@ enterState(class ep_state* state, AttributeList& attr) {
  */
 void spred_state::
 leaveState(class ep_state* state) {
-  state->_rel->pred = "\"" + _predname + "\"";
+  state->_ep->pred = "\"" + _predname + "\"";
 }
 
 /** the characters event */
@@ -388,7 +398,7 @@ characters(const XMLCh *const chars, const unsigned length) {
 void label_state::
 enterState(class mrs_state* state, AttributeList& attr) {
   int vid = req_int_attr(attr, "vid");
-  _label = state->_mrs->request_var(vid, 'h');
+  _label = state->_mrs->request_var(vid, "h");
 }
 
 /**
@@ -396,7 +406,7 @@ enterState(class mrs_state* state, AttributeList& attr) {
  */
 void label_state::
 leaveState(class mrs_state* state) {
-  state->_mrs->top_h = _label;
+  state->_mrs->ltop = _label;
 }
 
 /**
@@ -405,7 +415,7 @@ leaveState(class mrs_state* state) {
 void label_state::
 enterState(class ep_state* state, AttributeList& attr) {
   int vid = req_int_attr(attr, "vid");
-  _label = state->_rel->_mrs->request_var(vid, 'h');
+  _label = state->_ep->_mrs->request_var(vid, "h");
 }
 
 /**
@@ -413,7 +423,7 @@ enterState(class ep_state* state, AttributeList& attr) {
  */
 void label_state::
 leaveState(class ep_state* state) {
-  state->_rel->handel = _label;
+  state->_ep->label = _label;
 }
 
 /**
@@ -429,7 +439,7 @@ enterState(class label_state* state, AttributeList& attr) {
  */
 void extrapair_state::
 leaveState(class label_state* state) {
-  _var->extra[_path] = _value;
+  _var->properties[_path] = _value;
 }
 
 /**
@@ -445,7 +455,7 @@ enterState(class var_state* state, AttributeList& attr) {
  */
 void extrapair_state::
 leaveState(class var_state* state) {
-  _var->extra[_path] = _value;
+  _var->properties[_path] = _value;
 }
 
 /**
@@ -503,7 +513,7 @@ characters(const XMLCh *const chars, const unsigned int length) {
 void var_state::
 enterState(class mrs_state* state, AttributeList& attr) {
   int vid = req_int_attr(attr, "vid");
-  char sort = opt_char_attr(attr, "sort", 'u');
+  string sort = opt_string_attr(attr, "sort", "u");
   _var = state->_mrs->request_var(vid, sort);
 }
 
@@ -521,8 +531,8 @@ leaveState(class mrs_state* state) {
 void var_state::
 enterState(class fvpair_state* state, AttributeList& attr) {
   int vid = req_int_attr(attr, "vid");
-  char sort = opt_char_attr(attr, "sort", 'u');
-  _var = state->_rel->_mrs->request_var(vid, sort);
+  string sort = opt_string_attr(attr, "sort", "u");
+  _var = state->_ep->_mrs->request_var(vid, sort);
 }
 
 /**
@@ -539,7 +549,7 @@ leaveState(class fvpair_state* state) {
 void var_state::
 enterState(class hi_state* state, AttributeList& attr) {
   int vid = req_int_attr(attr, "vid");
-  char sort = opt_char_attr(attr, "sort", 'u');
+  string sort = opt_string_attr(attr, "sort", "u");
   _var = state->_hcons->_mrs->request_var(vid, sort);
 }
 
@@ -557,7 +567,7 @@ leaveState(class hi_state* state) {
 void var_state::
 enterState(class lo_state* state, AttributeList& attr) {
   int vid = req_int_attr(attr, "vid");
-  char sort = opt_char_attr(attr, "sort", 'u');
+  string sort = opt_string_attr(attr, "sort", "u");
   _var = state->_hcons->_mrs->request_var(vid, sort);
 }
 
@@ -574,7 +584,7 @@ leaveState(class lo_state* state) {
  */
 void fvpair_state::
 enterState(class ep_state* state, AttributeList& attr) {
-  _rel = state->_rel;
+  _ep = state->_ep;
 }
 
 /**
@@ -582,7 +592,7 @@ enterState(class ep_state* state, AttributeList& attr) {
  */
 void fvpair_state::
 leaveState(class ep_state* state) {
-  _rel->flist[_feature] = _value;
+  _ep->roles[_feature] = _value;
 }
 
 /**
@@ -613,7 +623,7 @@ characters(const XMLCh *const chars, const unsigned int length) {
  */
 void constant_state::
 enterState(class fvpair_state* state, AttributeList& attr) {
-  _rel = state->_rel;
+  _ep = state->_ep;
 }
 
 /**
@@ -621,7 +631,7 @@ enterState(class fvpair_state* state, AttributeList& attr) {
  */
 void constant_state::
 leaveState(class fvpair_state* state) {
-  state->_value = _rel->_mrs->request_constant(_value);
+  state->_value = _ep->request_constant(_value);
 }
 
 /**
@@ -646,7 +656,7 @@ enterState(class mrs_state* state, AttributeList& attr) {
  */
 void hcons_state::
 leaveState(class mrs_state* state) {
-  state->_mrs->h_cons.push_back(_hcons);
+  state->_mrs->hconss.push_back(_hcons);
 }
 
 
@@ -663,7 +673,7 @@ enterState(class hcons_state* state, AttributeList& attr) {
  */
 void hi_state::
 leaveState(class hcons_state* state) {
-  _hcons->scarg = _var;
+  _hcons->harg = _var;
 }
 
 
@@ -680,7 +690,7 @@ enterState(class hcons_state* state, AttributeList& attr) {
  */
 void lo_state::
 leaveState(class hcons_state* state) {
-  _hcons->outscpd = _var;
+  _hcons->larg = _var;
 }
 
 }

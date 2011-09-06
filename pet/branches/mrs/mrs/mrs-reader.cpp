@@ -1,6 +1,12 @@
+/* -*- Mode: C++ -*- */
+
 #include "errors.h"
 #include "mrs-reader.h"
+#include "mrs-handler.h"
+#include "xercesc/framework/MemBufInputSource.hpp"
 #include <sstream>
+
+XERCES_CPP_NAMESPACE_USE
 
 namespace mrs {
 
@@ -285,6 +291,14 @@ std::string SimpleMrsReader::readReln(std::string &rest) {
   }
   removeWhitespace(rest);
   return reln;
+}
+
+tMrs* XmlMrsReader::readMrs(std::string input) {
+  MrsHandler mrs_handler(true);
+  MemBufInputSource xml_input((const XMLByte *) input.c_str(), 
+			     input.length(), "STDIN");
+  parse_file(xml_input, &mrs_handler);
+  return mrs_handler.mrss().front();
 }
 
 }
