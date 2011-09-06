@@ -16,7 +16,7 @@ namespace mrs {
 
 class mrs_base_state {
 public:
-  mrs_base_state(MRSHandler *handler) : _reader(handler) {
+  mrs_base_state(MrsHandler *handler) : _reader(handler) {
   }
   
   virtual ~mrs_base_state() {
@@ -86,11 +86,12 @@ public:
   double opt_double_attr(AttributeList& attr, char *aname, double def);
   std::string req_string_attr(AttributeList &attr, char *aname);
   std::string opt_string_attr(AttributeList &attr, char *aname);
+  std::string opt_string_attr(AttributeList &attr, char *aname, std::string def);
   /*@}*/
   
 protected:
   /** The XML SAX parser handler this state belongs to */
-  MRSHandler *_reader;
+  MrsHandler *_reader;
   
 };
 
@@ -125,7 +126,7 @@ public: \
 class TOP_state : public mrs_base_state {
   STATE_COMMON_CODE(TOP_state)
 public:
-  TOP_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  TOP_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~TOP_state() {}
 };
 
@@ -133,7 +134,7 @@ public:
 class mrs_list_state : public mrs_base_state {
   STATE_COMMON_CODE(mrs_list_state)
 public:
-  mrs_list_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  mrs_list_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~mrs_list_state() {}
 
   /**
@@ -151,7 +152,7 @@ public:
 class mrs_state : public mrs_base_state {
   STATE_COMMON_CODE(mrs_state)
 public:
-  mrs_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  mrs_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~mrs_state() {}
 
   /**
@@ -164,14 +165,14 @@ public:
    */
   virtual void leaveState(class mrs_list_state* state);
 
-  tPSOA* _mrs;
+  tMrs* _mrs;
   
 };
 
 class ep_state : public mrs_base_state {
   STATE_COMMON_CODE(ep_state)
 public:
-  ep_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  ep_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~ep_state() {}
 
   /** 
@@ -184,14 +185,14 @@ public:
    */
   virtual void leaveState(mrs_state* state);
   
-  tRel* _rel;
+  tEp* _ep;
 
 };
 
 class pred_state : public mrs_base_state {
   STATE_COMMON_CODE(pred_state)
 public:
-  pred_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  pred_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~pred_state() {}
   
   /**
@@ -213,7 +214,7 @@ public:
 class spred_state : public mrs_base_state {
   STATE_COMMON_CODE(spred_state)
 public:
-  spred_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  spred_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~spred_state() {}
 
   /**
@@ -236,7 +237,7 @@ public:
 class realpred_state : public mrs_base_state {
   STATE_COMMON_CODE(realpred_state)
 public:
-  realpred_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  realpred_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~realpred_state() {}
 
 };
@@ -244,7 +245,7 @@ public:
 class label_state : public mrs_base_state {
   STATE_COMMON_CODE(label_state)
 public:
-  label_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  label_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~label_state() {}
   
   /**
@@ -273,7 +274,7 @@ public:
 class extrapair_state : public mrs_base_state {
   STATE_COMMON_CODE(extrapair_state)
 public:
-  extrapair_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  extrapair_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~extrapair_state() {}
 
   /**
@@ -304,7 +305,7 @@ public:
 class path_state : public mrs_base_state {
   STATE_COMMON_CODE(path_state)
 public:
-  path_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  path_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~path_state() {}
 
   /**
@@ -329,7 +330,7 @@ public:
 class value_state : public mrs_base_state {
   STATE_COMMON_CODE(value_state)
 public:
-  value_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  value_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~value_state() {}
 
   /**
@@ -354,7 +355,7 @@ public:
 class var_state : public mrs_base_state {
   STATE_COMMON_CODE(var_state)
 public:
-  var_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  var_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~var_state() {}
 
   /**
@@ -403,7 +404,7 @@ public:
 class fvpair_state : public mrs_base_state {
   STATE_COMMON_CODE(fvpair_state)
 public:
-  fvpair_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  fvpair_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~fvpair_state() {}
 
   /**
@@ -416,7 +417,7 @@ public:
    */
   virtual void leaveState(class ep_state* state);
 
-  tRel* _rel;
+  tEp* _ep;
   std::string _feature;
   tValue* _value;
 };
@@ -424,7 +425,7 @@ public:
 class rargname_state : public mrs_base_state {
   STATE_COMMON_CODE(rargname_state)
 public:
-  rargname_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  rargname_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~rargname_state() {}
   
   /**
@@ -448,7 +449,7 @@ public:
 class constant_state : public mrs_base_state {
   STATE_COMMON_CODE(constant_state)
 public:
-  constant_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  constant_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~constant_state() {}
   
   /**
@@ -466,14 +467,14 @@ public:
    */
   virtual void characters(const XMLCh *const chars, const unsigned int length);
   
-  tRel* _rel; 
+  tEp* _ep; 
   std::string _value;
 };
 
 class hcons_state : public mrs_base_state {
   STATE_COMMON_CODE(hcons_state)
 public:
-  hcons_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  hcons_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~hcons_state() {}
   
   /**
@@ -492,7 +493,7 @@ public:
 class hi_state : public mrs_base_state {
   STATE_COMMON_CODE(hi_state)
 public:
-  hi_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  hi_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~hi_state() {}
 
   /**
@@ -512,7 +513,7 @@ public:
 class lo_state : public mrs_base_state {
   STATE_COMMON_CODE(lo_state)
 public:
-  lo_state(MRSHandler *mrsreader) : mrs_base_state(mrsreader) {}
+  lo_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
   virtual ~lo_state() {}
 
   /**
@@ -543,7 +544,7 @@ class mrs_state_factory {
     }
   };
 
-  typedef hash_map<const XMLCh *, mrs_base_state *, struct hash_xmlstring
+  typedef HASH_SPACE::hash_map<const XMLCh *, mrs_base_state *, struct hash_xmlstring
                    , struct xmlstring_equal > xs_hash_map;
   xs_hash_map _state_table;
   void register_state(mrs_base_state *state) {
@@ -551,7 +552,7 @@ class mrs_state_factory {
   }
 
 public:
-  mrs_state_factory(class MRSHandler *handler) {
+  mrs_state_factory(class MrsHandler *handler) {
     register_state(new mrs_list_state(handler));
     register_state(new mrs_state(handler));
     register_state(new ep_state(handler));    

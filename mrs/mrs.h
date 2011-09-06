@@ -68,10 +68,10 @@ class tBaseEp {
     std::string pred;
     std::map<std::string, tValue*> roles;
 
-  private:
     /* reference to the parent mrs */
     class tBaseMrs *_mrs;
 
+  private:
     std::vector<tConstant*> _constants;
   
 };

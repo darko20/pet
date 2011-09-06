@@ -7,22 +7,30 @@
 #include "xmlparser.h"
 #include "hash.h"
 #include "hashing.h"
-#include <xercesc/sax/AttributeList.hpp>
-#include <xercesc/util/XMLString.hpp>
-#include <xercesc/util/XMLChar.hpp>
 #include <stack>
+#include <list>
+
+using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
 
 namespace mrs {
   class mrs_base_state;
   class mrs_state_factory;
 }
 
-class MRSHandler : public XERCES_CPP_NAMESPACE_QUALIFIER HandlerBase {
+/** A SAX parser handler class to read MRS XML (mrx)
+ *
+ * MrsHandler maintains a stack of states that represent the XML
+ * nodestack. The states communicated with each other to pass
+ * subresults up or down.
+ *  
+ * For a detailed description, see the Xerces C++ API.
+ */
+class MrsHandler : public XERCES_CPP_NAMESPACE_QUALIFIER HandlerBase {
 public:
-  /** Constructor: Make a new MRSHandler */
-  MRSHandler(bool downcase);
+  /** Constructor: Make a new MrsHandler */
+  MrsHandler(bool downcase);
   /** Destructor */
-  ~MRSHandler();
+  ~MrsHandler();
 
   /** Start XML element with tag name \a tag and attribute list \a attrs */
   virtual void startElement(const XMLCh* const tag, AttributeList& attrs);
@@ -62,11 +70,11 @@ public:
   surface_string(const XMLCh *chars, const unsigned int len) const;
 
 
-  std::list<mrs::tMRS*>  &mrss() {return _mrss;}
+  std::list<mrs::tMrs*>  &mrss() {return _mrss;}
   
 private:
   /** Copy construction is disallowed */
-  MRSHandler(const MRSHandler &x) {}
+  MrsHandler(const MrsHandler &x) {}
 
   /** Print a SAX exception in a convenient form */
   void print_sax_exception(const char * errtype, 
@@ -106,7 +114,7 @@ private:
     }
   };
 
-  std::list<mrs::tMRS*> _mrss;
+  std::list<mrs::tMrs*> _mrss;
 };
 
 
