@@ -28,14 +28,6 @@
 #include "tsdb++.h"
 #include "vpm.h"
 
-#ifdef HAVE_ECL
-#include "petecl.h"
-#endif
-#ifdef HAVE_MRS
-#include "petmrs.h"
-#include "cppbridge.h"
-#endif
-
 #include <cassert>
 #include <cerrno>
 #include <cstring>
@@ -167,33 +159,25 @@ struct analyze_method : public xmlrpc_c::method
         string opt_mrs = get_opt_string("opt_mrs");
         if (!opt_mrs.empty()) {
           string mrs_str;
-          if ((opt_mrs == "new") || (opt_mrs == "simple")) {
-            osstream.clear(); // reset state
-            osstream.str(""); // reset underlying buffer
-            fs f = item->get_fs();
-            mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
-            if (mrs->valid()) {
-              mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
-              if (mapped_mrs->valid()) {
-                if (opt_mrs == "new") {
-                  MrxMRSPrinter ptr(osstream);
-                  ptr.print(mapped_mrs);
-                } else if (opt_mrs == "simple") {
-                  SimpleMRSPrinter ptr(osstream);
-                  ptr.print(mapped_mrs);
-                }
+          osstream.clear(); // reset state
+          osstream.str(""); // reset underlying buffer
+          fs f = item->get_fs();
+          mrs::tPSOA* mrs = new mrs::tPSOA(f.dag());
+          if (mrs->valid()) {
+            mrs::tPSOA* mapped_mrs = vpm->map_mrs(mrs, true);
+            if (mapped_mrs->valid()) {
+              if (opt_mrs == "new") {
+                MrxMRSPrinter ptr(osstream);
+                ptr.print(mapped_mrs);
+              } else if (opt_mrs == "simple") {
+                SimpleMRSPrinter ptr(osstream);
+                ptr.print(mapped_mrs);
               }
-              delete mapped_mrs;
             }
-            delete mrs;
-            mrs_str = osstream.str();
-          } else {
-#ifdef HAVE_MRS
-            mrs_str = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs.c_str());
-#else
-            mrs_str = "";
-#endif
+            delete mapped_mrs;
           }
+          delete mrs;
+          mrs_str = osstream.str();
           reading_helper["mrs"] = xmlrpc_c::value_string(mrs_str);
         }
 

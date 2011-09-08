@@ -37,9 +37,8 @@
 #include "tagger.h"
 #include "lingo-tokenizer.h"
 #ifdef HAVE_XML
-#include "pic-tokenizer.h"
-#include "smaf-tokenizer.h"
 #include "fsc-tokenizer.h"
+#include "xmlparser.h"
 #endif
 #include "item-printer.h"
 #include "version.h"
@@ -54,16 +53,6 @@
 
 #include "api.h"
 
-#ifdef HAVE_ECL
-#include "petecl.h"
-#endif
-#ifdef HAVE_MRS
-#include "petmrs.h"
-#include "cppbridge.h"
-#endif
-#ifdef HAVE_PREPROC
-#include "eclpreprocessor.h"
-#endif
 #ifdef HAVE_XMLRPC_C
 #include "server-xmlrpc.h"
 #endif
@@ -340,25 +329,7 @@ void interactive() {
             fprintf(fstatus, "\n");
           }
           if (opt_mrs != NULL) {
-            if ((strcmp(opt_mrs, "new") != 0)
-                && (strcmp(opt_mrs, "simple") != 0)) {
-#ifdef HAVE_MRS
-              string mrs;
-              if(it->trait() != PCFG_TRAIT)
-                mrs = ecl_cpp_extract_mrs(it->get_fs().dag(), opt_mrs);
-              if (mrs.empty()) {
-                fprintf(fstatus, "\n%s\n",
-                        ((strcmp(opt_mrs, "rmrx") == 0)
-                         ? "<rmrs cfrom='-2' cto='-2'>\n</rmrs>"
-                         : "No MRS"));
-              } else {
-                fprintf(fstatus, "%s\n", mrs.c_str());
-              }
-#endif
-            }
-            else {
-              print_mrs_as(opt_mrs[0], it->get_fs().dag(), cerr);
-            }
+            print_mrs_as(opt_mrs[0], it->get_fs().dag(), cerr);
           }
         }
 
@@ -372,17 +343,7 @@ void interactive() {
             if(opt_mrs) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
-#ifdef HAVE_MRS
-                string mrs = ecl_cpp_extract_mrs(item->get_fs().dag(), opt_mrs);
-                if (! mrs.empty()) {
-                  fprintf(fstatus, "%s\n", mrs.c_str());
-                }
-#else
-                if ((strcmp(opt_mrs, "new") == 0)
-                    || (strcmp(opt_mrs, "simple") == 0)) {
-                  print_mrs_as(opt_mrs[0], item->get_fs().dag(), cerr);
-                }
-#endif
+                print_mrs_as(opt_mrs[0], item->get_fs().dag(), cerr);
               }
             }
           }
@@ -400,10 +361,9 @@ void interactive() {
       stats.readings = -1;
 
       if (Chart != NULL) {
-        string surface = Chart->get_surface_string();
-        dump_jxchg(surface, Chart);
-        tsdb_dump.error(Chart, surface, e);
+        dump_jxchg(Chart->get_surface_string(), Chart);
       }
+      tsdb_dump.error(Chart, input, e);
     }
 
     fflush(fstatus);
@@ -596,14 +556,6 @@ bool load_grammar(string initial_name) {
     LOG(logAppl, INFO, "loading `" << grammar_file_name << "' ");
     Grammar = new tGrammar(grammar_file_name.c_str());
 
-#ifdef HAVE_ECL
-    const char *cl_argv[] = {"cheap", 0};
-    ecl_initialize(1, const_cast<char**>(cl_argv));
-    // make the redefinition warnings go away
-    ecl_eval_sexpr("(setq cl-user::erroutsave cl-user::*error-output* "
-                   "cl-user::*error-output* nil)");
-#endif  // HAVE_ECL
-
 #ifdef DYNAMIC_SYMBOLS
     init_characterization();
 #endif
@@ -645,40 +597,6 @@ bool load_grammar(string initial_name) {
       return true;
 #endif
 
-    case TOKENIZER_PIC:
-    case TOKENIZER_PIC_COUNTS:
-#ifdef HAVE_XML
-      xml_initialize();
-      XMLServices = true;
-      tok = new tPICTokenizer((get_opt<tokenizer_id>("opt_tok")
-                               == TOKENIZER_PIC_COUNTS
-                               ? STANDOFF_COUNTS : STANDOFF_POINTS));
-      break;
-#else
-      LOG(logAppl, FATAL, "No XML input mode compiled into this cheap");
-      return true;
-#endif
-
-    case TOKENIZER_FSR:
-#if defined(HAVE_PREPROC) && defined(HAVE_ICU)
-      tok = new tFSRTokenizer(grammar_file_name.c_str()); break;
-#else
-      LOG(logAppl, FATAL,
-          "No ecl/Lisp based FSR preprocessor compiled into this cheap");
-      return true;
-#endif
-
-    case TOKENIZER_SMAF:
-#if defined(HAVE_XML) && defined(HAVE_ICU)
-      xml_initialize();
-      XMLServices = true;
-      tok = new tSMAFTokenizer(); break;
-#else
-      LOG(logAppl, FATAL,
-          "No XML or ICU (Unicode) support compiled into this cheap.");
-      return true;
-#endif
-
     case TOKENIZER_FSC:
 #ifdef HAVE_XML
       xml_initialize();
@@ -706,25 +624,7 @@ bool load_grammar(string initial_name) {
       Lexparser.register_tagger(postagger);
     }
 
-#ifdef HAVE_MRS
-    //
-    // when requested, initialize the MRS variable property mapping from a file
-    // specified in the grammar configuration.                   (24-aug-06; oe)
-    //
-    const char *name = cheap_settings->value("vpm");
-    string file = (name != NULL
-                   ? find_file(name, ".vpm", grammar_file_name)
-                   : string());
-    mrs_initialize(grammar_file_name.c_str(),
-                   (file.empty() ? NULL : file.c_str()));
-#endif
-
     mrs_init(grammar_file_name);
-
-#ifdef HAVE_ECL
-    // reset the error stream so warnings show up again
-    ecl_eval_sexpr("(setq cl-user::*error-output* cl-user::erroutsave)");
-#endif // HAVE_ECL
 
     initialize_version();
 

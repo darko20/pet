@@ -324,7 +324,7 @@ AC_ARG_WITH(xml,
              XERCESCDIR=${withval} ;;
     esac
   ],
-  [xml="no"])
+  [xml="yes"])
 
 if test "x$xml" = "xyes" && test "x${XERCESCDIR}" != "x" ; then
   if test -d "${XERCESCDIR}" ; then
@@ -425,148 +425,6 @@ LIBS=$savedLIBS
 
 
 # --------------------------------------------------------------------
-# Lisp code for MRS.
-# --------------------------------------------------------------------
-
-# Although not really dependent, the default MRSDIR is set to the value of
-# the ITSDBDIR (be it determined automatically or provided by the user with
-# the --with-tsdb option).
-MRSDIR=$ITSDBDIR
-
-AC_ARG_WITH(mrs,
-  [AC_HELP_STRING(
-    [--with-mrs@<:@=ARG@:>@],
-    [build with MRS Lisp sources from a standard DELPH-IN location (ARG=yes),
-     from the specified location (ARG=<path>),
-     or disable it (ARG=no)
-     @<:@ARG=yes@:>@])],
-  [
-    case "${withval}" in
-        yes) mrs="yes" ;;
-        no)  mrs="no" ;;
-        *)   mrs="yes"
-             MRSDIR=${withval};;
-    esac
-  ],
-  [mrs="yes"])
-
-if test "x$mrs" = xyes ; then
-  MRSDIR=${MRSDIR%%/src}
-  AC_MSG_CHECKING([${MRSDIR}/src/general/loadup.lisp presence])
-  if test -f "${MRSDIR}/src/general/loadup.lisp" ; then
-    AC_MSG_RESULT([yes])
-    mrs="yes"
-  else
-    AC_MSG_RESULT([no])
-    AC_MSG_WARN([no MRS code found in ${MRSDIR}; DISABLED])
-    MRSDIR=""
-    mrs="no"
-  fi
-else
-  MRSDIR=""
-fi
-
-
-# --------------------------------------------------------------------
-# Lisp code for preprocessor
-# --------------------------------------------------------------------
-
-# Although not really dependent, the default PREPROCDIR is set to the value of
-# the ITSDBDIR (be it determined automatically or provided by the user with
-# the --with-tsdb option).
-PREPROCDIR=$ITSDBDIR
-
-AC_ARG_WITH([preproc],
-  [AC_HELP_STRING(
-    [--with-preproc@<:@=ARG@:>@],
-    [build with preprocessing Lisp sources from a standard DELPH-IN location (ARG=yes),
-     from the specified location (ARG=<path>),
-     or disable it (ARG=no)
-     @<:@ARG=yes@:>@])],
-  [
-    case "${withval}" in
-        yes) preproc="yes" ;;
-        no)  preproc="no" ;;
-        *)   preproc="yes"
-             PREPROCDIR=${withval};;
-    esac
-  ],
-  [ preproc="yes" ])
-
-if test "x$preproc" = xyes ; then
-  PREPROCDIR=${PREPROCDIR%%/src}
-  AC_MSG_CHECKING([${PREPROCDIR}/src/general/loadup.lisp presence])
-  if test -f "${PREPROCDIR}/src/general/loadup.lisp" ; then
-    AC_MSG_RESULT([yes])
-    preproc="yes"
-  else
-    AC_MSG_RESULT([no])
-    AC_MSG_WARN([no preprocessor code found in ${PREPROCDIR}; DISABLED])
-    PREPROCDIR=""
-    preproc="no"
-  fi
-else
-  PREPROCDIR=""
-fi
-
-
-# --------------------------------------------------------------------
-# ECL (Embeddable Common Lisp).
-# --------------------------------------------------------------------
-
-AX_LIB_ECL([ecl="yes"], [ecl="no"])
-
-# check which functions ECL provides:
-if test "$ecl" = "yes" ; then
-  CPPFLAGS="$ECL_CPPFLAGS_SEARCHPATH $CPPFLAGS"
-  LDFLAGS="$ECL_LDFLAGS_SEARCHPATH $LDFLAGS"
-  LIBS="$ECL_LIBS $LIBS"
-  AC_CHECK_FUNCS([make_base_string_copy make_string_copy], [break], [])
-  AC_CHECK_FUNCS([make_simple_base_string make_simple_string], [break], [])
-  AC_CHECK_FUNCS([ecl_aref1 aref1], [break], [])
-  AC_CHECK_TYPES([struct ecl_base_string, struct ecl_string], [], [],
-    [@%:@ifdef HAVE_ECL_ECL_H
-@%:@include <ecl/ecl.h>
-@%:@endif
-@%:@ifdef HAVE_ECL_H
-@%:@include <ecl.h>
-@%:@endif])
-  CPPFLAGS=$savedCPPFLAGS
-  LDFLAGS=$savedLDFLAGS
-  LIBS=$savedLIBS
-fi
-
-# all tests for ECL components have been executed, draw conclusions
-if test "x$ecl" = "xyes" ; then
-  if test "x$mrs" = "xyes" ; then
-    AC_DEFINE(HAVE_MRS, [1], [use ECL MRS library])
-    ECLUSER="_mrs"
-  fi
-  if test "x$preproc" = "xyes"; then
-    AC_DEFINE(HAVE_PREPROC, [1], [use ECL preprocessing library])
-    ECLUSER=${ECLUSER}"_preproc"
-  fi
-  if test "x$ECLUSER" != "x" ; then
-    AC_DEFINE(HAVE_ECL, [1], [Use ECL for MRS or preprocessing library])
-    CHEAPCPPFLAGS="$ECL_CPPFLAGS_SEARCHPATH $CHEAPCPPFLAGS"
-    CHEAPLDFLAGS="$ECL_LDFLAGS_SEARCHPATH $CHEAPLDFLAGS"
-    CHEAPLIBS="$ECL_LIBS $CHEAPLIBS"
-  else
-    AC_MSG_NOTICE([DISABLING ECL since none of the Lisp code is requested or available.])
-    ecl="no"
-  fi
-else
-  preproc="no"
-  mrs="no"
-fi
-AM_CONDITIONAL(ECL, [test x$ECLUSER != x])
-AM_CONDITIONAL(ECLMRS, [test x$mrs = xyes])
-AM_CONDITIONAL(ECLPREPROC, [test x$preproc = xyes])
-AC_SUBST(MRSDIR)
-AC_SUBST(PREPROCDIR)
-
-
-# --------------------------------------------------------------------
 # XMLRPC for C and C++ library (xmlrpc-c)
 # --------------------------------------------------------------------
 
@@ -624,63 +482,6 @@ AC_ARG_ENABLE(unifier,
 AM_CONDITIONAL(TOMABECHI_UNIFIER, [test x$unifier = xtomabechi])
 AM_CONDITIONAL(SIMPLE_UNIFIER, [test x$unifier = xsimple])
 
-
-# --------------------------------------------------------------------
-# external lexicon based on postgresql database
-# --------------------------------------------------------------------
-
-dnl PSQLDIR=""
-
-dnl AC_ARG_WITH(lexdb,
-dnl [AC_HELP_STRING([--with-lexdb@<:@=DIR@:>@], [use the postgres DB lexicon (postgres library and header files required) (default=yes)])],
-dnl [
-dnl case "${withval}" in
-dnl     yes) lexdb="yes" ;;
-dnl     no)  lexdb="no" ;;
-dnl     *)   lexdb="yes"
-dnl          PSQLDIR=${withval} ;;
-dnl esac
-dnl ], [ lexdb="yes" ])
-
-check_psql() {
-  if test x$PSQLDIR != x ; then
-      if test -d ${PSQLDIR} && test -d $PSQLDIR/include && test -d $PSQLDIR/lib ; then
-          LDFLAGS="$LDFLAGS -L${PSQLDIR}/lib"
-          export LDFLAGS
-          CPPFLAGS="$CPPFLAGS -I${PSQLDIR}/include"
-      else
-          AC_MSG_WARN([directory ${PSQLDIR}, ${PSQLDIR}/lib or ${PSQLDIR}/include not found for --with-lexdb; DISABLED])
-          return 1
-      fi
-  fi
-  CPPFLAGS="$CPPFLAGS -I."
-  export CPPFLAGS
-  AC_CHECK_HEADERS([libpq-fe.h], [],
-      [ AC_MSG_WARN([pq header file not found for psql lex DB; DISABLED])
-        return 1
-      ])
-  AC_CHECK_LIB([pq], [main], [],
-      [ AC_MSG_WARN([pq library file not found for psql lex DB; DISABLED])
-        return 1
-      ])
-  return 0
-}
-
-dnl if test x$lexdb = xyes && check_psql ; then
-dnl    if test x$PSQLDIR != x ; then
-dnl       CHEAPCPPFLAGS="$CHEAPCPPFLAGS -I${PSQLDIR}/include"
-dnl       CHEAPLDFLAGS="$CHEAPLDFLAGS -L${PSQLDIR}/lib"
-dnl    fi
-dnl    CHEAPLIBS="-lpq $CHEAPLIBS"
-dnl    AC_DEFINE(HAVE_PSQL_LEXDB, [1], [use external postgres lexical database])
-dnl else
-dnl    lexdb="no"
-dnl fi
-dnl AM_CONDITIONAL(LEXDB, [test x$lexdb = xyes])
-dnl CPPFLAGS="$savedCPPFLAGS"
-dnl LDFLAGS="$savedLDFLAGS"
-
-
 # --------------------------------------------------------------------
 # YY-specific modes
 # --------------------------------------------------------------------
@@ -734,42 +535,6 @@ if test "x$lui" = "xyes"; then
   AC_DEFINE(LUI, [1], [Enable grammar dumping in LUI format])
 fi
 
-
-# --------------------------------------------------------------------
-# external dictionary
-# --------------------------------------------------------------------
-
-dnl AC_ARG_ENABLE(external-dictionary,
-dnl   [AC_HELP_STRING([--enable-external-dictionary@<:@=DIR@:>@],
-dnl                   [use an external dictionary (default=no)])],
-dnl   [case "${enableval}" in
-dnl     yes) extdict="yes" ;;
-dnl     no)  extdict="no" ;;
-dnl     *)   AC_MSG_ERROR([bad value ${enableval} for --enable-external-dictionary])
-dnl    esac ],
-dnl   [extdict="no"])
-dnl if test "x$extdict" = "xyes" ; then
-dnl   AC_DEFINE(HAVE_EXTDICT, [1], [enable external dictionary])
-dnl fi
-dnl AM_CONDITIONAL(EXTDICT, [test "x$extdict" = "xyes"])
-
-
-# --------------------------------------------------------------------
-# robust processing code by frederik fouvry, not supported at the moment
-# --------------------------------------------------------------------
-
-dnl AC_ARG_ENABLE(rcu,
-dnl   [AC_HELP_STRING([--enable-rcu@<:@=ARG@:>@],
-dnl                   [use the RCU extensions (default=no)])],
-dnl   [case "${enableval}" in
-dnl     yes) rcu="yes" ;;
-dnl     no)  rcu="no" ;;
-dnl     *)   AC_MSG_ERROR([bad value ${enableval} for --enable-rcu])
-dnl    esac],
-dnl   [rcu="no"])
-dnl AM_CONDITIONAL(RCU, [test "x$rcu" = "xyes"])
-
-
 # --------------------------------------------------------------------
 # mmap allocator
 # --------------------------------------------------------------------
@@ -794,9 +559,6 @@ fi
 echo
 echo "============================================================="
 echo "@<:@incr tsdb()@:>@ support                           $tsdb"
-echo "LKB MRS code (requires ECL)                     $mrs"
-echo "LKB preprocessor code (requires ECL)            $preproc"
-echo "Embeddable Common-Lisp processor (ECL)          $ecl"
 echo "ICU library (Unicode support)                   $icu"
 echo "log4cpp library (extended logging support)      $log4cpp"
 echo "Xerces C++ (XML input modes)                    $xml"
@@ -831,7 +593,6 @@ AC_SUBST(CHEAPLDFLAGS)
 AC_SUBST(CHEAPLIBS)
 
 AC_CONFIG_FILES([Makefile
-                 fspp/Makefile
                  cheap/Makefile
                  cheap/test/Makefile
                  common/Makefile

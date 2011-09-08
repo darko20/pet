@@ -57,7 +57,7 @@ static bool parser_init();
 bool opt_hyper = parser_init();
 int  opt_nsolutions, opt_packing;
 
-timer TotalParseTime;
+timer TotalParseTime(false);
 
 /** Initialize global variables and options for the parser */
 static bool parser_init() {
@@ -437,7 +437,7 @@ extern int unpack_selectively(std::vector<tItem*> &trees, int nsolutions,
                               int chart_length, Resources &resources,
                               vector<tItem *> &readings,  list<tError> &errors);
 
-vector<tItem*>
+void
 collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
                  Resources &resources, int nsolutions,
                  vector<tItem*> &trees) {
@@ -477,48 +477,8 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
   if(Grammar->sm())
     sort(readings.begin(), readings.end(), item_greater_than_score());
 
-  return readings;
+  Chart->readings() = readings;
 }
-
-
-void
-parse_finish(fs_alloc_state &FSAS, list<tError> &errors, Resources &resources) {
-
-  stats.tcpu = resources.get_stage_time_ms();
-
-  stats.dyn_bytes = FSAS.dynamic_usage();
-  stats.stat_bytes = FSAS.static_usage();
-
-  get_unifier_stats(stats);
-  Chart->get_statistics(stats);
-
-  LOG(logParse, DEBUG, *Chart);
-
-  if(get_opt_int("opt_tsdb") & 32) {
-    //
-    // in lexical-only mode, the parser has halted after lexical parsing, and
-    // what remains to be done is a mimicry of finding actual results; in this
-    // mode, all edges that could have fed into syntactic rules count as valid
-    // results, i.e. in effect we output a lexical lattice.     (2-jul-11; oe)
-    //
-    for(chart_iter item(Chart); item.valid(); ++item) {
-      if(passive_unblocked_non_input(item.current())
-         && item.current()->inflrs_complete_p())
-        Chart->readings().push_back(item.current());
-    } // for
-    Chart->trees() = Chart->readings();
-    stats.trees = Chart->trees().size();
-  } else {
-    Chart->readings() = collect_readings(FSAS, errors,
-                                         resources, opt_nsolutions,
-                                         Chart->trees());
-  }
-
-  stats.readings = Chart->readings().size();
-
-}
-
-
 
 
 void
@@ -547,6 +507,7 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   // to external taggers.                                   (5-aug-11; oe)
   Resources resources;
 
+  TotalParseTime.start();
   resources.start_run();
 
   int max_pos = 0;
@@ -573,22 +534,50 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
     C = Chart = new chart(max_pos, owner);
     Lexparser.lexical_processing(input_items, FSAS, errors, resources);
     // TODO: THIS IS A BAD HACK TO SIMULATE THAT EDGES IN THE PREPROCESSING
-    // STAGE ARE NOT COUNTED (IN FACT THEY ARE, SINCE THE CODE USES
-    // add_item (see above)
+    // STAGE ARE NOT COUNTED. IN FACT THEY ARE, SINCE THE CODE USES
+    // add_item (SEE ABOVE)
     resources.pedges = 0;
 
     resources.start_next_stage();
     // during lexical processing, the appropriate tasks for the syntactic stage
     // are already created
-    if(!(get_opt_int("opt_tsdb") & 32))
+    if(!(get_opt_int("opt_tsdb") & 32)) {
       parse_loop(FSAS, errors, resources);
+      if (resources.exhausted()) {
+        errors.push_back(tExhaustedError(resources.exhaustion_message()));
+      }
 
-    if (resources.exhausted()) {
-      errors.push_back(tExhaustedError(resources.exhaustion_message()));
+      // post-parsing (tree creation) statistics
+      stats.tcpu = resources.get_stage_time_ms();
+
+      stats.dyn_bytes = FSAS.dynamic_usage();
+      stats.stat_bytes = FSAS.static_usage();
+
+      get_unifier_stats(stats);
+      Chart->get_statistics(stats);
+
+      LOG(logParse, DEBUG, *Chart);
+
+      // start unpacking (eventually)
+      resources.start_next_stage();
+      collect_readings(FSAS, errors, resources, opt_nsolutions, Chart->trees());
+    } else {
+      //
+      // in lexical-only mode, the parser has halted after lexical parsing, and
+      // what remains to be done is a mimicry of finding actual results; in this
+      // mode, all edges that could have fed into syntactic rules count as valid
+      // results, i.e. in effect we output a lexical lattice.     (2-jul-11; oe)
+      //
+      for(chart_iter item(Chart); item.valid(); ++item) {
+        if(passive_unblocked_non_input(item.current())
+           && item.current()->inflrs_complete_p())
+          Chart->readings().push_back(item.current());
+      } // for
+      Chart->trees() = Chart->readings();
+      stats.trees = Chart->trees().size();
     }
 
-    resources.start_next_stage();
-    parse_finish(FSAS, errors, resources);
+    stats.readings = Chart->readings().size();
 
     if(get_opt_int("opt_robust") != 0 && (Chart->readings().empty())) {
       resources.start_next_stage();
@@ -601,4 +590,6 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
   } //if input_items.size() > 0
 
   resources.stop_run();
+  TotalParseTime.stop();
+
 }

@@ -98,7 +98,7 @@ public:
   }
 
   /** Supposed to be called at the very beginning of a run */
-  void stop_run();
+  void start_run();
 
   /** Supposed to be called at the very end of a run */
   void stop_run();

@@ -121,7 +121,7 @@ void finalize_characterization() {
   // nothing to do
 }
 
-inline bool characterize(fs &thefs, int from, int to) {
+bool characterize(fs &thefs, int from, int to) {
   if(charz_use) {
     assert(from >= 0 && to >= 0);
     return thefs.characterize(cfrom.path, cfrom.attribute
@@ -132,7 +132,7 @@ inline bool characterize(fs &thefs, int from, int to) {
   return true;
 }
 #else
-inline bool characterize(fs, start, end) { return true; }
+bool characterize(fs, start, end) { return true; }
 #endif
 
 item_owner *tItem::_default_owner = NULL;
@@ -141,7 +141,9 @@ int tItem::_next_id = 1;
 tItem::tItem(int start, int end, const tPaths &paths,
              const fs &f, const char *printname)
     : _id(_next_id++),
-      _start(start), _end(end), _startposition(-1), _endposition(-1),
+      _start(start), _end(end),
+      _start_vertex(NULL), _end_vertex(NULL),
+      _startposition(-1), _endposition(-1),
       _spanningonly(false), _paths(paths),
       _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
@@ -155,7 +157,9 @@ tItem::tItem(int start, int end, const tPaths &paths,
 tItem::tItem(int start, int end, const tPaths &paths,
              const char *printname)
     : _id(_next_id++),
-      _start(start), _end(end), _spanningonly(false), _paths(paths),
+      _start(start), _end(end),
+      _start_vertex(NULL), _end_vertex(NULL),
+      _spanningonly(false), _paths(paths),
       _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
