@@ -33,6 +33,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 using namespace HASH_SPACE;
@@ -67,23 +68,19 @@ filter_items(const item_list &items,
 void
 tChart::clear()
 {
-  for (std::list<tChartVertex*>::iterator it = _vertices.begin();
+  for (std::vector<tChartVertex*>::iterator it = _vertices.begin();
        it != _vertices.end();
        ++it)
     delete *it;
   _vertices.clear();
   _items.clear(); // items are usually released by the tItem::default_owner
-  _vertex_to_starting_items.clear();
-  _vertex_to_ending_items.clear();
-  _item_to_prec_vertex.clear();
-  _item_to_succ_vertex.clear();
 }
 
 std::list<tChartVertex*>
 tChart::start_vertices(bool connected) const
 {
   std::list<tChartVertex*> vertices;
-  for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
+  for (std::vector<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
        ++it)
   {
@@ -100,7 +97,7 @@ std::list<tChartVertex*>
 tChart::end_vertices(bool connected) const
 {
   std::list<tChartVertex*> vertices;
-  for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
+  for (std::vector<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
        ++it)
   {
@@ -114,39 +111,60 @@ tChart::end_vertices(bool connected) const
 }
 
 tItem*
-tChart::add_item(tItem *item, tChartVertex *prec, tChartVertex *succ)
+tChart::add_item(tItem *item, const tChartVertex *cprec,
+                 const tChartVertex *csucc)
 {
+  // const_cast is OK here since tChart is the only one to tamper with
+  // chart vertices
+  tChartVertex *prec = const_cast<tChartVertex *>(cprec);
+  tChartVertex *succ = const_cast<tChartVertex *>(csucc);
   assert((item != NULL) && (prec != NULL) && (succ != NULL));
+  // does not seem to hold. Why?
+  //assert((item->prec_vertex() == NULL) && (item->succ_vertex() == NULL));
   assert((prec->_chart == this) && (succ->_chart == this));
 
   _items.push_back(item);
-  _item_to_prec_vertex[item] = prec;
-  _item_to_succ_vertex[item] = succ;
-  _vertex_to_starting_items[prec].push_back(item);
-  _vertex_to_ending_items[succ].push_back(item);
+  item->set_prec_vertex(prec);
+  item->set_succ_vertex(succ);
+  prec->starting_items().push_back(item);
+  succ->ending_items().push_back(item);
 
   item->notify_chart_changed(this);
 
   return item;
 }
 
+/* currently unused
 void
 tChart::remove_item(tItem *item)
 {
   assert(item != NULL);
+  assert((item->prec_vertex() != NULL) && (item->succ_vertex() != NULL));
   assert(item->_chart == this);
-  assert(_item_to_prec_vertex.find(item) != _item_to_prec_vertex.end());
 
-  _vertex_to_starting_items[item->prec_vertex()].remove(item);
-  _vertex_to_ending_items[item->succ_vertex()].remove(item);
-  _item_to_prec_vertex.erase(item);
-  _item_to_succ_vertex.erase(item);
+  list<tItem *>::iterator start =
+    find(item->prec_vertex()->starting_items().begin(),
+         item->prec_vertex()->starting_items().end(),
+         item);
+  list<tItem *>::iterator end =
+    find(item->succ_vertex()->ending_items().begin(),
+         item->succ_vertex()->ending_items().end(),
+         item);
+
+  assert(start != item->prec_vertex()->starting_items().end() &&
+         end != item->succ_vertex()->ending_items().end());
+
+  item->prec_vertex()->starting_items().erase(start);
+  item->succ_vertex()->ending_items().erase(end);
+  item->set_prec_vertex(NULL);
+  item->set_succ_vertex(NULL);
   _items.remove(item);
 
   item->notify_chart_changed(0);
 
   // items are usually released by the tItem::default_owner
 }
+
 
 void
 tChart::remove_items(item_list items)
@@ -155,6 +173,7 @@ tChart::remove_items(item_list items)
     remove_item(*it);
   }
 }
+*/
 
 item_list
 tChart::items(bool skip_blocked, bool skip_pending_inflrs, item_list skip)
@@ -165,20 +184,21 @@ tChart::items(bool skip_blocked, bool skip_pending_inflrs, item_list skip)
 }
 
 item_list
-tChart::items(tChartVertex *prec, tChartVertex *succ, bool skip_blocked,
-              bool skip_pending_inflrs, item_list skip) {
+tChart::items(const tChartVertex *prec, const tChartVertex *succ,
+              bool skip_blocked, bool skip_pending_inflrs, item_list skip) {
   item_list result;
   if (prec) {
     item_list candidates;
-    filter_items(_vertex_to_starting_items[prec], skip_blocked,
-        skip_pending_inflrs, skip, candidates);
+    // TODO: why not filtering while looping?
+    filter_items(prec->starting_items(), skip_blocked,
+                 skip_pending_inflrs, skip, candidates);
     for (item_iter it = candidates.begin(); it != candidates.end(); ++it)
       if (!succ || ((*it)->succ_vertex() == succ))
         result.push_back(*it);
   } else if (succ) {
     item_list candidates;
-    filter_items(_vertex_to_ending_items[succ], skip_blocked,
-        skip_pending_inflrs, skip, candidates);
+    filter_items(succ->ending_items(), skip_blocked,
+                 skip_pending_inflrs, skip, candidates);
     for (item_iter it = candidates.begin(); it != candidates.end(); ++it)
       if (!prec || ((*it)->prec_vertex() == prec))
         result.push_back(*it);
@@ -188,10 +208,14 @@ tChart::items(tChartVertex *prec, tChartVertex *succ, bool skip_blocked,
   return result;
 }
 
-static void
-succeeding_items(tChartVertex *v, int min, int max,
-              bool skip_blocked, bool skip_pending_inflrs, item_list skip,
-              int dist, item_list &result, std::list<tChartVertex*> &vertices) {
+
+// recursive helper
+void
+tChart::succeeding_items_rec(const tChartVertex *v, int min, int max,
+                             bool skip_blocked, bool skip_pending_inflrs,
+                             item_list skip,
+                             int dist, item_list &result,
+                             std::list<const tChartVertex*> &vertices) {
   vertices.push_back(v);
   if (dist > max)
     return;
@@ -203,26 +227,29 @@ succeeding_items(tChartVertex *v, int min, int max,
   for (item_iter iit = items.begin(); iit != items.end(); ++iit) {
     tChartVertex *next = (*iit)->succ_vertex();
     if (find(vertices.begin(), vertices.end(), next) == vertices.end()) {
-      succeeding_items(next, min, max, skip_blocked, skip_pending_inflrs, skip,
-          dist+1, result, vertices);
+      succeeding_items_rec(next, min, max, skip_blocked, skip_pending_inflrs,
+                           skip, dist+1, result, vertices);
     }
   }
 }
 
 item_list
-tChart::succeeding_items(tChartVertex *v, int min, int max, bool skip_blocked,
-                         bool skip_pending_inflrs, item_list skip) {
+tChart::succeeding_items(const tChartVertex *v, int min, int max,
+                         bool skip_blocked, bool skip_pending_inflrs,
+                         item_list skip) {
   item_list result;
-  std::list<tChartVertex*> vertices; // processed vertices
-  ::succeeding_items(v, min, max, skip_blocked, skip_pending_inflrs, skip, 0,
-      result, vertices);
+  std::list<const tChartVertex*> vertices; // processed vertices
+  succeeding_items_rec(v, min, max, skip_blocked, skip_pending_inflrs, skip, 0,
+                       result, vertices);
   return result;
 }
 
-static void
-preceding_items(tChartVertex *v, int min, int max,
-              bool skip_blocked, bool skip_pending_inflrs, item_list skip,
-              int dist, item_list &result, std::list<tChartVertex*> &vertices) {
+void
+tChart::preceding_items_rec(const tChartVertex *v, int min, int max,
+                            bool skip_blocked, bool skip_pending_inflrs,
+                            item_list skip,
+                            int dist, item_list &result,
+                            std::list<const tChartVertex*> &vertices) {
   vertices.push_back(v);
   if (dist > max)
     return;
@@ -234,18 +261,19 @@ preceding_items(tChartVertex *v, int min, int max,
   for (item_iter iit = items.begin(); iit != items.end(); ++iit) {
     tChartVertex *next = (*iit)->prec_vertex();
     if (find(vertices.begin(), vertices.end(), next) == vertices.end()) {
-      preceding_items(next, min, max, skip_blocked, skip_pending_inflrs, skip,
-          dist+1, result, vertices);
+      preceding_items_rec(next, min, max, skip_blocked, skip_pending_inflrs,
+                          skip, dist+1, result, vertices);
     }
   }
 }
 
 item_list
-tChart::preceding_items(tChartVertex *v, int min, int max, bool skip_blocked,
-                         bool skip_pending_inflrs, item_list skip) {
+tChart::preceding_items(const tChartVertex *v, int min, int max,
+                        bool skip_blocked, bool skip_pending_inflrs,
+                        item_list skip) {
   item_list result;
-  std::list<tChartVertex*> vertices; // processed vertices
-  ::preceding_items(v, min, max, skip_blocked, skip_pending_inflrs, skip, 0,
+  std::list<const tChartVertex*> vertices; // processed vertices
+  preceding_items_rec(v, min, max, skip_blocked, skip_pending_inflrs, skip, 0,
       result, vertices);
   return result;
 }
@@ -255,33 +283,26 @@ tChart::connected() {
   if(_vertices.empty()) return true;
   int nr_start = 0;
   int nr_end = 0;
-  for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
+  for (std::vector<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
        ++it)
   {
     tChartVertex* vertex = *it;
-    std::map<tChartVertex*, item_list >::const_iterator vertex_items_it;
-    // check items preceding vertex:
-    vertex_items_it = _vertex_to_ending_items.find(vertex);
+    // check items preceding vertex: stop at first valid predecessor
     bool has_active_prec_items = false;
-    if (vertex_items_it != _vertex_to_ending_items.end()) {
-      item_list items = vertex_items_it->second;
-      for (item_list::iterator item_it = items.begin();
-           item_it != items.end();
-           ++item_it) {
-        has_active_prec_items = has_active_prec_items || !(*item_it)->blocked();
-      }
+    const item_list& initems = vertex->ending_items();
+    for (item_list::const_iterator item_it = initems.begin();
+         item_it != initems.end() && ! has_active_prec_items;
+         ++item_it) {
+      has_active_prec_items = !(*item_it)->blocked();
     }
     // check items succeeding vertex:
-    vertex_items_it = _vertex_to_starting_items.find(vertex);
     bool has_active_succ_items = false;
-    if (vertex_items_it != _vertex_to_starting_items.end()) {
-      item_list items = vertex_items_it->second;
-      for (item_list::iterator item_it = items.begin();
-           item_it != items.end();
-           ++item_it) {
-        has_active_succ_items = has_active_succ_items || !(*item_it)->blocked();
-      }
+    const item_list &outitems = vertex->starting_items();
+    for (item_list::const_iterator item_it = outitems.begin();
+         item_it != outitems.end() && ! has_active_succ_items;
+         ++item_it) {
+      has_active_succ_items = !(*item_it)->blocked();
     }
     // check whether this is a start or an end vertex:
     if (!has_active_prec_items && has_active_succ_items) {
@@ -550,7 +571,7 @@ tChartUtil::create_input_fs(tInputItem* item)
     // are all we have.  hence, in mapping an input item to a token FS, give
     // precende to external ids, where available, but otherwise use the item
     // id proper.
-    // 
+    //
     string id = item->external_id();
     if(id.empty()) {
       ostringstream buffer;
@@ -561,12 +582,12 @@ tChartUtil::create_input_fs(tInputItem* item)
     fs ids_cons = fs(BI_CONS);
     ids_cons = unify(ids_cons, ids_cons.get_attr_value(BIA_FIRST), id_f);
     fs rest_f = ids_cons.get_attr_value(BIA_REST);
-    
+
     // build diff-list and set coreference between LAST and REST:
     fs ids_f = fs(BI_DIFF_LIST);
     ids_f = unify(ids_f, ids_f.get_attr_value(BIA_LIST), ids_cons);
     dag_set_attr_value(ids_f.dag(), BIA_LAST, rest_f.dag());
-    
+
     input_fs = unify(input_fs, input_fs.get_path_value(_token_id_path), ids_f);
   }
   if (_token_from_path) {
@@ -661,13 +682,13 @@ tChartUtil::create_input_fs(tInputItem* item)
  * \pre exactly one start and end node & no loops in the chart
  */
 static void
-topological_order(tChartVertex *vertex, int &max_value,
-    map<tChartVertex*, int, greater<void*> > &order,
-    list<tChartVertex*> &ordered)
+topological_order(const tChartVertex *vertex, int &max_value,
+    map<const tChartVertex*, int, greater<const void*> > &order,
+    list<const tChartVertex*> &ordered)
 {
   list<tItem*> items = vertex->starting_items();
   for (list<tItem*>::iterator it = items.begin(); it != items.end(); ++it) {
-    tChartVertex *succ = (*it)->succ_vertex();
+    const tChartVertex *succ = (*it)->get_succ_vertex();
     if (order.find(succ) == order.end()) // if not visited
       topological_order(succ, max_value, order, ordered);
   }
@@ -681,22 +702,22 @@ tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
 {
   processed.clear();
   if(chart.vertices().empty()) return 0;
-  std::list<tChartVertex*> vertices = chart.start_vertices();
+  list<tChartVertex*> vertices = chart.start_vertices();
   if (vertices.size() > 1) // TODO how do we deal with several start vertices?
     LOG(logChart, WARN,
         "Several start vertices present. Only using the first start vertex.");
   int max_value = -1; // will be set accordingly by topological_order()
-  map<tChartVertex*, int, greater<void*> > order;
-  list<tChartVertex*> ordered;
+  map<const tChartVertex*, int, greater<const void*> > order;
+  list<const tChartVertex*> ordered;
   topological_order(vertices.front(), max_value, order, ordered);
-  list<tChartVertex*>::iterator vit;
+  list<const tChartVertex*>::const_iterator vit;
   for (vit = ordered.begin(); vit != ordered.end(); ++vit) {
-    tChartVertex *prec_vertex = *vit;
-    list<tItem*> items = prec_vertex->starting_items();
-    for (list<tItem*>::iterator it = items.begin(); it != items.end(); ++it) {
+    const tChartVertex *prec_vertex = *vit;
+    const list<tItem*> items = prec_vertex->starting_items();
+    for (list<tItem*>::const_iterator it = items.begin(); it != items.end(); ++it) {
       tItem *item = *it;
       item->set_start(max_value - order[prec_vertex]);
-      item->set_end(max_value - order[item->succ_vertex()]);
+      item->set_end(max_value - order[item->get_succ_vertex()]);
       processed.push_back(item);
     }
   }

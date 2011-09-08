@@ -712,7 +712,7 @@ private:
   typedef std::map<const tChartMappingRuleArg*, tItem*> tArgItemMap;
 
   /** Map that maps anchoring graph vertices to chart vertices. */
-  typedef std::map<tChartMappingAnchoringGraph::tVertex, tChartVertex*>
+  typedef std::map<tChartMappingAnchoringGraph::tVertex, const tChartVertex*>
     tAnchoringToChartVertexMap;
 
   /**

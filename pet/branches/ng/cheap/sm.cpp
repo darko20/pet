@@ -186,50 +186,6 @@ tSM::~tSM() {
   delete _map;
 }
 
-/*
-char *
-tSM::findFile(const char *fileName, const char *basePath)
-{
-    // _fix_me_
-    // This piece of uglyness (copied from settings::settings())
-    // should be factored out and encapsulated.
-
-    char *res = 0;
-
-    if(basePath)
-    {
-        char *slash = strrchr((char *) basePath, '/');
-        char *prefix = (char *) malloc(strlen(basePath) + 1
-                                       + strlen(SET_SUBDIRECTORY) + 1);
-        if(slash)
-        {
-            strncpy(prefix, basePath, slash - basePath + 1);
-            prefix[slash - basePath + 1] = '\0';
-        }
-        else
-        {
-            strcpy(prefix, "");
-        }
-
-        char *fname = (char *) malloc(strlen(prefix) + 1
-                                      + strlen(fileName) + 1);
-        strcpy(fname, prefix);
-        strcat(fname, fileName);
-
-        res = find_file(fname, SM_EXT);
-
-        free(prefix);
-    }
-    else
-    {
-        res = (char *) malloc(strlen(fileName) + 1);
-        strcpy(res, fileName);
-    }
-
-    return res;
-}
-*/
-
 double
 tSM::scoreLocalTree(grammar_rule *R, vector<tItem *> dtrs)
 {
@@ -401,6 +357,7 @@ tMEM::readModel(const string &fileName)
     parseModel();
     lexer_idchars = sv;
     tdl_mode = saved_tdl_mode;
+    pop_file();
 }
 
 void
@@ -1142,6 +1099,7 @@ tPCFG::readModel(const std::string &fileName) {
   adjustWeights();
   lexer_idchars = sv;
   fprintf(stderr, "(%d)\n ", G()->pcfg_rules().size());
+  pop_file();
 }
 
 void
@@ -1513,6 +1471,7 @@ void tGM::readModel(const std::string &fileName) {
   lexer_idchars = "_+-*?$";
   parseModel();
   lexer_idchars = sv;
+  pop_file();
 }
 
 void tGM::parseModel() {

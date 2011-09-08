@@ -64,9 +64,6 @@ chunk_allocator::~chunk_allocator() {
   delete[] _chunk;
 }
 
-#ifdef __borlandc__
-#pragma argsused
-#endif
 void chunk_allocator::_overflow(int n) {
   if(n > _chunk_size)
     throw tError("alloc: chunk_size too small");
@@ -328,29 +325,6 @@ int chunk_allocator::_core_free(void *p, int size) {
     _mmap_up_mark -= size;
 
   return res;
-}
-
-#elif defined(__BORLANDC__)
-// Use WinAPI VirtualAlloc and VirtualFree
-
-#include <windows.h>
-#include "winbase.h"
-
-#pragma argsused
-int chunk_allocator::_init_core(bool down, int chunksize) {
-  _chunk_size = chunksize;
-}
-
-void *chunk_allocator::_core_alloc(int size) {
-  void *p = (void *)
-    VirtualAlloc(0, size, MEM_COMMIT, PAGE_READWRITE);
-  return p;
-}
-
-#pragma argsused
-int chunk_allocator::_core_free(void *p, int size) {
-  VirtualFree(p, 0, MEM_RELEASE);
-  return 1;
 }
 
 #else

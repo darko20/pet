@@ -24,7 +24,6 @@
 #include "parse.h"
 #include "chart.h"
 #include "qc.h"
-#include "cppbridge.h"
 #include "version.h"
 #include "item-printer.h"
 #include "sm.h"
@@ -34,6 +33,7 @@
 #include "settings.h"
 #include "configs.h"
 #include "logging.h"
+#include "lingo-tokenizer.h"
 
 #include<sys/time.h>
 #include<sstream>
@@ -673,12 +673,6 @@ cheap_tsdb_summarize_item(chart &Chart, int length,
                     }
                     delete mrs;
                   }
-#ifdef HAVE_MRS
-                  else {
-                    R.mrs = ecl_cpp_extract_mrs((*iter)->get_fs().dag(),
-                                                get_opt_string("opt_mrs").c_str());
-                  }
-#endif
                 }
                 T.push_result(R);
                 ++nres;
@@ -900,7 +894,10 @@ tsdb_parse::file_print(FILE *f_parse, FILE *f_result, FILE *f_item)
             nmeanings, clashes, pruned);
 
     fprintf(f_item, "%d@unknown@unknown@unknown@1@unknown@%s@@@@1@%d@@yy@%s\n",
-            parse_id, tsdb_escape_string(i_input).c_str(), i_length, current_time().c_str());
+            parse_id, tsdb_escape_string(i_input).c_str(), i_length,
+            "01-01-2000 (12:00:00)"
+            //current_time().c_str() // only makes it harder to compare them
+            );
 }
 
 
@@ -969,10 +966,9 @@ void tTsdbDump::finish(chart *Chart, const string &input) {
 void tTsdbDump::error(class chart *Chart, const string &input,
                       const class tError & e){
   if (_current != NULL) {
-    if(Chart) {
-      _current->set_input(input);
-      _current->set_i_length(Chart->length()-1);
-    }
+    _current->set_input(input);
+    // TODO does Chart == null affect incr[tsdb]?
+    _current->set_i_length(Chart ? Chart->length()-1 : 1);
     list<tError> errors;
     errors.push_back(e);
     cheap_tsdb_summarize_error(errors, -1, *_current);

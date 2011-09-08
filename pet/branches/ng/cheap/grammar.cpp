@@ -336,15 +336,15 @@ grammar_rule::print(ostream &out) const {
 
 void
 grammar_rule::lui_dump(const char *path) {
-
-  if(chdir(path)) {
+  struct stat st;
+  if(stat(path,&st) != 0) {
     LOG(logGrammar, ERROR,
         "grammar_rule::lui_dump(): invalid target directory `"
         << path << "'.)");
     return;
   } // if
   char name[MAXPATHLEN + 1];
-  sprintf(name, "rule.%d.lui", _id);
+  sprintf(name, "%s/rule.%d.lui", path, _id);
   ofstream stream(name);
   if(! stream) { //(stream = fopen(name, "w")) == NULL) {
     LOG(logGrammar, ERROR,
@@ -648,31 +648,6 @@ tGrammar::tGrammar(const char * filename)
         || get_opt_int("opt_chart_mapping"))
       tChartUtil::check_validity();
 
-#ifdef HAVE_EXTDICT
-    try
-    {
-        _extdict_discount = 0;
-
-        const char *v = cheap_settings->value("extdict-discount");
-        if(v != 0)
-        {
-            _extdict_discount = strtoint(v, "as value of extdict-discount");
-        }
-
-        const char *extdictpath = cheap_settings->value("extdict-path");
-        const char *mappath = cheap_settings->value("extdict-mapping");
-        if(extdictpath != 0 && mappath)
-        {
-            _extDict = new extDictionary(extdictpath, mappath);
-        }
-    }
-    catch(tError &e)
-    {
-      LOG(logAppl, WARN, "EXTDICT disabled: " << e.msg());
-      _extDict = 0;
-    }
-#endif
-
     get_unifier_stats(stats);
 
     if(property("unfilling") == "true" && opt_packing)
@@ -902,10 +877,6 @@ tGrammar::~tGrammar()
     delete _packing_restrictor;
     free_type_tables();
 
-#ifdef HAVE_EXTDICT
-    clear_dynamic_stems();
-#endif
-
     fs_alloc_state FSAS;
     FSAS.reset();
 }
@@ -958,9 +929,6 @@ list<lex_stem *>
 tGrammar::lookup_stem(string s)
 {
     list<lex_stem *> results;
-#ifdef HAVE_EXTDICT
-    set<type_t> native_types;
-#endif
 
     pair<multimap<string, lex_stem *>::iterator,
         multimap<string, lex_stem *>::iterator> eq =
@@ -970,72 +938,10 @@ tGrammar::lookup_stem(string s)
         it != eq.second; ++it)
     {
         results.push_back(it->second);
-#ifdef HAVE_EXTDICT
-        if(_extDict)
-        {
-            native_types.insert(_extDict->equiv_rep(leaftype_parent(it->second->type())));
-        }
-#endif
     }
-
-#ifdef HAVE_EXTDICT
-    if(!_extDict)
-        return results;
-
-    list<extDictMapEntry> extDictMapped;
-    _extDict->getMapped(s, extDictMapped);
-
-    LOG(logGrammar, DEBUG, "[EXTDICT] " << s);
-
-    for(list<extDictMapEntry>::iterator it = extDictMapped.begin();
-        it != extDictMapped.end(); ++it)
-    {
-        type_t t = it->type();
-
-        // Create stem if not blocked by entry from native lexicon.
-        if(native_types.find(_extDict->equiv_rep(t)) != native_types.end()) {
-          LOG(logGrammar, DEBUG, " (" << type_name(t) << ")");
-          continue;
-        }
-        else {
-          LOG(logGrammar, DEBUG, " " << type_name(t));
-        }
-
-        modlist mods;
-        for(list<pair<string, string> >::const_iterator m = it->paths().begin();
-            m != it->paths().end(); ++m)
-        {
-            type_t v = lookup_type(m->second.c_str());
-            mods.push_back(make_pair(m->first, v));
-        }
-
-        list<string> orths;
-        orths.push_back(s);
-
-        lex_stem *st = new lex_stem(t, mods, orths, _extdict_discount);
-        _dynamicstems.push_back(st);
-
-        results.push_back(st);
-    }
-
-    LOG(logGrammar, DEBUG, "\n");
-#endif
 
     return results;
 }
-
-#ifdef HAVE_EXTDICT
-void
-tGrammar::clear_dynamic_stems()
-{
-    for(list<lex_stem *>::iterator it = _dynamicstems.begin();
-        it != _dynamicstems.end(); ++it)
-        delete *it;
-
-    _dynamicstems.clear();
-}
-#endif
-
 
 tGrammarUpdate::tGrammarUpdate(tGrammar *grammar, std::string &input)
   : _grammar(grammar), _original_roots(grammar->_root_insts), _update(0)

@@ -20,7 +20,7 @@
 /**
  * \file fs-chart-test.cpp
  * Unit tests for tChart and related classes.
- */ 
+ */
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <unistd.h>
@@ -41,7 +41,7 @@ class tChartTest : public CppUnit::TestFixture
   CPPUNIT_TEST(test_initialization);
   CPPUNIT_TEST(test_lattice);
   CPPUNIT_TEST_SUITE_END();
-  
+
 private:
   tChart _chart;
   tChartVertex *_v0;
@@ -53,9 +53,9 @@ private:
   tItem *_i2;
   tItem *_i3;
   tItem *_i4;
-  
+
 public:
-  
+
   /**
    * Inherited from CppUnit::TestFixture .
    * Automatically started before each test.
@@ -72,16 +72,16 @@ public:
     _i3 = _chart.add_item(new tInputItem("id",-1,-1,-1,-1,"f","s"), _v2, _v3);
     _i4 = _chart.add_item(new tInputItem("id",-1,-1,-1,-1,"f","s"), _v1, _v3);
   }
-  
+
   /**
    * Inherited from CppUnit::TestFixture .
    * Automatically started after each test.
-   */    
-  void tearDown() 
+   */
+  void tearDown()
   {
     _chart.clear();
   }
-  
+
   void test_initialization()
   {
     CPPUNIT_ASSERT(_chart.vertices().size() > 0);
@@ -101,52 +101,52 @@ public:
     CPPUNIT_ASSERT(_chart.vertices().size() == 3);
     CPPUNIT_ASSERT(_chart.items().size() == 3);
   }
-  
+
   void test_lattice()
   {
-    CPPUNIT_ASSERT(_i0->prec_vertex() == _v0);
-    CPPUNIT_ASSERT(_i0->succ_vertex() == _v1);
-    CPPUNIT_ASSERT(_i1->prec_vertex() == _v1);
-    CPPUNIT_ASSERT(_i1->succ_vertex() == _v2);
-    CPPUNIT_ASSERT(_i2->prec_vertex() == _v2);
-    CPPUNIT_ASSERT(_i2->succ_vertex() == _v3);
-    CPPUNIT_ASSERT(_i3->prec_vertex() == _v2);
-    CPPUNIT_ASSERT(_i3->succ_vertex() == _v3);
-    CPPUNIT_ASSERT(_i4->prec_vertex() == _v1);
-    CPPUNIT_ASSERT(_i4->succ_vertex() == _v3);
-    
+    CPPUNIT_ASSERT(_i0->get_prec_vertex() == _v0);
+    CPPUNIT_ASSERT(_i0->get_succ_vertex() == _v1);
+    CPPUNIT_ASSERT(_i1->get_prec_vertex() == _v1);
+    CPPUNIT_ASSERT(_i1->get_succ_vertex() == _v2);
+    CPPUNIT_ASSERT(_i2->get_prec_vertex() == _v2);
+    CPPUNIT_ASSERT(_i2->get_succ_vertex() == _v3);
+    CPPUNIT_ASSERT(_i3->get_prec_vertex() == _v2);
+    CPPUNIT_ASSERT(_i3->get_succ_vertex() == _v3);
+    CPPUNIT_ASSERT(_i4->get_prec_vertex() == _v1);
+    CPPUNIT_ASSERT(_i4->get_succ_vertex() == _v3);
+
     std::list<tItem*> expected_items;
-    
+
     expected_items.clear();
     CPPUNIT_ASSERT(_v0->ending_items() == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i0);
     CPPUNIT_ASSERT(_v1->ending_items() == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i1);
     expected_items.push_back(_i4);
     CPPUNIT_ASSERT(_v1->starting_items() == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i1);
     CPPUNIT_ASSERT(_v2->ending_items() == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i2);
     expected_items.push_back(_i3);
     CPPUNIT_ASSERT(_v2->starting_items() == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i2);
     expected_items.push_back(_i3);
     expected_items.push_back(_i4);
     CPPUNIT_ASSERT(_v3->ending_items() == expected_items);
-    
+
     expected_items.clear();
     CPPUNIT_ASSERT(_v3->starting_items() == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i0);
     expected_items.push_back(_i1);
@@ -154,16 +154,16 @@ public:
     expected_items.push_back(_i3);
     expected_items.push_back(_i4);
     CPPUNIT_ASSERT(_chart.items() == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i2);
     expected_items.push_back(_i3);
     CPPUNIT_ASSERT(_chart.succeeding_items(_v2, 0, 0) == expected_items);
     CPPUNIT_ASSERT(_chart.succeeding_items(_v2, 0, 42) == expected_items);
-    
+
     expected_items.clear();
     CPPUNIT_ASSERT(_chart.succeeding_items(_v3, 0, 42) == expected_items);
-    
+
     expected_items.clear();
     expected_items.push_back(_i1);
     expected_items.push_back(_i4);
@@ -171,7 +171,16 @@ public:
     expected_items.push_back(_i3);
     CPPUNIT_ASSERT(_chart.succeeding_items(_v1, 0, 42) == expected_items);
   }
-  
+
+  /* TODO
+  void test_item_removal()
+  {
+  }
+
+  void test_connectivity()
+  {
+  }
+  */
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tChartTest);

@@ -553,6 +553,10 @@ private:
   int _start, _end;
   /*@}*/
 
+  /** chart vertices (TODO to be merged with above) */ /*@{*/
+  class tChartVertex *_start_vertex, *_end_vertex;
+  /*@}*/
+
   /** external positions */ /*@{*/
   int _startposition, _endposition;
   /*@}*/
@@ -631,15 +635,24 @@ private:
    * chart. This method is meant to be called by the chart itself.
    */
   void notify_chart_changed(tChart *chart);
-public:
+
+  // only friends (the chart) may manipulate the start and end vertices
   /** Gets the vertex preceding this item. */
   tChartVertex* prec_vertex();
-  /** Gets the vertex preceding this item. */
-  const tChartVertex* prec_vertex() const;
+  /** Sets the vertex preceding this item. */
+  void set_prec_vertex(tChartVertex*);
+
   /** Gets the vertex succeeding this item. */
   tChartVertex* succ_vertex();
+  /** Sets the vertex succeding this item. */
+  void set_succ_vertex(tChartVertex*);
+
+public:
+  //{@
+  /** Gets the vertex preceding this item. */
+  const tChartVertex* get_prec_vertex() const;
   /** Gets the vertex succeeding this item. */
-  const tChartVertex* succ_vertex() const;
+  const tChartVertex* get_succ_vertex() const;
   //@}
   friend class tChart; // Doxygen doesn't understand this in the member group
 
@@ -1354,35 +1367,33 @@ tItem::notify_chart_changed(tChart *chart)
 inline tChartVertex*
 tItem::prec_vertex()
 {
-  assert(_chart);
-  return (_chart->_item_to_prec_vertex.find(this))->second;
+  return _start_vertex;
 }
 
 inline const tChartVertex*
-tItem::prec_vertex() const
+tItem::get_prec_vertex() const
 {
-  assert(_chart);
-  // "this" is const in const member functions, but since the keys in
-  // the map are not declared as const, we have to cast "this":
-  tItem* key = const_cast<tItem*>(this);
-  return (_chart->_item_to_prec_vertex.find(key))->second;
+  return _start_vertex;
+}
+
+inline void tItem::set_prec_vertex(tChartVertex *vertex) {
+  _start_vertex = vertex;
 }
 
 inline tChartVertex*
 tItem::succ_vertex()
 {
-  assert(_chart);
-  return (_chart->_item_to_succ_vertex.find(this))->second;
+  return _end_vertex;
 }
 
 inline const tChartVertex*
-tItem::succ_vertex() const
+tItem::get_succ_vertex() const
 {
-  assert(_chart);
-  // "this" is const in const member functions, but since the keys in
-  // the map are not declared as const, we have to cast "this":
-  tItem* key = const_cast<tItem*>(this);
-  return (_chart->_item_to_succ_vertex.find(key))->second;
+  return _end_vertex;
+}
+
+inline void tItem::set_succ_vertex(tChartVertex *vertex) {
+  _end_vertex = vertex;
 }
 
 #endif

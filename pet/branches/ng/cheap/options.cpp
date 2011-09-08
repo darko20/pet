@@ -151,7 +151,6 @@ void usage(FILE *f)
 //typedef T (*fromfunc)(const std::string &s);
 //typedef std::string (*tofunc)(const T &val);
 
-#ifndef __BORLANDC__
 char* parse_options(int argc, char* argv[])
 {
   int c,  res;
@@ -488,7 +487,6 @@ char* parse_options(int argc, char* argv[])
 
   return argv[optind];
 }
-#endif
 
 bool bool_setting(settings *set, const char *s)
 {
