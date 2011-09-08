@@ -33,7 +33,6 @@ flop_SOURCES = corefs.cpp \
 	parse-tdl.cpp \
 	partition.cpp \
 	partition.h \
-	print-chic.cpp \
 	print-tdl.cpp \
 	reduction.cpp \
 	symtab.h \

@@ -35,7 +35,7 @@
 #include "hashing.h"
 
 #include <list>
-#include <map>
+#include <set>
 #include <vector>
 
 
@@ -68,22 +68,29 @@ bool alltrue(const class tItem *it);
 class tChart
 {
 
-  friend class tItem; // TODO necessary??
-  friend class tChartVertex; // TODO necessary??
+  //friend class tItem; // TODO necessary??
 
 private:
-  std::list<tChartVertex*> _vertices;
+  std::vector<tChartVertex*> _vertices;
   item_list _items;
-  std::map<tChartVertex*, item_list > _vertex_to_starting_items;
-  std::map<tChartVertex*, item_list > _vertex_to_ending_items;
-  std::map<tItem*, tChartVertex* > _item_to_prec_vertex;
-  std::map<tItem*, tChartVertex* > _item_to_succ_vertex;
 
   /**
    * Copy construction and assignment are disallowed.
    */
   tChart(const tChart&);
   tChart& operator=(const tChart&);
+
+  void succeeding_items_rec(const tChartVertex *v, int min, int max,
+                            bool skip_blocked, bool skip_pending_inflrs,
+                            item_list skip,
+                            int dist, item_list &result,
+                            std::list<const tChartVertex*> &vertices);
+
+  void preceding_items_rec(const tChartVertex *v, int min, int max,
+                           bool skip_blocked, bool skip_pending_inflrs,
+                           item_list skip,
+                           int dist, item_list &result,
+                           std::list<const tChartVertex*> &vertices);
 
 public:
 
@@ -123,7 +130,7 @@ public:
   /**
    * Returns a list of all vertices in this chart.
    */
-  std::list<tChartVertex*> vertices();
+  std::vector<tChartVertex*> vertices();
 
   /**
    * Returns a list of all start vertices in this chart. Start vertices
@@ -146,19 +153,19 @@ public:
    * @return \a item (unchanged)
    */
   tItem*
-  add_item(tItem *item, tChartVertex *prec, tChartVertex *succ);
+  add_item(tItem *item, const tChartVertex *prec, const tChartVertex *succ);
 
-  /**
+  /** Unused
    * Removes the specified item from the chart.
    * The memory for tItem objects is handled by tItem::default_owner(), if set.
    */
-  void remove_item(tItem *item);
+  //void remove_item(tItem *item);
 
-  /**
+  /** Unused
    * Removes the specified items from the chart.
    * The memory for tItem objects is handled by tItem::default_owner(), if set.
    */
-  void remove_items(item_list items);
+  //void remove_items(item_list items);
 
   /**
    * Returns a list of all items in this chart.
@@ -182,8 +189,9 @@ public:
    * @param skip list of items to be skipped
    */
   item_list
-  items(tChartVertex *prec, tChartVertex *succ, bool skip_blocked = false,
-      bool skip_pending_inflrs = false, item_list skip = item_list());
+  items(const tChartVertex *prec, const tChartVertex *succ,
+        bool skip_blocked = false, bool skip_pending_inflrs = false,
+        item_list skip = item_list());
 
   /**
    * Returns a list of all items succeeding the specified vertex with a
@@ -197,8 +205,9 @@ public:
    * @param skip list of items to be skipped
    */
   item_list
-  succeeding_items(tChartVertex *v, int min, int max, bool skip_blocked = false,
-      bool skip_pending_inflrs = false, item_list skip = item_list());
+  succeeding_items(const tChartVertex *v, int min, int max,
+                   bool skip_blocked = false, bool skip_pending_inflrs = false,
+                   item_list skip = item_list());
 
   /**
    * Returns a list of all items preceding the specified vertex with a
@@ -212,8 +221,9 @@ public:
    * @param skip list of items to be skipped
    */
   item_list
-  preceding_items(tChartVertex *v, int min, int max, bool skip_blocked = false,
-      bool skip_pending_inflrs = false, item_list skip = item_list());
+  preceding_items(const tChartVertex *v, int min, int max,
+                  bool skip_blocked = false, bool skip_pending_inflrs = false,
+                  item_list skip = item_list());
 
   /**
    * Checks whether the chart is connected. That means it should have
@@ -242,6 +252,9 @@ class tChartVertex
   friend class tChart;
 
 private:
+  item_list _starting_items;
+  item_list _ending_items;
+
   tChart *_chart;
 
   /**
@@ -272,16 +285,16 @@ public:
    * Gets all items starting at this vertex.
    */
   //@{
-  item_list starting_items();
-  const item_list starting_items() const;
+  item_list &starting_items() { return _starting_items; }
+  const item_list &starting_items() const { return _starting_items; };
   //@}
 
   /**
    * Gets all items ending at this vertex.
    */
   //@{
-  item_list ending_items();
-  const item_list ending_items() const;
+  item_list &ending_items() { return _ending_items; }
+  const item_list &ending_items() const { return _ending_items; }
   //@}
 
 };
@@ -434,7 +447,7 @@ tChart::add_vertex(tChartVertex *vertex)
   return vertex;
 }
 
-inline std::list<tChartVertex*>
+inline std::vector<tChartVertex*>
 tChart::vertices()
 {
   return _vertices;
@@ -471,64 +484,6 @@ tChartVertex::create()
 {
   return new tChartVertex();
 }
-
-inline item_list
-tChartVertex::starting_items()
-{
-  assert(_chart != NULL);
-  tChartVertex* key = this;
-  std::map<tChartVertex*, item_list >::const_iterator entry =
-    _chart->_vertex_to_starting_items.find(key);
-  if (entry == _chart->_vertex_to_starting_items.end())
-    return item_list();
-  else
-    return entry->second;
-}
-
-inline const item_list
-tChartVertex::starting_items() const
-{
-  assert(_chart != NULL);
-  // "this" is const in const member functions, but since the keys in
-  // the map are not declared as const, we have to cast "this":
-  tChartVertex* key = const_cast<tChartVertex*>(this);
-  std::map<tChartVertex*, item_list >::const_iterator entry =
-    _chart->_vertex_to_starting_items.find(key);
-  if (entry == _chart->_vertex_to_starting_items.end())
-    return item_list();
-  else
-    return entry->second;
-}
-
-inline item_list
-tChartVertex::ending_items()
-{
-  assert(_chart != NULL);
-  tChartVertex* key = this;
-  std::map<tChartVertex*, item_list >::const_iterator entry =
-    _chart->_vertex_to_ending_items.find(key);
-  if (entry == _chart->_vertex_to_ending_items.end())
-    return item_list();
-  else
-    return entry->second;
-}
-
-inline const item_list
-tChartVertex::ending_items() const
-{
-  assert(_chart != NULL);
-  // "this" is const in const member functions, but since the keys in
-  // the map are not declared as const, we have to cast "this":
-  tChartVertex* key = const_cast<tChartVertex*>(this);
-  std::map<tChartVertex*, item_list >::const_iterator entry =
-    _chart->_vertex_to_ending_items.find(key);
-  if (entry == _chart->_vertex_to_ending_items.end())
-    return item_list();
-  else
-    return entry->second;
-}
-
-
 
 // =====================================================
 // class tChartUtil

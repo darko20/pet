@@ -33,9 +33,7 @@ extern int verbosity;
 
 void usage(FILE *f);
 
-#ifndef __BORLANDC__
 char *parse_options(int argc, char* argv[]);
-#endif
 
 void options_from_settings(class settings *);
 

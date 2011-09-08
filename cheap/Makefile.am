@@ -9,7 +9,7 @@ endif
 include $(top_srcdir)/common/Makefile.common
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
-CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp @CHEAPCPPFLAGS@
+CPPFLAGS += -I$(top_srcdir)/common @CHEAPCPPFLAGS@
 CXXFLAGS += @CHEAPCXXFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
@@ -116,48 +116,9 @@ DEFS += -DDAG_SIMPLE -DWROBLEWSKI2
 cheaplibsources += $(top_srcdir)/common/dag-simple.cpp
 endif
 
-if ECL
-cheaplibsources += petecl.c petecl.h
-endif
-if ECLPREPROC
-if ICU
-cheaplibsources += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
-cheap_LDADD += ../fspp/libfspp.la -lpreprocessor #fix_me
-LDFLAGS += -L../fspp
-CPPFLAGS += -I../fspp
-else
-# This looks strange. If ICU is a dependency, it should be ensured by
-# configure that ECLPREPROC is only set if all dependencies are met.
-endif
-endif
-if ECLMRS
-cheaplibsources += cppbridge.cpp cppbridge.h petmrs.h petmrs.c
-cheap_LDADD += libmrs.a
-endif
-
-# Add ecl libraries to be deleted on "make clean" ...
-# Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
-MOSTLYCLEANFILES = libmrs.a
-
-../fspp/libfspp.la:
-	make -C ../fspp libfspp.la
-
-libmrs.a:
-	( \
-	echo ";;(pushnew :debug *features*)"; \
-	echo "(load \"@MRSDIR@/src/general/loadup\")"; \
-	echo "(setq lib-dir (make-pathname :directory '(:relative)))"; \
-	echo "(mk::ecl-initialize-libbuild :module \"mrs\")"; \
-	echo "(compile-system \"mrs\" :force t)"; \
-	echo "(mk::ecl-finalize-libbuild :module \"mrs\")"; \
-	) | $(ECL)
-
 if XML
-cheaplibsources += pic-handler.cpp pic-handler.h pic-states.h \
-                      pic-tokenizer.h pic-tokenizer.cpp \
-                      xmlparser.cpp xmlparser.h \
-                      smaf-tokenizer.h smaf-tokenizer.cpp \
-                      fsc-tokenizer.cpp fsc-tokenizer.h
+cheaplibsources += xmlparser.cpp xmlparser.h \
+                   fsc-tokenizer.cpp fsc-tokenizer.h
 endif
 
 if ICU
@@ -167,26 +128,6 @@ endif
 if XMLRPC_C
 cheaplibsources += server-xmlrpc.cpp server-xmlrpc.h
 endif
-
-# if LEXDB
-# cheaplibsources += psqllex.h psqllex.cpp
-# endif
-
-#if EXTDICT
-#cheaplibsources += extdict.cpp extdict.h
-#endif
-
-#if RCU
-# QC_PATH_COMP could be done robustly, ie with weights.  The aim would be
-# to find the paths that most quickly find out the biggest losses.
-#DEFS += -DROBUST
-#cheaplibsources += rcu-types.h rcu-types.cpp rcu-dag-node.h
-#nodist_libcheap_la_SOURCES += dag-chunk-alloc.h dag-chunk-alloc.cpp \
-#                             type-chunk-alloc.cpp type-chunk-alloc.h \
-#                             type-alloc.h type-alloc.cpp
-# Not done for fair comparison
-#DEFS += -UQC_PATH_COMP
-#endif
 
 #if HAVE_LIBTOOL
 # Convenience library (makes building several executables easier and is
@@ -200,7 +141,7 @@ libcheap_la_SOURCES=$(cheaplibsources)
 
 # Distribute the following files in any case:
 # (N.B.: all conditional SOURCES are also distributed in any case)
-EXTRA_DIST = dumpgram.cpp mtest.cpp pet.cpp psqltest.c
+EXTRA_DIST = dumpgram.cpp mtest.cpp pet.cpp
 
 profclean:
 	rm -f *.gcov gmon.out *.bb *.bbg *.da

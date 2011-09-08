@@ -13,7 +13,3 @@ tester_SOURCES = tester.cpp \
 	paths-test.cpp \
 	types-test.cpp
 tester_LDADD = ../libcheap.la
-if ECLMRS
-tester_LDADD += ../libmrs.a
-endif
-

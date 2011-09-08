@@ -1117,7 +1117,7 @@ tChartMappingMatch::get_suitable_items(tChart &chart,
 
   // start and end anchoring graph vertices and corresponding chart vertices:
   tChartMappingAnchoringGraph::tVertex av_arg_s, av_arg_e, av_next;
-  tChartVertex *cv_arg_s, *cv_arg_e, *cv_next;
+  const tChartVertex *cv_arg_s, *cv_arg_e, *cv_next;
   av_arg_s = _anch_graph.get_vertex(arg->get_start_anchor());
   av_arg_e = _anch_graph.get_vertex(arg->get_end_anchor());
   cv_arg_s = _vertex_binding[av_arg_s]; // sets 0 if not found
@@ -1137,7 +1137,7 @@ tChartMappingMatch::get_suitable_items(tChart &chart,
         if (cv_next) { // there is an edge to a bound vertex
           int min = _anch_graph._graph[edge].min;
           int max = _anch_graph._graph[edge].max;
-          item_list restr = chart.succeeding_items(cv_next, min, max);
+          const item_list restr = chart.succeeding_items(cv_next, min, max);
           items.remove_if(not_contained_in_list(restr));
         }
       }
@@ -1263,10 +1263,10 @@ tChartMappingMatch::match(tItem *item, const tChartMappingRuleArg *arg, int logl
   tChartMappingAnchoringGraph::tVertex av_s, av_e;
   av_s = _anch_graph.get_vertex(arg->get_start_anchor());
   av_e = _anch_graph.get_vertex(arg->get_end_anchor());
-  assert(!vertex_binding[av_s] || (vertex_binding[av_s]==item->prec_vertex()));
-  assert(!vertex_binding[av_e] || (vertex_binding[av_e]==item->succ_vertex()));
-  vertex_binding[av_s] = item->prec_vertex();
-  vertex_binding[av_e] = item->succ_vertex();
+  assert(!vertex_binding[av_s] || (vertex_binding[av_s]==item->get_prec_vertex()));
+  assert(!vertex_binding[av_e] || (vertex_binding[av_e]==item->get_succ_vertex()));
+  vertex_binding[av_s] = item->get_prec_vertex();
+  vertex_binding[av_e] = item->get_succ_vertex();
 
   return create(result_fs, arg_item_map, captures, vertex_binding,
       _next_arg_idx + 1);
@@ -1279,7 +1279,7 @@ tChartMappingMatch::fire(tChart &chart, int loglevel) {
   bool chart_changed = false;
   tChartMappingRule::Trait rule_trait = get_rule()->get_trait();
   item_list inps = get_items(tChartMappingRuleArg::INPUT_ARG);
-  item_list cons = get_items(tChartMappingRuleArg::CONTEXT_ARG);
+  //item_list cons = get_items(tChartMappingRuleArg::CONTEXT_ARG);//unused
 
   // add all OUTPUT items:
   tRuleArgs out_args = get_rule()->get_args(tChartMappingRuleArg::OUTPUT_ARG);
@@ -1290,8 +1290,8 @@ tChartMappingMatch::fire(tChart &chart, int loglevel) {
     tChartMappingAnchoringGraph::tVertex av_s, av_e;
     av_s = _anch_graph.get_vertex(out_arg->get_start_anchor());
     av_e = _anch_graph.get_vertex(out_arg->get_end_anchor());
-    tChartVertex *cv_s = _vertex_binding[av_s];
-    tChartVertex *cv_e = _vertex_binding[av_e];
+    const tChartVertex *cv_s = _vertex_binding[av_s];
+    const tChartVertex *cv_e = _vertex_binding[av_e];
     tItem *out_item = 0;
 
     // try to find an existing identical item for reuse:

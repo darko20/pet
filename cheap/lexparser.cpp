@@ -818,35 +818,21 @@ tAbstractItemPrinter *printer_factory(const string &format, ostream &buffer) {
   return new tItemYYPrinter(buffer);
 }
 
-void print_p_input(inp_list &tokens) {
+string print_tokens(inp_list &tokens, bool no_unblocked) {
   const char *foo = cheap_settings->value("tokenizer-output");
   if (foo == NULL)
-    return;
+    return string();
   ostringstream buffer;
   tAbstractItemPrinter *sp = printer_factory(string(foo), buffer);
   bool fsc = (strcmp("fsc", foo) == 0);
   for(inp_iterator item = tokens.begin(); item != tokens.end(); ++item) {
+    if(no_unblocked && !passive_unblocked(*item)) continue;
     if(item != tokens.begin() && fsc) buffer << " ";
     sp->print(*item);
   } // for
-  stats.p_input = buffer.str();
+  string result = buffer.str();
   delete sp;
-}
-
-void print_p_tokens(inp_list &tokens) {
-  const char *foo = cheap_settings->value("tokenizer-output");
-  if (foo == NULL)
-    return;
-  ostringstream buffer;
-  tAbstractItemPrinter *sp = printer_factory(string(foo), buffer);
-  bool fsc = (strcmp("fsc", foo) == 0);
-  for(inp_iterator item = tokens.begin(); item != tokens.end(); ++item) {
-    if(!passive_unblocked(*item)) continue;
-    if(item != tokens.begin() && fsc) buffer << " ";
-    sp->print(*item);
-  } // for
-  stats.p_tokens = buffer.str();
-  delete sp;
+  return result;
 }
 
 // token mapping: apply token mapping rules on input items, or:
@@ -909,7 +895,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
   position_map position_mapping = _tokenizers.front()->position_mapping();
   _maxpos = map_positions(inp_tokens, position_mapping);
 
-  print_p_input(inp_tokens);
+  stats.p_input = print_tokens(inp_tokens, false);
 
   bool chart_mapping = get_opt_int("opt_chart_mapping") != 0;
   if (chart_mapping) {
@@ -919,7 +905,7 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
                          resources);
   }
 
-  print_p_tokens(inp_tokens);
+  stats.p_tokens = print_tokens(inp_tokens, true);
 
   return _maxpos;
 }
