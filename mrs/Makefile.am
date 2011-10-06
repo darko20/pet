@@ -25,13 +25,18 @@ DEFS += -DDYNAMIC_SYMBOLS
 # This is always used! <-> documentation
 AM_CXXFLAGS = -Wall
 
-#bin_PROGRAMS = mrs
+bin_PROGRAMS = mrstest
 
 #cheap_SOURCES = cheap.cpp cheap.h
 #cheap_LDADD = libcheap.la
 
-#mrs_SOURCES = \
-#	mrs.cpp mrs.h \
+mrstest_SOURCES = \
+	mrstest.cpp \
+	mrs.cpp mrs.h \
+	mrs-printer.cpp mrs-printer.h \
+	mrs-reader.cpp mrs-reader.h \
+	$(top_srcdir)/common/utility.cpp
+
 #	mrs-tfs.cpp mrs-tfs.h \
 #	mrs-handler.cpp mrs-handler.h \
 #	mrs-states.cpp mrs-states.h \
@@ -48,8 +53,7 @@ AM_CXXFLAGS = -Wall
 #	$(top_srcdir)/common/logging.cpp \
 #	$(top_srcdir)/common/mfile.c \
 #	$(top_srcdir)/common/settings.cpp \
-#	$(top_srcdir)/common/types.cpp \
-#	$(top_srcdir)/common/utility.cpp
+#	$(top_srcdir)/common/types.cpp 
 
 profclean:
 	rm -f *.gcov gmon.out *.bb *.bbg *.da
