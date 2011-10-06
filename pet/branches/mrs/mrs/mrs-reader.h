@@ -40,6 +40,7 @@ class SimpleMrsReader : public tMrsReader {
     std::string readReln(std::string &rest);
 };
 
+/*
 class XmlMrsReader : public tMrsReader {
 public:
   XmlMrsReader(){};
@@ -47,7 +48,7 @@ public:
 
   tMrs *readMrs(std::string);
 };
-
+*/
 }
 
 #endif

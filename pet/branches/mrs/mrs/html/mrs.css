@@ -1,0 +1,16 @@
+body { color: #1a04a5; font-family: helvetica, arial, sans-serif;}
+td { font-size: 10pt; }
+table { border: thin solid; }
+table.mrsMrs { background: #d8d6d6; }
+table.mrsRelsContainer { border: none; }
+table.mrsRelation { border-style: none solid; }
+td.mrsPredicate { font-style: italic; }
+td.mrsValue { font-style: italic; text-align: right; }
+span.mrsBracket { font-size: 16pt; }
+table.mrsProperties {
+  border: none; border-collapse: collapse;
+  background: #1a04a5; color: #d8d6d6;
+}
+td.mrsPropertyFeature { font-size: 8pt; }
+td.mrsPropertyValue { font-size: 8pt; font-style: italic; text-align: right; }
+
