@@ -105,7 +105,7 @@ private:
 
   /** A flag to indicate that all strings should be lower case (or not) */
   bool _downcase_strings;
-
+  /*
   struct string_hash
   {
     inline size_t operator()(const std::string &key) const
@@ -113,7 +113,7 @@ private:
       return ::bjhash((const ub1 *) key.data(), key.size(), 0);
     }
   };
-
+  */
   std::list<mrs::tMrs*> _mrss;
 };
 

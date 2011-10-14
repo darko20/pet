@@ -20,6 +20,8 @@
 #include "unicode.h"
 #include <sstream>
 
+extern class EncodingConverter *Conv;
+
 using namespace std;
 using namespace XERCES_CPP_NAMESPACE;
 
@@ -172,9 +174,11 @@ void mrs_base_state::enterState(mrs_base_state* state, AttributeList& attr) {
 void mrs_base_state::enterState(TOP_state* state, AttributeList& attr) {
   reject(this, state);
 }
+  /*
 void mrs_base_state::enterState(mrs_list_state* state, AttributeList& attr) {
   reject(this, state);
 }
+  */
 void mrs_base_state::enterState(mrs_state* state, AttributeList& attr) {
   reject(this, state);
 }
@@ -228,10 +232,12 @@ void mrs_base_state::enterState(lo_state* state, AttributeList& attr) {
 
 const XMLCh TOP_state::tagname[] = { chNull };
 
+/*
 const XMLCh mrs_list_state::tagname[] = { 
   chLatin_m, chLatin_r, chLatin_s, chDash,
   chLatin_l, chLatin_i, chLatin_s, chLatin_t, chNull
 };
+*/
 
 const XMLCh mrs_state::tagname[] = {
   chLatin_m, chLatin_r, chLatin_s, chNull
@@ -303,34 +309,38 @@ const XMLCh lo_state::tagname[] = {
 
 
 
+
 /**
  * TOP_state --> mrs_list_state
  */
+/*
 void mrs_list_state::
 enterState(class TOP_state* state, AttributeList& attr) {
   _reader->mrss().clear();
 }
-
+*/
 /**
  * TOP_state <-- mrs_list_state
  */
+/*
 void mrs_list_state::
 leaveState(class TOP_state *state) {
 }
+*/
 
 /**
- * mrs_list_state --> mrs_state
+ * TOP_state --> mrs_state
  */
 void mrs_state::
-enterState(class mrs_list_state* state, AttributeList& attr) {
+enterState(class TOP_state* state, AttributeList& attr) {
   _mrs = new tMrs();
 }
 
 /**
- * mrs_list_state <-- mrs_state
+ * TOP_state <-- mrs_state
  */
 void mrs_state::
-leaveState(class mrs_list_state* state) {
+leaveState(class TOP_state* state) {
   _reader->mrss().push_back(_mrs); 
 }
 

@@ -32,7 +32,6 @@ public:
 
   virtual void enterState(class mrs_base_state* state, AttributeList& attr);
   virtual void enterState(class TOP_state* state, AttributeList& attr);
-  virtual void enterState(class mrs_list_state* state, AttributeList& attr);
   virtual void enterState(class mrs_state* state, AttributeList& attr);
   virtual void enterState(class ep_state* state, AttributeList& attr);
   virtual void enterState(class pred_state* state, AttributeList& attr);
@@ -52,7 +51,6 @@ public:
 
   virtual void leaveState(class mrs_base_state* state) {}
   virtual void leaveState(class TOP_state* state) {}
-  virtual void leaveState(class mrs_list_state* state) {}
   virtual void leaveState(class mrs_state* state) {}
   virtual void leaveState(class ep_state* state) {}
   virtual void leaveState(class pred_state* state) {}
@@ -130,25 +128,6 @@ public:
   virtual ~TOP_state() {}
 };
 
-
-class mrs_list_state : public mrs_base_state {
-  STATE_COMMON_CODE(mrs_list_state)
-public:
-  mrs_list_state(MrsHandler *mrsreader) : mrs_base_state(mrsreader) {}
-  virtual ~mrs_list_state() {}
-
-  /**
-   * TOP_state --> mrs_list_state
-   */
-  virtual void enterState(class TOP_state* state, AttributeList& attr);
-  
-  /**
-   * TOP_state <-- mrs_list_state
-   */
-  virtual void leaveState(class TOP_state *state);
-
-};
-  
 class mrs_state : public mrs_base_state {
   STATE_COMMON_CODE(mrs_state)
 public:
@@ -156,14 +135,14 @@ public:
   virtual ~mrs_state() {}
 
   /**
-   * mrs_list_state --> mrs_state
+   * TOP_state --> mrs_state
    */
-  virtual void enterState(class mrs_list_state* state, AttributeList& attr);
+  virtual void enterState(class TOP_state* state, AttributeList& attr);
 
   /**
-   * mrs_list_state <-- mrs_state
+   * TOP_state <-- mrs_state
    */
-  virtual void leaveState(class mrs_list_state* state);
+  virtual void leaveState(class TOP_state* state);
 
   tMrs* _mrs;
   
@@ -553,7 +532,6 @@ class mrs_state_factory {
 
 public:
   mrs_state_factory(class MrsHandler *handler) {
-    register_state(new mrs_list_state(handler));
     register_state(new mrs_state(handler));
     register_state(new ep_state(handler));    
     register_state(new pred_state(handler));    

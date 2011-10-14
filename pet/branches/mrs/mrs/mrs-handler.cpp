@@ -23,6 +23,9 @@
 #include <stack>
 #include "mrs-states.h"
 
+
+extern class EncodingConverter *Conv;
+
 using namespace std;
 using namespace XERCES_CPP_NAMESPACE;
 using XERCES_CPP_NAMESPACE_QUALIFIER AttributeList;
@@ -109,11 +112,7 @@ MrsHandler::surface_string(const XMLCh *chars, const unsigned int len) const {
   if (_downcase_strings) { XMLString::lowerCase(res); }
   // transfer to unicode UTF-8 string
   string result;
-#ifdef HAVE_ICU
   result = Conv->convert((UChar *) res, XMLString::stringLen(res));
-#else
-  result = XMLCh2Native(res);
-#endif
   delete[] res;
   return result;
 }
