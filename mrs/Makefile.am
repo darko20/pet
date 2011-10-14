@@ -4,7 +4,7 @@
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
 CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/cheap 
-CXXFLAGS += @CHEAPCXXFLAGS@
+CXXFLAGS += @CHEAPCPPFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
 DEFS += -DDYNAMIC_SYMBOLS
@@ -25,7 +25,7 @@ DEFS += -DDYNAMIC_SYMBOLS
 # This is always used! <-> documentation
 AM_CXXFLAGS = -Wall
 
-bin_PROGRAMS = mrstest
+bin_PROGRAMS = mrstest mrsconvert
 
 #cheap_SOURCES = cheap.cpp cheap.h
 #cheap_LDADD = libcheap.la
@@ -36,6 +36,34 @@ mrstest_SOURCES = \
 	mrs-printer.cpp mrs-printer.h \
 	mrs-reader.cpp mrs-reader.h \
 	$(top_srcdir)/common/utility.cpp
+
+if XML
+mrstest_SOURCES += \
+	$(top_srcdir)/cheap/xmlparser.cpp $(top_srcdir)/cheap/xmlparser.h \
+	$(top_srcdir)/cheap/unicode.cpp $(top_srcdir)/cheap/unicode.h \
+	$(top_srcdir)/common/logging.cpp $(top_srcdir)/common/logging.h \
+	$(top_srcdir)/common/hash.cpp $(top_srcdir)/common/hash.h \
+	mrs-handler.cpp mrs-handler.h \
+	mrs-states.cpp mrs-states.h
+endif
+
+mrsconvert_SOURCES = \
+	mrsconvert.cpp \
+	mrs.cpp mrs.h \
+	mrs-printer.cpp mrs-printer.h \
+	mrs-reader.cpp mrs-reader.h \
+	$(top_srcdir)/common/utility.cpp
+
+if XML
+mrsconvert_SOURCES += \
+	$(top_srcdir)/cheap/xmlparser.cpp $(top_srcdir)/cheap/xmlparser.h \
+	$(top_srcdir)/cheap/unicode.cpp $(top_srcdir)/cheap/unicode.h \
+	$(top_srcdir)/common/logging.cpp $(top_srcdir)/common/logging.h \
+	$(top_srcdir)/common/hash.cpp $(top_srcdir)/common/hash.h \
+	mrs-handler.cpp mrs-handler.h \
+	mrs-states.cpp mrs-states.h
+endif
+
 
 #	mrs-tfs.cpp mrs-tfs.h \
 #	mrs-handler.cpp mrs-handler.h \

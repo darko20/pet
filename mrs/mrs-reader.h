@@ -3,6 +3,8 @@
 #ifndef _MRS_READER_H_
 #define _MRS_READER_H_
 
+#include "pet-config.h"
+
 #include <string>
 #include <set>
 #include "mrs.h"
@@ -40,7 +42,7 @@ class SimpleMrsReader : public tMrsReader {
     std::string readReln(std::string &rest);
 };
 
-/*
+#ifdef HAVE_XML
 class XmlMrsReader : public tMrsReader {
 public:
   XmlMrsReader(){};
@@ -48,7 +50,8 @@ public:
 
   tMrs *readMrs(std::string);
 };
-*/
+#endif // HAVE_XML
+
 }
 
 #endif

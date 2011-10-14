@@ -10,8 +10,8 @@ int main(int argc, char **argv) {
 
   mrs::SimpleMrsReader reader;
 //  mrs::SimpleMrsPrinter printer(cout);
-  mrs::HtmlMrsPrinter printer(cout);
-//  mrs::MrxMrsPrinter printer(cout);
+//  mrs::HtmlMrsPrinter printer(cout);
+  mrs::MrxMrsPrinter printer(cout);
   string line;
   getline(cin, line);
   while (!cin.eof()) {

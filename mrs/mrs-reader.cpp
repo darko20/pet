@@ -2,11 +2,13 @@
 
 #include "errors.h"
 #include "mrs-reader.h"
-/*
+
+#ifdef HAVE_XML
 #include "mrs-handler.h"
-#include "xercesc/framework/MemBufInputSource.hpp"
+#include <xercesc/framework/MemBufInputSource.hpp>
 XERCES_CPP_NAMESPACE_USE
-*/
+#endif
+
 #include <sstream>
 
 
@@ -295,13 +297,15 @@ std::string SimpleMrsReader::readReln(std::string &rest) {
   return reln;
 }
 
-/*
+#ifdef HAVE_XML
 tMrs* XmlMrsReader::readMrs(std::string input) {
   MrsHandler mrs_handler(true);
-  MemBufInputSource xml_input((const XMLByte *) input.c_str(), 
-			     input.length(), "STDIN");
+  std::string buffer = input;
+  MemBufInputSource xml_input((const XMLByte *) buffer.c_str(), 
+			     buffer.length(), "STDIN");
   parse_file(xml_input, &mrs_handler);
   return mrs_handler.mrss().front();
 }
-*/
+#endif // HAVE_XML
+
 }
