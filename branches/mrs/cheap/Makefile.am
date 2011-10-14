@@ -85,6 +85,12 @@ cheaplibsources = \
 	$(top_srcdir)/mrs/mrs-tfs.h \
 	$(top_srcdir)/mrs/mrs-printer.cpp \
 	$(top_srcdir)/mrs/mrs-printer.h \
+	$(top_srcdir)/mrs/mrs-handler.cpp \
+	$(top_srcdir)/mrs/mrs-handler.h \
+	$(top_srcdir)/mrs/mrs-reader.cpp \
+	$(top_srcdir)/mrs/mrs-reader.h \
+	$(top_srcdir)/mrs/mrs-states.cpp \
+	$(top_srcdir)/mrs/mrs-states.h \
 	$(top_srcdir)/mrs/vpm.cpp \
 	$(top_srcdir)/mrs/vpm.h \
 	$(top_srcdir)/common/bitcode.cpp \
