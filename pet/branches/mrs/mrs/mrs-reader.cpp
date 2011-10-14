@@ -299,7 +299,7 @@ std::string SimpleMrsReader::readReln(std::string &rest) {
 
 #ifdef HAVE_XML
 tMrs* XmlMrsReader::readMrs(std::string input) {
-  MrsHandler mrs_handler(true);
+  MrsHandler mrs_handler(false);
   std::string buffer = input;
   MemBufInputSource xml_input((const XMLByte *) buffer.c_str(), 
 			     buffer.length(), "STDIN");

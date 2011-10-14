@@ -350,6 +350,8 @@ leaveState(class TOP_state* state) {
 void ep_state::
 enterState(mrs_state* state, AttributeList& attr) {
   _ep = new tEp(state->_mrs);
+  _ep->cfrom = req_int_attr(attr, "cfrom");
+  _ep->cto = req_int_attr(attr, "cto");
 }
 
 /**
