@@ -255,6 +255,7 @@ tChart::connected() {
   if(_vertices.empty()) return true;
   int nr_start = 0;
   int nr_end = 0;
+  bool has_unblocked_items = false;
   for (std::list<tChartVertex*>::const_iterator it = _vertices.begin();
        it != _vertices.end();
        ++it)
@@ -269,6 +270,7 @@ tChart::connected() {
       for (item_list::iterator item_it = items.begin();
            item_it != items.end();
            ++item_it) {
+        has_unblocked_items = has_unblocked_items || !(*item_it)->blocked();
         has_active_prec_items = has_active_prec_items || !(*item_it)->blocked();
       }
     }
@@ -280,6 +282,7 @@ tChart::connected() {
       for (item_list::iterator item_it = items.begin();
            item_it != items.end();
            ++item_it) {
+        has_unblocked_items = has_unblocked_items || !(*item_it)->blocked();
         has_active_succ_items = has_active_succ_items || !(*item_it)->blocked();
       }
     }
@@ -291,7 +294,7 @@ tChart::connected() {
       ++nr_end;
     }
   }
-  return (nr_start == 1) && (nr_end == 1);
+  return (has_unblocked_items == false) || ((nr_start == 1) && (nr_end == 1));
 }
 
 void
