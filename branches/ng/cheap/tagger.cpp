@@ -148,6 +148,7 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
   static char *input = (char *)malloc(size);
   assert(input != NULL);
 
+  bool seen_sentinel = false;
   inp_iterator token = tokens_result.begin();
   while(token != tokens_result.end()) {
 
@@ -177,10 +178,12 @@ void tTntCompatTagger::compute_tags(myString s, inp_list &tokens_result)
     if(status == 1 && input[0] == (char)0) continue;
 
     if ((! _utterance_start.empty()) && token == tokens_result.begin() 
-      && input[0] == _utterance_start.at(0)) {
+      && input[0] == _utterance_start.at(0) && seen_sentinel == false) {
       int len = _utterance_start.length();
-      if (status >= len && _utterance_start.compare(0, len, input, len) == 0) 
+      if (status >= len && _utterance_start.compare(0, len, input, len) == 0) {
+          seen_sentinel = true;
           continue; //sentence start sentinel
+      }
     }
 
     istringstream line(input);
