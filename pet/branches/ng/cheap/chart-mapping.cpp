@@ -229,7 +229,6 @@ void tChartMappingEngine::process(tChart &chart, Resources &resources)
       : cache[rule_sig];
     tChartMappingMatch *completed = 0;
     do {
-      std::string message;
       if(resources.exhausted()) {
         chart.clear();
         throw tExhaustedError(resources.exhaustion_message());
