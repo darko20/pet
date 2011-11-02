@@ -199,6 +199,8 @@ AC_CHECK_LIB([stdc++], [main], , [AC_MSG_ERROR([Cannot find libstdc++])])
 AC_SEARCH_LIBS([getopt_long_only], [iberty], [],
                [AC_MSG_ERROR([No library containing getopt_long_only()], [1])])
 
+AC_CHECK_LIB([rt], [aio_write])
+
 # the following library checks are either not needed or performed elsewhere:
 # FIXME: Replace `main' with a function in `-ldl':
 #AC_CHECK_LIB([dl], [main])
