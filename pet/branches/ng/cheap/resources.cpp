@@ -1,7 +1,7 @@
 #include "resources.h"
 
 const std::string Resources::stage_name[] = {
-  "preprocessing", "tree creation", "unpacking", "robust"
+  "preprocessing", "forest creation", "unpacking", "robust"
 };
 
 #define min(a, b) ((a > b) ? b : a)

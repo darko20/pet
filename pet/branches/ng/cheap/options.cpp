@@ -59,7 +59,7 @@ void usage(FILE *f)
              "                           default /tmp/qc.tdl)\n");
   fprintf(f, "  `-compute-qc-subs[=file]' --- compute quickcheck paths only for subsumption (output to file,\n"
              "                           default /tmp/qc.tdl)\n");
-  fprintf(f, "  `-mrs[=mrs|mrx|rmrs|rmrx]' --- compute MRS semantics\n");
+  fprintf(f, "  `-mrs[=simple|mrx|xml]' --- compute MRS semantics (default: simple)\n");
   fprintf(f, "  `-key=n' --- select key mode (0=key-driven, 1=l-r, 2=r-l, 3=head-driven)\n");
   fprintf(f, "  `-no-hyper' --- disable hyper-active parsing\n");
   fprintf(f, "  `-no-derivation' --- disable output of derivations\n");
