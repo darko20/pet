@@ -693,6 +693,8 @@ tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
     LOG(logChart, WARN,
         "Several start vertices present. Only using the first start vertex.");
   int max_value = -1; // will be set accordingly by topological_order()
+  if (vertices.empty()) 
+    return max_value; //don't try and sort an empty chart
   map<tChartVertex*, int, greater<void*> > order;
   list<tChartVertex*> ordered;
   topological_order(vertices.front(), max_value, order, ordered);
