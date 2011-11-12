@@ -511,6 +511,15 @@ int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
                        long memlimit, int nsolutions,
                        timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
+  if (memlimit > 0 && t_alloc.max_usage() >= memlimit)
+    //
+    // _fix_me_
+    // for all i can tell, the actual selective unpacking code does not always
+    // respect resource limitations in terms of memory; in case we are out of
+    // memory at this point already, return immediately.        (12-nov-11; oe)
+    //
+    return nres;
+
   if (get_opt_int("opt_timeout") > 0)
     timestamp = times(NULL); // FIXME passing NULL is not defined in POSIX
 
