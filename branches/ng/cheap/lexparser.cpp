@@ -885,6 +885,14 @@ lex_parser::process_input(string input, inp_list &inp_tokens,
   // Tokenize the input
   tokenize(input, inp_tokens);
 
+  //
+  // non-vanilla tokenizers can delete pieces of input (e.g. mark-up), hence we
+  // might be looking at an empty token sequence at this point.  no point in
+  // going through further processing (and making sure all downstream modules
+  // robustly treat an empty input).
+  //
+  if(inp_tokens.empty()) return 0;
+
   // Attach POS tags to the input
   tag(input, inp_tokens);
 
