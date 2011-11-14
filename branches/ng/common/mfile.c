@@ -67,7 +67,7 @@ void mclose( struct MFILE *f )
   free( f );
 }
 
-int vmprintf( struct MFILE *f, char *format, va_list ap )
+int vmprintf( struct MFILE *f, const char *format, va_list ap )
 {
   int n;
 
@@ -95,7 +95,7 @@ int vmprintf( struct MFILE *f, char *format, va_list ap )
   return n;
 }
 
-int mprintf( struct MFILE *f, char *format, ... )
+int mprintf( struct MFILE *f, const char *format, ... )
 {
   va_list ap;
   int n;
