@@ -524,6 +524,11 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
       throw e;
   } // catch
 
+  //
+  // initialise chart, or make everything in interactive() robust to a null
+  // pointer. Everything behaves well with an empty chart... - RD 14/11/11
+  //
+  C = Chart = new chart(max_pos, owner);
   if(input_items.size() > 0) {
     if (get_opt_int("opt_chart_pruning") != 0) {
       Agenda = new tLocalCapAgenda (get_opt_int ("opt_chart_pruning"), max_pos);
@@ -531,7 +536,6 @@ analyze(string input, chart *&C, fs_alloc_state &FSAS
       Agenda = new tExhaustiveAgenda;
     }
 
-    C = Chart = new chart(max_pos, owner);
     Lexparser.lexical_processing(input_items, FSAS, errors, resources);
     // TODO: THIS IS A BAD HACK TO SIMULATE THAT EDGES IN THE PREPROCESSING
     // STAGE ARE NOT COUNTED. IN FACT THEY ARE, SINCE THE CODE USES
