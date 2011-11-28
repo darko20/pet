@@ -24,6 +24,8 @@
 #include "utility.h"
 
 #include <iomanip>
+#include <algorithm>
+#include <list>
 
 using namespace std;
 
@@ -219,3 +221,41 @@ void
 ItsdbDagPrinter::print_dag_node_end(ostream &out, const dag_node *dag) {
   if (dag->arcs != NULL) out << " ]";
 } // ItsdbDagPrinter::print_dag_node_end()
+
+void
+ItsdbDagPrinter::print_dag_rec(std::ostream &out, const struct dag_node *dag, bool temp) {
+  int coref = get_coref_nr(dag);
+
+  if (coref != 0) {
+    if(coref < 0) { // dag is coreferenced, already printed
+      print_coref_reference(out, - coref) ;
+      return;
+    } else { // dag is coreferenced, not printed yet
+      print_coref_definition(out, coref);
+    }
+  }
+
+  print_dag_node_start(out, dag);
+  print_arcs(out, dag->arcs, temp);
+  print_dag_node_end(out, dag);
+}
+
+bool compare_arcs(const dag_arc *arc1, const dag_arc *arc2) {
+  return strcmp(attrname[arc1->attr], attrname[arc2->attr]) < 0;
+}
+
+void
+ItsdbDagPrinter::print_arcs(std::ostream &out, const dag_arc *arc, bool temp) {
+  if (arc == 0) return;
+
+  list<const dag_arc*> arclist;
+  while (arc) {
+    arclist.push_back(arc);
+    arc = arc->next;
+  }
+  arclist.sort(compare_arcs);
+  for (list<const dag_arc*>::iterator iter = arclist.begin();
+       iter != arclist.end(); iter ++) {
+    print_arc(out, *iter, temp);
+  }
+}
