@@ -108,7 +108,7 @@ protected:
 
   virtual void print_dag_node_end(std::ostream &out, const dag_node *dag) = 0;
 
-  void print_dag_rec(std::ostream &out, const struct dag_node *dag, bool temp);
+  virtual void print_dag_rec(std::ostream &out, const struct dag_node *dag, bool temp);
 
 public:
   CompactDagPrinter() : honor_temporary_dags(false) {}
@@ -163,6 +163,8 @@ protected:
   virtual void print_coref_definition(std::ostream &out, int coref_nr);
   virtual void print_dag_node_start(std::ostream &out, const dag_node *dag);
   virtual void print_dag_node_end(std::ostream &out, const dag_node *dag);
+  virtual void print_dag_rec(std::ostream &out, const dag_node *dag, bool temp);
+  virtual void print_arcs(std::ostream &out, const dag_arc *arc, bool temp);
 };
 
 
