@@ -22,7 +22,12 @@
 #include "logging.h"
 #include "settings.h"
 #include "types.h"
+#ifdef MRS_ONLY
+#include "mrs-utility.h"
+#else
+#include "pet-config.h"
 #include "utility.h"
+#endif
 
 using namespace mrs;
 

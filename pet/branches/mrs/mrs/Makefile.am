@@ -1,6 +1,45 @@
 # -*- makefile -*-
+#
+# We use the same Makefile, whether the MRS library is used standalone, or
+# inside the PET tree. The appropriate configure script (depending on what is
+# considered top-level) should set the right variable to include only the
+# available binaries and source files.
 
-#include $(top_srcdir)/common/Makefile.common
+# This is always used! 
+AM_CXXFLAGS = -Wall
+ACLOCAL_AMFLAGS = -I m4
+
+bin_PROGRAMS = mrstest mrsconvert
+
+mrstest_SOURCES = \
+	mrstest.cpp \
+	mrs.cpp mrs.h \
+	mrs-printer.cpp mrs-printer.h \
+	mrs-reader.cpp mrs-reader.h \
+  edg.cpp edg.h 
+
+mrsconvert_SOURCES = \
+	mrsconvert.cpp \
+	mrs.cpp mrs.h \
+	mrs-printer.cpp mrs-printer.h \
+	mrs-reader.cpp mrs-reader.h \
+  edg.cpp edg.h 
+
+if MRS_STANDALONE
+
+mrstest_SOURCES += mrs-utility.h mrs-utility.cpp mrs-errors.h
+mrsconvert_SOURCES += mrs-utility.h mrs-utility.cpp mrs-errors.h
+
+else
+# we are compiling within PET
+
+VPATH += $(top_srcdir)/common
+
+mrstest_SOURCES += $(top_srcdir)/common/utility.h \
+  $(top_srcdir)/common/utility.cpp $(top_srcdir)/common/errors.h
+mrsconvert_SOURCES += $(top_srcdir)/common/utility.h \
+  $(top_srcdir)/common/utility.cpp $(top_srcdir)/common/errors.h
+
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
 CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/cheap 
@@ -8,34 +47,6 @@ CXXFLAGS += @CHEAPCPPFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
 DEFS += -DDYNAMIC_SYMBOLS
-
-# Further CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS should be determined by configure.ac
-# if they are system-specific or passed as a command-line option to configure
-# if they are requested by the user (this is the whole point of configure).
-# So, pass the following flags to configure or adapt configure.ac:
-# - superoptimized code and all warnings: "CXXFLAGS=-Wall -O3"
-# - profiling with gprof: "CXXFLAGS=-pg"
-# - coverage testing with gprof: "CXXFLAGS=-fprofile-arcs -ftest-coverage"
-# - not in our gcc yet -fno-eliminate-unused-debug-types:
-#   "CXXFLAGS=-UNDEBUG -D_GLIBCXX_DEBUG"
-# - Is needed in some cases (required by libpvm3.a):
-#   "LDFLAGS=-Wl,--defsym,__ctype_b=0,--defsym,__ctype_tolower=0"
-# See README.
-
-# This is always used! <-> documentation
-AM_CXXFLAGS = -Wall
-
-bin_PROGRAMS = mrstest mrsconvert
-
-#cheap_SOURCES = cheap.cpp cheap.h
-#cheap_LDADD = libcheap.la
-
-mrstest_SOURCES = \
-	mrstest.cpp \
-	mrs.cpp mrs.h \
-	mrs-printer.cpp mrs-printer.h \
-	mrs-reader.cpp mrs-reader.h \
-	$(top_srcdir)/common/utility.cpp
 
 if XML
 mrstest_SOURCES += \
@@ -47,13 +58,6 @@ mrstest_SOURCES += \
 	mrs-states.cpp mrs-states.h
 endif
 
-mrsconvert_SOURCES = \
-	mrsconvert.cpp \
-	mrs.cpp mrs.h \
-	mrs-printer.cpp mrs-printer.h \
-	mrs-reader.cpp mrs-reader.h \
-	$(top_srcdir)/common/utility.cpp
-
 if XML
 mrsconvert_SOURCES += \
 	$(top_srcdir)/cheap/xmlparser.cpp $(top_srcdir)/cheap/xmlparser.h \
@@ -63,7 +67,6 @@ mrsconvert_SOURCES += \
 	mrs-handler.cpp mrs-handler.h \
 	mrs-states.cpp mrs-states.h
 endif
-
 
 #	mrs-tfs.cpp mrs-tfs.h \
 #	mrs-handler.cpp mrs-handler.h \
@@ -82,6 +85,9 @@ endif
 #	$(top_srcdir)/common/mfile.c \
 #	$(top_srcdir)/common/settings.cpp \
 #	$(top_srcdir)/common/types.cpp 
+
+endif 
+
 
 profclean:
 	rm -f *.gcov gmon.out *.bb *.bbg *.da

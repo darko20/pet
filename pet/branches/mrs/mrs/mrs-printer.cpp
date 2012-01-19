@@ -1,37 +1,16 @@
 #include "mrs-printer.h"
+#ifdef MRS_ONLY
+#include "mrs-utility.h"
+#else
+#include "pet-config.h"
 #include "utility.h"
+#endif
 
 #include <sstream>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
 using namespace mrs;
-
-/* PET specific
-extern tVPM *vpm;
-
-void print_mrs_as(char format, dag_node *dag, std::ostream &out) {
-  // if(it->trait() == PCFG_TRAIT) f = instantiate_robust(it);
-  tMRS* mrs = new tMRS(dag);
-  if (mrs->valid()) {
-    tMRS* mapped_mrs = vpm->map_mrs(mrs, true);
-    if (mapped_mrs->valid()) {
-      out << std::endl;
-      switch (format) {
-      case 'n':
-        { MrxMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
-      case 's':
-        { SimpleMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
-      }
-      out << std::endl;
-    }
-    delete mapped_mrs;
-  }
-  delete mrs;
-}
-
-*/
 
 void MrxMrsPrinter::print(tMrs* mrs) {
   *_out << "<mrs>\n";
@@ -270,7 +249,7 @@ void HtmlMrsPrinter::print(tMrs* mrs) {
     if (hcons != mrs->hconss.begin()) *_out << ", ";
     print(*hcons);
   }
-  *_out << " }</td></tr></table\n<script>";
+  *_out << " }</td></tr></table>\n<script>";
   for (std::vector<tHCons*>::iterator hcons = mrs->hconss.begin();
        hcons != mrs->hconss.end(); ++hcons) {
      *_out << "mrsHCONSsForward[\'0";
