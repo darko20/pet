@@ -1,6 +1,11 @@
 /* -*- Mode: C++ -*- */
 
+#ifdef MRS_ONLY
+#include "mrs-errors.h"
+#else
+#include "pet-config.h"
 #include "errors.h"
+#endif
 #include "mrs-reader.h"
 
 #ifdef HAVE_XML
@@ -162,6 +167,7 @@ void SimpleMrsReader::parseEP(tMrs *mrs, std::string &rest) {
       tConstant *val = readCARG(rest);
       if (val != NULL) {//don't record uninstantiated cargs (*TOP* etc)
         ep->parameter_strings[role] = val;
+        ep->roles[role] = val;
       }
     } else { //val should be a var
       tVar *val = readVar(mrs, rest);

@@ -78,8 +78,8 @@ class tBaseEp {
 
 class tEp : public tBaseEp {
   public:
-    tEp() {}
-    tEp(class tBaseMrs *mrs) : tBaseEp(mrs) {}
+    tEp() : cfrom(-1), cto(-1) {}
+    tEp(class tBaseMrs *mrs) : tBaseEp(mrs), cfrom(-1), cto(-1) {}
     
     std::map<std::string,tValue*> parameter_strings;
     tVar* label;

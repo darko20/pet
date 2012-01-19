@@ -1,5 +1,9 @@
 #include "mrs.h"
+#ifdef MRS_ONLY
+#include "mrs-errors.h"
+#else
 #include "errors.h"
+#endif
 #include <sstream>
 
 namespace mrs {
