@@ -3,11 +3,12 @@
 #ifndef _MRS_READER_H_
 #define _MRS_READER_H_
 
-#include "pet-config.h"
-
 #include <string>
 #include <set>
 #include "mrs.h"
+#ifndef MRS_ONLY
+#include "pet-config.h"
+#endif
 
 namespace mrs {
 

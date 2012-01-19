@@ -786,6 +786,10 @@ if test "$mmapalloc" = "yes" ; then
   AC_FUNC_MMAP
 fi
 
+#--------------------------------------
+# for allowing the separation of the MRS library from the general PET code
+#-------------------------------------
+AM_CONDITIONAL(MRS_STANDALONE, [false])
 
 # --------------------------------------------------------------------
 # Summary of optional packages/features

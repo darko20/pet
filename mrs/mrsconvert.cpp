@@ -1,13 +1,22 @@
 #include "mrs-reader.h"
 #include "mrs-printer.h"
+#ifdef MRS_ONLY
+#include "mrs-errors.h"
+#else
+#include "pet-config.h"
+#include "errors.h"
+#endif
+#ifdef HAVE_XML
 #include "mrs-handler.h"
 #include <xercesc/framework/MemBufInputSource.hpp>
 #include <xercesc/framework/LocalFileInputSource.hpp>
 #include <xercesc/util/XMLString.hpp>
 #include "unicode.h"
 XERCES_CPP_NAMESPACE_USE
-#include "errors.h"
+#endif
 #include <iostream>
+#include <cstring>
+#include <cstdlib>
 
 extern class EncodingConverter *Conv;
 
@@ -22,8 +31,16 @@ int main(int argc, char **argv) {
       reader = new mrs::SimpleMrsReader();
       printer = new mrs::MrxMrsPrinter(cout);
     } else if (strcmp(argv[1], "-x2s") == 0) {
+#ifdef HAVE_XML
+      //reader = new mrs::XmlMrsReader();
       reader = new mrs::XmlMrsReader();
       printer = new mrs::SimpleMrsPrinter(cout);
+      xml_initialize();
+      Conv = new EncodingConverter("utf8");
+#else
+      cerr << "Not compiled with XML, exiting." << endl;
+      exit(1);
+#endif
     } else {
       cerr << "Unknown conversion." << endl;
       exit(1);
@@ -34,19 +51,6 @@ int main(int argc, char **argv) {
       printer = new mrs::MrxMrsPrinter(cout);
   }
   
-  xml_initialize();
-  //  XMLPlatformUtils::Initialize();
-  Conv = new EncodingConverter("utf8");
-  //initialize_encoding_converter("utf8");
-  //mrs::SimpleMrsPrinter printer(cout);
-  //MrsHandler reader(false);
-  //mrs::XmlMrsReader reader;
-  // XMLCh * XMLFilename = XMLString::transcode("/tmp/mrs");
-  // LocalFileInputSource inputfile(XMLFilename);
-  // if (parse_file(inputfile, &reader)
-  //     && (! reader.error())) {
-  //   printer.print(reader.mrss().front());
-  // }
   string line;
   do {
     getline(cin, line);
@@ -62,7 +66,9 @@ int main(int argc, char **argv) {
     }
   } while (!cin.eof());
   
+  #ifdef HAVE_XML
   delete Conv;
+  #endif
   delete printer;
   delete reader;
   return 0;
