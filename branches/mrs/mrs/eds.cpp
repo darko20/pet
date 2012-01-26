@@ -1,5 +1,5 @@
 /* ex: set expandtab ts=2 sw=2: */
-#include "edg.h"
+#include "eds.h"
 #ifdef MRS_ONLY
 #include "mrs-errors.h"
 #else
@@ -10,21 +10,21 @@
 
 namespace mrs {
 
-void tEdgNode::add_edge(tEdgEdge *e) {
+void tEdsNode::add_edge(tEdsEdge *e) {
   outedges.push_back(e);
 }
 
-tEdgNode::~tEdgNode() {
-  for(std::vector<tEdgEdge *>::iterator it = outedges.begin();
+tEdsNode::~tEdsNode() {
+  for(std::vector<tEdsEdge *>::iterator it = outedges.begin();
       it != outedges.end(); ++it)
     delete *it;
 }
 
-tEdg::tEdg() { 
+tEds::tEds():_counter(1) { 
 
 }
 
-tEdg::tEdg(tMrs *mrs) {
+tEds::tEds(tMrs *mrs):_counter(1) {
 
   // temporary mappings to find the correct target node
   typedef std::multimap<std::string, int>::iterator MmSIit;
@@ -50,8 +50,8 @@ tEdg::tEdg(tMrs *mrs) {
     }
 
     //create node and set link 
-    tEdgNode *node 
-      = new tEdgNode(pred_name, dvar_name, handle_name, ep->cfrom, ep->cto);
+    tEdsNode *node 
+      = new tEdsNode(pred_name, dvar_name, handle_name, ep->cfrom, ep->cto);
     if (!(ep->link).empty())
       node->link = ep->link;
     else {
@@ -72,16 +72,22 @@ tEdg::tEdg(tMrs *mrs) {
       if (carg_rel(rit->first)) {
         _nodes.back()->carg = dynamic_cast<tConstant *>(rit->second)->value;
       } else if (relevant_rel(rit->first)) {
-        _nodes.back()->add_edge(new tEdgEdge(-1, rit->first, 
+        _nodes.back()->add_edge(new tEdsEdge(-1, rit->first, 
                                 var_name(dynamic_cast<tVar *>(rit->second))));
+      }
+    }
+    if (_nodes.back()->quantifier_node()) {
+      if(ep->roles.count("ARG0") > 0) {
+        _nodes.back()->add_edge(new tEdsEdge(-1, "BV", 
+          var_name(dynamic_cast<tVar *>(ep->roles["ARG0"]))));
       }
     }
   }
 
   // fix the edges to point to the representative node
-  for (std::vector<tEdgNode *>::iterator nit = _nodes.begin();
+  for (std::vector<tEdsNode *>::iterator nit = _nodes.begin();
         nit != _nodes.end(); ++nit) {
-    for (std::vector<tEdgEdge *>::iterator eit = (*nit)->outedges.begin();
+    for (std::vector<tEdsEdge *>::iterator eit = (*nit)->outedges.begin();
           eit != (*nit)->outedges.end(); ++eit) {
       if (representatives.count((*eit)->target_name) == 1) {
         //we've looked this one up before, just set the target
@@ -134,33 +140,37 @@ tEdg::tEdg(tMrs *mrs) {
   }
 }
 
-tEdg::~tEdg() {
+tEds::~tEds() {
   for(std::map<std::string, tVar *>::iterator it = _vars_map.begin();
       it != _vars_map.end(); ++it) 
     delete it->second;
 
-  for(std::vector<tEdgNode *>::iterator it = _nodes.begin();
+  for(std::vector<tEdsNode *>::iterator it = _nodes.begin();
       it != _nodes.end(); ++it)
     delete *it;
 }
 
-void tEdg::print_edg() {
+void tEds::print_eds() {
   std::cout << "{" << top << ":" << std::endl;
-  for (std::vector<tEdgNode *>::iterator it = _nodes.begin();
+  for (std::vector<tEdsNode *>::iterator it = _nodes.begin();
     it != _nodes.end(); ++it) {
-      if (!(*it)->quantifier_node() && (*it)->outedges.empty()) continue;
+//      if (!(*it)->quantifier_node() && (*it)->outedges.empty()) continue;
       std::cout << " " << (*it)->dvar_name << ":" << (*it)->pred_name
         << (*it)->link << "[";
-      for (std::vector<tEdgEdge *>::iterator eit = (*it)->outedges.begin();
+      for (std::vector<tEdsEdge *>::iterator eit = (*it)->outedges.begin();
         eit != (*it)->outedges.end(); ++eit) {
-          if ((*eit)->target == -1) continue;
-          if (eit != (*it)->outedges.begin()) 
-            std::cout << ",";
+        if (eit != (*it)->outedges.begin()) 
+          std::cout << ", ";
+        if ((*eit)->target == -1) {//continue;
+          std::cout << (*eit)->edge_name << " "
+            << (*eit)->target_name;
+        } else {
           std::cout << (*eit)->edge_name << " " 
-            << _nodes[(*eit)->target]->dvar_name << ":"
-            << _nodes[(*eit)->target]->pred_name;
-          if (!_nodes[(*eit)->target]->carg.empty())
-            std::cout << "(" << _nodes[(*eit)->target]->carg << ")";
+            << _nodes[(*eit)->target]->dvar_name; 
+            //<< ":" << _nodes[(*eit)->target]->pred_name;
+          //if (!_nodes[(*eit)->target]->carg.empty())
+          //  std::cout << "(" << _nodes[(*eit)->target]->carg << ")";
+        }
       }
       std::cout << "]" << std::endl;
   }
@@ -168,7 +178,12 @@ void tEdg::print_edg() {
   std::cout << "}" << std::endl;
 }
 
-void tEdg::read_edg(std::string input) {
+void tEds::read_eds(std::string input) {
+
+  // temporary mappings to find the correct target node
+  typedef std::multimap<std::string, int>::iterator MmSIit;
+  std::multimap<std::string, int> dvar2nodes;
+  std::map<std::string, int> representatives; 
 
   std::string rest = input;
 
@@ -178,8 +193,8 @@ void tEdg::read_edg(std::string input) {
   if (rest.at(0) == '|') //skip over fragment/cyclic markers for now
     rest.erase(0,1);
   std::string var = parseVar(rest);
-  if (!var.empty()) {
-    read_node(var, rest);
+  while (!var.empty()) {
+    dvar2nodes.insert(std::pair<std::string,int>(var, read_node(var, rest)));
     if (rest.at(0) == '|') //skip over fragment/cyclic markers for now
       rest.erase(0,1);
     var = parseVar(rest);
@@ -187,14 +202,45 @@ void tEdg::read_edg(std::string input) {
   parseChar('}', rest);
   if (!rest.empty())
     throw tError("ignoring trailing data: \"" + rest + "\"");
+  
+  // fix the edges to point to the representative node
+  for (std::vector<tEdsNode *>::iterator nit = _nodes.begin();
+        nit != _nodes.end(); ++nit) {
+    for (std::vector<tEdsEdge *>::iterator eit = (*nit)->outedges.begin();
+          eit != (*nit)->outedges.end(); ++eit) {
+      if (representatives.count((*eit)->target_name) == 1) {
+        //we've looked this one up before, just set the target
+        (*eit)->target = representatives[(*eit)->target_name];
+      } else {
+        if (dvar2nodes.count((*eit)->target_name) > 0) {
+          //instantiated arg0
+          std::set<int> candidates;
+          std::pair<MmSIit,MmSIit> spanends 
+            = dvar2nodes.equal_range((*eit)->target_name);
+          for (MmSIit cit = spanends.first; cit != spanends.second; ++cit) {
+            if (!_nodes[cit->second]->quantifier_node()) 
+              candidates.insert(cit->second);
+          }
+          if (candidates.size() == 1) {
+            (*eit)->target = *(candidates.begin());
+            representatives[(*eit)->target_name] = (*eit)->target;
+          } else {
+            int t = select_candidate(candidates);
+            (*eit)->target = t;
+            representatives[(*eit)->target_name] = t;
+          }
+        }
+      }
+    }
+  }
 }
 
-void tEdg::removeWhitespace(std::string &rest) {
+void tEds::removeWhitespace(std::string &rest) {
   while (!rest.empty() && isspace(rest.at(0)))
     rest.erase(0,1);
 }
 
-void tEdg::parseChar(char x, std::string &rest) {
+void tEds::parseChar(char x, std::string &rest) {
   removeWhitespace(rest);
   if (!rest.empty() && rest.at(0) == x) {
     rest.erase(0,1);
@@ -207,11 +253,11 @@ void tEdg::parseChar(char x, std::string &rest) {
   }
 }
 
-std::string tEdg::parseVar(std::string &rest) {
+std::string tEds::parseVar(std::string &rest) {
   tVar *var;
   std::string vtype, vidstring, varname;
   int vid;
-  if (isalpha(rest.at(0))) {
+  if (isalpha(rest.at(0)) || rest.at(0) == '_') {
     vtype = rest.substr(0,1);
     rest.erase(0,1);
     while(!rest.empty() && !isspace(rest.at(0)) && !isdigit(rest.at(0))) {
@@ -239,9 +285,9 @@ std::string tEdg::parseVar(std::string &rest) {
   return varname;
 }
 
-void tEdg::read_node(std::string id, std::string &rest) {
+int tEds::read_node(std::string id, std::string &rest) {
   std::string predname, span;
-  int to, from;
+  int to, from, nodenumber;
   parseChar(':', rest);
   while(!rest.empty() && !isspace(rest.at(0)) && rest.at(0) != '<' 
         && rest.at(0) != '[') {
@@ -271,9 +317,10 @@ void tEdg::read_node(std::string id, std::string &rest) {
     to = -1;
     from = -1;
   }
-  tEdgNode *node = new tEdgNode(predname, id, "", from, to);
+  tEdsNode *node = new tEdsNode(predname, id, "", from, to);
   node->link = span;
   _nodes.push_back(node);
+  nodenumber = _nodes.size()-1;
   removeWhitespace(rest);
   parseChar('[', rest);
   while (rest.at(0) != ']') {
@@ -284,22 +331,26 @@ void tEdg::read_node(std::string id, std::string &rest) {
     }
     removeWhitespace(rest);
     targetvar = parseVar(rest);
-    parseChar(':', rest);
-    while(!rest.empty() && !isspace(rest.at(0)) && rest.at(0) != '(' 
-          && rest.at(0) != ']' && rest.at(0) != ',') {
-      targetname += rest.at(0);
-      rest.erase(0,1);
-    }
-    if (rest.at(0) == '(') { //carg
-      while(!rest.empty() && rest.at(0) != ')') {
-        targetcarg += rest.at(0);
+    if (rest.at(0) == ':') {
+      parseChar(':', rest);
+      while(!rest.empty() && !isspace(rest.at(0)) && rest.at(0) != '(' 
+            && rest.at(0) != ']' && rest.at(0) != ',') {
+        targetname += rest.at(0);
         rest.erase(0,1);
       }
-      if (rest.at(0) == ')') 
-        rest.erase(0,1);
-      else
-        throw tError("Unterminated carg at \"" + rest + "\".");
+      if (rest.at(0) == '(') { //carg
+        while(!rest.empty() && rest.at(0) != ')') {
+          targetcarg += rest.at(0);
+          rest.erase(0,1);
+        }
+        if (rest.at(0) == ')') 
+          rest.erase(0,1);
+        else
+          throw tError("Unterminated carg at \"" + rest + "\".");
+      }
     }
+    removeWhitespace(rest);
+    _nodes.back()->add_edge(new tEdsEdge(-1, reln, targetvar));
     // add edge. add target node?
 //    int targetnode = find_node(targetvar, targetname);
 
@@ -308,15 +359,16 @@ void tEdg::read_node(std::string id, std::string &rest) {
     removeWhitespace(rest);
   }
   parseChar(']', rest);
+  return nodenumber;
 }
 
-std::string tEdg::var_name(tVar *v) {
+std::string tEds::var_name(tVar *v) {
   std::ostringstream name;
   name << v->type << v->id;
   return name.str();
 }
 
-int tEdg::select_candidate(std::set<int> candidates) {
+int tEds::select_candidate(std::set<int> candidates) {
   for(std::set<int>::iterator it = candidates.begin(); 
       it != candidates.end(); ++it) {
     if (_nodes[*it]->quantifier_node())
@@ -336,7 +388,7 @@ int tEdg::select_candidate(std::set<int> candidates) {
     for(std::set<int>::iterator iit = candidates.begin();
         iit != candidates.end(); ++iit) {
       if (*iit == *it) continue;
-      for (std::vector<tEdgEdge *>::iterator eit 
+      for (std::vector<tEdsEdge *>::iterator eit 
             = _nodes[*iit]->outedges.begin();
             eit != _nodes[*iit]->outedges.end(); ++eit) {
         if ((*eit)->target_name == _nodes[*it]->dvar_name)
@@ -356,7 +408,7 @@ int tEdg::select_candidate(std::set<int> candidates) {
 
 //replace these placeholders with something more flexible
 
-std::string tEdg::pred_normalize(std::string pred) {
+std::string tEds::pred_normalize(std::string pred) {
   std::string normedpred = pred;
   if (normedpred.length() >= 4 && 
     normedpred.compare(normedpred.length()-4, 4, "_rel") == 0)
@@ -364,34 +416,38 @@ std::string tEdg::pred_normalize(std::string pred) {
   return normedpred;
 }
 
-tVar *tEdg::get_id(tEp *ep) {
-  if (ep->roles.count("ARG0") == 1)
+tVar *tEds::get_id(tEp *ep) {
+  if (ep->pred.find("_q") != std::string::npos) {//treat quants differently
+    tVar *qvar = new tVar(_counter, "_");
+    return qvar;
+  } else if (ep->roles.count("ARG0") == 1)
     return dynamic_cast<tVar *>(ep->roles["ARG0"]);
   else
     return NULL;
 }
 
-bool tEdg::carg_rel(std::string role) {
+bool tEds::carg_rel(std::string role) {
   return role.compare("CARG") == 0;
 }
 
-bool tEdg::relevant_rel(std::string role) {
+bool tEds::relevant_rel(std::string role) {
   return role.compare("ARG") == 0 
     || role.compare("ARG1") == 0
     || role.compare("ARG2") == 0
     || role.compare("ARG3") == 0
     || role.compare("ARG4") == 0
+    || role.compare("BV") == 0
     || role.compare("L-INDEX") == 0
     || role.compare("R-INDEX") == 0
     || role.compare("L-HNDL") == 0
     || role.compare("R-HNDL") == 0;
 }
 
-bool tEdg::handle_var(std::string var) {
+bool tEds::handle_var(std::string var) {
   return var.at(0) == 'h';
 }
 
-bool tEdgNode::quantifier_node() {
+bool tEdsNode::quantifier_node() {
   return pred_name.find("_q") != std::string::npos;
 }
 
