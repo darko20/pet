@@ -1,5 +1,6 @@
 #include "mrs-reader.h"
 #include "mrs-printer.h"
+#include "eds.h"
 #ifdef MRS_ONLY
 #include "mrs-errors.h"
 #else
@@ -32,7 +33,6 @@ int main(int argc, char **argv) {
       printer = new mrs::MrxMrsPrinter(cout);
     } else if (strcmp(argv[1], "-x2s") == 0) {
 #ifdef HAVE_XML
-      //reader = new mrs::XmlMrsReader();
       reader = new mrs::XmlMrsReader();
       printer = new mrs::SimpleMrsPrinter(cout);
       xml_initialize();
@@ -58,6 +58,8 @@ int main(int argc, char **argv) {
       try {
   	mrs::tMrs *mrs = reader->readMrs(line);
    	printer->print(mrs);
+//    mrs::tEds *eds = new mrs::tEds(mrs);
+//    eds->print_eds();
       }
       catch (tError &e) {
    	cerr << "Failed to parse with error: \"" << e.getMessage() << "\""

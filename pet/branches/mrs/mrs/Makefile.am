@@ -16,14 +16,14 @@ mrstest_SOURCES = \
 	mrs.cpp mrs.h \
 	mrs-printer.cpp mrs-printer.h \
 	mrs-reader.cpp mrs-reader.h \
-  edg.cpp edg.h 
+  eds.cpp eds.h 
 
 mrsconvert_SOURCES = \
 	mrsconvert.cpp \
 	mrs.cpp mrs.h \
 	mrs-printer.cpp mrs-printer.h \
 	mrs-reader.cpp mrs-reader.h \
-  edg.cpp edg.h 
+  eds.cpp eds.h 
 
 if MRS_STANDALONE
 
