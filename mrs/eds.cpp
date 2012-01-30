@@ -34,19 +34,22 @@ tEds::tEds(tMrs *mrs):_counter(1) {
 
   // EDG top == mrs index?
   top = var_name(mrs->index);
-  _vars_map[top] = new tVar(*mrs->index);
 
   // add an EDG node for each EP
   for (std::vector<tBaseEp *>::iterator it = mrs->eps.begin();
         it != mrs->eps.end(); ++it) {
+    std::string dvar_name;
+    tVar *dvar = NULL;
     tEp *ep = dynamic_cast<tEp*>(*it);
     std::string pred_name = pred_normalize(ep->pred);
     std::string handle_name = var_name(ep->label);
-    tVar *dvar = get_id(ep);
-    std::string dvar_name = var_name(dvar);
-    // copy the relevant vars to a central map
-    if (_vars_map.count(dvar_name) == 0) {
-      _vars_map[dvar_name] = new tVar(*dvar);
+    if (ep->pred.find("_q") != std::string::npos) {//treat quants differently
+      std::ostringstream name;
+      name << "_" << _counter;
+      dvar_name = name.str();
+    } else {
+      dvar = get_id(ep);
+      dvar_name = var_name(dvar);
     }
 
     //create node and set link 
@@ -59,6 +62,10 @@ tEds::tEds(tMrs *mrs):_counter(1) {
       lnkstr << "<" << node->cfrom << ":" << node->cto << ">";
       node->link = lnkstr.str();
     }
+    if (dvar != NULL) {
+    //copy var properties to node
+    }
+    // add to map instead, checking var hasn't been used before
     _nodes.push_back(node);
     
     // record which node(s) are attached to which arg0s (dvars) and handles
