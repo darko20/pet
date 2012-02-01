@@ -10,11 +10,11 @@
 
 namespace mrs {
 
-void tEdsNode::add_edge(tEdsEdge *e) {
+void tEds::tEdsNode::add_edge(tEdsEdge *e) {
   outedges.push_back(e);
 }
 
-tEdsNode::~tEdsNode() {
+tEds::tEdsNode::~tEdsNode() {
   for(std::vector<tEdsEdge *>::iterator it = outedges.begin();
       it != outedges.end(); ++it)
     delete *it;
@@ -43,9 +43,9 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     tEp *ep = dynamic_cast<tEp*>(*it);
     std::string pred_name = pred_normalize(ep->pred);
     std::string handle_name = var_name(ep->label);
-    if (ep->pred.find("_q") != std::string::npos) {//treat quants differently
+    if (ep->quantifier_ep()) {//treat quants differently
       std::ostringstream name;
-      name << "_" << _counter;
+      name << "_" << _counter++;
       dvar_name = name.str();
     } else {
       dvar = get_id(ep);
@@ -62,9 +62,8 @@ tEds::tEds(tMrs *mrs):_counter(1) {
       lnkstr << "<" << node->cfrom << ":" << node->cto << ">";
       node->link = lnkstr.str();
     }
-    if (dvar != NULL) {
-    //copy var properties to node
-    }
+    if (ep->quantifier_ep())
+      node->quantifier = true;
     // add to map instead, checking var hasn't been used before
     _nodes.push_back(node);
     
@@ -72,6 +71,23 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     dvar2nodes.insert(std::pair<std::string,int>(dvar_name, _nodes.size()-1));
     handle2nodes.insert(std::pair<std::string,int>(handle_name, 
                           _nodes.size()-1));
+    if (linkToNodes.count(node->link) == 0)
+      linkToNodes[node->link] = std::vector<int>();
+    linkToNodes[node->link].push_back(_nodes.size()-1);
+    if (dvar != NULL) {
+    //copy var properties to node
+      for (std::map<std::string,std::string>::iterator prop
+        = dvar->properties.begin(); prop != dvar->properties.end(); ++prop) {
+        node->properties[prop->first] = prop->second;
+        Triple pt;
+        pt.first = node->link;
+        pt.second = std::pair<std::string,std::string>(prop->first, prop->second);
+        propTriples.push_back(pt);
+        if (linkToPropTriples.count(node->link) == 0)
+          linkToPropTriples[node->link] = std::vector<int>();
+        linkToPropTriples[node->link].push_back(propTriples.size()-1);
+      }
+    }
     
     // add relevant roles as edges (or cargs)
     for (std::map<std::string, tValue *>::iterator rit = ep->roles.begin();
@@ -83,7 +99,7 @@ tEds::tEds(tMrs *mrs):_counter(1) {
                                 var_name(dynamic_cast<tVar *>(rit->second))));
       }
     }
-    if (_nodes.back()->quantifier_node()) {
+    if (_nodes.back()->quantifier) {
       if(ep->roles.count("ARG0") > 0) {
         _nodes.back()->add_edge(new tEdsEdge(-1, "BV", 
           var_name(dynamic_cast<tVar *>(ep->roles["ARG0"]))));
@@ -96,9 +112,17 @@ tEds::tEds(tMrs *mrs):_counter(1) {
         nit != _nodes.end(); ++nit) {
     for (std::vector<tEdsEdge *>::iterator eit = (*nit)->outedges.begin();
           eit != (*nit)->outedges.end(); ++eit) {
+      Triple at;
+      at.first = (*nit)->link;
       if (representatives.count((*eit)->target_name) == 1) {
         //we've looked this one up before, just set the target
         (*eit)->target = representatives[(*eit)->target_name];
+        at.second = PSS((*eit)->edge_name, 
+          _nodes[representatives[(*eit)->target_name]]->link);
+        argTriples.push_back(at);
+        if (linkToArgTriples.count((*nit)->link) == 0)
+          linkToArgTriples[(*nit)->link] = std::vector<int>();
+        linkToArgTriples[(*nit)->link].push_back(argTriples.size()-1);
       } else {
         if (dvar2nodes.count((*eit)->target_name) > 0) {
           //instantiated arg0
@@ -112,10 +136,22 @@ tEds::tEds(tMrs *mrs):_counter(1) {
           if (candidates.size() == 1) {
             (*eit)->target = *(candidates.begin());
             representatives[(*eit)->target_name] = (*eit)->target;
+            at.second = PSS((*eit)->edge_name, 
+              _nodes[representatives[(*eit)->target_name]]->link);
+            argTriples.push_back(at);
+            if (linkToArgTriples.count((*nit)->link) == 0)
+              linkToArgTriples[(*nit)->link] = std::vector<int>();
+            linkToArgTriples[(*nit)->link].push_back(argTriples.size()-1);
           } else {
             int t = select_candidate(candidates);
             (*eit)->target = t;
             representatives[(*eit)->target_name] = t;
+            at.second = PSS((*eit)->edge_name, 
+              _nodes[representatives[(*eit)->target_name]]->link);
+            argTriples.push_back(at);
+            if (linkToArgTriples.count((*nit)->link) == 0)
+              linkToArgTriples[(*nit)->link] = std::vector<int>();
+            linkToArgTriples[(*nit)->link].push_back(argTriples.size()-1);
           }
         } else if (handle_var((*eit)->target_name)) {
           //trace handle through
@@ -136,10 +172,22 @@ tEds::tEds(tMrs *mrs):_counter(1) {
           if (candidates.size() == 1) {
             (*eit)->target = *(candidates.begin());
             representatives[(*eit)->target_name] = (*eit)->target;
+            at.second = PSS((*eit)->edge_name, 
+              _nodes[representatives[(*eit)->target_name]]->link);
+            argTriples.push_back(at);
+            if (linkToArgTriples.count((*nit)->link) == 0)
+              linkToArgTriples[(*nit)->link] = std::vector<int>();
+            linkToArgTriples[(*nit)->link].push_back(argTriples.size()-1);
           } else {
             int t = select_candidate(candidates);
             (*eit)->target = t;
             representatives[(*eit)->target_name] = t;
+            at.second = PSS((*eit)->edge_name, 
+              _nodes[representatives[(*eit)->target_name]]->link);
+            argTriples.push_back(at);
+            if (linkToArgTriples.count((*nit)->link) == 0)
+              linkToArgTriples[(*nit)->link] = std::vector<int>();
+            linkToArgTriples[(*nit)->link].push_back(argTriples.size()-1);
           }
         } //else leave target as -1 -> no instantiated referrant
       }
@@ -183,6 +231,28 @@ void tEds::print_eds() {
   }
 
   std::cout << "}" << std::endl;
+}
+
+void tEds::print_triples() {
+  std::cout << "R " << top << std::endl;
+  for (std::map<std::string, std::vector<int> >::iterator lint 
+    = linkToNodes.begin(); lint != linkToNodes.end(); ++lint) {
+    for (std::vector<int>::iterator nint = lint->second.begin(); 
+      nint != lint->second.end(); ++nint) {
+      std::cout << "N " << _nodes[*nint]->link << " PRED \"" 
+        << _nodes[*nint]->pred_name << "\"" << std::endl;
+    }
+  }
+  for (std::vector<Triple>::iterator aint = argTriples.begin();
+    aint != argTriples.end(); ++aint) {
+    std::cout << "A " << aint->first << " " << aint->second.first
+      << " " << aint->second.second << std::endl;
+  }
+  for (std::vector<Triple>::iterator pint = propTriples.begin();
+    pint != propTriples.end(); ++pint) {
+    std::cout << "P " << pint->first << " " << pint->second.first
+      << " " << pint->second.second << std::endl;
+  }
 }
 
 void tEds::read_eds(std::string input) {
@@ -424,13 +494,18 @@ std::string tEds::pred_normalize(std::string pred) {
 }
 
 tVar *tEds::get_id(tEp *ep) {
-  if (ep->pred.find("_q") != std::string::npos) {//treat quants differently
-    tVar *qvar = new tVar(_counter, "_");
-    return qvar;
-  } else if (ep->roles.count("ARG0") == 1)
+  if (ep->roles.count("ARG0") == 1)
     return dynamic_cast<tVar *>(ep->roles["ARG0"]);
   else
     return NULL;
+}
+
+bool tEds::quantifier_pred(std::string pred) {
+  if (pred.find("_q") != std::string::npos)
+    return true;
+  if (pred.compare("quant") == 0)
+    return true;
+  return false;
 }
 
 bool tEds::carg_rel(std::string role) {
@@ -454,8 +529,8 @@ bool tEds::handle_var(std::string var) {
   return var.at(0) == 'h';
 }
 
-bool tEdsNode::quantifier_node() {
-  return pred_name.find("_q") != std::string::npos;
+bool tEds::tEdsNode::quantifier_node() {
+  return quantifier;
 }
 
 } // namespace mrs
