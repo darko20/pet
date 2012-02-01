@@ -7,25 +7,24 @@
 #include <map>
 #include <string>
 #include <set>
+#include <sstream>
 
 #include "mrs.h"
 
 namespace mrs {
 
 /* Elementary Dependency Graph (EDG) class */
-
 class tEds {
   //internal classes: edges and nodes
   class tEdsEdge {
     friend class tEds;
 
-    int target;
     std::string edge_name;
-    std::string target_name;
+    std::string target;
 
-    tEdsEdge(): target(-1) {};
-    tEdsEdge(int t, std::string en, std::string tn) : target(t), 
-      edge_name(en), target_name(tn) {};
+    tEdsEdge(){};
+    tEdsEdge(std::string en, std::string tn) : 
+      edge_name(en), target(tn) {};
   };
 
   class tEdsNode {
@@ -39,14 +38,15 @@ class tEds {
 
     tEdsNode() : quantifier(false) {};
     tEdsNode(std::string pred, std::string dvar, std::string handle, int from, 
-      int to) : pred_name(pred), dvar_name(dvar), cfrom(from), cto(to), 
-      handle_name(handle), quantifier(false) {};
+      int to) : pred_name(pred), dvar_name(dvar), handle_name(handle), 
+      cfrom(from), cto(to),quantifier(false) {};
+    tEdsNode(tEdsNode &other);
     ~tEdsNode();
     void add_edge(tEdsEdge *edge);
-    bool quantifier_node();
   };
 
   public:
+    typedef std::multimap<std::string, tEdsNode *>::iterator MmSNit;
     tEds():_counter(1) {};
     tEds(tMrs *mrs);
     ~tEds();
@@ -59,7 +59,7 @@ class tEds {
 
   private:
     int _counter; //for new quant vars
-    std::vector<tEdsNode *> _nodes;
+    std::multimap<std::string, tEdsNode *> _nodes;
 
     void removeWhitespace(std::string &rest);
     void parseChar(char x, std::string &rest);
@@ -70,18 +70,12 @@ class tEds {
     tVar *get_id(tEp *ep);
     bool carg_rel(std::string role);
     bool relevant_rel(std::string role);
-    int select_candidate(std::set<int> candidates);
+    void select_candidate(std::string label);
     bool handle_var(std::string var);
     bool quantifier_pred(std::string);
 
-    typedef std::pair<std::string, std::pair<std::string, std::string> > Triple;
-    typedef std::pair<std::string, std::string> PSS;
-    std::vector<Triple> argTriples;
-    std::vector<Triple> propTriples;
-    std::map<std::string, std::vector<int> > linkToArgTriples;
-    std::map<std::string, std::vector<int> > linkToPropTriples;
-    std::map<std::string, std::vector<int> > linkToNodes;
 };
+
 
 } //namespace mrs
 

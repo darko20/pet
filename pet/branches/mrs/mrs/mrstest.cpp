@@ -36,12 +36,13 @@ int main(int argc, char **argv) {
   while (!cin.eof()) {
     if (!line.empty()) {  
       try {
-//        mrs::tMrs *mrs = reader.readMrs(line);
-//        mrs::tEds *eds = new mrs::tEds(mrs);
+        mrs::tMrs *mrs = reader.readMrs(line);
+        mrs::tEds *eds = new mrs::tEds(mrs);
 //        printer.print(mrs);
-        mrs::tEds *eds = new mrs::tEds();
-        eds->read_eds(line);
+//        mrs::tEds *eds = new mrs::tEds();
+//        eds->read_eds(line);
         eds->print_eds();
+        eds->print_triples();
       }
       catch (tError &e) {
         cerr << "Failed to parse with error: \"" << e.getMessage() << "\"" 
