@@ -12,62 +12,54 @@
 
 namespace mrs {
 
-class tEds; //forward declaration
+/* Elementary Dependency Graph (EDG) class */
 
-class tEdsEdge {
-  friend class tEds;
+class tEds {
+  //internal classes: edges and nodes
+  class tEdsEdge {
+    friend class tEds;
 
-  public:
     int target;
     std::string edge_name;
+    std::string target_name;
 
     tEdsEdge(): target(-1) {};
     tEdsEdge(int t, std::string en, std::string tn) : target(t), 
       edge_name(en), target_name(tn) {};
-  private:
-    std::string target_name;
-};
+  };
 
-class tEdsNode {
-  friend class tEds;
+  class tEdsNode {
+    friend class tEds;
 
-  public:
-    std::string pred_name, dvar_name, link, carg;
+    std::string pred_name, dvar_name, link, carg, handle_name; 
     int cfrom, cto;
+    bool quantifier;
     std::vector<tEdsEdge *> outedges;
+    std::map<std::string, std::string> properties;
 
-    tEdsNode() {};
+    tEdsNode() : quantifier(false) {};
     tEdsNode(std::string pred, std::string dvar, std::string handle, int from, 
-      int to) : pred_name(pred), dvar_name(dvar), 
-      cfrom(from), cto(to), handle_name(handle) {};
+      int to) : pred_name(pred), dvar_name(dvar), cfrom(from), cto(to), 
+      handle_name(handle), quantifier(false) {};
     ~tEdsNode();
-      
     void add_edge(tEdsEdge *edge);
     bool quantifier_node();
-//    remove_edge();
-  private:
-    std::string handle_name; //do we need to expose the handle?
+  };
 
-};
-
-/* Elementary Dependency Graph (EDG) class */
-
-class tEds {
   public:
-    tEds();
+    tEds():_counter(1) {};
     tEds(tMrs *mrs);
     ~tEds();
 
 		void read_eds(std::string input);
 		void print_eds();
-		void print_triples() {};
+		void print_triples();
 
     std::string top;
 
   private:
     int _counter; //for new quant vars
     std::vector<tEdsNode *> _nodes;
-    std::map<std::string, tVar*> _vars_map;
 
     void removeWhitespace(std::string &rest);
     void parseChar(char x, std::string &rest);
@@ -80,6 +72,15 @@ class tEds {
     bool relevant_rel(std::string role);
     int select_candidate(std::set<int> candidates);
     bool handle_var(std::string var);
+    bool quantifier_pred(std::string);
+
+    typedef std::pair<std::string, std::pair<std::string, std::string> > Triple;
+    typedef std::pair<std::string, std::string> PSS;
+    std::vector<Triple> argTriples;
+    std::vector<Triple> propTriples;
+    std::map<std::string, std::vector<int> > linkToArgTriples;
+    std::map<std::string, std::vector<int> > linkToPropTriples;
+    std::map<std::string, std::vector<int> > linkToNodes;
 };
 
 } //namespace mrs
