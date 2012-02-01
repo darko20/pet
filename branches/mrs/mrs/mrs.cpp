@@ -89,6 +89,12 @@ void tBaseEp::register_constant(tConstant *c) {
   _constants.push_back(c);
 }
 
+bool tBaseEp::quantifier_ep() {
+  if (roles.count("BODY") > 0)
+    return true;
+  return false;
+}
+
 tConstant* tBaseEp::request_constant(std::string cvalue) {
   tConstant* c = new tConstant(cvalue);
   register_constant(c);
