@@ -64,6 +64,7 @@ class tBaseEp {
   
     void register_constant(tConstant *c);
     tConstant* request_constant(std::string cvalue);
+    bool quantifier_ep();
   
     std::string pred;
     std::map<std::string, tValue*> roles;
