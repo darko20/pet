@@ -9,10 +9,17 @@
 AM_CXXFLAGS = -Wall
 ACLOCAL_AMFLAGS = -I m4
 
-bin_PROGRAMS = mrstest mrsconvert
+bin_PROGRAMS = mrstest mrsconvert edmcompare
 
 mrstest_SOURCES = \
 	mrstest.cpp \
+	mrs.cpp mrs.h \
+	mrs-printer.cpp mrs-printer.h \
+	mrs-reader.cpp mrs-reader.h \
+  eds.cpp eds.h 
+
+edmcompare_SOURCES = \
+	edmcompare.cpp \
 	mrs.cpp mrs.h \
 	mrs-printer.cpp mrs-printer.h \
 	mrs-reader.cpp mrs-reader.h \
@@ -28,6 +35,7 @@ mrsconvert_SOURCES = \
 if MRS_STANDALONE
 
 mrstest_SOURCES += mrs-utility.h mrs-utility.cpp mrs-errors.h
+edmcompare_SOURCES += mrs-utility.h mrs-utility.cpp mrs-errors.h
 mrsconvert_SOURCES += mrs-utility.h mrs-utility.cpp mrs-errors.h
 
 else
@@ -36,6 +44,8 @@ else
 VPATH += $(top_srcdir)/common
 
 mrstest_SOURCES += $(top_srcdir)/common/utility.h \
+  $(top_srcdir)/common/utility.cpp $(top_srcdir)/common/errors.h
+edmcompare_SOURCES += $(top_srcdir)/common/utility.h \
   $(top_srcdir)/common/utility.cpp $(top_srcdir)/common/errors.h
 mrsconvert_SOURCES += $(top_srcdir)/common/utility.h \
   $(top_srcdir)/common/utility.cpp $(top_srcdir)/common/errors.h
@@ -50,6 +60,16 @@ DEFS += -DDYNAMIC_SYMBOLS
 
 if XML
 mrstest_SOURCES += \
+	$(top_srcdir)/cheap/xmlparser.cpp $(top_srcdir)/cheap/xmlparser.h \
+	$(top_srcdir)/cheap/unicode.cpp $(top_srcdir)/cheap/unicode.h \
+	$(top_srcdir)/common/logging.cpp $(top_srcdir)/common/logging.h \
+	$(top_srcdir)/common/hash.cpp $(top_srcdir)/common/hash.h \
+	mrs-handler.cpp mrs-handler.h \
+	mrs-states.cpp mrs-states.h
+endif
+
+if XML
+edmcompare_SOURCES += \
 	$(top_srcdir)/cheap/xmlparser.cpp $(top_srcdir)/cheap/xmlparser.h \
 	$(top_srcdir)/cheap/unicode.cpp $(top_srcdir)/cheap/unicode.h \
 	$(top_srcdir)/common/logging.cpp $(top_srcdir)/common/logging.h \

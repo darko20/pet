@@ -13,8 +13,23 @@
 
 namespace mrs {
 
+struct tEdsComparison {
+  double score;
+  std::map<std::string, int> totalA;
+  std::map<std::string, int> totalB;
+  std::map<std::string, int> totalM;
+  std::vector<std::string> unmatchedA;
+  std::vector<std::string> unmatchedB;
+};
+
+struct Triple {
+  std::string ttype, first, second, third;
+  bool matched;
+};
+
 /* Elementary Dependency Graph (EDG) class */
 class tEds {
+
   //internal classes: edges and nodes
   class tEdsEdge {
     friend class tEds;
@@ -54,12 +69,14 @@ class tEds {
 		void read_eds(std::string input);
 		void print_eds();
 		void print_triples();
+    tEdsComparison *compare_triples(tEds &b, const char *type="ALL");
 
     std::string top;
 
   private:
     int _counter; //for new quant vars
     std::multimap<std::string, tEdsNode *> _nodes;
+    std::multimap<std::string, Triple *> _triples;
 
     void removeWhitespace(std::string &rest);
     void parseChar(char x, std::string &rest);
@@ -75,7 +92,6 @@ class tEds {
     bool quantifier_pred(std::string);
 
 };
-
 
 } //namespace mrs
 
