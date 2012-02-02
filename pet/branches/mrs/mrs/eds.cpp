@@ -160,6 +160,44 @@ tEds::tEds(tMrs *mrs):_counter(1) {
       }
     }
   }
+
+  //extract triples
+  if (_nodes.find(top) != _nodes.end()) {
+    Triple *at = new Triple();
+    at->ttype = "A"; at->first = "<0:0>"; at->matched = false;
+    at->second = "ROOT"; at->third = _nodes.find(top)->second->link;
+    _triples.insert(std::pair<std::string, Triple *>(at->first, at));
+  }
+  for (MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
+    Triple *t = new Triple();
+    t->ttype = "N"; t->first = it->second->link; t->matched = false;
+    t->second = "PRED"; t->third = it->second->pred_name;
+    if (!it->second->carg.empty()) {
+      t->third += std::string("(\\\"");
+      t->third += it->second->carg;
+      t->third += std::string("\\\")");
+    }
+    _triples.insert(std::pair<std::string, Triple *>(t->first, t));
+
+    for (std::vector<tEdsEdge *>::iterator eit = it->second->outedges.begin();
+      eit != it->second->outedges.end(); ++eit) {
+      if (_nodes.count((*eit)->target) > 0) {
+        t = new Triple();
+        t->ttype = "A"; t->first = it->second->link; t->matched = false;
+        t->second = (*eit)->edge_name;
+        t->third = _nodes.find((*eit)->target)->second->link;
+        _triples.insert(std::pair<std::string, Triple *>(t->first, t));
+      }
+    }
+    for (std::map<std::string, std::string>::iterator pit 
+          = it->second->properties.begin(); 
+          pit != it->second->properties.end(); ++pit) {
+      t = new Triple();
+      t->ttype = "P"; t->first = it->second->link; t->matched = false;
+      t->second = pit->first; t->third = pit->second;
+      _triples.insert(std::pair<std::string, Triple *>(t->first, t));
+    }
+  }
 }
 
 tEds::~tEds() {
@@ -175,12 +213,14 @@ void tEds::print_eds() {
     if (!it->second->carg.empty())
       std::cout << "(\"" << it->second->carg << "\")";
     std::cout << "[";
+    bool begun = false;
     for (std::vector<tEdsEdge *>::iterator eit = it->second->outedges.begin();
       eit != it->second->outedges.end(); ++eit) {
       if ((*eit)->target.empty()) continue;
       if ((_nodes.find((*eit)->target)) == _nodes.end()) continue;
-      if (eit != it->second->outedges.begin()) 
+      if (begun) 
         std::cout << ", ";
+      begun = true;
       std::cout << (*eit)->edge_name << " " 
         << _nodes.find((*eit)->target)->second->dvar_name; 
     }
@@ -191,27 +231,91 @@ void tEds::print_eds() {
 }
 
 void tEds::print_triples() {
-  if (_nodes.find(top) != _nodes.end()) 
-    std::cout << "R " << _nodes.find(top)->second->link << std::endl;
-    for (MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
-      std::cout << "N " << it->second->link << " PRED \""
-        << it->second->pred_name;
-      if (!it->second->carg.empty()) 
-        std::cout << "(\\\"" << it->second->carg << "\\\")";
-      std::cout << "\"" << std::endl;
-      for (std::vector<tEdsEdge *>::iterator eit = it->second->outedges.begin();
-        eit != it->second->outedges.end(); ++eit) {
-        if (_nodes.find((*eit)->target) != _nodes.end()) 
-          std::cout << "A " << it->second->link << " " << (*eit)->edge_name
-            << " " << _nodes.find((*eit)->target)->second->link << std::endl;
-      }
-      for (std::map<std::string, std::string>::iterator pit 
-            = it->second->properties.begin(); 
-            pit != it->second->properties.end(); ++pit)
-        std::cout << "P " << it->second->link << " " << pit->first
-          << " " << pit->second << std::endl;
-    }
+  for (std::multimap<std::string, Triple *>::iterator it = _triples.begin();
+        it != _triples.end(); ++it) {
+    if (it->second->second == "ROOT")
+      std::cout << "R " << it->second->third << std::endl;
+    else
+      std::cout << it->second->ttype << " " << it->second->first << " "
+        << it->second->second << " " << it->second->third << std::endl;
+  }
 }
+
+tEdsComparison *tEds::compare_triples(tEds &b, const char *type) {
+  tEdsComparison *result = new tEdsComparison();
+  result->totalA["ALL"] = 0; result->totalA["A"] = 0;
+  result->totalA["N"] = 0; result->totalA["P"] = 0;
+  result->totalB["ALL"] = 0; result->totalB["A"] = 0;
+  result->totalB["N"] = 0; result->totalB["P"] = 0;
+  result->totalM["ALL"] = 0; result->totalM["A"] = 0;
+  result->totalM["N"] = 0; result->totalM["P"] = 0;
+  typedef std::multimap<std::string, Triple *>::iterator MmSTit;
+
+  for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
+    it->second->matched = false;
+    result->totalA["ALL"]++;
+    result->totalA[it->second->ttype]++;
+    if (result->totalA.count(it->second->second) == 0)
+      result->totalA[it->second->second] = 0;
+    result->totalA[it->second->second]++;
+  }
+  for (MmSTit it = b._triples.begin(); it != b._triples.end(); ++it) {
+    it->second->matched = false;
+    result->totalB["ALL"]++;
+    result->totalB[it->second->ttype]++;
+    if (result->totalB.count(it->second->second) == 0)
+      result->totalB[it->second->second] = 0;
+    result->totalB[it->second->second]++;
+  }
+
+  for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
+    std::pair<MmSTit, MmSTit> spanends = b._triples.equal_range(it->first);
+    for (MmSTit bit = spanends.first; bit != spanends.second; ++bit) {
+      if (bit->second->matched == false //not already matched
+          && it->second->ttype == bit->second->ttype
+          && it->second->second == bit->second->second 
+          && it->second->third == bit->second->third) {
+        it->second->matched = true;
+        bit->second->matched = true;
+        result->totalM["ALL"]++; result->totalM[it->second->ttype]++;
+        if (result->totalM.count(bit->second->second) == 0) 
+          result->totalM[bit->second->second] = 0;
+        result->totalM[bit->second->second]++;
+        break;
+      }
+    }
+    if (!it->second->matched) {
+      std::string umtriple = std::string(it->second->ttype + " " 
+        + it->second->first + " " + it->second->second + " "
+        + it->second->third);
+      result->unmatchedA.push_back(umtriple);
+    }
+  }
+  for (MmSTit it = b._triples.begin(); it != b._triples.end(); ++it) {
+    if (!it->second->matched) {
+      std::string umtriple = std::string(it->second->ttype + " " 
+        + it->second->first + " " + it->second->second + " "
+        + it->second->third);
+      result->unmatchedB.push_back(umtriple);
+    }
+  }
+
+  double precision, recall;
+  if (result->totalA.count(type) == 0 || result->totalA[type] == 0)
+    result->score = -1; //no gold triples of type /type/
+  else {
+    if (result->totalB.count(type) == 0 || result->totalM.count(type) == 0
+        || result->totalB[type] == 0 || result->totalM[type] == 0) {
+      result->score = 0;
+    } else {
+      precision = (double)result->totalM[type]/result->totalB[type];
+      recall = (double)result->totalM[type]/result->totalA[type];
+      result->score = (2*precision*recall)/(precision+recall);
+    }
+  }
+  return result;
+}
+
 
 void tEds::read_eds(std::string input) {
 
