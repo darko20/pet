@@ -241,7 +241,7 @@ void tEds::print_triples() {
   }
 }
 
-tEdsComparison *tEds::compare_triples(tEds &b, const char *type) {
+tEdsComparison *tEds::compare_triples(tEds *b, const char *type) {
   tEdsComparison *result = new tEdsComparison();
   result->totalA["ALL"] = 0; result->totalA["A"] = 0;
   result->totalA["N"] = 0; result->totalA["P"] = 0;
@@ -259,44 +259,49 @@ tEdsComparison *tEds::compare_triples(tEds &b, const char *type) {
       result->totalA[it->second->second] = 0;
     result->totalA[it->second->second]++;
   }
-  for (MmSTit it = b._triples.begin(); it != b._triples.end(); ++it) {
-    it->second->matched = false;
-    result->totalB["ALL"]++;
-    result->totalB[it->second->ttype]++;
-    if (result->totalB.count(it->second->second) == 0)
-      result->totalB[it->second->second] = 0;
-    result->totalB[it->second->second]++;
-  }
 
-  for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
-    std::pair<MmSTit, MmSTit> spanends = b._triples.equal_range(it->first);
-    for (MmSTit bit = spanends.first; bit != spanends.second; ++bit) {
-      if (bit->second->matched == false //not already matched
-          && it->second->ttype == bit->second->ttype
-          && it->second->second == bit->second->second 
-          && it->second->third == bit->second->third) {
-        it->second->matched = true;
-        bit->second->matched = true;
-        result->totalM["ALL"]++; result->totalM[it->second->ttype]++;
-        if (result->totalM.count(bit->second->second) == 0) 
-          result->totalM[bit->second->second] = 0;
-        result->totalM[bit->second->second]++;
-        break;
+  if (b != NULL) {
+    for (MmSTit it = b->_triples.begin(); it != b->_triples.end(); ++it) {
+      it->second->matched = false;
+      result->totalB["ALL"]++;
+      result->totalB[it->second->ttype]++;
+      if (result->totalB.count(it->second->second) == 0)
+        result->totalB[it->second->second] = 0;
+      result->totalB[it->second->second]++;
+    }
+
+    for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
+      std::pair<MmSTit, MmSTit> spanends = b->_triples.equal_range(it->first);
+      for (MmSTit bit = spanends.first; bit != spanends.second; ++bit) {
+        if (bit->second->matched == false //not already matched
+            && it->second->ttype == bit->second->ttype
+            && it->second->second == bit->second->second 
+            && it->second->third == bit->second->third) {
+          it->second->matched = true;
+          bit->second->matched = true;
+          result->totalM["ALL"]++; result->totalM[it->second->ttype]++;
+          if (result->totalM.count(bit->second->second) == 0) 
+            result->totalM[bit->second->second] = 0;
+          result->totalM[bit->second->second]++;
+          break;
+        }
       }
     }
+    for (MmSTit it = b->_triples.begin(); it != b->_triples.end(); ++it) {
+      if (!it->second->matched) {
+        std::string umtriple = std::string(it->second->ttype + " " 
+          + it->second->first + " " + it->second->second + " "
+          + it->second->third);
+        result->unmatchedB.push_back(umtriple);
+      }
+    }
+  }
+  for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
     if (!it->second->matched) {
       std::string umtriple = std::string(it->second->ttype + " " 
         + it->second->first + " " + it->second->second + " "
         + it->second->third);
       result->unmatchedA.push_back(umtriple);
-    }
-  }
-  for (MmSTit it = b._triples.begin(); it != b._triples.end(); ++it) {
-    if (!it->second->matched) {
-      std::string umtriple = std::string(it->second->ttype + " " 
-        + it->second->first + " " + it->second->second + " "
-        + it->second->third);
-      result->unmatchedB.push_back(umtriple);
     }
   }
 
