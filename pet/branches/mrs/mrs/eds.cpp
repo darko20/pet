@@ -37,10 +37,6 @@ tEds::tEdsNode::~tEdsNode() {
 
 tEds::tEds(tMrs *mrs):_counter(1) {
 
-  // temporary mappings to find the correct target node
-  typedef std::multimap<std::string, MmSNit>::iterator MmSMit;
-  std::multimap<std::string, MmSNit> handle2nodes;
-
   top = var_name(mrs->index);
 
   // add an EDG node for each EP
@@ -103,12 +99,20 @@ tEds::tEds(tMrs *mrs):_counter(1) {
   }
 
   std::string lastlabel;
-  for (MmSNit nit = _nodes.begin(); nit != _nodes.end(); ++nit) {
-    if (nit != _nodes.begin()) {
-      if (nit->first == lastlabel) 
-        select_candidate(lastlabel);
+  bool notfinished = true;
+  while (notfinished) {
+    MmSNit nit;
+    notfinished = false;
+    for (MmSNit nit = _nodes.begin(); nit != _nodes.end(); ++nit) {
+      if (nit != _nodes.begin()) {
+        if (nit->first == lastlabel) {
+          select_candidate(lastlabel);
+          notfinished = true;
+          break;
+        }
+      }
+      lastlabel = nit->first;
     }
-    lastlabel = nit->first;
   }
   // fix the edges to point to the representative node
   for (MmSNit nit = _nodes.begin(); nit != _nodes.end(); ++nit) {
@@ -533,9 +537,22 @@ void tEds::select_candidate(std::string label) {
   for (MmSNit it = spanends.first; it != spanends.second; ++it) {
     if (it != candidate) {
       tEdsNode *nodecopy = new tEdsNode(*(it->second));
-      nodecopy->dvar_name = std::string("_"+ _counter++);
-      _nodes.insert(std::pair<std::string, tEdsNode*>(nodecopy->dvar_name, 
+      std::ostringstream name;
+      name << "_" << _counter++;
+      nodecopy->dvar_name = name.str();
+      MmSNit newnode =
+        _nodes.insert(std::pair<std::string, tEdsNode*>(nodecopy->dvar_name, 
         nodecopy));
+      std::pair<MmSMit,MmSMit> hspanends = 
+        handle2nodes.equal_range(nodecopy->handle_name);
+      for (MmSMit hit = hspanends.first; hit != hspanends.second; ++hit) {
+        if (hit->second == it) {
+          handle2nodes.erase(hit);
+          break;
+        }
+      }
+      handle2nodes.insert(std::pair<std::string,
+        MmSNit>(nodecopy->handle_name, newnode));
       delete(it->second);
       _nodes.erase(it);
     }
