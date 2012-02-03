@@ -77,6 +77,10 @@ class tEds {
     int _counter; //for new quant vars
     std::multimap<std::string, tEdsNode *> _nodes;
     std::multimap<std::string, Triple *> _triples;
+    // temporary mappings to find the correct target node
+    typedef std::multimap<std::string, MmSNit>::iterator MmSMit;
+    std::multimap<std::string, MmSNit> handle2nodes;
+
 
     void removeWhitespace(std::string &rest);
     void parseChar(char x, std::string &rest);
