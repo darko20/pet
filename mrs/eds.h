@@ -69,7 +69,8 @@ class tEds {
 		void read_eds(std::string input);
 		void print_eds();
 		void print_triples();
-    tEdsComparison *compare_triples(tEds *b, const char *type="ALL");
+    tEdsComparison *compare_triples(tEds *b, const char *type="ALL",
+      bool ignoreroot=false);
 
     std::string top;
 
