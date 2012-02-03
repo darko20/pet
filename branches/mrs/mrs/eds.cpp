@@ -245,7 +245,8 @@ void tEds::print_triples() {
   }
 }
 
-tEdsComparison *tEds::compare_triples(tEds *b, const char *type) {
+tEdsComparison *tEds::compare_triples(tEds *b, const char *type, 
+  bool ignoreroot) {
   tEdsComparison *result = new tEdsComparison();
   result->totalA["ALL"] = 0; result->totalA["A"] = 0;
   result->totalA["N"] = 0; result->totalA["P"] = 0;
@@ -256,6 +257,7 @@ tEdsComparison *tEds::compare_triples(tEds *b, const char *type) {
   typedef std::multimap<std::string, Triple *>::iterator MmSTit;
 
   for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
+    if (ignoreroot && it->second->second == "ROOT") continue;
     it->second->matched = false;
     result->totalA["ALL"]++;
     result->totalA[it->second->ttype]++;
@@ -266,6 +268,7 @@ tEdsComparison *tEds::compare_triples(tEds *b, const char *type) {
 
   if (b != NULL) {
     for (MmSTit it = b->_triples.begin(); it != b->_triples.end(); ++it) {
+      if (ignoreroot && it->second->second == "ROOT") continue;
       it->second->matched = false;
       result->totalB["ALL"]++;
       result->totalB[it->second->ttype]++;
@@ -275,6 +278,7 @@ tEdsComparison *tEds::compare_triples(tEds *b, const char *type) {
     }
 
     for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
+      if (ignoreroot && it->second->second == "ROOT") continue;
       std::pair<MmSTit, MmSTit> spanends = b->_triples.equal_range(it->first);
       for (MmSTit bit = spanends.first; bit != spanends.second; ++bit) {
         if (bit->second->matched == false //not already matched
@@ -292,6 +296,7 @@ tEdsComparison *tEds::compare_triples(tEds *b, const char *type) {
       }
     }
     for (MmSTit it = b->_triples.begin(); it != b->_triples.end(); ++it) {
+      if (ignoreroot && it->second->second == "ROOT") continue;
       if (!it->second->matched) {
         std::string umtriple = std::string(it->second->ttype + " " 
           + it->second->first + " " + it->second->second + " "
@@ -301,6 +306,7 @@ tEdsComparison *tEds::compare_triples(tEds *b, const char *type) {
     }
   }
   for (MmSTit it = _triples.begin(); it != _triples.end(); ++it) {
+    if (ignoreroot && it->second->second == "ROOT") continue;
     if (!it->second->matched) {
       std::string umtriple = std::string(it->second->ttype + " " 
         + it->second->first + " " + it->second->second + " "
