@@ -7,6 +7,7 @@
 #endif
 #include <sstream>
 #include <iostream>
+#include <boost/algorithm/string.hpp>
 
 namespace mrs {
 
@@ -98,22 +99,6 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     }
   }
 
-  std::string lastlabel;
-  bool notfinished = true;
-  while (notfinished) {
-    MmSNit nit;
-    notfinished = false;
-    for (MmSNit nit = _nodes.begin(); nit != _nodes.end(); ++nit) {
-      if (nit != _nodes.begin()) {
-        if (nit->first == lastlabel) {
-          select_candidate(lastlabel);
-          notfinished = true;
-          break;
-        }
-      }
-      lastlabel = nit->first;
-    }
-  }
   // fix the edges to point to the representative node
   for (MmSNit nit = _nodes.begin(); nit != _nodes.end(); ++nit) {
     for (std::vector<tEdsEdge *>::iterator eit 
@@ -137,31 +122,67 @@ tEds::tEds(tMrs *mrs):_counter(1) {
         }
         if (candidates.size() == 1) {
           (*eit)->target = *(candidates.begin());
-        } else {
-          int maxreferrers = -1;
-          std::string candidate;
+        } else { //this is where we start heuristics for shared handles
+          std::vector<std::string> newcandidates;
           for (std::set<std::string>::iterator cit = candidates.begin();
             cit != candidates.end(); ++cit) {
-            int referrers = 0;
-            for (std::set<std::string>::iterator cit2 = candidates.begin();
-              cit2 != candidates.end(); ++cit2) {
-              if (cit == cit2) continue;
-              for (std::vector<tEdsEdge *>::iterator eit 
-                    = _nodes.find(*cit2)->second->outedges.begin(); 
-                    eit != _nodes.find(*cit2)->second->outedges.end();
-                    ++eit) {
-                      if ((*eit)->target == *cit)
-                        ++referrers;
+            int args = 0;
+            std::pair<MmSNit, MmSNit> noderange = _nodes.equal_range(*cit);
+              for (MmSNit cn = noderange.first; cn != noderange.second; ++cn) {
+              for (std::vector<tEdsEdge *>::iterator outit 
+                  = cn->second->outedges.begin();
+                  outit != cn->second->outedges.end(); ++outit) {
+                  std::string edge = (*outit)->target;
+                for (std::set<std::string>::iterator cit2 = candidates.begin();
+                  cit2 != candidates.end(); ++cit2) {
+                  if (cit == cit2) continue;
+                  if (*cit2 == edge) args++;
+                }
               }
             }
-            if (referrers > maxreferrers) {
-              maxreferrers = referrers;
-              candidate = *cit;
-            }
+            if (args == 0) newcandidates.push_back(*cit);
           }
-          (*eit)->target = candidate;
+          if (newcandidates.size() == 1) {
+            (*eit)->target = *(newcandidates.begin());
+          } else {//flip a coin
+            int maxincoming = -1;
+            std::string candidate;
+            for (std::vector<std::string>::iterator cit = newcandidates.begin();
+              cit != newcandidates.end(); ++cit) {
+              int incoming = 0;
+              for (MmSNit anit = _nodes.begin(); anit != _nodes.end(); ++anit) {
+                for (std::vector<tEdsEdge *>::iterator aoutit 
+                    = (*anit).second->outedges.begin(); 
+                    aoutit != (*anit).second->outedges.end(); ++aoutit) {
+                  if ((*aoutit)->target == *cit) ++incoming;
+                }
+              }
+              if (incoming > maxincoming) {
+                candidate = *cit;
+                maxincoming = incoming;
+              }
+            }
+            (*eit)->target = candidate;
+          }
         }
       }
+    }
+  }
+
+  std::string lastlabel;
+  bool notfinished = true;
+  while (notfinished) {
+    MmSNit nit;
+    notfinished = false;
+    for (MmSNit nit = _nodes.begin(); nit != _nodes.end(); ++nit) {
+      if (nit != _nodes.begin()) {
+        if (nit->first == lastlabel) {
+          unique_dvar(lastlabel);
+          notfinished = true;
+          break;
+        }
+      }
+      lastlabel = nit->first;
     }
   }
 
@@ -177,12 +198,13 @@ tEds::tEds(tMrs *mrs):_counter(1) {
       continue; //don't keep triples where the pred had no link
     Triple *t = new Triple();
     t->ttype = "N"; t->first = it->second->link; t->matched = false;
-    t->second = "PRED"; t->third = it->second->pred_name;
+    t->second = "PRED"; t->third = std::string("\""+it->second->pred_name);
     if (!it->second->carg.empty()) {
       t->third += std::string("(\\\"");
       t->third += it->second->carg;
       t->third += std::string("\\\")");
     }
+    t->third += "\"";
     _triples.insert(std::pair<std::string, Triple *>(t->first, t));
 
     for (std::vector<tEdsEdge *>::iterator eit = it->second->outedges.begin();
@@ -520,23 +542,14 @@ std::string tEds::var_name(tVar *v) {
   return name.str();
 }
 
-void tEds::select_candidate(std::string label) {
+void tEds::unique_dvar(std::string label) {
   std::pair<MmSNit, MmSNit> spanends = _nodes.equal_range(label);
-  int maxreferrers = -1;
+  int maxedges = -1;
   MmSNit candidate = _nodes.end();
   for (MmSNit it = spanends.first; it != spanends.second; ++it) {
-    int referrers = 0;
-    for (MmSNit it2 = spanends.first; it2 != spanends.second; ++it2) {
-      if (it2 == it) continue;
-      for (std::vector<tEdsEdge *>::iterator eit 
-            = it2->second->outedges.begin(); eit != it2->second->outedges.end();
-            ++eit) {
-        if ((*eit)->target == it->second->dvar_name)
-          ++referrers;
-      }
-    }
-    if (referrers > maxreferrers) {
-      maxreferrers = referrers;
+    int edges = it->second->outedges.size();
+    if (edges > maxedges) {
+      maxedges = edges;
       candidate = it;
     }
   }
@@ -571,6 +584,7 @@ void tEds::select_candidate(std::string label) {
 
 std::string tEds::pred_normalize(std::string pred) {
   std::string normedpred = pred;
+  boost::algorithm::to_lower(normedpred);
   if (normedpred.length() >= 4 && 
     normedpred.compare(normedpred.length()-4, 4, "_rel") == 0)
     normedpred.erase(normedpred.length()-4, 4);
