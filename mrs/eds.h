@@ -92,7 +92,7 @@ class tEds {
     tVar *get_id(tEp *ep);
     bool carg_rel(std::string role);
     bool relevant_rel(std::string role);
-    void select_candidate(std::string label);
+    void unique_dvar(std::string label);
     bool handle_var(std::string var);
     bool quantifier_pred(std::string);
 
