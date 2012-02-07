@@ -555,7 +555,8 @@ void tEds::unique_dvar(std::string label) {
   }
   if (candidate == _nodes.end())
     candidate = spanends.first;
-  for (MmSNit it = spanends.first; it != spanends.second; ++it) {
+  for (MmSNit it = spanends.first; it != spanends.second && it->first == label;
+        ++it) {
     if (it != candidate) {
       tEdsNode *nodecopy = new tEdsNode(*(it->second));
       std::ostringstream name;
@@ -566,7 +567,9 @@ void tEds::unique_dvar(std::string label) {
         nodecopy));
       std::pair<MmSMit,MmSMit> hspanends = 
         handle2nodes.equal_range(nodecopy->handle_name);
-      for (MmSMit hit = hspanends.first; hit != hspanends.second; ++hit) {
+      for (MmSMit hit = hspanends.first; 
+            hit != hspanends.second && hit->first == nodecopy->handle_name; 
+            ++hit) {
         if (hit->second == it) {
           handle2nodes.erase(hit);
           break;
