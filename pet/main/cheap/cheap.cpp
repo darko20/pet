@@ -195,7 +195,7 @@ void dump_jxchg_string(string surface, chart *current) {
   if (! get_opt_string("opt_jxchg_dir").empty()) {
     string yieldname = surface;
     replace(yieldname.begin(), yieldname.end(), ' ', '_');
-    yieldname = get_opt_string("opt_jxchg_dir") + yieldname;
+    yieldname = get_opt_string("opt_jxchg_dir") + yieldname + ".jxc";
     ofstream out(yieldname.c_str());
     if (! out) {
       LOG(logAppl, WARN, "Can not open file " << yieldname);
