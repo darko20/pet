@@ -196,4 +196,11 @@ int socket_readline(int, char *, int, bool = false);
 void print_borland_heap(FILE *f);
 #endif
 
+#ifndef FLOP
+#ifdef HAVE_BOOST_REGEX_ICU_HPP
+/* work around pcre incompatibility in Boost::Regex */
+std::string boostescape(std::string esc);
+#endif
+#endif
+
 #endif

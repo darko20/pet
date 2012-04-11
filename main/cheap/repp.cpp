@@ -150,13 +150,19 @@ tRepp::tRepp(string name, tReppTokenizer *parent) :_id(name), _parent(parent)
             in_group.pop();
         }
         else if (boost::u32regex_match(line, res, rulere)) {
-          tReppFSRule *newrule = new tReppFSRule(res[1], 
-            res.str(2).c_str(), res.str(3).c_str());
-          if (in_group.empty())
-            _rules.push_back(newrule);
-          else
-            (*(_groups[in_group.top()])).push_back(newrule);
-          rule_count++;
+          try {
+            tReppFSRule *newrule = new tReppFSRule(res[1], 
+              res.str(2).c_str(), res.str(3).c_str());
+            if (in_group.empty())
+              _rules.push_back(newrule);
+            else
+              (*(_groups[in_group.top()])).push_back(newrule);
+            rule_count++;
+          }
+          catch (boost::regex_error& e) {
+            LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no
+              << ": " << e.what() << "\nSkipping invalid rule.");
+          }
         }
         else {
           LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no 
@@ -295,23 +301,9 @@ tReppFSRule::tReppFSRule(string type, const char *target, const char *format)
     tmp.replace(0,1, "\\G", 2);
   if (tmp[0] == '(' && tmp[1] == '^')
     tmp.replace(1, 1, "\\G", 2);
-  //escape braces in target pattern
-  int i = 0;
-  while (true) {
-    i = tmp.find('{', i);
-    if (i == (int)string::npos)
-      break;
-    tmp.replace(i, 1, "\\{", 2);
-    i+=2;
-  }
-  i = 0;
-  while (true) {
-    i = tmp.find('}', i);
-    if (i == (int)string::npos)
-      break;
-    tmp.replace(i, 1, "\\}", 2);
-    i+=2;
-  }
+
+  //escape literal braces, since Boost::regex isn't entirely pcre compatible
+  tmp = boostescape(tmp);
 
   //record capture group reference positions in format
   _cgroups.push_back(0);
