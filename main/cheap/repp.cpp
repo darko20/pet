@@ -468,6 +468,8 @@ string tReppFSRule::apply(tRepp *r, string origitem)
     start = res[0].second;
   }
   if (start == item.begin()) { //never matched
+    delete smap;
+    delete emap;
     return origitem;
   } else {
     // copy trailing portion of string

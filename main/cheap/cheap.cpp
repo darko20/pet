@@ -448,14 +448,18 @@ void preprocess_only(const string formatoption) {
   int id = 1;
 
   item_format format;
+  tAbstractItemPrinter *ip;
   if (formatoption.compare("string") == 0) {
     format = FORMAT_STRING;
+    ip = new tItemStringPrinter(cout);
   } else {
     if (formatoption.compare("yy") == 0) {
       format = FORMAT_YY;
+      ip = new tItemYYPrinter(cout);
     } else {
       if (formatoption.compare("fsc") == 0) {
         format = FORMAT_FSC;
+        ip = new tItemFSCPrinter(cout);
       } else {
         cerr << "Unknown format " << formatoption << "." << endl;
         exit(1);
@@ -477,19 +481,6 @@ void preprocess_only(const string formatoption) {
       // mapping (if actually requested on the command line).
       //
       Lexparser.process_input(input, input_items, cmp);
-
-      tAbstractItemPrinter *ip;
-      switch (format) {
-        case FORMAT_FSC:
-          ip = new tItemFSCPrinter(cout);
-          break;
-        case FORMAT_YY:
-          ip = new tItemYYPrinter(cout);
-          break;
-        case FORMAT_STRING:
-          ip = new tItemStringPrinter(cout);
-          break;
-      }
 
       if (format == FORMAT_FSC) {
         //print header
@@ -517,6 +508,9 @@ void preprocess_only(const string formatoption) {
         cout << "</fsc>" << endl;
       }
       if(format != FORMAT_YY) cout << endl;
+      for(inp_iterator r = input_items.begin(); r != input_items.end(); ++r) {
+        delete *r;
+      }
     } //try
     catch (tError e) {
       // shouldn't this be fstatus?? it's a "return value"
@@ -526,6 +520,7 @@ void preprocess_only(const string formatoption) {
 
     ++id;
   }
+  delete ip;
 }
 
 
