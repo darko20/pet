@@ -141,7 +141,8 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     _triples.insert(std::pair<std::string, Triple *>(at->first, at));
   }
   for (MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
-    if (it->second->link.empty() || it->second->link == "<-1:-1>")
+    if (it->second->link.empty() || it->second->link == "<-1:-1>" 
+      || it->second->link == "<>")
       continue; //don't keep triples where the pred had no link
     Triple *t = new Triple();
     t->ttype = "N"; t->first = it->second->link; t->matched = false;
