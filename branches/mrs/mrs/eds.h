@@ -95,6 +95,7 @@ class tEds {
     void unique_dvar(std::string label);
     bool handle_var(std::string var);
     bool quantifier_pred(std::string);
+    std::string find_representative(tMrs *mrs, std::string hdl);
 
 };
 

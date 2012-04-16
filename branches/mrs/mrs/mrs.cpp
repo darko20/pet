@@ -8,7 +8,7 @@
 
 namespace mrs {
 
-  tBaseMrs::~tBaseMrs() {
+tBaseMrs::~tBaseMrs() {
   for (std::vector<tBaseEp*>::iterator ep = eps.begin();
        ep != eps.end(); ++ep)
     delete *ep;

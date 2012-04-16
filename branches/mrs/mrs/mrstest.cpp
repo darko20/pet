@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
 //        mrs::tEds *eds = new mrs::tEds();
 //        eds->read_eds(line);
         eds->print_eds();
-        eds->print_triples();
+//        eds->print_triples();
       }
       catch (tError &e) {
         cerr << "Failed to parse with error: \"" << e.getMessage() << "\"" 
