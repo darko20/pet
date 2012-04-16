@@ -38,7 +38,6 @@ tEds::tEdsNode::~tEdsNode() {
 
 tEds::tEds(tMrs *mrs):_counter(1) {
 
-  top = var_name(mrs->index);
 
   // add an EDG node for each EP
   for (std::vector<tBaseEp *>::iterator it = mrs->eps.begin();
@@ -105,66 +104,7 @@ tEds::tEds(tMrs *mrs):_counter(1) {
         = (*nit).second->outedges.begin(); eit != (*nit).second->outedges.end();
         ++eit) {
       if (handle_var((*eit)->target)) {
-        //trace handle through
-        std::set<std::string> candidates;
-        std::pair<MmSMit,MmSMit> spanends 
-          = handle2nodes.equal_range((*eit)->target);
-        for (MmSMit cit = spanends.first; cit != spanends.second; ++cit) 
-          candidates.insert(cit->second->second->dvar_name);
-        for (std::vector<tHCons *>::iterator hit = mrs->hconss.begin();
-              hit != mrs->hconss.end(); ++hit) {
-          if (var_name((*hit)->harg) == (*eit)->target) {
-            std::string larg = var_name((*hit)->larg);
-            spanends = handle2nodes.equal_range(larg);
-            for (MmSMit cit = spanends.first; cit != spanends.second; ++cit)
-              candidates.insert(cit->second->second->dvar_name);
-          }
-        }
-        if (candidates.size() == 1) {
-          (*eit)->target = *(candidates.begin());
-        } else { //this is where we start heuristics for shared handles
-          std::vector<std::string> newcandidates;
-          for (std::set<std::string>::iterator cit = candidates.begin();
-            cit != candidates.end(); ++cit) {
-            int args = 0;
-            std::pair<MmSNit, MmSNit> noderange = _nodes.equal_range(*cit);
-              for (MmSNit cn = noderange.first; cn != noderange.second; ++cn) {
-              for (std::vector<tEdsEdge *>::iterator outit 
-                  = cn->second->outedges.begin();
-                  outit != cn->second->outedges.end(); ++outit) {
-                  std::string edge = (*outit)->target;
-                for (std::set<std::string>::iterator cit2 = candidates.begin();
-                  cit2 != candidates.end(); ++cit2) {
-                  if (cit == cit2) continue;
-                  if (*cit2 == edge) args++;
-                }
-              }
-            }
-            if (args == 0) newcandidates.push_back(*cit);
-          }
-          if (newcandidates.size() == 1) {
-            (*eit)->target = *(newcandidates.begin());
-          } else {//flip a coin
-            int maxincoming = -1;
-            std::string candidate;
-            for (std::vector<std::string>::iterator cit = newcandidates.begin();
-              cit != newcandidates.end(); ++cit) {
-              int incoming = 0;
-              for (MmSNit anit = _nodes.begin(); anit != _nodes.end(); ++anit) {
-                for (std::vector<tEdsEdge *>::iterator aoutit 
-                    = (*anit).second->outedges.begin(); 
-                    aoutit != (*anit).second->outedges.end(); ++aoutit) {
-                  if ((*aoutit)->target == *cit) ++incoming;
-                }
-              }
-              if (incoming > maxincoming) {
-                candidate = *cit;
-                maxincoming = incoming;
-              }
-            }
-            (*eit)->target = candidate;
-          }
-        }
+        (*eit)->target = find_representative(mrs, (*eit)->target);
       }
     }
   }
@@ -184,6 +124,13 @@ tEds::tEds(tMrs *mrs):_counter(1) {
       }
       lastlabel = nit->first;
     }
+  }
+
+  std::string top_rep = find_representative(mrs, var_name(mrs->ltop));
+  if (_nodes.count(top_rep) > 0) {
+    top = top_rep;
+  } else {
+    top = var_name(mrs->index);
   }
 
   //extract triples
@@ -581,6 +528,71 @@ void tEds::unique_dvar(std::string label) {
       _nodes.erase(it);
     }
   }
+}
+
+std::string tEds::find_representative(tMrs *mrs, std::string hdl) {
+  std::set<std::string> candidates;
+  std::string target = hdl;
+  //grab nodes that match handle directly
+  std::pair<MmSMit,MmSMit> spanends = handle2nodes.equal_range(hdl);
+  for (MmSMit cit = spanends.first; cit != spanends.second; ++cit) 
+    candidates.insert(cit->second->second->dvar_name);
+  //grab nodes that match handle via hcons
+  for (std::vector<tHCons *>::iterator hit = mrs->hconss.begin();
+        hit != mrs->hconss.end(); ++hit) {
+    if (var_name((*hit)->harg) == hdl) {
+      std::string larg = var_name((*hit)->larg);
+      spanends = handle2nodes.equal_range(larg);
+      for (MmSMit cit = spanends.first; cit != spanends.second; ++cit)
+        candidates.insert(cit->second->second->dvar_name);
+    }
+  }
+  if (candidates.size() == 1) {
+    target = *(candidates.begin());
+  } else { //this is where we start heuristics for shared handles
+    std::vector<std::string> newcandidates;
+    for (std::set<std::string>::iterator cit = candidates.begin();
+      cit != candidates.end(); ++cit) {
+      int args = 0;
+      std::pair<MmSNit, MmSNit> noderange = _nodes.equal_range(*cit);
+        for (MmSNit cn = noderange.first; cn != noderange.second; ++cn) {
+        for (std::vector<tEdsEdge *>::iterator outit 
+            = cn->second->outedges.begin();
+            outit != cn->second->outedges.end(); ++outit) {
+            std::string edge = (*outit)->target;
+          for (std::set<std::string>::iterator cit2 = candidates.begin();
+            cit2 != candidates.end(); ++cit2) {
+            if (cit == cit2) continue;
+            if (*cit2 == edge) args++;
+          }
+        }
+      }
+      if (args == 0) newcandidates.push_back(*cit);
+    }
+    if (newcandidates.size() == 1) {
+      target = *(newcandidates.begin());
+    } else {//flip a coin
+      int maxincoming = -1;
+      std::string candidate;
+      for (std::vector<std::string>::iterator cit = newcandidates.begin();
+        cit != newcandidates.end(); ++cit) {
+        int incoming = 0;
+        for (MmSNit anit = _nodes.begin(); anit != _nodes.end(); ++anit) {
+          for (std::vector<tEdsEdge *>::iterator aoutit 
+              = (*anit).second->outedges.begin(); 
+              aoutit != (*anit).second->outedges.end(); ++aoutit) {
+            if ((*aoutit)->target == *cit) ++incoming;
+          }
+        }
+        if (incoming > maxincoming) {
+          candidate = *cit;
+          maxincoming = incoming;
+        }
+      }
+      target = candidate;
+    }
+  }
+  return target;
 }
 
 //replace these placeholders with something more flexible

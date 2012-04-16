@@ -15,7 +15,8 @@ XERCES_CPP_NAMESPACE_USE
 #endif
 
 #include <sstream>
-
+#include <boost/algorithm/string.hpp>
+#include <iostream>
 
 namespace mrs {
 
@@ -74,7 +75,8 @@ void SimpleMrsReader::parseChar(char x, std::string &rest) {
 
 // expects and removes string id at start of rest, removes trailing whitespace
 void SimpleMrsReader::parseID(const std::string id, std::string &rest) {
-  if (rest.length() < id.length() || rest.substr(0,id.length()) != id) 
+  if (rest.length() < id.length() 
+    || ! boost::iequals(rest.substr(0,id.length()), id)) 
     throw tError("Ill-formed MRS: no " + id + " at \"" + rest + "\".");
   rest.erase(0,id.length());
   removeWhitespace(rest);
@@ -124,6 +126,7 @@ void SimpleMrsReader::parseProps(tVar *var, std::string &rest) {
   removeWhitespace(rest);
 
   std::string prop = readFeature(rest);
+  boost::to_upper(prop);
   while (!prop.empty()) {
     std::string val;
     // needs to be Unicode-safe (assuming properties can have non-ascii vals)
@@ -135,6 +138,7 @@ void SimpleMrsReader::parseProps(tVar *var, std::string &rest) {
     var->properties[prop] = val;
     removeWhitespace(rest);
     prop = readFeature(rest);
+    boost::to_upper(prop);
   }
   parseChar(']', rest);
 }
@@ -162,6 +166,7 @@ void SimpleMrsReader::parseEP(tMrs *mrs, std::string &rest) {
   tEp *ep = new tEp(mrs);
   parsePred(ep, rest); //set pred name, link string, cfrom, cto
   std::string role = readFeature(rest);
+  boost::to_upper(role);
   while (!role.empty()) {
     if (_constant_roles.count(role)) { //val should be a constant
       tConstant *val = readCARG(rest);
@@ -179,6 +184,7 @@ void SimpleMrsReader::parseEP(tMrs *mrs, std::string &rest) {
       // special handling for ARG0?
     }
     role = readFeature(rest);
+    boost::to_upper(role);
   }
   parseChar(']', rest);
   mrs->eps.push_back(ep);
@@ -227,13 +233,20 @@ void SimpleMrsReader::parsePred(tEp *ep, std::string &rest){
     } else {
       throw tError("Unterminated span at \"" + rest + "\".");
     }
-    int colon = span.find(':');
-    if (colon == std::string::npos) 
-      throw tError("Ill-formed span \"" + span + "\".");
-    std::istringstream fromstr(span.substr(1, colon-1));
-    fromstr >> from;
-    std::istringstream tostr(span.substr(colon+1));
-    tostr >> to;
+    unsigned int colon = span.find(':');
+    if (colon == std::string::npos) {
+      if (span == "<>") {//don't fall over on empty spans (grammar bugs)
+        from = -1;
+        to = -1;
+      } else {
+        throw tError("Ill-formed span \"" + span + "\".");
+      }
+    } else {
+      std::istringstream fromstr(span.substr(1, colon-1));
+      fromstr >> from;
+      std::istringstream tostr(span.substr(colon+1));
+      tostr >> to;
+    }
     ep->link = span;
     ep->cfrom = from;
     ep->cto = to;

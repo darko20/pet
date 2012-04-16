@@ -176,7 +176,7 @@ void SimpleMrsPrinter::print(tConstant* constant) {
 }
 
 void SimpleMrsPrinter::print(tVar* var) {
-  if (_vars.find(var->id) == _vars.end()) { // first time of printing the variable
+  if (_vars.find(var->id) == _vars.end()) { // first time printing the variable
     print_full(var);
     _vars[var->id] = var;
   } else { // the variable has been printed before
