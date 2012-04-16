@@ -25,9 +25,9 @@ int main(int argc, char **argv) {
     mrs::tEds *eds_b = new mrs::tEds(mrs_b);
     //cout << "A" << endl;
     //eds_a->print_eds();
-    //eds_a->print_triples();
+    eds_a->print_triples();
     //cout << "B" << endl;
-    //eds_b->print_triples();
+    eds_b->print_triples();
 
     mrs::tEdsComparison *result = eds_a->compare_triples(eds_b);
 
