@@ -263,7 +263,7 @@ tConstant *SimpleMrsReader::readCARG(std::string &rest) {
   if (rest.at(0) == '"') {// quoted string, anything goes inside
     rest.erase(0,1);
     //needs to be Unicode-safe
-    while (!rest.empty() && !isspace(rest.at(0))) {
+    while (!rest.empty()) {
       if (rest.at(1) == '"') {
         if (rest.at(0) != '\\') {
           carg += rest.at(0);
