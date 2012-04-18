@@ -48,13 +48,15 @@ class tEds {
     std::string pred_name, dvar_name, link, carg, handle_name; 
     int cfrom, cto;
     bool quantifier;
+    bool cyclic;
+    bool fragmented;
     std::vector<tEdsEdge *> outedges;
     std::map<std::string, std::string> properties;
 
     tEdsNode() : quantifier(false) {};
     tEdsNode(std::string pred, std::string dvar, std::string handle, int from, 
       int to) : pred_name(pred), dvar_name(dvar), handle_name(handle), 
-      cfrom(from), cto(to),quantifier(false) {};
+      cfrom(from), cto(to), quantifier(false) {};
     tEdsNode(tEdsNode &other);
     ~tEdsNode();
     void add_edge(tEdsEdge *edge);
@@ -73,6 +75,8 @@ class tEds {
       bool ignoreroot=false);
 
     std::string top;
+    bool cyclic;
+    bool fragmented;
 
   private:
     int _counter; //for new quant vars
@@ -96,6 +100,11 @@ class tEds {
     bool handle_var(std::string var);
     bool quantifier_pred(std::string);
     std::string find_representative(tMrs *mrs, std::string hdl);
+    bool check_fragmented();
+    bool find_cycles();
+    bool follow_links(std::string val, std::set<std::string> seen);
+    bool follow_links(std::string val, std::set<std::string> *seen, 
+      std::set<std::string> *marked=NULL);
 
 };
 
