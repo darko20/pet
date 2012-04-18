@@ -37,8 +37,6 @@ tEds::tEdsNode::~tEdsNode() {
 }
 
 tEds::tEds(tMrs *mrs):_counter(1) {
-
-
   // add an EDG node for each EP
   for (std::vector<tBaseEp *>::iterator it = mrs->eps.begin();
         it != mrs->eps.end(); ++it) {
@@ -47,7 +45,7 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     tEp *ep = dynamic_cast<tEp*>(*it);
     std::string pred_name = pred_normalize(ep->pred);
     std::string handle_name = var_name(ep->label);
-    if (ep->quantifier_ep()) {//treat quants differently
+    if (ep->quantifier_ep()) {//treat quantifiers differently
       std::ostringstream name;
       name << "_" << _counter++;
       dvar_name = name.str();
@@ -109,6 +107,7 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     }
   }
 
+  // make sure nodes have unique labels
   std::string lastlabel;
   bool notfinished = true;
   while (notfinished) {
@@ -126,12 +125,16 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     }
   }
 
+  // set top to ltop, unless ltop doesn't point to a node, then use index
   std::string top_rep = find_representative(mrs, var_name(mrs->ltop));
   if (_nodes.count(top_rep) > 0) {
     top = top_rep;
   } else {
     top = var_name(mrs->index);
   }
+  //check for (and mark) cycles or fragmented graphs 
+  fragmented = check_fragmented();
+  cyclic = find_cycles();
 
   //extract triples
   if (_nodes.find(top) != _nodes.end()) {
@@ -179,12 +182,26 @@ tEds::tEds(tMrs *mrs):_counter(1) {
 tEds::~tEds() {
   for(MmSNit it = _nodes.begin(); it != _nodes.end(); ++it)
     delete it->second;
+  for (std::multimap<std::string, Triple *>::iterator it = _triples.begin();
+    it != _triples.end(); ++it)
+    delete it->second;
 }
 
 void tEds::print_eds() {
-  std::cout << "{" << top << ":" << std::endl;
+  std::cout << "{" << top << ":";
+  if (cyclic || fragmented) {
+    std::cout << "(";
+    if (cyclic) {
+      std::cout << "cyclic";
+      if (fragmented) std::cout << " ";
+    }
+    if (fragmented) std::cout << "fragmented";
+    std::cout << ")";
+  }
+  std::cout << std::endl;
   for (MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
-    std::cout << " " << it->second->dvar_name << ":" << it->second->pred_name
+    std::cout << (it->second->cyclic||it->second->fragmented?"|":" ") 
+      << it->second->dvar_name << ":" << it->second->pred_name
       << it->second->link;
     if (!it->second->carg.empty())
       std::cout << "(\"" << it->second->carg << "\")";
@@ -490,6 +507,8 @@ std::string tEds::var_name(tVar *v) {
   return name.str();
 }
 
+//pick the var with most outgoing links as representative when two 'real' EPs
+//share an ARG0, then give the others new dvars
 void tEds::unique_dvar(std::string label) {
   std::pair<MmSNit, MmSNit> spanends = _nodes.equal_range(label);
   int maxedges = -1;
@@ -552,6 +571,7 @@ std::string tEds::find_representative(tMrs *mrs, std::string hdl) {
     target = *(candidates.begin());
   } else { //this is where we start heuristics for shared handles
     std::vector<std::string> newcandidates;
+    // grab candidates that are not pointed to by other candidates
     for (std::set<std::string>::iterator cit = candidates.begin();
       cit != candidates.end(); ++cit) {
       int args = 0;
@@ -572,9 +592,10 @@ std::string tEds::find_representative(tMrs *mrs, std::string hdl) {
     }
     if (newcandidates.size() == 1) {
       target = *(newcandidates.begin());
-    } else {//flip a coin
+    } else {//starting to scrape the barrel now
       int maxincoming = -1;
       std::string candidate;
+      // grab candidate with most incoming links
       for (std::vector<std::string>::iterator cit = newcandidates.begin();
         cit != newcandidates.end(); ++cit) {
         int incoming = 0;
@@ -594,6 +615,101 @@ std::string tEds::find_representative(tMrs *mrs, std::string hdl) {
     }
   }
   return target;
+}
+
+//mark all nodes not connected to top as fragmented
+bool tEds::check_fragmented() {
+  bool fragmented = false;
+  std::set<std::string> *marked = new std::set<std::string>;
+  //mark nodes directly reachable from top
+  follow_links(top, marked);
+  bool notfinished = true;
+  //until the marked list stops growing
+  while (notfinished) {
+    notfinished = false;
+    //follow each node until it reaches a marked node (or end)
+    for(MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
+      std::set<std::string> *seen = new std::set<std::string>;
+      if (follow_links(it->first, seen, marked)) {
+        unsigned int setsize = marked->size();
+        marked->insert(seen->begin(), seen->end());
+        if (marked->size() > setsize) {//changed marked set
+          notfinished = true;
+        }
+      }
+      delete seen;
+    }
+  }
+  //find all nodes not marked, and mark them fragmented
+  for(MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
+    if (marked->count(it->first) != 1) {
+      fragmented = true;
+      it->second->fragmented = true;
+    } else {
+      it->second->fragmented = false;
+    }
+  }
+  delete marked;
+  return fragmented;
+}
+
+bool tEds::find_cycles() {
+  bool cyclic = false;
+  for(MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
+    std::set<std::string> seen;
+    if (follow_links(it->first, seen)) {
+      it->second->cyclic = true;
+      cyclic = true;
+    } else {
+      it->second->cyclic = false;
+    }
+  }
+  return cyclic;
+}
+
+//two versions of follow_links(): 
+// * one keeps track only of antecedents (to detect cycles)
+// * one keeps track of all nodes visited, and also has a fixed node list for
+//    storing all marked nodes
+// TODO Generalise? 
+
+//detecting cycles
+bool tEds::follow_links(std::string val, std::set<std::string> seen) {
+  MmSNit tnode = _nodes.find(val);
+  if (tnode == _nodes.end() || tnode->second->quantifier) return false;
+  for (std::vector<tEdsEdge *>::iterator e = tnode->second->outedges.begin();
+    e != tnode->second->outedges.end(); ++e) {
+    if (seen.count((*e)->target) == 1) {
+      return true;
+    } else {
+      std::set<std::string> newseen = seen;
+      newseen.insert(val);
+      if (follow_links((*e)->target, newseen)) return true;
+    }
+  }
+  return false;
+}
+
+//visiting nodes to see if there's a connection to the marked nodes
+//first time descend from top, marked is NULL and seen becomes the marked list
+//for all other iterations
+bool tEds::follow_links(std::string val, std::set<std::string> *seen, 
+  std::set<std::string> *marked) {
+  MmSNit tnode = _nodes.find(val);
+  bool mark = false;
+  if (tnode == _nodes.end()) return false;
+  seen->insert(val);
+  for (std::vector<tEdsEdge *>::iterator e = tnode->second->outedges.begin();
+    e != tnode->second->outedges.end(); ++e) {
+    if (marked != NULL && marked->count((*e)->target) == 1) {
+      mark = true;
+    } else {
+      if (seen->count((*e)->target) == 0) {//don't get stuck in a cycle
+        if (follow_links((*e)->target, seen, marked)) mark = true;
+      }
+    }
+  }
+  return mark;
 }
 
 //replace these placeholders with something more flexible
