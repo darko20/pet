@@ -38,7 +38,7 @@ class SimpleMrsReader : public tMrsReader {
     std::string readFeature(std::string &rest);
     void parseEP(tMrs *mrs, std::string &rest);
     void parsePred(tEp *ep, std::string &rest);
-    tConstant *readCARG(std::string &rest);
+    tConstant *readCARG(tEp *ep, std::string &rest);
     bool parseHCONS(tMrs *mrs, std::string &rest);
     std::string readReln(std::string &rest);
 };

@@ -43,6 +43,8 @@ int main(int argc, char **argv) {
 //        eds->read_eds(line);
         eds->print_eds();
 //        eds->print_triples();
+        delete mrs;
+        delete eds;
       }
       catch (tError &e) {
         cerr << "Failed to parse with error: \"" << e.getMessage() << "\"" 
