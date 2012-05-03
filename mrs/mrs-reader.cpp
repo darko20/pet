@@ -169,7 +169,7 @@ void SimpleMrsReader::parseEP(tMrs *mrs, std::string &rest) {
   boost::to_upper(role);
   while (!role.empty()) {
     if (_constant_roles.count(role)) { //val should be a constant
-      tConstant *val = readCARG(rest);
+      tConstant *val = readCARG(ep, rest);
       if (val != NULL) {//don't record uninstantiated cargs (*TOP* etc)
         ep->parameter_strings[role] = val;
         ep->roles[role] = val;
@@ -258,7 +258,7 @@ void SimpleMrsReader::parsePred(tEp *ep, std::string &rest){
   removeWhitespace(rest);
 }
 
-tConstant *SimpleMrsReader::readCARG(std::string &rest) {
+tConstant *SimpleMrsReader::readCARG(tEp *ep, std::string &rest) {
   std::string carg;
   if (rest.at(0) == '"') {// quoted string, anything goes inside
     rest.erase(0,1);
@@ -288,7 +288,7 @@ tConstant *SimpleMrsReader::readCARG(std::string &rest) {
   if (carg.empty())
     return NULL;
   else
-    return new tConstant(carg);
+    return ep->request_constant(carg);
 }
 
 bool SimpleMrsReader::parseHCONS(tMrs *mrs, std::string &rest) {
