@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.05.03"/>
+    <PROJECT value="l2.exe"/>
+    <OBJFILES value="Z:\l2\\l2.obj Z:\l2\\dag-alloc.obj Z:\l2\\dag-arced.obj 
+      Z:\l2\\dag-common.obj Z:\l2\\dag-io.obj Z:\l2\\utility.obj 
+      Z:\l2\\chunk-alloc.obj Z:\l2\\dumper.obj Z:\l2\\errors.obj 
+      Z:\l2\\grammar-dump.obj Z:\l2\\lex-io.obj Z:\l2\\lex-tdl.obj 
+      Z:\l2\\settings.obj Z:\l2\\types.obj Z:\l2\\bitcode.obj Z:\l2\\cheap.obj 
+      Z:\l2\\chart.obj Z:\l2\\agenda.obj Z:\l2\\dag-tomabechi.obj 
+      Z:\l2\\failure.obj Z:\l2\\fs.obj Z:\l2\\grammar.obj Z:\l2\\item.obj 
+      Z:\l2\\k2y.obj Z:\l2\\mrs.obj Z:\l2\\options.obj Z:\l2\\parse.obj 
+      Z:\l2\\postags.obj Z:\l2\\qc.obj Z:\l2\\task.obj Z:\l2\\tsdb++.obj 
+      Z:\l2\\yy.obj Z:\l2\\mfile.obj Z:\l2\\tokenizer.obj Z:\l2\\inputtoken.obj 
+      Z:\l2\\inputchart.obj Z:\l2\\morph.obj"/>
+    <RESFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES)"/>
+    <LIBFILES value="D:\smrtheap\borland\HAw32b.lib D:\smrtheap\borland\HA312W32.lib"/>
+    <LIBRARIES value="vcl50.lib Tee50.lib"/>
+    <SPARELIBS value="Tee50.lib vcl50.lib"/>
+    <PACKAGES value="Vcl50.bpi Vclx50.bpi Vcldb50.bpi Vclbde50.bpi vcldbx50.bpi TeeQR50.bpi 
+      VCLIB50.bpi bcbie50.bpi vclie50.bpi Inetdb50.bpi Inet50.bpi NMFast50.bpi 
+      dclocx50.bpi bcb2kaxserver50.bpi bcbsmp50.bpi Qrpt50.bpi ibsmp50.bpi 
+      TeeUI50.bpi TeeDB50.bpi Tee50.bpi"/>
+    <PATHCPP value=".;common;cheap"/>
+    <PATHPAS value=".;"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="tlink32"/>
+    <USERDEFINES value="_DEBUG;YY;DAG_TOMABECHI;WINDOWS;SMARTHEAP;MEM_DEBUG=1;DEFINE_NEW_MACRO=1"/>
+    <SYSDEFINES value="NO_STRICT;_NO_VCL;_RTLDLL"/>
+    <MAINSOURCE value="l2.bpf"/>
+    <INCLUDEPATH value="$(BCB)\include;$(BCB)\include\vcl;cheap;common;&quot;d:\smrtheap\include\&quot;"/>
+    <LIBPATH value="cheap;common;$(BCB)\lib\obj;$(BCB)\lib;&quot;d:\smrtheap\borland\&quot;"/>
+    <WARNINGS value="-w-par"/>
+  </MACROS>
+  <OPTIONS>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a8 -6 -b- -k -y -v -vi- 
+      -tWC -tWM -c"/>
+    <PFLAGS value="-N2&quot;Z:\l2\&quot; -N0&quot;Z:\l2\&quot; -$YD -$W -$O- -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zi"/>
+    <LFLAGS value="-I&quot;Z:\l2\&quot; -D&quot;&quot; -ap -Tpe -x -Gn -v"/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0x32.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cw32mti.lib"/>
+  </LINKER>
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=0
+AutoIncBuild=0
+MajorVer=1
+MinorVer=0
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=1033
+CodePage=1252
+
+[Version Info Keys]
+CompanyName=
+FileDescription=
+FileVersion=1.0.0.0
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
+Comments=
+
+[HistoryLists\hlIncludePath]
+Count=4
+Item0=$(BCB)\include;$(BCB)\include\vcl;cheap;common;d:\smrtheap\include\
+Item1=$(BCB)\include;$(BCB)\include\vcl;cheap;common;d:\smrtheap\include
+Item2=$(BCB)\include;$(BCB)\include\vcl;cheap;common
+Item3=cheap;common;$(BCB)\include;$(BCB)\include\vcl
+
+[HistoryLists\hlLibraryPath]
+Count=3
+Item0=cheap;common;$(BCB)\lib\obj;$(BCB)\lib;d:\smrtheap\borland\
+Item1=cheap;common;$(BCB)\lib\obj;$(BCB)\lib;d:\smrtheap\borland
+Item2=cheap;common;$(BCB)\lib\obj;$(BCB)\lib
+
+[HistoryLists\hlDebugSourcePath]
+Count=1
+Item0=$(BCB)\source\vcl
+
+[HistoryLists\hlConditionals]
+Count=5
+Item0=_DEBUG;YY;DAG_TOMABECHI;WINDOWS;SMARTHEAP;MEM_DEBUG=1;DEFINE_NEW_MACRO=1
+Item1=_DEBUG;YY;DAG_TOMABECHI;WINDOWS
+Item2=_DEBUG;YY;DAG_TOMABECHI;WINDOWS;__BORLANDC__
+Item3=_DEBUG;YY;DAG_TOMABECHI
+Item4=_DEBUG
+
+[HistoryLists\hlIntOutputDir]
+Count=2
+Item0=Z:\l2\
+Item1=Z:\l2
+
+[Debugging]
+DebugSourceDirs=$(BCB)\source\vcl
+
+[Parameters]
+RunParams=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=1
+LinkCGLIB=0
+
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
+  </IDEOPTIONS>
+</PROJECT>
