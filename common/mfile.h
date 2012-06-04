@@ -44,8 +44,8 @@ struct MFILE
 struct MFILE *mopen();
 void mclose( struct MFILE *f );
 void mflush( struct MFILE *f );
-int mprintf( struct MFILE *f, char *format, ... );
-int vmprintf( struct MFILE *f, char *format, va_list ap );
+int mprintf( struct MFILE *f, const char *format, ... );
+int vmprintf( struct MFILE *f, const char *format, va_list ap );
 int mlength( struct MFILE *f );
 char *mstring(struct MFILE *);
 
