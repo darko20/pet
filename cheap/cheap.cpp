@@ -713,7 +713,7 @@ bool load_grammar(string initial_name) {
 
     string taggeropt = get_opt_string("opt_tagger");
     if (!taggeropt.empty()) {
-      tPOSTagger *postagger = new tTntCompatTagger();
+      tPOSTagger *postagger = new tComboPOSTagger();
       Lexparser.register_tagger(postagger);
     }
 

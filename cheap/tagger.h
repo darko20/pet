@@ -21,24 +21,39 @@
 
 #include <vector>
 #include <string>
+#include <map>
 #include "input-modules.h"
 #include "settings.h"
 
-class tTntCompatTagger : public tPOSTagger {
-  
+class tComboPOSTagger : public tPOSTagger {
   public:
-    tTntCompatTagger();
-    ~tTntCompatTagger(); 
+    tComboPOSTagger();
+    ~tComboPOSTagger();
+
+    typedef std::string tagger_name;
+
     virtual void compute_tags(myString s, inp_list &tokens_result);
-    virtual std::string description() { return "TNT-like tagger"; }
-    
+    virtual std::string description() { return "Combo tagger"; }
+
   private:
+    const char *map_for_tagger(tagger_name tagger, const std::string form);
+    void run_tagger(tagger_name tagger);
+    void write_to_tagger(std::string iface, std::string tagger,
+      inp_list &tokens_result);
+    void process_tagger_output(std::string iface, std::string tagger,
+      inp_list &tokens_result);
+    void write_to_tnt(std::string tagger, inp_list &tokens_result);
+    void process_output_from_tnt(std::string tagger, inp_list &tokens_result);
+    void write_to_genia(std::string tagger, inp_list &tokens_result);
+    void process_output_from_genia(std::string tagger, inp_list &tokens_result);
+    void write_to_candc(std::string tagger, inp_list &tokens_result);
+    void process_output_from_candc(std::string tagger, inp_list &tokens_result);
+    int get_next_line(int fd, std::string &input);
+    
     settings *_settings;
-    pid_t _taggerpid;
-    int _out, _in;
-    std::string _utterance_start; //sentinel to mark start of sentence
-    std::string _utterance_end; //sentinel to mark end of sentence
-    const char *map_for_tagger(const std::string form);
+    std::map<tagger_name, pid_t> _taggerpids;
+    std::map<tagger_name, int> _taggerout;
+    std::map<tagger_name, int> _taggerin;
 };
 
 #endif
