@@ -1,0 +1,71 @@
+:begin :type.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  Basic types
+
+*sort* :< *top*.
+
+atom :< *sort*.
+
+*avm* :< *top*.
+
+*list* :< *avm*.
+
+*cons* := *list* &
+  [ FIRST *top*,
+    REST *top* ].
+
+0-1-list :< *list*.
+1-list := 0-1-list & *cons* &
+  [ REST *null* ].
+*null* :< 0-1-list.
+1-plus-list := *cons* &
+  [ REST *cons* ].
+
+*diff-list* := *avm* &
+[ LIST *list*,
+  LAST *list* ].
+
+symbol :< atom.
+
+integer :< atom.
+
+string := symbol.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+nonterminal := *top* & [ ARGS *list*, HD *top*, NHD *top* ].
+preterminal := *top* & [ STEM string ].
+
+phrase := nonterminal.
+front := nonterminal.
+
+a-nonterminal := preterminal.
+b-nonterminal := preterminal.
+:end :type.
+
+:begin :instance :status inflrule.
+null_infl_rule := nonterminal & [ ARGS < #1 > ].
+:end :instance.
+
+:begin :instance :status nonterminal.
+phrase_rule := phrase & [ ARGS < front & #1, b-nonterminal & #2>, HD #1, NHD #2].
+
+front1_rule := front & [ ARGS < a-nonterminal & #1 >, HD #1 ].
+
+front2_rule := front & [ ARGS < a-nonterminal & #1, phrase & #2>, HD #1, NHD #2].
+:end :instance.
+
+
+:begin :instance :status lex-entry.
+a-lex := a-nonterminal & [ STEM "a" ].
+
+b-lex := b-nonterminal & [ STEM "b" ].
+:end :instance.
+
+:begin :instance.
+;; parse-nodes
+:end :instance.
+
+:begin :instance.
+root := phrase.
+:end :instance.
