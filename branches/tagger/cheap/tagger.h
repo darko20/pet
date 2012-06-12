@@ -44,6 +44,7 @@ class tComboPOSTagger : public tPOSTagger {
       inp_list &tokens_result);
     void write_to_tnt(std::string tagger, inp_list &tokens_result);
     void process_output_from_tnt(std::string tagger, inp_list &tokens_result);
+    void process_output_from_stnt(std::string tagger, inp_list &tokens_result);
     void write_to_genia(std::string tagger, inp_list &tokens_result);
     void process_output_from_genia(std::string tagger, inp_list &tokens_result);
     void write_to_candc(std::string tagger, inp_list &tokens_result);

@@ -269,7 +269,8 @@ void tComboPOSTagger::write_to_candc(string tagger, inp_list &tokens_result)
 }
 
 // output interfaces:
-// TNT: word (tag prob)*, facility to ignore start/end sentinels
+// TNT: word (tag prob)*, facility to ignore start/end sentinels, replaces tags
+// STNT: word (tag prob)*, facility to ignore start/end sentinels, adds to tags
 // Genia: word lemma POS chunk NE, handles NEs, fallback to earlier tags
 // C&C: word tag
 
@@ -278,6 +279,8 @@ void tComboPOSTagger::process_tagger_output(string iface, string tagger,
 {
   if (iface == "TNT") {
     process_output_from_tnt(tagger, tokens_result);
+  } else if (iface == "STNT") {
+    process_output_from_stnt(tagger, tokens_result);
   } else if (iface == "GENIA") {
     process_output_from_genia(tagger, tokens_result);
   } else if (iface == "CANDC") {
@@ -332,6 +335,68 @@ void tComboPOSTagger::process_output_from_tnt(string tagger,
       line >> tag >> probability;
       if (line.fail())
         throw tError("Malformed tagger ouput: " + input + ".");
+      poss.add(tag, probability);
+      (*token)->set_in_postags(poss);
+    } // while
+    ++token;
+
+    //read utterance end token
+    if(token == tokens_result.end() && (! utterance_end.empty())) {
+      status = get_next_line(_taggerin[tagger], input);
+      int len = utterance_end.length();
+      if (status >= len && utterance_end.compare(0, len, input.c_str(), len) == 0) 
+        continue; //sentence end sentinel
+      else
+        LOG(logAppl, WARN, "Got '" << input << "' instead of utterance end.");
+    }
+  } // while
+}
+
+void tComboPOSTagger::process_output_from_stnt(string tagger, 
+  inp_list &tokens_result)
+{
+  // check for utterance sentinels
+  string utterance_start, utterance_end;
+  struct setting *foo;
+  if ((foo = cheap_settings->lookup(string(tagger+"-utterance-start").c_str()))
+    != NULL )
+    utterance_start = foo->values[0];
+  if ((foo = cheap_settings->lookup(string(tagger+"-utterance-end").c_str())) 
+    != NULL )
+    utterance_end = foo->values[0];
+
+  string input;
+  int status;
+  bool seen_sentinel = false;
+  inp_iterator token = tokens_result.begin();
+  while(token != tokens_result.end()) {
+    try {
+      status = get_next_line(_taggerin[tagger], input); 
+    }
+    catch (tError e) {
+      LOG(logAppl, WARN, e.getMessage().c_str());
+      break;
+    }
+    if ((! utterance_start.empty()) && token == tokens_result.begin() 
+      && input.at(0) == utterance_start.at(0) && seen_sentinel == false) {
+      int len = utterance_start.length();
+      if (status >= len && 
+        utterance_start.compare(0, len, input.c_str(), len) == 0) {
+          seen_sentinel = true;
+          continue; //sentence start sentinel
+      }
+    }
+
+    istringstream line(input.c_str());
+    string form, tag;
+    double probability;
+    line >> form;
+    postags poss = (*token)->get_in_postags();
+    while (!line.eof()) {
+      line >> tag >> probability;
+      if (line.fail())
+        throw tError("Malformed tagger ouput: " + input + ".");
+      tag = string("+"+tag);
       poss.add(tag, probability);
       (*token)->set_in_postags(poss);
     } // while
