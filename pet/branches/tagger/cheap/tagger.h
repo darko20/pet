@@ -16,8 +16,8 @@
  *   License along with this library; if not, write to the Free Software
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef _TNTTAG_H_
-#define _TNTTAG_H_
+#ifndef _TAGGER_H_
+#define _TAGGER_H_
 
 #include <vector>
 #include <string>
@@ -36,19 +36,13 @@ class tComboPOSTagger : public tPOSTagger {
     virtual std::string description() { return "Combo tagger"; }
 
   private:
-    const char *map_for_tagger(tagger_name tagger, const std::string form);
     void run_tagger(tagger_name tagger);
-    void write_to_tagger(std::string iface, std::string tagger,
-      inp_list &tokens_result);
-    void process_tagger_output(std::string iface, std::string tagger,
-      inp_list &tokens_result);
-    void write_to_tnt(std::string tagger, inp_list &tokens_result);
-    void process_output_from_tnt(std::string tagger, inp_list &tokens_result);
-    void process_output_from_stnt(std::string tagger, inp_list &tokens_result);
-    void write_to_genia(std::string tagger, inp_list &tokens_result);
-    void process_output_from_genia(std::string tagger, inp_list &tokens_result);
-    void write_to_candc(std::string tagger, inp_list &tokens_result);
-    void process_output_from_candc(std::string tagger, inp_list &tokens_result);
+    void write_to_tagger(tagger_name tagger, inp_list &tokens_result);
+    void read_from_tagger(tagger_name tagger, inp_list &tokens_result);
+    const char *map_for_tagger(tagger_name tagger, const std::string form);
+    std::string get_tagger_setting(tagger_name tagger, std::string set);
+    std::string selective_tag_replace(tagger_name tagger, 
+      tInputItem *token, std::string tag);
     int get_next_line(int fd, std::string &input);
     
     settings *_settings;
