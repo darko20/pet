@@ -41,8 +41,6 @@ class tComboPOSTagger : public tPOSTagger {
     void read_from_tagger(tagger_name tagger, inp_list &tokens_result);
     const char *map_for_tagger(tagger_name tagger, const std::string form);
     std::string get_tagger_setting(tagger_name tagger, std::string set);
-    std::string selective_tag_replace(tagger_name tagger, 
-      tInputItem *token, std::string tag);
     int get_next_line(int fd, std::string &input);
     
     settings *_settings;
