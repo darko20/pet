@@ -205,13 +205,12 @@ void tComboPOSTagger::write_to_tagger(tagger_name tagger,
 void tComboPOSTagger::read_from_tagger(tagger_name tagger, 
   inp_list &tokens_result)
 {
-  string utt_start, utt_end, tag_format, tag_combine, namedentities, tag_prefix;
+  string utt_start, utt_end, tag_format, namedentities, tag_prefix;
   utt_start = get_tagger_setting(tagger, "-utterance-start");
   utt_end = get_tagger_setting(tagger, "-utterance-end");
   tag_format = get_tagger_setting(tagger, "-tag_format");
-  tag_combine = get_tagger_setting(tagger, "-tag_combine");
-  tag_prefix = get_tagger_setting(tagger, "-tag_prefix");
   namedentities = get_tagger_setting(tagger, "-namedentities");
+  tag_prefix = tagger;
 
   string input; int status; bool seen_sentinel = false;
   inp_list ne_tokens; //any new NE tokens
@@ -239,10 +238,7 @@ void tComboPOSTagger::read_from_tagger(tagger_name tagger,
     istringstream line(input.c_str());
     string form, base, tag, chunktag, netag;
     double probability;
-    postags poss, oldposs;
-    if (tag_combine == "add") {
-      poss = (*token)->get_in_postags();
-    }
+    postags poss = (*token)->get_in_postags();
 
     if (tag_format == "multi") {
       line >> form;
@@ -250,20 +246,18 @@ void tComboPOSTagger::read_from_tagger(tagger_name tagger,
         line >> tag >> probability;
         if (line.fail())
           throw tError("Malformed tagger ouput: " + input + ".");
-        tag = string(tag_prefix+tag);
+        tag = string(tag_prefix+"["+tag+"]");
         poss.add(tag, probability);
       } // while
     } else if (tag_format == "single") {
       line >> form >> tag;
       if (line.fail())
         throw tError("Malformed tagger ouput: " + input + ".");
-      tag = selective_tag_replace(tagger, *token, tag);
-      tag = string(tag_prefix+tag);
+      tag = string(tag_prefix+"["+tag+"]");
       poss.add(tag, 1);
     } else if (tag_format == "genia") {
       line >> form >> base >> tag >> chunktag >> netag;
-      tag = selective_tag_replace(tagger, *token, tag);
-      tag = string(tag_prefix+tag);
+      tag = string(tag_prefix+"["+tag+"]");
       poss.add(tag, 1);
     }
     (*token)->set_in_postags(poss);
@@ -333,30 +327,6 @@ const char *tComboPOSTagger::map_for_tagger(tagger_name tagger,
     if (form.compare(set->values[i]) == 0) return set->values[i+1];
   }
   return form.c_str();
-}
-
-string tComboPOSTagger::selective_tag_replace(tagger_name tagger, 
-  tInputItem *token, string tag) {
-  string newtag = tag;
-  setting *foo;
-  if ((foo = cheap_settings->lookup(string(tagger+"-fallback").c_str())) 
-    != NULL) {
-    postags oldposs = token->get_in_postags();
-    if (!oldposs.empty()) { 
-      for (int i = 0; i < foo->n; i+=2) {
-        if(i+2 > foo->n) {
-          LOG(logAppl, WARN, "incomplete last entry in fallback - ignored");
-          break;
-        }
-        if (oldposs.contains(foo->values[i]) && 
-          tag.compare(foo->values[i+1]) == 0) {
-          newtag = foo->values[i];
-          break;
-        }
-      }
-    }
-  } 
-  return newtag;
 }
 
 int tComboPOSTagger::get_next_line(int fd, string &input)
