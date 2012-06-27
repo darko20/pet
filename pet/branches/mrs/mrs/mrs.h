@@ -82,7 +82,7 @@ class tEp : public tBaseEp {
     tEp() : cfrom(-1), cto(-1) {}
     tEp(class tBaseMrs *mrs) : tBaseEp(mrs), cfrom(-1), cto(-1) {}
     
-    std::map<std::string,tValue*> parameter_strings;
+    //std::map<std::string,tValue*> parameter_strings;
     tVar* label;
     std::string link;
     int cfrom;
