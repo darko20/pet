@@ -175,12 +175,12 @@ namespace mrs {
 
     // collect parameter strings
     // collect_param_strings();
-    for (std::map<std::string,tValue*>::iterator iter = ep->roles.begin();
-	 iter != ep->roles.end(); ++iter) {
-      if (cheap_settings->member("mrs-value-feats", (*iter).first.c_str())) {
-	ep->parameter_strings[(*iter).first] = (*iter).second;
-      }
-    }
+    // for (std::map<std::string,tValue*>::iterator iter = ep->roles.begin();
+    //   iter != ep->roles.end(); ++iter) {
+    //   if (cheap_settings->member("mrs-value-feats", (*iter).first.c_str())) {
+    //  	ep->parameter_strings[(*iter).first] = (*iter).second;
+    //      }
+    //  }
 
      d = dag_get_path_value(dag, cheap_settings->req_value("mrs-rel-cfrom-feature"));
     if (d != FAIL) {
