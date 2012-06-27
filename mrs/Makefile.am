@@ -64,6 +64,7 @@ mrstest_SOURCES += \
 	$(top_srcdir)/cheap/unicode.cpp $(top_srcdir)/cheap/unicode.h \
 	$(top_srcdir)/common/logging.cpp $(top_srcdir)/common/logging.h \
 	$(top_srcdir)/common/hash.cpp $(top_srcdir)/common/hash.h \
+	$(top_srcdir)/common/settings.cpp $(top_srcdir)/common/settings.h \
 	mrs-handler.cpp mrs-handler.h \
 	mrs-states.cpp mrs-states.h
 endif
