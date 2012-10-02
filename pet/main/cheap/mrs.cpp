@@ -148,11 +148,15 @@ tPSOA::tPSOA(struct dag_node* dag) {
     return;
   }
 
-  // extract top-h
+  // construct global top_h handle (GTOP)
+  top_h = request_var("handle");
+
+  // extract local top handle (LTOP)
   struct dag_node* d = FAIL;
+  tVar* ltop_h = NULL;
   const char* psoa_top_h_path = cheap_settings->value("mrs-psoa-top-h-path");
-  if (!psoa_top_h_path || strcmp(psoa_top_h_path, "") == 0)
-    top_h = request_var("handle");
+  if (!psoa_top_h_path)
+    ltop_h = request_var("handle");
   else {
     d = dag_get_path_value(init_sem_dag, psoa_top_h_path);
     if (d == FAIL) {
@@ -160,7 +164,16 @@ tPSOA::tPSOA(struct dag_node* dag) {
       LOG(logMRS, ERROR, "no mrs-psoa-top-h-path found.");
       return;
     }
-    top_h = request_var(d);
+    ltop_h = request_var(d);
+  }
+  
+  // construct top handle constraint
+  const char* mrs_top_hcons = cheap_settings->value("mrs-top-hcons");
+  if (mrs_top_hcons) {
+    tHCons* hcon = new tHCons(mrs_top_hcons, this);
+    hcon->scarg = top_h;
+    hcon->outscpd = ltop_h;
+    h_cons.push_back(hcon);
   }
 
   // extract index
