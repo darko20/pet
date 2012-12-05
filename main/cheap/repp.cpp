@@ -354,7 +354,7 @@ string tReppFSRule::apply(tRepp *r, string origitem)
 
   int shift = 0;
   while (boost::u32regex_search(start, end, res, _target,
-    boost::match_default|boost::format_sed)) {
+    boost::match_default|boost::format_perl)) {
     // copy string before match
     newstring += string(res.prefix().first, res.prefix().second);
     unsigned int nslen = Conv->convert(newstring).length();
@@ -368,7 +368,7 @@ string tReppFSRule::apply(tRepp *r, string origitem)
     }
 
     // matched portion of string
-    newstring += res.format(_format, boost::match_default|boost::format_sed);
+    newstring += res.format(_format, boost::match_default|boost::format_perl);
     nslen = Conv->convert(newstring).length();
     if (nslen > smap->size()) {
       smap->resize(nslen);
