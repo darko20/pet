@@ -417,6 +417,9 @@ string tReppFSRule::apply(tRepp *r, string origitem)
           nextgroup = 0; //no more capture groups
           gap = sublength - endgroup;
         }
+        if (!res[ingroup].matched) {
+          ingroup = 0;
+        }
       }
       if (ingroup) {
         if (count == endgroup) {
