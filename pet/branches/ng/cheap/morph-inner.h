@@ -17,6 +17,8 @@ typedef char MChar;
 // typedef string MString;
 class MString {
   friend class StringCharacterIterator;
+  friend std::ostream& operator<<(std::ostream& O, const MString &m);
+
   std::string _str;
 public:
   MString() {}
@@ -57,6 +59,11 @@ public:
   MString convert(const std::string& s) const { return s ; }
   MString convert(MChar c) const { return std::string(c, 1); }
 };
+
+inline std::ostream& operator<<(std::ostream& O, const MString &m) {
+  O << m.str();
+  return O;
+}
 
 #endif
 
