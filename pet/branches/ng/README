@@ -1,4 +1,4 @@
-This directory contains the open source PET system. For license details 
+This directory contains the open source PET system. For license details
 please refer to the LICENSE file.
 
 Overview
@@ -12,7 +12,7 @@ PET consists of two major parts:
 2) The `cheap' parser. It parses input with respect to a grammar in the
    binary form produced by `flop'.
 
-There are no binaries provided due to the vast amount of different 
+There are no binaries provided due to the vast amount of different
 distributions around. You have to first compile the package to be able to
 run it (see below).
 
@@ -53,26 +53,26 @@ Advanced issues:
 * Non-standard preprocessor, compiler or linker options can be passed to
   configure as command line arguments (cf. ./configure --help).
   For example, the following line configures PET for best performance:
-  
+
     ./configure --disable-assert "CXXFLAGS=-g -O3"
 
   The following line configures PET for the use with a debugger:
-  
+
     ./configure "CXXFLAGS=-g -O0"
-  
+
   The following line configures PET for profiling with gprof and gcov
   (cf. gcc man page):
-  
+
     ./configure "CXXFLAGS=-pg -fprofile-arcs -ftest-coverage"
 
 * The root build directory is the directory where `configure' is called.
   That is, PET can be built in any directory by changing into that
   directory and calling `configure' from there. For example:
-  
+
     mkdir -p build/debug
     cd build/debug
     ../../configure "CXXFLAGS=-g -O0"
-  
+
   All Makefiles will be created in the directory where `configure' is called.
   The advantage of having different build directories is that many
   configurations can be tested and maintained at the same time, and that the
@@ -81,7 +81,7 @@ Advanced issues:
 * A tarball distribution can be built and checked with `make distcheck'.
   Use the DISTCHECK_CONFIGURE_FLAGS environment variable to pass any
   parameters to configure. Example:
-  
+
     export DISTCHECK_CONFIGURE_FLAGS="--with-xml"
     make distcheck
 
@@ -110,6 +110,9 @@ privileges. Note that the header files are often distributed in separate
 packages, usually ending in `-dev' or `-devel' (e.g. `libboost-dev'). Make
 sure that these packages are installed, too.
 
+For more information how to install the library dependencies with the least
+effort, read the `Library Dependencies' section on http://pet.opendfki.de
+
 If you install your own libraries in non-standard directories, make sure
 that all these shared libraries and their dependencies can be found when
 PET's configure is run. There are several ways to achieve this (e.g., using
@@ -125,27 +128,16 @@ Current GNU/Linux distributions usually provide this library as a pre-built
 package. Make sure that the header files are installed, too (see above).
 http://www.boost.org/
 
-Optional:
-
-If you want UniCode support in PET, you need the ICU package freely
-available from IBM.
+For UniCode support in PET, you need the ICU package freely available from IBM.
 Current GNU/Linux distributions usually provide this library as a pre-built
 package. Make sure that the header files are installed, too (see above).
 http://icu.sourceforge.net/download/
 
+Optional:
+
 Install [incr tsdb()] for creating performance profiles of the grammar and
 the system, and for parsing corpora.
 http://www.delph-in.net/itsdb/
-
-For the MRS output and FSPP preprocessor modules, you need a version of
-Embeddable Common Lisp (ECL for short).
-ATTENTION: The version that is known to work at the moment is 0.9h, while
-0.9i seems to have problems. While some GNU/Linux distributions provide the
-library as a pre-built package, this might be a newer version or it might
-be compiled with the wrong options. In this case, you need to install it
-yourself, which might also be problematic (e.g. on Ubuntu Linux 7.04,
-ecl 0.9h does not compile without some modifications).
-http://ecls.sourceforge.net/
 
 For the XML input modes you need the Apache Xerces C++ library.
 Current GNU/Linux distributions usually provide this library as a pre-built
@@ -174,20 +166,15 @@ flop/ contains the sources for the preprocessor.
 
 cheap/ contains the sources for the parser.
 
-fspp/  lisp-based input preprocessor module for cheap. Very slow.
-
-goofy/ contains the sources for an outdated GUI prototype. This hasn't been
-compiled for two years and probably won't work.
-
 Contact
 =======
 
 For bug reports or feature requests, check the ticket system at
- 
+
   http://pet.opendfki.de
 
 For questions and comments, please have a look at the mailing list
-  
+
   pet@delph-in.net
 
 or contact me directly at
