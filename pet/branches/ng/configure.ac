@@ -105,6 +105,8 @@ AC_PROG_CPP
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_AWK
+AC_PROG_LN_S
+AC_PROG_MKDIR_P
 AC_PROG_MAKE_SET
 # turn this off during development to speed up compilation. May also be turned
 # on/off by using --enable/disable-shared during configure
@@ -199,7 +201,8 @@ AC_CHECK_LIB([stdc++], [main], , [AC_MSG_ERROR([Cannot find libstdc++])])
 AC_SEARCH_LIBS([getopt_long_only], [iberty], [],
                [AC_MSG_ERROR([No library containing getopt_long_only()], [1])])
 
-AC_CHECK_LIB([rt], [aio_write])
+# needed for clock functions
+AC_CHECK_LIB([rt], [main])
 
 # the following library checks are either not needed or performed elsewhere:
 # FIXME: Replace `main' with a function in `-ldl':
@@ -251,6 +254,9 @@ AX_LIB_ICU([],
   ],
   [icu=no])
 AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
+if test "x$icu" != "xyes" ; then
+  AC_MSG_FAILURE([required ICU libraries are missing or incomplete])
+fi
 
 
 # --------------------------------------------------------------------
@@ -288,7 +294,7 @@ if test "$boost" = "yes" ; then
   CHEAPLDFLAGS="${BOOST_LDFLAGS} ${CHEAPLDFLAGS}"
   CHEAPLIBS="${BOOST_REGEX_LIBS} ${CHEAPLIBS}"
 else
-  AC_MSG_ERROR([required Boost libraries are missing or incomplete])
+  AC_MSG_FAILURE([required Boost libraries are missing or incomplete])
 fi
 
 
