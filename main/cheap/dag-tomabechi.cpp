@@ -142,11 +142,8 @@ bool dags_compatible(dag_node *dag1, dag_node *dag2) {
 
   if(recfail<false>::dag_unify1(dag1, dag2) == FAIL)
     res = false;
-
-#ifdef STRICT_LKB_COMPATIBILITY
   else
     res = !recfail<false>::dag_cyclic_rec(dag1);
-#endif
 
   dag_invalidate_changes();
 
@@ -160,11 +157,8 @@ bool dags_compatible_failures(dag_node *dag1, dag_node *dag2) {
 
   if(recfail<true>::dag_unify1(dag1, dag2) == FAIL)
     res = false;
-
-#ifdef STRICT_LKB_COMPATIBILITY
   else
     res = !recfail<true>::dag_cyclic_rec(dag1);
-#endif
 
   dag_invalidate_changes();
 

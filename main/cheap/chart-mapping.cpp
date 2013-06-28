@@ -787,6 +787,13 @@ tChartMappingRule::tChartMappingRule(type_t type, Trait trait)
     }
   }
 
+  //
+  // at compile time, (it seems) chart mapping rules were expanded, possibly
+  // related to the special processing of regular expressions.  at this point,
+  // make sure we have a complete feature structure for the rule.
+  //
+  _fs.expand();
+
   // parse positional constraints specification:
   string poscons_s;
   fs poscons_fs = _fs.get_path_value(tChartUtil::poscons_path());
