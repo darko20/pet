@@ -1060,7 +1060,7 @@ lex_parser::lexical_processing(inp_list &inp_tokens
 
   // Gap computation.
   list< tInputItem * > unexpanded;
-  item_predicate valid = (lex_exhaustive ? lex_complete : non_input);
+  item_predicate valid = (lex_exhaustive ? unblocked_lex_complete : non_input);
   if (! Chart->connected(valid)) {
     unexpanded = find_unexpanded(Chart, valid) ;
   }
