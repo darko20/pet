@@ -1335,6 +1335,15 @@ inline bool lex_complete(const tItem *item) {
   return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
 }
 
+/** \brief This predicate should be used in find_unexpanded if lexical
+ *  processing is exhaustive. All items that are not input items and have
+ *  satisified all inflection rules AND are not frozen are valid.
+ */
+inline bool unblocked_lex_complete(const tItem *item) {
+  return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p()) &&
+    (!item->blocked());
+}
+
 /** A function object comparing two items based on their score */
 struct item_greater_than_score :
   public std::binary_function<bool, tItem*, tItem*> {
