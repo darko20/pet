@@ -65,6 +65,9 @@ static int init() {
   managed_opt("opt_chart_pruning_strategy",
               "determines the chart pruning strategy: 0=all tasks; 1=all successful tasks; 2=all passive items (default)",
               2);
+  managed_opt("opt_lpsm",
+              "lexical pruning model (`null' for none)",
+              std::string(""));
   return true;
 }
 
@@ -434,7 +437,7 @@ undump_dags(dumper *f) {
 tGrammar::tGrammar(const char * filename)
     : _properties(), _root_insts(0), _generics(0),
       _deleted_daughters(0), _packing_restrictor(0),
-      _sm(0), _lexsm(0), _pcfgsm(0), _gm(0)
+      _sm(0), _lexsm(0), _pcfgsm(0), _gm(0), _lpsm(0)
 {
 #ifdef HAVE_ICU
     initialize_encoding_converter(cheap_settings->req_value("encoding"));
@@ -651,6 +654,22 @@ tGrammar::tGrammar(const char * filename)
           _lexsm = 0;
         }
       }
+
+      const std::string opt_lpsm = get_opt_string("opt_lpsm");
+      if (opt_lpsm.empty() || opt_lpsm != "null") {
+        const char *lpsm_file
+        = (opt_lpsm.size() ? opt_lpsm.c_str() : cheap_settings->value("lpsm"));
+        if(lpsm_file != 0) {
+          try {
+            string mname = dir_name(filename)+string(lpsm_file);
+            _lpsm = new tTrigramModel(mname); 
+          }
+          catch(tError &e) {
+            LOG(logGrammar, ERROR, e.getMessage());
+            _lpsm = 0;
+          }
+        }
+      } // if
     } // if
 
     // check validity of cm-specific parameters:
@@ -903,6 +922,7 @@ tGrammar::~tGrammar()
     delete _sm;
     delete _pcfgsm;
     delete _lexsm;
+    delete _lpsm;
 
 #ifdef CONSTRAINT_CACHE
     free_constraint_cache(nstatictypes);

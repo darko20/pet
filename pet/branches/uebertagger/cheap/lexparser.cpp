@@ -90,6 +90,10 @@ static lex_parser &init() {
     "allow/disallow chart manipulation (currently only dependency filter)",
     true);
 
+  managed_opt("opt_lpthreshold",
+    "probability threshold for discarding lexical items",
+    0.0);
+
   return global_lexparser;
 }
 

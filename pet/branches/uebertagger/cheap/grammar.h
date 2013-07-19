@@ -32,6 +32,7 @@
 #include "types.h"
 #include "fs.h"
 #include "lexicon.h"
+#include "trigram.h"
 
 #include <string>
 #include <list>
@@ -356,6 +357,9 @@ public:
   /** Return the generative model for agenda manipulation */
   inline class tGM *gm() { return _gm; } 
 
+  /** Return the lexical pruning trigram model */
+  inline class tTrigramModel *lpsm() { return _lpsm; }
+
   /** deactivate all rules */
   void deactivate_all_rules() {
     _rules.clear();
@@ -467,6 +471,9 @@ public:
 
   // Generative model for agenda manipulation. 
   class tGM *_gm; 
+
+  // Trigram model for lexical pruning
+  class tTrigramModel *_lpsm;
 
   void undump_properties(dumper *f);
   void init_parameters();
