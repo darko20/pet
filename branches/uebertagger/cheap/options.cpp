@@ -152,6 +152,8 @@ void usage(FILE *f)
 #define OPTION_REPP 45
 #define OPTION_TAGGER 46
 #define OPTION_PREPROCESS_ONLY 47
+#define OPTION_LPSM 48
+#define OPTION_LP_THRESHOLD 49
 
 #ifdef YY
 #define OPTION_ONE_MEANING 100
@@ -217,6 +219,8 @@ char* parse_options(int argc, char* argv[])
     {"cp", required_argument, 0, OPTION_CHART_PRUNING},
     {"inputfile", required_argument, 0, OPTION_INPUT_FILE},
     {"take", optional_argument, 0, OPTION_TAKE},
+    {"lpsm", optional_argument, 0, OPTION_LPSM},
+    {"lpthreshold", required_argument, 0, OPTION_LP_THRESHOLD},
     {0, 0, 0, 0}
   }; /* struct option */
 
@@ -475,6 +479,16 @@ char* parse_options(int argc, char* argv[])
       case OPTION_TAGGER:
         set_opt("opt_tagger", 
                 (optarg != NULL) ? std::string(optarg) : std::string("null"));
+        break;
+      case OPTION_LPSM:
+          if (optarg != NULL)
+            set_opt("opt_lpsm", std::string(optarg));
+          else
+            set_opt("opt_lpsm", std::string("null"));
+          break;
+      case OPTION_LP_THRESHOLD:
+        if(optarg != NULL)
+          set_opt("opt_lpthreshold", strtod(optarg, NULL));
         break;
 #ifdef YY
       case OPTION_ONE_MEANING:

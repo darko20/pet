@@ -15,6 +15,9 @@ LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
 DEFS += -DDYNAMIC_SYMBOLS
 
+# Adding trigram lexical pruning capabilities
+CPPFLAGS += -Itrigram
+
 # Further CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS should be determined by configure.ac
 # if they are system-specific or passed as a command-line option to configure
 # if they are requested by the user (this is the whole point of configure).
@@ -84,6 +87,7 @@ cheaplibsources = \
 	yy-tokenizer.cpp yy-tokenizer.h \
 	repp.cpp repp.h \
 	tagger.cpp tagger.h \
+  trigram/trigram.cpp trigram/trigram.h trigram/lattice.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
 	$(top_srcdir)/common/configs.cpp \
