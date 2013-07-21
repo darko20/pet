@@ -138,6 +138,7 @@ private:
   friend class chart_iter_adj_active;
   friend class chart_iter_adj_passive;
   friend class chart_iter_filtered;
+  friend class chart_iter_end_passive;
 };
 
 std::ostream &operator<<(std::ostream &out, const chart &ch) ;
@@ -399,6 +400,49 @@ private:
 
   bool _at_start;
 
+  item_iter _curr;
+};
+/** Return all passive items ending at a specific point.
+ * \attention iterators must return items in order of `stamp', so the
+ * `excursion' works.
+ */
+class chart_iter_end_passive {
+public:
+  /** Create an iterator for all passive items in \a C ending at \a i.
+   */
+  inline chart_iter_end_passive(chart *C, int i) :
+    _LI(C->_Cp_end[i]) {
+    _curr = _LI.begin();
+  }
+
+  /** Create an iterator for all passive items in \a C ending at \a i.
+   */
+  inline chart_iter_end_passive(chart &C, int i) :
+    _LI(C._Cp_end[i]) {
+    _curr = _LI.begin();
+  }
+
+  /** Increase iterator */
+  inline chart_iter_end_passive &operator++() {
+    ++_curr;
+    return *this;
+  }
+
+  /** Is the iterator still valid? */
+  inline bool valid() const {
+    return _curr != _LI.end();
+  }
+
+  /** If valid(), return the current item, \c NULL otherwise. */
+  inline tItem *current() {
+    if(valid())
+      return *_curr;
+    else
+      return 0;
+  }
+
+private:
+  item_list &_LI;
   item_iter _curr;
 };
 
