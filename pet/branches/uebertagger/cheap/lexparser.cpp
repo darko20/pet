@@ -33,6 +33,7 @@
 #include "settings.h"
 #include "configs.h"
 #include "logging.h"
+#include "lexprune.h"
 
 #include <iostream>
 
@@ -1052,6 +1053,12 @@ lex_parser::lexical_processing(inp_list &inp_tokens
 
   //tTclChartPrinter chp("/tmp/lex-chart", 0);
   //Chart->print(&chp);
+
+  if (Grammar->lpsm() && lex_exhaustive) {
+    double threshold;
+    get_opt("opt_lpthreshold", threshold);
+    lexprune(Grammar->lpsm(), threshold);
+  }
 
   // If -default-les or -predict-les is used, lexical entries for unknown
   // input items are only added where there are gaps in the chart.

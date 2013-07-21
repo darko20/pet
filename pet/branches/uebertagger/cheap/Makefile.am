@@ -88,6 +88,7 @@ cheaplibsources = \
 	repp.cpp repp.h \
 	tagger.cpp tagger.h \
   trigram/trigram.cpp trigram/trigram.h trigram/lattice.h \
+  trigram/lexprune.cpp trigram/lexprune.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
 	$(top_srcdir)/common/configs.cpp \

@@ -105,6 +105,8 @@ void usage(FILE *f)
           "enable chart pruning. Strategy can be (a)ll, (s)uccessful and (p)assive (default).\n");
   fprintf(f, "  `-inputfile=file' --- "
           "name of input file to read from instead of standard input\n");
+  fprintf(f, "  `-lpsm[=string]' --- lexical pruning model (`null' for none)\n");
+  fprintf(f, "  `-lpthreshold=n' --- prune lexical items with a probability less than n ( 0 <= n < 1) \n");
 }
 
 #define OPTION_TSDB 0
