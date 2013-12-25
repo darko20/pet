@@ -234,7 +234,7 @@ public:
     }
 #ifdef CFGAPPROX_LEXGEN
     else if((R->trait() == SYNTAX_TRAIT) ||
-            ((R->trait() == LEX_TRAIT) && (inflrs_complete_p())))
+            ((R->trait() == LEX_TRAIT) && (inflrs_complete_p()))) {
       return false;
     }
 #endif
