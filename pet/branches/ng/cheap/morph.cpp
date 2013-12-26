@@ -32,8 +32,8 @@
 #include "configs.h"
 #include "logging.h"
 
-#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/transitive_closure.hpp>
+#include <boost/graph/adjacency_list.hpp>
 //#include <boost/graph/graph_utility.hpp>
 #include <iomanip>
 
