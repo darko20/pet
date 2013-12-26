@@ -111,6 +111,15 @@ type_t register_dynamic_type(const std::string &name) {
   return ntypes++;
 }
 
+type_t register_any_dynamic_type(const std::string &name) {
+  // Only register if the typename is unknown.
+  assert(typename_memo.find(name) == typename_memo.end());
+  typenames.push_back(name);
+  printnames.push_back(name);
+  typename_memo[name] = ntypes;
+  return ntypes++;
+}
+
 void clear_dynamic_types() {
   for (type_t t = nstatictypes; t < ntypes; ++t)
     typename_memo.erase(typenames[t]);
@@ -140,6 +149,8 @@ int retrieve_type(const std::string &name) {
     size_t len = name.length();
     if ((len>= 2) && (name[0] == '"') && (name[len-1] == '"'))
       type = register_dynamic_type(name);
+    else
+      type = register_any_dynamic_type(name);
   }
 #endif
   return type;

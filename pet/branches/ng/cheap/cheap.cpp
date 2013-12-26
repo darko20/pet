@@ -181,7 +181,7 @@ void dump_jxchg_string(string surface, chart *current) {
   if (! get_opt_string("opt_jxchg_dir").empty()) {
     string yieldname = surface;
     replace(yieldname.begin(), yieldname.end(), ' ', '_');
-    yieldname = get_opt_string("opt_jxchg_dir") + yieldname;
+    yieldname = get_opt_string("opt_jxchg_dir") + yieldname + ".jxc";
     ofstream out(yieldname.c_str());
     if (! out) {
       LOG(logAppl, WARN, "Can not open file " << yieldname);
@@ -337,18 +337,15 @@ void interactive() {
           list< tItem * > partials;
           passive_weights pass;
           Chart->shortest_path<unsigned int>(partials, pass, true);
-          bool rmrs_xml = (opt_mrs != NULL && strcmp(opt_mrs, "rmrx") == 0);
-          if (rmrs_xml) fprintf(fstatus, "\n<rmrs-list>\n");
-          for(item_iter it = partials.begin(); it != partials.end(); ++it) {
-            if(opt_mrs) {
+          if(opt_mrs != NULL) {
+            for(item_iter it = partials.begin(); it != partials.end(); ++it) {
               tPhrasalItem *item = dynamic_cast<tPhrasalItem *>(*it);
               if (item != NULL) {
                 print_mrs_as(opt_mrs[0], item->get_fs().dag(), cerr);
               }
             }
           }
-          if (rmrs_xml) fprintf(fstatus, "</rmrs-list>\n");
-          else fprintf(fstatus, "EOM\n");
+          fprintf(fstatus, "EOM\n");
         }
       }
     } /* try */
@@ -361,9 +358,10 @@ void interactive() {
       stats.readings = -1;
 
       if (Chart != NULL) {
-        dump_jxchg(Chart->get_surface_string(), Chart);
+        string surface = Chart->get_surface_string();
+        dump_jxchg(surface, Chart);
+        tsdb_dump.error(Chart, surface, e);
       }
-      tsdb_dump.error(Chart, input, e);
     }
 
     fflush(fstatus);
@@ -405,14 +403,18 @@ void preprocess_only(const string formatoption) {
   int id = 1;
 
   item_format format;
+  tAbstractItemPrinter *ip;
   if (formatoption.compare("string") == 0) {
     format = FORMAT_STRING;
+    ip = new tItemStringPrinter(cout);
   } else {
     if (formatoption.compare("yy") == 0) {
       format = FORMAT_YY;
+      ip = new tItemYYPrinter(cout);
     } else {
       if (formatoption.compare("fsc") == 0) {
         format = FORMAT_FSC;
+        ip = new tItemFSCPrinter(cout);
       } else {
         cerr << "Unknown format " << formatoption << "." << endl;
         exit(1);
@@ -435,18 +437,6 @@ void preprocess_only(const string formatoption) {
       //
       Lexparser.process_input(input, input_items, resources);
 
-      tAbstractItemPrinter *ip;
-      switch (format) {
-        case FORMAT_FSC:
-          ip = new tItemFSCPrinter(cout);
-          break;
-        case FORMAT_YY:
-          ip = new tItemYYPrinter(cout);
-          break;
-        case FORMAT_STRING:
-          ip = new tItemStringPrinter(cout);
-          break;
-      }
 
       if (format == FORMAT_FSC) {
         //print header
@@ -474,6 +464,9 @@ void preprocess_only(const string formatoption) {
         cout << "</fsc>" << endl;
       }
       if(format != FORMAT_YY) cout << endl;
+      for(inp_iterator r = input_items.begin(); r != input_items.end(); ++r) {
+        delete *r;
+      }
     } //try
     catch (tError e) {
       // shouldn't this be fstatus?? it's a "return value"
@@ -483,6 +476,7 @@ void preprocess_only(const string formatoption) {
 
     ++id;
   }
+  delete ip;
 }
 
 
@@ -738,7 +732,7 @@ static void init_main_options() {
   //@{
   managed_opt("opt_mrs",
               "determines if and which kind of MRS output is generated. "
-              "(modes: C implementation, LKB bindings via ECL; default: no)",
+              "(modes: xml and simple (default with -mrs), default:no)",
               string());
   managed_opt("opt_nresults",
               "print at most n (full) results "
