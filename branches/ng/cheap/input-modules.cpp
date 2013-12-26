@@ -187,6 +187,7 @@ bool tTokenizer::next_input(std::istream &in, string &result) {
   bool done;
   do {
     done = true;
+    result.clear();
     std::getline(in, result);
     if(_comment_passthrough && ((result[0] == '/' && result[1] == '/')
                                 || result[0] == '#')) {

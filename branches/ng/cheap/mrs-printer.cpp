@@ -19,7 +19,7 @@ void print_mrs_as(char format, dag_node *dag, std::ostream &out) {
     if (mapped_mrs->valid()) {
       out << std::endl;
       switch (format) {
-      case 'n':
+      case 'x':
         { MrxMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }
       case 's':
         { SimpleMRSPrinter ptr(out); ptr.print(mapped_mrs); break; }

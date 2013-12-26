@@ -31,8 +31,8 @@
 
 using namespace std;
 
-tReppTokenizer::tReppTokenizer() 
-  : _settings(NULL) 
+tReppTokenizer::tReppTokenizer()
+  : _settings(NULL)
 {
   //
   // the '-repp' command line option takes an optional argument, which can be
@@ -138,28 +138,34 @@ tRepp::tRepp(string name, tReppTokenizer *parent) :_id(name), _parent(parent)
           int rgroup;
           istringstream(res[1]) >> rgroup;
           in_group.push(rgroup);
-          _groups.insert(map<int, tReppGroup *>::value_type(rgroup, 
+          _groups.insert(map<int, tReppGroup *>::value_type(rgroup,
             new tReppGroup));
         }
         else if (boost::u32regex_match(line, res, groupendre)) {
           if (in_group.empty()) {
-            LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no 
+            LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no
               << " spurious group close.");
           }
           else
             in_group.pop();
         }
         else if (boost::u32regex_match(line, res, rulere)) {
-          tReppFSRule *newrule = new tReppFSRule(res[1], 
-            res.str(2).c_str(), res.str(3).c_str());
-          if (in_group.empty())
-            _rules.push_back(newrule);
-          else
-            (*(_groups[in_group.top()])).push_back(newrule);
-          rule_count++;
+          try {
+            tReppFSRule *newrule = new tReppFSRule(res[1],
+              res.str(2).c_str(), res.str(3).c_str());
+            if (in_group.empty())
+              _rules.push_back(newrule);
+            else
+              (*(_groups[in_group.top()])).push_back(newrule);
+            rule_count++;
+          }
+          catch (boost::regex_error& e) {
+            LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no
+              << ": " << e.what() << "\nSkipping invalid rule.");
+          }
         }
         else {
-          LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no 
+          LOG(logRepp, WARN, "REPP:" << _id << ":" << line_no
             << " invalid line: " << line);
         }
       }
@@ -168,7 +174,7 @@ tRepp::tRepp(string name, tReppTokenizer *parent) :_id(name), _parent(parent)
     LOG(logRepp, INFO, "Read " << _id << " [" << rule_count << " rules]");
   }
   else {
-    throw tError("Couldn't find REPP module '" + name + 
+    throw tError("Couldn't find REPP module '" + name +
       "'. Check repp-modules setting.");
   }
 }
@@ -189,7 +195,7 @@ tRepp::~tRepp()
     delete *iter;
 }
 
-void tReppTokenizer::tokenize(myString item, inp_list &result) 
+void tReppTokenizer::tokenize(myString item, inp_list &result)
 {
   boost::smatch res;
   string rest(item);
@@ -239,8 +245,8 @@ void tReppTokenizer::tokenize(myString item, inp_list &result)
         }
         int start = result.size();
         int end = result.size()+1;
-        
-        LOG(logRepp, DEBUG, "creating item from " << surface << " <" 
+
+        LOG(logRepp, DEBUG, "creating item from " << surface << " <"
             << tokstart-1 << ":" << tokend << ">");
         tok = new tInputItem("", start, end,
                              tokstart-1, tokend, surface, surface);
@@ -295,23 +301,9 @@ tReppFSRule::tReppFSRule(string type, const char *target, const char *format)
     tmp.replace(0,1, "\\G", 2);
   if (tmp[0] == '(' && tmp[1] == '^')
     tmp.replace(1, 1, "\\G", 2);
-  //escape braces in target pattern
-  int i = 0;
-  while (true) {
-    i = tmp.find('{', i);
-    if (i == (int)string::npos)
-      break;
-    tmp.replace(i, 1, "\\{", 2);
-    i+=2;
-  }
-  i = 0;
-  while (true) {
-    i = tmp.find('}', i);
-    if (i == (int)string::npos)
-      break;
-    tmp.replace(i, 1, "\\}", 2);
-    i+=2;
-  }
+
+  //escape literal braces, since Boost::regex isn't entirely pcre compatible
+  tmp = boostescape(tmp);
 
   //record capture group reference positions in format
   _cgroups.push_back(0);
@@ -332,7 +324,7 @@ tReppFSRule::tReppFSRule(string type, const char *target, const char *format)
         if (x+1 == flen)
           LOG(logRepp, WARN, "REPP:" << "unescaped backslash in " << _format);
       }
-    }  
+    }
   }
 
   _target = boost::make_u32regex(tmp);
@@ -362,7 +354,7 @@ string tReppFSRule::apply(tRepp *r, string origitem)
 
   int shift = 0;
   while (boost::u32regex_search(start, end, res, _target,
-    boost::match_default|boost::format_sed)) {
+    boost::match_default|boost::format_perl)) {
     // copy string before match
     newstring += string(res.prefix().first, res.prefix().second);
     unsigned int nslen = Conv->convert(newstring).length();
@@ -376,7 +368,7 @@ string tReppFSRule::apply(tRepp *r, string origitem)
     }
 
     // matched portion of string
-    newstring += res.format(_format, boost::match_default|boost::format_sed);
+    newstring += res.format(_format, boost::match_default|boost::format_perl);
     nslen = Conv->convert(newstring).length();
     if (nslen > smap->size()) {
       smap->resize(nslen);
@@ -396,7 +388,7 @@ string tReppFSRule::apply(tRepp *r, string origitem)
     if (_cgroups.size() > 1) {
       nextgroup = 1;  //looking for capture group 1
       //first group so offset in format is fixed
-      nextgroupstart = _cgroups[nextgroup]; 
+      nextgroupstart = _cgroups[nextgroup];
       gap = nextgroupstart; // gap from start of sentence to first group ref
       newstart = shift;
       //before first group, difference between matched and replaced length
@@ -404,7 +396,7 @@ string tReppFSRule::apply(tRepp *r, string origitem)
         - gap;
       newend = shift + gap - 1;
     } else { //no (in-order) capture groups
-      gap = sublength; 
+      gap = sublength;
       newstart = shift;
       //difference between matched and replaced length of full match
       shift += mlen - gap;
@@ -425,16 +417,19 @@ string tReppFSRule::apply(tRepp *r, string origitem)
           nextgroup = 0; //no more capture groups
           gap = sublength - endgroup;
         }
+        if (!res[ingroup].matched) {
+          ingroup = 0;
+        }
       }
       if (ingroup) {
         if (count == endgroup) {
           //adding count so we can subtract count for the adjustment,
           //rather than subtracting index within the not_ingroup span
-          newstart = shift + count; 
+          newstart = shift + count;
 
-          if (nextgroup > 0) {  
-            shift += 
-              (Conv->convert(string(res[ingroup].first, 
+          if (nextgroup > 0) {
+            shift +=
+              (Conv->convert(string(res[ingroup].first,
               res[nextgroup].first)).length()
               - Conv->convert(string(res[ingroup])).length()
               - gap);
@@ -453,21 +448,23 @@ string tReppFSRule::apply(tRepp *r, string origitem)
           (*smap)[stringindex] = shift;
           (*emap)[stringindex] = shift;
         }
-      } 
-      if (!ingroup) { 
+      }
+      if (!ingroup) {
         (*smap)[stringindex] = newstart - count;
         (*emap)[stringindex] = newend - count;
       }
     }
     if (sublength == endgroup) { //end of match was end of group
-      shift += 
-        (Conv->convert(string(res[ingroup].first, 
+      shift +=
+        (Conv->convert(string(res[ingroup].first,
         res.suffix().first)).length()
         - Conv->convert(string(res[ingroup])).length());
     }
     start = res[0].second;
   }
   if (start == item.begin()) { //never matched
+    delete smap;
+    delete emap;
     return origitem;
   } else {
     // copy trailing portion of string

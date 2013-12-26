@@ -312,8 +312,8 @@ tChart::connected() {
     if (has_active_prec_items && !has_active_succ_items) {
       ++nr_end;
     }
-    has_unblocked_items = has_unblocked_items 
-      || has_active_prec_items || has_active_succ_items; 
+    has_unblocked_items = has_unblocked_items
+      || has_active_prec_items || has_active_succ_items;
   }
   return (has_unblocked_items == false) || ((nr_start == 1) && (nr_end == 1));
 }
@@ -691,7 +691,7 @@ topological_order(const tChartVertex *vertex, int &max_value,
 {
   list<tItem*> items = vertex->starting_items();
   for (list<tItem*>::iterator it = items.begin(); it != items.end(); ++it) {
-    if(!passive_unblocked(*it)) continue; 
+    if(!passive_unblocked(*it)) continue;
     const tChartVertex *succ = (*it)->get_succ_vertex();
     if (order.find(succ) == order.end()) // if not visited
       topological_order(succ, max_value, order, ordered);
@@ -720,7 +720,7 @@ tChartUtil::assign_int_nodes(tChart &chart, item_list &processed)
     const list<tItem*> items = prec_vertex->starting_items();
     for (list<tItem*>::const_iterator it = items.begin(); it != items.end(); ++it) {
       tItem *item = *it;
-      if(!passive_unblocked(*it)) continue; 
+      if(!passive_unblocked(*it)) continue;
       item->set_start(max_value - order[prec_vertex]);
       item->set_end(max_value - order[item->get_succ_vertex()]);
       processed.push_back(item);
