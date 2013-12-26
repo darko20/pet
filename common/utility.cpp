@@ -31,6 +31,12 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 #endif
+#ifndef FLOP
+#ifdef HAVE_BOOST_REGEX_ICU_HPP
+#include <boost/regex.hpp>
+#include <boost/regex/icu.hpp>
+#endif
+#endif
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -432,7 +438,7 @@ install_socket_logger(FILE *logger) {
 
 } // install_socket_logger()
 
-int 
+int
 socket_write(int socket, char *string) {
 
   int written, left, n;
@@ -457,7 +463,7 @@ socket_write(int socket, char *string) {
 
 } /* socket_write() */
 
-int 
+int
 socket_readline(int socket, char *string, int length, bool ffp) {
 
   int i, n;
@@ -502,3 +508,42 @@ socket_readline(int socket, char *string, int length, bool ffp) {
   return n + 1;
 
 } /* socket_readline() */
+
+#ifndef FLOP
+#ifdef HAVE_BOOST_REGEX_ICU_HPP
+/* escape literal braces in regex before giving it to Boost, since Boost::Regex
+ * is not completely pcre compatible
+ */
+string boostescape(string esc)
+{
+  boost::smatch res;
+  boost::u32regex quantifier
+    = boost::make_u32regex("^([{](?:[0-9]+(?:,[0-9]*)?)[}])");
+  int len = esc.length();
+  for (int x=0; x < len; ++x) {
+    if (esc.at(x) == '{') {
+      if (x > 0 && esc.at(x-1) == '\\')
+        continue; //already escaped, keep going
+      if (x > 1 && esc.at(x-2) == '\\' && isalpha(esc.at(x-1))) {
+        //probably the start of a backslash seq. find and skip past the
+        //closing brace. If not a backslash seq, ambiguous - let boost complain
+        while (x < len && esc.at(x) != '}')
+          x++;
+      } else if (boost::u32regex_search(esc.substr(x), res, quantifier)) {
+        //quantifier, skip past closing brace
+        x += string(res[0]).length()-1;
+      } else {
+        esc.replace(x,1, "\\{", 2);
+        x++;
+        len++;
+      }
+    } else if (esc.at(x) == '}') {
+      esc.replace(x,1, "\\}", 2);
+      x++;
+      len++;
+    }
+  }
+  return esc;
+}
+#endif
+#endif
