@@ -284,13 +284,6 @@ void HtmlMrsPrinter::print(tEp* ep) {
     print_full(ep->roles[*feat]);
     *_out << "</td></tr>\n";
   }
-  for (std::map<std::string, tValue*>::iterator carg 
-      = ep->parameter_strings.begin(); 
-      carg != ep->parameter_strings.end(); ++carg) {
-    *_out << "<tr><td>" << carg->first << "</td><td class=mrsValue>\n";
-    print(carg->second);
-    *_out << "</td></tr>\n";
-  }
   *_out << "</table></td>\n";
 }
 
