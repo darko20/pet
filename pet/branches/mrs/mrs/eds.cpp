@@ -571,12 +571,12 @@ std::string tEds::find_representative(tMrs *mrs, std::string hdl) {
     target = *(candidates.begin());
   } else { //this is where we start heuristics for shared handles
     std::vector<std::string> newcandidates;
-    // grab candidates that are not pointed to by other candidates
+    // grab candidates that does not point to other candidates
     for (std::set<std::string>::iterator cit = candidates.begin();
       cit != candidates.end(); ++cit) {
       int args = 0;
       std::pair<MmSNit, MmSNit> noderange = _nodes.equal_range(*cit);
-        for (MmSNit cn = noderange.first; cn != noderange.second; ++cn) {
+      for (MmSNit cn = noderange.first; cn != noderange.second; ++cn) {
         for (std::vector<tEdsEdge *>::iterator outit 
             = cn->second->outedges.begin();
             outit != cn->second->outedges.end(); ++outit) {
@@ -611,7 +611,7 @@ std::string tEds::find_representative(tMrs *mrs, std::string hdl) {
           maxincoming = incoming;
         }
       }
-      target = candidate;
+      if (!candidate.empty()) target = candidate;
     }
   }
   return target;
