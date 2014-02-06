@@ -171,7 +171,6 @@ void SimpleMrsReader::parseEP(tMrs *mrs, std::string &rest) {
     if (_constant_roles.count(role)) { //val should be a constant
       tConstant *val = readCARG(ep, rest);
       if (val != NULL) {//don't record uninstantiated cargs (*TOP* etc)
-        ep->parameter_strings[role] = val;
         ep->roles[role] = val;
       }
     } else { //val should be a var
