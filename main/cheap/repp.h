@@ -29,7 +29,7 @@
 
 #define RPP_EXT ".rpp"
 
-// defines three related classes: 
+// defines three related classes:
 // * tReppTokenizer as the PET tokenizer class
 // * tRepp as a class for each repp module
 // * tReppRule virtual class which has implemented classes for each rule type
@@ -58,7 +58,7 @@ class tReppTokenizer : public tTokenizer {
 
     std::map<std::string, tRepp *> _repps; //modules
 
-    std::vector<std::vector<int> *> _startmap; // for keeping track of 
+    std::vector<std::vector<int> *> _startmap; // for keeping track of
     std::vector<std::vector<int> *> _endmap;   // characterisation
 
     settings *_settings;
@@ -77,7 +77,7 @@ class tRepp {
   private:
     std::string _id; //repp name
 
-    std::string _version; 
+    std::string _version;
     std::map<int, tReppGroup *> _groups; //iterative groups
     tReppTokenizer *_parent; //tokenizer
     std::vector<tReppRule *> _rules; //repp rules in file order
@@ -86,6 +86,7 @@ class tRepp {
 class tReppRule {
   public:
     tReppRule(std::string type):_type(type){};
+    virtual ~tReppRule(){};
     std::string get_type() { return _type; };
     virtual std::string name() { return _type; };
     virtual std::string apply(tRepp *r, std::string item){ return
@@ -98,6 +99,7 @@ class tReppRule {
 class tReppFSRule: public tReppRule {
   public:
     tReppFSRule(std::string type, const char *target, const char *format);
+    virtual ~tReppFSRule(){};
     std::string apply(tRepp *r, std::string item);
     std::string name() { return _targetstr; };
 
@@ -112,6 +114,7 @@ class tReppGroupRule: public tReppRule {
   public:
     tReppGroupRule(std::string type, int group)
       :tReppRule(type), _group_id(group){};
+    virtual ~tReppGroupRule(){};
     std::string apply(tRepp *r, std::string item);
     std::string name();
 
@@ -123,6 +126,7 @@ class tReppIncludeRule: public tReppRule {
   public:
     tReppIncludeRule(std::string type, std::string iname)
       :tReppRule(type), _iname(iname){};
+    virtual ~tReppIncludeRule(){};
     std::string apply(tRepp *r, std::string item);
     std::string name() {return _iname;};
 

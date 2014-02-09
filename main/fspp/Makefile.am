@@ -11,7 +11,7 @@ AM_CFLAGS = -Wall
 AM_LDFLAGS = @CHEAPLDFLAGS@
 
 DEFS += -DDYNAMIC_SYMBOLS
-LIBS += -lstdc++ -licui18n -licudata -lecl
+LIBS += -lstdc++ -licui18n -licudata -licuuc -lecl
 
 bin_PROGRAMS = fspp
 
