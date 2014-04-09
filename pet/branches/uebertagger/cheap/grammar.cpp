@@ -70,6 +70,10 @@ static int init() {
   managed_opt("opt_ut",
               "Request ubertagging, with settings in file argument",
               std::string(""));
+  managed_opt("opt_lpthreshold",
+    "probability threshold for discarding lexical items",
+    -1.0);
+
   return true;
 }
 
@@ -667,6 +671,15 @@ tGrammar::tGrammar(const char * filename)
           cheap_settings->install(ut_settings);
         }
         try {
+          double threshold;
+          get_opt("opt_lpthreshold", threshold);
+          if (threshold < 0) { //and hence wasn't set on commandline
+            if (cheap_settings->lookup("ut-threshold") != NULL){
+              set_opt("opt_lpthreshold", 
+                strtod(cheap_settings->value("ut-threshold"), NULL));
+            } else
+              set_opt("opt_lpthreshold", 0);
+          }
           _lpsm = createTrigramModel(cheap_settings);
         }
         catch(tError &e) {
