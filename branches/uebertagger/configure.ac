@@ -257,6 +257,8 @@ AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
 
 AX_BOOST_BASE([], [boost="yes"], [boost="no"])
 AX_BOOST_REGEX([], [boost=no])
+AX_BOOST_IOSTREAMS([], [boost="yes"])
+AX_BOOST_SYSTEM([], [boost="yes"])
 # AX_BOOST_FILESYSTEM([], [boost=no]) # maybe later
 if test "$boost" = "yes" ; then
   CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
@@ -266,6 +268,8 @@ if test "$boost" = "yes" ; then
                     boost/lambda/lambda.hpp \
                     boost/lexical_cast.hpp \
                     boost/regex.hpp \
+                    boost/iostreams/filtering_stream.hpp \
+                    boost/iostreams/filter/gzip.hpp \
                     boost/tuple/tuple.hpp \
                     boost/tuple/tuple_comparison.hpp ],
                    [],
@@ -285,6 +289,8 @@ if test "$boost" = "yes" ; then
   CHEAPCPPFLAGS="${BOOST_CPPFLAGS} ${CHEAPCPPFLAGS}"
   CHEAPLDFLAGS="${BOOST_LDFLAGS} ${CHEAPLDFLAGS}"
   CHEAPLIBS="${BOOST_REGEX_LIBS} ${CHEAPLIBS}"
+  CHEAPLIBS="${BOOST_IOSTREAMS_LIBS} ${CHEAPLIBS}"
+  CHEAPLIBS="${BOOST_SYSTEM_LIBS} ${CHEAPLIBS}"
 else
   AC_MSG_ERROR([required Boost libraries are missing or incomplete])
 fi
