@@ -93,7 +93,7 @@ static lex_parser &init() {
 
   managed_opt("opt_lpthreshold",
     "probability threshold for discarding lexical items",
-    0.0);
+    -1.0);
 
   return global_lexparser;
 }
@@ -1057,6 +1057,13 @@ lex_parser::lexical_processing(inp_list &inp_tokens
   if (Grammar->lpsm() && lex_exhaustive) {
     double threshold;
     get_opt("opt_lpthreshold", threshold);
+    if (threshold < 0) { //and hence wasn't set on commandline
+      if (cheap_settings->lookup("ut-threshold") != NULL){
+        threshold = strtod(cheap_settings->value("ut-threshold"), NULL);
+      }
+      else
+        threshold = 0;
+    }
     lexprune(Grammar->lpsm(), threshold);
   }
 

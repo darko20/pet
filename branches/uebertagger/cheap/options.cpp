@@ -105,7 +105,7 @@ void usage(FILE *f)
           "enable chart pruning. Strategy can be (a)ll, (s)uccessful and (p)assive (default).\n");
   fprintf(f, "  `-inputfile=file' --- "
           "name of input file to read from instead of standard input\n");
-  fprintf(f, "  `-lpsm[=string]' --- lexical pruning model (`null' for none)\n");
+  fprintf(f, "  `-ut[=file]' --- request ubertagging, with settings in file\n");
   fprintf(f, "  `-lpthreshold=n' --- prune lexical items with a probability less than n ( 0 <= n < 1) \n");
 }
 
@@ -154,7 +154,7 @@ void usage(FILE *f)
 #define OPTION_REPP 45
 #define OPTION_TAGGER 46
 #define OPTION_PREPROCESS_ONLY 47
-#define OPTION_LPSM 48
+#define OPTION_UT 48
 #define OPTION_LP_THRESHOLD 49
 
 #ifdef YY
@@ -221,7 +221,7 @@ char* parse_options(int argc, char* argv[])
     {"cp", required_argument, 0, OPTION_CHART_PRUNING},
     {"inputfile", required_argument, 0, OPTION_INPUT_FILE},
     {"take", optional_argument, 0, OPTION_TAKE},
-    {"lpsm", optional_argument, 0, OPTION_LPSM},
+    {"ut", optional_argument, 0, OPTION_UT},
     {"lpthreshold", required_argument, 0, OPTION_LP_THRESHOLD},
     {0, 0, 0, 0}
   }; /* struct option */
@@ -482,11 +482,11 @@ char* parse_options(int argc, char* argv[])
         set_opt("opt_tagger", 
                 (optarg != NULL) ? std::string(optarg) : std::string("null"));
         break;
-      case OPTION_LPSM:
+      case OPTION_UT:
           if (optarg != NULL)
-            set_opt("opt_lpsm", std::string(optarg));
+            set_opt("opt_ut", std::string(optarg));
           else
-            set_opt("opt_lpsm", std::string("null"));
+            set_opt("opt_ut", std::string("null"));
           break;
       case OPTION_LP_THRESHOLD:
         if(optarg != NULL)
