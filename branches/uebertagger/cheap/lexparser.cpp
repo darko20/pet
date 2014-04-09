@@ -91,10 +91,6 @@ static lex_parser &init() {
     "allow/disallow chart manipulation (currently only dependency filter)",
     true);
 
-  managed_opt("opt_lpthreshold",
-    "probability threshold for discarding lexical items",
-    -1.0);
-
   return global_lexparser;
 }
 
@@ -1055,16 +1051,14 @@ lex_parser::lexical_processing(inp_list &inp_tokens
   //Chart->print(&chp);
 
   if (Grammar->lpsm() && lex_exhaustive) {
-    double threshold;
-    get_opt("opt_lpthreshold", threshold);
-    if (threshold < 0) { //and hence wasn't set on commandline
-      if (cheap_settings->lookup("ut-threshold") != NULL){
-        threshold = strtod(cheap_settings->value("ut-threshold"), NULL);
-      }
-      else
-        threshold = 0;
+    if (cheap_settings->lookup("ut-viterbi") != NULL &&
+        string("true").compare(cheap_settings->value("ut-viterbi")) == 0) {
+      viterbi(Grammar->lpsm());
+    } else {
+      double threshold;
+      get_opt("opt_lpthreshold", threshold);
+      lexprune(Grammar->lpsm(), threshold);
     }
-    lexprune(Grammar->lpsm(), threshold);
   }
 
   // If -default-les or -predict-les is used, lexical entries for unknown
