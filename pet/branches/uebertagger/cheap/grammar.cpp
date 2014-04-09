@@ -46,6 +46,8 @@
 #include "dagprinter.h"
 #include <fstream>
 
+#include "from_pet_settings.h"
+
 using namespace std;
 
 static int init();
@@ -65,8 +67,8 @@ static int init() {
   managed_opt("opt_chart_pruning_strategy",
               "determines the chart pruning strategy: 0=all tasks; 1=all successful tasks; 2=all passive items (default)",
               2);
-  managed_opt("opt_lpsm",
-              "lexical pruning model (`null' for none)",
+  managed_opt("opt_ut",
+              "Request ubertagging, with settings in file argument",
               std::string(""));
   return true;
 }
@@ -655,19 +657,21 @@ tGrammar::tGrammar(const char * filename)
         }
       }
 
-      const std::string opt_lpsm = get_opt_string("opt_lpsm");
-      if (opt_lpsm.empty() || opt_lpsm != "null") {
-        const char *lpsm_file
-        = (opt_lpsm.size() ? opt_lpsm.c_str() : cheap_settings->value("lpsm"));
-        if(lpsm_file != 0) {
-          try {
-            string mname = dir_name(filename)+string(lpsm_file);
-            _lpsm = new tTrigramModel(mname); 
-          }
-          catch(tError &e) {
-            LOG(logGrammar, ERROR, e.getMessage());
-            _lpsm = 0;
-          }
+      const std::string opt_ut = get_opt_string("opt_ut");
+      if (!opt_ut.empty()) { //ut requested
+        if (opt_ut != "null") {
+          settings *ut_settings = new settings(opt_ut, cheap_settings->base(), 
+            "reading");
+          if (!ut_settings->valid())
+            throw tError("Unable to read UT configuration '" + opt_ut + "'.");
+          cheap_settings->install(ut_settings);
+        }
+        try {
+          _lpsm = createTrigramModel(cheap_settings);
+        }
+        catch(tError &e) {
+          LOG(logGrammar, ERROR, e.getMessage());
+          _lpsm = 0;
         }
       } // if
     } // if

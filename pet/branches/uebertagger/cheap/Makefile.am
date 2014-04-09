@@ -89,6 +89,8 @@ cheaplibsources = \
 	tagger.cpp tagger.h \
   trigram/trigram.cpp trigram/trigram.h trigram/lattice.h \
   trigram/lexprune.cpp trigram/lexprune.h \
+  trigram/tdl_options.cpp trigram/tdl_options.h \
+  trigram/from_pet_settings.cpp trigram/from_pet_settings.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
 	$(top_srcdir)/common/configs.cpp \
