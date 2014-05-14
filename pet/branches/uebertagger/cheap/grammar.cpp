@@ -46,7 +46,7 @@
 #include "dagprinter.h"
 #include <fstream>
 
-#include "from_pet_settings.h"
+#include "ut_from_pet.h"
 
 using namespace std;
 
@@ -661,32 +661,32 @@ tGrammar::tGrammar(const char * filename)
         }
       }
 
-      const std::string opt_ut = get_opt_string("opt_ut");
-      if (!opt_ut.empty()) { //ut requested
-        if (opt_ut != "null") {
-          settings *ut_settings = new settings(opt_ut, cheap_settings->base(), 
-            "reading");
-          if (!ut_settings->valid())
-            throw tError("Unable to read UT configuration '" + opt_ut + "'.");
-          cheap_settings->install(ut_settings);
+    } // if
+    const std::string opt_ut = get_opt_string("opt_ut");
+    if (!opt_ut.empty()) { //ut requested
+      if (opt_ut != "null") {
+        settings *ut_settings = new settings(opt_ut, cheap_settings->base(), 
+          "reading");
+        if (!ut_settings->valid())
+          throw tError("Unable to read UT configuration '" + opt_ut + "'.");
+        cheap_settings->install(ut_settings);
+      }
+      try {
+        double threshold;
+        get_opt("opt_lpthreshold", threshold);
+        if (threshold < 0) { //and hence wasn't set on commandline
+          if (cheap_settings->lookup("ut-threshold") != NULL){
+            set_opt("opt_lpthreshold", 
+              strtod(cheap_settings->value("ut-threshold"), NULL));
+          } else
+            set_opt("opt_lpthreshold", 0);
         }
-        try {
-          double threshold;
-          get_opt("opt_lpthreshold", threshold);
-          if (threshold < 0) { //and hence wasn't set on commandline
-            if (cheap_settings->lookup("ut-threshold") != NULL){
-              set_opt("opt_lpthreshold", 
-                strtod(cheap_settings->value("ut-threshold"), NULL));
-            } else
-              set_opt("opt_lpthreshold", 0);
-          }
-          _lpsm = createTrigramModel(cheap_settings);
-        }
-        catch(tError &e) {
-          LOG(logGrammar, ERROR, e.getMessage());
-          _lpsm = 0;
-        }
-      } // if
+        _lpsm = createTrigramModel(cheap_settings);
+      }
+      catch(tError &e) {
+        LOG(logGrammar, ERROR, e.getMessage());
+        _lpsm = 0;
+      }
     } // if
 
     // check validity of cm-specific parameters:
