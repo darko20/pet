@@ -255,25 +255,15 @@ AM_CONDITIONAL(ICU, [test "x$icu" = "xyes"])
 # Boost libraries
 # --------------------------------------------------------------------
 
-AX_BOOST_BASE([], [boost="yes"], [boost="no"])
-AX_BOOST_REGEX([], [boost=no])
-AX_BOOST_IOSTREAMS([], [boost="yes"])
-AX_BOOST_SYSTEM([], [boost="yes"])
-# AX_BOOST_FILESYSTEM([], [boost=no]) # maybe later
-if test "$boost" = "yes" ; then
+BOOST_REQUIRE([], [boost="no"])
+BOOST_REGEX
+BOOST_SYSTEM
+BOOST_IOSTREAMS
+
+if test "$boost" = "no" ; then
+  AC_MSG_ERROR([required Boost libraries are missing or incomplete])
+else
   CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"
-  AC_CHECK_HEADERS([boost/format.hpp \
-                    boost/graph/adjacency_list.hpp \
-                    boost/graph/topological_sort.hpp \
-                    boost/lambda/lambda.hpp \
-                    boost/lexical_cast.hpp \
-                    boost/regex.hpp \
-                    boost/iostreams/filtering_stream.hpp \
-                    boost/iostreams/filter/gzip.hpp \
-                    boost/tuple/tuple.hpp \
-                    boost/tuple/tuple_comparison.hpp ],
-                   [],
-                   [ boost="no" ])
   if test "x$icu" = "xyes" ; then
     AC_CHECK_HEADERS([boost/regex/icu.hpp],
                      [],
@@ -282,17 +272,13 @@ if test "$boost" = "yes" ; then
                      [])
   fi
   CPPFLAGS="${savedCPPFLAGS}"
-fi
-if test "$boost" = "yes" ; then
+
   FLOPCPPFLAGS="${BOOST_CPPFLAGS} ${FLOPCPPFLAGS}"
-  FLOPLDFLAGS="${BOOST_LDFLAGS} ${FLOPLDFLAGS}"
+  FLOPLDFLAGS="${BOOST_REGEX_LDFLAGS} ${FLOPLDFLAGS}"
+
   CHEAPCPPFLAGS="${BOOST_CPPFLAGS} ${CHEAPCPPFLAGS}"
-  CHEAPLDFLAGS="${BOOST_LDFLAGS} ${CHEAPLDFLAGS}"
-  CHEAPLIBS="${BOOST_REGEX_LIBS} ${CHEAPLIBS}"
-  CHEAPLIBS="${BOOST_IOSTREAMS_LIBS} ${CHEAPLIBS}"
-  CHEAPLIBS="${BOOST_SYSTEM_LIBS} ${CHEAPLIBS}"
-else
-  AC_MSG_ERROR([required Boost libraries are missing or incomplete])
+  CHEAPLDFLAGS="${BOOST_REGEX_LDFLAGS} ${BOOST_SYSTEM_LDFLAGS} ${BOOST_IOSTREAMS_LDFLAGS} ${CHEAPLDFLAGS}"
+  CHEAPLIBS="${BOOST_REGEX_LIBS} ${BOOST_SYSTEM_LIBS} ${BOOST_IOSTREAMS_LIBS} ${CHEAPLIBS}"
 fi
 
 
