@@ -79,9 +79,9 @@ static bool initialized = init();
 inline bool
 pcfg_resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
 {
-  return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) ||
-    (memlimit > 0 && t_alloc.max_usage() >= memlimit) ||
-    (timeout > 0 && timestamp >= timeout );
+  return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) 
+    || (memlimit > 0 && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memlimit)
+    || (timeout > 0 && timestamp >= timeout );
 }
 
 
@@ -322,7 +322,7 @@ add_item_pcfg(tItem *it) {
 
 void
 parse_loop_pcfg() {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  long memlimit = get_opt_int("opt_memlimit");
   int pedgelimit = get_opt_int("opt_pedgelimit");
   while (!Agenda->empty() &&
          ! pcfg_resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
@@ -428,7 +428,7 @@ int unpack_selectively_pcfg(vector<tItem*> &trees, int upedgelimit,
 
 void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
   // _todo_ modify so that proper unpacking routines are invoked
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  long memlimit = get_opt_int("opt_memlimit");
   int pedgelimit = get_opt_int("opt_pedgelimit");
   clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
 
@@ -437,9 +437,8 @@ void parse_finish_pcfg(fs_alloc_state &FSAS, list<tError> &errors) {
   if(pcfg_resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
     ostringstream s;
 
-    if (memlimit > 0 && t_alloc.max_usage() >= memlimit)
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
-        << " MB)";
+    if (memlimit > 0 && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memlimit)
+      s << "memory limit exhausted (" << memlimit << " MB)";
     else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit)
       s << "edge limit exhausted (" << pedgelimit
         << " pedges)";

@@ -119,9 +119,9 @@ class statistics
   /** nr of copies */
   int copies;
   /** total dynamic memory in bytes */
-  long dyn_bytes;
+  long long dyn_bytes;
   /** total static memory in bytes */
-  long stat_bytes;
+  long long stat_bytes;
   /** cycles found */
   int cycles;
   /** avg size of all passive edges */
@@ -152,9 +152,9 @@ class statistics
   /** hypotheses in unpacking */
   int p_hypotheses;
   /** total dynamic memory in bytes in unpacking */
-  long p_dyn_bytes;
+  long long p_dyn_bytes;
   /** total static memory in bytes in unpacking */
-  long p_stat_bytes;
+  long long p_stat_bytes;
   /*@}*/
 
   void reset();
@@ -369,7 +369,7 @@ class tsdb_parse
   /** symbols allocated */
   int symbols;
   /** bytes of memory allocated */
-  long int others;
+  long long int others;
   /** number of garbage collections */
   int gcs;
   /** initial load (start of parse) */

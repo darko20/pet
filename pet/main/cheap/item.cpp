@@ -864,7 +864,7 @@ int unpacking_level;
 
 inline bool unpacking_resources_exhausted(long memlimit) {
   // TODO add other limits
-  return memlimit > 0 && t_alloc.max_usage() >= memlimit;
+  return memlimit > 0 && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memlimit;
 }
 
 list<tItem *>
@@ -1020,7 +1020,7 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
 // should be factored out.
 tItem *
 tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  long memlimit = get_opt_int("opt_memlimit");
 
   fs_alloc_state FSAS(false);
 
@@ -1047,8 +1047,7 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
 
   if (unpacking_resources_exhausted(memlimit)) {
     ostringstream s;
-    s << "memory limit exhausted (" << memlimit / (1024 * 1024)
-      << " MB)";
+    s << "memory limit exhausted (" << memlimit << " MB)";
     throw tError(s.str());
   }
 
@@ -1514,8 +1513,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
 
     if (unpacking_resources_exhausted(memlimit)) {
       ostringstream s;
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
-        << " MB)";
+      s << "memory limit exhausted (" << memlimit << " MB)";
       throw tError(s.str());
     }
 
