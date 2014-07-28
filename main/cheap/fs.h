@@ -411,7 +411,7 @@ class fs_alloc_state
      * or temporary fs's that have been created so far (as if memory was not
      * reused). The value can be reset by clear_stats().
      */
-    long dynamic_usage()
+    long long dynamic_usage()
     {
         return dag_alloc_dynamic_mem();
     }
@@ -421,7 +421,7 @@ class fs_alloc_state
      * temporary fs's. The value can be reset by clear_stats(), which
      * has only a visible effect if allocated memory may shrink.
      */
-    long static_usage()
+    long long static_usage()
     {
         return dag_alloc_static_mem();
     }

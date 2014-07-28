@@ -90,8 +90,8 @@ class chunk_allocator
   inline int chunksize() { return _chunk_size; }
 
   /** The amount of memory currently allocated */
-  inline long int allocated()
-    { return _curr_chunk * _chunk_size + _chunk_pos; }
+  inline long long int allocated()
+    { return (long long)_curr_chunk * (long long)_chunk_size + _chunk_pos; }
 
   /** Pointer to the next free memory address */
   inline void *current()
@@ -126,8 +126,10 @@ class chunk_allocator
   void reset();
 
   /** The maximum amount of memory (in bytes) allocated so far */
-  inline long int max_usage()
+  inline long long int max_usage()
     { return _max; }
+  inline long long int max_usage_mb()
+    { return _max / (1024 * 1024); }
   
   /** Reset maximum allocated size counter.
    * Calling this method only makes sense after the total allocated memory
@@ -156,7 +158,7 @@ class chunk_allocator
   char **_chunk;
 
   /** max nr of bytes allocated so far */
-  long int _max;
+  long long int _max;
 
 
   void _overflow(int n);
