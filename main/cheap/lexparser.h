@@ -260,7 +260,8 @@ private:
    * Instantiate the \a stem, add the modifications \a mods and create a
    * new tLexItem with inflectional rules \a infl_rules, if this succeeds.
    */
-  void combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules
+  void combine(lex_stem *stem, tInputItem *i_item
+               , const list_int *prefix_rules, const list_int *infl_rules
                , const modlist &mods);
 
   /** Add a fs modification for the surface form to the given item. This is
@@ -316,11 +317,10 @@ class lex_and_inp_task : public lex_task {
 public:
   virtual ~lex_and_inp_task() {}
 
-  /** Constructor */
+  /** Combine a tInputItem with an active tLexItem. Create new tasks. */
   lex_and_inp_task(tLexItem *lex, tInputItem *inp)
     : _lex_item(lex), _inp_item(inp) {};
 
-  /** Combine a tInputItem with an active tLexItem. Create new tasks. */
   virtual void execute(class lex_parser &parser);
 
 private:

@@ -50,6 +50,7 @@
     -- PCFG_TRAIT a pcfg item or rule
  */
 enum rule_trait { SYNTAX_TRAIT, LEX_TRAIT, INFL_TRAIT, INPUT_TRAIT, PCFG_TRAIT };
+enum affix_trait { NONE, PREFIX, INFLECTION, SUFFIX };
 
 /** A rule from the HPSG grammar */
 class grammar_rule
@@ -89,6 +90,9 @@ class grammar_rule
   inline rule_trait trait() const { return _trait; }
   /** Set the trait of this rule: INFL_TRAIT, LEX_TRAIT, SYNTAX_TRAIT */
   inline void trait(rule_trait t) { _trait = t; }
+
+  inline affix_trait affix_type() const { return _affix_type; }
+  inline void set_affix_type(affix_trait type) { _affix_type = type; }
 
   /** Print in readable form for debugging purposes */
   void print(std::ostream &out) const;
@@ -154,6 +158,7 @@ class grammar_rule
   int _id;
   int _type;        // type index
   rule_trait _trait;
+  affix_trait _affix_type;
   int _arity;
   list_int *_tofill;
   std::vector<type_t> _pcfg_args;

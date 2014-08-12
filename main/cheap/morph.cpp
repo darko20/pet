@@ -753,10 +753,14 @@ void tMorphAnalyzer::parse_rule(grammar_rule *fsrule, string rule, bool suffix)
 void tMorphAnalyzer::add_rule(grammar_rule *fsrule, string rule) {
   LOG(logMorph, DEBUG, "INFLR<" << fsrule->printname() << ">: "<< rule);
 
-  if(rule.compare(0, 6, "suffix") == 0)
+  if(rule.compare(0, 6, "suffix") == 0) {
+    fsrule->set_affix_type(SUFFIX);
     parse_rule(fsrule, rule.substr(6, rule.length() - 6), true);
-  else if(rule.compare(0, 6, "prefix") == 0)
+  } // if
+  else if(rule.compare(0, 6, "prefix") == 0) {
+    fsrule->set_affix_type(PREFIX);
     parse_rule(fsrule, rule.substr(6, rule.length() - 6), false);
+  } // if
   else
     throw tError(string("unknown type of morphological rule [")
                  + fsrule->printname() + "]: " + rule);
