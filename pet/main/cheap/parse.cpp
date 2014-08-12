@@ -237,14 +237,16 @@ fundamental_for_active(tPhrasalItem *active) {
 
 bool
 packed_edge(tItem *newitem) {
-  if(! newitem->inflrs_complete_p()) return false;
+  if(!newitem->inflrs_complete_p() || !newitem->prefix_lrs_complete_p()) 
+    return false;
 
   for(chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
       iter.valid(); ++iter) {
     bool forward, backward;
     tItem *olditem = iter.current();
 
-    if(!olditem->inflrs_complete_p() || (olditem->trait() == INPUT_TRAIT))
+    if(!olditem->inflrs_complete_p() || !olditem->prefix_lrs_complete_p()
+       || (olditem->trait() == INPUT_TRAIT))
       continue;
 
     // YZ 2007-07-25: avoid packing item with its offspring edges
@@ -708,7 +710,8 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
     //
     for(chart_iter item(Chart); item.valid(); ++item) {
       if(passive_unblocked_non_input(item.current())
-         && item.current()->inflrs_complete_p())
+         && item.current()->inflrs_complete_p()
+         && item.current()->prefix_lrs_complete_p())
         Chart->readings().push_back(item.current());
     } // for
     Chart->trees() = Chart->readings();
