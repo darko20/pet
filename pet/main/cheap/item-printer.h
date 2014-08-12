@@ -82,6 +82,7 @@ protected:
     // \todo cast is not nice, but the best we can do
     return const_cast<tItem *>(item)->_fs;
   }
+  const list_int *prefix_lrs(const tItem *item) { return item->_prefix_lrs; }
   const list_int *inflrs_todo(const tItem *item) { return item->_inflrs_todo; }
   const type_t result_root(const tItem *item) { return item->_result_root; }
 

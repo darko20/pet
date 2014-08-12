@@ -532,7 +532,8 @@ tChartUtil::create_input_item(const fs &token_fs)
   if (!infls.empty() && (token_class == WORD_TOKEN_CLASS))
       throw tError("Encountered token with RULES but no STEM or ENTRY.");
   tInputItem *item = new tInputItem(id, vfrom, vto, cfrom, cto, form, stem,
-      tPaths(), token_class, infls, tagsnprobs, modlist(), token_fs);
+                                    tPaths(), token_class, infls, 
+                                    tagsnprobs, modlist(), token_fs);
 
   return item;
 }

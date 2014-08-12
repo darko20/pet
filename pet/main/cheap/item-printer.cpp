@@ -234,7 +234,12 @@ tCompactDerivationPrinter::real_print(const tInputItem *item) {
 void
 tCompactDerivationPrinter::print_inflrs(const tItem* item) {
   *_out << " [";
-  const list_int *l = inflrs_todo(item);
+  const list_int *l = prefix_lrs(item);
+  if (l != 0) { *_out << print_name(first(l)); l = rest(l);}
+  for(; l != 0; l = rest(l))
+    *_out << " " << print_name(first(l));
+  *_out << " : ";
+  l = inflrs_todo(item);
   if (l != 0) { *_out << print_name(first(l)); l = rest(l);}
   for(; l != 0; l = rest(l))
     *_out << " " << print_name(first(l));
