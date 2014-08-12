@@ -153,7 +153,7 @@ void chart::get_statistics()
     {
         tItem *it = iter.current();
 
-        if(!it->inflrs_complete_p())
+        if(!it->inflrs_complete_p() || !it->prefix_lrs_complete_p())
         {
             ++stats.medges;
         }

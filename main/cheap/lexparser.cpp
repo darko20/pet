@@ -518,7 +518,8 @@ lex_parser::dependency_filter(setting *deps, bool unidirectional
     // processing or not
     if (lex->passive()
         && lex->trait() != INPUT_TRAIT
-        && (!lex_exhaustive || lex->inflrs_complete_p())) {
+        && (!lex_exhaustive 
+            || (lex->inflrs_complete_p() && lex->prefix_lrs_complete_p()))) {
       f = lex->get_fs();
 
       LOG(logLexproc, DEBUG, "dependency information for " <<

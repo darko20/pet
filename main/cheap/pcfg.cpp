@@ -185,6 +185,7 @@ passive_item_exists(chart *C, int start, int end, type_t type, list<tItem*> dtrs
     if (item->trait() != INPUT_TRAIT &&
         item->trait() != PCFG_TRAIT &&
         item->inflrs_complete_p() &&
+        item->prefix_lrs_complete_p() &&
         item->rule()->type() == type) {
       bool equal = true;
       if (opt_robust == 2)
@@ -507,7 +508,8 @@ void analyze_pcfg(chart *&C, fs_alloc_state &FSAS, list<tError> &errors) {
   while (ci2.valid()) {
     if (ci2.current()->trait() != INPUT_TRAIT &&
         ci2.current()->passive() &&
-        ci2.current()->inflrs_complete_p()) {
+        ci2.current()->inflrs_complete_p() &&
+        ci2.current()->prefix_lrs_complete_p()) {
       postulate_pcfg(ci2.current());
     }
     ++ci2;
