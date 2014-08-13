@@ -259,6 +259,8 @@ tInputItem::tInputItem(tInputItem *source, string surface,
   _trait = source->_trait;
   _startposition = source->_startposition;
   _endposition= source->_endposition; 
+  _prefix_lrs = copy_list(prefix_rules);
+  _inflrs_todo = copy_list(infl_rules);
   recreate_fs();
 }
 
