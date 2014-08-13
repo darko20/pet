@@ -418,20 +418,16 @@ lex_parser::add(tInputItem *inp) {
         free_list(foo);
         free_list(bar);
       }
-      if(stems.empty()) {
-        //
-        // _fix_me_
-        // insert copies of our current input item, with prefixes stripped off,
-        // to be consumed by multi-word lexical entries.  this will need to be
-        // generalized for MWEs whose inflection position is not final.
-        //                                                      (12-aug-14; oe)
-        list_int *foo = get_prefix_rules(*mrph);
-        list_int *bar = get_infl_rules(*mrph);
-        if(foo && !bar) 
-          Chart->add(new tInputItem(inp, mrph->base(), foo, bar));
-        free_list(foo);
-        free_list(bar);
-      } // if
+      //
+      // insert copies of our current input item, with affixes stripped off,
+      // to be consumed by multi-word lexical entries.          (12-aug-14; oe)
+      //
+      list_int *foo = get_prefix_rules(*mrph);
+      list_int *bar = get_infl_rules(*mrph);
+      if((foo && !bar) || (!foo && bar)) 
+        Chart->add(new tInputItem(inp, mrph->base(), foo, bar));
+      free_list(foo);
+      free_list(bar);
     }
     // If there is no morph analysis with null inflection, do additional lookup
     // based on the input form, e.g., for multi word entries without inflected
