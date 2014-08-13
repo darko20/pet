@@ -1007,7 +1007,9 @@ public:
    */
   bool compatible(tInputItem *inp) const {
     if (form(nextarg()) != inp->form() 
-        || (left_extending() ? _prefix_lrs : _inflrs_todo))
+        || (left_extending() 
+            ? _prefix_lrs || inp->inflrs()
+            : _inflrs_todo || inp->prefix_lrs()))
       return false;
 
     // check if we already did this combination before: is the new start
