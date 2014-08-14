@@ -720,7 +720,7 @@ public:
              , const std::list<int> &orthographemics = std::list<int>()
              , const postags &pos = postags()
              , modlist fsmods = modlist());
-  tInputItem(tInputItem *source, std::string surface,
+  tInputItem(tInputItem *source, std::string stem,
              list_int *prefix_rules, list_int *infl_rules);
 
   /**
@@ -1006,7 +1006,7 @@ public:
    *     position as the new potential result.
    */
   bool compatible(tInputItem *inp) const {
-    if (form(nextarg()) != inp->form() 
+    if (form(nextarg()) != (inp->stem().empty() ? inp->form() : inp->stem())
         || (left_extending() 
             ? _prefix_lrs || inp->inflrs()
             : _inflrs_todo || inp->prefix_lrs()))

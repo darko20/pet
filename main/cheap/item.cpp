@@ -248,12 +248,12 @@ tInputItem::tInputItem(string id, int startposition, int endposition
 //
 // create variant input items, recording different orthographemic hypotheses
 //
-tInputItem::tInputItem(tInputItem *source, string surface,
+tInputItem::tInputItem(tInputItem *source, string stem,
                        list_int *prefix_rules, list_int *infl_rules)
   : tItem(source->_start, source->_end, source->_paths, 
-          fs(), surface.c_str())
+          fs(), source->_surface.c_str())
   , _input_id(source->_input_id), _class(source->_class),
-    _surface(surface), _stem(source->_stem), 
+    _surface(source->_surface), _stem(stem), 
     _fsmods(source->_fsmods), _postags(source->_postags)
 {
   _trait = source->_trait;
