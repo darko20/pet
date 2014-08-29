@@ -251,7 +251,7 @@ tInputItem::tInputItem(string id, int startposition, int endposition
 tInputItem::tInputItem(tInputItem *source, string stem,
                        list_int *prefix_rules, list_int *infl_rules)
   : tItem(source->_start, source->_end, source->_paths, 
-          fs(), source->_surface.c_str())
+          source->_fs, source->_surface.c_str())
   , _input_id(source->_input_id), _class(source->_class),
     _surface(source->_surface), _stem(stem), 
     _fsmods(source->_fsmods), _postags(source->_postags)
@@ -261,7 +261,7 @@ tInputItem::tInputItem(tInputItem *source, string stem,
   _endposition= source->_endposition; 
   _prefix_lrs = copy_list(prefix_rules);
   _inflrs_todo = copy_list(infl_rules);
-  recreate_fs();
+  // if (!_fs.valid()) recreate_fs();
 }
 
 // constructor for complex input items
