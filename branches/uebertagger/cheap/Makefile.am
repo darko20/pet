@@ -9,7 +9,7 @@ endif
 include $(top_srcdir)/common/Makefile.common
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
-CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp @CHEAPCPPFLAGS@
+CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/repp @CHEAPCPPFLAGS@
 CXXFLAGS += @CHEAPCXXFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
@@ -85,11 +85,12 @@ cheaplibsources = \
 	vpm.h vpm.cpp \
 	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
-	repp.cpp repp.h \
+	$(top_srcdir)/repp/repp.cpp $(top_srcdir)/repp/repp.h \
+	$(top_srcdir)/repp/tdl_options.cpp $(top_srcdir)/repp/tdl_options.h \
+	$(top_srcdir)/repp/repp_from_pet.cpp $(top_srcdir)/repp/repp_from_pet.h \
 	tagger.cpp tagger.h \
   trigram/trigram.cpp trigram/trigram.h trigram/lattice.h \
   trigram/lexprune.cpp trigram/lexprune.h \
-  trigram/tdl_options.cpp trigram/tdl_options.h \
   trigram/ut_from_pet.cpp trigram/ut_from_pet.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \

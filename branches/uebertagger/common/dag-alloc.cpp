@@ -24,12 +24,12 @@
 
 int allocated_nodes = 0, allocated_arcs = 0;
 
-long dag_alloc_dynamic_mem()
+long long dag_alloc_dynamic_mem()
 {
   return sizeof(dag_node) * allocated_nodes + sizeof(dag_arc) * allocated_arcs;
 }
 
-long dag_alloc_static_mem()
+long long dag_alloc_static_mem()
 {
   return t_alloc.max_usage();
 }

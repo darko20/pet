@@ -58,7 +58,13 @@ inline void tItemPrinter::print_tofill(ostream &out, const tItem *item) {
 
 // helper function from tItem::print, complete
 inline void tItemPrinter::print_inflrs(ostream &out, const tItem *item) {
-  const list_int *l = inflrs_todo(item);
+  const list_int *l = prefix_lrs(item);
+  if (l != NULL) { out << print_name(first(l)) ; l = rest(l); }
+  while (l != NULL) {
+    out << " " << print_name(first(l)) ; l = rest(l);
+  }
+  out << " : ";
+  l = inflrs_todo(item);
   if (l != NULL) { out << print_name(first(l)) ; l = rest(l); }
   while (l != NULL) {
     out << " " << print_name(first(l)) ; l = rest(l);
@@ -234,7 +240,12 @@ tCompactDerivationPrinter::real_print(const tInputItem *item) {
 void
 tCompactDerivationPrinter::print_inflrs(const tItem* item) {
   *_out << " [";
-  const list_int *l = inflrs_todo(item);
+  const list_int *l = prefix_lrs(item);
+  if (l != 0) { *_out << print_name(first(l)); l = rest(l);}
+  for(; l != 0; l = rest(l))
+    *_out << " " << print_name(first(l));
+  *_out << " : ";
+  l = inflrs_todo(item);
   if (l != 0) { *_out << print_name(first(l)); l = rest(l);}
   for(; l != 0; l = rest(l))
     *_out << " " << print_name(first(l));
@@ -278,7 +289,7 @@ tCompactDerivationPrinter::real_print(const tPhrasalItem *item) {
     *_out << " [" << print_name(result_root(item)) << "]";
   }
 
-  if(! item->inflrs_complete_p()) {
+  if(!item->inflrs_complete_p() || !item->prefix_lrs_complete_p()) {
     print_inflrs(item);
   }
 

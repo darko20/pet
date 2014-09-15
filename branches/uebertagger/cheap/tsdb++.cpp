@@ -133,8 +133,8 @@ statistics::print(FILE *f)
            "medges: %d\n"
            "unifications_succ: %d\nunifications_fail: %d\n"
            "subsumptions_succ: %d\nsubsumptions_fail: %d\ncopies: %d\n"
-           "dyn_bytes: %ld\nstat_bytes: %ld\n"
-           "p_dyn_bytes: %ld\np_nstat_bytes: %ld\n"
+           "dyn_bytes: %lld\nstat_bytes: %lld\n"
+           "p_dyn_bytes: %lld\np_stat_bytes: %lld\n"
            "cycles: %d\nfssize: %d\n"
            "unify_cost_succ: %d\nunify_cost_fail: %d\n"
            "equivalent: %d\nproactive: %d\nretroactive: %d\n"
@@ -516,7 +516,7 @@ tsdb_parse::capi_print()
         capi_printf("(:treal . %d) ", treal);
 
     if(others != -1)
-        capi_printf("(:others . %ld) ", others);
+        capi_printf("(:others . %lld) ", others);
 
     if(p_ftasks != -1)
         capi_printf("(:p-ftasks . %d) ", p_ftasks);
@@ -792,7 +792,7 @@ cheap_tsdb_summarize_error(list<tError> &conditions, int treal, tsdb_parse &T)
     T.tgc = 0;
     T.treal = treal;
 
-    T.others = stats.stat_bytes;
+    T.others = stats.stat_bytes + stats.p_stat_bytes;
 
     T.p_ftasks = stats.ftasks_fi + stats.ftasks_qc;
     T.p_etasks = stats.etasks;

@@ -57,7 +57,9 @@ filter_items(const item_list &items,
   item_list::const_iterator it;
   for (it = items.begin(); it != items.end(); ++it) {
     if (!(skip_blocked && (*it)->blocked())
-        && !(skip_pending_inflrs && !(*it)->inflrs_complete_p())
+        && !(skip_pending_inflrs 
+             && (!(*it)->inflrs_complete_p() 
+                 || !(*it)->prefix_lrs_complete_p()))
         && (find(skip.begin(), skip.end(), *it) == skip.end())) {
       result.push_back(*it);
     }
@@ -532,7 +534,8 @@ tChartUtil::create_input_item(const fs &token_fs)
   if (!infls.empty() && (token_class == WORD_TOKEN_CLASS))
       throw tError("Encountered token with RULES but no STEM or ENTRY.");
   tInputItem *item = new tInputItem(id, vfrom, vto, cfrom, cto, form, stem,
-      tPaths(), token_class, infls, tagsnprobs, modlist(), token_fs);
+                                    tPaths(), token_class, infls, 
+                                    tagsnprobs, modlist(), token_fs);
 
   return item;
 }

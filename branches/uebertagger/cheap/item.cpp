@@ -143,7 +143,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
     : _id(_next_id++),
       _start(start), _end(end), _startposition(-1), _endposition(-1),
       _spanningonly(false), _paths(paths),
-      _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0),
+      _fs(f), _tofill(0), _nfilled(0), _inflrs_todo(0), _prefix_lrs(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _gmscore(0.0), _printname(printname),
@@ -156,7 +156,7 @@ tItem::tItem(int start, int end, const tPaths &paths,
              const char *printname)
     : _id(_next_id++),
       _start(start), _end(end), _spanningonly(false), _paths(paths),
-      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0),
+      _fs(), _tofill(0), _nfilled(0), _inflrs_todo(0), _prefix_lrs(0),
       _result_root(-1), _result_contrib(false),
       _qc_vector_unif(0), _qc_vector_subs(0),
       _score(0.0), _gmscore(0.0), _printname(printname),
@@ -169,7 +169,6 @@ tItem::~tItem()
 {
     delete[] _qc_vector_unif;
     delete[] _qc_vector_subs;
-    // free_list(_inflrs_todo); // This is now only done in tLexItem
     delete _unpack_cache;
 }
 
@@ -191,7 +190,7 @@ tInputItem::tInputItem(string id
                        , string surface, string stem
                        , const tPaths &paths
                        , int token_class
-                       , const std::list<int> &infl_rules
+                       , const std::list<int> &orthographemics
                        , const postags &pos
                        , modlist fsmods
                        , const fs &token_fs)
@@ -202,9 +201,19 @@ tInputItem::tInputItem(string id
   _startposition = startposition;
   _endposition = endposition;
   _trait = INPUT_TRAIT;
-  _inflrs_todo = copy_list(infl_rules);
-  if (!token_fs.valid()) // i.e. if no token fs has been specified
-    recreate_fs(); // create the token fs
+  for(list<int>::const_iterator type = orthographemics.begin();
+      type != orthographemics.end();
+      ++type) {
+    grammar_rule *rule;
+    if(!(rule = Grammar->find_rule(*type)))
+       throw tError("invalid orthographemic rule");
+    if(rule->affix_type() == PREFIX)
+      _prefix_lrs = cons(*type, _prefix_lrs);
+    else
+      _inflrs_todo = cons(*type, _inflrs_todo);
+  }
+  // if no token fs has been specified, create the token fs
+  if (!token_fs.valid()) recreate_fs();
 }
 
 // constructor with external start/end positions only
@@ -212,7 +221,7 @@ tInputItem::tInputItem(string id, int startposition, int endposition
                        , string surface, string stem
                        , const tPaths &paths
                        , int token_class
-                       , const std::list<int> &infl_rules
+                       , const std::list<int> &orthographemics
                        , const postags &pos
                        , modlist fsmods)
   : tItem(-1, -1, paths, fs(), surface.c_str())
@@ -222,14 +231,43 @@ tInputItem::tInputItem(string id, int startposition, int endposition
   _startposition = startposition;
   _endposition = endposition;
   _trait = INPUT_TRAIT;
-  _inflrs_todo = copy_list(infl_rules);
+  for(list<int>::const_iterator type = orthographemics.begin();
+      type != orthographemics.end();
+      ++type) {
+    grammar_rule *rule;
+    if(!(rule = Grammar->find_rule(*type)))
+       throw tError("invalid orthographemic rule");
+    if(rule->affix_type() == PREFIX)
+      _prefix_lrs = cons(*type, _prefix_lrs);
+    else
+      _inflrs_todo = cons(*type, _inflrs_todo);
+  }
   recreate_fs(); // create the token fs
+}
+
+//
+// create variant input items, recording different orthographemic hypotheses
+//
+tInputItem::tInputItem(tInputItem *source, string stem,
+                       list_int *prefix_rules, list_int *infl_rules)
+  : tItem(source->_start, source->_end, source->_paths, 
+          source->_fs, source->_surface.c_str())
+  , _input_id(source->_input_id), _class(source->_class),
+    _surface(source->_surface), _stem(stem), 
+    _fsmods(source->_fsmods), _postags(source->_postags)
+{
+  _trait = source->_trait;
+  _startposition = source->_startposition;
+  _endposition= source->_endposition; 
+  _prefix_lrs = copy_list(prefix_rules);
+  _inflrs_todo = copy_list(infl_rules);
+  // if (!_fs.valid()) recreate_fs();
 }
 
 // constructor for complex input items
 tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
                        , string stem, int token_class
-                       , const std::list<int> &infl_rules
+                       , const std::list<int> &orthographemics
                        , const postags &pos
                        , modlist fsmods)
   : tItem(-1, -1, tPaths(), fs(), "")
@@ -246,7 +284,17 @@ tInputItem::tInputItem(string id, const list< tInputItem * > &dtrs
     _paths.intersect((*it)->_paths);
   }
   _trait = INPUT_TRAIT;
-  _inflrs_todo = copy_list(infl_rules);
+  for(list<int>::const_iterator type = orthographemics.begin();
+      type != orthographemics.end();
+      ++type) {
+    grammar_rule *rule;
+    if(!(rule = Grammar->find_rule(*type)))
+       throw tError("invalid orthographemic rule");
+    if(rule->affix_type() == PREFIX)
+      _prefix_lrs = cons(*type, _prefix_lrs);
+    else
+      _inflrs_todo = cons(*type, _inflrs_todo);
+  }
   recreate_fs(); // create the token fs
 }
 
@@ -421,7 +469,8 @@ void tLexItem::init() {
 // inflpos() + 1, as it used to be.                             (16-jan-09; oe)
 //
 tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
-                   , fs &f, const list_int *inflrs_todo)
+                   , fs &f
+                   , const list_int *prefix_rules, const list_int *inflrs_todo)
   : tItem(i_item->start(), i_item->end(), i_item->paths()
           , f, stem->printname())
   , _ldot(stem->inflpos())
@@ -430,6 +479,7 @@ tLexItem::tLexItem(lex_stem *stem, tInputItem *i_item
   _rdot = (_ldot ? stem->length() : 1);
   _startposition = i_item->startposition();
   _endposition = i_item->endposition();
+  _prefix_lrs = copy_list(prefix_rules);
   _inflrs_todo = copy_list(inflrs_todo);
   _key_item = this;
   _daughters.push_back(i_item);
@@ -444,13 +494,14 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr, fs f)
   _stem(from->_stem), _fs_full(f.valid() ? f : from->get_fs()), _hypo(NULL)
 {
   _daughters = from->_daughters;
-  _inflrs_todo = copy_list(from->_inflrs_todo);
   _key_item = this;
   if(from->left_extending()) {
     _start = newdtr->start();
     _startposition = newdtr->startposition();
     _end = from->end();
     _endposition = from->endposition();
+    _prefix_lrs = copy_list(newdtr->_prefix_lrs);
+    _inflrs_todo = copy_list(from->_inflrs_todo);
     _daughters.push_front(newdtr);
     --_ldot;
     // register this expansion to avoid duplicates
@@ -460,6 +511,8 @@ tLexItem::tLexItem(tLexItem *from, tInputItem *newdtr, fs f)
     _startposition = from->startposition();
     _end = newdtr->end();
     _endposition = newdtr->endposition();
+    _prefix_lrs = copy_list(from->_prefix_lrs);
+    _inflrs_todo = copy_list(newdtr->_inflrs_todo);
     _daughters.push_back(newdtr);
     ++_rdot;
     from->_expanded.push_back(_end);
@@ -480,18 +533,26 @@ tPhrasalItem::tPhrasalItem(grammar_rule *R, tItem *pasv, fs &f)
   if(R->trait() == INFL_TRAIT) {
     // We don't copy here, so only the tLexItem is responsible for deleting
     // the list
-    _inflrs_todo = rest(pasv->_inflrs_todo);
-    // output of morphographemic rules (rules with INFL_TRAIT) gets LEX_TRAIT
+    if(pasv->_inflrs_todo && first(pasv->_inflrs_todo) == R->type()) {
+      _inflrs_todo = rest(pasv->_inflrs_todo);
+      _prefix_lrs = pasv->_prefix_lrs;
+    } // if
+    else {
+      _inflrs_todo = pasv->_inflrs_todo;
+      _prefix_lrs = rest(pasv->_prefix_lrs);
+    } // else
+    // output of orthographemic rules (rules with INFL_TRAIT) gets LEX_TRAIT
     _trait = LEX_TRAIT;
     // Modify the feature structure to contain the surface form in the
     // right place
-    if(inflrs_complete_p()) {
+    if(inflrs_complete_p() && prefix_lrs_complete_p()) {
       _fs.modify_eagerly(_key_item->_mod_form_fs);
     } else {
       _fs.modify_eagerly(_key_item->_mod_stem_fs);
     }
   } else {
     _inflrs_todo = pasv->_inflrs_todo;
+    _prefix_lrs = pasv->_prefix_lrs;
     _trait = R->trait();
   }
 
@@ -864,7 +925,7 @@ int unpacking_level;
 
 inline bool unpacking_resources_exhausted(long memlimit) {
   // TODO add other limits
-  return memlimit > 0 && t_alloc.max_usage() >= memlimit;
+  return memlimit > 0 && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memlimit;
 }
 
 list<tItem *>
@@ -1020,7 +1081,7 @@ tPhrasalItem::unpack_cross(vector<list<tItem *> > &dtrs,
 // should be factored out.
 tItem *
 tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  long memlimit = get_opt_int("opt_memlimit");
 
   fs_alloc_state FSAS(false);
 
@@ -1047,8 +1108,7 @@ tPhrasalItem::unpack_combine(vector<tItem *> &daughters) {
 
   if (unpacking_resources_exhausted(memlimit)) {
     ostringstream s;
-    s << "memory limit exhausted (" << memlimit / (1024 * 1024)
-      << " MB)";
+    s << "memory limit exhausted (" << memlimit << " MB)";
     throw tError(s.str());
   }
 
@@ -1514,8 +1574,7 @@ tPhrasalItem::instantiate_hypothesis(list<tItem*> path, tHypothesis * hypo, int 
 
     if (unpacking_resources_exhausted(memlimit)) {
       ostringstream s;
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024)
-        << " MB)";
+      s << "memory limit exhausted (" << memlimit << " MB)";
       throw tError(s.str());
     }
 

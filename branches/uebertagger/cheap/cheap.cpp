@@ -33,6 +33,7 @@
 #include "yy-tokenizer.h"
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
 #include "repp.h"
+#include "repp_from_pet.h"
 #endif
 #include "tagger.h"
 #include "lingo-tokenizer.h"
@@ -647,7 +648,15 @@ bool load_grammar(string initial_name) {
    case TOKENIZER_REPP:
 #ifdef HAVE_BOOST_REGEX_ICU_HPP
     {
-      tok = new tReppTokenizer();
+      string name = get_opt_string("opt_repp");
+      settings *reppsettings;
+      if(!name.empty()) {
+        reppsettings = new settings(name, cheap_settings->base(), "reading");
+        if(!reppsettings->valid())
+          throw tError("Unable to read REPP configuration '" + name + "'.");
+        cheap_settings->install(reppsettings);
+      }
+      tok = createReppTokenizer(cheap_settings);
     }
     break;
 #else

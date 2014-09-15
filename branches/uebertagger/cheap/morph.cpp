@@ -65,8 +65,25 @@ bool operator==(const tMorphAnalysis &a, const tMorphAnalysis &b) {
   return true;
 }
 
+static
+bool prefix_rules_to_front(grammar_rule *foo, grammar_rule *bar) {
+  return foo->affix_type() == PREFIX && bar->affix_type() != PREFIX;
+} // prefix_rules_to_front()
 
 void erase_duplicates(list<tMorphAnalysis> &li) {
+
+  //
+  // avoid `spurious' duplicates, where the only difference is the ordering of
+  // prefix vs. suffix rules, e.g. (for the input |“He-|)
+  //
+  //   He (He (w_dqleft_plr “He) (w_hyphen_plr “He-))
+  //   He (He (w_hyphen_plr He-) (w_dqleft_plr “He-))
+  //
+  for(list<tMorphAnalysis>::iterator analysis = li.begin();
+      analysis != li.end();
+      ++analysis)
+    analysis->rules().sort(prefix_rules_to_front);
+
   li.sort(tMorphAnalysis::less_than());
   // filter duplicates
   list<tMorphAnalysis>::iterator new_last
@@ -753,10 +770,14 @@ void tMorphAnalyzer::parse_rule(grammar_rule *fsrule, string rule, bool suffix)
 void tMorphAnalyzer::add_rule(grammar_rule *fsrule, string rule) {
   LOG(logMorph, DEBUG, "INFLR<" << fsrule->printname() << ">: "<< rule);
 
-  if(rule.compare(0, 6, "suffix") == 0)
+  if(rule.compare(0, 6, "suffix") == 0) {
+    fsrule->set_affix_type(SUFFIX);
     parse_rule(fsrule, rule.substr(6, rule.length() - 6), true);
-  else if(rule.compare(0, 6, "prefix") == 0)
+  } // if
+  else if(rule.compare(0, 6, "prefix") == 0) {
+    fsrule->set_affix_type(PREFIX);
     parse_rule(fsrule, rule.substr(6, rule.length() - 6), false);
+  } // if
   else
     throw tError(string("unknown type of morphological rule [")
                  + fsrule->printname() + "]: " + rule);
@@ -944,7 +965,7 @@ void tMorphAnalyzer::analyze1(tMorphAnalysis form, list<tMorphAnalysis> &result)
     grammar_rule *candidate = it->second->rules().front();
     rulelist rules = form.rules();
 
-    if (! rules.empty() && ! lexfilter_compatible(rules.front(), candidate))
+    if (!rules.empty() && !lexfilter_compatible(rules.front(), candidate))
       continue;
 
     list<string> forms = form.forms();
@@ -958,7 +979,7 @@ void tMorphAnalyzer::analyze1(tMorphAnalysis form, list<tMorphAnalysis> &result)
       cyclep = (*rule == candidate && (_duplicate_filter_p || *form == base));
     } // for
 
-    if(! cyclep) {
+    if(!cyclep) {
       rules.push_front(candidate);
       forms.push_front(it->second->base());
       pre.push_back(tMorphAnalysis(forms, rules));
