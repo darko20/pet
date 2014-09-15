@@ -230,13 +230,20 @@ lex_parser::add(tLexItem *lex) {
  * Helper function for printing debug logs for lex_parser::combine().
  */
 std::string
-debug_combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules) {
+debug_combine(lex_stem *stem, tInputItem *i_item, 
+              const list_int *prefix_rules, const list_int *infl_rules) {
   ostringstream cdeb;
   cdeb << "combine("
        << stem->printname()
        << ", id:" << i_item->id()
        << " form:" << i_item->form()
        << " infl_rules:[";
+  for(const list_int *l = prefix_rules; l != 0; l = rest(l)) {
+    cdeb << print_name(first(l));
+    if (rest(l) != 0)
+      cdeb << " ";
+  }
+  cdeb << " : ";
   for(const list_int *l = infl_rules; l != 0; l = rest(l)) {
     cdeb << print_name(first(l));
     if (rest(l) != 0)
@@ -253,9 +260,9 @@ debug_combine(lex_stem *stem, tInputItem *i_item, const list_int *infl_rules) {
  */
 void
 lex_parser::combine(lex_stem *stem, tInputItem *i_item
-                    , const list_int *infl_rules, const modlist &mods) {
-  // _fix_me_
-  // TODO what should be fixed here?? (pead)
+                    , const list_int *prefix_rules, const list_int *infl_rules
+                    , const modlist &mods) {
+
   fs newfs = stem->instantiate();
   // Add modifications coming from the input
   newfs.modify_eagerly(mods);
@@ -289,7 +296,8 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
     if (newfs.valid()) {
       fs anchor_fs = newfs.get_path_value(tChartUtil::lexicon_tokens_path());
       if (!anchor_fs.valid()) {
-        LOG(logLexproc, ERROR, debug_combine(stem, i_item, infl_rules) +
+        LOG(logLexproc, ERROR, 
+            debug_combine(stem, i_item, prefix_rules, infl_rules) +
             " Reason: lexicon_tokens_path cannot be resolved in fs.");
         return;
       }
@@ -298,7 +306,8 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
     if (newfs.valid()) {
       fs anchor_fs = newfs.get_path_value(tChartUtil::lexicon_last_token_path());
       if (!anchor_fs.valid()) {
-        LOG(logLexproc, ERROR, debug_combine(stem, i_item, infl_rules) +
+        LOG(logLexproc, ERROR, 
+            debug_combine(stem, i_item, prefix_rules, infl_rules) +
             " Reason: lexicon_last_token_path cannot be resolved in fs.");
         return;
       }
@@ -308,9 +317,10 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
 
   if (newfs.valid()) {
     // LOG(logParse, DEBUG, "combine() succeeded in creating valid fs");
-    add(new tLexItem(stem, i_item, newfs, infl_rules));
+    add(new tLexItem(stem, i_item, newfs, prefix_rules, infl_rules));
   } else {
-    LOG(logLexproc, DEBUG, debug_combine(stem, i_item, infl_rules));
+    LOG(logLexproc, DEBUG, 
+        debug_combine(stem, i_item, prefix_rules, infl_rules));
   }
 }
 
@@ -319,15 +329,25 @@ lex_parser::combine(lex_stem *stem, tInputItem *i_item
 /** Return the inflection rules that have to be applied to perform this
  *  morphological analysis.
  */
-static list_int *get_rules(tMorphAnalysis &analysis) {
+static list_int *get_prefix_rules(tMorphAnalysis &analysis) {
   const std::list<grammar_rule *> &rules = analysis.rules();
   list_int *res = NULL;
   for(std::list<grammar_rule *>::const_reverse_iterator it = rules.rbegin()
         ; it != rules.rend(); ++it) {
-    res = cons((*it)->type(), res);
+    if((*it)->affix_type() == PREFIX) res = cons((*it)->type(), res);
   }
   return res;
 }
+static list_int *get_infl_rules(tMorphAnalysis &analysis) {
+  const std::list<grammar_rule *> &rules = analysis.rules();
+  list_int *res = NULL;
+  for(std::list<grammar_rule *>::const_reverse_iterator it = rules.rbegin()
+        ; it != rules.rend(); ++it) {
+    if((*it)->affix_type() != PREFIX) res = cons((*it)->type(), res);
+  }
+  return res;
+}
+
 
 /** Add the input item to the global chart and combine it with the
  * appropriate lexical units, eventually applying morphological processing
@@ -364,13 +384,15 @@ lex_parser::add(tInputItem *inp) {
       modlist in_mods = inp->mods(); // should be empty
       add_surface_mod(inp->orth(), in_mods);
       if (morphs.empty()) {
-        combine(ls, inp, inp->inflrs(), in_mods);
+        combine(ls, inp, inp->prefix_lrs(), inp->inflrs(), in_mods);
       } else {
         for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
               ; mrph != morphs.end(); ++mrph) {
-          list_int *rules = get_rules(*mrph);
-          combine(ls, inp, rules, in_mods);
-          free_list(rules);
+          list_int *foo = get_prefix_rules(*mrph);
+          list_int *bar = get_infl_rules(*mrph);
+          combine(ls, inp, foo, bar, in_mods);
+          free_list(foo);
+          free_list(bar);
         }
       }
     }
@@ -391,20 +413,32 @@ lex_parser::add(tInputItem *inp) {
       list<lex_stem *> stems = get_lex_entries(mrph->base());
       for(list<lex_stem *>::iterator it = stems.begin()
             ; it != stems.end(); ++it) {
-        list_int *rules = get_rules(*mrph);
-        combine(*it, inp, rules, inp->mods());
-        free_list(rules);
+        list_int *foo = get_prefix_rules(*mrph);
+        list_int *bar = get_infl_rules(*mrph);
+        combine(*it, inp, foo, bar, inp->mods());
+        free_list(foo);
+        free_list(bar);
       }
+      //
+      // insert copies of our current input item, with affixes stripped off,
+      // to be consumed by multi-word lexical entries.          (12-aug-14; oe)
+      //
+      list_int *foo = get_prefix_rules(*mrph);
+      list_int *bar = get_infl_rules(*mrph);
+      if((foo && !bar) || (!foo && bar)) 
+        Chart->add(new tInputItem(inp, mrph->base(), foo, bar));
+      free_list(foo);
+      free_list(bar);
     }
     // If there is no morph analysis with null inflection, do additional lookup
     // based on the input form, e.g., for multi word entries without inflected
     // position.
-    // _fix_me_ is this okay?
+    // _fix_me_ is this okay?    just now, i don't see the need (12-aug-14; oe)
     if (! nullmorpheme) { // none of the analyses was a null morpheme
       list<lex_stem *> stems = get_lex_entries(inp->form());
       for(list<lex_stem *>::iterator it = stems.begin()
             ; it != stems.end(); ++it){
-        combine(*it, inp, NULL, inp->mods());
+        combine(*it, inp, NULL, NULL, inp->mods());
       }
     }
   } else if (inp->is_stem_token()) {
@@ -412,7 +446,7 @@ lex_parser::add(tInputItem *inp) {
     list<lex_stem *> stems = get_lex_entries(inp->stem());
     for(list<lex_stem *>::iterator it = stems.begin()
           ; it != stems.end(); ++it) {
-      combine(*it, inp, inp->inflrs(), inp->mods());
+      combine(*it, inp, inp->prefix_lrs(), inp->inflrs(), inp->mods());
     }
   } else { // neither word nor stem
     // otherwise, we got the class of the lexical stem by some internal
@@ -423,7 +457,7 @@ lex_parser::add(tInputItem *inp) {
     add_surface_mod(inp->orth(), inp->mods());
     // Check if there is an appropriate lexicon entry
     if (stem != NULL) {
-      combine(stem, inp, inp->inflrs(), inp->mods());
+      combine(stem, inp, inp->prefix_lrs(), inp->inflrs(), inp->mods());
     }
   }
 }
@@ -481,7 +515,8 @@ lex_parser::dependency_filter(setting *deps, bool unidirectional
     // processing or not
     if (lex->passive()
         && lex->trait() != INPUT_TRAIT
-        && (!lex_exhaustive || lex->inflrs_complete_p())) {
+        && (!lex_exhaustive 
+            || (lex->inflrs_complete_p() && lex->prefix_lrs_complete_p()))) {
       f = lex->get_fs();
 
       LOG(logLexproc, DEBUG, "dependency information for " <<
@@ -721,13 +756,15 @@ lex_parser::add_generics(list<tInputItem *> &unexpanded) {
         // _fix_me_
         add_surface_mod((*it)->orth(), in_mods);
         if (morphs.empty()) { // TODO as far as I can see, this will never be the case (pead)
-          combine(*ls, *it, (*it)->inflrs(), in_mods);
+          combine(*ls, *it, (*it)->prefix_lrs(), (*it)->inflrs(), in_mods);
         } else {
           for(list<tMorphAnalysis>::iterator mrph = morphs.begin()
                 ; mrph != morphs.end(); ++mrph) {
-            list_int *rules = get_rules(*mrph);
-            combine(*ls, *it, rules, in_mods);
-            free_list(rules);
+            list_int *foo = get_prefix_rules(*mrph);
+            list_int *bar = get_infl_rules(*mrph);
+            combine(*ls, *it, foo, bar, in_mods);
+            free_list(foo);
+            free_list(bar);
           }
         }
       }
@@ -801,13 +838,15 @@ lex_parser::add_predicts(inp_list &unexpanded, inp_list &inp_tokens,
       modlist in_mods = (*it)->mods();
       add_surface_mod((*it)->orth(), in_mods);
       if (morphs.empty()) {
-        combine(*ls, *it, (*it)->inflrs(), in_mods);
+        combine(*ls, *it, (*it)->prefix_lrs(), (*it)->inflrs(), in_mods);
       } else {
         for (list<tMorphAnalysis>::iterator mrph = morphs.begin()
                ; mrph != morphs.end(); ++mrph) {
-          list_int *rules = get_rules(*mrph);
-          combine(*ls, *it, rules, in_mods);
-          free_list(rules);
+          list_int *foo = get_prefix_rules(*mrph);
+          list_int *bar = get_infl_rules(*mrph);
+          combine(*ls, *it, foo, bar, in_mods);
+          free_list(foo);
+          free_list(bar);
         }
       }
     }

@@ -191,6 +191,7 @@ public:
    *  for this item.
    */
   inline bool inflrs_complete_p() const { return _inflrs_todo == 0; }
+  inline bool prefix_lrs_complete_p() const { return _prefix_lrs == 0; }
 
   /** Return \c true if this item has all of its arguments filled. */
   inline bool passive() const { return _tofill == 0; }
@@ -203,10 +204,6 @@ public:
 
   /** return the paths (ids) in the input graph this item belongs to */
   const tPaths &paths() const { return _paths; }
-
-  /** return the list of still unsatisfied inflection rules (or \c NULL) */
-  // THIS SHOULD REMAIN PRIVATE, IF POSSIBLE
-  //const list_int *inflrs_todo() const { return _inflrs_todo; }
 
   /** Set the start node number of this item. */
   void set_start(int pos) { _start = pos ; }
@@ -229,7 +226,8 @@ public:
    */
   inline bool compatible(grammar_rule *R, int length) const {
     if(R->trait() == INFL_TRAIT) {
-      if(inflrs_complete_p() || first(_inflrs_todo) != R->type())
+      if((!_inflrs_todo || first(_inflrs_todo) != R->type())
+         && (!_prefix_lrs || first(_prefix_lrs) != R->type()))
         return false;
     }
 #ifdef CFGAPPROX_LEXGEN
@@ -239,7 +237,7 @@ public:
     }
 #endif
     else if(R->trait() == SYNTAX_TRAIT) {
-      if(! inflrs_complete_p())
+      if(!inflrs_complete_p() || !prefix_lrs_complete_p())
         return false;
     }
 
@@ -270,7 +268,8 @@ public:
    */
   inline bool compatible(tItem *active, int length) const
   {
-    if((_trait == INPUT_TRAIT) || !inflrs_complete_p())
+    if((_trait == INPUT_TRAIT) 
+       || !inflrs_complete_p() || !prefix_lrs_complete_p())
       return false;
 
     if(active->spanningonly()) {
@@ -302,7 +301,8 @@ public:
   /** Compatibility test of a passive and an active item */
   inline bool compatible_pcfg(tItem* active, int length) {
 
-    if ((_trait == INPUT_TRAIT) || !inflrs_complete_p())
+    if ((_trait == INPUT_TRAIT) 
+        || !inflrs_complete_p() || !prefix_lrs_complete_p())
       return false;
 
     // TODO more tricks to be done here?
@@ -338,7 +338,8 @@ public:
    * returned in \a rule.
    */
   inline bool root(tGrammar *G, int length, type_t &rule) const {
-    if(inflrs_complete_p() && (_start == 0) && (_end == length))
+    if(inflrs_complete_p() && prefix_lrs_complete_p()
+       && (_start == 0) && (_end == length))
       if(_trait == PCFG_TRAIT) {
         bool result = G->root(identity());
         if(result) rule = identity();
@@ -578,6 +579,7 @@ private:
 
   /** List of inflection rules that must be applied to get a valid lex item */
   list_int *_inflrs_todo;
+  list_int *_prefix_lrs;
 
   type_t _result_root;
 
@@ -706,7 +708,7 @@ public:
              , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
-             , const std::list<int> &infl_rules = std::list<int>()
+             , const std::list<int> &orthographemics = std::list<int>()
              , const postags &pos = postags()
              , modlist fsmods = modlist()
              , const fs &token_fs = fs());
@@ -715,9 +717,12 @@ public:
              , std::string surface, std::string stem
              , const tPaths &paths = tPaths()
              , int token_class = WORD_TOKEN_CLASS
-             , const std::list<int> &infl_rules = std::list<int>()
+             , const std::list<int> &orthographemics = std::list<int>()
              , const postags &pos = postags()
              , modlist fsmods = modlist());
+  tInputItem(tInputItem *source, std::string stem,
+             list_int *prefix_rules, list_int *infl_rules);
+
   /**
    * Create a new complex input item (an input item with input item
    * daughters as it can be defined in PIC).
@@ -727,13 +732,14 @@ public:
   tInputItem(std::string id, const inp_list &dtrs
              , std::string stem
              , int token_class = WORD_TOKEN_CLASS
-             , const std::list<int> &infl_rules = std::list<int>()
+             , const std::list<int> &orthographemics = std::list<int>()
              , const postags &pos = postags()
              , modlist fsmods = modlist());
   //@}
 
   ~tInputItem() {
     free_list(_inflrs_todo);
+    free_list(_prefix_lrs);
   }
 
   INHIBIT_COPY_ASSIGN(tInputItem);
@@ -819,19 +825,7 @@ public:
 
   /** Get the inflrs_todo (inflection rules <-> morphology) */
   list_int *inflrs() const { return _inflrs_todo; }
-
-  /**
-   * Set the inflrs_todo (inflection rules <-> morphology) of the item.
-   * This will recreate the token fs.
-   * \deprecated 1) Pass the infl_rules to the constructor.
-   *             2) Use token feature structures in combination with chart
-   *                mapping to import information into lexical items.
-   */
-  void set_inflrs(const std::list<int> &infl_rules) {
-    free_list(_inflrs_todo);
-    _inflrs_todo = copy_list(infl_rules);
-    recreate_fs();
-  }
+  list_int *prefix_lrs() const { return _prefix_lrs; }
 
   /** The surface string (if available).
    * If this input item represents a named entity, this string may be empty,
@@ -917,7 +911,7 @@ public:
    *  together with the first daughter \a first_dtr.
    */
   tLexItem(lex_stem *stem, tInputItem *first_dtr
-           , fs &f, const list_int *inflrs_todo);
+           , fs &f, const list_int *prefix_lrs, const list_int *inflrs_todo);
 
   /** Build a new tLexItem from an active tLexItem and another tInputItem (a
    *  new daughter), plus (optionally) the fs for the new item, typically the
@@ -927,6 +921,7 @@ public:
 
   ~tLexItem() {
     free_list(_inflrs_todo);
+    free_list(_prefix_lrs);
     delete _hypo;
   }
 
@@ -1011,7 +1006,11 @@ public:
    *     position as the new potential result.
    */
   bool compatible(tInputItem *inp) const {
-    if (form(nextarg()) != inp->form()) return false;
+    if (form(nextarg()) != (inp->stem().empty() ? inp->form() : inp->stem())
+        || (left_extending() 
+            ? _prefix_lrs || inp->inflrs()
+            : _inflrs_todo || inp->prefix_lrs()))
+      return false;
 
     // check if we already did this combination before: is the new start
     // resp. end point registered?
@@ -1314,10 +1313,11 @@ inline bool passive_unblocked_non_input(const class tItem *item) {
   return item->passive() && !item->blocked() && item->trait() != INPUT_TRAIT;
 }
 
-/** Item predicate selecting all passive items without pending morphographemic
+/** Item predicate selecting all passive items without pending orthographemic
  * rules. */
 inline bool passive_no_inflrs(const tItem *item) {
-  return item->passive() && item->inflrs_complete_p();
+  return item->passive() 
+    && item->inflrs_complete_p() && item->prefix_lrs_complete_p();
 }
 
 /** \brief This predicate should be used in find_unexpanded if lexical
@@ -1332,7 +1332,8 @@ inline bool non_input(const tItem *item) {
  *  satisified all inflection rules are valid.
  */
 inline bool lex_complete(const tItem *item) {
-  return (item->trait() != INPUT_TRAIT) && (item->inflrs_complete_p());
+  return (item->trait() != INPUT_TRAIT)
+    && item->inflrs_complete_p() && item->prefix_lrs_complete_p();
 }
 
 /** \brief This predicate should be used in find_unexpanded if lexical

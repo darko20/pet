@@ -237,14 +237,16 @@ fundamental_for_active(tPhrasalItem *active) {
 
 bool
 packed_edge(tItem *newitem) {
-  if(! newitem->inflrs_complete_p()) return false;
+  if(!newitem->inflrs_complete_p() || !newitem->prefix_lrs_complete_p()) 
+    return false;
 
   for(chart_iter_span_passive iter(Chart, newitem->start(), newitem->end());
       iter.valid(); ++iter) {
     bool forward, backward;
     tItem *olditem = iter.current();
 
-    if(!olditem->inflrs_complete_p() || (olditem->trait() == INPUT_TRAIT))
+    if(!olditem->inflrs_complete_p() || !olditem->prefix_lrs_complete_p()
+       || (olditem->trait() == INPUT_TRAIT))
       continue;
 
     // YZ 2007-07-25: avoid packing item with its offspring edges
@@ -414,10 +416,11 @@ bool add_item(tItem *it) {
 }
 
 inline bool
-resources_exhausted(int pedgelimit, long memlimit, int timeout, int timestamp)
+resources_exhausted(int pedgelimit, long memlimit, 
+                    int timeout, int timestamp)
 {
   return (pedgelimit > 0 && Chart->pedges() >= pedgelimit) ||
-    (memlimit > 0 && t_alloc.max_usage() >= memlimit) ||
+    (memlimit > 0 && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memlimit) ||
     (timeout > 0 && timestamp >= timeout );
 }
 
@@ -451,11 +454,11 @@ test_resource_limits(std::string &message)
   } //if
 
   static long int memory = -1;
-  if(memory == -1) memory = get_opt_int("opt_memlimit") * 1024 * 1024;
-  if(memory > 0 && t_alloc.max_usage() >= memory) {
+  if(memory == -1) memory = get_opt_int("opt_memlimit");
+  if(memory > 0 && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memory) {
     ostringstream buffer;
     buffer << "resource limit exhausted (" 
-           << t_alloc.max_usage() << " bytes)";
+           << memory << " MB)";
     message = buffer.str();
     return true;
   } // if
@@ -478,7 +481,7 @@ test_resource_limits(std::string &message)
 
 void
 parse_loop(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  long memlimit = get_opt_int("opt_memlimit");
   int pedgelimit = get_opt_int("opt_pedgelimit");
 
   //
@@ -511,7 +514,7 @@ int unpack_selectively(std::vector<tItem*> &trees, int upedgelimit,
                        long memlimit, int nsolutions,
                        timer *UnpackTime , vector<tItem *> &readings) {
   int nres = 0;
-  if (memlimit > 0 && t_alloc.max_usage() >= memlimit)
+  if (memlimit > 0 && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memlimit)
     //
     // _fix_me_
     // for all i can tell, the actual selective unpacking code does not always
@@ -649,8 +652,8 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
       }
 
       stats.p_utcpu = UnpackTime->convert2ms(UnpackTime->elapsed());
-      stats.p_dyn_bytes = FSAS.dynamic_usage();
-      stats.p_stat_bytes = FSAS.static_usage();
+      stats.p_dyn_bytes = FSAS.dynamic_usage() - stats.dyn_bytes;
+      stats.p_stat_bytes = FSAS.static_usage() - stats.stat_bytes;
       FSAS.clear_stats();
       delete UnpackTime;
     }
@@ -668,7 +671,7 @@ collect_readings(fs_alloc_state &FSAS, list<tError> &errors,
 
 void
 parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
-  long memlimit = get_opt_int("opt_memlimit") * 1024 * 1024;
+  long memlimit = get_opt_int("opt_memlimit");
   int pedgelimit = get_opt_int("opt_pedgelimit");
   clock_t timestamp = (timeout > 0 ? times(NULL) : 0);
 
@@ -682,8 +685,9 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
 
   if(resources_exhausted(pedgelimit, memlimit, timeout, timestamp)) {
     ostringstream s;
-    if (memlimit > 0 && t_alloc.max_usage() >= memlimit) {
-      s << "memory limit exhausted (" << memlimit / (1024 * 1024) << " MB)";
+    if (memlimit > 0 
+        && (p_alloc.max_usage_mb() + t_alloc.max_usage_mb()) >= memlimit) {
+      s << "memory limit exhausted (" << memlimit << " MB)";
     }
     else if (pedgelimit > 0 && Chart->pedges() >= pedgelimit) {
       s << "edge limit exhausted (" << pedgelimit << " pedges)";
@@ -706,7 +710,8 @@ parse_finish(fs_alloc_state &FSAS, list<tError> &errors, clock_t timeout) {
     //
     for(chart_iter item(Chart); item.valid(); ++item) {
       if(passive_unblocked_non_input(item.current())
-         && item.current()->inflrs_complete_p())
+         && item.current()->inflrs_complete_p()
+         && item.current()->prefix_lrs_complete_p())
         Chart->readings().push_back(item.current());
     } // for
     Chart->trees() = Chart->readings();

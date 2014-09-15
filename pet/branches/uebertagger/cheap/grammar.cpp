@@ -131,6 +131,7 @@ grammar_rule::grammar_rule(type_t t)
     : _tofill(0), _hyper(true), _spanningonly(false)
 {
     _type = t;
+    _affix_type = NONE;
 
     // _trait = INFL_TRAIT will be set by tLKBMorphology::undump_inflrs() later
 
@@ -286,6 +287,7 @@ grammar_rule::grammar_rule(std::vector<type_t> v)
 
   _type = v[0];
   _trait = PCFG_TRAIT;
+  _affix_type = NONE;
 
   //
   // Determine arity, determine head and key daughters.
