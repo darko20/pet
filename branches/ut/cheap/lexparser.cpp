@@ -1089,7 +1089,9 @@ lex_parser::lexical_processing(inp_list &inp_tokens
   //tTclChartPrinter chp("/tmp/lex-chart", 0);
   //Chart->print(&chp);
 
-  if (Grammar->lpsm() && lex_exhaustive) {
+  item_predicate valid = (lex_exhaustive ? unblocked_lex_complete : non_input);
+  //don't run sequence tagger on unconnected Chart
+  if (Grammar->lpsm() && lex_exhaustive && Chart->connected(valid)) {
     if (cheap_settings->lookup("ut-viterbi") != NULL &&
         string("true").compare(cheap_settings->value("ut-viterbi")) == 0) {
       viterbi(Grammar->lpsm());
@@ -1111,7 +1113,6 @@ lex_parser::lexical_processing(inp_list &inp_tokens
 
   // Gap computation.
   list< tInputItem * > unexpanded;
-  item_predicate valid = (lex_exhaustive ? unblocked_lex_complete : non_input);
   if (! Chart->connected(valid)) {
     unexpanded = find_unexpanded(Chart, valid) ;
   }
