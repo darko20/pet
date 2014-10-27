@@ -193,22 +193,45 @@ lex_token *get_next_token()
       i = 1;
       l = 0;
 
-      while(LLA(i) != EOF && LLA(i) != '"')
-        {
-          if (LLA(i) == '\\')
-            i++; // skip
-          i++;
-          l++;
+      if (LLA(i) != EOF && LLA(i) == '"'
+        && LLA(i+1) != EOF && LLA(i+1) == '"') {//documentation string
+        i =+ 2;
+        int end_of_doc = 0;
+        while(LLA(i) != EOF && !end_of_doc) {
+          if (LLA(i) == '"' && 
+            LLA(i+1) != EOF && LLA(i+1) == '"' &&
+            LLA(i+2) != EOF && LLA(i+2) == '"') {
+            i += 3;
+            t = make_token(T_COMM, start, i);
+            LConsume(i);
+            end_of_doc = 1;
+          } else {
+            i++;
+          }
         }
-
-      if(LLA(i) == EOF)
-        { // runaway string
-          throw tError("runaway string", curr_fname(), curr_line(), curr_col());
+        if(LLA(i) == EOF){
+          throw tError("runaway doc string", 
+            curr_fname(), curr_line(), curr_col());
         }
+      } else {
 
-      i += 1;
-      t = make_token(T_STRING, start + 1, i - 2, l);
-      LConsume(i);
+        while(LLA(i) != EOF && LLA(i) != '"')
+          {
+            if (LLA(i) == '\\')
+              i++; // skip
+            i++;
+            l++;
+          }
+
+        if(LLA(i) == EOF)
+          { // runaway string
+            throw tError("runaway string", curr_fname(), curr_line(), curr_col());
+          }
+
+        i += 1;
+        t = make_token(T_STRING, start + 1, i - 2, l);
+        LConsume(i);
+      }
     }
   else if((c == '^') && (tdl_mode == STANDARD_TDL))
     { // regular expression
