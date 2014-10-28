@@ -9,7 +9,7 @@ endif
 include $(top_srcdir)/common/Makefile.common
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
-CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/repp @CHEAPCPPFLAGS@
+CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -Irepp @CHEAPCPPFLAGS@
 CXXFLAGS += @CHEAPCXXFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
@@ -85,9 +85,9 @@ cheaplibsources = \
 	vpm.h vpm.cpp \
 	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
-	$(top_srcdir)/repp/repp.cpp $(top_srcdir)/repp/repp.h \
-	$(top_srcdir)/repp/tdl_options.cpp $(top_srcdir)/repp/tdl_options.h \
-	$(top_srcdir)/repp/repp_from_pet.cpp $(top_srcdir)/repp/repp_from_pet.h \
+	repp/repp.cpp repp/repp.h \
+	repp/tdl_options.cpp repp/tdl_options.h \
+	repp/repp_from_pet.cpp repp/repp_from_pet.h \
 	tagger.cpp tagger.h \
   trigram/trigram.cpp trigram/trigram.h trigram/lattice.h \
   trigram/lexprune.cpp trigram/lexprune.h \
