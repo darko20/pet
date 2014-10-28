@@ -9,7 +9,7 @@ AC_CONFIG_HEADERS([pet-config.h])
 AC_CONFIG_AUX_DIR([aux-build])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.7 foreign subdir-objects no-dependencies])
+AM_INIT_AUTOMAKE([1.7 foreign])
 dnl dejagnu dist-bzip2 no-dependencies
 
 

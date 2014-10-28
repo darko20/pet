@@ -9,14 +9,14 @@ endif
 include $(top_srcdir)/common/Makefile.common
 
 # Add cheap-specific CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS as determined by configure
-CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/cheap/repp @CHEAPCPPFLAGS@
+CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/fspp -I$(top_srcdir)/repp @CHEAPCPPFLAGS@
 CXXFLAGS += @CHEAPCXXFLAGS@
 LDFLAGS += @CHEAPLDFLAGS@
 LIBS += @CHEAPLIBS@
 DEFS += -DDYNAMIC_SYMBOLS
 
 # Adding trigram lexical pruning capabilities
-CPPFLAGS += -I$(top_srcdir)/cheap/trigram
+CPPFLAGS += -Itrigram
 
 # Further CPPFLAGS/CXXFLAGS/LDFLAGS/LIBS should be determined by configure.ac
 # if they are system-specific or passed as a command-line option to configure
@@ -85,13 +85,13 @@ cheaplibsources = \
 	vpm.h vpm.cpp \
 	pcfg.h pcfg.cpp \
 	yy-tokenizer.cpp yy-tokenizer.h \
-	repp/repp.cpp repp/repp.h \
-	repp/tdl_options.cpp repp/tdl_options.h \
-	repp/repp_from_pet.cpp repp/repp_from_pet.h \
+	$(top_srcdir)/repp/repp.cpp $(top_srcdir)/repp/repp.h \
+	$(top_srcdir)/repp/tdl_options.cpp $(top_srcdir)/repp/tdl_options.h \
+	$(top_srcdir)/repp/repp_from_pet.cpp $(top_srcdir)/repp/repp_from_pet.h \
 	tagger.cpp tagger.h \
-	trigram/trigram.cpp trigram/trigram.h trigram/lattice.h \
-	trigram/lexprune.cpp trigram/lexprune.h \
-	trigram/ut_from_pet.cpp trigram/ut_from_pet.h \
+  trigram/trigram.cpp trigram/trigram.h trigram/lattice.h \
+  trigram/lexprune.cpp trigram/lexprune.h \
+  trigram/ut_from_pet.cpp trigram/ut_from_pet.h \
 	$(top_srcdir)/common/bitcode.cpp \
 	$(top_srcdir)/common/chunk-alloc.cpp \
 	$(top_srcdir)/common/configs.cpp \
@@ -127,9 +127,9 @@ endif
 if ECLPREPROC
 if ICU
 cheaplibsources += eclpreprocessor.h eclpreprocessor.cpp #fspp.h fspp.cpp
-cheap_LDADD += $(top_srcdir)/fspp/libfspp.la -lpreprocessor #fix_me
-LDFLAGS += -L$(top_srcdir)/fspp
-CPPFLAGS += -I$(top_srcdir)/fspp
+cheap_LDADD += ../fspp/libfspp.la -lpreprocessor #fix_me
+LDFLAGS += -L../fspp
+CPPFLAGS += -I../fspp
 else
 # This looks strange. If ICU is a dependency, it should be ensured by
 # configure that ECLPREPROC is only set if all dependencies are met.
@@ -144,8 +144,8 @@ endif
 # Eric Nichols <eric-n@is.naist.jp>, Jun. 18, 2005
 MOSTLYCLEANFILES = libmrs.a
 
-$(top_srcdir)/fspp/libfspp.la:
-	make -C $(top_srcdir)/fspp libfspp.la
+../fspp/libfspp.la:
+	make -C ../fspp libfspp.la
 
 libmrs.a:
 	( \
