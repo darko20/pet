@@ -55,7 +55,7 @@ cheapdoc:
 
 logon:
 	strip flop/flop cheap/cheap 
-	/bin/cp flop/flop cheap/cheap $$LOGONROOT/uio/bin/linux.x86.32
+	/bin/cp flop/flop cheap/cheap $$LOGONROOT/uio/bin/$$LOGONOS
 
 test:
 	strip flop/flop cheap/cheap 
