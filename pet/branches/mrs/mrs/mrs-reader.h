@@ -41,6 +41,8 @@ class SimpleMrsReader : public tMrsReader {
     tConstant *readCARG(tEp *ep, std::string &rest);
     bool parseHCONS(tMrs *mrs, std::string &rest);
     std::string readReln(std::string &rest);
+    std::string readSurface(std::string &rest);
+    std::string readLink(std::string &rest);
 };
 
 #ifdef HAVE_XML
