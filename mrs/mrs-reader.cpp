@@ -31,7 +31,14 @@ tMrs *SimpleMrsReader::readMrs(std::string input){
   std::string rest = input;
 
   parseChar('[', rest);
-  parseID("LTOP:", rest);
+  if (rest.at(0) == '<')
+    mrs->link = readLink(rest);
+  if (rest.at(0) == '"')
+    mrs->surface = readSurface(rest);
+  if (rest.at(0) == 'T')
+    parseID("TOP:", rest);
+  else
+    parseID("LTOP:", rest);
   mrs->ltop = readVar(mrs, rest);
   parseID("INDEX:", rest);
   mrs->index = readVar(mrs, rest);
@@ -58,6 +65,13 @@ void removeWhitespace(std::string &rest) {
     rest.erase(0,1);
 }
 
+void debugMsg(std::string message, std::string rest) {
+  if (false) {
+    std::cerr << message << " at " 
+      << ((rest.length() < 30)?rest:rest.substr(0,30)) << std::endl;
+  }
+}
+
 // expects and removes char x at start of string rest,
 // skipping (and removing) whitespace before and after x
 void SimpleMrsReader::parseChar(char x, std::string &rest) {
@@ -75,6 +89,7 @@ void SimpleMrsReader::parseChar(char x, std::string &rest) {
 
 // expects and removes string id at start of rest, removes trailing whitespace
 void SimpleMrsReader::parseID(const std::string id, std::string &rest) {
+  debugMsg("parsing ID " + id, rest);
   if (rest.length() < id.length() 
     || ! boost::iequals(rest.substr(0,id.length()), id)) 
     throw tError("Ill-formed MRS: no " + id + " at \"" + rest + "\".");
@@ -84,6 +99,7 @@ void SimpleMrsReader::parseID(const std::string id, std::string &rest) {
 
 // parses variable, and registers it with the MRS, if not already registered
 tVar *SimpleMrsReader::readVar(tMrs *mrs, std::string &rest) {
+  debugMsg("reading var", rest);
   tVar *var;
   std::string vtype;
   std::string vidstring;
@@ -115,6 +131,7 @@ tVar *SimpleMrsReader::readVar(tMrs *mrs, std::string &rest) {
 
 // read property list and add to variable var
 void SimpleMrsReader::parseProps(tVar *var, std::string &rest) {
+  debugMsg("reading props", rest);
   parseChar('[', rest);
   if (!isalpha(rest.at(0))) {
     throw tError("Ill-formed MRS. Expecting variable type at \"" + rest +"\"");
@@ -145,6 +162,7 @@ void SimpleMrsReader::parseProps(tVar *var, std::string &rest) {
 
 // feature is a feature label, finishing with ':'. returns the label, minus :
 std::string SimpleMrsReader::readFeature(std::string &rest) {
+  debugMsg("reading feature", rest);
   std::string f;
   // can features (property or role names) be non-ascii?
   while (!rest.empty() && !isspace(rest.at(0))
@@ -162,9 +180,11 @@ std::string SimpleMrsReader::readFeature(std::string &rest) {
 }
 
 void SimpleMrsReader::parseEP(tMrs *mrs, std::string &rest) {
+  debugMsg("parsing EP", rest);
   parseChar('[', rest);
   tEp *ep = new tEp(mrs);
   parsePred(ep, rest); //set pred name, link string, cfrom, cto
+  ep->surface = readSurface(rest);
   std::string role = readFeature(rest);
   boost::to_upper(role);
   while (!role.empty()) {
@@ -190,7 +210,8 @@ void SimpleMrsReader::parseEP(tMrs *mrs, std::string &rest) {
 }
 
 void SimpleMrsReader::parsePred(tEp *ep, std::string &rest){
-  std::string name, span;
+  debugMsg("parsing pred", rest);
+  std::string name, link;
   int from, to;
   if (rest.at(0) == '"') { //real pred
     rest.erase(0,1);
@@ -211,7 +232,7 @@ void SimpleMrsReader::parsePred(tEp *ep, std::string &rest){
       throw tError("Unterminated quoted string at \"" + rest + "\"."); 
     } else {
       if (!rest.empty())
-        rest.erase(0,1); //erase terminating quote, span should be next
+        rest.erase(0,1); //erase terminating quote, link should be next
     }
   } else { //grammar pred
     //needs to be Unicode-safe?
@@ -221,32 +242,24 @@ void SimpleMrsReader::parsePred(tEp *ep, std::string &rest){
     }
   }
   ep->pred = name;
+  removeWhitespace(rest);
   if (rest.at(0) == '<') { //link
-    while (!rest.empty() && isgraph(rest.at(0)) && rest.at(0) != '>') {
-      span += rest.at(0);
-      rest.erase(0,1);
-    }
-    if (rest.at(0) == '>') {
-      span += rest.at(0);
-      rest.erase(0,1);
-    } else {
-      throw tError("Unterminated span at \"" + rest + "\".");
-    }
-    unsigned int colon = span.find(':');
+		link = readLink(rest);
+    unsigned int colon = link.find(':');
     if (colon == std::string::npos) {
-      if (span == "<>") {//don't fall over on empty spans (grammar bugs)
+      if (link == "<>") {//don't fall over on empty links (grammar bugs)
         from = -1;
         to = -1;
       } else {
-        throw tError("Ill-formed span \"" + span + "\".");
+        throw tError("Ill-formed link \"" + link + "\".");
       }
     } else {
-      std::istringstream fromstr(span.substr(1, colon-1));
+      std::istringstream fromstr(link.substr(1, colon-1));
       fromstr >> from;
-      std::istringstream tostr(span.substr(colon+1));
+      std::istringstream tostr(link.substr(colon+1));
       tostr >> to;
     }
-    ep->link = span;
+    ep->link = link;
     ep->cfrom = from;
     ep->cto = to;
   } else { //no link
@@ -258,6 +271,7 @@ void SimpleMrsReader::parsePred(tEp *ep, std::string &rest){
 }
 
 tConstant *SimpleMrsReader::readCARG(tEp *ep, std::string &rest) {
+  debugMsg("reading carg", rest);
   std::string carg;
   if (rest.at(0) == '"') {// quoted string, anything goes inside
     rest.erase(0,1);
@@ -291,6 +305,7 @@ tConstant *SimpleMrsReader::readCARG(tEp *ep, std::string &rest) {
 }
 
 bool SimpleMrsReader::parseHCONS(tMrs *mrs, std::string &rest) {
+  debugMsg("parsing HCONS", rest);
   if (isalpha(rest.at(0))) {
     tVar *lhdl = readVar(mrs, rest);
     std::string reln = readReln(rest);
@@ -306,6 +321,7 @@ bool SimpleMrsReader::parseHCONS(tMrs *mrs, std::string &rest) {
 }
 
 std::string SimpleMrsReader::readReln(std::string &rest) {
+  debugMsg("reading Reln", rest);
   std::string reln;
   while (!rest.empty() && !isspace(rest.at(0))) {
     reln += rest.at(0);
@@ -315,12 +331,59 @@ std::string SimpleMrsReader::readReln(std::string &rest) {
   return reln;
 }
 
+std::string SimpleMrsReader::readSurface(std::string &rest) {
+  debugMsg("reading surface", rest);
+  std::string surface = "";
+
+  if (rest.at(0) == '"') { 
+    rest.erase(0,1);
+    // needs to be Unicode-safe
+    while (!rest.empty()) {
+      if (rest.at(1) == '"') {
+        if (rest.at(0) != '\\') {
+          surface += rest.at(0);
+          rest.erase(0,1);
+          break;
+        }
+      }
+      surface += rest.at(0);
+      rest.erase(0,1);
+    }
+    //we should have broken, with rest[0] == '"'
+    if (!rest.empty() && rest.at(0) != '"') {
+      throw tError("Unterminated quoted string at \"" + rest + "\"."); 
+    } else {
+      if (!rest.empty())
+        rest.erase(0,1); //erase terminating quote
+    }
+  }
+  removeWhitespace(rest);
+  return surface;
+}
+
+std::string SimpleMrsReader::readLink(std::string &rest) {
+  debugMsg("reading link", rest);
+  std::string link = "";
+	while (!rest.empty() && isgraph(rest.at(0)) && rest.at(0) != '>') {
+		link += rest.at(0);
+		rest.erase(0,1);
+	}
+	if (rest.at(0) == '>') {
+		link += rest.at(0);
+		rest.erase(0,1);
+	} else {
+		throw tError("Unterminated link at \"" + rest + "\".");
+	}
+
+	return link;
+}
+
 #ifdef HAVE_XML
 tMrs* XmlMrsReader::readMrs(std::string input) {
   MrsHandler mrs_handler(false);
   std::string buffer = input;
   MemBufInputSource xml_input((const XMLByte *) buffer.c_str(), 
-			     buffer.length(), "STDIN");
+           buffer.length(), "STDIN");
   parse_file(xml_input, &mrs_handler);
   return mrs_handler.mrss().front();
 }

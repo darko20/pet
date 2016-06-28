@@ -87,6 +87,7 @@ class tEp : public tBaseEp {
     std::string link;
     int cfrom;
     int cto;
+    std::string surface;
 
 };
 
@@ -124,6 +125,8 @@ class tMrs : public tBaseMrs {
     tMrs() : tBaseMrs() {}
 
     tVar* index;
+    std::string surface;
+    std::string link;
 };
 
 struct ltep {
