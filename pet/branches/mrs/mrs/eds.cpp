@@ -66,6 +66,7 @@ tEds::tEds(tMrs *mrs):_counter(1) {
     }
     MmSNit newnode 
       = _nodes.insert(std::pair<std::string, tEdsNode *>(dvar_name, node));
+    _orderedNodes.push_back(node);
     // record which node(s) are attached to which handles
     handle2nodes.insert(std::pair<std::string,MmSNit>(handle_name, newnode));
     if (ep->quantifier_ep())
@@ -190,7 +191,7 @@ tEds::~tEds() {
 void tEds::print_eds() {
   std::cout << "{" << top << ":";
   if (cyclic || fragmented) {
-    std::cout << "(";
+    std::cout << " (";
     if (cyclic) {
       std::cout << "cyclic";
       if (fragmented) std::cout << " ";
@@ -199,16 +200,17 @@ void tEds::print_eds() {
     std::cout << ")";
   }
   std::cout << std::endl;
-  for (MmSNit it = _nodes.begin(); it != _nodes.end(); ++it) {
-    std::cout << (it->second->cyclic||it->second->fragmented?"|":" ") 
-      << it->second->dvar_name << ":" << it->second->pred_name
-      << it->second->link;
-    if (!it->second->carg.empty())
-      std::cout << "(\"" << it->second->carg << "\")";
+  for (std::vector<tEdsNode *>::iterator it = _orderedNodes.begin(); 
+        it != _orderedNodes.end(); ++it) {
+    std::cout << ((*it)->cyclic||(*it)->fragmented?"|":" ") 
+      << (*it)->dvar_name << ":" << (*it)->pred_name
+      << (*it)->link;
+    if (!(*it)->carg.empty())
+      std::cout << "(\"" << (*it)->carg << "\")";
     std::cout << "[";
     bool begun = false;
-    for (std::vector<tEdsEdge *>::iterator eit = it->second->outedges.begin();
-      eit != it->second->outedges.end(); ++eit) {
+    for (std::vector<tEdsEdge *>::iterator eit = (*it)->outedges.begin();
+      eit != (*it)->outedges.end(); ++eit) {
       if ((*eit)->target.empty()) continue;
       if ((_nodes.find((*eit)->target)) == _nodes.end()) continue;
       if (begun) 
@@ -220,7 +222,7 @@ void tEds::print_eds() {
     std::cout << "]" << std::endl;
   }
 
-  std::cout << "}" << std::endl;
+  std::cout << "}\n" << std::endl;
 }
 
 void tEds::print_triples() {
